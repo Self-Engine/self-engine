@@ -40,3 +40,10 @@ Code entsteht (D25). Desktop (Electron) ist das Hauptprodukt (D26).
 - L0.8 Tests (D42), L0.9 Versionierung ohne release-please (D43). Offen: L0.10 Agenten-Setup.
 - L0.10: Gate `pnpm verify` (D44), PRs + Push-Guard (D45), Sprache/ADRs (D46).
 - Versionen langsam bis 1.0 (D47), Issues ab Schicht 0 (D48), Skills für alle Agenten (D49).
+
+## Umsetzung (GitHub-Issues, D48)
+
+Reihenfolge nach Abhängigkeiten:
+#1 Monorepo-Gerüst → #2 Agenten-Setup → #3 Gate + Push-Guard → #4 Oxlint-Plugin, #5
+Modulgrenzen, #8 CI → #6 Desktop-Hülle (nur nach #1) → #7 Kanal-Identität → #9
+Release-Pipeline → #10 Signierung (Mensch).
