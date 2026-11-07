@@ -37,3 +37,4 @@ Code entsteht (D25). Desktop (Electron) ist das Hauptprodukt (D26).
 - L0.4 `vp check` mit Oxlint + Oxfmt (D35), L0.5 Modulgrenzen dreifach (D36).
 - L0.7 Routing wie t3code (D37). L0.9 erweitert um Kanäle dev/nightly/stable (D38).
 - Kanäle: getrennte Apps (D39), Stable aus Nightly-Commit (D40), Nightly automatisch bei Änderungen (D41).
+- L0.8 Tests (D42), L0.9 Versionierung ohne release-please (D43). Offen: L0.10 Agenten-Setup.

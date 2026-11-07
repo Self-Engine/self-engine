@@ -194,6 +194,13 @@ Vite. Damit ist ein funktionierender Weg für Electron unter Vite+ belegt.
 - **D41 Nightly automatisch jede Nacht, nur bei Änderungen seit dem letzten Nightly;**
   manueller Start zusätzlich möglich.
 
+- **D42 (L0.8) Tests:** Vitest über `vp test` für Logik und Daten, Vitest-Browser-Modus für
+  Komponenten, Playwright-Electron für Ende-zu-Ende ab Schicht 1.
+- **D43 (L0.9) Versionierung ohne release-please:** PR-Titel als Conventional Commits (in CI
+  geprüft), Stable von Hand mit Versionsnummer gestartet, Changelog beim Release aus den
+  Commits seit dem letzten Stable (z. B. git-cliff). _Grund:_ Der Release-PR von
+  release-please erzeugt einen Commit, der nie als Nightly lief (Widerspruch zu D40).
+
 ## Fakten
 
 - Self-Engine hat Abo-Infrastruktur über Clerk Billing (`apps/web/src/features/billing`),
