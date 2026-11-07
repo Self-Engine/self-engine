@@ -1,0 +1,34 @@
+packages:
+  - apps/*
+  - packages/*
+
+# Refuse installs on a Node version outside `engines` (Node 26, D34).
+engineStrict: true
+
+# pnpm 12 fails installs when a dependency has an unapproved build script.
+# true = may run its build script, false = never. Add entries as dependencies arrive.
+allowBuilds: {}
+
+catalog:
+  # Pinned to the Node version inside Electron (45.x ships Node 24), so TypeScript
+  # flags Node 26 APIs that the desktop main process does not have (D34).
+  "@types/node": 24.19.2
+  typescript: 7.0.2
+  # Vite+ replaces vite with its own core; every package that depends on vite gets it (D28).
+  vite: npm:@voidzero-dev/vite-plus-core@1.5.0
+  vite-plus: 1.5.0
+
+overrides:
+  "@types/node": "catalog:"
+  vite: "catalog:"
+  vite-plus: "catalog:"
+
+# Unmet peers fail resolution, so a pin outside a peer range shows up when the
+# lockfile changes instead of scrolling past as a warning.
+strictPeerDependencies: true
+
+# Vite+ aliases vite to vite-plus-core@1.5.0, so peers like "vite ^8" see 1.5.0
+# (vite-plus issue #2806). Same rule as t3code.
+peerDependencyRules:
+  allowedVersions:
+    vite: "*"
