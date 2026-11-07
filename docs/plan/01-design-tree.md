@@ -23,18 +23,15 @@ Pro Runde werden nur 2–3 Fragen gestellt; die Nummern sind stabil.
 - ✅ Plattform: Desktop + Web (D6)
   - ✅ Desktop-Shell: Electron (D17)
   - ❓ Q15 UI-Stack (Empfehlung: Mantine + eigene UI-Schicht für Plugins)
-- ✅ Fachmodule + generische Schicht (D8)
-  - ✅ Feste Modulgrenzen ab Tag 1, Manifest ab Modul 3 (D10)
-  - ❓ Q22 Datenmodell → Vertiefung in 02-storage-options.md
-    - ✅ Ziel eigene Typen, zuerst eigene Felder (D15)
+- ✅ Produktkern: fokussierte App, Modularität Stufe 1–3 (D20)
+  - ✅ Fachmodule mit festen Grenzen ab Tag 1, Manifest ab Modul 3 (D8, D10)
+  - ✅ Plugins von anderen: irgendwann, kein Architekturziel jetzt (D21)
+  - ❓ Q22 Datenmodell, neu geöffnet nach D20/D21 (Kandidat: Tabellen pro Modul + `custom`-Spalte)
     - ✅ Recherche Datenmodelle → research-data-models.md (D16)
-    - ✅ Prototyp-Vergleich, nur Desktop → prototypes/data-model/RESULTS.md (D19), Empfehlung V3
-    - ❓ Q22 final: V3 übernehmen?
-    - ⏳ Lese-Tabellen aktuell halten, wenn Änderungen per Sync kommen (Trigger vs. Neuaufbau pro Batch)
-    - ⏳ Bulk-Neuaufbau auf Web und Mobile messen
-  - ⏳ Generische Schicht: wann und wie viel
+    - ✅ Prototyp-Vergleich, nur Desktop → prototypes/data-model/RESULTS.md (D19); V3 gewann unter der alten Annahme „Plugins ohne Migration“
+  - ⏳ Module an-/abschalten, Sidebar/Dashboard anordnen
+  - ⏳ Eigene Felder (Umfang, Feldtypen)
   - ⏳ Brücken zwischen Modulen (z. B. Abrechnung Zeit → Finanzen)
-  - ⏳ Öffentliche Plugin-API, Sandbox, Berechtigungen
 - ✅ Sync später, eigene Speicher-Schnittstelle, Engine in der Sync-Phase (D11)
   - ⏳ Spaces, Autorität, Konflikte
   - ⏳ Policies (Ebenen, Sperren)

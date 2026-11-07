@@ -91,6 +91,22 @@ Langfristig Plugins von Dritten. Ersetzt Self-Engine.
   Lese-Tabellen), synthetische Daten in Self-Engine-Form. Web, Mobile und Sync-Test
   folgen in den jeweiligen Phasen. Ort: `prototypes/data-model/`.
 
+### Runde 7 (2026-11-07): Kurskorrektur
+
+- **D20 Produktkern: fokussierte App, kein Baukasten.** Projekte, Zeit, Finanzen,
+  Kalender und Gewohnheiten, gut gebaut. Nutzer können Module an- und abschalten, die
+  Oberfläche anordnen und eigene Felder ergänzen (Modularität Stufe 1–3). Eigene Typen à la
+  Notion (Stufe 5) sind kein Ziel mehr. _Gründe:_ Solo und Teilzeit, Mobile und Sync sind
+  Pflicht vor dem Stichtag (D14), beim Baukasten Konkurrenz durch Notion, Anytype, Obsidian
+  und Tana, die Nische „lokal, offen, Zeit + Finanzen + Arbeitgeber-Modus“ ist frei.
+  _Verworfen:_ Baukasten, in dem Zeiterfassung ein Modul unter vielen ist. _Ersetzt:_ D15
+  (Ziel eigene Typen) und schwächt D8 ab (generische Schicht nur für eigene Felder).
+- **D21 Plugins von anderen: „irgendwann“, kein Architekturziel jetzt.** Die Tür bleibt
+  nur durch saubere Modulgrenzen (D10) offen. Keine Plugin-API, keine Sandbox, kein
+  generisches Datenmodell für fremde Module in der Planung. _Folge:_ Q22 (Datenmodell) wird
+  neu geöffnet; der Vorteil von V3 („neues Feld ohne Migration“) zählt vor allem für fremde
+  Plugins. Kandidat jetzt: Tabellen pro Modul + `custom`-JSON-Spalte für Nutzerfelder.
+
 ## Fakten
 
 - Self-Engine hat Abo-Infrastruktur über Clerk Billing (`apps/web/src/features/billing`),
