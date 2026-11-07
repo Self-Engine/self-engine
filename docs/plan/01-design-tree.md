@@ -21,6 +21,7 @@ Pro Runde werden nur 2–3 Fragen gestellt; die Nummern sind stabil.
   - ✅ Lizenz: AGPL App/Server, MIT SDK (D18)
   - ❓ Q12 Geschäftsmodell (Empfehlung: Sync & Org-Spaces bezahlt, Selbsthosten frei)
   - ⏳ Community / Governance
+  - ⏳ Vor dem Öffentlich-Machen: Git-Historie durchsehen (Interna, Geschäftsmodell); danach ist Entfernen praktisch unmöglich
 - ✅ Self-Engine (D3)
   - ❓ Q13 Was in Self-Engine noch passieren darf
   - ⏳ Import aus Self-Engine: Format, Umfang, ab welchem Meilenstein
