@@ -17,7 +17,9 @@ Pro Runde werden nur 2–3 Fragen gestellt; die Nummern sind stabil.
       - ✅ Hüllen-Beitrag pro Modul, TanStack Hotkeys, verify-desktop (D74–D76)
       - ✅ Routen, Fenster, Rückmeldung (D77–D79)
       - ✅ Einstellungen, Barrierefreiheit, Issues (D80–D82)
-    - ⏳ Schicht 2 Datenschicht
+    - ❓ Schicht 2 Datenschicht (in Vertiefung) → research-layer-2-data.md
+      - ✅ Umfang, Sync-Konventionen, benannte Operationen (D86–D88)
+      - ❓ Datenprozess, Abfrage-Schicht, Live-Updates (L2.4–L2.6)
     - ⏳ Schicht 3 Gemeinsamer Kern
     - ⏳ Schicht 4 Projekte + Zeit
     - ⏳ Schicht 5 Import

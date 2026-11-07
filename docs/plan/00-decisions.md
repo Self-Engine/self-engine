@@ -341,6 +341,26 @@ Vite. Damit ist ein funktionierender Weg für Electron unter Vite+ belegt.
   ⌘K, Tastenkürzel und später der Agent dieselben Befehle aufrufen. D64 (angedockter
   Assistent) bleibt vorläufig; die Form wird beim Bau entschieden.
 
+### Runde 15 (2026-11-08): Schicht 2, Grundrichtung
+
+Grundlage: [`research-layer-2-data.md`](research-layer-2-data.md).
+
+- **D86 (L2.1) Schicht 2 liefert nur das Fundament:** Datenbank im Desktop, Migrationen,
+  das Muster für Speicher-Ports (ein Port pro Modul, In-Memory-Fake, Contract-Tests),
+  Einstellungen in der Datenbank (Fortsetzung von #15) sowie Sicherung und
+  Wiederherstellung der Datenbankdatei. Fachliche Tabellen kommen erst in Schicht 3 und 4.
+- **D87 (L2.2) Sync-taugliche Konventionen ab Tag 1, auch ohne Sync:** `id` als
+  Text-Primärschlüssel mit UUIDv7, `created_at`/`updated_at` als UTC-Text, weiches Löschen
+  über `deleted_at`, `space_id` an jeder Tabelle, die später synct. `STRICT`-Tabellen,
+  Fremdschlüssel `DEFERRABLE INITIALLY DEFERRED`, `custom` als JSON-Text. Brückentabellen
+  bekommen eine eigene `id` plus eindeutiges Paar (PowerSync kennt keine zusammengesetzten
+  Schlüssel).
+- **D88 (L2.3) Jede Änderung ist eine benannte Operation** (z. B. `timeEntry.stop`) durch
+  den Port, kein freies `UPDATE`. Passt zu Befehlsregister (D75) und Agent (D85); später
+  prüft der Server im Org-Space dieselbe Operation. Kein dauerhaftes Operations-Protokoll
+  jetzt; Rückgängig beim Löschen (D79) läuft über weiches Löschen. Das Protokoll kommt mit
+  Sync. _Verworfen:_ Protokoll ab Tag 1 (Verlauf, allgemeines Rückgängig).
+
 ## Fakten
 
 - Self-Engine hat Abo-Infrastruktur über Clerk Billing (`apps/web/src/features/billing`),
