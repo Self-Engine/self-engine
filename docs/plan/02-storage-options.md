@@ -1,6 +1,6 @@
 # Vertiefung: Wie werden Daten gespeichert? (Q22)
 
-Stand: 2026-11-07 · Status: in Diskussion
+Stand: 2026-11-07 · Status: Recherche abgeschlossen, Prototyp offen
 
 ## Zwei Arten von „generisch“
 
@@ -63,6 +63,31 @@ Eine Kombination aus B, einem Teil von C und optional D:
 Optional (D): Schreibvorgänge zusätzlich als **Operationen-Log** speichern. Das gibt
 Historie und Undo und passt zur späteren Server-Prüfung, kostet aber Komplexität. Kann
 später ergänzt werden, wenn die Schreibschnittstelle von Anfang an aus Operationen besteht.
+
+## Nach der Recherche geschärft
+
+Quelle: [`research-data-models.md`](research-data-models.md). Der Kandidat bleibt, mit fünf
+Änderungen:
+
+1. **Modulfelder und Nutzerfelder getrennt** (`data` vs. `custom`). Fachregeln (Rundung,
+   Überschneidungen) lesen nie Nutzerfelder.
+2. **Feld-Definitionen global pro Space** (wie Anytype), mit stabilen IDs statt Namen;
+   Typen hängen Felder per Link an.
+3. **Verweise nach Besitz:** Was einem Objekt gehört (Zeiteintrag → Projekt), steht im
+   Feld; `links` wird daraus abgeleitet (Index für Backlinks). Nur Brücken zwischen Modulen
+   (Zeiteintrag → Payout) sind eigene Links, die dem Brückenmodul gehören.
+4. **Auswertungen nur über deklarierte, lokal erzeugte Projektionen** (generierte Spalten
+   oder Lese-Tabellen), jederzeit neu aufbaubar. Grobe Messung: so schnell wie echte
+   Tabellen, wenn der Index passt; Planner-Falle ohne Statistiken (3–6× langsamer); Join
+   über `links` ~6× langsamer als ein Feld in der Zeile.
+5. **Schreiben über semantische Operationen + Operations-Log**; im Org-Space führt der
+   Server denselben Prüfcode aus (Vorbilder: Notion-Transaktionen, Logseq-Operationen).
+
+Nicht übernommen: Twentys Laufzeit-Spalten als synchronisierte Form (nur als Vorbild für die
+Metadaten-Schicht), Datascript im Speicher, CRDT-Dokumente. Bei PowerSync müsste `objects`
+eine selbst verwaltete Raw Table werden, damit JSON-Ausdrucks-Indizes möglich sind.
+
+Messskript der Mini-Messung: [`prototypes/storage-bench/`](../../prototypes/storage-bench/).
 
 ## Offene Risiken
 

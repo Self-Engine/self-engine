@@ -1,0 +1,10 @@
+import { Database } from "bun:sqlite";
+const db = new Database(":memory:");
+db.exec(`create table objects(id text primary key, type text, fields blob, deleted int default 0);
+create index objects_type on objects(type, deleted);
+alter table objects add column g_start int as (fields->>'$.startAt');
+alter table objects add column g_end int as (fields->>'$.endAt');
+alter table objects add column g_ref1 text as (fields->>'$.projectId');
+create index obj_gen on objects(type, g_start, g_end, g_ref1) where type='time_entry';`);
+console.log(db.query(`explain query plan select g_ref1, strftime('%Y-%m', g_start/1000,'unixepoch') m, sum(g_end-g_start) from objects where type='time_entry' group by 1,2`).all().map((x:any)=>x.detail));
+console.log(db.query(`explain query plan select g_ref1, strftime('%Y-%m', g_start/1000,'unixepoch') m, sum(g_end-g_start) from objects indexed by obj_gen where type='time_entry' group by 1,2`).all().map((x:any)=>x.detail));
