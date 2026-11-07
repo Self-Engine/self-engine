@@ -1,4 +1,4 @@
-// PROTOTYPE: the app shell (D55, D56, D59, D60). One component, three looks via `variant`.
+// PROTOTYPE: the app shell (D55, D56, D59, D60). One component, several looks via `variant`.
 import { ActionIcon, Badge, Burger, Button, Drawer, Kbd, Text, Tooltip, UnstyledButton } from "@mantine/core";
 import { useHotkeys, useViewportSize } from "@mantine/hooks";
 import { Spotlight, spotlight, type SpotlightActionData } from "@mantine/spotlight";
@@ -16,7 +16,8 @@ import { Assistant } from "./Assistant";
 import { EditDrawer } from "./EditDrawer";
 import classes from "./shell.module.css";
 
-export type Variant = "A" | "B" | "C";
+export type Variant = "A" | "A2" | "B" | "B2" | "B3" | "C";
+const ROUNDED: Variant[] = ["A2", "B", "B2", "B3"];
 
 const ICON_W = 60;
 const MIN_WIDE = 168;
@@ -297,6 +298,7 @@ export function Shell({ variant, accent }: { variant: Variant; accent: Accent })
         </div>
       )}
       <div className={classes.body}>
+        <div className={classes.navGroup}>
         {showNavbar && (
           <Navbar
             width={effNavW}
@@ -310,6 +312,7 @@ export function Shell({ variant, accent }: { variant: Variant; accent: Accent })
           />
         )}
         {sidebarInline && <ModuleSidebar mod={mod} showTraffic={false} />}
+        </div>
         <main className={classes.main}>
           {header}
           <Content mod={mod} rows={list} onOpen={setEditing} />
@@ -355,6 +358,7 @@ export function Shell({ variant, accent }: { variant: Variant; accent: Accent })
       </Drawer>
 
       <EditDrawer
+        rounded={ROUNDED.includes(variant)}
         row={editing}
         moduleLabel={mod.label}
         onClose={() => setEditing(null)}

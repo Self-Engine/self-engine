@@ -1,4 +1,4 @@
-// PROTOTYPE: three looks of the same shell (D55–D64), switchable via ?variant=.
+// PROTOTYPE: several looks of the same shell (D55–D64), switchable via ?variant=.
 import {
   type CSSVariablesResolver,
   MantineProvider,
@@ -12,13 +12,15 @@ import { PrototypeBar } from "./PrototypeBar";
 
 const VARIANTS: { key: Variant; name: string }[] = [
   { key: "A", name: "Flach (t3code-artig)" },
+  { key: "A2", name: "Flach, abgerundet" },
   { key: "B", name: "Schwebend (Inhalt als Karte)" },
-  { key: "C", name: "Kompakt (Titelleiste oben)" },
+  { key: "B2", name: "Schwebend, drei Container" },
+  { key: "B3", name: "Schwebend, Navigation in einem Container" },
 ];
 
 function readVariant(): Variant {
   const v = new URLSearchParams(location.search).get("variant");
-  return v === "B" || v === "C" ? v : "A";
+  return (["A", "A2", "B", "B2", "B3", "C"] as const).find((k) => k === v) ?? "A";
 }
 
 const resolver: CSSVariablesResolver = (theme) => {

@@ -14,6 +14,10 @@
   min-height: 0;
 }
 
+.navGroup {
+  display: contents;
+}
+
 /* ---------- Navbar ---------- */
 .navbar {
   position: relative;
@@ -421,4 +425,106 @@
 .root[data-variant="C"] .navItem,
 .root[data-variant="C"] .sideItem {
   border-radius: 4px;
+}
+
+/* ===================== Variant A2: flat, rounded ===================== */
+.root[data-variant="A2"] {
+  background: var(--se-chrome);
+}
+.root[data-variant="A2"] .navbar,
+.root[data-variant="A2"] .sidebar {
+  border-right: 0;
+}
+.root[data-variant="A2"] .main {
+  margin-top: 8px;
+  border-top-left-radius: 18px;
+  border-top: 1px solid var(--se-border);
+  border-left: 1px solid var(--se-border);
+}
+.root[data-variant="A2"][data-step="phone"] .main {
+  margin-top: 0;
+  border-radius: 0;
+  border: 0;
+}
+.root[data-variant="A2"] .navItem {
+  border-radius: 12px;
+}
+.root[data-variant="A2"] .navItem[data-active] {
+  background: var(--se-canvas);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.06);
+}
+.root[data-variant="A2"] .sideItem {
+  border-radius: 999px;
+  padding: 0 12px;
+}
+.root[data-variant="A2"] .stat,
+.root[data-variant="A2"] .list {
+  border-radius: 16px;
+}
+.root[data-variant="A2"] .assistant {
+  margin: 8px 8px 0 0;
+  border-radius: 18px 18px 0 0;
+  border: 1px solid var(--se-border);
+  border-bottom: 0;
+  height: auto;
+}
+
+/* ============ Variants B2/B3: floating, navigation in containers ============ */
+.root[data-variant="B2"],
+.root[data-variant="B3"] {
+  background: color-mix(in oklab, var(--se-chrome) 85%, var(--mantine-primary-color-filled));
+}
+.root[data-variant="B2"] .body,
+.root[data-variant="B3"] .body {
+  padding: 8px;
+  gap: 8px;
+}
+.root[data-variant="B2"] .navbar,
+.root[data-variant="B2"] .sidebar,
+.root[data-variant="B3"] .navGroup,
+.root[data-variant="B2"] .main,
+.root[data-variant="B3"] .main,
+.root[data-variant="B2"] .assistant,
+.root[data-variant="B3"] .assistant {
+  border-radius: 16px;
+  border: 1px solid var(--se-border);
+  box-shadow: 0 4px 24px rgb(0 0 0 / 0.06);
+}
+.root[data-variant="B2"] .navbar,
+.root[data-variant="B2"] .sidebar {
+  background: color-mix(in oklab, var(--se-surface) 70%, transparent);
+}
+.root[data-variant="B3"] .navGroup {
+  display: flex;
+  overflow: hidden;
+  background: color-mix(in oklab, var(--se-surface) 70%, transparent);
+}
+.root[data-variant="B3"] .navbar {
+  background: transparent;
+  border-right: 1px solid var(--se-border);
+}
+.root[data-variant="B3"] .sidebar {
+  background: transparent;
+  border-right: 0;
+}
+.root[data-variant="B2"] .navItem,
+.root[data-variant="B3"] .navItem {
+  border-radius: 10px;
+}
+.root[data-variant="B2"] .navItem[data-active],
+.root[data-variant="B3"] .navItem[data-active] {
+  background: var(--mantine-primary-color-light);
+}
+.root[data-variant="B2"] .header,
+.root[data-variant="B3"] .header {
+  border-bottom: 0;
+  padding-top: 18px;
+}
+.root[data-variant="B2"] .list,
+.root[data-variant="B3"] .list {
+  border-radius: 14px;
+}
+.root[data-variant="B2"] .stat,
+.root[data-variant="B3"] .stat {
+  border-radius: 14px;
 }

@@ -4,13 +4,14 @@ import { useEffect, useState } from "react";
 import type { Row } from "../data";
 
 type Props = {
+  rounded: boolean;
   row: Row | null;
   moduleLabel: string;
   onClose: () => void;
   onSave: (row: Row) => void;
 };
 
-export function EditDrawer({ row, moduleLabel, onClose, onSave }: Props) {
+export function EditDrawer({ rounded, row, moduleLabel, onClose, onSave }: Props) {
   const [draft, setDraft] = useState<Row | null>(row);
   const [notes, setNotes] = useState("");
   const [confirm, setConfirm] = useState(false);
@@ -32,6 +33,8 @@ export function EditDrawer({ row, moduleLabel, onClose, onSave }: Props) {
         onClose={requestClose}
         position="right"
         size={460}
+        offset={rounded ? 8 : 0}
+        radius={rounded ? 16 : 0}
         overlayProps={{ backgroundOpacity: 0.35, blur: 2 }}
         title={
           <Stack gap={0}>
