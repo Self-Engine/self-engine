@@ -1,6 +1,6 @@
 # Schicht 1: Design-System und App-Hülle
 
-Stand: 2026-11-08 · Status: **in Planung** (parallel zum Bau von Schicht 0, D53)
+Stand: 2026-11-08 · Status: **entschieden** (D54–D82); Zuschnitt in Issues folgt
 
 ## Entschieden
 
@@ -31,6 +31,9 @@ Stand: 2026-11-08 · Status: **in Planung** (parallel zum Bau von Schicht 0, D53
 | L1.19 | Routen | `/<modul>/<ansicht>`, `?edit=<id>`, `/settings/<bereich>` (D77) |
 | L1.20 | Fenster | Mac `hiddenInset`, Win/Linux `titleBarOverlay`, pro Kanal gemerkt (D78) |
 | L1.21 | Rückmeldung | Notifications, Rückgängig statt Nachfrage, Zustands-Bausteine (D79) |
+| L1.22 | Einstellungen | Eigener Bereich mit Abschnitten und Suche (D80) |
+| L1.23 | Barrierefreiheit | Tastatur, Fokus, Kontrast-Test AA, reduzierte Bewegung (D81) |
+| L1.24 | Issues | Jetzt zerlegen, `layer:1` (D82) |
 
 ## Referenz t3code-Theming (geprüft 2026-11-08)
 
@@ -42,7 +45,7 @@ Stand: 2026-11-08 · Status: **in Planung** (parallel zum Bau von Schicht 0, D53
 
 ## Offen
 
-- Einstellungsseite (Aufbau), Barrierefreiheit, Bewegung/Animationen, Zuschnitt in Issues
+- Akzentfarbe/Schrift nach ersten echten Bildschirmen noch einmal ansehen
 - Form des Agenten (mit Q16)
 - Später: i18n-Mechanik (DE/EN), Schriften, Icons, Befehlspalette, Einstellungsseite,
   Tastaturkürzel-System, App-Check-Skill, Komponenten-Katalog (Storybook o. ä.)

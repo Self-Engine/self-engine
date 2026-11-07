@@ -313,6 +313,15 @@ Vite. Damit ist ein funktionierender Weg für Electron unter Vite+ belegt.
   Rückgängig statt Nachfrage beim Löschen; Nachfrage nur beim Verwerfen (D63) und bei
   Unumkehrbarem. Leer-, Lade- und Fehlerzustände sind Bausteine des Design-Systems im
   Katalog.
+- **D80 (L1.22) Einstellungen als eigener Bereich** wie ein Modul: Abschnitte in der
+  Modul-Sidebar, Suche über alle Einstellungen. Start-Abschnitte: Darstellung, Sprache und
+  Region, Tastaturkürzel (Übersicht), Module, Daten (inkl. „Daten aus Stable kopieren“,
+  D40), Über und Updates.
+- **D81 (L1.23) Barrierefreiheit und Bewegung ab Schicht 1:** alles per Tastatur, sichtbarer
+  Fokus-Ring, Kontrast jedes Themes im Test nach WCAG AA, dezente Animationen
+  (150–200 ms), aus bei „Bewegung reduzieren“.
+- **D82 (L1.24) Schicht 1 jetzt in Issues zerlegen** (`layer:1`, abhängig von Schicht 0).
+  Prototyp B3 ist Vorlage, kein übernommener Code.
 
 ## Fakten
 
