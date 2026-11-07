@@ -12,7 +12,7 @@ import {
 } from "@mantine/core";
 import { IconAdjustments, IconChevronLeft, IconChevronRight } from "@tabler/icons-react";
 import { useEffect } from "react";
-import { ACCENTS, THEMES, type Settings } from "./themes";
+import { ACCENTS, FONTS, THEMES, type Settings } from "./themes";
 import type { Variant } from "./shell/Shell";
 
 type Props = {
@@ -117,6 +117,16 @@ export function PrototypeBar({ variants, current, onChange, settings, onSettings
                   />
                 ))}
               </Group>
+              <Text size="xs" fw={700} tt="uppercase" c="dimmed">
+                Schrift
+              </Text>
+              <SegmentedControl
+                fullWidth
+                size="xs"
+                value={settings.font}
+                onChange={(v) => set("font", v as Settings["font"])}
+                data={Object.entries(FONTS).map(([value, f]) => ({ value, label: f.label }))}
+              />
               <Text size="xs" fw={700} tt="uppercase" c="dimmed">
                 Dichte
               </Text>

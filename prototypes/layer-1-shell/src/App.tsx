@@ -6,7 +6,7 @@ import {
   useMantineColorScheme,
 } from "@mantine/core";
 import { useEffect, useMemo, useState } from "react";
-import { DEFAULT_SETTINGS, ROLES, THEMES, type Settings, type ThemeDef } from "./themes";
+import { DEFAULT_SETTINGS, FONTS, ROLES, THEMES, type Settings, type ThemeDef } from "./themes";
 import { Shell, type Variant } from "./shell/Shell";
 import { PrototypeBar } from "./PrototypeBar";
 
@@ -49,11 +49,11 @@ export function App() {
     return createTheme({
       primaryColor: settings.accent,
       defaultRadius: "md",
-      fontFamily:
-        'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, system-ui, sans-serif',
+      fontFamily: FONTS[settings.font].stack,
+      headings: { fontFamily: FONTS[settings.font].stack },
       other: { def },
     });
-  }, [settings.theme, settings.accent]);
+  }, [settings.theme, settings.accent, settings.font]);
 
   useEffect(() => {
     document.documentElement.style.fontSize = `${16 * settings.fontScale}px`;

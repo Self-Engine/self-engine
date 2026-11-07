@@ -110,6 +110,13 @@ export const MODULE_COLORS: Record<ModuleId, string> = {
   habits: "pink",
 };
 
+export const FONTS = {
+  inter: { label: "Inter", stack: '"Inter Variable", system-ui, sans-serif' },
+  geist: { label: "Geist", stack: '"Geist Variable", system-ui, sans-serif' },
+  system: { label: "System", stack: '-apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif' },
+} as const;
+export type FontId = keyof typeof FONTS;
+
 export type Density = "compact" | "comfortable";
 export type ColorMode = "light" | "dark" | "auto";
 
@@ -119,6 +126,7 @@ export type Settings = {
   mode: ColorMode;
   fontScale: number;
   density: Density;
+  font: FontId;
 };
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -127,6 +135,7 @@ export const DEFAULT_SETTINGS: Settings = {
   mode: "auto",
   fontScale: 1,
   density: "comfortable",
+  font: "inter",
 };
 
 export type { MantineColorsTuple };
