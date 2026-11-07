@@ -107,6 +107,22 @@ Langfristig Plugins von Dritten. Ersetzt Self-Engine.
   neu geöffnet; der Vorteil von V3 („neues Feld ohne Migration“) zählt vor allem für fremde
   Plugins. Kandidat jetzt: Tabellen pro Modul + `custom`-JSON-Spalte für Nutzerfelder.
 
+### Runde 8 (2026-11-07)
+
+- **D22 Datenmodell: Tabellen pro Modul-Entität + `custom`-JSON-Spalte für Nutzerfelder +
+  eigene Verknüpfungstabellen für Brücken** (z. B. `payout_entries` statt `paid`/`payout_id`
+  am Zeiteintrag). Schema-Änderungen über normale Migrationen; die DB prüft Verweise.
+  _Verworfen:_ V3 (`objects` + Lese-Tabellen) und V2, weil fremde Plugins kein Ziel mehr
+  sind (D21). Prototyp-Ergebnis: V1 ist bei Auswertungen gleich schnell wie V3.
+- **D23 UI: React + Mantine, von Grund auf neu und von unten nach oben.** Zuerst die
+  App-Hülle (Navbar, Sidebar, Seitenrahmen, Theme, Grundkomponenten) fertig gestalten, dann
+  kommen die Module hinein. Eigene, überarbeitete Optik. Keine eigene UI-Schicht für Plugins
+  (D21).
+- **D24 Sprachen: Deutsch + Englisch in der App ab Tag 1; Code und Doku Englisch.**
+- **Leitprinzip (zu D23): Das Projekt wird stabil von unten nach oben gebaut.** Jede Schicht
+  ist fertig und getestet, bevor die nächste darauf aufsetzt; keine Fachfunktion vor ihrem
+  Fundament.
+
 ## Fakten
 
 - Self-Engine hat Abo-Infrastruktur über Clerk Billing (`apps/web/src/features/billing`),

@@ -1,6 +1,8 @@
 # Vertiefung: Wie werden Daten gespeichert? (Q22)
 
-Stand: 2026-11-07 · Status: Recherche abgeschlossen, Prototyp offen
+Stand: 2026-11-07 · Status: **überholt.** Entschieden ist D22 (Tabellen pro Modul +
+`custom`-Spalte), nachdem D20/D21 Baukasten und fremde Plugins als Ziel gestrichen haben.
+Dieses Dokument bleibt als Begründung erhalten.
 
 ## Zwei Arten von „generisch“
 
