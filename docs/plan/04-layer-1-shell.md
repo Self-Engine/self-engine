@@ -18,6 +18,7 @@ Stand: 2026-11-08 · Status: **in Planung** (parallel zum Bau von Schicht 0, D53
 | L1.7 | Drawer | Bearbeiten über dem Inhalt mit Verwerfen-Bestätigung (D63); Assistent angedockt, vorläufig (D64) |
 | L1.8 | Prototyp | Wegwerf-Prototyp der Hülle vor dem Bau (D65) |
 | L1.9 | i18n | Lingui (D66) |
+| L1.8 | Optik | Prototyp-Variante B3: Navigation und Inhalt als zwei schwebende Container (D67) |
 
 ## Referenz t3code-Theming (geprüft 2026-11-08)
 

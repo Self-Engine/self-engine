@@ -277,6 +277,11 @@ Vite. Damit ist ein funktionierender Weg für Electron unter Vite+ belegt.
   `prototypes/layer-1-shell/`: Navbar, Modul-Sidebar, Drawer, Hell/Dunkel, umschaltbare
   Akzentfarben und Themes. Akzentfarbe, Dichte und Abstände werden daran entschieden.
 - **D66 (L1.9) Übersetzung mit Lingui** (wie die alte App).
+- **D67 (L1.8) Optik der Hülle: Variante B3 des Prototyps** („Schwebend, Navigation in
+  einem Container“): leicht mit der Akzentfarbe eingefärbter Hintergrund; Navbar und
+  Modul-Sidebar teilen sich einen abgerundeten Container (feine Trennlinie), der Inhalt ist
+  ein zweiter Container; abgerundete Kacheln, Listen und Drawer. Quelle:
+  `prototypes/layer-1-shell/` (`?variant=B3`).
 
 ## Fakten
 
