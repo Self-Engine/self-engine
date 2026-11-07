@@ -9,7 +9,14 @@ Pro Runde werden nur 2–3 Fragen gestellt; die Nummern sind stabil.
   - ✅ Mobile + Sync sind Pflicht vor dem Stichtag (D14)
   - ✅ Schichtenfolge als Rahmen, jede Schicht mit eigener Vertiefung (D25)
     - ✅ Schicht 0 Repo-Fundament entschieden (D28–D49) → 03-layer-0-foundation.md
-    - ❓ Schicht 1 Design-System + App-Hülle (Planung parallel zum Bau von Schicht 0, D53)
+    - ✅ Schicht 1 Design-System + App-Hülle entschieden (D54–D82) → 04-layer-1-shell.md
+      - ✅ Optik, Hülle, Desktop-Gefühl, Styling, Farben, kleine Fenster, rechte Seite, Theming, Einstellungen, Drawer, i18n (D54–D66)
+      - ✅ Optik: Prototyp-Variante B3 (D67)
+      - ✅ Blau, Neutral, eingefärbter Hintergrund, Dichte Bequem (D68–D70)
+      - ✅ Inter, Phosphor, Storybook (D71–D73)
+      - ✅ Hüllen-Beitrag pro Modul, TanStack Hotkeys, verify-desktop (D74–D76)
+      - ✅ Routen, Fenster, Rückmeldung (D77–D79)
+      - ✅ Einstellungen, Barrierefreiheit, Issues (D80–D82)
     - ⏳ Schicht 2 Datenschicht
     - ⏳ Schicht 3 Gemeinsamer Kern
     - ⏳ Schicht 4 Projekte + Zeit
