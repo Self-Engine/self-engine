@@ -159,6 +159,20 @@ electron-builder + electron-updater. **Kein electron-vite:** Main und Preload we
 `vp pack` (tsdown) als CJS gebaut, der Renderer ist die Web-App (`apps/web`), gebaut mit
 Vite. Damit ist ein funktionierender Weg für Electron unter Vite+ belegt.
 
+### Runde 11 (2026-11-08)
+
+- **D32 (L0.6, S1) Electron-Aufbau wie t3code (Weg A):** Main und Preload mit `vp pack` als
+  CJS, Renderer als normale Vite-App, Paketierung mit electron-builder, Updates mit
+  electron-updater. _Verworfen:_ electron-vite (funktioniert, bleibt Ausweichlösung),
+  Electron Forge (verlangt `node-linker=hoisted`).
+- **D33 (S2) SQLite: better-sqlite3 13** (N-API, ein Binary für Node und Electron),
+  `npmRebuild: false` in electron-builder, Tests direkt mit `vp test` in Node.
+  `node:sqlite` beobachten.
+- **D34 Node-Version wie t3code:** `engines` auf Node 26 (Werkzeuge, Tests),
+  `@types/node` auf die Node-Version von Electron gepinnt (aktuell 24), damit TypeScript
+  Node-26-APIs meldet, die Electron noch nicht kennt. Offen: zusätzlicher CI-Lauf mit
+  `ELECTRON_RUN_AS_NODE` (im Spike erprobt), nicht Teil des t3code-Vorbilds.
+
 ## Fakten
 
 - Self-Engine hat Abo-Infrastruktur über Clerk Billing (`apps/web/src/features/billing`),
