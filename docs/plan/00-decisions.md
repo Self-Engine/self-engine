@@ -292,6 +292,17 @@ Vite. Damit ist ein funktionierender Weg für Electron unter Vite+ belegt.
   nur über ein eigenes Icon-Paket eingebunden, damit ein Wechsel an einer Stelle bleibt.
 - **D73 (L1.15) Komponenten-Katalog mit Storybook ab Schicht 1**, verbunden mit Vitest im
   Browser-Modus (Stories sind Tests). Das Design-System entsteht zuerst im Katalog.
+- **D74 (L1.16) Module melden sich mit einem typisierten Hüllen-Beitrag an:** ID, Name
+  (DE/EN), Icon, Modulfarbe, Inhalt der Modul-Sidebar, Routen, Befehle/Kürzel,
+  Bearbeiten-Drawer. Die Hülle setzt nur zusammen und kennt keine Modul-Details. Schlanke
+  Vorstufe des Manifests (D10). Schicht 1 testet mit zwei Platzhalter-Modulen.
+- **D75 (L1.17) Tastaturkürzel mit TanStack Hotkeys** (`@tanstack/react-hotkeys`; geprüft
+  2026-11-08: Kern 0.24.0, React 0.22.0, **Beta**). Darüber ein eigenes zentrales
+  Befehls-Register (ID, Text, Standard-Kürzel), das auch ⌘K speist und doppelte Kürzel im
+  Test findet. Eigenes Neubelegen später, mit den Recorder-Hilfen der Bibliothek.
+- **D76 (L1.18) Skill `verify-desktop` in Schicht 1:** startet die Electron-App über
+  Playwright, klickt einen Ablauf durch, Screenshots in Hell/Dunkel und mehreren Breiten.
+  Nur auf ausdrücklichen Wunsch, kein Gate.
 
 ## Fakten
 

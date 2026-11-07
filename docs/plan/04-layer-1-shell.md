@@ -25,6 +25,9 @@ Stand: 2026-11-08 · Status: **in Planung** (parallel zum Bau von Schicht 0, D53
 | L1.13 | Schrift | Inter, mitgeliefert (D71) |
 | L1.14 | Icons | Phosphor über eigenes Icon-Paket (D72) |
 | L1.15 | Katalog | Storybook + Vitest-Browser-Modus (D73) |
+| L1.16 | Modul ↔ Hülle | Typisierter Hüllen-Beitrag pro Modul (D74) |
+| L1.17 | Kürzel | TanStack Hotkeys (Beta) + eigenes Befehls-Register (D75) |
+| L1.18 | App-Check | Skill `verify-desktop` (D76) |
 
 ## Referenz t3code-Theming (geprüft 2026-11-08)
 
@@ -36,7 +39,7 @@ Stand: 2026-11-08 · Status: **in Planung** (parallel zum Bau von Schicht 0, D53
 
 ## Offen
 
-- L1.16 Vertrag Modul ↔ Hülle · L1.17 Tastaturkürzel · L1.18 App-Check-Skill
+- Routen-Struktur, Einstellungsseite, Fenster/Titelleiste in Electron, Zustände (leer, laden, Fehler), Benachrichtigungen
 - Form des Agenten (mit Q16)
 - Später: i18n-Mechanik (DE/EN), Schriften, Icons, Befehlspalette, Einstellungsseite,
   Tastaturkürzel-System, App-Check-Skill, Komponenten-Katalog (Storybook o. ä.)
