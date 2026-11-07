@@ -19,7 +19,9 @@ Pro Runde werden nur 2–3 Fragen gestellt; die Nummern sind stabil.
       - ✅ Einstellungen, Barrierefreiheit, Issues (D80–D82)
     - ❓ Schicht 2 Datenschicht (in Vertiefung) → research-layer-2-data.md
       - ✅ Umfang, Sync-Konventionen, benannte Operationen (D86–D88)
-      - ❓ Datenprozess, Abfrage-Schicht, Live-Updates (L2.4–L2.6)
+      - ✅ Unabhängig von der Sync-Engine (D89)
+      - ✅ utilityProcess, Kysely + SQL-Migrationen, TanStack Query + tablesChanged (D90–D92)
+      - ❓ Verträge/RPC, Sicherung, Tests (L2.7–L2.9)
     - ⏳ Schicht 3 Gemeinsamer Kern
     - ⏳ Schicht 4 Projekte + Zeit
     - ⏳ Schicht 5 Import
@@ -50,7 +52,7 @@ Pro Runde werden nur 2–3 Fragen gestellt; die Nummern sind stabil.
   - ⏳ Module an-/abschalten, Sidebar/Dashboard anordnen
   - ⏳ Eigene Felder (Umfang, Feldtypen)
   - ⏳ Brücken zwischen Modulen (z. B. Abrechnung Zeit → Finanzen)
-- ✅ Sync später, eigene Speicher-Schnittstelle, Engine in der Sync-Phase (D11)
+- ✅ Sync später, eigene Speicher-Schnittstelle, Engine in der Sync-Phase (D11, D89: PowerSync nicht gesetzt)
   - ⏳ Spaces, Autorität, Konflikte
   - ⏳ Policies (Ebenen, Sperren)
   - ❓ Q21 Ende-zu-Ende-Verschlüsselung (Empfehlung: später, nur persönliche Spaces)

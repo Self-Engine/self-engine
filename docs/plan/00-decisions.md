@@ -360,6 +360,32 @@ Grundlage: [`research-layer-2-data.md`](research-layer-2-data.md).
   prüft der Server im Org-Space dieselbe Operation. Kein dauerhaftes Operations-Protokoll
   jetzt; Rückgängig beim Löschen (D79) läuft über weiches Löschen. Das Protokoll kommt mit
   Sync. _Verworfen:_ Protokoll ab Tag 1 (Verlauf, allgemeines Rückgängig).
+- **D89 Schicht 2 bleibt unabhängig von jeder Sync-Engine; PowerSync ist nicht gesetzt.**
+  In der alten Self-Engine kam PowerSync wegen TanStack DB; im neuen Plan war es Favorit,
+  weil Schreibvorgänge über die eigene API laufen und der Server sie ablehnen kann (D11).
+  Die Wahl fällt neu in der Sync-Phase. Nahtstelle: Port pro Modul (D11) + eigener
+  Schreibweg (D88) + Änderungsereignis (D92). Keine Engine-Bibliothek und kein
+  Engine-Spike in Schicht 2. Kriterien für die spätere Wahl: Server prüft Schreibvorgänge
+  (Org-Policies), lange Offline-Phasen, SQLite auf Desktop, Web und Mobile, Selbsthosten,
+  Lizenz passt zur AGPL (D18). Grenze: Engines mit eigenem Speichermodell (z. B. LiveStore)
+  ersetzen die Speicher-Implementierung hinter den Ports, nicht Module und Oberfläche.
+- **D90 (L2.4) Die Datenbank läuft in einem eigenen Electron-`utilityProcess`** (Datenprozess);
+  der Renderer spricht ihn direkt über einen `MessagePort` an, mit typisierten Verträgen in
+  einem eigenen Paket `contracts` (wie t3code). _Grund:_ better-sqlite3 ist synchron, im
+  Hauptprozess würden Import oder Neuaufbau das Fenster blockieren. SQLite-Einstellungen
+  wie t3code (WAL, `busy_timeout`, `foreign_keys=ON` …, siehe Recherche).
+  _Verworfen:_ Hauptprozess, Worker-Thread im Hauptprozess.
+- **D91 (L2.5) Abfragen mit Kysely, Migrationen als nummerierte, handgeschriebene SQL-Dateien**
+  (nur vorwärts, D40). Kysely ist typisiertes SQL ohne ORM; für jede SQLite-Variante wird
+  nur der Dialekt getauscht. Ein Test pro Modul prüft, dass Kysely-Typen, Zod-Schema und
+  echte Spalten übereinstimmen. Zod 4 ist die Quelle für Entitäten und Operations-Eingaben.
+  _Verworfen:_ Drizzle (Migrationsgenerator bringt bei handgeschriebenen `STRICT`-Tabellen
+  wenig), reines SQL (keine Typen), Effect Schema (bringt den ganzen Effect-Stil mit).
+- **D92 (L2.6) Oberfläche: TanStack Query hinter eigenen Hooks pro Modul** plus ein eigenes
+  Ereignis `tablesChanged([...])`, das der Datenprozess nach jedem Commit sendet; Hooks laden
+  betroffene Abfragen neu. Eine spätere Sync-Engine löst dasselbe Ereignis aus.
+  _Verworfen:_ TanStack DB (erst RC, Kopplung an eine Engine im Renderer wie in der alten
+  Self-Engine); in der Sync-Phase erneut ansehen.
 
 ## Fakten
 
