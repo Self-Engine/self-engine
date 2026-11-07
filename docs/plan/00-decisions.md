@@ -267,6 +267,16 @@ Vite. Damit ist ein funktionierender Weg für Electron unter Vite+ belegt.
 - **D62 (L1.4b) Einstellungen über eine eigene Schnittstelle:** in Schicht 1 lokal
   gespeichert, ab Schicht 2 in der Datenbank (damit sie später mitsyncen). Gerätebezogenes
   (Fenstergröße und -position) bleibt immer lokal.
+- **D63 (L1.7) Bearbeiten-Drawer liegt über dem Inhalt** und schiebt ihn nicht weg:
+  Bearbeiten ist ein aktiver Vorgang. Wer mit geänderten Daten schließt oder abbricht, muss
+  das Verwerfen bestätigen.
+- **D64 (L1.7) Der Assistent ist angedockt** (vorläufig): Er schiebt den Inhalt zur Seite,
+  und die App bleibt normal bedienbar. Ob der Agent eine andere Form bekommt, ist offen
+  (zusammen mit Q16).
+- **D65 (L1.8) Vor dem Bau ein Wegwerf-Prototyp der Hülle** unter
+  `prototypes/layer-1-shell/`: Navbar, Modul-Sidebar, Drawer, Hell/Dunkel, umschaltbare
+  Akzentfarben und Themes. Akzentfarbe, Dichte und Abstände werden daran entschieden.
+- **D66 (L1.9) Übersetzung mit Lingui** (wie die alte App).
 
 ## Fakten
 

@@ -15,6 +15,9 @@ Stand: 2026-11-08 · Status: **in Planung** (parallel zum Bau von Schicht 0, D53
 | L1.6 | Rechte Seite | Drawer zum Bearbeiten, später der KI-Agent (D60) |
 | L1.4a | Theming | Semantische Rollen + Themes als Daten wie t3code; Editor später (D61) |
 | L1.4b | Einstellungen | Eigene Schnittstelle, erst lokal, ab Schicht 2 Datenbank (D62) |
+| L1.7 | Drawer | Bearbeiten über dem Inhalt mit Verwerfen-Bestätigung (D63); Assistent angedockt, vorläufig (D64) |
+| L1.8 | Prototyp | Wegwerf-Prototyp der Hülle vor dem Bau (D65) |
+| L1.9 | i18n | Lingui (D66) |
 
 ## Referenz t3code-Theming (geprüft 2026-11-08)
 
@@ -26,8 +29,7 @@ Stand: 2026-11-08 · Status: **in Planung** (parallel zum Bau von Schicht 0, D53
 
 ## Offen
 
-- L1.7 Rechte Seite: Drawer über dem Inhalt oder angedockt; Drawer und Agent gleichzeitig?
-- L1.8 Hüllen-Prototyp für Layout und Akzentfarbe
-- L1.9 i18n-Mechanik (alte App: Lingui 6.10)
+- Akzentfarbe, Dichte, Abstände (nach dem Prototyp)
+- Form des Agenten (mit Q16)
 - Später: i18n-Mechanik (DE/EN), Schriften, Icons, Befehlspalette, Einstellungsseite,
   Tastaturkürzel-System, App-Check-Skill, Komponenten-Katalog (Storybook o. ä.)

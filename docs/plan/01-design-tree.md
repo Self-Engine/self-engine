@@ -10,8 +10,8 @@ Pro Runde werden nur 2–3 Fragen gestellt; die Nummern sind stabil.
   - ✅ Schichtenfolge als Rahmen, jede Schicht mit eigener Vertiefung (D25)
     - ✅ Schicht 0 Repo-Fundament entschieden (D28–D49) → 03-layer-0-foundation.md
     - ❓ Schicht 1 Design-System + App-Hülle (Planung parallel zum Bau, D53) → 04-layer-1-shell.md
-      - ✅ Optik, Hülle, Desktop-Gefühl, Styling, Farben, kleine Fenster, rechte Seite, Theming, Einstellungen (D54–D62)
-      - ❓ L1.7 rechte Seite im Detail · L1.8 Hüllen-Prototyp · L1.9 i18n
+      - ✅ Optik, Hülle, Desktop-Gefühl, Styling, Farben, kleine Fenster, rechte Seite, Theming, Einstellungen, Drawer, i18n (D54–D66)
+      - ❓ Hüllen-Prototyp (D65) → Akzentfarbe, Dichte, Abstände
     - ⏳ Schicht 2 Datenschicht
     - ⏳ Schicht 3 Gemeinsamer Kern
     - ⏳ Schicht 4 Projekte + Zeit
