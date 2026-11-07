@@ -1,0 +1,20 @@
+{
+  "name": "@self-engine/monorepo",
+  "version": "0.0.1",
+  "private": true,
+  "license": "AGPL-3.0-only",
+  "type": "module",
+  "scripts": {
+    "check": "vp check",
+    "test": "vp test run"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "typescript": "catalog:",
+    "vite-plus": "catalog:"
+  },
+  "engines": {
+    "node": "^26.0.0"
+  },
+  "packageManager": "pnpm@12.18.0"
+}
