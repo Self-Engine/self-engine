@@ -11,7 +11,7 @@ Pro Runde werden nur 2–3 Fragen gestellt; die Nummern sind stabil.
   - ⏳ Zeitpunkt Organisations-Spaces & Policies
   - ⏳ Onboarding / Blueprints
 - ✅ Motivation OSS (D2)
-  - ❓ Q11 Lizenz (Empfehlung: AGPL App/Server, MIT SDK)
+  - ✅ Lizenz: AGPL App/Server, MIT SDK (D18)
   - ❓ Q12 Geschäftsmodell (Empfehlung: Sync & Org-Spaces bezahlt, Selbsthosten frei)
   - ⏳ Community / Governance
 - ✅ Self-Engine (D3)
@@ -21,14 +21,14 @@ Pro Runde werden nur 2–3 Fragen gestellt; die Nummern sind stabil.
   - ❓ Q14 Endgültiger Name (Arbeitstitel: self-engine-next)
   - ❓ Q18 Agenten-Setup im neuen Repo (Glossar, ADRs, ein Verify-Befehl)
 - ✅ Plattform: Desktop + Web (D6)
-  - ❓ Q20 Desktop-Shell (Empfehlung: Electron)
+  - ✅ Desktop-Shell: Electron (D17)
   - ❓ Q15 UI-Stack (Empfehlung: Mantine + eigene UI-Schicht für Plugins)
 - ✅ Fachmodule + generische Schicht (D8)
   - ✅ Feste Modulgrenzen ab Tag 1, Manifest ab Modul 3 (D10)
   - ❓ Q22 Datenmodell → Vertiefung in 02-storage-options.md
     - ✅ Ziel eigene Typen, zuerst eigene Felder (D15)
-    - 🔎 Recherche Datenmodelle → research-data-models.md (D16)
-    - ⏳ Prototyp-Vergleich (D16)
+    - ✅ Recherche Datenmodelle → research-data-models.md (D16)
+    - 🔎 Prototyp-Vergleich, nur Desktop → prototypes/data-model (D19)
   - ⏳ Generische Schicht: wann und wie viel
   - ⏳ Brücken zwischen Modulen (z. B. Abrechnung Zeit → Finanzen)
   - ⏳ Öffentliche Plugin-API, Sandbox, Berechtigungen

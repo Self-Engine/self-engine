@@ -79,6 +79,18 @@ Langfristig Plugins von Dritten. Ersetzt Self-Engine.
   (`research-data-models.md`). Danach Prototyp: Tabellen pro Entität gegen „typisierte
   Objekte auf generischem Kern“, mit realistischen Datenmengen aus Self-Engine.
 
+### Runde 6 (2026-11-07)
+
+- **D17 Desktop-Shell: Electron.** SQLite nativ in Node, Sync-SDKs unterstützen es (Tauri:
+  Alpha), Tray/Popover/Updater aus Self-Engine übernehmbar. _Verworfen:_ Tauri.
+- **D18 Lizenz: AGPL-3.0 für App und Sync-Server, MIT für Plugin-SDK** (und
+  Datenformat-Spezifikation). _Verworfen:_ alles MIT (kommerzielle geschlossene Klone des
+  Sync-Dienstes), alles AGPL (bremst Plugin-Ökosystem).
+- **D19 Prototyp für das Datenmodell: nur Desktop** (Node + SQLite), drei Varianten
+  (V1 Tabellen pro Entität, V2 `objects` + generierte Spalten, V3 `objects` +
+  Lese-Tabellen), synthetische Daten in Self-Engine-Form. Web, Mobile und Sync-Test
+  folgen in den jeweiligen Phasen. Ort: `prototypes/data-model/`.
+
 ## Fakten
 
 - Self-Engine hat Abo-Infrastruktur über Clerk Billing (`apps/web/src/features/billing`),
