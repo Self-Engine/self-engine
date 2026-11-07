@@ -1,0 +1,10 @@
+node_modules/
+dist/
+dist-electron/
+dist-renderer/
+out/
+release/
+.vite-plus/
+*.db
+*.db-*
+*.log

@@ -1,0 +1,53 @@
+{
+  "name": "@spike/desktop-b",
+  "version": "0.0.1",
+  "private": true,
+  "description": "S1 path B: electron-vite on the Vite+ core alias + electron-builder",
+  "author": "spike",
+  "type": "module",
+  "main": "out/main/index.cjs",
+  "scripts": {
+    "dev": "electron-vite dev -w",
+    "build": "electron-vite build",
+    "package": "electron-builder --dir --mac --arm64",
+    "start": "electron-vite preview"
+  },
+  "dependencies": {
+    "better-sqlite3": "catalog:"
+  },
+  "devDependencies": {
+    "@spike/db": "workspace:*",
+    "@spike/ui": "workspace:*",
+    "@types/node": "catalog:",
+    "@types/react": "catalog:",
+    "@types/react-dom": "catalog:",
+    "@vitejs/plugin-react": "catalog:",
+    "electron": "catalog:",
+    "electron-builder": "catalog:",
+    "electron-vite": "catalog:",
+    "react": "catalog:",
+    "react-dom": "catalog:",
+    "vite": "catalog:",
+    "vite-plus": "catalog:"
+  },
+  "build": {
+    "appId": "dev.selfengine.spike.b",
+    "productName": "SpikeB",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "out/**",
+      "package.json",
+      "!**/node_modules/better-sqlite3/{deps,src}/**",
+      "!**/node_modules/better-sqlite3/binding.gyp",
+      "!**/node_modules/better-sqlite3/prebuilds/!(darwin-arm64).node",
+      "!**/node_modules/better-sqlite3/lib/!(index|binding|database|util|sqlite-error|darwin-arm64).js"
+    ],
+    "mac": {
+      "target": "dir",
+      "identity": null
+    },
+    "npmRebuild": false
+  }
+}

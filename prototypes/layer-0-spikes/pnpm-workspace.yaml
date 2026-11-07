@@ -1,0 +1,40 @@
+packages:
+  - apps/*
+  - packages/*
+
+allowBuilds:
+  better-sqlite3: true
+  # Electron 45 has no install script any more (see RESULTS.md); keep key explicit.
+  electron: true
+  esbuild: true
+  electron-winstaller: false
+
+catalog:
+  "@mantine/core": 9.7.5
+  "@mantine/hooks": 9.7.5
+  "@types/better-sqlite3": 9.6.0
+  "@types/node": 24.19.2
+  "@types/react": 19.3.0
+  "@types/react-dom": 19.3.0
+  "@vitejs/plugin-react": 6.2.1
+  better-sqlite3: 13.0.3
+  electron: 45.2.3
+  electron-builder: 26.18.0
+  electron-vite: 6.0.0
+  react: 19.3.1
+  react-dom: 19.3.1
+  typescript: 7.0.2
+  vite: npm:@voidzero-dev/vite-plus-core@1.5.0
+  vite-plus: 1.5.0
+
+overrides:
+  vite: "catalog:"
+  vite-plus: "catalog:"
+
+strictPeerDependencies: false
+
+# Vite+ aliases vite to vite-plus-core@1.5.0, so peers like "vite ^8" see 1.5.0
+# (vite-plus issue #2806). Same rule as t3code.
+peerDependencyRules:
+  allowedVersions:
+    vite: "*"
