@@ -404,6 +404,15 @@ Grundlage: [`research-layer-2-data.md`](research-layer-2-data.md).
   Migrationen; Contract-Tests pro Port laufen dagegen. Ein Fake nur, wo gar keine
   Datenbank gebraucht wird (z. B. Storybook-Stories). _Grund:_ kein doppelter Code, Tests
   prüfen echtes SQL. In der alten Self-Engine war der Fake wegen PowerSync nötig.
+- **D96 (L2.10) Keine eigene Verschlüsselung der Datenbankdatei** (kein SQLCipher); Verweis auf
+  die Festplattenverschlüsselung des Betriebssystems (FileVault, BitLocker). _Gründe:_
+  eigener better-sqlite3-Build, Schlüsselverwaltung, erschwert eine spätere Sync-Engine.
+  Ende-zu-Ende-Verschlüsselung bleibt Q21 (Sync-Phase).
+- **D97 (L2.11) Schicht 2 baut nur Desktop**, aber Verträge, Ports, Migrationen und
+  Kysely-Abfragen plattformneutral. Web (wa-sqlite + OPFS im Worker) und Mobile (op-sqlite)
+  kommen, wenn diese Plattformen anstehen; der Web-Build kompiliert weiter mit (D26).
+- **D98 (L2.12) Schicht 2 jetzt in Issues zerlegen** (`layer:2`), siehe
+  [`05-layer-2-data.md`](05-layer-2-data.md).
 
 ## Fakten
 
