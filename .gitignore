@@ -4,6 +4,8 @@ dist/
 dist-electron/
 release/
 .vite-plus/
+# Gate log and verify stamp (scripts/verify.ts).
+.cache/
 *.tsbuildinfo
 *.log
 .DS_Store

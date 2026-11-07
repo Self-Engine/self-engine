@@ -20,4 +20,19 @@ export default defineConfig({
     ignorePatterns: [...IGNORED, "docs/plan/**"],
     sortPackageJson: {},
   },
+  run: {
+    // The stages of `pnpm verify` (scripts/verify.ts), cached by Vite Task: a stage whose
+    // inputs did not change replays its last output instead of running again.
+    tasks: {
+      "verify:format": "vp fmt",
+      // Type-aware lint; with `typeCheck` it also reports compiler errors.
+      "verify:lint": "vp lint --deny-warnings",
+      // Type check only, through tsgolint. Not plain `tsc`: TypeScript 7 is a native Go
+      // binary whose file reads Vite Task's tracking does not see, so a cached `tsc` task
+      // replayed `ok` after new type errors.
+      "verify:typecheck": "vp check --no-fmt --no-lint",
+      "verify:adrs": "node scripts/check-adrs.ts",
+      "verify:test": "vp test run --reporter=agent",
+    },
+  },
 });
