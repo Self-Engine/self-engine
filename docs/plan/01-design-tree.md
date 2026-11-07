@@ -17,6 +17,7 @@ Pro Runde werden nur 2–3 Fragen gestellt; die Nummern sind stabil.
       - ✅ Hüllen-Beitrag pro Modul, TanStack Hotkeys, verify-desktop (D74–D76)
       - ✅ Routen, Fenster, Rückmeldung (D77–D79)
       - ✅ Einstellungen, Barrierefreiheit, Issues (D80–D82)
+      - ✅ Fehlererfassung erst lokal, Sentry später nach Zustimmung, kein PostHog (D99–D101, #37)
     - ✅ Schicht 2 Datenschicht entschieden (D86–D98) → 05-layer-2-data.md, Issues #29–#35
       - ✅ Umfang, Sync-Konventionen, benannte Operationen (D86–D88)
       - ✅ Unabhängig von der Sync-Engine (D89)

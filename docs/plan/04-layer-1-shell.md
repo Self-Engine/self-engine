@@ -54,5 +54,6 @@ Stand: 2026-11-08 · Status: **entschieden** (D54–D82); Zuschnitt in Issues fo
 
 #14 Tokens + Theme → #15 Einstellungs-Schnittstelle, #16 i18n → #17 Storybook, #18 Icons →
 #19 Hülle → #20 Modul-Beitrag + Routen → #21 Drawer + Rückmeldung, #22 Kürzel + ⌘K →
-#23 Einstellungen; #24 Fenster (nach #7), #25 `verify-desktop` (nach #2). Abhängigkeiten
+#23 Einstellungen; #24 Fenster (nach #7), #25 `verify-desktop` (nach #2); #37 lokales
+Fehlerprotokoll + Diagnose (nach #6, #21, #23, D99–D101). Abhängigkeiten
 stehen jeweils als „Blocked by“ im Issue.
