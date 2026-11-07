@@ -24,3 +24,9 @@ Code entsteht (D25). Desktop (Electron) ist das Hauptprodukt (D26).
 
 - Toolchain (L0.1–L0.9): `research-layer-0-tooling.md`
 - Agenten-Setup (L0.10): `research-agent-setup.md`
+
+## Entscheidungen
+
+- L0.1 Vite+ (D28), L0.2 pnpm (D29), L0.3 `vp run`, kein Turborepo (D30).
+- Spikes S1/S2 laufen (D31). S1 vergleicht zwei Wege: electron-vite unter Vite+ und den
+  t3code-Weg (`vp pack` für Main/Preload, Renderer als normale Vite-App, electron-builder).

@@ -135,6 +135,30 @@ Langfristig Plugins von Dritten. Ersetzt Self-Engine.
   (CLAUDE.md-Regeln, Skills, Hooks, Verify-Pipeline) wird einzeln geprüft: noch aktuell,
   noch nötig, passt zum neuen Repo? Grundlage: ein Audit.
 
+### Runde 10 (2026-11-07): Schicht 0, erste Entscheidungen
+
+- **D28 (L0.1) Toolchain: Vite+** (`vp check`, `vp test`, `vp run`, `vp pack`), vorbehaltlich
+  der Spikes S1/S2.
+- **D29 (L0.2) Paketmanager: pnpm mit Node** statt Bun. Gründe: Electron Forge ohne
+  Bun-Support, Bun-Fehler bei electron-builder, native Module (better-sqlite3), strenge
+  Paket-Isolation für Modulgrenzen. Bewusster Bruch mit Self-Engine.
+- **D30 (L0.3) Kein Turborepo, Task-Runner ist `vp run`.** Turborepo und Vite Task
+  (`vp run`) konkurrieren direkt: beide orchestrieren Tasks über den Paketgraphen und cachen
+  lokal und remote. Beide zu nutzen hieße doppeltes Caching. Vorbild t3code
+  (pingdotgg/t3code): `vp run` mit eigenem Remote-Cache (Cloudflare Worker in
+  `infra/task-cache`, Option `run.cache.remote` in `vite.config.ts`). Turborepo bleibt
+  Ausweichlösung, falls `vp run` nicht trägt.
+- **D31 Spikes S1 und S2 vor der Festlegung**, als Wegwerfcode in `prototypes/`.
+
+## Referenzprojekt t3code (geprüft 2026-11-07)
+
+`pingdotgg/t3code` (MIT) nutzt: pnpm 12, Node 26, Vite+ 1.4 (`vite` per Catalog auf
+`@voidzero-dev/vite-plus-core` umgeleitet), `vp run` mit Cache und selbst gehostetem
+Remote-Cache, `vp lint`/`vp fmt`, knip, ein eigenes Oxlint-Plugin, Electron 44 +
+electron-builder + electron-updater. **Kein electron-vite:** Main und Preload werden mit
+`vp pack` (tsdown) als CJS gebaut, der Renderer ist die Web-App (`apps/web`), gebaut mit
+Vite. Damit ist ein funktionierender Weg für Electron unter Vite+ belegt.
+
 ## Fakten
 
 - Self-Engine hat Abo-Infrastruktur über Clerk Billing (`apps/web/src/features/billing`),
