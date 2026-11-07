@@ -6,7 +6,8 @@ Pro Runde werden nur 2–3 Fragen gestellt; die Nummern sind stabil.
 - ✅ Zielgruppe: Freelancer (D1)
   - ✅ Erster Meilenstein Projekte + Zeit; Ablösung erst bei Funktionsgleichheit (D9)
   - ✅ Übergang: wiederholbarer Import, Wechsel am Stichtag (D12)
-  - ⏳ Reihenfolge der weiteren Module bis zur Ablösung
+  - ✅ Mobile + Sync sind Pflicht vor dem Stichtag (D14)
+  - ⏳ Reihenfolge bis zum Stichtag (Module, Sync, Mobile)
   - ⏳ Zeitpunkt Organisations-Spaces & Policies
   - ⏳ Onboarding / Blueprints
 - ✅ Motivation OSS (D2)
@@ -24,7 +25,9 @@ Pro Runde werden nur 2–3 Fragen gestellt; die Nummern sind stabil.
   - ❓ Q15 UI-Stack (Empfehlung: Mantine + eigene UI-Schicht für Plugins)
 - ✅ Fachmodule + generische Schicht (D8)
   - ✅ Feste Modulgrenzen ab Tag 1, Manifest ab Modul 3 (D10)
-  - ❓ Q22 Speicherform (typisierte Tabellen vs. generische records-Tabelle)
+  - ❓ Q22 Datenmodell → Vertiefung in 02-storage-options.md
+    - ❓ Q26 Wie generisch für Nutzer (eigene Felder, eigene Typen)?
+    - ❓ Q27 Nächster Schritt: Recherche, Prototyp oder beides?
   - ⏳ Generische Schicht: wann und wie viel
   - ⏳ Brücken zwischen Modulen (z. B. Abrechnung Zeit → Finanzen)
   - ⏳ Öffentliche Plugin-API, Sandbox, Berechtigungen

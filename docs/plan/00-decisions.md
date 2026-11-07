@@ -62,6 +62,13 @@ Langfristig Plugins von Dritten. Ersetzt Self-Engine.
 - **D13 Plan liegt ab sofort im neuen, privaten Repo `GwydionBr/self-engine-next`**
   (Arbeitstitel) unter `docs/plan/`. Öffentlich wird es später.
 
+### Runde 4 (2026-11-07)
+
+- **D14 Der Owner nutzt Self-Engine täglich auf dem Handy → Mobile-App und Sync sind
+  Pflicht vor dem Stichtag** (D12). Sync und Mobile rücken damit vor die Ablösung; die
+  Reihenfolge bis zum Stichtag ist noch offen.
+- **Q22 (Speicherform) wird vertieft**, siehe [`02-storage-options.md`](02-storage-options.md).
+
 ## Fakten
 
 - Self-Engine hat Abo-Infrastruktur über Clerk Billing (`apps/web/src/features/billing`),
