@@ -282,6 +282,11 @@ Vite. Damit ist ein funktionierender Weg für Electron unter Vite+ belegt.
   Modul-Sidebar teilen sich einen abgerundeten Container (feine Trennlinie), der Inhalt ist
   ein zweiter Container; abgerundete Kacheln, Listen und Drawer. Quelle:
   `prototypes/layer-1-shell/` (`?variant=B3`).
+- **D68 (L1.10) Standard-Akzentfarbe Blau**, Standard-Theme Neutral (Theme nicht explizit
+  gewählt, Annahme). Beides änderbar (D61).
+- **D69 (L1.11) Hintergrund mit der Akzentfarbe eingefärbt**, abschaltbar in den
+  Einstellungen (Regler/Schalter für einen neutralen Hintergrund).
+- **D70 (L1.12) Dichte: Standard „Bequem“**, „Kompakt“ als Einstellung.
 
 ## Fakten
 

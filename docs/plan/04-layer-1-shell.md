@@ -19,6 +19,9 @@ Stand: 2026-11-08 · Status: **in Planung** (parallel zum Bau von Schicht 0, D53
 | L1.8 | Prototyp | Wegwerf-Prototyp der Hülle vor dem Bau (D65) |
 | L1.9 | i18n | Lingui (D66) |
 | L1.8 | Optik | Prototyp-Variante B3: Navigation und Inhalt als zwei schwebende Container (D67) |
+| L1.10 | Standard | Akzent Blau, Theme Neutral (D68) |
+| L1.11 | Hintergrund | Mit Akzent eingefärbt, abschaltbar (D69) |
+| L1.12 | Dichte | Standard Bequem, Kompakt als Einstellung (D70) |
 
 ## Referenz t3code-Theming (geprüft 2026-11-08)
 
@@ -30,7 +33,7 @@ Stand: 2026-11-08 · Status: **in Planung** (parallel zum Bau von Schicht 0, D53
 
 ## Offen
 
-- Akzentfarbe, Dichte, Abstände (nach dem Prototyp)
+- L1.13 Schrift · L1.14 Icons · L1.15 Komponenten-Katalog
 - Form des Agenten (mit Q16)
 - Später: i18n-Mechanik (DE/EN), Schriften, Icons, Befehlspalette, Einstellungsseite,
   Tastaturkürzel-System, App-Check-Skill, Komponenten-Katalog (Storybook o. ä.)

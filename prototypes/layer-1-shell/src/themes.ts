@@ -123,7 +123,7 @@ export type Settings = {
 
 export const DEFAULT_SETTINGS: Settings = {
   theme: "neutral",
-  accent: "indigo",
+  accent: "blue",
   mode: "auto",
   fontScale: 1,
   density: "comfortable",

@@ -12,7 +12,8 @@ Pro Runde werden nur 2–3 Fragen gestellt; die Nummern sind stabil.
     - ❓ Schicht 1 Design-System + App-Hülle (Planung parallel zum Bau, D53) → 04-layer-1-shell.md
       - ✅ Optik, Hülle, Desktop-Gefühl, Styling, Farben, kleine Fenster, rechte Seite, Theming, Einstellungen, Drawer, i18n (D54–D66)
       - ✅ Optik: Prototyp-Variante B3 (D67)
-      - ❓ Akzentfarbe, Theme, Dichte
+      - ✅ Blau, Neutral, eingefärbter Hintergrund, Dichte Bequem (D68–D70)
+      - ❓ L1.13 Schrift · L1.14 Icons · L1.15 Komponenten-Katalog
     - ⏳ Schicht 2 Datenschicht
     - ⏳ Schicht 3 Gemeinsamer Kern
     - ⏳ Schicht 4 Projekte + Zeit
