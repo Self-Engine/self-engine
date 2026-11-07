@@ -26,8 +26,9 @@ Pro Runde werden nur 2–3 Fragen gestellt; die Nummern sind stabil.
 - ✅ Fachmodule + generische Schicht (D8)
   - ✅ Feste Modulgrenzen ab Tag 1, Manifest ab Modul 3 (D10)
   - ❓ Q22 Datenmodell → Vertiefung in 02-storage-options.md
-    - ❓ Q26 Wie generisch für Nutzer (eigene Felder, eigene Typen)?
-    - ❓ Q27 Nächster Schritt: Recherche, Prototyp oder beides?
+    - ✅ Ziel eigene Typen, zuerst eigene Felder (D15)
+    - 🔎 Recherche Datenmodelle → research-data-models.md (D16)
+    - ⏳ Prototyp-Vergleich (D16)
   - ⏳ Generische Schicht: wann und wie viel
   - ⏳ Brücken zwischen Modulen (z. B. Abrechnung Zeit → Finanzen)
   - ⏳ Öffentliche Plugin-API, Sandbox, Berechtigungen

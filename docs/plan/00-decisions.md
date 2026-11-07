@@ -69,6 +69,16 @@ Langfristig Plugins von Dritten. Ersetzt Self-Engine.
   Reihenfolge bis zum Stichtag ist noch offen.
 - **Q22 (Speicherform) wird vertieft**, siehe [`02-storage-options.md`](02-storage-options.md).
 
+### Runde 5 (2026-11-07)
+
+- **D15 Nutzer-Generik: Ziel sind eigene Typen (wie Notion-Datenbanken), erster Schritt
+  eigene Felder an bestehenden Typen.** Das Datenmodell muss eigene Typen von Anfang an
+  erlauben („Schema als Daten“), gebaut werden zuerst nur eigene Felder.
+- **D16 Das Datenmodell wird über Recherche und danach einen Wegwerf-Prototyp entschieden.**
+  Recherche: wie Anytype, Tana, Logseq (DB), Notion, Capacities u. a. intern speichern
+  (`research-data-models.md`). Danach Prototyp: Tabellen pro Entität gegen „typisierte
+  Objekte auf generischem Kern“, mit realistischen Datenmengen aus Self-Engine.
+
 ## Fakten
 
 - Self-Engine hat Abo-Infrastruktur über Clerk Billing (`apps/web/src/features/billing`),
