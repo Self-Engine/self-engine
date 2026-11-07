@@ -28,7 +28,10 @@ Pro Runde werden nur 2–3 Fragen gestellt; die Nummern sind stabil.
   - ❓ Q22 Datenmodell → Vertiefung in 02-storage-options.md
     - ✅ Ziel eigene Typen, zuerst eigene Felder (D15)
     - ✅ Recherche Datenmodelle → research-data-models.md (D16)
-    - 🔎 Prototyp-Vergleich, nur Desktop → prototypes/data-model (D19)
+    - ✅ Prototyp-Vergleich, nur Desktop → prototypes/data-model/RESULTS.md (D19), Empfehlung V3
+    - ❓ Q22 final: V3 übernehmen?
+    - ⏳ Lese-Tabellen aktuell halten, wenn Änderungen per Sync kommen (Trigger vs. Neuaufbau pro Batch)
+    - ⏳ Bulk-Neuaufbau auf Web und Mobile messen
   - ⏳ Generische Schicht: wann und wie viel
   - ⏳ Brücken zwischen Modulen (z. B. Abrechnung Zeit → Finanzen)
   - ⏳ Öffentliche Plugin-API, Sandbox, Berechtigungen
