@@ -1,6 +1,6 @@
 # Schicht 0: Repo-Fundament
 
-Stand: 2026-11-07 · Status: Recherche läuft
+Stand: 2026-11-07 · Status: Recherche fertig, Entscheidungen offen
 
 Alles, worauf die übrigen Schichten aufbauen. Jede Frage wird einzeln entschieden, bevor
 Code entsteht (D25). Desktop (Electron) ist das Hauptprodukt (D26).
