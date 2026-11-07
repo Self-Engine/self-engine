@@ -21,7 +21,7 @@ Pro Runde werden nur 2–3 Fragen gestellt; die Nummern sind stabil.
       - ✅ Umfang, Sync-Konventionen, benannte Operationen (D86–D88)
       - ✅ Unabhängig von der Sync-Engine (D89)
       - ✅ utilityProcess, Kysely + SQL-Migrationen, TanStack Query + tablesChanged (D90–D92)
-      - ❓ Verträge/RPC, Sicherung, Tests (L2.7–L2.9)
+      - ✅ oRPC über MessagePort, Sicherung, Tests gegen echtes SQLite (D93–D95)
     - ⏳ Schicht 3 Gemeinsamer Kern
     - ⏳ Schicht 4 Projekte + Zeit
     - ⏳ Schicht 5 Import

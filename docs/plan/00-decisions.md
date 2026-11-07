@@ -346,7 +346,7 @@ Vite. Damit ist ein funktionierender Weg für Electron unter Vite+ belegt.
 Grundlage: [`research-layer-2-data.md`](research-layer-2-data.md).
 
 - **D86 (L2.1) Schicht 2 liefert nur das Fundament:** Datenbank im Desktop, Migrationen,
-  das Muster für Speicher-Ports (ein Port pro Modul, In-Memory-Fake, Contract-Tests),
+  das Muster für Speicher-Ports (ein Port pro Modul, In-Memory-Fake, Contract-Tests; Fake ersetzt durch D95),
   Einstellungen in der Datenbank (Fortsetzung von #15) sowie Sicherung und
   Wiederherstellung der Datenbankdatei. Fachliche Tabellen kommen erst in Schicht 3 und 4.
 - **D87 (L2.2) Sync-taugliche Konventionen ab Tag 1, auch ohne Sync:** `id` als
@@ -386,6 +386,24 @@ Grundlage: [`research-layer-2-data.md`](research-layer-2-data.md).
   betroffene Abfragen neu. Eine spätere Sync-Engine löst dasselbe Ereignis aus.
   _Verworfen:_ TanStack DB (erst RC, Kopplung an eine Engine im Renderer wie in der alten
   Self-Engine); in der Sync-Phase erneut ansehen.
+- **D93 (L2.7) Verbindung Oberfläche ↔ Datenprozess über oRPC** mit Zod-Verträgen im Paket
+  `contracts`, Message-Port-Adapter (`@orpc/server/message-port`, `@orpc/client/message-port`);
+  `tablesChanged` als Event Iterator. Später derselbe Vertrag im Web über einen Worker.
+  Geprüft: offizieller Electron-Weg über `MessagePortMain` aus dem Hauptprozess;
+  Event Iterators gehen über Message Ports, nur nicht mit `experimental_transfer`.
+  Nicht geprüft: Server im `utilityProcess` (Port vom Hauptprozess per `MessageChannelMain`
+  weiterreichen) → erste Aufgabe im Issue für den Datenprozess, mit Rückfall auf eine
+  eigene kleine RPC-Schicht. _Verworfen:_ eigene RPC-Schicht als Standard.
+- **D94 (L2.8) Sicherung über die SQLite-Backup-Funktion**, nicht durch Dateikopie:
+  automatisch täglich und vor jeder Migration, aufbewahrt werden 7 tägliche und 4
+  wöchentliche, im Datenordner des Kanals. Im Einstellungsbereich „Daten“ (D80): „Sicherung
+  jetzt erstellen“ und „Wiederherstellen“; vor dem Wiederherstellen wird die aktuelle
+  Datenbank selbst gesichert.
+- **D95 (L2.9) Tests gegen echtes SQLite statt handgeschriebenem Fake** (ändert D86): Module
+  testen gegen den echten Port auf einer frischen `:memory:`-Datenbank mit allen
+  Migrationen; Contract-Tests pro Port laufen dagegen. Ein Fake nur, wo gar keine
+  Datenbank gebraucht wird (z. B. Storybook-Stories). _Grund:_ kein doppelter Code, Tests
+  prüfen echtes SQL. In der alten Self-Engine war der Fake wegen PowerSync nötig.
 
 ## Fakten
 
