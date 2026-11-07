@@ -36,3 +36,4 @@ Code entsteht (D25). Desktop (Electron) ist das Hauptprodukt (D26).
 - L0.6 Electron wie t3code (D32), SQLite better-sqlite3 13 (D33), Node 26 + `@types/node` 24 (D34).
 - L0.4 `vp check` mit Oxlint + Oxfmt (D35), L0.5 Modulgrenzen dreifach (D36).
 - L0.7 Routing wie t3code (D37). L0.9 erweitert um Kanäle dev/nightly/stable (D38).
+- Kanäle: getrennte Apps (D39), Stable aus Nightly-Commit (D40), Nightly automatisch bei Änderungen (D41).

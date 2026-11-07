@@ -185,6 +185,15 @@ Vite. Damit ist ein funktionierender Weg für Electron unter Vite+ belegt.
   CSP), Hash-History in Electron, Browser-History im Web.
 - **D38 Release-Kanäle: dev, nightly, stable** (Wunsch des Nutzers). Details offen (L0.9).
 
+- **D39 Jeder Kanal ist eine eigene App:** dev, nightly und stable parallel installierbar,
+  je eigener Name, Icon, App-ID, Protokoll-Schema und Datenordner. Funktion „Daten aus
+  Stable kopieren“. _Grund:_ Migrationen nur vorwärts; eine Nightly-Migration würde die
+  Stable-Datenbank unlesbar machen.
+- **D40 Stable baut nur einen Commit, der schon als Nightly veröffentlicht wurde** (wie
+  t3code).
+- **D41 Nightly automatisch jede Nacht, nur bei Änderungen seit dem letzten Nightly;**
+  manueller Start zusätzlich möglich.
+
 ## Fakten
 
 - Self-Engine hat Abo-Infrastruktur über Clerk Billing (`apps/web/src/features/billing`),
