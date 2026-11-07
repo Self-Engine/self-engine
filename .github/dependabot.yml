@@ -1,0 +1,32 @@
+# Version updates. Security updates run on their own, enabled in the repo settings.
+# Titles must stay Conventional Commits (ADR 0007): the prefix makes them `chore: bump …`.
+version: 2
+updates:
+  - package-ecosystem: npm # covers the pnpm workspace and its catalog
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    cooldown:
+      default-days: 7 # skip versions younger than a week (supply-chain safety)
+    open-pull-requests-limit: 5
+    labels: []
+    commit-message:
+      prefix: chore
+    groups:
+      minor-and-patch:
+        update-types: [minor, patch]
+
+  - package-ecosystem: github-actions # keeps SHA-pinned actions current
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    cooldown:
+      default-days: 7
+    labels: []
+    commit-message:
+      prefix: chore
+    groups:
+      actions:
+        patterns: ["*"]
