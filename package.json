@@ -5,6 +5,7 @@
   "license": "AGPL-3.0-only",
   "type": "module",
   "scripts": {
+    "adrs:check": "node scripts/check-adrs.ts",
     "check": "vp check",
     "test": "vp test run"
   },
