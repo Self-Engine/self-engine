@@ -303,6 +303,16 @@ Vite. Damit ist ein funktionierender Weg für Electron unter Vite+ belegt.
 - **D76 (L1.18) Skill `verify-desktop` in Schicht 1:** startet die Electron-App über
   Playwright, klickt einen Ablauf durch, Screenshots in Hell/Dunkel und mehreren Breiten.
   Nur auf ausdrücklichen Wunsch, kein Gate.
+- **D77 (L1.19) Routen:** `/<modul>/<ansicht>` (z. B. `/projects/active`, `/time/week`);
+  der offene Bearbeiten-Drawer als Suchparameter (`?edit=<id>`), verlinkbar und
+  reload-fest; Einstellungen unter `/settings/<bereich>`. Gleich in Electron und Web (D37).
+- **D78 (L1.20) Fenster:** Mac ohne Titelleiste (`hiddenInset`), Fensterknöpfe oben links
+  im Navigations-Container, oberer Rand zum Ziehen; Windows/Linux mit
+  `titleBarOverlay` oben rechts. Größe, Position und Vollbild pro Kanal gemerkt.
+- **D79 (L1.21) Rückmeldung:** Hinweise unten rechts (Mantine-Notifications);
+  Rückgängig statt Nachfrage beim Löschen; Nachfrage nur beim Verwerfen (D63) und bei
+  Unumkehrbarem. Leer-, Lade- und Fehlerzustände sind Bausteine des Design-Systems im
+  Katalog.
 
 ## Fakten
 

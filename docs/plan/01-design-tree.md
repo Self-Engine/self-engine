@@ -15,7 +15,8 @@ Pro Runde werden nur 2–3 Fragen gestellt; die Nummern sind stabil.
       - ✅ Blau, Neutral, eingefärbter Hintergrund, Dichte Bequem (D68–D70)
       - ✅ Inter, Phosphor, Storybook (D71–D73)
       - ✅ Hüllen-Beitrag pro Modul, TanStack Hotkeys, verify-desktop (D74–D76)
-      - ❓ Routen, Einstellungsseite, Titelleiste, Zustände, Benachrichtigungen
+      - ✅ Routen, Fenster, Rückmeldung (D77–D79)
+      - ❓ Einstellungsseite, Barrierefreiheit, Bewegung, Zuschnitt in Issues
     - ⏳ Schicht 2 Datenschicht
     - ⏳ Schicht 3 Gemeinsamer Kern
     - ⏳ Schicht 4 Projekte + Zeit
