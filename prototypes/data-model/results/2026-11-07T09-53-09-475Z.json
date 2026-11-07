@@ -1,0 +1,804 @@
+{
+  "50000": {
+    "counts": {
+      "project": 60,
+      "time_entry": 50000,
+      "payout": 2777,
+      "task": 15000,
+      "appointment": 10000,
+      "cashflow": 15000,
+      "habit_log": 10000
+    },
+    "bridges": 37828,
+    "variants": {
+      "V1": {
+        "importMs": 737.793459,
+        "sizeBytes": 16900096,
+        "sizeAfterAllBytes": 16900096,
+        "analyzeMs": 22.71208300000012,
+        "noAnalyze": {
+          "hoursAll": {
+            "medianMs": 19.31216699999993,
+            "p95Ms": 20.220249999999965,
+            "checksum": "3598 rows, Σnum=78725.23",
+            "plan": "SCAN time_entries USING COVERING INDEX te_project_start | USE TEMP B-TREE FOR GROUP BY"
+          },
+          "hoursYear": {
+            "medianMs": 4.064624999999978,
+            "p95Ms": 4.33137499999998,
+            "checksum": "720 rows, Σnum=15724.60",
+            "plan": "SEARCH time_entries USING COVERING INDEX te_start (start_at>? AND start_at<?) | USE TEMP B-TREE FOR GROUP BY"
+          },
+          "overlap": {
+            "medianMs": 0.8522499999999127,
+            "p95Ms": 1.4321670000001632,
+            "checksum": "3 rows, Σnum=0.00",
+            "plan": "SEARCH time_entries USING INDEX te_end (end_at>?)"
+          },
+          "openHours": {
+            "medianMs": 3.940958000000137,
+            "p95Ms": 4.388833999999861,
+            "checksum": "60 rows, Σnum=19211.63",
+            "plan": "SEARCH time_entries USING INDEX te_payout (payout_id=?) | USE TEMP B-TREE FOR GROUP BY"
+          },
+          "backlinks": {
+            "medianMs": 0.5398340000001554,
+            "p95Ms": 1.0036669999999503,
+            "checksum": "944 rows, Σnum=0.00",
+            "plan": "COMPOUND QUERY | LEFT-MOST SUBQUERY | SEARCH time_entries USING INDEX te_project_start (project_id=?) | UNION ALL | SEARCH payouts USING INDEX payouts_project (project_id=?) | UNION ALL | SEARCH tasks USING INDEX tasks_project (project_id=?) | UNION ALL | SEARCH appointments USING INDEX appointments_project (project_id=?)"
+          },
+          "customer": {
+            "medianMs": 21.29729199999997,
+            "p95Ms": 23.360458000000108,
+            "checksum": "789 rows, Σnum=0.00",
+            "plan": "COMPOUND QUERY | LEFT-MOST SUBQUERY | SCAN projects | UNION ALL | SCAN time_entries USING INDEX te_end | UNION ALL | SCAN payouts USING INDEX payouts_project | UNION ALL | SCAN tasks USING INDEX tasks_project | UNION ALL | SCAN appointments USING INDEX appointments_project | UNION ALL | SCAN cashflows | UNION ALL | SCAN habit_logs"
+          }
+        },
+        "withAnalyze": {
+          "hoursAll": {
+            "medianMs": 18.339292000000114,
+            "p95Ms": 21.540500000000065,
+            "checksum": "3598 rows, Σnum=78725.23",
+            "plan": "SCAN time_entries USING COVERING INDEX te_project_start | USE TEMP B-TREE FOR GROUP BY"
+          },
+          "hoursYear": {
+            "medianMs": 3.594542000000274,
+            "p95Ms": 4.257458999999926,
+            "checksum": "720 rows, Σnum=15724.60",
+            "plan": "SEARCH time_entries USING COVERING INDEX te_project_start (ANY(project_id) AND start_at>? AND start_at<?) | USE TEMP B-TREE FOR GROUP BY"
+          },
+          "overlap": {
+            "medianMs": 0.37075000000004366,
+            "p95Ms": 0.8312500000001819,
+            "checksum": "3 rows, Σnum=0.00",
+            "plan": "SEARCH time_entries USING INDEX te_end (end_at>?)"
+          },
+          "openHours": {
+            "medianMs": 3.8563750000002983,
+            "p95Ms": 3.9927499999998872,
+            "checksum": "60 rows, Σnum=19211.63",
+            "plan": "SEARCH time_entries USING INDEX te_payout (payout_id=?) | USE TEMP B-TREE FOR GROUP BY"
+          },
+          "backlinks": {
+            "medianMs": 0.5817919999999503,
+            "p95Ms": 1.1870420000000195,
+            "checksum": "944 rows, Σnum=0.00",
+            "plan": "COMPOUND QUERY | LEFT-MOST SUBQUERY | SEARCH time_entries USING INDEX te_project_start (project_id=?) | UNION ALL | SEARCH payouts USING INDEX payouts_project (project_id=?) | UNION ALL | SEARCH tasks USING INDEX tasks_project (project_id=?) | UNION ALL | SEARCH appointments USING INDEX appointments_project (project_id=?)"
+          },
+          "customer": {
+            "medianMs": 3.6332499999998618,
+            "p95Ms": 3.7631249999999454,
+            "checksum": "789 rows, Σnum=0.00",
+            "plan": "COMPOUND QUERY | LEFT-MOST SUBQUERY | SCAN projects | UNION ALL | SCAN time_entries | UNION ALL | SCAN payouts | UNION ALL | SCAN tasks | UNION ALL | SCAN appointments | UNION ALL | SCAN cashflows | UNION ALL | SCAN habit_logs"
+          }
+        },
+        "customerIndexed": {
+          "medianMs": 0.32587499999999636,
+          "p95Ms": 0.36875000000009095,
+          "checksum": "789 rows, Σnum=0.00",
+          "plan": "COMPOUND QUERY | LEFT-MOST SUBQUERY | SEARCH projects USING INDEX projects_customer (<expr>=?) | UNION ALL | SEARCH time_entries USING INDEX time_entries_customer (<expr>=?) | UNION ALL | SEARCH payouts USING INDEX payouts_customer (<expr>=?) | UNION ALL | SEARCH tasks USING INDEX tasks_customer (<expr>=?) | UNION ALL | SEARCH appointments USING INDEX appointments_customer (<expr>=?) | UNION ALL | SEARCH cashflows USING INDEX cashflows_customer (<expr>=?) | UNION ALL | SEARCH habit_logs USING INDEX habit_logs_customer (<expr>=?)"
+        },
+        "writes": {
+          "medianMs": 0.06145849999984421,
+          "p95Ms": 0.2412920000001577,
+          "startMedianMs": 0.056562500000154614
+        },
+        "report": {
+          "medianMs": 27.54620900000009,
+          "p95Ms": 65.7745829999999,
+          "checksum": "360 rows, Σnum=5758591.04",
+          "plan": "SCAN p USING INDEX sqlite_autoindex_projects_1 | SEARCH t USING COVERING INDEX te_project_start (project_id=?) | USE TEMP B-TREE FOR GROUP BY"
+        },
+        "rebuild": {
+          "reindex time_entries": 149.03833299999997
+        },
+        "afterRebuildHoursAll": {
+          "medianMs": 31.17425000000003,
+          "p95Ms": 46.7690419999999,
+          "checksum": "3657 rows, Σnum=79051.06",
+          "plan": "SCAN time_entries USING COVERING INDEX te_project_start | USE TEMP B-TREE FOR GROUP BY"
+        },
+        "moduleField": {
+          "ALTER TABLE add column": 0.9224159999998847
+        },
+        "customField": {
+          "insert field definition": 0.15300000000024738,
+          "optional: expression index (time_entries)": 5.527790999999979
+        }
+      },
+      "V2": {
+        "importMs": 1671.3688340000003,
+        "sizeBytes": 35819520,
+        "sizeAfterAllBytes": 37875712,
+        "analyzeMs": 61.161834000000454,
+        "noAnalyze": {
+          "hoursAll": {
+            "medianMs": 49.19004099999984,
+            "p95Ms": 61.58433299999979,
+            "checksum": "3598 rows, Σnum=78725.23",
+            "plan": "SEARCH objects USING INDEX objects_type (type=? AND deleted=?) | USE TEMP B-TREE FOR GROUP BY"
+          },
+          "hoursYear": {
+            "medianMs": 21.906667000000198,
+            "p95Ms": 22.612624999999753,
+            "checksum": "720 rows, Σnum=15724.60",
+            "plan": "SEARCH objects USING INDEX objects_type (type=? AND deleted=?) | USE TEMP B-TREE FOR GROUP BY"
+          },
+          "overlap": {
+            "medianMs": 9.779625000000124,
+            "p95Ms": 12.35254199999963,
+            "checksum": "3 rows, Σnum=0.00",
+            "plan": "SEARCH objects USING INDEX objects_type (type=? AND deleted=?)"
+          },
+          "openHours": {
+            "medianMs": 22.959125000000313,
+            "p95Ms": 26.66191600000002,
+            "checksum": "60 rows, Σnum=19211.63",
+            "plan": "SEARCH o USING INDEX objects_type (type=? AND deleted=?) | CORRELATED SCALAR SUBQUERY 1 | SEARCH l USING COVERING INDEX links_from (from_id=? AND kind=?) | USE TEMP B-TREE FOR GROUP BY"
+          },
+          "backlinks": {
+            "medianMs": 0.20274999999946886,
+            "p95Ms": 0.4125000000003638,
+            "checksum": "944 rows, Σnum=0.00",
+            "plan": "SEARCH links_index USING PRIMARY KEY (to_id=?)"
+          },
+          "customer": {
+            "medianMs": 4.3009579999998095,
+            "p95Ms": 4.9183750000001965,
+            "checksum": "789 rows, Σnum=0.00",
+            "plan": "SCAN objects"
+          },
+          "hoursAll (view)": {
+            "medianMs": 48.73962500000016,
+            "p95Ms": 109.25991599999998,
+            "checksum": "3598 rows, Σnum=78725.23",
+            "plan": "SEARCH objects USING INDEX objects_type (type=? AND deleted=?) | USE TEMP B-TREE FOR GROUP BY"
+          },
+          "hoursYear (view)": {
+            "medianMs": 20.5418750000008,
+            "p95Ms": 21.004916999998386,
+            "checksum": "720 rows, Σnum=15724.60",
+            "plan": "SEARCH objects USING INDEX objects_type (type=? AND deleted=?) | USE TEMP B-TREE FOR GROUP BY"
+          }
+        },
+        "withAnalyze": {
+          "hoursAll": {
+            "medianMs": 19.68254100000013,
+            "p95Ms": 20.20795899999939,
+            "checksum": "3598 rows, Σnum=78725.23",
+            "plan": "SCAN objects USING INDEX ix_time_entry_0 | USE TEMP B-TREE FOR GROUP BY"
+          },
+          "hoursYear": {
+            "medianMs": 3.977375000000393,
+            "p95Ms": 4.226042000000234,
+            "checksum": "720 rows, Σnum=15724.60",
+            "plan": "SEARCH objects USING INDEX ix_time_entry_0 (ANY(time_entry__project_id) AND time_entry__start_at>? AND time_entry__start_at<?) | USE TEMP B-TREE FOR GROUP BY"
+          },
+          "overlap": {
+            "medianMs": 0.41495799999938754,
+            "p95Ms": 0.9014159999987896,
+            "checksum": "3 rows, Σnum=0.00",
+            "plan": "SEARCH objects USING INDEX ix_time_entry_2 (time_entry__end_at>?)"
+          },
+          "openHours": {
+            "medianMs": 30.870750000000044,
+            "p95Ms": 34.618249999999534,
+            "checksum": "60 rows, Σnum=19211.63",
+            "plan": "SCAN o USING INDEX ix_time_entry_0 | CORRELATED SCALAR SUBQUERY 1 | SEARCH l USING COVERING INDEX links_from (from_id=? AND kind=?)"
+          },
+          "backlinks": {
+            "medianMs": 0.21658299999944575,
+            "p95Ms": 0.4302499999994325,
+            "checksum": "944 rows, Σnum=0.00",
+            "plan": "SEARCH links_index USING PRIMARY KEY (to_id=?)"
+          },
+          "customer": {
+            "medianMs": 4.1877910000002885,
+            "p95Ms": 4.87145799999962,
+            "checksum": "789 rows, Σnum=0.00",
+            "plan": "SCAN objects"
+          },
+          "hoursAll (view)": {
+            "medianMs": 19.79858299999978,
+            "p95Ms": 20.416541999999026,
+            "checksum": "3598 rows, Σnum=78725.23",
+            "plan": "SCAN objects USING INDEX ix_time_entry_0 | USE TEMP B-TREE FOR GROUP BY"
+          },
+          "hoursYear (view)": {
+            "medianMs": 3.9460420000013983,
+            "p95Ms": 4.306166000000303,
+            "checksum": "720 rows, Σnum=15724.60",
+            "plan": "SEARCH objects USING INDEX ix_time_entry_0 (ANY(time_entry__project_id) AND time_entry__start_at>? AND time_entry__start_at<?) | USE TEMP B-TREE FOR GROUP BY"
+          }
+        },
+        "customerIndexed": {
+          "medianMs": 0.38916700000118,
+          "p95Ms": 0.46775000000161526,
+          "checksum": "789 rows, Σnum=0.00",
+          "plan": "SEARCH objects USING INDEX objects_customer (<expr>=?)"
+        },
+        "writes": {
+          "medianMs": 0.0673544999999649,
+          "p95Ms": 0.09066700000039418,
+          "startMedianMs": 0.06058299999949668
+        },
+        "report": {
+          "medianMs": 24.350791999999274,
+          "p95Ms": 25.126249999999345,
+          "checksum": "360 rows, Σnum=5758591.04",
+          "plan": "SEARCH objects USING INDEX objects_type (type=? AND deleted=?) | SEARCH objects USING INDEX ix_time_entry_0 (time_entry__project_id=?) | USE TEMP B-TREE FOR GROUP BY"
+        },
+        "rebuild": {
+          "links_index": 158.87737500000003,
+          "reindex module indexes": 92.09787499999948
+        },
+        "afterRebuildHoursAll": {
+          "medianMs": 20.214374999999563,
+          "p95Ms": 24.490749999999025,
+          "checksum": "3657 rows, Σnum=79051.06",
+          "plan": "SCAN objects USING INDEX ix_time_entry_0 | USE TEMP B-TREE FOR GROUP BY"
+        },
+        "moduleField": {
+          "ADD VIRTUAL column": 0.40079100000002654,
+          "optional: partial index on it": 47.71570799999972,
+          "optional: eager upcast of all time entries": 354.83237499999996
+        },
+        "customField": {
+          "insert field definition": 0.7058750000014697,
+          "optional: expression index (objects)": 5.593832999998995
+        }
+      },
+      "V3": {
+        "importMs": 13977.281458,
+        "sizeBytes": 40189952,
+        "sizeAfterAllBytes": 40673280,
+        "analyzeMs": 288.94395799999984,
+        "noAnalyze": {
+          "hoursAll": {
+            "medianMs": 62.84783299999981,
+            "p95Ms": 136.6257919999989,
+            "checksum": "3598 rows, Σnum=78725.23",
+            "plan": "SCAN rm_time_entry USING COVERING INDEX rm_time_entry_0 | USE TEMP B-TREE FOR GROUP BY"
+          },
+          "hoursYear": {
+            "medianMs": 8.179167000002053,
+            "p95Ms": 29.960542000000714,
+            "checksum": "720 rows, Σnum=15724.60",
+            "plan": "SEARCH rm_time_entry USING COVERING INDEX rm_time_entry_1 (start_at>? AND start_at<?) | USE TEMP B-TREE FOR GROUP BY"
+          },
+          "overlap": {
+            "medianMs": 1.6399590000000899,
+            "p95Ms": 3.072291000000405,
+            "checksum": "3 rows, Σnum=0.00",
+            "plan": "SEARCH rm_time_entry USING INDEX rm_time_entry_2 (end_at>?)"
+          },
+          "openHours": {
+            "medianMs": 1.6148339999999735,
+            "p95Ms": 1.8282079999989946,
+            "checksum": "60 rows, Σnum=19211.63",
+            "plan": "SCAN rm_time_entry USING INDEX rm_time_entry_open"
+          },
+          "backlinks": {
+            "medianMs": 0.36999999999898137,
+            "p95Ms": 1.0286249999990105,
+            "checksum": "944 rows, Σnum=0.00",
+            "plan": "SEARCH links_index USING PRIMARY KEY (to_id=?)"
+          },
+          "customer": {
+            "medianMs": 19.71833400000105,
+            "p95Ms": 83.09858299999905,
+            "checksum": "789 rows, Σnum=0.00",
+            "plan": "SCAN objects"
+          }
+        },
+        "withAnalyze": {
+          "hoursAll": {
+            "medianMs": 33.62254100000064,
+            "p95Ms": 134.1058750000011,
+            "checksum": "3598 rows, Σnum=78725.23",
+            "plan": "SCAN rm_time_entry USING COVERING INDEX rm_time_entry_0 | USE TEMP B-TREE FOR GROUP BY"
+          },
+          "hoursYear": {
+            "medianMs": 8.326916999998502,
+            "p95Ms": 27.689125000000786,
+            "checksum": "720 rows, Σnum=15724.60",
+            "plan": "SEARCH rm_time_entry USING COVERING INDEX rm_time_entry_0 (ANY(project_id) AND start_at>? AND start_at<?) | USE TEMP B-TREE FOR GROUP BY"
+          },
+          "overlap": {
+            "medianMs": 0.7423749999979918,
+            "p95Ms": 1.8449580000014976,
+            "checksum": "3 rows, Σnum=0.00",
+            "plan": "SEARCH rm_time_entry USING INDEX rm_time_entry_2 (end_at>?)"
+          },
+          "openHours": {
+            "medianMs": 1.5499589999999444,
+            "p95Ms": 1.758458000000246,
+            "checksum": "60 rows, Σnum=19211.63",
+            "plan": "SCAN rm_time_entry USING INDEX rm_time_entry_open"
+          },
+          "backlinks": {
+            "medianMs": 0.46633400000064285,
+            "p95Ms": 0.8235829999975977,
+            "checksum": "944 rows, Σnum=0.00",
+            "plan": "SEARCH links_index USING PRIMARY KEY (to_id=?)"
+          },
+          "customer": {
+            "medianMs": 14.927958000000217,
+            "p95Ms": 41.65045800000007,
+            "checksum": "789 rows, Σnum=0.00",
+            "plan": "SCAN objects"
+          }
+        },
+        "customerIndexed": {
+          "medianMs": 1.1020830000015849,
+          "p95Ms": 1.310709000001225,
+          "checksum": "789 rows, Σnum=0.00",
+          "plan": "SEARCH objects USING INDEX objects_customer (<expr>=?)"
+        },
+        "writes": {
+          "medianMs": 0.14600000000064028,
+          "p95Ms": 0.5290840000016033,
+          "startMedianMs": 0.14879199999995762
+        },
+        "report": {
+          "medianMs": 32.40387499999997,
+          "p95Ms": 94.56212500000038,
+          "checksum": "360 rows, Σnum=5758591.04",
+          "plan": "SCAN p USING INDEX sqlite_autoindex_rm_project_1 | SEARCH t USING COVERING INDEX rm_time_entry_0 (project_id=?) | USE TEMP B-TREE FOR GROUP BY"
+        },
+        "rebuild": {
+          "links_index": 481.25495800000135,
+          "rm_* tables (drop, fill, index)": 325.0056250000016
+        },
+        "afterRebuildHoursAll": {
+          "medianMs": 33.620999999999185,
+          "p95Ms": 79.83995800000412,
+          "checksum": "3657 rows, Σnum=79051.06",
+          "plan": "SCAN rm_time_entry USING COVERING INDEX rm_time_entry_0 | USE TEMP B-TREE FOR GROUP BY"
+        },
+        "moduleField": {
+          "ALTER rm_time_entry + backfill from objects": 67.58391700000357
+        },
+        "customField": {
+          "insert field definition": 0.22950000000128057,
+          "optional: expression index (objects)": 9.372999999999593
+        }
+      }
+    }
+  },
+  "200000": {
+    "counts": {
+      "project": 60,
+      "time_entry": 200000,
+      "payout": 2788,
+      "task": 60000,
+      "appointment": 40000,
+      "cashflow": 60000,
+      "habit_log": 40000
+    },
+    "bridges": 153416,
+    "variants": {
+      "V1": {
+        "importMs": 9309.679125000002,
+        "sizeBytes": 67764224,
+        "sizeAfterAllBytes": 67764224,
+        "analyzeMs": 238.6682920000021,
+        "noAnalyze": {
+          "hoursAll": {
+            "medianMs": 222.99129099999845,
+            "p95Ms": 388.47754200000054,
+            "checksum": "3600 rows, Σnum=314657.52",
+            "plan": "SCAN time_entries USING COVERING INDEX te_project_start | USE TEMP B-TREE FOR GROUP BY"
+          },
+          "hoursYear": {
+            "medianMs": 37.01508299999841,
+            "p95Ms": 74.32529199999408,
+            "checksum": "720 rows, Σnum=62155.63",
+            "plan": "SEARCH time_entries USING COVERING INDEX te_start (start_at>? AND start_at<?) | USE TEMP B-TREE FOR GROUP BY"
+          },
+          "overlap": {
+            "medianMs": 6.992500000000291,
+            "p95Ms": 16.447999999996682,
+            "checksum": "18 rows, Σnum=0.00",
+            "plan": "SEARCH time_entries USING INDEX te_end (end_at>?)"
+          },
+          "openHours": {
+            "medianMs": 38.97858300000371,
+            "p95Ms": 195.82849999999598,
+            "checksum": "60 rows, Σnum=73426.38",
+            "plan": "SEARCH time_entries USING INDEX te_payout (payout_id=?) | USE TEMP B-TREE FOR GROUP BY"
+          },
+          "backlinks": {
+            "medianMs": 9.861124999995809,
+            "p95Ms": 24.33991600000445,
+            "checksum": "3734 rows, Σnum=0.00",
+            "plan": "COMPOUND QUERY | LEFT-MOST SUBQUERY | SEARCH time_entries USING INDEX te_project_start (project_id=?) | UNION ALL | SEARCH payouts USING INDEX payouts_project (project_id=?) | UNION ALL | SEARCH tasks USING INDEX tasks_project (project_id=?) | UNION ALL | SEARCH appointments USING INDEX appointments_project (project_id=?)"
+          },
+          "customer": {
+            "medianMs": 331.29741600000125,
+            "p95Ms": 1191.8955419999984,
+            "checksum": "3316 rows, Σnum=0.00",
+            "plan": "COMPOUND QUERY | LEFT-MOST SUBQUERY | SCAN projects | UNION ALL | SCAN time_entries USING INDEX te_end | UNION ALL | SCAN payouts USING INDEX payouts_project | UNION ALL | SCAN tasks USING INDEX tasks_project | UNION ALL | SCAN appointments USING INDEX appointments_project | UNION ALL | SCAN cashflows | UNION ALL | SCAN habit_logs"
+          }
+        },
+        "withAnalyze": {
+          "hoursAll": {
+            "medianMs": 197.45962500000314,
+            "p95Ms": 289.6801670000059,
+            "checksum": "3600 rows, Σnum=314657.52",
+            "plan": "SCAN time_entries USING COVERING INDEX te_project_start | USE TEMP B-TREE FOR GROUP BY"
+          },
+          "hoursYear": {
+            "medianMs": 25.22608300000138,
+            "p95Ms": 80.40354099999968,
+            "checksum": "720 rows, Σnum=62155.63",
+            "plan": "SEARCH time_entries USING COVERING INDEX te_project_start (ANY(project_id) AND start_at>? AND start_at<?) | USE TEMP B-TREE FOR GROUP BY"
+          },
+          "overlap": {
+            "medianMs": 3.5607919999965816,
+            "p95Ms": 10.53074999999808,
+            "checksum": "18 rows, Σnum=0.00",
+            "plan": "SEARCH time_entries USING INDEX te_end (end_at>?)"
+          },
+          "openHours": {
+            "medianMs": 45.571374999999534,
+            "p95Ms": 132.68683299999975,
+            "checksum": "60 rows, Σnum=73426.38",
+            "plan": "SEARCH time_entries USING INDEX te_payout (payout_id=?) | USE TEMP B-TREE FOR GROUP BY"
+          },
+          "backlinks": {
+            "medianMs": 11.611749999996391,
+            "p95Ms": 39.28933400000096,
+            "checksum": "3734 rows, Σnum=0.00",
+            "plan": "COMPOUND QUERY | LEFT-MOST SUBQUERY | SEARCH time_entries USING INDEX te_project_start (project_id=?) | UNION ALL | SEARCH payouts USING INDEX payouts_project (project_id=?) | UNION ALL | SEARCH tasks USING INDEX tasks_project (project_id=?) | UNION ALL | SEARCH appointments USING INDEX appointments_project (project_id=?)"
+          },
+          "customer": {
+            "medianMs": 29.246958999996423,
+            "p95Ms": 115.15541599999415,
+            "checksum": "3316 rows, Σnum=0.00",
+            "plan": "COMPOUND QUERY | LEFT-MOST SUBQUERY | SCAN projects | UNION ALL | SCAN time_entries | UNION ALL | SCAN payouts | UNION ALL | SCAN tasks | UNION ALL | SCAN appointments | UNION ALL | SCAN cashflows | UNION ALL | SCAN habit_logs"
+          }
+        },
+        "customerIndexed": {
+          "medianMs": 6.101416999998037,
+          "p95Ms": 35.555082999999286,
+          "checksum": "3316 rows, Σnum=0.00",
+          "plan": "COMPOUND QUERY | LEFT-MOST SUBQUERY | SEARCH projects USING INDEX projects_customer (<expr>=?) | UNION ALL | SEARCH time_entries USING INDEX time_entries_customer (<expr>=?) | UNION ALL | SEARCH payouts USING INDEX payouts_customer (<expr>=?) | UNION ALL | SEARCH tasks USING INDEX tasks_customer (<expr>=?) | UNION ALL | SEARCH appointments USING INDEX appointments_customer (<expr>=?) | UNION ALL | SEARCH cashflows USING INDEX cashflows_customer (<expr>=?) | UNION ALL | SEARCH habit_logs USING INDEX habit_logs_customer (<expr>=?)"
+        },
+        "writes": {
+          "medianMs": 0.16435449999698903,
+          "p95Ms": 0.7630839999983436,
+          "startMedianMs": 0.15368750000197906
+        },
+        "report": {
+          "medianMs": 191.1064170000027,
+          "p95Ms": 350.528416000001,
+          "checksum": "360 rows, Σnum=22912374.44",
+          "plan": "SCAN p USING INDEX sqlite_autoindex_projects_1 | SEARCH t USING COVERING INDEX te_project_start (project_id=?) | USE TEMP B-TREE FOR GROUP BY"
+        },
+        "rebuild": {
+          "reindex time_entries": 2618.984792000003
+        },
+        "afterRebuildHoursAll": {
+          "medianMs": 160.71141699999862,
+          "p95Ms": 236.9654579999915,
+          "checksum": "3659 rows, Σnum=314983.34",
+          "plan": "SCAN time_entries USING COVERING INDEX te_project_start | USE TEMP B-TREE FOR GROUP BY"
+        },
+        "moduleField": {
+          "ALTER TABLE add column": 1.227792000005138
+        },
+        "customField": {
+          "insert field definition": 0.15912500000558794,
+          "optional: expression index (time_entries)": 21.72554100000707
+        }
+      },
+      "V2": {
+        "importMs": 17369.351916999993,
+        "sizeBytes": 143519744,
+        "sizeAfterAllBytes": 151203840,
+        "analyzeMs": 882.0690829999803,
+        "noAnalyze": {
+          "hoursAll": {
+            "medianMs": 739.9593329999916,
+            "p95Ms": 1105.2502079999977,
+            "checksum": "3600 rows, Σnum=314657.52",
+            "plan": "SEARCH objects USING INDEX objects_type (type=? AND deleted=?) | USE TEMP B-TREE FOR GROUP BY"
+          },
+          "hoursYear": {
+            "medianMs": 639.1113750000077,
+            "p95Ms": 796.2828750000044,
+            "checksum": "720 rows, Σnum=62155.63",
+            "plan": "SEARCH objects USING INDEX objects_type (type=? AND deleted=?) | USE TEMP B-TREE FOR GROUP BY"
+          },
+          "overlap": {
+            "medianMs": 279.3611669999955,
+            "p95Ms": 493.8804999999993,
+            "checksum": "18 rows, Σnum=0.00",
+            "plan": "SEARCH objects USING INDEX objects_type (type=? AND deleted=?)"
+          },
+          "openHours": {
+            "medianMs": 303.3313330000092,
+            "p95Ms": 502.00912499999686,
+            "checksum": "60 rows, Σnum=73426.38",
+            "plan": "SEARCH o USING INDEX objects_type (type=? AND deleted=?) | CORRELATED SCALAR SUBQUERY 1 | SEARCH l USING COVERING INDEX links_from (from_id=? AND kind=?) | USE TEMP B-TREE FOR GROUP BY"
+          },
+          "backlinks": {
+            "medianMs": 3.2087499999906868,
+            "p95Ms": 16.643792000002577,
+            "checksum": "3734 rows, Σnum=0.00",
+            "plan": "SEARCH links_index USING PRIMARY KEY (to_id=?)"
+          },
+          "customer": {
+            "medianMs": 41.100582999992184,
+            "p95Ms": 123.48533399999724,
+            "checksum": "3316 rows, Σnum=0.00",
+            "plan": "SCAN objects"
+          },
+          "hoursAll (view)": {
+            "medianMs": 304.99191700000665,
+            "p95Ms": 508.95350000000326,
+            "checksum": "3600 rows, Σnum=314657.52",
+            "plan": "SEARCH objects USING INDEX objects_type (type=? AND deleted=?) | USE TEMP B-TREE FOR GROUP BY"
+          },
+          "hoursYear (view)": {
+            "medianMs": 134.81141600001138,
+            "p95Ms": 230.94787500001257,
+            "checksum": "720 rows, Σnum=62155.63",
+            "plan": "SEARCH objects USING INDEX objects_type (type=? AND deleted=?) | USE TEMP B-TREE FOR GROUP BY"
+          }
+        },
+        "withAnalyze": {
+          "hoursAll": {
+            "medianMs": 135.1648330000171,
+            "p95Ms": 300.7667500000098,
+            "checksum": "3600 rows, Σnum=314657.52",
+            "plan": "SCAN objects USING INDEX ix_time_entry_0 | USE TEMP B-TREE FOR GROUP BY"
+          },
+          "hoursYear": {
+            "medianMs": 24.39000000001397,
+            "p95Ms": 26.92637500001001,
+            "checksum": "720 rows, Σnum=62155.63",
+            "plan": "SEARCH objects USING INDEX ix_time_entry_0 (ANY(time_entry__project_id) AND time_entry__start_at>? AND time_entry__start_at<?) | USE TEMP B-TREE FOR GROUP BY"
+          },
+          "overlap": {
+            "medianMs": 3.1104169999889564,
+            "p95Ms": 7.342833000002429,
+            "checksum": "18 rows, Σnum=0.00",
+            "plan": "SEARCH objects USING INDEX ix_time_entry_2 (time_entry__end_at>?)"
+          },
+          "openHours": {
+            "medianMs": 270.476250000007,
+            "p95Ms": 755.8845419999852,
+            "checksum": "60 rows, Σnum=73426.38",
+            "plan": "SCAN o USING INDEX ix_time_entry_0 | CORRELATED SCALAR SUBQUERY 1 | SEARCH l USING COVERING INDEX links_from (from_id=? AND kind=?)"
+          },
+          "backlinks": {
+            "medianMs": 0.8013340000179596,
+            "p95Ms": 2.1047919999982696,
+            "checksum": "3734 rows, Σnum=0.00",
+            "plan": "SEARCH links_index USING PRIMARY KEY (to_id=?)"
+          },
+          "customer": {
+            "medianMs": 17.66166699997848,
+            "p95Ms": 18.421666999987792,
+            "checksum": "3316 rows, Σnum=0.00",
+            "plan": "SCAN objects"
+          },
+          "hoursAll (view)": {
+            "medianMs": 80.13112500001444,
+            "p95Ms": 82.04262500000186,
+            "checksum": "3600 rows, Σnum=314657.52",
+            "plan": "SCAN objects USING INDEX ix_time_entry_0 | USE TEMP B-TREE FOR GROUP BY"
+          },
+          "hoursYear (view)": {
+            "medianMs": 15.685582999984035,
+            "p95Ms": 16.510292000020854,
+            "checksum": "720 rows, Σnum=62155.63",
+            "plan": "SEARCH objects USING INDEX ix_time_entry_0 (ANY(time_entry__project_id) AND time_entry__start_at>? AND time_entry__start_at<?) | USE TEMP B-TREE FOR GROUP BY"
+          }
+        },
+        "customerIndexed": {
+          "medianMs": 2.636040999990655,
+          "p95Ms": 3.7411670000001322,
+          "checksum": "3316 rows, Σnum=0.00",
+          "plan": "SEARCH objects USING INDEX objects_customer (<expr>=?)"
+        },
+        "writes": {
+          "medianMs": 0.06735450000269338,
+          "p95Ms": 0.09937499999068677,
+          "startMedianMs": 0.06235400000878144
+        },
+        "report": {
+          "medianMs": 101.78054100001464,
+          "p95Ms": 107.42962499998976,
+          "checksum": "360 rows, Σnum=22912374.44",
+          "plan": "SEARCH objects USING INDEX objects_type (type=? AND deleted=?) | SEARCH objects USING INDEX ix_time_entry_0 (time_entry__project_id=?) | USE TEMP B-TREE FOR GROUP BY"
+        },
+        "rebuild": {
+          "links_index": 644.5969580000092,
+          "reindex module indexes": 473.09895800001686
+        },
+        "afterRebuildHoursAll": {
+          "medianMs": 76.18854200001806,
+          "p95Ms": 87.9172499999986,
+          "checksum": "3659 rows, Σnum=314983.34",
+          "plan": "SCAN objects USING INDEX ix_time_entry_0 | USE TEMP B-TREE FOR GROUP BY"
+        },
+        "moduleField": {
+          "ADD VIRTUAL column": 0.5156669999996666,
+          "optional: partial index on it": 111.91716599999927,
+          "optional: eager upcast of all time entries": 1231.127542000002
+        },
+        "customField": {
+          "insert field definition": 0.3680830000084825,
+          "optional: expression index (objects)": 23.739417000004323
+        }
+      },
+      "V3": {
+        "importMs": 18980.350915999996,
+        "sizeBytes": 160509952,
+        "sizeAfterAllBytes": 161624064,
+        "analyzeMs": 325.2526249999937,
+        "noAnalyze": {
+          "hoursAll": {
+            "medianMs": 69.56762499999604,
+            "p95Ms": 73.82158400001936,
+            "checksum": "3600 rows, Σnum=314657.52",
+            "plan": "SCAN rm_time_entry USING COVERING INDEX rm_time_entry_0 | USE TEMP B-TREE FOR GROUP BY"
+          },
+          "hoursYear": {
+            "medianMs": 17.180334000004223,
+            "p95Ms": 20.124792000016896,
+            "checksum": "720 rows, Σnum=62155.63",
+            "plan": "SEARCH rm_time_entry USING COVERING INDEX rm_time_entry_1 (start_at>? AND start_at<?) | USE TEMP B-TREE FOR GROUP BY"
+          },
+          "overlap": {
+            "medianMs": 3.2074159999901894,
+            "p95Ms": 6.999666999996407,
+            "checksum": "18 rows, Σnum=0.00",
+            "plan": "SEARCH rm_time_entry USING INDEX rm_time_entry_2 (end_at>?)"
+          },
+          "openHours": {
+            "medianMs": 3.2723340000084136,
+            "p95Ms": 3.3886660000134725,
+            "checksum": "60 rows, Σnum=73426.38",
+            "plan": "SCAN rm_time_entry USING INDEX rm_time_entry_open"
+          },
+          "backlinks": {
+            "medianMs": 1.0577089999860618,
+            "p95Ms": 2.198541000019759,
+            "checksum": "3734 rows, Σnum=0.00",
+            "plan": "SEARCH links_index USING PRIMARY KEY (to_id=?)"
+          },
+          "customer": {
+            "medianMs": 21.90608399998746,
+            "p95Ms": 25.83049999998184,
+            "checksum": "3316 rows, Σnum=0.00",
+            "plan": "SCAN objects"
+          }
+        },
+        "withAnalyze": {
+          "hoursAll": {
+            "medianMs": 74.72666700000991,
+            "p95Ms": 109.17137499997625,
+            "checksum": "3600 rows, Σnum=314657.52",
+            "plan": "SCAN rm_time_entry USING COVERING INDEX rm_time_entry_0 | USE TEMP B-TREE FOR GROUP BY"
+          },
+          "hoursYear": {
+            "medianMs": 14.09845800002222,
+            "p95Ms": 15.069750000024214,
+            "checksum": "720 rows, Σnum=62155.63",
+            "plan": "SEARCH rm_time_entry USING COVERING INDEX rm_time_entry_0 (ANY(project_id) AND start_at>? AND start_at<?) | USE TEMP B-TREE FOR GROUP BY"
+          },
+          "overlap": {
+            "medianMs": 1.2889589999977034,
+            "p95Ms": 3.3946670000150334,
+            "checksum": "18 rows, Σnum=0.00",
+            "plan": "SEARCH rm_time_entry USING INDEX rm_time_entry_2 (end_at>?)"
+          },
+          "openHours": {
+            "medianMs": 2.748416999995243,
+            "p95Ms": 2.822707999992417,
+            "checksum": "60 rows, Σnum=73426.38",
+            "plan": "SCAN rm_time_entry USING INDEX rm_time_entry_open"
+          },
+          "backlinks": {
+            "medianMs": 0.7988340000156313,
+            "p95Ms": 1.901584000006551,
+            "checksum": "3734 rows, Σnum=0.00",
+            "plan": "SEARCH links_index USING PRIMARY KEY (to_id=?)"
+          },
+          "customer": {
+            "medianMs": 18.954208999988623,
+            "p95Ms": 20.035999999992782,
+            "checksum": "3316 rows, Σnum=0.00",
+            "plan": "SCAN objects"
+          }
+        },
+        "customerIndexed": {
+          "medianMs": 5.489790999999968,
+          "p95Ms": 12.357915999979014,
+          "checksum": "3316 rows, Σnum=0.00",
+          "plan": "SEARCH objects USING INDEX objects_customer (<expr>=?)"
+        },
+        "writes": {
+          "medianMs": 0.1441869999980554,
+          "p95Ms": 1.1656249999941792,
+          "startMedianMs": 0.1532290000031935
+        },
+        "report": {
+          "medianMs": 71.79241699998965,
+          "p95Ms": 122.83725000001141,
+          "checksum": "360 rows, Σnum=22912374.44",
+          "plan": "SCAN p USING INDEX sqlite_autoindex_rm_project_1 | SEARCH t USING COVERING INDEX rm_time_entry_0 (project_id=?) | USE TEMP B-TREE FOR GROUP BY"
+        },
+        "rebuild": {
+          "links_index": 748.6725000000151,
+          "rm_* tables (drop, fill, index)": 943.1190829999978
+        },
+        "afterRebuildHoursAll": {
+          "medianMs": 75.8410000000149,
+          "p95Ms": 125.05816699998104,
+          "checksum": "3659 rows, Σnum=314983.34",
+          "plan": "SCAN rm_time_entry USING COVERING INDEX rm_time_entry_0 | USE TEMP B-TREE FOR GROUP BY"
+        },
+        "moduleField": {
+          "ALTER rm_time_entry + backfill from objects": 412.6229170000006
+        },
+        "customField": {
+          "insert field definition": 0.5338340000016615,
+          "optional: expression index (objects)": 43.30179100000532
+        }
+      }
+    }
+  },
+  "env": {
+    "date": "2026-11-07T09:53:09.475Z",
+    "node": "v26.13.0",
+    "sqlite": "3.53.4",
+    "betterSqlite3": "13.0.3",
+    "cpu": "Apple M3 Pro",
+    "cores": 11,
+    "memGiB": 18,
+    "os": "darwin 27.2.0 arm64",
+    "runs": 15,
+    "stops": 300,
+    "loadAvgAtStart": [
+      11.8,
+      15.1,
+      12.3
+    ],
+    "loadAvgAtEnd": [
+      17.1,
+      17.6,
+      14
+    ]
+  },
+  "bulkImport50k": {
+    "V1": 420.12075000000186,
+    "V2": 1002.5401659999916,
+    "V3": 4233.254042000015,
+    "V3 (bulk path: truth, then rebuild)": 601.4499169999908
+  }
+}
