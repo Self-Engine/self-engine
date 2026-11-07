@@ -20,7 +20,9 @@ export interface Manifest {
 function stringRecord(value: unknown): Record<string, string> {
   if (typeof value !== "object" || value === null) return {};
   return Object.fromEntries(
-    Object.entries(value).filter((entry): entry is [string, string] => typeof entry[1] === "string"),
+    Object.entries(value).filter(
+      (entry): entry is [string, string] => typeof entry[1] === "string",
+    ),
   );
 }
 
@@ -64,7 +66,9 @@ export function workspacePackages(root: string): WorkspacePackage[] {
     const parent = join(root, folder);
     if (!existsSync(parent)) return [];
     return readdirSync(parent, { withFileTypes: true })
-      .filter((entry) => entry.isDirectory() && existsSync(join(parent, entry.name, "package.json")))
+      .filter(
+        (entry) => entry.isDirectory() && existsSync(join(parent, entry.name, "package.json")),
+      )
       .map((entry) => `${folder}/${entry.name}`);
   })
     .sort()

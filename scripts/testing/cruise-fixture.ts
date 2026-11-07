@@ -4,14 +4,7 @@
 // link to each workspace package it declares, so resolution through `exports` behaves as in
 // the repo.
 
-import {
-  mkdirSync,
-  mkdtempSync,
-  realpathSync,
-  rmSync,
-  symlinkSync,
-  writeFileSync,
-} from "node:fs";
+import { mkdirSync, mkdtempSync, realpathSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { basename, dirname, join, relative } from "node:path";
 import { cruise, type ICruiseResult } from "dependency-cruiser";

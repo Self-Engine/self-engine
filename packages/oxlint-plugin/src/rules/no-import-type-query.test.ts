@@ -14,11 +14,7 @@ const FIXTURES: [string, string, number][] = [
   ["a type from an npm package", 'export type T = import("left-pad").Options;', 1],
   ["a whole module's type", 'export type M = typeof import("./a.ts");', 1],
   ["a query with type arguments", 'export type B = import("./a.ts").Box<string>;', 1],
-  [
-    "two queries in one type",
-    'export type P = [import("./a.ts").A, typeof import("./b.ts")];',
-    2,
-  ],
+  ["two queries in one type", 'export type P = [import("./a.ts").A, typeof import("./b.ts")];', 2],
   ["an import type declaration", 'import type { Entry } from "@self-engine/time";', 0],
   ["a dynamic import expression", 'export const load = () => import("./a.ts");', 0],
   ["a typeof of a local value", "const a = 1;\nexport type A = typeof a;", 0],

@@ -15,7 +15,7 @@ const MESSAGE =
 export default defineRule({
   meta: {
     type: "problem",
-    docs: { description: "Disallow `import(\"…\")` types, which the boundary check cannot see." },
+    docs: { description: 'Disallow `import("…")` types, which the boundary check cannot see.' },
     schema: [],
   },
   create(context) {

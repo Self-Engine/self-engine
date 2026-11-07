@@ -5,7 +5,12 @@
 import { resolve } from "node:path";
 import { describe, expect, it } from "vite-plus/test";
 import { ALLOWED_IMPORTS } from "../.dependency-cruiser.ts";
-import { cruiseFixture, type FixturePackage, ruleNames, withFiles } from "./testing/cruise-fixture.ts";
+import {
+  cruiseFixture,
+  type FixturePackage,
+  ruleNames,
+  withFiles,
+} from "./testing/cruise-fixture.ts";
 import { workspaceDependencies, workspacePackages } from "./workspace-manifest.ts";
 
 /** `packages/module` may import `packages/shared`, not the other way round. */
@@ -111,7 +116,10 @@ describe("the exports field", () => {
   });
 
   it("passes a subpath that exports does list", async () => {
-    const exported = { ...shared, exports: { ".": "./src/index.ts", "./internal": "./src/internal.ts" } };
+    const exported = {
+      ...shared,
+      exports: { ".": "./src/index.ts", "./internal": "./src/internal.ts" },
+    };
     const subpath = withFiles(module_, {
       "src/subpath.ts": 'import { padTwo } from "@self-engine/shared/internal";\n',
     });
@@ -179,7 +187,8 @@ describe("relative imports", () => {
     const script = {
       dir: "scripts",
       files: {
-        "tool.ts": 'export const entry = new URL("../packages/shared/src/index.ts", import.meta.url);\n',
+        "tool.ts":
+          'export const entry = new URL("../packages/shared/src/index.ts", import.meta.url);\n',
       },
     };
     expect(await cruise([shared, script])).toEqual([]);
@@ -189,7 +198,9 @@ describe("relative imports", () => {
 describe("declared dependencies", () => {
   it("fail an import of a workspace package that no package.json declares", async () => {
     // pnpm links only declared packages, so the name does not resolve.
-    const undeclared = withFiles(shared, { "src/undeclared.ts": 'import "@self-engine/module";\n' });
+    const undeclared = withFiles(shared, {
+      "src/undeclared.ts": 'import "@self-engine/module";\n',
+    });
     expect(ruleNames(await cruise([undeclared, module_]))).toEqual(["not-to-unresolvable"]);
   });
 
@@ -248,7 +259,9 @@ describe("declared dependencies", () => {
   });
 
   it("pass an npm package the package declares", async () => {
-    const declared = withFiles(declaring(shared, "left-pad"), { "src/npm.ts": 'import "left-pad";\n' });
+    const declared = withFiles(declaring(shared, "left-pad"), {
+      "src/npm.ts": 'import "left-pad";\n',
+    });
     expect(await cruise([declared])).toEqual([]);
   });
 });
@@ -288,7 +301,10 @@ describe("apps", () => {
   });
 
   it("do not import each other", async () => {
-    const web = declaring(app("web", { "src/main.ts": 'import "@self-engine/desktop";\n' }), "@self-engine/desktop");
+    const web = declaring(
+      app("web", { "src/main.ts": 'import "@self-engine/desktop";\n' }),
+      "@self-engine/desktop",
+    );
     expect(ruleNames(await cruise([web, app("desktop")]))).toEqual(["no-import-between-apps"]);
   });
 });
