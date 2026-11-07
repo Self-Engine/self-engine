@@ -5,7 +5,7 @@ const IGNORED = ["prototypes/**", "**/dist/**", "**/node_modules/**", "pnpm-lock
 
 export default defineConfig({
   test: {
-    include: ["apps/*/src/**/*.test.ts", "packages/*/src/**/*.test.ts"],
+    include: ["apps/*/src/**/*.test.ts", "packages/*/src/**/*.test.ts", "scripts/**/*.test.ts"],
     environment: "node",
     allowOnly: !process.env.CI,
     // Flaky tests are fixed, not retried.
