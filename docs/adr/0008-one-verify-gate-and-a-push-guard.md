@@ -15,8 +15,9 @@ through a PR.
 ## Decision
 
 - **One gate, `pnpm verify`**, for humans, agents and CI: format, lint with warnings as
-  errors, typecheck, the ADR check, then the tests. The stages are `vp run` tasks, so an
-  unchanged stage replays from the cache. The last line is `VERIFY: PASS` or `VERIFY: FAIL`.
+  errors, typecheck, the module boundaries ([ADR 0006](0006-module-boundaries-are-enforced-three-ways.md)),
+  the ADR check, then the tests. The stages are `vp run` tasks, so an unchanged stage
+  replays from the cache. The last line is `VERIFY: PASS` or `VERIFY: FAIL`.
 - **A pass writes a stamp**: the git tree of the verified checkout.
 - **A push guard** (a Claude Code `PreToolUse` hook) blocks `git push` and `gh pr create`
   unless the stamp of the repository the command publishes from (its `-C <dir>`, else the

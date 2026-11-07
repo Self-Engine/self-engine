@@ -10,14 +10,14 @@ planning history.
 
 A task is done when `pnpm verify` prints `VERIFY: PASS` as its last line
 ([ADR 0008](docs/adr/0008-one-verify-gate-and-a-push-guard.md)). It formats, lints
-(warnings fail), typechecks, checks the ADRs and runs the tests; failures show their tail,
-the full log is `.cache/verify.log`. `pnpm check` is the quick loop while editing;
-`pnpm verify` is the gate. The flow: commit, `pnpm verify`, commit any formatter output,
-push. A hook blocks `git push` and `gh pr create` (also behind `sh -c`, shell keywords, or
-`git -C <other-checkout>`) unless the last pass covered exactly HEAD of the checkout being
-pushed, so any edit after a pass needs another run (unchanged stages replay from the cache).
-Run the app only when the user asks. If a change is visual and was not checked in
-the app, say so in the final report and offer the check.
+(warnings fail), typechecks, checks the module boundaries, checks the ADRs and runs the
+tests; failures show their tail, the full log is `.cache/verify.log`. `pnpm check` is the
+quick loop while editing; `pnpm verify` is the gate. The flow: commit, `pnpm verify`,
+commit any formatter output, push. A hook blocks `git push` and `gh pr create` (also behind
+`sh -c`, shell keywords, or `git -C <other-checkout>`) unless the last pass covered exactly
+HEAD of the checkout being pushed, so any edit after a pass needs another run (unchanged
+stages replay from the cache). Run the app only when the user asks. If a change is visual
+and was not checked in the app, say so in the final report and offer the check.
 
 ## Pull Requests
 
@@ -57,7 +57,9 @@ Long-term maintainability is a core priority, and sweeping changes that improve 
 Before adding functionality, look for shared logic to extract; duplicated logic is a smell.
 Change existing code instead of adding local workarounds. Build bottom-up: finish and test the
 foundation before the feature that sits on it. Each module is its own package, reached only
-through its `exports` ([ADR 0006](docs/adr/0006-module-boundaries-are-enforced-three-ways.md)).
+through its `exports` ([ADR 0006](docs/adr/0006-module-boundaries-are-enforced-three-ways.md));
+an import between two packages needs an entry in `ALLOWED_IMPORTS` in `.dependency-cruiser.ts`
+next to the dependency in `package.json`.
 
 ## Agent skills
 

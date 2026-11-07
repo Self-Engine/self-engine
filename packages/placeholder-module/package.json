@@ -1,10 +1,13 @@
 {
-  "name": "@self-engine/example",
+  "name": "@self-engine/placeholder-module",
   "version": "0.0.0",
   "private": true,
   "type": "module",
   "exports": {
     ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@self-engine/placeholder-shared": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "catalog:",

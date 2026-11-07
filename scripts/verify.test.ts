@@ -44,6 +44,10 @@ describe("the verify tasks", () => {
     expect(config.lint?.rules?.["self-engine/no-silent-catch"]).toBe("error");
   });
 
+  it("fail the lint stage on an import type query, which the boundary check cannot see", () => {
+    expect(config.lint?.rules?.["self-engine/no-import-type-query"]).toBe("error");
+  });
+
   it("load the repo's lint rules from the workspace package", () => {
     expect(config.lint?.jsPlugins).toContainEqual({
       name: "self-engine",
@@ -52,6 +56,13 @@ describe("the verify tasks", () => {
     expect(createRequire(rootPackage).resolve("@self-engine/oxlint-plugin")).toBe(
       fileURLToPath(new URL("../packages/oxlint-plugin/src/index.ts", import.meta.url)),
     );
+  });
+
+  it("check the module boundaries with the repo's dependency-cruiser rules", () => {
+    const command = config.run?.tasks?.["verify:boundaries"];
+    expect(STATIC_STAGES).toContain("boundaries");
+    expect(command).toMatch(/^depcruise apps packages scripts /);
+    expect(command).toContain("--config .dependency-cruiser.ts");
   });
 
   it("typecheck through vp, whose reads the task cache tracks (plain tsc's it does not)", () => {

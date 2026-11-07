@@ -21,6 +21,8 @@ export default defineConfig({
     // The repo's own rules (packages/oxlint-plugin), reported as `self-engine/<rule>`.
     jsPlugins: [{ name: "self-engine", specifier: "@self-engine/oxlint-plugin" }],
     rules: {
+      // dependency-cruiser cannot see `import("…")` types (.dependency-cruiser.ts).
+      "self-engine/no-import-type-query": "error",
       "self-engine/no-silent-catch": "error",
     },
   },
@@ -40,6 +42,9 @@ export default defineConfig({
       // binary whose file reads Vite Task's tracking does not see, so a cached `tsc` task
       // replayed `ok` after new type errors.
       "verify:typecheck": "vp check --no-fmt --no-lint",
+      // Module boundaries (ADR 0006), rules in .dependency-cruiser.ts.
+      "verify:boundaries":
+        "depcruise apps packages scripts vite.config.ts .dependency-cruiser.ts --config .dependency-cruiser.ts",
       "verify:adrs": "node scripts/check-adrs.ts",
       "verify:test": "vp test run --reporter=agent",
     },
