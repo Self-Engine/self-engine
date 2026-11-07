@@ -17,7 +17,12 @@ Pro Runde werden nur 2–3 Fragen gestellt; die Nummern sind stabil.
       - ✅ Hüllen-Beitrag pro Modul, TanStack Hotkeys, verify-desktop (D74–D76)
       - ✅ Routen, Fenster, Rückmeldung (D77–D79)
       - ✅ Einstellungen, Barrierefreiheit, Issues (D80–D82)
-    - ⏳ Schicht 2 Datenschicht
+    - ✅ Schicht 2 Datenschicht entschieden (D86–D98) → 05-layer-2-data.md, Issues #29–#35
+      - ✅ Umfang, Sync-Konventionen, benannte Operationen (D86–D88)
+      - ✅ Unabhängig von der Sync-Engine (D89)
+      - ✅ utilityProcess, Kysely + SQL-Migrationen, TanStack Query + tablesChanged (D90–D92)
+      - ✅ oRPC über MessagePort, Sicherung, Tests gegen echtes SQLite (D93–D95)
+      - ✅ Keine eigene Verschlüsselung, nur Desktop, Issues (D96–D98)
     - ⏳ Schicht 3 Gemeinsamer Kern
     - ⏳ Schicht 4 Projekte + Zeit
     - ⏳ Schicht 5 Import
@@ -48,7 +53,7 @@ Pro Runde werden nur 2–3 Fragen gestellt; die Nummern sind stabil.
   - ⏳ Module an-/abschalten, Sidebar/Dashboard anordnen
   - ⏳ Eigene Felder (Umfang, Feldtypen)
   - ⏳ Brücken zwischen Modulen (z. B. Abrechnung Zeit → Finanzen)
-- ✅ Sync später, eigene Speicher-Schnittstelle, Engine in der Sync-Phase (D11)
+- ✅ Sync später, eigene Speicher-Schnittstelle, Engine in der Sync-Phase (D11, D89: PowerSync nicht gesetzt)
   - ⏳ Spaces, Autorität, Konflikte
   - ⏳ Policies (Ebenen, Sperren)
   - ❓ Q21 Ende-zu-Ende-Verschlüsselung (Empfehlung: später, nur persönliche Spaces)
