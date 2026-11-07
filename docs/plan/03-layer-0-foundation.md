@@ -1,6 +1,6 @@
 # Schicht 0: Repo-Fundament
 
-Stand: 2026-11-07 · Status: Recherche fertig, Entscheidungen offen
+Stand: 2026-11-07 · Status: **entschieden** (außer App-Check-Skill → Schicht 1)
 
 Alles, worauf die übrigen Schichten aufbauen. Jede Frage wird einzeln entschieden, bevor
 Code entsteht (D25). Desktop (Electron) ist das Hauptprodukt (D26).
@@ -39,3 +39,4 @@ Code entsteht (D25). Desktop (Electron) ist das Hauptprodukt (D26).
 - Kanäle: getrennte Apps (D39), Stable aus Nightly-Commit (D40), Nightly automatisch bei Änderungen (D41).
 - L0.8 Tests (D42), L0.9 Versionierung ohne release-please (D43). Offen: L0.10 Agenten-Setup.
 - L0.10: Gate `pnpm verify` (D44), PRs + Push-Guard (D45), Sprache/ADRs (D46).
+- Versionen langsam bis 1.0 (D47), Issues ab Schicht 0 (D48), Skills für alle Agenten (D49).

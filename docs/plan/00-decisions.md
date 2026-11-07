@@ -211,6 +211,17 @@ Vite. Damit ist ein funktionierender Weg für Electron unter Vite+ belegt.
   (`AGENTS.md`, Skills, ADRs, Glossar). ADRs mit `status:` im YAML-Kopf. Mit dem ersten Code
   werden tragende D-Entscheidungen zu ADRs; `00-decisions.md` ist danach Historie.
 
+- **D47 (A4) Versionsnummern bis 1.0.0 steigen sehr langsam.** Start bei `0.1.0`. Nicht
+  jedes `feat` erhöht die Version: Der Vorschlag beim Stable-Release ist immer nur Patch
+  (`0.1.x`); die mittlere Stelle wird nur bewusst bei Meilensteinen erhöht (z. B. Schicht
+  fertig). `1.0.0` beim Umstieg von Self-Engine. Nach 1.0 neu entscheiden.
+- **D48 (A5) Issues ab Schicht 0:** `docs/plan/` plant bis zum ersten Code; danach wird jede
+  Schicht in GitHub-Issues zerlegt, mit den fünf Triage-Labels. Externe Issues/PRs erst,
+  wenn das Repo öffentlich wird.
+- **D49 (A6) Für alle Agenten:** `AGENTS.md` ist die Quelle (`CLAUDE.md` als Symlink);
+  Skills liegen in `.agents/skills/` mit Symlinks nach `.claude/skills/`, damit Claude Code,
+  Codex und andere Agenten dieselben Skills sehen.
+
 ## Fakten
 
 - Self-Engine hat Abo-Infrastruktur über Clerk Billing (`apps/web/src/features/billing`),

@@ -8,7 +8,7 @@ Pro Runde werden nur 2–3 Fragen gestellt; die Nummern sind stabil.
   - ✅ Übergang: wiederholbarer Import, Wechsel am Stichtag (D12)
   - ✅ Mobile + Sync sind Pflicht vor dem Stichtag (D14)
   - ✅ Schichtenfolge als Rahmen, jede Schicht mit eigener Vertiefung (D25)
-    - ❓ Schicht 0 Repo-Fundament → 03-layer-0-foundation.md
+    - ✅ Schicht 0 Repo-Fundament entschieden (D28–D49) → 03-layer-0-foundation.md
     - ⏳ Schicht 1 Design-System + App-Hülle
     - ⏳ Schicht 2 Datenschicht
     - ⏳ Schicht 3 Gemeinsamer Kern
