@@ -222,6 +222,12 @@ Vite. Damit ist ein funktionierender Weg für Electron unter Vite+ belegt.
   Skills liegen in `.agents/skills/` mit Symlinks nach `.claude/skills/`, damit Claude Code,
   Codex und andere Agenten dieselben Skills sehen.
 
+### Runde 12 (2026-11-08)
+
+- **D50 (Q14) Name bleibt „Self-Engine“.** Das neue Projekt löst das alte ab und heißt
+  gleich. Kanalnamen: „Self-Engine“, „Self-Engine Nightly“, „Self-Engine Dev“.
+  Kollisionen mit der alten App während des Übergangs: siehe Fakten.
+
 ## Fakten
 
 - Self-Engine hat Abo-Infrastruktur über Clerk Billing (`apps/web/src/features/billing`),
@@ -280,3 +286,12 @@ Vite. Damit ist ein funktionierender Weg für Electron unter Vite+ belegt.
 - **Stable baut den Commit des letzten veröffentlichten Nightlys**, „so stable only ever
   ships a build that nightly users have already run“.
 - Eigene Concurrency-Gruppen für Nightly und Stable, nichts wird abgebrochen.
+
+### Alte Self-Engine-Desktop-App (geprüft 2026-11-08)
+
+- `apps/desktop/electron-builder.yml`: `appId: com.self-engine.desktop`,
+  `productName: Self-Engine`, Updates über GitHub-Releases des alten Repos.
+- Mobile-Schema der alten App: `lifemanager`.
+- Folge: Während des Übergangs (D12) braucht die neue App eine andere App-ID, sonst
+  überschreiben sich Installationen und Datenordner. Ein neues Stable namens „Self-Engine“
+  würde auf dem Mac dieselbe `Self-Engine.app` belegen.

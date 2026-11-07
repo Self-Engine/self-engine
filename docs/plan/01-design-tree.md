@@ -25,7 +25,8 @@ Pro Runde werden nur 2–3 Fragen gestellt; die Nummern sind stabil.
   - ❓ Q13 Was in Self-Engine noch passieren darf
   - ⏳ Import aus Self-Engine: Format, Umfang, ab welchem Meilenstein
 - ✅ Repo: neues Repo (D4)
-  - ❓ Q14 Endgültiger Name (Arbeitstitel: self-engine-next)
+  - ✅ Name bleibt Self-Engine (D50)
+    - ❓ Q33 Identität während des Übergangs (App-ID, Repo-Umbenennung)
   - ✅ Agenten-Setup: ausgewählt übernehmen nach Audit (D27) → Teil von Schicht 0
 - ✅ Plattform: Desktop zuerst als Hauptprodukt, dann Web und Mobile (D6, D26)
   - ✅ Desktop-Shell: Electron (D17)
