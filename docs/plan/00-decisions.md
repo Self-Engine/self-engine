@@ -250,6 +250,14 @@ Vite. Damit ist ein funktionierender Weg für Electron unter Vite+ belegt.
   Fenster und Bildschirme an.
 - **D57 (L1.3) Styling:** Mantine-Theme mit eigenen Design-Tokens (Farben, Abstände,
   Radien, Typografie) und CSS-Modulen. Kein Tailwind.
+- **D58 (L1.4) Farben:** neutrale Grundflächen, eine App-Akzentfarbe, eine Farbe pro Modul
+  (gezielt an Icon, aktivem Eintrag, Diagrammen). Hell und Dunkel ab Tag 1, Standard folgt
+  dem System. Akzentfarbe noch offen.
+- **D59 (L1.5) Kleine Fenster:** breit = Navbar + Modul-Sidebar; mittel = Navbar nur
+  Icons; schmal = Modul-Sidebar als Schublade; Handy-Breite im Web = untere Leiste.
+- **D60 (L1.6) Rechte Seite:** Die Hülle stellt rechts Drawer zum Bearbeiten bereit
+  (Eintrag öffnen und ändern, ohne die Liste zu verlassen). Der KI-Agent kommt später
+  ebenfalls über die rechte Seite.
 
 ## Fakten
 
