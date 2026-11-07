@@ -1,3 +1,10 @@
+// no-silent-catch: a `catch` clause, or an inline `.catch(fn)` / `.then(_, fn)` handler, must
+// read the error, rethrow, or carry a comment saying why dropping it is safe.
+//
+// Limits, by design: the rule reads syntax, not types, so it also checks a `.catch` or `.then`
+// method of an object that is no Promise. It does not follow data flow: a read in a callback
+// counts even if the callback never runs (an unused one is left to `no-unused-vars`).
+
 import { defineRule, type ESTree, type SourceCode, type Variable } from "@oxlint/plugins";
 
 const MESSAGE =
@@ -11,22 +18,50 @@ const FUNCTION_TYPES = new Set([
   "ArrowFunctionExpression",
 ]);
 
-function isNode(value: unknown): value is { type: string } {
+function isNode(value: unknown): value is ESTree.Node {
   return (
     typeof value === "object" && value !== null && typeof Reflect.get(value, "type") === "string"
   );
 }
 
-/** Whether `node` throws as part of the handler (a throw in a nested function does not). */
-function containsThrow(node: unknown): boolean {
-  if (!isNode(node)) return false;
+function isFunction(node: ESTree.Node): boolean {
+  return FUNCTION_TYPES.has(node.type);
+}
+
+/** The child nodes of `node`, in no particular order. */
+function children(node: ESTree.Node): ESTree.Node[] {
+  return Object.entries(node)
+    .filter(([key]) => key !== "parent")
+    .flatMap(([, value]: [string, unknown]) => (Array.isArray(value) ? value : [value]))
+    .filter(isNode);
+}
+
+/**
+ * Whether a throw in `node` can leave it: one in a nested function does not run as part of
+ * the handler, and one in a `try` block with its own `catch` is caught there. A `finally` that
+ * discards a throw is left to Oxlint's `no-unsafe-finally`.
+ */
+function canThrow(node: ESTree.Node): boolean {
   if (node.type === "ThrowStatement") return true;
-  if (FUNCTION_TYPES.has(node.type)) return false;
-  for (const [key, value] of Object.entries(node)) {
-    if (key === "parent") continue;
-    if (Array.isArray(value) ? value.some(containsThrow) : containsThrow(value)) return true;
-  }
-  return false;
+  if (isFunction(node)) return false;
+  return children(node).some(
+    (child) =>
+      !(node.type === "TryStatement" && node.handler !== null && child === node.block) &&
+      canThrow(child),
+  );
+}
+
+/** The outermost functions nested in `node`. */
+function nestedFunctions(node: ESTree.Node): ESTree.Node[] {
+  return children(node).flatMap((child) => (isFunction(child) ? [child] : nestedFunctions(child)));
+}
+
+/** Whether `owner` carries a comment of its own, not one inside a function nested in it. */
+function hasOwnComment(sourceCode: SourceCode, owner: ESTree.CatchClause | Handler): boolean {
+  const nested = nestedFunctions(owner);
+  return sourceCode
+    .getCommentsInside(owner)
+    .some((comment) => !nested.some((fn) => fn.start <= comment.start && comment.end <= fn.end));
 }
 
 /**
@@ -47,31 +82,43 @@ function caughtBindings(sourceCode: SourceCode, owner: ESTree.CatchClause | Hand
   );
 }
 
-/** A handler deals with the error when it reads it, rethrows, or explains why it may drop it. */
+/**
+ * A handler deals with the error when it reads it, rethrows, or explains why it may drop it.
+ * Writing the binding (`error = null`, a default value) is not a read. A read inside a nested
+ * function counts: handing the error to a callback (`setTimeout(() => report(error))`) is
+ * handling it, and the rule does not follow whether that callback ever runs.
+ */
 function handlesError(
   sourceCode: SourceCode,
   owner: ESTree.CatchClause | Handler,
   body: ESTree.Node,
 ): boolean {
-  if (caughtBindings(sourceCode, owner).some((variable) => variable.references.length > 0)) {
-    return true;
-  }
-  if (sourceCode.getCommentsInside(body).length > 0) return true;
-  return containsThrow(body);
+  const bindings = caughtBindings(sourceCode, owner);
+  if (bindings.some((variable) => variable.references.some((ref) => ref.isRead()))) return true;
+  return hasOwnComment(sourceCode, owner) || canThrow(body);
 }
 
-/** The inline rejection handler of `.catch(handler)` or `.then(onValue, handler)`, if any. */
-function rejectionHandler(node: ESTree.CallExpression): Handler | null {
-  const callee = node.callee;
-  if (callee.type !== "MemberExpression" || callee.computed) return null;
+/** The name of a member access that is known without running it: `a.b`, `a["b"]`, `` a[`b`] ``. */
+function staticMemberName(callee: ESTree.MemberExpression): string | null {
   const property = callee.property;
-  if (property.type !== "Identifier") return null;
+  if (!callee.computed) return property.type === "Identifier" ? property.name : null;
+  if (property.type === "Literal" && typeof property.value === "string") return property.value;
+  if (property.type === "TemplateLiteral" && property.expressions.length === 0) {
+    return property.quasis[0]?.value.cooked ?? null;
+  }
+  return null;
+}
+
+/**
+ * The inline rejection handler of `.catch(handler)` or `.then(onValue, handler)`, if any. This
+ * is syntax only: any object's `.catch` or `.then` method counts, Promise or not, since the rule
+ * does not know the receiver's type.
+ */
+function rejectionHandler(node: ESTree.CallExpression): Handler | null {
+  if (node.callee.type !== "MemberExpression") return null;
+  const name = staticMemberName(node.callee);
   const handler =
-    property.name === "catch"
-      ? node.arguments[0]
-      : property.name === "then"
-        ? node.arguments[1]
-        : undefined;
+    name === "catch" ? node.arguments[0] : name === "then" ? node.arguments[1] : undefined;
   return handler?.type === "ArrowFunctionExpression" || handler?.type === "FunctionExpression"
     ? handler
     : null;
