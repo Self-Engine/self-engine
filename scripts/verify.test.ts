@@ -36,6 +36,10 @@ describe("the verify tasks", () => {
     expect(config.run?.tasks?.["verify:lint"]).toContain("--deny-warnings");
   });
 
+  it("fail the lint stage on a silent catch (packages/oxlint-plugin)", () => {
+    expect(config.lint?.rules?.["self-engine/no-silent-catch"]).toBe("error");
+  });
+
   it("typecheck through vp, whose reads the task cache tracks (plain tsc's it does not)", () => {
     expect(config.run?.tasks?.["verify:typecheck"]).toBe("vp check --no-fmt --no-lint");
   });

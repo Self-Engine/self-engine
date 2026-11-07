@@ -11,6 +11,7 @@
     "verify": "node scripts/verify.ts"
   },
   "devDependencies": {
+    "@self-engine/oxlint-plugin": "workspace:*",
     "@types/node": "catalog:",
     "typescript": "catalog:",
     "vite-plus": "catalog:"

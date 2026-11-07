@@ -1,7 +1,11 @@
 import { defineConfig } from "vite-plus";
+import { testTimeZone } from "./scripts/testing/process-timezone.ts";
 
 // Reference material, not part of the workspace (see prototypes/*/RESULTS.md).
 const IGNORED = ["prototypes/**", "**/dist/**", "**/node_modules/**", "pnpm-lock.yaml"];
+
+// Workers inherit the zone from this process (scripts/testing/process-timezone.ts).
+process.env.TZ = testTimeZone();
 
 export default defineConfig({
   test: {
@@ -14,6 +18,11 @@ export default defineConfig({
   lint: {
     ignorePatterns: IGNORED,
     options: { typeAware: true, typeCheck: true },
+    // The repo's own rules (packages/oxlint-plugin), reported as `self-engine/<rule>`.
+    jsPlugins: [{ name: "self-engine", specifier: "@self-engine/oxlint-plugin" }],
+    rules: {
+      "self-engine/no-silent-catch": "error",
+    },
   },
   fmt: {
     // German planning history (D46). Oxfmt rewraps its lists and changes their meaning.
