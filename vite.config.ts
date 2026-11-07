@@ -20,4 +20,16 @@ export default defineConfig({
     ignorePatterns: [...IGNORED, "docs/plan/**"],
     sortPackageJson: {},
   },
+  run: {
+    // The stages of `pnpm verify` (scripts/verify.ts), cached by Vite Task: a stage whose
+    // inputs did not change replays its last output instead of running again.
+    tasks: {
+      "verify:format": "vp fmt",
+      // Type-aware lint; with `typeCheck` it also reports compiler errors.
+      "verify:lint": "vp lint --deny-warnings",
+      "verify:typecheck": "tsc --noEmit",
+      "verify:adrs": "node scripts/check-adrs.ts",
+      "verify:test": "vp test run --reporter=agent",
+    },
+  },
 });

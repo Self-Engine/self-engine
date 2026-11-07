@@ -1,0 +1,30 @@
+---
+status: accepted
+date: 2026-11-08
+decisions: D44, D45
+---
+
+# One verify gate and a push guard
+
+## Context
+
+Agents write much of this code. A check they can skip, or one that differs between a human
+and an agent, ends up skipped. `main` must stay releasable, and every change reaches it
+through a PR.
+
+## Decision
+
+- **One gate, `pnpm verify`**, for humans, agents and CI: format, lint with warnings as
+  errors, typecheck, the ADR check, then the tests. The stages are `vp run` tasks, so an
+  unchanged stage replays from the cache. The last line is `VERIFY: PASS` or `VERIFY: FAIL`.
+- **A pass writes a stamp**: the git tree of the verified checkout.
+- **A push guard** (a Claude Code `PreToolUse` hook) blocks `git push` and `gh pr create`
+  unless the stamp matches the tree of HEAD. The gate and the guard are Node 26 scripts with
+  tests.
+
+## Consequences
+
+- The flow is commit → `pnpm verify` → commit any formatter output → push.
+- Any edit after a pass, even a formatting fix, needs another `pnpm verify` before a push.
+  The cache keeps that rerun short.
+- The guard covers Claude Code only. CI runs the same gate for every PR.
