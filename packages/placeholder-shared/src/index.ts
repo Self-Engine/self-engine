@@ -1,7 +1,7 @@
 /**
- * Placeholder shared package for the boundary rules (.dependency-cruiser.ts):
- * `@self-engine/placeholder-module` may import it, not the other way round, and
- * `./internal.ts` stays private because `exports` lists only this file.
+ * Placeholder shared package, imported by `@self-engine/placeholder-module` (see there for
+ * why both exist and when they go). `./internal.ts` stays private because `exports` lists
+ * only this file.
  */
 import { padTwo } from "./internal.ts";
 

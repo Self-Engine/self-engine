@@ -1,60 +1,78 @@
-// The module boundary rules in .dependency-cruiser.ts (ADR 0006), run by dependency-cruiser
-// on fixture workspaces built from the two placeholder packages. The allowed import lives in
-// the real `packages/placeholder-module`; every forbidden one exists only in a fixture here.
+// The module boundary rules in .dependency-cruiser.ts (ADR 0006), run by dependency-cruiser on
+// fixture workspaces built here. The fixtures carry their own ALLOWED_IMPORTS, so they do not
+// depend on any real package; the last block checks the real repo's lists and manifests.
 
-import { readdirSync, readFileSync } from "node:fs";
-import { join, resolve } from "node:path";
+import { resolve } from "node:path";
 import { describe, expect, it } from "vite-plus/test";
 import { ALLOWED_IMPORTS } from "../.dependency-cruiser.ts";
-import {
-  cruiseFixture,
-  type FixturePackage,
-  repoPackage,
-  ruleNames,
-  withFiles,
-} from "./testing/cruise-fixture.ts";
+import { cruiseFixture, type FixturePackage, ruleNames, withFiles } from "./testing/cruise-fixture.ts";
+import { workspaceDependencies, workspacePackages } from "./workspace-manifest.ts";
 
-const shared = repoPackage("packages/placeholder-shared");
-const module_ = repoPackage("packages/placeholder-module");
+/** `packages/module` may import `packages/shared`, not the other way round. */
+const ALLOWED = { module: ["shared"] };
 
-/** A package of its own, outside ALLOWED_IMPORTS. */
+/** A shared package whose `./internal.ts` stays private: `exports` lists only `index.ts`. */
+const shared: FixturePackage = {
+  dir: "packages/shared",
+  files: {
+    "src/index.ts":
+      'import { padTwo } from "./internal.ts";\nexport const formatMinutes = (minutes: number) => padTwo(minutes);\n',
+    "src/internal.ts": "export const padTwo = (value: number) => String(value).padStart(2, '0');\n",
+  },
+};
+
+/** A module that imports the shared package, the allowed direction. */
+const module_: FixturePackage = {
+  dir: "packages/module",
+  dependencies: ["@self-engine/shared"],
+  files: {
+    "src/index.ts":
+      'import { formatMinutes } from "@self-engine/shared";\nexport const describeDuration = formatMinutes;\n',
+  },
+};
+
+/** A package of its own, outside ALLOWED. */
 function extraPackage(dir: string, files: Record<string, string> = {}): FixturePackage {
   return { dir, files: { "src/index.ts": "export const value = 1;\n", ...files } };
+}
+
+function app(name: string, files: Record<string, string> = {}): FixturePackage {
+  return { dir: `apps/${name}`, files: { "src/index.ts": "export {};\n", ...files } };
 }
 
 function declaring(fixture: FixturePackage, ...dependencies: string[]): FixturePackage {
   return { ...fixture, dependencies: [...(fixture.dependencies ?? []), ...dependencies] };
 }
 
-describe("the placeholder packages", () => {
-  it("pass as they are: placeholder-module imports placeholder-shared, an allowed direction", async () => {
-    expect(module_.files["src/index.ts"]).toContain('from "@self-engine/placeholder-shared"');
-    expect(await cruiseFixture([shared, module_])).toEqual([]);
+function cruise(packages: readonly FixturePackage[], options = {}) {
+  return cruiseFixture(packages, { allowedImports: ALLOWED, ...options });
+}
+
+describe("the fixture workspace", () => {
+  it("passes as it is: module imports shared, an allowed direction", async () => {
+    expect(await cruise([shared, module_])).toEqual([]);
   });
 });
 
 describe("package directions", () => {
-  it("fail the reverse import: placeholder-shared may not import placeholder-module", async () => {
-    const reverse = withFiles(declaring(shared, "@self-engine/placeholder-module"), {
-      "src/reverse.ts": 'import { describeDuration } from "@self-engine/placeholder-module";\n',
+  it("fail the reverse import: shared may not import module", async () => {
+    const reverse = withFiles(declaring(shared, "@self-engine/module"), {
+      "src/reverse.ts": 'import { describeDuration } from "@self-engine/module";\n',
     });
-    expect(await cruiseFixture([reverse, module_])).toEqual([
+    expect(await cruise([reverse, module_])).toEqual([
       {
         rule: "package-direction:unlisted",
-        from: "packages/placeholder-shared/src/reverse.ts",
-        to: "packages/placeholder-module/src/index.ts",
+        from: "packages/shared/src/reverse.ts",
+        to: "packages/module/src/index.ts",
       },
     ]);
   });
 
   it("fail a type-only import in a forbidden direction too", async () => {
-    const reverse = withFiles(declaring(shared, "@self-engine/placeholder-module"), {
-      "src/reverse.ts":
-        'import type { describeDuration } from "@self-engine/placeholder-module";\n',
+    const reverse = withFiles(declaring(shared, "@self-engine/module"), {
+      "src/reverse.ts": 'import type { describeDuration } from "@self-engine/module";\n',
     });
-    expect(ruleNames(await cruiseFixture([reverse, module_]))).toEqual([
-      "package-direction:unlisted",
-    ]);
+    expect(ruleNames(await cruise([reverse, module_]))).toEqual(["package-direction:unlisted"]);
   });
 
   it("fail a listed package importing a package outside its list", async () => {
@@ -62,88 +80,176 @@ describe("package directions", () => {
     const sideways = withFiles(declaring(module_, "@self-engine/other"), {
       "src/sideways.ts": 'import { value } from "@self-engine/other";\n',
     });
-    expect(ruleNames(await cruiseFixture([shared, sideways, other]))).toEqual([
-      "package-direction:placeholder-module",
+    expect(ruleNames(await cruise([shared, sideways, other]))).toEqual([
+      "package-direction:module",
     ]);
   });
 
   it("fail an unlisted package importing any other workspace package", async () => {
     const newcomer = declaring(
       extraPackage("packages/newcomer", {
-        "src/uses-shared.ts": 'import { formatMinutes } from "@self-engine/placeholder-shared";\n',
+        "src/uses-shared.ts": 'import { formatMinutes } from "@self-engine/shared";\n',
       }),
-      "@self-engine/placeholder-shared",
+      "@self-engine/shared",
     );
-    expect(ruleNames(await cruiseFixture([shared, newcomer]))).toEqual([
-      "package-direction:unlisted",
-    ]);
+    expect(ruleNames(await cruise([shared, newcomer]))).toEqual(["package-direction:unlisted"]);
   });
 });
 
 describe("the exports field", () => {
   it("fails a deep import of a path that exports does not list", async () => {
     const deep = withFiles(module_, {
-      "src/deep.ts": 'import { padTwo } from "@self-engine/placeholder-shared/src/internal.ts";\n',
+      "src/deep.ts": 'import { padTwo } from "@self-engine/shared/src/internal.ts";\n',
     });
-    expect(await cruiseFixture([shared, deep])).toEqual([
+    expect(await cruise([shared, deep])).toEqual([
       {
         rule: "not-to-unresolvable",
-        from: "packages/placeholder-module/src/deep.ts",
-        to: "@self-engine/placeholder-shared/src/internal.ts",
+        from: "packages/module/src/deep.ts",
+        to: "@self-engine/shared/src/internal.ts",
       },
     ]);
   });
 
   it("passes a subpath that exports does list", async () => {
-    const exported = {
-      ...shared,
-      exports: { ".": "./src/index.ts", "./internal": "./src/internal.ts" },
-    };
+    const exported = { ...shared, exports: { ".": "./src/index.ts", "./internal": "./src/internal.ts" } };
     const subpath = withFiles(module_, {
-      "src/subpath.ts": 'import { padTwo } from "@self-engine/placeholder-shared/internal";\n',
+      "src/subpath.ts": 'import { padTwo } from "@self-engine/shared/internal";\n',
     });
-    expect(await cruiseFixture([exported, subpath])).toEqual([]);
+    expect(await cruise([exported, subpath])).toEqual([]);
   });
 
-  it("fails a relative import into another package, which skips its exports", async () => {
-    const relative = withFiles(module_, {
-      "src/relative.ts": 'import { padTwo } from "../../placeholder-shared/src/internal.ts";\n',
+  it("passes a subpath that exports only declarations, under the types condition", async () => {
+    const typed = withFiles(
+      { ...shared, exports: { ".": "./src/index.ts", "./types": { types: "./src/types.d.ts" } } },
+      { "src/types.d.ts": "export type Minutes = number;\n" },
+    );
+    const user = withFiles(module_, {
+      "src/typed.ts": 'import type { Minutes } from "@self-engine/shared/types";\n',
     });
-    expect(ruleNames(await cruiseFixture([shared, relative]))).toEqual([
+    expect(await cruise([typed, user])).toEqual([]);
+  });
+});
+
+describe("relative imports", () => {
+  it("fail from a package into another package, which skips its exports", async () => {
+    const relative = withFiles(module_, {
+      "src/relative.ts": 'import { padTwo } from "../../shared/src/internal.ts";\n',
+    });
+    expect(ruleNames(await cruise([shared, relative]))).toEqual([
       "no-relative-import-across-packages",
     ]);
   });
 
-  it("fails a relative import out of the package into repo scripts", async () => {
+  it("fail from a package out into repo scripts", async () => {
     const script = { dir: "scripts", files: { "tool.ts": "export const tool = 1;\n" } };
     const outward = withFiles(shared, { "src/outward.ts": 'import "../../../scripts/tool.ts";\n' });
-    expect(ruleNames(await cruiseFixture([outward, script]))).toEqual([
+    expect(ruleNames(await cruise([outward, script]))).toEqual([
       "no-relative-import-across-packages",
     ]);
+  });
+
+  it("fail from an app into a package's internals", async () => {
+    const desktop = app("desktop", {
+      "src/main.ts": 'import { padTwo } from "../../../packages/shared/src/internal.ts";\n',
+    });
+    expect(await cruise([shared, desktop])).toEqual([
+      {
+        rule: "no-relative-import-across-packages",
+        from: "apps/desktop/src/main.ts",
+        to: "packages/shared/src/internal.ts",
+      },
+    ]);
+  });
+
+  it("fail from repo scripts into a package", async () => {
+    const script = {
+      dir: "scripts",
+      files: { "tool.ts": 'import { padTwo } from "../packages/shared/src/internal.ts";\n' },
+    };
+    expect(await cruise([shared, script])).toEqual([
+      {
+        rule: "no-relative-import-into-packages",
+        from: "scripts/tool.ts",
+        to: "packages/shared/src/internal.ts",
+      },
+    ]);
+  });
+
+  it("pass a script that only builds a URL into a package, which is no import", async () => {
+    const script = {
+      dir: "scripts",
+      files: {
+        "tool.ts": 'export const entry = new URL("../packages/shared/src/index.ts", import.meta.url);\n',
+      },
+    };
+    expect(await cruise([shared, script])).toEqual([]);
   });
 });
 
 describe("declared dependencies", () => {
-  it("fail an import of a workspace package that package.json does not declare", async () => {
+  it("fail an import of a workspace package that no package.json declares", async () => {
     // pnpm links only declared packages, so the name does not resolve.
-    const undeclared = withFiles(shared, {
-      "src/undeclared.ts": 'import "@self-engine/placeholder-module";\n',
-    });
-    expect(ruleNames(await cruiseFixture([undeclared, module_]))).toEqual(["not-to-unresolvable"]);
+    const undeclared = withFiles(shared, { "src/undeclared.ts": 'import "@self-engine/module";\n' });
+    expect(ruleNames(await cruise([undeclared, module_]))).toEqual(["not-to-unresolvable"]);
+  });
+
+  it("fail an app importing a workspace package that only the root declares", async () => {
+    // Node resolution finds it in the root node_modules, so it resolves.
+    const tool = extraPackage("packages/tool");
+    const desktop = app("desktop", { "src/main.ts": 'import "@self-engine/tool";\n' });
+    expect(await cruise([tool, desktop], { rootDependencies: ["@self-engine/tool"] })).toEqual([
+      {
+        rule: "declared-workspace-dependency:apps/desktop",
+        from: "apps/desktop/src/main.ts",
+        to: "packages/tool/src/index.ts",
+      },
+    ]);
+  });
+
+  it("fail a package importing a workspace package that only the root declares", async () => {
+    const tool = extraPackage("packages/tool");
+    const user = withFiles(module_, { "src/tool.ts": 'import "@self-engine/tool";\n' });
+    const allowedImports = { module: ["shared", "tool"] };
+    expect(
+      ruleNames(
+        await cruise([shared, tool, user], {
+          allowedImports,
+          rootDependencies: ["@self-engine/tool"],
+        }),
+      ),
+    ).toEqual(["declared-workspace-dependency:packages/module"]);
+  });
+
+  it("pass a devDependency imported by a test file", async () => {
+    const tool = extraPackage("packages/tool");
+    const desktop = {
+      ...app("desktop", { "src/main.test.ts": 'import "@self-engine/tool";\n' }),
+      devDependencies: ["@self-engine/tool"],
+    };
+    expect(await cruise([tool, desktop])).toEqual([]);
+  });
+
+  it("fail a devDependency imported by a source file", async () => {
+    const tool = extraPackage("packages/tool");
+    const desktop = {
+      ...app("desktop", { "src/main.ts": 'import "@self-engine/tool";\n' }),
+      devDependencies: ["@self-engine/tool"],
+    };
+    expect(ruleNames(await cruise([tool, desktop]))).toEqual([
+      "declared-workspace-dependency:apps/desktop",
+    ]);
   });
 
   it("fail an npm package that only the workspace root provides", async () => {
     const undeclared = withFiles(shared, { "src/npm.ts": 'import "left-pad";\n' });
-    expect(ruleNames(await cruiseFixture([undeclared], ["left-pad"]))).toEqual([
+    expect(ruleNames(await cruise([undeclared], { npmPackages: ["left-pad"] }))).toEqual([
       "not-to-undeclared",
     ]);
   });
 
   it("pass an npm package the package declares", async () => {
-    const declared = withFiles(declaring(shared, "left-pad"), {
-      "src/npm.ts": 'import "left-pad";\n',
-    });
-    expect(await cruiseFixture([declared])).toEqual([]);
+    const declared = withFiles(declaring(shared, "left-pad"), { "src/npm.ts": 'import "left-pad";\n' });
+    expect(await cruise([declared])).toEqual([]);
   });
 });
 
@@ -153,70 +259,66 @@ describe("cycles", () => {
       "src/a.ts": 'import { b } from "./b.ts";\nexport const a = () => b;\n',
       "src/b.ts": 'import { a } from "./a.ts";\nexport const b = () => a;\n',
     });
-    expect(ruleNames(await cruiseFixture([cyclic]))).toEqual(["no-circular"]);
+    expect(ruleNames(await cruise([cyclic]))).toEqual(["no-circular"]);
+  });
+
+  it("fail a cycle of type-only imports too", async () => {
+    const cyclic = withFiles(shared, {
+      "src/a.ts": 'import type { B } from "./b.ts";\nexport type A = { b?: B };\n',
+      "src/b.ts": 'import type { A } from "./a.ts";\nexport type B = { a?: A };\n',
+    });
+    expect(ruleNames(await cruise([cyclic]))).toEqual(["no-circular"]);
   });
 });
 
 describe("apps", () => {
-  const app = (name: string, files: Record<string, string> = {}): FixturePackage => ({
-    dir: `apps/${name}`,
-    files: { "src/index.ts": "export {};\n", ...files },
-  });
-
-  it("may import packages", async () => {
+  it("may import packages they declare", async () => {
     const desktop = declaring(
-      app("desktop", { "src/main.ts": 'import "@self-engine/placeholder-shared";\n' }),
-      "@self-engine/placeholder-shared",
+      app("desktop", { "src/main.ts": 'import "@self-engine/shared";\n' }),
+      "@self-engine/shared",
     );
-    expect(await cruiseFixture([shared, desktop])).toEqual([]);
+    expect(await cruise([shared, desktop])).toEqual([]);
   });
 
   it("are never imported by a package", async () => {
     const upward = withFiles(declaring(shared, "@self-engine/desktop"), {
       "src/upward.ts": 'import "@self-engine/desktop";\n',
     });
-    expect(ruleNames(await cruiseFixture([upward, app("desktop")]))).toEqual(["no-import-of-apps"]);
+    expect(ruleNames(await cruise([upward, app("desktop")]))).toEqual(["no-import-of-apps"]);
   });
 
   it("do not import each other", async () => {
-    const web = declaring(
-      app("web", { "src/main.ts": 'import "@self-engine/desktop";\n' }),
-      "@self-engine/desktop",
-    );
-    expect(ruleNames(await cruiseFixture([web, app("desktop")]))).toEqual([
-      "no-import-between-apps",
-    ]);
+    const web = declaring(app("web", { "src/main.ts": 'import "@self-engine/desktop";\n' }), "@self-engine/desktop");
+    expect(ruleNames(await cruise([web, app("desktop")]))).toEqual(["no-import-between-apps"]);
   });
 });
 
-describe("ALLOWED_IMPORTS", () => {
-  const packagesDir = resolve(import.meta.dirname, "../packages");
-  const packages = readdirSync(packagesDir, { withFileTypes: true })
-    .filter((entry) => entry.isDirectory())
-    .map((entry) => entry.name);
+describe("the repo's workspace", () => {
+  const packages = workspacePackages(resolve(import.meta.dirname, ".."));
+  const folders = packages
+    .filter(({ dir }) => dir.startsWith("packages/"))
+    .map(({ dir }) => dir.slice("packages/".length));
 
-  it("names only packages that exist", () => {
-    for (const [name, allowed] of Object.entries(ALLOWED_IMPORTS)) {
-      expect(packages).toContain(name);
-      for (const target of allowed) expect(packages).toContain(target);
+  it("names every package @self-engine/<folder name>, which ALLOWED_IMPORTS relies on", () => {
+    for (const { dir, manifest } of packages) {
+      expect(manifest.name, dir).toBe(`@self-engine/${dir.split("/")[1]}`);
     }
   });
 
-  it("allows every workspace dependency a package declares, so both change together", () => {
-    for (const name of packages) {
-      const manifest = JSON.parse(
-        readFileSync(join(packagesDir, name, "package.json"), "utf8"),
-      ) as {
-        dependencies?: Record<string, string>;
-        devDependencies?: Record<string, string>;
-      };
-      const declared = { ...manifest.dependencies, ...manifest.devDependencies };
-      const workspaceDependencies = Object.entries(declared)
-        .filter(([, version]) => version.startsWith("workspace:"))
-        .map(([dependency]) => dependency.replace(/^@self-engine\//, ""));
-      expect(ALLOWED_IMPORTS[name] ?? [], name).toEqual(
-        expect.arrayContaining(workspaceDependencies),
+  it("lists in ALLOWED_IMPORTS only packages that exist", () => {
+    for (const [name, allowed] of Object.entries(ALLOWED_IMPORTS)) {
+      expect(folders).toContain(name);
+      for (const target of allowed) expect(folders).toContain(target);
+    }
+  });
+
+  it("allows exactly the workspace dependencies each package declares, so both change together", () => {
+    for (const { dir, manifest } of packages.filter(({ dir }) => dir.startsWith("packages/"))) {
+      const name = dir.slice("packages/".length);
+      const declared = workspaceDependencies(manifest, { dev: true }).map((dependency) =>
+        dependency.replace(/^@self-engine\//, ""),
       );
+      expect([...(ALLOWED_IMPORTS[name] ?? [])].sort(), name).toEqual(declared);
     }
   });
 });

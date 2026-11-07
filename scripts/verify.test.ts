@@ -44,6 +44,10 @@ describe("the verify tasks", () => {
     expect(config.lint?.rules?.["self-engine/no-silent-catch"]).toBe("error");
   });
 
+  it("fail the lint stage on an import type query, which the boundary check cannot see", () => {
+    expect(config.lint?.rules?.["self-engine/no-import-type-query"]).toBe("error");
+  });
+
   it("load the repo's lint rules from the workspace package", () => {
     expect(config.lint?.jsPlugins).toContainEqual({
       name: "self-engine",

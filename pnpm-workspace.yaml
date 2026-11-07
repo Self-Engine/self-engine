@@ -21,7 +21,7 @@ catalog:
   # Pinned to the Node version inside Electron (45.x ships Node 24), so TypeScript
   # flags Node 26 APIs that the desktop main process does not have (D34).
   "@types/node": 24.19.2
-  # Module boundaries (ADR 0006), configured in .dependency-cruiser.cjs.
+  # Module boundaries (ADR 0006), configured in .dependency-cruiser.ts.
   dependency-cruiser: 18.7.2
   typescript: 7.0.2
   # Vite+ replaces vite with its own core; every package that depends on vite gets it (D28).

@@ -1,14 +1,7 @@
 import { describe, expect, it } from "vite-plus/test";
-import { cruiseFixture, packageName, repoPackage, ruleNames, withFiles } from "./cruise-fixture.ts";
+import { cruiseFixture, packageName, ruleNames, withFiles } from "./cruise-fixture.ts";
 
-describe("repoPackage", () => {
-  it("reads a repo package's exports, dependencies and sources, without its tests", () => {
-    const fixture = repoPackage("packages/placeholder-module");
-    expect(fixture.exports).toEqual({ ".": "./src/index.ts" });
-    expect(fixture.dependencies).toEqual(["@self-engine/placeholder-shared"]);
-    expect(Object.keys(fixture.files)).toEqual(["src/index.ts"]);
-  });
-});
+const lower = { dir: "packages/lower", files: { "src/index.ts": "export const a = 1;\n" } };
 
 describe("packageName", () => {
   it("scopes the folder name", () => {
@@ -16,28 +9,53 @@ describe("packageName", () => {
   });
 });
 
+describe("withFiles", () => {
+  it("adds files and replaces those of the same path", () => {
+    const changed = withFiles(lower, { "src/index.ts": "x", "src/b.ts": "y" });
+    expect(changed.files).toEqual({ "src/index.ts": "x", "src/b.ts": "y" });
+  });
+});
+
 describe("cruiseFixture", () => {
+  const upper = {
+    dir: "packages/upper",
+    dependencies: ["@self-engine/lower"],
+    files: { "src/index.ts": 'import { a } from "@self-engine/lower";\nexport const b = a;\n' },
+  };
+
   it("links declared workspace packages, so an import by name resolves", async () => {
-    const lower = { dir: "packages/lower", files: { "src/index.ts": "export const a = 1;\n" } };
-    const upper = {
-      dir: "packages/upper",
-      dependencies: ["@self-engine/lower"],
-      files: { "src/index.ts": 'import { a } from "@self-engine/lower";\nexport const b = a;\n' },
-    };
-    // Resolved (no not-to-unresolvable); `upper` is not in ALLOWED_IMPORTS, so it may not.
+    // Resolved (no not-to-unresolvable); `upper` is not in allowedImports, so it may not.
     expect(ruleNames(await cruiseFixture([lower, upper]))).toEqual(["package-direction:unlisted"]);
   });
 
+  it("applies the allowed imports it is given", async () => {
+    expect(await cruiseFixture([lower, upper], { allowedImports: { upper: ["lower"] } })).toEqual(
+      [],
+    );
+  });
+
+  it("links root dependencies into the root node_modules", async () => {
+    const undeclared = { ...upper, dependencies: [] };
+    expect(
+      ruleNames(
+        await cruiseFixture([lower, undeclared], {
+          allowedImports: { upper: ["lower"] },
+          rootDependencies: ["@self-engine/lower"],
+        }),
+      ),
+    ).toEqual(["declared-workspace-dependency:packages/upper"]);
+  });
+
+  it("refuses a root dependency that is no fixture package", async () => {
+    await expect(cruiseFixture([lower], { rootDependencies: ["@self-engine/x"] })).rejects.toThrow(
+      /not a fixture package/,
+    );
+  });
+
   it("reports each violation with its rule and both ends", async () => {
-    const fixture = withFiles(repoPackage("packages/placeholder-shared"), {
-      "src/broken.ts": 'import "./missing.ts";\n',
-    });
+    const fixture = withFiles(lower, { "src/broken.ts": 'import "./missing.ts";\n' });
     expect(await cruiseFixture([fixture])).toEqual([
-      {
-        rule: "not-to-unresolvable",
-        from: "packages/placeholder-shared/src/broken.ts",
-        to: "./missing.ts",
-      },
+      { rule: "not-to-unresolvable", from: "packages/lower/src/broken.ts", to: "./missing.ts" },
     ]);
   });
 });
