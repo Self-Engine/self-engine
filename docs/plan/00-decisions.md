@@ -123,6 +123,18 @@ Langfristig Plugins von Dritten. Ersetzt Self-Engine.
   ist fertig und getestet, bevor die nächste darauf aufsetzt; keine Fachfunktion vor ihrem
   Fundament.
 
+### Runde 9 (2026-11-07)
+
+- **D25 Schichtenfolge als grober Rahmen:** 0 Repo-Fundament → 1 Design-System + App-Hülle →
+  2 Datenschicht → 3 gemeinsamer Kern → 4 Projekte + Zeit → 5 Import. Jede Schicht bekommt
+  eine eigene Vertiefung mit Recherche und Einzelentscheidungen (z. B. Vite+), **bevor**
+  darauf aufgebaut wird. Dokumente: `03-layer-0-foundation.md` usw.
+- **D26 Desktop ist das Hauptprodukt und kommt zuerst.** Web und Mobile folgen; der
+  Web-Build kompiliert bis zur Sync-Phase in CI mit, wird aber nicht ausgeliefert.
+- **D27 Agenten-Setup: ausgewählt übernehmen, nicht blind.** Jedes Element aus Self-Engine
+  (CLAUDE.md-Regeln, Skills, Hooks, Verify-Pipeline) wird einzeln geprüft: noch aktuell,
+  noch nötig, passt zum neuen Repo? Grundlage: ein Audit.
+
 ## Fakten
 
 - Self-Engine hat Abo-Infrastruktur über Clerk Billing (`apps/web/src/features/billing`),

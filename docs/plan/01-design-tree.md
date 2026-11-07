@@ -7,7 +7,14 @@ Pro Runde werden nur 2–3 Fragen gestellt; die Nummern sind stabil.
   - ✅ Erster Meilenstein Projekte + Zeit; Ablösung erst bei Funktionsgleichheit (D9)
   - ✅ Übergang: wiederholbarer Import, Wechsel am Stichtag (D12)
   - ✅ Mobile + Sync sind Pflicht vor dem Stichtag (D14)
-  - ⏳ Reihenfolge bis zum Stichtag (Module, Sync, Mobile)
+  - ✅ Schichtenfolge als Rahmen, jede Schicht mit eigener Vertiefung (D25)
+    - ❓ Schicht 0 Repo-Fundament → 03-layer-0-foundation.md
+    - ⏳ Schicht 1 Design-System + App-Hülle
+    - ⏳ Schicht 2 Datenschicht
+    - ⏳ Schicht 3 Gemeinsamer Kern
+    - ⏳ Schicht 4 Projekte + Zeit
+    - ⏳ Schicht 5 Import
+  - ⏳ Reihenfolge nach Schicht 5 bis zum Stichtag (weitere Module, Sync, Mobile)
   - ⏳ Zeitpunkt Organisations-Spaces & Policies
   - ⏳ Onboarding / Blueprints
 - ✅ Motivation OSS (D2)
@@ -19,8 +26,8 @@ Pro Runde werden nur 2–3 Fragen gestellt; die Nummern sind stabil.
   - ⏳ Import aus Self-Engine: Format, Umfang, ab welchem Meilenstein
 - ✅ Repo: neues Repo (D4)
   - ❓ Q14 Endgültiger Name (Arbeitstitel: self-engine-next)
-  - ❓ Q18 Agenten-Setup im neuen Repo (Glossar, ADRs, ein Verify-Befehl)
-- ✅ Plattform: Desktop + Web (D6)
+  - ✅ Agenten-Setup: ausgewählt übernehmen nach Audit (D27) → Teil von Schicht 0
+- ✅ Plattform: Desktop zuerst als Hauptprodukt, dann Web und Mobile (D6, D26)
   - ✅ Desktop-Shell: Electron (D17)
   - ✅ UI: React + Mantine, App-Hülle zuerst, von unten nach oben (D23)
 - ✅ Produktkern: fokussierte App, Modularität Stufe 1–3 (D20)
