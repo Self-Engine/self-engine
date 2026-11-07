@@ -173,6 +173,12 @@ Vite. Damit ist ein funktionierender Weg für Electron unter Vite+ belegt.
   Node-26-APIs meldet, die Electron noch nicht kennt. Offen: zusätzlicher CI-Lauf mit
   `ELECTRON_RUN_AS_NODE` (im Spike erprobt), nicht Teil des t3code-Vorbilds.
 
+- **D35 (L0.4) Lint und Format über `vp check`** (Oxlint + Oxfmt). Eigene Regeln wie
+  `no-silent-catch` in einem eigenen Oxlint-Plugin (Vorbild `oxlint-plugin-t3code`).
+- **D36 (L0.5) Modulgrenzen dreifach:** ein Workspace-Paket pro Modul (strenge
+  pnpm-Isolation), `exports`-Feld als öffentliche Schnittstelle, dependency-cruiser in CI für
+  erlaubte Richtungen und Zyklen.
+
 ## Fakten
 
 - Self-Engine hat Abo-Infrastruktur über Clerk Billing (`apps/web/src/features/billing`),

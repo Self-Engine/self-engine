@@ -34,3 +34,4 @@ Code entsteht (D25). Desktop (Electron) ist das Hauptprodukt (D26).
   Empfehlung Weg A (t3code-Stil). S2: better-sqlite3 13 (N-API, ein Binary für Node und
   Electron), `npmRebuild: false`, Tests mit `vp test` in Node.
 - L0.6 Electron wie t3code (D32), SQLite better-sqlite3 13 (D33), Node 26 + `@types/node` 24 (D34).
+- L0.4 `vp check` mit Oxlint + Oxfmt (D35), L0.5 Modulgrenzen dreifach (D36).
