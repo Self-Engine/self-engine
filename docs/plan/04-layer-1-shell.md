@@ -22,6 +22,9 @@ Stand: 2026-11-08 · Status: **in Planung** (parallel zum Bau von Schicht 0, D53
 | L1.10 | Standard | Akzent Blau, Theme Neutral (D68) |
 | L1.11 | Hintergrund | Mit Akzent eingefärbt, abschaltbar (D69) |
 | L1.12 | Dichte | Standard Bequem, Kompakt als Einstellung (D70) |
+| L1.13 | Schrift | Inter, mitgeliefert (D71) |
+| L1.14 | Icons | Phosphor über eigenes Icon-Paket (D72) |
+| L1.15 | Katalog | Storybook + Vitest-Browser-Modus (D73) |
 
 ## Referenz t3code-Theming (geprüft 2026-11-08)
 
@@ -33,7 +36,7 @@ Stand: 2026-11-08 · Status: **in Planung** (parallel zum Bau von Schicht 0, D53
 
 ## Offen
 
-- L1.13 Schrift · L1.14 Icons · L1.15 Komponenten-Katalog
+- L1.16 Vertrag Modul ↔ Hülle · L1.17 Tastaturkürzel · L1.18 App-Check-Skill
 - Form des Agenten (mit Q16)
 - Später: i18n-Mechanik (DE/EN), Schriften, Icons, Befehlspalette, Einstellungsseite,
   Tastaturkürzel-System, App-Check-Skill, Komponenten-Katalog (Storybook o. ä.)

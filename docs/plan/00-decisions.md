@@ -287,6 +287,11 @@ Vite. Damit ist ein funktionierender Weg für Electron unter Vite+ belegt.
 - **D69 (L1.11) Hintergrund mit der Akzentfarbe eingefärbt**, abschaltbar in den
   Einstellungen (Regler/Schalter für einen neutralen Hintergrund).
 - **D70 (L1.12) Dichte: Standard „Bequem“**, „Kompakt“ als Einstellung.
+- **D71 (L1.13) Schrift: Inter** (vorerst), als variable Webfont mit der App ausgeliefert.
+- **D72 (L1.14) Icons: Phosphor** (wie die alte App, React-Native-Version für später),
+  nur über ein eigenes Icon-Paket eingebunden, damit ein Wechsel an einer Stelle bleibt.
+- **D73 (L1.15) Komponenten-Katalog mit Storybook ab Schicht 1**, verbunden mit Vitest im
+  Browser-Modus (Stories sind Tests). Das Design-System entsteht zuerst im Katalog.
 
 ## Fakten
 

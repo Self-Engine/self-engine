@@ -13,7 +13,8 @@ Pro Runde werden nur 2–3 Fragen gestellt; die Nummern sind stabil.
       - ✅ Optik, Hülle, Desktop-Gefühl, Styling, Farben, kleine Fenster, rechte Seite, Theming, Einstellungen, Drawer, i18n (D54–D66)
       - ✅ Optik: Prototyp-Variante B3 (D67)
       - ✅ Blau, Neutral, eingefärbter Hintergrund, Dichte Bequem (D68–D70)
-      - ❓ L1.13 Schrift · L1.14 Icons · L1.15 Komponenten-Katalog
+      - ✅ Inter, Phosphor, Storybook (D71–D73)
+      - ❓ L1.16 Vertrag Modul ↔ Hülle · L1.17 Tastaturkürzel · L1.18 App-Check-Skill
     - ⏳ Schicht 2 Datenschicht
     - ⏳ Schicht 3 Gemeinsamer Kern
     - ⏳ Schicht 4 Projekte + Zeit
