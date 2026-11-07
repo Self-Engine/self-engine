@@ -236,6 +236,21 @@ Vite. Damit ist ein funktionierender Weg für Electron unter Vite+ belegt.
   `self-engine`. Nicht vorher (alte Desktop-Updates, CI und Vercel hängen am alten Namen).
 - **D53 Nächster Schritt: Schicht 0 bauen** (Issues, Umsetzung), Schicht 1 parallel planen.
 
+### Runde 13 (2026-11-08): Schicht 1, Grundrichtung
+
+- **D54 (L1.1) Optik: modern, elegant, praktisch, farbig, aber nicht verspielt.**
+  Vorbild t3code und aktuelle moderne Apps. Ruhiger als die alte Self-Engine, Farbe gezielt
+  statt überall.
+- **D55 (L1.1) Hülle aus zwei Leisten:** links eine **Navbar** für die Module, in der
+  Breite veränderbar (nur Icons bis breit mit Beschriftung). Daneben eine **Modul-Sidebar**
+  im gleichen Stil mit den Aktionen und Unterseiten des aktiven Moduls. Dann der
+  Seiteninhalt.
+- **D56 (L1.2) Fühlt sich wie eine Desktop-App an** (eigene Titelleiste, ⌘K,
+  Tastaturkürzel, Fenster merkt sich Größe und Position), passt sich aber sauber an kleine
+  Fenster und Bildschirme an.
+- **D57 (L1.3) Styling:** Mantine-Theme mit eigenen Design-Tokens (Farben, Abstände,
+  Radien, Typografie) und CSS-Modulen. Kein Tailwind.
+
 ## Fakten
 
 - Self-Engine hat Abo-Infrastruktur über Clerk Billing (`apps/web/src/features/billing`),

@@ -9,7 +9,9 @@ Pro Runde werden nur 2–3 Fragen gestellt; die Nummern sind stabil.
   - ✅ Mobile + Sync sind Pflicht vor dem Stichtag (D14)
   - ✅ Schichtenfolge als Rahmen, jede Schicht mit eigener Vertiefung (D25)
     - ✅ Schicht 0 Repo-Fundament entschieden (D28–D49) → 03-layer-0-foundation.md
-    - ❓ Schicht 1 Design-System + App-Hülle (Planung parallel zum Bau von Schicht 0, D53)
+    - ❓ Schicht 1 Design-System + App-Hülle (Planung parallel zum Bau, D53) → 04-layer-1-shell.md
+      - ✅ Optik, Hülle, Desktop-Gefühl, Styling (D54–D57)
+      - ❓ L1.4 Farben · L1.5 kleine Fenster · L1.6 rechte Leiste
     - ⏳ Schicht 2 Datenschicht
     - ⏳ Schicht 3 Gemeinsamer Kern
     - ⏳ Schicht 4 Projekte + Zeit
