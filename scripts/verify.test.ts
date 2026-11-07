@@ -1,6 +1,10 @@
+import { createRequire } from "node:module";
+import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vite-plus/test";
 import config from "../vite.config.ts";
 import { capture, runStages, STATIC_STAGES, summaryLine, tail, TEST_STAGE } from "./verify.ts";
+
+const rootPackage = fileURLToPath(new URL("../package.json", import.meta.url));
 
 describe("runStages", () => {
   it("runs every static stage even after one fails, and skips the tests", async () => {
@@ -34,6 +38,20 @@ describe("the verify tasks", () => {
 
   it("let lint warnings fail the gate", () => {
     expect(config.run?.tasks?.["verify:lint"]).toContain("--deny-warnings");
+  });
+
+  it("fail the lint stage on a silent catch (packages/oxlint-plugin)", () => {
+    expect(config.lint?.rules?.["self-engine/no-silent-catch"]).toBe("error");
+  });
+
+  it("load the repo's lint rules from the workspace package", () => {
+    expect(config.lint?.jsPlugins).toContainEqual({
+      name: "self-engine",
+      specifier: "@self-engine/oxlint-plugin",
+    });
+    expect(createRequire(rootPackage).resolve("@self-engine/oxlint-plugin")).toBe(
+      fileURLToPath(new URL("../packages/oxlint-plugin/src/index.ts", import.meta.url)),
+    );
   });
 
   it("typecheck through vp, whose reads the task cache tracks (plain tsc's it does not)", () => {

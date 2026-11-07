@@ -10,6 +10,8 @@ engineStrict: true
 allowBuilds: {}
 
 catalog:
+  # The JS plugin API of the Oxlint that vite-plus ships; move it with vite-plus.
+  "@oxlint/plugins": 1.91.0
   # Pinned to the Node version inside Electron (45.x ships Node 24), so TypeScript
   # flags Node 26 APIs that the desktop main process does not have (D34).
   "@types/node": 24.19.2
