@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vite-plus/test";
 import config from "../vite.config.ts";
-import { runStages, STATIC_STAGES, summaryLine, tail, TEST_STAGE } from "./verify.ts";
+import { capture, runStages, STATIC_STAGES, summaryLine, tail, TEST_STAGE } from "./verify.ts";
 
 describe("runStages", () => {
   it("runs every static stage even after one fails, and skips the tests", async () => {
@@ -34,6 +34,18 @@ describe("the verify tasks", () => {
 
   it("let lint warnings fail the gate", () => {
     expect(config.run?.tasks?.["verify:lint"]).toContain("--deny-warnings");
+  });
+
+  it("typecheck through vp, whose reads the task cache tracks (plain tsc's it does not)", () => {
+    expect(config.run?.tasks?.["verify:typecheck"]).toBe("vp check --no-fmt --no-lint");
+  });
+});
+
+describe("capture", () => {
+  it("reports a command that cannot start as a failed stage instead of throwing", async () => {
+    const result = await capture("/nonexistent/vp", ["run"], process.cwd());
+    expect(result.code).toBe(1);
+    expect(result.output).toContain("ENOENT");
   });
 });
 

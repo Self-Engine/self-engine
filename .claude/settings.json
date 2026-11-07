@@ -7,7 +7,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR/scripts/verify-guard.ts\""
+            "command": "node \"${CLAUDE_PROJECT_DIR:-.}/scripts/verify-guard.ts\" || exit 2"
           }
         ]
       }

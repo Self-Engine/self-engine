@@ -19,12 +19,16 @@ through a PR.
   unchanged stage replays from the cache. The last line is `VERIFY: PASS` or `VERIFY: FAIL`.
 - **A pass writes a stamp**: the git tree of the verified checkout.
 - **A push guard** (a Claude Code `PreToolUse` hook) blocks `git push` and `gh pr create`
-  unless the stamp matches the tree of HEAD. The gate and the guard are Node 26 scripts with
-  tests.
+  unless the stamp of the repository the command publishes from (its `-C <dir>`, else the
+  session's checkout) matches the tree of HEAD. The guard fails closed: its own errors, and a
+  hook that cannot start, block too. The gate and the guard are Node 26 scripts with tests.
 
 ## Consequences
 
 - The flow is commit → `pnpm verify` → commit any formatter output → push.
 - Any edit after a pass, even a formatting fix, needs another `pnpm verify` before a push.
   The cache keeps that rerun short.
-- The guard covers Claude Code only. CI runs the same gate for every PR.
+- Every stage must run through a tool whose file reads Vite Task can track. The typecheck
+  stage is `vp check --no-fmt --no-lint`, not plain `tsc`: TypeScript 7's native binary is
+  invisible to the tracking, so a cached `tsc` task replayed a pass after new type errors.
+- The guard covers Claude Code only. CI (#8) will run the same gate for every PR.

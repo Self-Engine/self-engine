@@ -23,6 +23,8 @@ export interface VerifyStamp {
   readonly verifiedAt: string;
 }
 
+// Runs with the developer's full git config on purpose: `git add -A` must pick the same files
+// as a real commit (global excludes, filters, autocrlf), or the stamp never matches HEAD.
 function git(root: string, args: string[], env?: NodeJS.ProcessEnv): string {
   return execFileSync("git", args, {
     cwd: root,
@@ -34,7 +36,9 @@ function git(root: string, args: string[], env?: NodeJS.ProcessEnv): string {
 
 /**
  * The tree the checkout would commit with `git add -A`: tracked and untracked files, ignored
- * files left out. Built in a scratch copy of the index, so the real one stays untouched.
+ * files left out. Built in a scratch copy of the index, so the real one stays untouched. The
+ * blobs and trees it writes stay as loose objects in `.git/objects`; harmless, `git gc` prunes
+ * them.
  */
 export function workingTreeHash(root: string): string {
   const scratch = mkdtempSync(join(tmpdir(), "verify-stamp-"));

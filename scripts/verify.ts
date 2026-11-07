@@ -10,7 +10,7 @@
 
 import { spawn } from "node:child_process";
 import { appendFileSync, mkdirSync, writeFileSync } from "node:fs";
-import { join, resolve } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import {
   clearVerifyStamp,
   headTreeHash,
@@ -58,18 +58,24 @@ export function summaryLine(results: readonly StageResult[], logFile: string): s
     : `VERIFY: FAIL ${failed.join(", ")} (full log: ${logFile})`;
 }
 
-/** Runs a command and returns its exit code and its stdout and stderr, interleaved. */
-function capture(
+/**
+ * Runs a command and returns its exit code and its stdout and stderr, interleaved. A command
+ * that cannot start (missing binary) counts as exit 1 with the error as its output, so the
+ * stage fails like any other instead of the gate dying without its `VERIFY:` line.
+ */
+export function capture(
   command: string,
   args: readonly string[],
   cwd: string,
 ): Promise<{ code: number; output: string }> {
-  return new Promise((resolvePromise, reject) => {
+  return new Promise((resolvePromise) => {
     const child = spawn(command, args, { cwd, stdio: ["ignore", "pipe", "pipe"] });
     let output = "";
     child.stdout.on("data", (chunk: Buffer) => (output += chunk.toString()));
     child.stderr.on("data", (chunk: Buffer) => (output += chunk.toString()));
-    child.on("error", reject);
+    child.on("error", (error) =>
+      resolvePromise({ code: 1, output: `${output}${error.message}\n` }),
+    );
     child.on("close", (code) => resolvePromise({ code: code ?? 1, output }));
   });
 }
@@ -77,13 +83,15 @@ function capture(
 async function main(): Promise<void> {
   const root = resolve(import.meta.dirname, "..");
   const logPath = join(root, LOG_FILE);
-  mkdirSync(join(root, ".cache"), { recursive: true });
+  mkdirSync(dirname(logPath), { recursive: true });
   writeFileSync(logPath, "");
   clearVerifyStamp(root);
 
+  // The checkout's own `vp`, not whatever PATH holds.
+  const vp = join(root, "node_modules/.bin/vp");
   const results = await runStages(async (stage) => {
     const startedAt = performance.now();
-    const { code, output } = await capture("vp", ["run", `verify:${stage}`], root);
+    const { code, output } = await capture(vp, ["run", `verify:${stage}`], root);
     const seconds = ((performance.now() - startedAt) / 1000).toFixed(1);
     appendFileSync(logPath, `\n===== ${stage} (exit ${code}, ${seconds}s) =====\n${output}`);
     console.log(`${code === 0 ? "ok  " : "FAIL"} ${stage} (${seconds}s)`);
