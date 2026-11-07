@@ -201,6 +201,16 @@ Vite. Damit ist ein funktionierender Weg für Electron unter Vite+ belegt.
   Commits seit dem letzten Stable (z. B. git-cliff). _Grund:_ Der Release-PR von
   release-please erzeugt einen Commit, der nie als Nightly lief (Widerspruch zu D40).
 
+- **D44 (A1) Ein Gate `pnpm verify`** für Mensch und Agent: Format → Lint (Warnungen =
+  Fehler) → Typecheck → ADR-Prüfung → Tests, über `vp`-Tasks mit Cache, Schlusszeile
+  `VERIFY: PASS`/`VERIFY: FAIL`. Hilfsskripte (Push-Guard, Stamp) laufen mit Node 26.
+- **D45 (A2) PRs ab Tag 1 + Push-Guard:** jede Änderung per PR mit CI, PR-Titel als
+  Changelog-Eintrag; Push nur, wenn `verify` auf genau diesem Stand bestanden hat; `main`
+  ist immer releasefähig.
+- **D46 (A3) Sprache und ADRs:** `docs/plan/` Deutsch; alles für Agenten Englisch
+  (`AGENTS.md`, Skills, ADRs, Glossar). ADRs mit `status:` im YAML-Kopf. Mit dem ersten Code
+  werden tragende D-Entscheidungen zu ADRs; `00-decisions.md` ist danach Historie.
+
 ## Fakten
 
 - Self-Engine hat Abo-Infrastruktur über Clerk Billing (`apps/web/src/features/billing`),
