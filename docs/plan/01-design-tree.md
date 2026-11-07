@@ -9,7 +9,7 @@ Pro Runde werden nur 2–3 Fragen gestellt; die Nummern sind stabil.
   - ✅ Mobile + Sync sind Pflicht vor dem Stichtag (D14)
   - ✅ Schichtenfolge als Rahmen, jede Schicht mit eigener Vertiefung (D25)
     - ✅ Schicht 0 Repo-Fundament entschieden (D28–D49) → 03-layer-0-foundation.md
-    - ⏳ Schicht 1 Design-System + App-Hülle
+    - ❓ Schicht 1 Design-System + App-Hülle (Planung parallel zum Bau von Schicht 0, D53)
     - ⏳ Schicht 2 Datenschicht
     - ⏳ Schicht 3 Gemeinsamer Kern
     - ⏳ Schicht 4 Projekte + Zeit
@@ -26,7 +26,7 @@ Pro Runde werden nur 2–3 Fragen gestellt; die Nummern sind stabil.
   - ⏳ Import aus Self-Engine: Format, Umfang, ab welchem Meilenstein
 - ✅ Repo: neues Repo (D4)
   - ✅ Name bleibt Self-Engine (D50)
-    - ❓ Q33 Identität während des Übergangs (App-ID, Repo-Umbenennung)
+    - ✅ Eigene App-IDs im Übergang, Repo-Umbenennung am Stichtag (D51, D52)
   - ✅ Agenten-Setup: ausgewählt übernehmen nach Audit (D27) → Teil von Schicht 0
 - ✅ Plattform: Desktop zuerst als Hauptprodukt, dann Web und Mobile (D6, D26)
   - ✅ Desktop-Shell: Electron (D17)
