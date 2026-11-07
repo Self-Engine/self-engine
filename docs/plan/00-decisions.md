@@ -258,6 +258,15 @@ Vite. Damit ist ein funktionierender Weg für Electron unter Vite+ belegt.
 - **D60 (L1.6) Rechte Seite:** Die Hülle stellt rechts Drawer zum Bearbeiten bereit
   (Eintrag öffnen und ändern, ohne die Liste zu verlassen). Der KI-Agent kommt später
   ebenfalls über die rechte Seite.
+- **D61 (L1.4a) Theming wie t3code:** semantische Farbrollen (z. B. `canvas`, `surface`,
+  `text`, `border`, `accent`, `error`) als CSS-Variablen über Mantines
+  `cssVariablesResolver`; Komponenten nutzen nur Rollen. Themes sind versionierte Daten mit
+  Hell- und Dunkel-Variante. In Schicht 1 gebaut: Modus (Hell/Dunkel/System), Akzentfarbe,
+  Farbe pro Modul, Schriftgröße, Dichte, mehrere fertige Themes mit Wahl je Modus. Später:
+  Theme-Editor, Import/Export.
+- **D62 (L1.4b) Einstellungen über eine eigene Schnittstelle:** in Schicht 1 lokal
+  gespeichert, ab Schicht 2 in der Datenbank (damit sie später mitsyncen). Gerätebezogenes
+  (Fenstergröße und -position) bleibt immer lokal.
 
 ## Fakten
 

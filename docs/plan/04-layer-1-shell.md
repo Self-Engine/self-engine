@@ -13,6 +13,16 @@ Stand: 2026-11-08 · Status: **in Planung** (parallel zum Bau von Schicht 0, D53
 | L1.4 | Farben | Neutral + App-Akzent + Farbe pro Modul, Hell/Dunkel nach System (D58) |
 | L1.5 | Kleine Fenster | Stufen breit/mittel/schmal/Handy (D59) |
 | L1.6 | Rechte Seite | Drawer zum Bearbeiten, später der KI-Agent (D60) |
+| L1.4a | Theming | Semantische Rollen + Themes als Daten wie t3code; Editor später (D61) |
+| L1.4b | Einstellungen | Eigene Schnittstelle, erst lokal, ab Schicht 2 Datenbank (D62) |
+
+## Referenz t3code-Theming (geprüft 2026-11-08)
+
+- `packages/shared/src/themePalettes.ts`: ~70 Farbrollen, 6 fertige Themes, Hell/Dunkel-Varianten.
+- `apps/web/src/themePalette.ts`: Theme-Dateien (Version 1), eigene Themes im `localStorage`,
+  VS-Code-Import, OKLCH über `culori`.
+- `components/settings/`: Theme-Editor mit Drahtgitter-Vorschau, je ein Theme für Hell und
+  Dunkel, Kontrast, Glas-Transparenz, Typografie.
 
 ## Offen
 
