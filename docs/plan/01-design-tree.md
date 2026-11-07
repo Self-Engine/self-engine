@@ -26,11 +26,11 @@ Pro Runde werden nur 2–3 Fragen gestellt; die Nummern sind stabil.
   - ⏳ Onboarding / Blueprints
 - ✅ Motivation OSS (D2)
   - ✅ Lizenz: AGPL App/Server, MIT SDK (D18)
-  - ❓ Q12 Geschäftsmodell (Empfehlung: Sync & Org-Spaces bezahlt, Selbsthosten frei)
+  - ✅ Geschäftsmodell: App + Selbsthosten frei, gehosteter Sync & Org-Spaces bezahlt (D83)
   - ⏳ Community / Governance
   - ⏳ Vor dem Öffentlich-Machen: Git-Historie durchsehen (Interna, Geschäftsmodell); danach ist Entfernen praktisch unmöglich
 - ✅ Self-Engine (D3)
-  - ❓ Q13 Was in Self-Engine noch passieren darf
+  - ✅ Self-Engine nicht eingeschränkt, Schwerpunkt im neuen Projekt; Import prüft Schema-Version (D84)
   - ⏳ Import aus Self-Engine: Format, Umfang, ab welchem Meilenstein
 - ✅ Repo: neues Repo (D4)
   - ✅ Name bleibt Self-Engine (D50)
@@ -52,6 +52,7 @@ Pro Runde werden nur 2–3 Fragen gestellt; die Nummern sind stabil.
   - ⏳ Spaces, Autorität, Konflikte
   - ⏳ Policies (Ebenen, Sperren)
   - ❓ Q21 Ende-zu-Ende-Verschlüsselung (Empfehlung: später, nur persönliche Spaces)
-- ❓ Q16 KI-Assistent (Empfehlung: nach MVP, eigener Key + lokaler MCP-Server)
+- ✅ KI-Assistent nach MVP, eigener Key + lokaler MCP-Server, Befehle von Anfang an agententauglich (D85)
+  - ⏳ Form des Agenten (angedockt D64 vorläufig)
 - ✅ Sprachen: DE + EN ab Tag 1, Code/Doku Englisch (D24)
 - ✅ Plan liegt im Repo self-engine-next unter docs/plan (D13)
