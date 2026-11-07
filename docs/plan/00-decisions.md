@@ -179,6 +179,12 @@ Vite. Damit ist ein funktionierender Weg für Electron unter Vite+ belegt.
   pnpm-Isolation), `exports`-Feld als öffentliche Schnittstelle, dependency-cruiser in CI für
   erlaubte Richtungen und Zyklen.
 
+- **D37 (L0.7) Routing wie t3code:** TanStack Router mit dateibasierten Routen, eigenes
+  Protokoll in Electron (Dev und Produktion mit eigenem Schema; Dev leitet an den
+  Vite-Dev-Server weiter, Produktion liefert gebaute Dateien mit `index.html`-Fallback und
+  CSP), Hash-History in Electron, Browser-History im Web.
+- **D38 Release-Kanäle: dev, nightly, stable** (Wunsch des Nutzers). Details offen (L0.9).
+
 ## Fakten
 
 - Self-Engine hat Abo-Infrastruktur über Clerk Billing (`apps/web/src/features/billing`),
@@ -226,3 +232,14 @@ Vite. Damit ist ein funktionierender Weg für Electron unter Vite+ belegt.
 - Vorschlag für Plugins: generische `records`-Tabelle (JSON) + ein Sync Stream.
 - Unverifiziert: Join-Regeln bei PowerSync, Event-Kompaktierung bei LiveStore, ob Jazz 2.0
   ohne Account lokal schreibt, Multi-Table-Shapes bei Electric.
+
+### t3code: Release-Kanäle (geprüft 2026-11-08)
+
+- Kanäle stable, nightly, preview; Dev-Build mit eigenem Protokoll-Schema (`t3code-dev`).
+- Nightly-Version: `<basis>-nightly.<JJJJMMTT>.<Lauf>`, Tag `v…`, GitHub-Prerelease
+  (`scripts/resolve-nightly-release.ts`).
+- `release.yml`: Zeitplan-Trigger prüft, ob seit dem letzten Nightly Änderungen da sind
+  (`check-nightly-release.cjs`); manueller Start mit Kanalwahl; Stable-Tags getrennt.
+- **Stable baut den Commit des letzten veröffentlichten Nightlys**, „so stable only ever
+  ships a build that nightly users have already run“.
+- Eigene Concurrency-Gruppen für Nightly und Stable, nichts wird abgebrochen.
