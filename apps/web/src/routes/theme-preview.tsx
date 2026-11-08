@@ -76,7 +76,9 @@ function SurfaceSample({ role }: { readonly role: (typeof SURFACES)[number] }) {
 function StatusSample({ status }: { readonly status: Status }) {
   return (
     <Group grow>
-      <div style={box(color(status), { color: color(STATUS_FILL_TEXT[status]) })}>{status} fill</div>
+      <div style={box(color(status), { color: color(STATUS_FILL_TEXT[status]) })}>
+        {status} fill
+      </div>
       <div style={box(color(`${status}Soft`), { color: color(`${status}Text`) })}>
         {status} soft
       </div>
