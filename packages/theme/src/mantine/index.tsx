@@ -1,8 +1,4 @@
-import {
-  type MantineColorSchemeManager,
-  MantineProvider,
-  type MantineThemeOverride,
-} from "@mantine/core";
+import { type MantineColorSchemeManager, MantineProvider } from "@mantine/core";
 import {
   createContext,
   type ReactNode,
@@ -14,13 +10,14 @@ import {
 import {
   type Appearance,
   type FinalColors,
-  FONT_FAMILY,
+  type ModeValues,
   resolveAppearance,
   resolveColorMode,
   type ThemeCatalog,
   tokenVariables,
 } from "../core/index.ts";
 import { useInstantChange } from "./instant-change.ts";
+import { mantineTheme } from "./theme.ts";
 import { useStartCache } from "./use-start-cache.ts";
 
 function systemPreference(query: string) {
@@ -37,13 +34,6 @@ function systemPreference(query: string) {
 const PREFERS_DARK = systemPreference("(prefers-color-scheme: dark)");
 const PREFERS_REDUCED_MOTION = systemPreference("(prefers-reduced-motion: reduce)");
 
-/** Setting `fontFamily` also sets the headings; Mantine copies it to them when merging. */
-const MANTINE_THEME: MantineThemeOverride = {
-  fontFamily: FONT_FAMILY,
-  fontFamilyMonospace: FONT_FAMILY,
-  respectReducedMotion: true,
-};
-
 /**
  * Keeps Mantine away from localStorage. `forceColorScheme` alone does not: on mount Mantine
  * still reads its manager and applies that value until the forcing effect runs. Paired with
@@ -56,6 +46,13 @@ const NO_STORAGE: MantineColorSchemeManager = {
   unsubscribe: () => undefined,
   clear: () => undefined,
 };
+
+/**
+ * Mantine's global CSS draws the focus ring in the filled primary color, with no variable of its
+ * own. The extra `:root` wins over it whatever the stylesheet order.
+ */
+const FOCUS_RING_CSS =
+  ":root .mantine-focus-auto:focus-visible,:root .mantine-focus-always:focus{outline-color:var(--se-accent-text)}";
 
 const ColorsContext = createContext<FinalColors | null>(null);
 
@@ -74,22 +71,24 @@ export function ThemeProvider({ appearance, catalog, children }: ThemeProviderPr
   );
   const resolved = useMemo(() => resolveAppearance(appearance, catalog), [appearance, catalog]);
   const scheme = resolveColorMode(appearance.colorMode, prefersDark);
+  const theme = useMemo(() => mantineTheme(resolved, scheme), [resolved, scheme]);
   useInstantChange(JSON.stringify(resolved[scheme].roles));
   useStartCache(appearance.colorMode, resolved);
-  const { density, densityCss, mantineComponents, rootFontSize } = resolved.layout;
+  const { density, densityCss, rootFontSize } = resolved.layout;
   useLayoutEffect(() => {
     const root = document.documentElement;
     root.dataset.density = density;
     root.style.fontSize = rootFontSize;
   }, [density, rootFontSize]);
-  const mantineTheme = useMemo(
-    () => ({ ...MANTINE_THEME, components: mantineComponents }),
-    [mantineComponents],
-  );
+  const variablesFor = ({ cssVariables, mantineVariables, colorVariables }: ModeValues) => ({
+    ...cssVariables,
+    ...mantineVariables,
+    ...colorVariables,
+  });
   const cssVariablesResolver = () => ({
     variables: tokenVariables({ reducedMotion }),
-    light: { ...resolved.light.cssVariables, ...resolved.light.mantineVariables },
-    dark: { ...resolved.dark.cssVariables, ...resolved.dark.mantineVariables },
+    light: variablesFor(resolved.light),
+    dark: variablesFor(resolved.dark),
   });
   return (
     <ColorsContext value={resolved[scheme].roles}>
@@ -98,9 +97,9 @@ export function ThemeProvider({ appearance, catalog, children }: ThemeProviderPr
         cssVariablesResolver={cssVariablesResolver}
         defaultColorScheme={scheme}
         forceColorScheme={scheme}
-        theme={mantineTheme}
+        theme={theme}
       >
-        <style>{densityCss}</style>
+        <style>{`${densityCss}${FOCUS_RING_CSS}`}</style>
         {children}
       </MantineProvider>
     </ColorsContext>

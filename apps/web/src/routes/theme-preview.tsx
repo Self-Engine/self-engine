@@ -1,11 +1,12 @@
 // Throwaway page to judge the Theme before Storybook exists. #23 removes it.
 
-import { Group, SegmentedControl, Stack, Text, Title } from "@mantine/core";
-import { BUILT_IN_THEMES, type ColorMode } from "@self-engine/theme";
+import { Button, Group, SegmentedControl, Stack, Text, Title } from "@mantine/core";
+import { ACCENT_IDS, BUILT_IN_THEMES, type ColorMode, FROM_THEME } from "@self-engine/theme";
 import { createFileRoute } from "@tanstack/react-router";
 import type { CSSProperties, ReactNode } from "react";
 import { usePreviewAppearance } from "../preview-appearance.tsx";
 import { DensityPreview } from "../preview-density.tsx";
+import { PreviewMantineComponents } from "../preview-mantine-components.tsx";
 import { MotionSample, NumbersSample } from "../preview-numbers-motion.tsx";
 
 export const Route = createFileRoute("/theme-preview")({ component: ThemePreviewPage });
@@ -15,6 +16,12 @@ const COLOR_MODE_OPTIONS: { label: string; value: ColorMode }[] = [
   { label: "Dark", value: "dark" },
   { label: "System", value: "system" },
 ];
+
+const ACCENT_OPTIONS = [
+  { label: "From Theme", value: FROM_THEME },
+  ...ACCENT_IDS.map((id) => ({ label: id, value: id })),
+];
+const BUTTON_VARIANTS = ["filled", "light", "outline", "subtle"] as const;
 
 const THEME_OPTIONS = Object.values(BUILT_IN_THEMES).map(({ id, name }) => ({
   label: name,
@@ -55,7 +62,7 @@ function SurfaceSample({ role }: { readonly role: (typeof SURFACES)[number] }) {
       <Text style={{ color: color("text") }}>text</Text>
       <Text style={{ color: color("text-muted") }}>textMuted</Text>
       {role !== "chrome" && (
-        <div style={box(color("hover"), { marginTop: "0.5rem" })}>
+        <div style={box(color("hover"), { marginTop: "var(--mantine-spacing-xs)" })}>
           <Text style={{ color: color("text") }}>text on hover</Text>
           <Text style={{ color: color("text-muted") }}>textMuted on hover</Text>
         </div>
@@ -125,7 +132,12 @@ function ThemePreviewPage() {
         </Group>
       </Section>
       <Section title="Lines">
-        <div style={{ borderTop: `1px solid ${color("border")}`, paddingTop: "0.5rem" }}>
+        <div
+          style={{
+            borderTop: `1px solid ${color("border")}`,
+            paddingTop: "var(--mantine-spacing-xs)",
+          }}
+        >
           border (decorative)
         </div>
         <div style={box(color("surface"), { border: `1px solid ${color("border-control")}` })}>
@@ -133,6 +145,27 @@ function ThemePreviewPage() {
         </div>
       </Section>
       <Section title="Accent">
+        <SegmentedControl
+          data={ACCENT_OPTIONS}
+          onChange={(value) => {
+            setAppearance({ ...appearance, accent: value });
+          }}
+          value={appearance.accent}
+        />
+        <Group>
+          {BUTTON_VARIANTS.map((variant) => (
+            <Button key={variant} variant={variant}>
+              {variant}
+            </Button>
+          ))}
+        </Group>
+        <Group>
+          {BUTTON_VARIANTS.map((variant) => (
+            <Button color="teal" key={variant} variant={variant}>
+              teal {variant}
+            </Button>
+          ))}
+        </Group>
         <Group grow>
           <div style={box(color("accent"), { color: color("on-accent") })}>accent fill</div>
           <div style={box(color("accent-soft"), { color: color("accent-text") })}>accent soft</div>
@@ -142,6 +175,9 @@ function ThemePreviewPage() {
         {STATUSES.map((status) => (
           <StatusSample key={status} status={status} />
         ))}
+      </Section>
+      <Section title="Mantine components">
+        <PreviewMantineComponents />
       </Section>
     </Stack>
   );

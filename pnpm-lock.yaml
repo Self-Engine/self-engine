@@ -225,6 +225,9 @@ importers:
       '@self-engine/oxlint-plugin':
         specifier: workspace:*
         version: link:packages/oxlint-plugin
+      '@self-engine/theme':
+        specifier: workspace:*
+        version: link:packages/theme
       '@swc/core':
         specifier: 'catalog:'
         version: 1.16.22

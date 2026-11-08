@@ -12,6 +12,8 @@ export interface Theme {
   readonly colors:
     | { readonly light: ThemeColors; readonly dark?: ThemeColors }
     | { readonly light?: ThemeColors; readonly dark: ThemeColors };
+  /** The Theme's own Accent, for "From Theme". Only read for a Color Mode the Theme has. */
+  readonly accent?: Partial<ColorSet>;
 }
 
 /** Themes by id. Open: built-in and imported Themes sit side by side. */
@@ -203,10 +205,132 @@ const BLUE: ColorSet = {
   },
 };
 
-/** The default Accent, used for "From Theme" and for ids that are not in `COLOR_SETS`. */
+const INDIGO: ColorSet = {
+  light: {
+    accent: "#3f51d6",
+    onAccent: "#ffffff",
+    accentSoft: "#ebedfc",
+    accentText: "#3a48c0",
+  },
+  dark: {
+    accent: "#3f51d6",
+    onAccent: "#ffffff",
+    accentSoft: "#1f2350",
+    accentText: "#a3aeff",
+  },
+};
+
+const VIOLET: ColorSet = {
+  light: {
+    accent: "#6f42d1",
+    onAccent: "#ffffff",
+    accentSoft: "#f0ebfc",
+    accentText: "#6335c4",
+  },
+  dark: {
+    accent: "#6f42d1",
+    onAccent: "#ffffff",
+    accentSoft: "#2a1f55",
+    accentText: "#b8a0ff",
+  },
+};
+
+const TEAL: ColorSet = {
+  light: {
+    accent: "#0b7a6e",
+    onAccent: "#ffffff",
+    accentSoft: "#e0f5f1",
+    accentText: "#0a6c61",
+  },
+  dark: {
+    accent: "#0b7a6e",
+    onAccent: "#ffffff",
+    accentSoft: "#0f332e",
+    accentText: "#4fd1bd",
+  },
+};
+
+const ORANGE: ColorSet = {
+  light: {
+    accent: "#b84a0a",
+    onAccent: "#ffffff",
+    accentSoft: "#fdeee3",
+    accentText: "#a8430a",
+  },
+  dark: {
+    accent: "#b84a0a",
+    onAccent: "#ffffff",
+    accentSoft: "#3a2210",
+    accentText: "#ffab70",
+  },
+};
+
+const GRAPE: ColorSet = {
+  light: {
+    accent: "#a02cb8",
+    onAccent: "#ffffff",
+    accentSoft: "#f8e9fb",
+    accentText: "#932aa9",
+  },
+  dark: {
+    accent: "#a02cb8",
+    onAccent: "#ffffff",
+    accentSoft: "#371a40",
+    accentText: "#e59af5",
+  },
+};
+
+const GREEN: ColorSet = {
+  light: {
+    accent: "#237a3b",
+    onAccent: "#ffffff",
+    accentSoft: "#e6f5ea",
+    accentText: "#1f6e35",
+  },
+  dark: {
+    accent: "#237a3b",
+    onAccent: "#ffffff",
+    accentSoft: "#16331f",
+    accentText: "#77d993",
+  },
+};
+
+const PINK: ColorSet = {
+  light: {
+    accent: "#c2255c",
+    onAccent: "#ffffff",
+    accentSoft: "#fde9f0",
+    accentText: "#b02053",
+  },
+  dark: {
+    accent: "#c2255c",
+    onAccent: "#ffffff",
+    accentSoft: "#3d1a28",
+    accentText: "#ff99bf",
+  },
+};
+
+/** The Accent for "From Theme" when the Theme has none of its own. */
 export const DEFAULT_COLOR_SET: ColorSet = BLUE;
 
-export const COLOR_SETS: Readonly<Record<string, ColorSet>> = { blue: BLUE };
+/** Every Color Set, all of them usable as a Module Color. */
+export const COLOR_SETS: Readonly<Record<string, ColorSet>> = {
+  blue: BLUE,
+  indigo: INDIGO,
+  violet: VIOLET,
+  teal: TEAL,
+  orange: ORANGE,
+  grape: GRAPE,
+  green: GREEN,
+  pink: PINK,
+};
 
-/** The Color Sets a user may pick as the Accent. */
-export const ACCENT_IDS: readonly string[] = ["blue"];
+/** The Color Sets a user may pick as the Accent. Green is left out: it reads as `success`. */
+export const ACCENT_IDS: readonly string[] = [
+  "blue",
+  "indigo",
+  "violet",
+  "teal",
+  "orange",
+  "grape",
+];
