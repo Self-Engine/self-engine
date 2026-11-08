@@ -15,6 +15,7 @@ export {
   type ContrastIssue,
   formatContrastFailure,
 } from "./contrast.ts";
+export { FONT_FAMILY } from "./font.ts";
 export type { NeutralPalette } from "./neutral-palette.ts";
 export {
   type Appearance,
@@ -37,3 +38,4 @@ export {
   THEME_ROLES,
   type ThemeColors,
 } from "./roles.ts";
+export { type TokenVariables, tokenVariables } from "./tokens.ts";

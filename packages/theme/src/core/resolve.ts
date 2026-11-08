@@ -51,7 +51,9 @@ function themeColors(
   mode: ResolvedColorMode,
 ): ThemeColors {
   const id = mode === "light" ? appearance.lightTheme : appearance.darkTheme;
-  return catalog[id]?.colors[mode] ?? DEFAULT_THEME.colors[mode];
+  // A stored id is open text, so a name like "constructor" must not find an inherited property.
+  const theme = Object.hasOwn(catalog, id) ? catalog[id] : undefined;
+  return theme?.colors[mode] ?? DEFAULT_THEME.colors[mode];
 }
 
 function cssVariables(roles: FinalColors): ModeValues["cssVariables"] {

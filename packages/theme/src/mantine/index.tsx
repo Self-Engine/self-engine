@@ -6,20 +6,24 @@ import {
   resolveAppearance,
   resolveColorMode,
   type ThemeCatalog,
+  tokenVariables,
 } from "../core/index.ts";
+import { useInstantChange } from "./instant-change.ts";
 import { mantineTheme } from "./theme.ts";
 
-const DARK_QUERY = "(prefers-color-scheme: dark)";
-
-function subscribeToSystem(onChange: () => void): () => void {
-  const media = window.matchMedia(DARK_QUERY);
-  media.addEventListener("change", onChange);
-  return () => media.removeEventListener("change", onChange);
+function systemPreference(query: string) {
+  return {
+    subscribe: (onChange: () => void): (() => void) => {
+      const media = window.matchMedia(query);
+      media.addEventListener("change", onChange);
+      return () => media.removeEventListener("change", onChange);
+    },
+    matches: () => window.matchMedia(query).matches,
+  };
 }
 
-function systemPrefersDark(): boolean {
-  return window.matchMedia(DARK_QUERY).matches;
-}
+const PREFERS_DARK = systemPreference("(prefers-color-scheme: dark)");
+const PREFERS_REDUCED_MOTION = systemPreference("(prefers-reduced-motion: reduce)");
 
 /**
  * Keeps Mantine away from localStorage. `forceColorScheme` alone does not: on mount Mantine
@@ -44,12 +48,17 @@ export interface ThemeProviderProps {
 
 /** Renders Mantine and the `--se-*` variables from the appearance. Read-only, owns no storage. */
 export function ThemeProvider({ appearance, catalog, children }: ThemeProviderProps) {
-  const prefersDark = useSyncExternalStore(subscribeToSystem, systemPrefersDark);
+  const prefersDark = useSyncExternalStore(PREFERS_DARK.subscribe, PREFERS_DARK.matches);
+  const reducedMotion = useSyncExternalStore(
+    PREFERS_REDUCED_MOTION.subscribe,
+    PREFERS_REDUCED_MOTION.matches,
+  );
   const resolved = useMemo(() => resolveAppearance(appearance, catalog), [appearance, catalog]);
   const theme = useMemo(() => mantineTheme(resolved), [resolved]);
   const scheme = resolveColorMode(appearance.colorMode, prefersDark);
+  useInstantChange(JSON.stringify(resolved[scheme].roles));
   const cssVariablesResolver = () => ({
-    variables: {},
+    variables: tokenVariables({ reducedMotion }),
     light: { ...resolved.light.cssVariables, ...resolved.light.mantineVariables },
     dark: { ...resolved.dark.cssVariables, ...resolved.dark.mantineVariables },
   });
