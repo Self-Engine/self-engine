@@ -12,6 +12,7 @@ import {
   FONT_FAMILY,
   type ResolvedAppearance,
   type ResolvedColorMode,
+  roleVariable,
 } from "../core/index.ts";
 
 const COLOR_SET_PALETTES: ReadonlySet<string> = new Set([
@@ -26,6 +27,22 @@ const COLOR_SET_PALETTES: ReadonlySet<string> = new Set([
 const COMPACT_CONTROLS = {
   Input: { defaultProps: { size: "xs" } },
   Button: { defaultProps: { size: "xs" } },
+};
+
+const SURFACE_RAISED = { backgroundColor: `var(${roleVariable("surfaceRaised")})` };
+
+/** The header is sticky and paints its own background over the content's. */
+const RAISED_DIALOG = { styles: { content: SURFACE_RAISED, header: SURFACE_RAISED } };
+
+/**
+ * The one place where Mantine's choice contradicts a Color Role: a floating layer has to sit above
+ * the content. The dropdown's own entry, because Menu and HoverCard read their `theme.components`
+ * styles under their own names and would miss one on `Popover`.
+ */
+const FLOATING_LAYERS = {
+  PopoverDropdown: { defaultProps: { styles: { dropdown: SURFACE_RAISED } } },
+  Modal: RAISED_DIALOG,
+  Drawer: RAISED_DIALOG,
 };
 
 /** Filled variants of a Color Set carry its on-fill text instead of Mantine's default white. */
@@ -58,7 +75,10 @@ export function mantineTheme(
       gray: resolved.light.neutralPalette,
       dark: resolved.dark.neutralPalette,
     },
-    components: resolved.layout.density === "compact" ? COMPACT_CONTROLS : {},
+    components: {
+      ...FLOATING_LAYERS,
+      ...(resolved.layout.density === "compact" && COMPACT_CONTROLS),
+    },
     defaultRadius: "md",
     focusRing: "auto",
     fontFamily: FONT_FAMILY,

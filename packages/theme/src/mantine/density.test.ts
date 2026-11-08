@@ -31,11 +31,12 @@ function componentsFor(density: Density) {
 
 describe("Mantine's control sizes", () => {
   it("are left alone when comfortable", () => {
-    expect(componentsFor("comfortable")).toEqual({});
+    expect(componentsFor("comfortable")).not.toHaveProperty("Input");
+    expect(componentsFor("comfortable")).not.toHaveProperty("Button");
   });
 
   it("default to xs for inputs and buttons when compact", () => {
-    expect(componentsFor("compact")).toEqual({
+    expect(componentsFor("compact")).toMatchObject({
       Input: { defaultProps: { size: "xs" } },
       Button: { defaultProps: { size: "xs" } },
     });
