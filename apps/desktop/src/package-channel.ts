@@ -1,15 +1,17 @@
-// `pnpm package:desktop <nightly|stable>`: builds the workspace for one release channel and
-// packages it into `apps/desktop/release/<channel>`. It installs nothing. It lives in the app
-// because repo scripts may not import apps (ADR 0006) and the identity is the app's own.
+// `pnpm package:desktop <nightly|stable>`: builds the workspace for one release channel, into
+// that channel's own bundle folder, and packages it into `apps/desktop/release/<channel>`. It
+// installs nothing. It lives in the app because repo scripts may not import apps (ADR 0006) and
+// the identity is the app's own.
 
 import { execFileSync } from "node:child_process";
-import { mkdirSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { dirname, join, resolve } from "node:path";
-import { type Channel, channelIdentity, parseChannel } from "./channel.ts";
+import { type Channel, bundleDirectory, channelIdentity, parseChannel } from "./channel.ts";
 
 const DESKTOP_DIR = resolve(import.meta.dirname, "..");
 const ROOT_DIR = resolve(DESKTOP_DIR, "../..");
+const BUNDLES = ["main.cjs", "preload.cjs"];
 
 export type ReleaseChannel = Exclude<Channel, "dev">;
 
@@ -46,10 +48,31 @@ export function builderConfig(channel: ReleaseChannel, electronDist: string) {
     // Electron reads `app.name` from the packaged package.json, not from `build.productName`.
     extraMetadata: { productName },
     directories: { output: `release/${channel}` },
-    files: ["dist-electron/**", "package.json", { from: "../web/dist", to: "dist-renderer" }],
+    // Always `dist-electron` inside the package, because that is where `main` points.
+    files: [
+      "package.json",
+      { from: bundleDirectory(channel), to: "dist-electron" },
+      { from: "../web/dist", to: "dist-renderer" },
+    ],
     mac: { target: "dir", identity: null, icon },
     npmRebuild: false,
   };
+}
+
+/**
+ * Throws unless both bundles in `bundleDir` were compiled for `channel`. Every bundle carries
+ * the identity table of all channels, so only the compiled `define` tells them apart.
+ */
+export function assertBundlesBuiltFor(channel: ReleaseChannel, bundleDir: string): void {
+  const expected = `parseChannel(${JSON.stringify(channel)})`;
+  for (const name of BUNDLES) {
+    const file = join(bundleDir, name);
+    if (!existsSync(file) || !readFileSync(file, "utf8").includes(expected)) {
+      throw new Error(
+        `${file} was not compiled for the ${channel} channel (no ${expected} in it), so it is not packaged.`,
+      );
+    }
+  }
 }
 
 export type Run = (
@@ -76,10 +99,15 @@ export function packageChannel(channel: ReleaseChannel, options: PackageOptions)
     );
   }
   run(process.execPath, [join(rootDir, "scripts/ensure-electron.ts")], { cwd: rootDir, env });
-  run(join(rootDir, "node_modules/.bin/vp"), ["run", "-r", "build"], {
+  // So a bundle from an earlier run cannot pass for this build.
+  const bundleDir = join(desktopDir, bundleDirectory(channel));
+  rmSync(bundleDir, { recursive: true, force: true });
+  // `--no-cache`: Vite Task hides SELF_ENGINE_CHANNEL from a cached task, which then builds dev.
+  run(join(rootDir, "node_modules/.bin/vp"), ["run", "--no-cache", "-r", "build"], {
     cwd: rootDir,
     env: { ...env, SELF_ENGINE_CHANNEL: channel },
   });
+  assertBundlesBuiltFor(channel, bundleDir);
   const outputDir = join(desktopDir, "release", channel);
   mkdirSync(outputDir, { recursive: true });
   const configPath = join(outputDir, "electron-builder.json");

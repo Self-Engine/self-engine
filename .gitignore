@@ -2,6 +2,7 @@ node_modules/
 .pnpm-store/
 dist/
 dist-electron/
+dist-release/
 release/
 .vite-plus/
 # Gate log and verify stamp (scripts/verify.ts).

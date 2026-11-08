@@ -1,8 +1,10 @@
-import { mkdtempSync, readFileSync, realpathSync, rmSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vite-plus/test";
+import { bundleDirectory } from "./channel.ts";
 import {
+  assertBundlesBuiltFor,
   builderConfig,
   electronDistPath,
   type PackageOptions,
@@ -58,6 +60,61 @@ describe("builderConfig", () => {
       builderConfig("stable", ELECTRON_DIST).directories.output,
     );
   });
+
+  it.each(["nightly", "stable"] as const)(
+    "packages the bundle of %s where main expects it",
+    (channel) => {
+      expect(builderConfig(channel, ELECTRON_DIST).files).toContainEqual({
+        from: bundleDirectory(channel),
+        to: "dist-electron",
+      });
+    },
+  );
+});
+
+function writeBundles(bundleDir: string, compiledFor: string): void {
+  mkdirSync(bundleDir, { recursive: true });
+  for (const name of ["main.cjs", "preload.cjs"]) {
+    writeFileSync(join(bundleDir, name), `channelIdentity(parseChannel("${compiledFor}"));`);
+  }
+}
+
+describe("assertBundlesBuiltFor", () => {
+  let dir: string | undefined;
+
+  afterEach(() => {
+    if (dir !== undefined) rmSync(dir, { recursive: true, force: true });
+    dir = undefined;
+  });
+
+  function bundleDir(): string {
+    dir = realpathSync(mkdtempSync(join(tmpdir(), "bundle-channel-")));
+    return dir;
+  }
+
+  it("accepts bundles compiled for the channel", () => {
+    const bundles = bundleDir();
+    writeBundles(bundles, "nightly");
+    expect(() => assertBundlesBuiltFor("nightly", bundles)).not.toThrow();
+  });
+
+  it("refuses bundles compiled for another channel", () => {
+    const bundles = bundleDir();
+    writeBundles(bundles, "dev");
+    expect(() => assertBundlesBuiltFor("nightly", bundles)).toThrow(/not compiled for the nightly/);
+  });
+
+  it("refuses a preload compiled for another channel", () => {
+    const bundles = bundleDir();
+    writeBundles(bundles, "nightly");
+    writeFileSync(join(bundles, "preload.cjs"), 'channelIdentity(parseChannel("dev"));');
+    expect(() => assertBundlesBuiltFor("nightly", bundles)).toThrow(/preload\.cjs/);
+  });
+
+  it("refuses a missing bundle", () => {
+    const bundles = bundleDir();
+    expect(() => assertBundlesBuiltFor("nightly", bundles)).toThrow(/not compiled/);
+  });
 });
 
 describe("packageChannel", () => {
@@ -68,17 +125,42 @@ describe("packageChannel", () => {
     dir = undefined;
   });
 
-  function runPackaging(channel: ReleaseChannel = "nightly", stableCutoverApproved = false) {
+  type Call = Parameters<PackageOptions["run"]>;
+
+  interface PackagingRun {
+    readonly channel?: ReleaseChannel;
+    readonly stableCutoverApproved?: boolean;
+    /** The channel the fake workspace build compiles for; `null` builds nothing. */
+    readonly compiledFor?: string | null;
+    /** Called once the temp checkout exists, before anything runs. */
+    readonly seed?: (desktopDir: string) => void;
+    /** Receives every call the packaging makes, also when it throws. */
+    readonly calls?: Call[];
+  }
+
+  function isWorkspaceBuild([command]: Call): boolean {
+    return command.endsWith("node_modules/.bin/vp");
+  }
+
+  function runPackaging(options: PackagingRun = {}) {
+    const { channel = "nightly", stableCutoverApproved = false, seed } = options;
+    const compiledFor = options.compiledFor === undefined ? channel : options.compiledFor;
+    const calls = options.calls ?? [];
     dir = realpathSync(mkdtempSync(join(tmpdir(), "package-channel-")));
-    const calls: Parameters<PackageOptions["run"]>[] = [];
     const desktopDir = join(dir, "apps/desktop");
+    seed?.(desktopDir);
     packageChannel(channel, {
       rootDir: dir,
       desktopDir,
       electronDist: ELECTRON_DIST,
       stableCutoverApproved,
       env: { PATH: "/bin" },
-      run: (...call) => calls.push(call),
+      run: (...call) => {
+        calls.push(call);
+        if (isWorkspaceBuild(call) && compiledFor !== null) {
+          writeBundles(join(desktopDir, bundleDirectory(channel)), compiledFor);
+        }
+      },
     });
     return { calls, desktopDir, root: dir };
   }
@@ -96,7 +178,7 @@ describe("packageChannel", () => {
     const { calls, root } = runPackaging();
     expect(calls[1]).toEqual([
       join(root, "node_modules/.bin/vp"),
-      ["run", "-r", "build"],
+      ["run", "--no-cache", "-r", "build"],
       { cwd: root, env: { PATH: "/bin", SELF_ENGINE_CHANNEL: "nightly" } },
     ]);
   });
@@ -120,11 +202,27 @@ describe("packageChannel", () => {
   });
 
   it("refuses stable, before building anything, until the switch is approved", () => {
-    expect(() => runPackaging("stable")).toThrow(/replace the old app/);
+    const calls: Call[] = [];
+    expect(() => runPackaging({ channel: "stable", calls })).toThrow(/replace the old app/);
+    expect(calls).toEqual([]);
   });
 
   it("packages stable once the switch is approved", () => {
-    const { calls } = runPackaging("stable", true);
+    const { calls } = runPackaging({ channel: "stable", stableCutoverApproved: true });
     expect(calls).toHaveLength(3);
+  });
+
+  it("does not package a bundle compiled for another channel", () => {
+    const calls: Call[] = [];
+    expect(() => runPackaging({ compiledFor: "dev", calls })).toThrow(/not compiled for the nightly/);
+    expect(calls).toHaveLength(2);
+  });
+
+  it("does not let an earlier run's bundle pass for this build", () => {
+    const calls: Call[] = [];
+    const seed = (desktopDir: string) =>
+      writeBundles(join(desktopDir, bundleDirectory("nightly")), "nightly");
+    expect(() => runPackaging({ compiledFor: null, seed, calls })).toThrow(/not compiled/);
+    expect(calls).toHaveLength(2);
   });
 });

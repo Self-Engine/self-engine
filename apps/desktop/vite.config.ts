@@ -1,5 +1,5 @@
 import { defineConfig } from "vite-plus";
-import { type Channel, parseChannel } from "./src/channel.ts";
+import { type Channel, bundleDirectory, parseChannel } from "./src/channel.ts";
 
 function isElectron(id: string): boolean {
   return id === "electron" || id.startsWith("electron/");
@@ -9,7 +9,7 @@ function bundle(entry: string, clean: boolean, channel: Channel) {
   return {
     entry: [entry],
     format: "cjs" as const,
-    outDir: "dist-electron",
+    outDir: bundleDirectory(channel),
     outExtensions: () => ({ js: ".cjs" }),
     dts: false,
     sourcemap: true,

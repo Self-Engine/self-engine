@@ -3,6 +3,7 @@ import { describe, expect, it } from "vite-plus/test";
 import {
   CHANNELS,
   type Channel,
+  bundleDirectory,
   channelIdentity,
   parseChannel,
   resolveDevServer,
@@ -57,6 +58,61 @@ describe("userDataPath", () => {
 
   it("follows an explicit override", () => {
     expect(userDataPath("/data", "Self-Engine Nightly", "/tmp/run")).toBe(path.resolve("/tmp/run"));
+  });
+
+  describe("with the old app's folder", () => {
+    const appData = "/Users/me/Library/Application Support";
+    const oldFolder = `${appData}/@self-engine/desktop`;
+    const parent = `${appData}/@self-engine`;
+
+    it.each([
+      ["the folder itself", oldFolder],
+      ["a trailing slash", `${oldFolder}/`],
+      ["a nested folder", `${oldFolder}/Partitions/test`],
+      ["another case", "/users/ME/library/application support/@Self-Engine/DESKTOP"],
+      ["another case, nested", `${appData}/@SELF-ENGINE/Desktop/x`],
+      ["a path with ..", `${appData}/Self-Engine Dev/../@self-engine/desktop`],
+      ["a path that walks through it", `${oldFolder}/x/../y`],
+    ])("refuses %s", (_case, override) => {
+      expect(() => userDataPath(appData, "Self-Engine Nightly", override)).toThrow(
+        /belongs to the installed old Self-Engine app/,
+      );
+    });
+
+    it("refuses a relative path that lands on it", () => {
+      const relative = path.relative(process.cwd(), oldFolder);
+      expect(() => userDataPath(appData, "Self-Engine Nightly", relative)).toThrow(
+        /old Self-Engine app/,
+      );
+    });
+
+    it.each([
+      ["an unrelated folder", "/tmp/run"],
+      ["a sibling with the folder's name as a prefix", `${oldFolder}-old`],
+      ["its parent", parent],
+      ["the same name under another root", "/other/@self-engine/desktop"],
+    ])("keeps %s", (_case, override) => {
+      expect(userDataPath(appData, "Self-Engine Nightly", override)).toBe(path.resolve(override));
+    });
+
+    it.each(CHANNELS)("leaves the default folder of %s alone", (channel) => {
+      const { dataFolder } = channelIdentity(channel);
+      expect(userDataPath(appData, dataFolder, "")).toBe(path.join(appData, dataFolder));
+    });
+  });
+});
+
+describe("bundleDirectory", () => {
+  it("keeps dist-electron for dev", () => {
+    expect(bundleDirectory("dev")).toBe("dist-electron");
+  });
+
+  it("gives every channel its own output", () => {
+    expect(new Set(CHANNELS.map(bundleDirectory)).size).toBe(CHANNELS.length);
+  });
+
+  it.each(["nightly", "stable"] as const)("keeps %s out of dist-electron", (channel) => {
+    expect(bundleDirectory(channel)).not.toContain("dist-electron");
   });
 });
 

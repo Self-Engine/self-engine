@@ -73,9 +73,42 @@ export function parseChannel(value: string | undefined): Channel {
   throw new Error(`Unknown channel "${value}". Expected one of: ${CHANNELS.join(", ")}.`);
 }
 
-/** Where the channel keeps its data; `--user-data-dir` moves it, as it does in Chromium. */
+/**
+ * Where the channel's bundle is built, relative to `apps/desktop`. `dist-electron` is dev's alone:
+ * `package.json` points `electron .` at it, so a release bundle there would start as that release
+ * with the dev run's folder, and a dev rebuild there could end up inside a release package.
+ */
+export function bundleDirectory(channel: Channel): string {
+  return channel === "dev" ? "dist-electron" : `dist-release/${channel}`;
+}
+
+// The live data folder of the installed old Self-Engine app, relative to the OS app-data folder.
+const OLD_APP_DATA_FOLDER = "@self-engine/desktop";
+
+// macOS paths ignore case and Unicode normalization form, so two spellings can be one folder.
+function comparablePath(target: string): string {
+  return target.normalize("NFC").toLowerCase();
+}
+
+function isOldAppFolder(appData: string, target: string): boolean {
+  const oldFolder = comparablePath(path.resolve(appData, OLD_APP_DATA_FOLDER));
+  const candidate = comparablePath(target);
+  return candidate === oldFolder || candidate.startsWith(`${oldFolder}${path.sep}`);
+}
+
+/**
+ * Where the channel keeps its data; `--user-data-dir` moves it, as it does in Chromium. The
+ * override works on every channel, because test runs of packaged builds need a throwaway folder,
+ * but it can never name the old app's folder.
+ */
 export function userDataPath(appData: string, dataFolder: string, override: string): string {
-  return override === "" ? path.join(appData, dataFolder) : path.resolve(override);
+  const resolved = override === "" ? path.join(appData, dataFolder) : path.resolve(override);
+  if (isOldAppFolder(appData, resolved)) {
+    throw new Error(
+      `Refusing to use ${resolved} as the data folder: it belongs to the installed old Self-Engine app. Pass a different --user-data-dir.`,
+    );
+  }
+  return resolved;
 }
 
 /**

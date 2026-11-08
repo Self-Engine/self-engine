@@ -13,25 +13,31 @@ import {
 
 const { channel, productName, dataFolder, icon, scheme } = buildIdentity;
 
-// All of these must run before the app is ready. The name comes first: Electron derives the
+// All of this must run before the app is ready. The name comes first: Electron derives the
 // Keychain item of `safeStorage` from it, and the packaged metadata does not cover `electron .`.
-app.setName(productName);
-app.setPath(
-  "userData",
-  userDataPath(app.getPath("appData"), dataFolder, app.commandLine.getSwitchValue("user-data-dir")),
-);
-protocol.registerSchemesAsPrivileged([
-  {
-    scheme,
-    privileges: {
-      standard: true,
-      secure: true,
-      supportFetchAPI: true,
-      corsEnabled: true,
-      stream: true,
+function prepareBeforeReady(): void {
+  app.setName(productName);
+  app.setPath(
+    "userData",
+    userDataPath(
+      app.getPath("appData"),
+      dataFolder,
+      app.commandLine.getSwitchValue("user-data-dir"),
+    ),
+  );
+  protocol.registerSchemesAsPrivileged([
+    {
+      scheme,
+      privileges: {
+        standard: true,
+        secure: true,
+        supportFetchAPI: true,
+        corsEnabled: true,
+        stream: true,
+      },
     },
-  },
-]);
+  ]);
+}
 
 function registerProtocol(devServer: URL | undefined): void {
   const policy = contentSecurityPolicy(devServer);
@@ -71,9 +77,19 @@ async function start(): Promise<void> {
   await openWindow();
 }
 
-app.on("window-all-closed", () => app.quit());
-
-start().catch((error: unknown) => {
+function failStart(error: unknown): void {
   console.error("Self-Engine failed to start", error);
   app.exit(1);
-});
+}
+
+app.on("window-all-closed", () => app.quit());
+
+// An uncaught throw here would only raise Electron's error dialog and leave the app running.
+// Chromium reads `--user-data-dir` before this code runs and creates the folder if it is
+// missing, but opens nothing in it, so refusing here still comes before any write.
+try {
+  prepareBeforeReady();
+  start().catch(failStart);
+} catch (error) {
+  failStart(error);
+}
