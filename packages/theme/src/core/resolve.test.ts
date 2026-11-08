@@ -1,11 +1,14 @@
 import { describe, expect, it } from "vite-plus/test";
 import {
   BUILT_IN_THEMES,
+  contrastRatio,
   DEFAULT_APPEARANCE,
+  DEFAULT_THEME,
   type FinalColors,
   resolveAppearance,
   resolveColorMode,
   type Theme,
+  type ThemeCatalog,
   type ThemeColors,
 } from "./index.ts";
 
@@ -97,6 +100,84 @@ describe("the data handed to CSS and Mantine", () => {
       "--mantine-color-default-color": "#ededf0",
       "--mantine-color-default-border": "#71717a",
     });
+  });
+});
+
+describe("the neutral palette Mantine reads as gray (light) and dark (dark)", () => {
+  it.each(["light", "dark"] as const)("gives %s ten opaque shades, lightest first", (mode) => {
+    const palette = resolved[mode].neutralPalette;
+    expect(palette).toHaveLength(10);
+    for (const shade of palette) expect(shade).toMatch(/^#[0-9a-f]{6}$/);
+    const brightness = palette.map((shade) => contrastRatio(shade, "#000000"));
+    expect(brightness).toEqual(brightness.toSorted((a, b) => b - a));
+  });
+
+  // The slots follow what Mantine 9.7.5's stylesheet reads from each index.
+  it("puts the light roles where the light scheme reads gray", () => {
+    const gray = resolved.light.neutralPalette;
+    expect(gray[1], "filled input, menu hover: hover over surface").toBe("#ededed");
+    expect(gray[3], "card and divider border").toBe("#e7e7ea");
+    expect(gray[4], "input outline").toBe("#8a8a93");
+    expect(gray[6], "dimmed, chevrons").toBe("#63636b");
+    expect(gray[9], "tooltip background").toBe("#18181b");
+  });
+
+  it("puts the dark roles where the dark scheme reads dark", () => {
+    const dark = resolved.dark.neutralPalette;
+    expect(dark[0], "text").toBe("#ededf0");
+    expect(dark[2], "dimmed").toBe("#a1a1aa");
+    expect(dark[4], "input outline").toBe("#71717a");
+    expect(dark[5], "filled input: hover over surface").toBe("#2c2c2f");
+    expect(dark[6], "input, card, popover background").toBe("#1a1a1d");
+    expect(dark[7], "body").toBe("#141416");
+    expect(dark[8], "outermost background").toBe("#0e0e10");
+  });
+
+  it("stays in order for a Theme whose surfaces do not get darker inwards", () => {
+    const catalog: ThemeCatalog = {
+      ...BUILT_IN_THEMES,
+      inverted: {
+        version: 1,
+        id: "inverted",
+        name: "Inverted",
+        colors: {
+          dark: {
+            ...DEFAULT_THEME.colors.dark,
+            chrome: "#3a3a40",
+            canvas: "#2a2a30",
+            surface: "#101014",
+          },
+        },
+      },
+    };
+    const { neutralPalette } = resolveAppearance(
+      { ...DEFAULT_APPEARANCE, darkTheme: "inverted" },
+      catalog,
+    ).dark;
+    const brightness = neutralPalette.map((shade) => contrastRatio(shade, "#000000"));
+    expect(neutralPalette).toContain("#101014");
+    expect(brightness).toEqual(brightness.toSorted((a, b) => b - a));
+  });
+});
+
+describe("Mantine's white", () => {
+  const catalog: ThemeCatalog = {
+    ...BUILT_IN_THEMES,
+    cream: {
+      version: 1,
+      id: "cream",
+      name: "Cream",
+      colors: { light: { ...DEFAULT_THEME.colors.light, surface: "#fffaf0" } },
+    },
+  };
+  const values = resolveAppearance({ ...DEFAULT_APPEARANCE, lightTheme: "cream" }, catalog);
+
+  it("is the surface in light, because inputs, cards and popovers paint with it there", () => {
+    expect(values.light.mantineVariables["--mantine-color-white"]).toBe("#fffaf0");
+  });
+
+  it("stays white in dark, where it only means text and icons on fills", () => {
+    expect(values.dark.mantineVariables).not.toHaveProperty(["--mantine-color-white"]);
   });
 });
 

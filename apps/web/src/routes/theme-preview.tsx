@@ -6,6 +6,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import type { CSSProperties, ReactNode } from "react";
 import { usePreviewAppearance } from "../preview-appearance.tsx";
 import { DensityPreview } from "../preview-density.tsx";
+import { PreviewMantineComponents } from "../preview-mantine-components.tsx";
 import { MotionSample, NumbersSample } from "../preview-numbers-motion.tsx";
 
 export const Route = createFileRoute("/theme-preview")({ component: ThemePreviewPage });
@@ -55,7 +56,7 @@ function SurfaceSample({ role }: { readonly role: (typeof SURFACES)[number] }) {
       <Text style={{ color: color("text") }}>text</Text>
       <Text style={{ color: color("text-muted") }}>textMuted</Text>
       {role !== "chrome" && (
-        <div style={box(color("hover"), { marginTop: "0.5rem" })}>
+        <div style={box(color("hover"), { marginTop: "var(--mantine-spacing-xs)" })}>
           <Text style={{ color: color("text") }}>text on hover</Text>
           <Text style={{ color: color("text-muted") }}>textMuted on hover</Text>
         </div>
@@ -125,7 +126,12 @@ function ThemePreviewPage() {
         </Group>
       </Section>
       <Section title="Lines">
-        <div style={{ borderTop: `1px solid ${color("border")}`, paddingTop: "0.5rem" }}>
+        <div
+          style={{
+            borderTop: `1px solid ${color("border")}`,
+            paddingTop: "var(--mantine-spacing-xs)",
+          }}
+        >
           border (decorative)
         </div>
         <div style={box(color("surface"), { border: `1px solid ${color("border-control")}` })}>
@@ -142,6 +148,9 @@ function ThemePreviewPage() {
         {STATUSES.map((status) => (
           <StatusSample key={status} status={status} />
         ))}
+      </Section>
+      <Section title="Mantine components">
+        <PreviewMantineComponents />
       </Section>
     </Stack>
   );

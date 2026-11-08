@@ -16,6 +16,7 @@ export {
   formatContrastFailure,
 } from "./contrast.ts";
 export { FONT_FAMILY } from "./font.ts";
+export type { NeutralPalette } from "./neutral-palette.ts";
 export {
   DENSITIES,
   type Density,

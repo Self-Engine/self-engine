@@ -1,8 +1,4 @@
-import {
-  type MantineColorSchemeManager,
-  MantineProvider,
-  type MantineThemeOverride,
-} from "@mantine/core";
+import { type MantineColorSchemeManager, MantineProvider } from "@mantine/core";
 import {
   createContext,
   type ReactNode,
@@ -14,13 +10,13 @@ import {
 import {
   type Appearance,
   type FinalColors,
-  FONT_FAMILY,
   resolveAppearance,
   resolveColorMode,
   type ThemeCatalog,
   tokenVariables,
 } from "../core/index.ts";
 import { useInstantChange } from "./instant-change.ts";
+import { mantineTheme } from "./theme.ts";
 
 function systemPreference(query: string) {
   return {
@@ -35,13 +31,6 @@ function systemPreference(query: string) {
 
 const PREFERS_DARK = systemPreference("(prefers-color-scheme: dark)");
 const PREFERS_REDUCED_MOTION = systemPreference("(prefers-reduced-motion: reduce)");
-
-/** Setting `fontFamily` also sets the headings; Mantine copies it to them when merging. */
-const MANTINE_THEME: MantineThemeOverride = {
-  fontFamily: FONT_FAMILY,
-  fontFamilyMonospace: FONT_FAMILY,
-  respectReducedMotion: true,
-};
 
 /**
  * Keeps Mantine away from localStorage. `forceColorScheme` alone does not: on mount Mantine
@@ -72,18 +61,15 @@ export function ThemeProvider({ appearance, catalog, children }: ThemeProviderPr
     PREFERS_REDUCED_MOTION.matches,
   );
   const resolved = useMemo(() => resolveAppearance(appearance, catalog), [appearance, catalog]);
+  const theme = useMemo(() => mantineTheme(resolved), [resolved]);
   const scheme = resolveColorMode(appearance.colorMode, prefersDark);
   useInstantChange(JSON.stringify(resolved[scheme].roles));
-  const { density, densityCss, mantineComponents, rootFontSize } = resolved.layout;
+  const { density, densityCss, rootFontSize } = resolved.layout;
   useLayoutEffect(() => {
     const root = document.documentElement;
     root.dataset.density = density;
     root.style.fontSize = rootFontSize;
   }, [density, rootFontSize]);
-  const mantineTheme = useMemo(
-    () => ({ ...MANTINE_THEME, components: mantineComponents }),
-    [mantineComponents],
-  );
   const cssVariablesResolver = () => ({
     variables: tokenVariables({ reducedMotion }),
     light: { ...resolved.light.cssVariables, ...resolved.light.mantineVariables },
@@ -96,7 +82,7 @@ export function ThemeProvider({ appearance, catalog, children }: ThemeProviderPr
         cssVariablesResolver={cssVariablesResolver}
         defaultColorScheme={scheme}
         forceColorScheme={scheme}
-        theme={mantineTheme}
+        theme={theme}
       >
         <style>{densityCss}</style>
         {children}
