@@ -1,5 +1,5 @@
 # The same gate as local (ADR 0008): `pnpm verify` on every PR and every push to main. Under
-# CI the format stage only checks (scripts/verify.ts). Branch protection on main requires
+# CI the format and i18n stages only check (scripts/verify.ts). Branch protection on main requires
 # this job (AGENTS.md, "Pull Requests").
 name: CI
 

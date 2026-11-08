@@ -1,14 +1,14 @@
 // `pnpm verify`: the one gate for humans and agents (ADR 0008). It runs the
 // `verify:*` tasks from vite.config.ts through `vp run`, which caches them: format, lint
 // (warnings fail), typecheck, the module boundaries (.dependency-cruiser.ts), the ADR check,
-// the theme CSS check and the workspace build, then the tests. Every stage's output goes to `.cache/verify.log`; the console gets
+// the theme CSS check, the translations and the workspace build, then the tests. Every stage's output goes to `.cache/verify.log`; the console gets
 // one line per stage, the tail of each failing stage, and a last line `VERIFY: PASS` or
 // `VERIFY: FAIL <stages>`.
 //
-// Under CI (`CI` set, as GitHub Actions does) the format stage only checks: it fails on an
-// unformatted file instead of rewriting it, since a rewrite on the runner reaches nobody. It
-// runs as its own task, `verify:format:check`, so the cache of a check run and a write run
-// never replay each other.
+// Under CI (`CI` set, as GitHub Actions does) the format and i18n stages only check: they fail
+// on an unformatted file or a stale catalog instead of rewriting it, since a rewrite on the
+// runner reaches nobody. Each runs as its own task, `verify:<stage>:check`, so the cache of a
+// check run and a write run never replay each other.
 //
 // The static stages all run even after one fails, so one run reports lint and type errors
 // together; the tests run only once they pass. A pass records the verified tree
@@ -31,6 +31,7 @@ export const STATIC_STAGES = [
   "boundaries",
   "adrs",
   "theme-css",
+  "i18n",
   "build",
 ] as const;
 export const TEST_STAGE = "test";
@@ -43,12 +44,15 @@ export function isCi(env: NodeJS.ProcessEnv): boolean {
   return value !== undefined && value !== "" && value !== "false" && value !== "0";
 }
 
+/** The stages that rewrite files locally and only check them under CI. */
+const CHECK_ONLY_IN_CI: ReadonlySet<string> = new Set(["format", "i18n"]);
+
 /**
- * The `vp run` task of one stage: `verify:<stage>`, except that CI checks the format
- * (`verify:format:check`) instead of rewriting it.
+ * The `vp run` task of one stage: `verify:<stage>`, except that CI runs
+ * `verify:<stage>:check` for a stage that would rewrite files.
  */
 export function stageTask(stage: string, env: NodeJS.ProcessEnv): string {
-  return stage === "format" && isCi(env) ? "verify:format:check" : `verify:${stage}`;
+  return CHECK_ONLY_IN_CI.has(stage) && isCi(env) ? `verify:${stage}:check` : `verify:${stage}`;
 }
 
 export interface StageResult {

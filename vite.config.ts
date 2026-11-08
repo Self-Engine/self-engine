@@ -73,6 +73,12 @@ export default defineConfig({
       "verify:adrs": "node scripts/check-adrs.ts",
       // CSS uses Color Roles only (scripts/check-theme-css.ts).
       "verify:theme-css": "node scripts/check-theme-css.ts",
+      // Extracts the catalogs, then checks every translation (scripts/check-i18n.ts). Extraction
+      // reads every package's source; the tracking sees those reads, which was confirmed by
+      // editing a source file in another package.
+      "verify:i18n": "node scripts/check-i18n.ts",
+      // The i18n stage under CI: fails on a stale catalog instead of rewriting it.
+      "verify:i18n:check": "node scripts/check-i18n.ts --check",
       // The build scripts of apps/web and apps/desktop (ADR 0001): a broken pack entry passes
       // every other stage. Bundling never needs the Electron binary, so this runs in CI too.
       // `--cache` because `vp run` does not cache package scripts by default. `vp build` then

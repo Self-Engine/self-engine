@@ -10,9 +10,9 @@ planning history.
 
 A task is done when `pnpm verify` prints `VERIFY: PASS` as its last line
 ([ADR 0008](docs/adr/0008-one-verify-gate-and-a-push-guard.md)). It formats, lints
-(warnings fail), typechecks, checks the module boundaries, checks the ADRs, checks the theme CSS, builds the
+(warnings fail), typechecks, checks the module boundaries, checks the ADRs, checks the theme CSS, extracts and checks the translations, builds the
 workspace and runs the tests; failures show their tail, the full log is `.cache/verify.log`.
-CI runs the same gate, except that its format stage only checks (`CI` set), so commit formatted files.
+CI runs the same gate, except that its format and i18n stages only check (`CI` set), so commit formatted files and extracted catalogs.
 `pnpm check` is the quick loop while editing; `pnpm verify` is the gate. The flow: commit,
 `pnpm verify`, commit any formatter output, push. A hook blocks `git push` and `gh pr create` (also behind
 `sh -c`, shell keywords, or `git -C <other-checkout>`) unless the last pass covered exactly
@@ -64,12 +64,19 @@ through its `exports` ([ADR 0006](docs/adr/0006-module-boundaries-are-enforced-t
 an import between two packages needs an entry in `ALLOWED_IMPORTS` in `.dependency-cruiser.ts`
 next to the dependency in `package.json`.
 
-## Text Outside Components
+## Adding Translated Text
 
-Text that lives in data (a module's name, command labels, setting titles) is a `msg` descriptor
-from `@lingui/core/macro`, translated when it is displayed, so it follows a language switch.
-Never use the global `t` from that entry (`self-engine/no-global-t-macro`): it runs at import
-time, before a language is active.
+Write the English sentence in the code through Lingui's macros: that text is the message
+([ADR 0011](docs/adr/0011-english-source-text-identifies-a-message-and-each-language-has-one-catalog.md)).
+A short word with several meanings ("Open" as a verb and as a status) carries a context.
+
+Text outside components, in data (a module's name, command labels, setting titles), is a `msg`
+descriptor from `@lingui/core/macro`, translated when it is displayed, so it follows a language
+switch. Never use the global `t` from that entry (`self-engine/no-global-t-macro`): it runs at
+import time, before a language is active.
+
+`pnpm verify` extracts the text into `packages/i18n/src/locales/` and names every translation
+that is missing or broken; fill those in and commit the catalogs.
 
 ## Agent skills
 
