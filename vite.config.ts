@@ -60,6 +60,8 @@ export default defineConfig({
       "verify:boundaries":
         "depcruise apps packages scripts vite.config.ts .dependency-cruiser.ts --config .dependency-cruiser.ts",
       "verify:adrs": "node scripts/check-adrs.ts",
+      // CSS uses Color Roles only (scripts/check-theme-css.ts).
+      "verify:theme-css": "node scripts/check-theme-css.ts",
       // The build scripts of apps/web and apps/desktop (ADR 0001): a broken pack entry passes
       // every other stage. Bundling never needs the Electron binary, so this runs in CI too.
       // `--cache` because `vp run` does not cache package scripts by default. `vp build` then
