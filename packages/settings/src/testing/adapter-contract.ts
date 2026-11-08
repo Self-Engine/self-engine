@@ -11,6 +11,11 @@ export interface AdapterContractHarness {
   readonly breakReads: () => () => void;
   /** Writing to the storage fails until the returned function is called. */
   readonly breakWrites: () => () => void;
+  /**
+   * Writing this one entry fails until the returned function is called, so a batch with it last
+   * fails after the entries before it. An adapter whose `save` is one step may fail all of it.
+   */
+  readonly breakWritesOf: (key: string) => () => void;
 }
 
 function collectReports(adapter: SettingsAdapter) {
@@ -175,6 +180,26 @@ export function describeAdapterContract(name: string, setup: () => AdapterContra
 
       await expect(harness.open().load()).resolves.toEqual([
         { key: "test.accent", value: "stored" },
+      ]);
+    });
+
+    it("applies a batch together: when an entry fails partway, none of them has changed", async () => {
+      const harness = setup();
+      const adapter = harness.open();
+      await adapter.save([{ key: "test.changed", value: "stored" }]);
+      const repair = harness.breakWritesOf("test.failing");
+
+      await expect(
+        adapter.save([
+          { key: "test.changed", value: "new" },
+          { key: "test.added", value: "new" },
+          { key: "test.failing", value: "new" },
+        ]),
+      ).rejects.toBeDefined();
+      repair();
+
+      await expect(harness.open().load()).resolves.toEqual([
+        { key: "test.changed", value: "stored" },
       ]);
     });
 

@@ -1,6 +1,7 @@
 export type { ReportedSettingEntry, SettingEntry, SettingsAdapter } from "./adapter.ts";
 export {
   createLocalSettingsAdapter,
+  type LocalSettingsEnvironment,
   type LocalSettingsStorage,
   type LocalStorageChange,
   type LocalStorageEvents,

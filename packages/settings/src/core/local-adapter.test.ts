@@ -21,6 +21,8 @@ interface SimulatedStorage extends LocalSettingsStorage {
   readonly items: Map<string, string>;
   readonly breakReads: () => () => void;
   readonly breakWrites: () => () => void;
+  /** Writing this one item fails until the returned function is called. */
+  readonly breakWritesOf: (item: string) => () => void;
   /** A write fails if the values would then take more than `characters` in total. */
   readonly limitQuota: (characters: number) => void;
 }
@@ -30,6 +32,7 @@ function simulatedStorage(): SimulatedStorage {
   const items = new Map<string, string>();
   let readable = true;
   let quota = Infinity;
+  let unwritable: string | undefined;
 
   function assertReadable(): void {
     if (!readable) throw storageError("blocked", "SecurityError");
@@ -52,6 +55,7 @@ function simulatedStorage(): SimulatedStorage {
       return items.get(key) ?? null;
     },
     setItem: (key, value) => {
+      if (key === unwritable) throw storageError("write rejected", "UnknownError");
       assertFits(key, value);
       items.set(key, value);
     },
@@ -68,6 +72,12 @@ function simulatedStorage(): SimulatedStorage {
       quota = 0;
       return () => {
         quota = Infinity;
+      };
+    },
+    breakWritesOf: (item) => {
+      unwritable = item;
+      return () => {
+        unwritable = undefined;
       };
     },
     limitQuota: (characters) => {
@@ -96,9 +106,8 @@ function localAdapter() {
   const storage = simulatedStorage();
   const events = simulatedEvents();
   const adapter = createLocalSettingsAdapter(
-    () => storage,
+    { getStorage: () => storage, getEvents: () => events },
     "synced",
-    () => events,
   );
   const reported: ReportedSettingEntry[] = [];
   return {
@@ -117,6 +126,8 @@ describeAdapterContract("in memory", () => {
     changeFromOutside: adapter.changeFromOutside,
     breakReads: () => adapter.failLoads(),
     breakWrites: () => adapter.failSaves(),
+    // This adapter applies a batch in one step, so a failing entry fails all of it.
+    breakWritesOf: () => adapter.failSaves(),
   };
 });
 
@@ -125,11 +136,7 @@ describeAdapterContract("localStorage", () => {
   const events = simulatedEvents();
   return {
     open: () =>
-      createLocalSettingsAdapter(
-        () => storage,
-        "synced",
-        () => events,
-      ),
+      createLocalSettingsAdapter({ getStorage: () => storage, getEvents: () => events }, "synced"),
     changeFromOutside: (entries) => {
       for (const { key, value } of entries) {
         const item = SYNCED_PREFIX + key;
@@ -141,6 +148,7 @@ describeAdapterContract("localStorage", () => {
     },
     breakReads: storage.breakReads,
     breakWrites: storage.breakWrites,
+    breakWritesOf: (key) => storage.breakWritesOf(SYNCED_PREFIX + key),
   };
 });
 
@@ -158,15 +166,14 @@ const tint = defineSetting({
   schema: z.boolean(),
 });
 
-const ITEM = "self-engine:settings:synced:";
-
 function storeOverStorage(getStorage: () => LocalSettingsStorage) {
   const failures: SettingsStorageFailure[] = [];
   const events = simulatedEvents();
+  const environment = { getStorage, getEvents: () => events };
   const store = createSettingsStore({
     adapters: {
-      synced: createLocalSettingsAdapter(getStorage, "synced", () => events),
-      device: createLocalSettingsAdapter(getStorage, "device", () => events),
+      synced: createLocalSettingsAdapter(environment, "synced"),
+      device: createLocalSettingsAdapter(environment, "device"),
     },
     onError: (failure) => failures.push(failure),
   });
@@ -187,16 +194,9 @@ describe("the localStorage adapter", () => {
 
   it("keeps Synced and Device Settings apart in one storage", async () => {
     const { storage, events } = localAdapter();
-    const synced = createLocalSettingsAdapter(
-      () => storage,
-      "synced",
-      () => events,
-    );
-    const device = createLocalSettingsAdapter(
-      () => storage,
-      "device",
-      () => events,
-    );
+    const environment = { getStorage: () => storage, getEvents: () => events };
+    const synced = createLocalSettingsAdapter(environment, "synced");
+    const device = createLocalSettingsAdapter(environment, "device");
 
     await synced.save([{ key: "test.same", value: "synced" }]);
     await device.save([{ key: "test.same", value: "device" }]);
@@ -270,29 +270,31 @@ describe("the localStorage adapter", () => {
 
   it("skips an unparsable item and still loads the others", async () => {
     const storage = simulatedStorage();
-    storage.items.set(`${ITEM}test.accent`, "{not json");
-    storage.items.set(`${ITEM}test.tint`, "true");
+    storage.items.set(`${SYNCED_PREFIX}test.accent`, "{not json");
+    storage.items.set(`${SYNCED_PREFIX}test.tint`, "true");
 
-    const adapter = createLocalSettingsAdapter(() => storage, "synced", simulatedEvents);
+    const adapter = createLocalSettingsAdapter({ getStorage: () => storage, getEvents: simulatedEvents }, "synced");
 
     await expect(adapter.load()).resolves.toEqual([{ key: "test.tint", value: true }]);
   });
 
   it("rejects load when the storage itself cannot be reached", async () => {
     const adapter = createLocalSettingsAdapter(
-      () => {
-        throw storageError("blocked", "SecurityError");
+      {
+        getStorage: () => {
+          throw storageError("blocked", "SecurityError");
+        },
+        getEvents: simulatedEvents,
       },
       "synced",
-      simulatedEvents,
     );
 
     await expect(adapter.load()).rejects.toThrow("blocked");
   });
 
-  it("applies a batch together: when the quota runs out midway, nothing changes", async () => {
+  it("restores a batch within the quota that ran out midway", async () => {
     const storage = simulatedStorage();
-    const adapter = createLocalSettingsAdapter(() => storage, "synced", simulatedEvents);
+    const adapter = createLocalSettingsAdapter({ getStorage: () => storage, getEvents: simulatedEvents }, "synced");
     await adapter.save([{ key: "test.changed", value: "stored" }]);
     storage.limitQuota(12);
 
@@ -304,15 +306,15 @@ describe("the localStorage adapter", () => {
       ]),
     ).rejects.toThrow("over quota");
 
-    expect([...storage.items]).toEqual([[`${ITEM}test.changed`, '"stored"']]);
+    expect([...storage.items]).toEqual([[`${SYNCED_PREFIX}test.changed`, '"stored"']]);
   });
 });
 
 describe("the store over a damaged or blocked localStorage", () => {
   it("shows the default for a damaged entry only, and keeps the item until that Setting changes", async () => {
     const storage = simulatedStorage();
-    storage.items.set(`${ITEM}test.accent`, "{not json");
-    storage.items.set(`${ITEM}test.tint`, "true");
+    storage.items.set(`${SYNCED_PREFIX}test.accent`, "{not json");
+    storage.items.set(`${SYNCED_PREFIX}test.tint`, "true");
     const { store, failures } = storeOverStorage(() => storage);
 
     await store.load();
@@ -320,13 +322,13 @@ describe("the store over a damaged or blocked localStorage", () => {
 
     expect(store.read(accent)).toBe("blue");
     expect(store.read(tint)).toBe(true);
-    expect(storage.items.get(`${ITEM}test.accent`)).toBe("{not json");
+    expect(storage.items.get(`${SYNCED_PREFIX}test.accent`)).toBe("{not json");
     expect(failures).toEqual([]);
 
     store.write(accent, "green");
     await settle();
 
-    expect(storage.items.get(`${ITEM}test.accent`)).toBe('"green"');
+    expect(storage.items.get(`${SYNCED_PREFIX}test.accent`)).toBe('"green"');
   });
 
   it("starts from defaults and reports once per scope when localStorage is blocked", async () => {

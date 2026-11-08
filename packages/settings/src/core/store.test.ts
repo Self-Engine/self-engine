@@ -22,11 +22,11 @@ const scale = defineSetting({
   schema: z.number(),
 });
 
-const windowSize = defineSetting({
-  key: "test.window",
+const workHours = defineSetting({
+  key: "test.workHours",
   scope: "synced",
-  default: { width: 0, height: 0 },
-  schema: z.object({ width: z.number(), height: z.number() }),
+  default: { start: 0, end: 0 },
+  schema: z.object({ start: z.number(), end: z.number() }),
 });
 
 function storeOver(
@@ -93,9 +93,9 @@ describe("reading", () => {
   });
 
   it("returns the same object on repeated reads", async () => {
-    const store = await loadedStore(createTestAdapter({ "test.window": { width: 3, height: 4 } }));
-    expect(store.read(windowSize)).toBe(store.read(windowSize));
-    expect(store.read(windowSize)).toEqual({ width: 3, height: 4 });
+    const store = await loadedStore(createTestAdapter({ "test.workHours": { start: 3, end: 4 } }));
+    expect(store.read(workHours)).toBe(store.read(workHours));
+    expect(store.read(workHours)).toEqual({ start: 3, end: 4 });
   });
 
   it("reads each scope from the adapter of that scope", async () => {
@@ -169,12 +169,12 @@ describe("writing", () => {
   });
 
   it("neither notifies nor saves when the value is already stored", async () => {
-    const adapter = createTestAdapter({ "test.window": { width: 3, height: 4 } });
+    const adapter = createTestAdapter({ "test.workHours": { start: 3, end: 4 } });
     const store = await loadedStore(adapter);
     let notified = 0;
     store.subscribe(() => (notified += 1));
 
-    store.write(windowSize, { width: 3, height: 4 });
+    store.write(workHours, { start: 3, end: 4 });
     await settle();
 
     expect(notified).toBe(0);
@@ -200,7 +200,7 @@ describe("writing", () => {
 
     store.writeAll([
       settingChange(accent, "green"),
-      settingChange(windowSize, { width: 1, height: 2 }),
+      settingChange(workHours, { start: 1, end: 2 }),
       settingChange(scale, 2),
     ]);
     await settle();
@@ -209,7 +209,7 @@ describe("writing", () => {
     expect(synced.saves).toEqual([
       [
         { key: "test.accent", value: "green" },
-        { key: "test.window", value: { width: 1, height: 2 } },
+        { key: "test.workHours", value: { start: 1, end: 2 } },
       ],
     ]);
     expect(device.saves).toEqual([[{ key: "test.scale", value: 2 }]]);
@@ -298,16 +298,16 @@ describe("changes from outside", () => {
   it("takes over only the reported entries and saves nothing", async () => {
     const adapter = createTestAdapter({
       "test.accent": "blue",
-      "test.window": { width: 1, height: 2 },
+      "test.workHours": { start: 1, end: 2 },
     });
     const store = await loadedStore(adapter);
-    const windowBefore = store.read(windowSize);
+    const workHoursBefore = store.read(workHours);
 
     adapter.changeFromOutside([{ key: "test.accent", value: "green" }]);
     await settle();
 
     expect(store.read(accent)).toBe("green");
-    expect(store.read(windowSize)).toBe(windowBefore);
+    expect(store.read(workHours)).toBe(workHoursBefore);
     expect(adapter.saves).toEqual([]);
   });
 
@@ -319,26 +319,26 @@ describe("changes from outside", () => {
 
     adapter.changeFromOutside([
       { key: "test.accent", value: "green" },
-      { key: "test.window", value: { width: 1, height: 2 } },
+      { key: "test.workHours", value: { start: 1, end: 2 } },
     ]);
 
     expect(seen).toEqual(["green"]);
   });
 
   it("ignores a report that equals the snapshot, and keeps returning the same object", async () => {
-    const adapter = createTestAdapter({ "test.window": { width: 1, height: 2 } });
+    const adapter = createTestAdapter({ "test.workHours": { start: 1, end: 2 } });
     const store = await loadedStore(adapter);
-    const before = store.read(windowSize);
+    const before = store.read(workHours);
     let notified = 0;
     store.subscribe(() => (notified += 1));
 
     adapter.changeFromOutside([
-      { key: "test.window", value: { width: 1, height: 2 } },
+      { key: "test.workHours", value: { start: 1, end: 2 } },
       { key: "test.accent", value: undefined },
     ]);
 
     expect(notified).toBe(0);
-    expect(store.read(windowSize)).toBe(before);
+    expect(store.read(workHours)).toBe(before);
   });
 
   it("ignores a report for an entry with a pending save, so an echo cannot undo it", async () => {
@@ -364,9 +364,9 @@ describe("changes from outside", () => {
     adapter.holdSaves();
     store.write(accent, "newest");
 
-    adapter.changeFromOutside([{ key: "test.window", value: { width: 1, height: 2 } }]);
+    adapter.changeFromOutside([{ key: "test.workHours", value: { start: 1, end: 2 } }]);
 
-    expect(store.read(windowSize)).toEqual({ width: 1, height: 2 });
+    expect(store.read(workHours)).toEqual({ start: 1, end: 2 });
   });
 
   it("treats an entry as pending until its last save has finished", async () => {
@@ -499,7 +499,7 @@ describe("when load fails", () => {
   });
 
   it("writes only the entry the user changed and leaves the stored ones alone", async () => {
-    const adapter = createTestAdapter({ "test.accent": "green", "test.window": "kept" });
+    const adapter = createTestAdapter({ "test.accent": "green", "test.workHours": "kept" });
     adapter.failLoads();
     const { store } = reportingStore(adapter);
     await store.load();
@@ -508,7 +508,7 @@ describe("when load fails", () => {
     await settle();
 
     expect(adapter.saves).toEqual([[{ key: "test.accent", value: "red" }]]);
-    expect(adapter.stored.get("test.window")).toBe("kept");
+    expect(adapter.stored.get("test.workHours")).toBe("kept");
   });
 
   it("writes nothing on its own, so stored values are back once storage recovers", async () => {

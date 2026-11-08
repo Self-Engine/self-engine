@@ -54,26 +54,45 @@ export interface LocalStorageEvents {
   removeEventListener(type: "storage", listener: (event: LocalStorageChange) => void): void;
 }
 
-export function createLocalSettingsAdapter(
-  getStorage: () => LocalSettingsStorage,
-  scope: SettingScope,
-  getEvents: () => LocalStorageEvents,
-): SettingsAdapter {
+/** The storage and where its events arrive. Both are getters, because reaching them can throw. */
+export interface LocalSettingsEnvironment {
+  readonly getStorage: () => LocalSettingsStorage;
+  readonly getEvents: () => LocalStorageEvents;
+}
+
+/** How the entries of one scope are named in the storage. */
+function itemNames(scope: SettingScope) {
   const prefix = `self-engine:settings:${scope}:`;
+  return {
+    itemOf: (key: string): string => prefix + key,
+    /** `undefined` for an item outside this scope. */
+    keyOf: (item: string): string | undefined =>
+      item.startsWith(prefix) ? item.slice(prefix.length) : undefined,
+  };
+}
+
+export function createLocalSettingsAdapter(
+  { getStorage, getEvents }: LocalSettingsEnvironment,
+  scope: SettingScope,
+): SettingsAdapter {
+  const { itemOf, keyOf } = itemNames(scope);
   // A cleared storage names no keys, so what it removed has to be known from before.
   const known = new Set<string>();
 
-  function reportedBy({ key, newValue }: LocalStorageChange): readonly ReportedSettingEntry[] {
-    if (key === null) {
-      const removed = [...known].map((entry) => ({ key: entry, value: undefined }));
+  function reportedBy({
+    key: item,
+    newValue,
+  }: LocalStorageChange): readonly ReportedSettingEntry[] {
+    if (item === null) {
+      const removed = [...known].map((key) => ({ key, value: undefined }));
       known.clear();
       return removed;
     }
-    if (!key.startsWith(prefix)) return [];
-    const entry = key.slice(prefix.length);
-    if (newValue === null) known.delete(entry);
-    else known.add(entry);
-    return [{ key: entry, value: newValue === null ? undefined : parseItem(newValue) }];
+    const key = keyOf(item);
+    if (key === undefined) return [];
+    if (newValue === null) known.delete(key);
+    else known.add(key);
+    return [{ key, value: newValue === null ? undefined : parseItem(newValue) }];
   }
 
   return {
@@ -82,10 +101,10 @@ export function createLocalSettingsAdapter(
       const entries: SettingEntry[] = [];
       for (let index = 0; index < storage.length; index += 1) {
         const item = storage.key(index);
-        if (item === null || !item.startsWith(prefix)) continue;
+        const key = item === null ? undefined : keyOf(item);
+        if (item === null || key === undefined) continue;
         const text = storage.getItem(item);
         if (text === null) continue;
-        const key = item.slice(prefix.length);
         known.add(key);
         const value = parseItem(text);
         if (value !== undefined) entries.push({ key, value });
@@ -94,11 +113,12 @@ export function createLocalSettingsAdapter(
     },
     save: async (entries) => {
       const storage = getStorage();
-      const before = entries.map(
-        ({ key }) => [prefix + key, storage.getItem(prefix + key)] as const,
-      );
+      const before = entries.map(({ key }) => {
+        const item = itemOf(key);
+        return [item, storage.getItem(item)] as const;
+      });
       try {
-        for (const { key, value } of entries) storage.setItem(prefix + key, JSON.stringify(value));
+        for (const { key, value } of entries) storage.setItem(itemOf(key), JSON.stringify(value));
       } catch (error) {
         restoreItems(storage, before);
         throw error;

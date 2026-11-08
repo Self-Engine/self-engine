@@ -25,20 +25,20 @@ function Row({ label, children }: { readonly label: string; readonly children: R
 }
 
 export function DensityPreview() {
-  const [appearance, setAppearance] = usePreviewAppearance();
+  const [appearance, changeAppearance] = usePreviewAppearance();
   return (
     <Stack gap="xs">
       <SegmentedControl
         data={[...DENSITIES]}
         onChange={(value) => {
-          setAppearance({ density: value as Density });
+          changeAppearance({ density: value as Density });
         }}
         value={appearance.density}
       />
       <SegmentedControl
         data={FONT_SCALES.map((step) => ({ label: `${step} %`, value: String(step) }))}
         onChange={(value) => {
-          setAppearance({ fontScale: Number(value) as FontScale });
+          changeAppearance({ fontScale: Number(value) as FontScale });
         }}
         value={String(appearance.fontScale)}
       />

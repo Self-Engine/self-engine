@@ -11,10 +11,10 @@
   },
   "dependencies": {
     "react": "catalog:",
+    "vite-plus": "catalog:",
     "zod": "catalog:"
   },
   "devDependencies": {
-    "@types/react": "catalog:",
-    "vite-plus": "catalog:"
+    "@types/react": "catalog:"
   }
 }
