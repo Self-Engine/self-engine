@@ -1,7 +1,7 @@
 ---
 status: accepted
 date: 2026-11-08
-decisions: D38, D39, D40, D41, D43, D47, D50, D51, D108, D109
+decisions: D38, D39, D40, D41, D43, D47, D50, D51, D108, D109, D110
 ---
 
 # Dev, nightly and stable are separate apps
@@ -18,8 +18,8 @@ the stable app.
   installable side by side, each with its own name, icon, app ID (`app.selfengine.desktop`,
   `.nightly`, `.dev`), protocol scheme and data folder. A "copy data from stable" action seeds
   the other channels.
-- **Nightly builds automatically every night**, only when `main` changed since the last nightly;
-  it can also be started by hand.
+- **Nightly builds automatically every second night**, only when `main` changed since the last
+  nightly; it can also be started by hand.
 - **Stable only builds a commit that was already published as a nightly.**
 - **No release-please.** PR titles are Conventional Commits (checked in CI) and become the
   squash commits on `main`. A stable release is started by hand with a version number; its

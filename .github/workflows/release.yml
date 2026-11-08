@@ -5,9 +5,10 @@
 name: Release
 
 on:
-  # Off until the repository variable NIGHTLY_SCHEDULE_ENABLED is 'true' (see the plan job).
+  # Every second night (odd days of the month, so the 31st and the 1st are both built). Off
+  # unless the repository variable NIGHTLY_SCHEDULE_ENABLED is 'true' (see the plan job).
   schedule:
-    - cron: "17 2 * * *"
+    - cron: "17 2 */2 * *"
   workflow_dispatch:
     inputs:
       channel:
