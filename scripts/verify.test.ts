@@ -2,7 +2,16 @@ import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vite-plus/test";
 import config from "../vite.config.ts";
-import { capture, runStages, STATIC_STAGES, summaryLine, tail, TEST_STAGE } from "./verify.ts";
+import {
+  capture,
+  isCi,
+  runStages,
+  stageTask,
+  STATIC_STAGES,
+  summaryLine,
+  tail,
+  TEST_STAGE,
+} from "./verify.ts";
 
 const rootPackage = fileURLToPath(new URL("../package.json", import.meta.url));
 
@@ -29,11 +38,18 @@ describe("runStages", () => {
 });
 
 describe("the verify tasks", () => {
-  it("define one vp task per stage in vite.config.ts", () => {
+  it("define every task the stages run, locally and in CI, and no others", () => {
     const tasks = Object.keys(config.run?.tasks ?? {}).filter((name) => name.startsWith("verify:"));
-    expect(tasks.sort()).toEqual(
-      [...STATIC_STAGES, TEST_STAGE].map((stage) => `verify:${stage}`).sort(),
+    const stages = [...STATIC_STAGES, TEST_STAGE];
+    const used = new Set(
+      [{}, { CI: "true" }].flatMap((env) => stages.map((stage) => stageTask(stage, env))),
     );
+    expect(tasks.sort()).toEqual([...used].sort());
+  });
+
+  it("rewrite the format locally and only check it in CI", () => {
+    expect(config.run?.tasks?.["verify:format"]).toBe("vp fmt");
+    expect(config.run?.tasks?.["verify:format:check"]).toBe("vp fmt --check");
   });
 
   it("let lint warnings fail the gate", () => {
@@ -67,6 +83,35 @@ describe("the verify tasks", () => {
 
   it("typecheck through vp, whose reads the task cache tracks (plain tsc's it does not)", () => {
     expect(config.run?.tasks?.["verify:typecheck"]).toBe("vp check --no-fmt --no-lint");
+  });
+});
+
+describe("stageTask", () => {
+  it("runs every stage as verify:<stage> outside CI", () => {
+    for (const stage of [...STATIC_STAGES, TEST_STAGE]) {
+      expect(stageTask(stage, {})).toBe(`verify:${stage}`);
+    }
+  });
+
+  it("checks the format instead of rewriting it in CI, and leaves the other stages alone", () => {
+    expect(stageTask("format", { CI: "true" })).toBe("verify:format:check");
+    expect(stageTask("lint", { CI: "true" })).toBe("verify:lint");
+    expect(stageTask(TEST_STAGE, { CI: "true" })).toBe("verify:test");
+  });
+});
+
+describe("isCi", () => {
+  it("treats CI set to a value as CI", () => {
+    expect(isCi({ CI: "true" })).toBe(true);
+    expect(isCi({ CI: "1" })).toBe(true);
+    expect(isCi({ CI: "TRUE" })).toBe(true);
+  });
+
+  it("treats CI unset, empty, false or 0 as a local run", () => {
+    expect(isCi({})).toBe(false);
+    expect(isCi({ CI: "" })).toBe(false);
+    expect(isCi({ CI: "false" })).toBe(false);
+    expect(isCi({ CI: "0" })).toBe(false);
   });
 });
 

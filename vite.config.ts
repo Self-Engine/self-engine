@@ -36,6 +36,9 @@ export default defineConfig({
     // inputs did not change replays its last output instead of running again.
     tasks: {
       "verify:format": "vp fmt",
+      // The format stage under CI (scripts/verify.ts): fails on unformatted files instead of
+      // rewriting them. A task of its own, so its cache never replays a write run's result.
+      "verify:format:check": "vp fmt --check",
       // Type-aware lint; with `typeCheck` it also reports compiler errors.
       "verify:lint": "vp lint --deny-warnings",
       // Type check only, through tsgolint. Not plain `tsc`: TypeScript 7 is a native Go
