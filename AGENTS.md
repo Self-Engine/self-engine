@@ -10,9 +10,9 @@ planning history.
 
 A task is done when `pnpm verify` prints `VERIFY: PASS` as its last line
 ([ADR 0008](docs/adr/0008-one-verify-gate-and-a-push-guard.md)). It formats, lints
-(warnings fail), typechecks, checks the module boundaries, checks the ADRs and runs the
-tests; failures show their tail, the full log is `.cache/verify.log`. CI runs the same
-gate, except that its format stage only checks (`CI` set), so commit formatted files.
+(warnings fail), typechecks, checks the module boundaries, checks the ADRs, builds the
+workspace and runs the tests; failures show their tail, the full log is `.cache/verify.log`.
+CI runs the same gate, except that its format stage only checks (`CI` set), so commit formatted files.
 `pnpm check` is the quick loop while editing; `pnpm verify` is the gate. The flow: commit,
 `pnpm verify`, commit any formatter output, push. A hook blocks `git push` and `gh pr create` (also behind
 `sh -c`, shell keywords, or `git -C <other-checkout>`) unless the last pass covered exactly

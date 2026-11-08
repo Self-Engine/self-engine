@@ -81,6 +81,11 @@ describe("the verify tasks", () => {
     expect(command).toContain("--config .dependency-cruiser.ts");
   });
 
+  it("build the workspace, which catches what only the bundlers see", () => {
+    expect(STATIC_STAGES).toContain("build");
+    expect(config.run?.tasks?.["verify:build"]).toBe("vp run --cache -r build");
+  });
+
   it("typecheck through vp, whose reads the task cache tracks (plain tsc's it does not)", () => {
     expect(config.run?.tasks?.["verify:typecheck"]).toBe("vp check --no-fmt --no-lint");
   });

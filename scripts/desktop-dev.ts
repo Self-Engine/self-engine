@@ -6,7 +6,7 @@
 // child signals the group.
 
 import { type ChildProcess, spawn } from "node:child_process";
-import { existsSync, type FSWatcher, rmSync, watch } from "node:fs";
+import { existsSync, rmSync, watch } from "node:fs";
 import { createRequire } from "node:module";
 import { join, resolve } from "node:path";
 import { DESKTOP_DIR, ensureElectron } from "./ensure-electron.ts";
@@ -81,9 +81,122 @@ export async function waitUntil(
 ): Promise<void> {
   const deadline = clock.now() + timeoutMs;
   while (!(await isReady())) {
-    if (clock.now() >= deadline) throw new Error(`not ready after ${timeoutMs} ms`);
+    if (clock.now() >= deadline) {
+      throw new Error(`dev server or bundles not ready after ${timeoutMs} ms`);
+    }
     await clock.sleep(intervalMs);
   }
+}
+
+export interface SupervisorOptions {
+  /** Starts a new Electron; the supervisor stops it and watches for its exit. */
+  launchElectron: () => ChildProcess;
+  stop: (child: ChildProcess) => Promise<void>;
+  exit: (code: number) => void;
+  report: (message: string) => void;
+  restartDebounceMs: number;
+}
+
+export interface Supervisor {
+  /** Runs the start-up; a failure stops everything started so far and exits non-zero. */
+  run(start: () => Promise<void>): Promise<void>;
+  /** Tracks a started dev server: its failure or exit ends the run. */
+  addService(service: ChildProcess): void;
+  launch(): void;
+  /** Requests an Electron restart, debounced. */
+  scheduleRestart(): void;
+  /** Runs `cleanup` when the run ends. */
+  onShutdown(cleanup: () => void): void;
+  fail(error: unknown): Promise<void>;
+  shutdown(exitCode: number): Promise<void>;
+  isStopping(): boolean;
+}
+
+/**
+ * Owns every child of a dev run, so whatever goes wrong stops all of them. Restarts run one
+ * at a time: a restart that overlapped another would launch a second Electron over the one
+ * the first launched, and nothing would stop that one any more.
+ */
+export function createSupervisor(options: SupervisorOptions): Supervisor {
+  const { launchElectron, stop, exit, report, restartDebounceMs } = options;
+  const services: ChildProcess[] = [];
+  const cleanups: (() => void)[] = [];
+  let electron: ChildProcess | undefined;
+  let restartTimer: NodeJS.Timeout | undefined;
+  let restartQueue: Promise<void> = Promise.resolve();
+  let restarting = false;
+  let stopping = false;
+
+  const shutdown = async (exitCode: number): Promise<void> => {
+    if (stopping) return;
+    stopping = true;
+    clearTimeout(restartTimer);
+    for (const cleanup of cleanups) cleanup();
+    const children = [...services, ...(electron ? [electron] : [])];
+    const results = await Promise.allSettled(children.map((child) => stop(child)));
+    const failures = results.filter((result) => result.status === "rejected");
+    for (const failure of failures) {
+      report(`pnpm dev could not stop a process: ${errorMessage(failure.reason)}`);
+    }
+    exit(failures.length > 0 && exitCode === 0 ? 1 : exitCode);
+  };
+
+  const fail = async (error: unknown): Promise<void> => {
+    report(`pnpm dev failed: ${errorMessage(error)}`);
+    await shutdown(1);
+  };
+
+  const launch = (): void => {
+    if (stopping) return;
+    const app = launchElectron();
+    electron = app;
+    app.on("error", (error) => void fail(error));
+    app.once("exit", (code) => {
+      if (app === electron && !restarting) void shutdown(code ?? 0);
+    });
+  };
+
+  const restart = async (): Promise<void> => {
+    restarting = true;
+    try {
+      if (electron) await stop(electron);
+    } finally {
+      restarting = false;
+    }
+    launch();
+  };
+
+  return {
+    run: async (start) => {
+      try {
+        await start();
+      } catch (error) {
+        await fail(error);
+      }
+    },
+    addService: (service) => {
+      services.push(service);
+      service.on("error", (error) => void fail(error));
+      service.once("exit", (code) => void shutdown(code ?? 1));
+    },
+    launch,
+    scheduleRestart: () => {
+      clearTimeout(restartTimer);
+      restartTimer = setTimeout(() => {
+        restartQueue = restartQueue.then(restart).catch(fail);
+      }, restartDebounceMs);
+    },
+    onShutdown: (cleanup) => {
+      cleanups.push(cleanup);
+    },
+    fail,
+    shutdown,
+    isStopping: () => stopping,
+  };
+}
+
+function errorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
 }
 
 function spawnGroup(command: string, args: string[], cwd: string, env: NodeJS.ProcessEnv) {
@@ -100,80 +213,55 @@ async function isServing(url: string): Promise<boolean> {
 }
 
 async function main(): Promise<void> {
-  ensureElectron(DESKTOP_DIR);
-  // A bundle left from an earlier run must not count as ready before the first build.
-  rmSync(BUNDLE_DIR, { recursive: true, force: true });
-
   const devServerUrl = `http://127.0.0.1:${DEV_PORT}/`;
   const serviceEnv = { ...process.env, PORT: String(DEV_PORT) };
   const vp = (dir: string) => join(dir, "node_modules/.bin/vp");
-  const services = [
-    spawnGroup(vp(WEB_DIR), ["dev"], WEB_DIR, serviceEnv),
-    spawnGroup(vp(DESKTOP_DIR), ["pack", "--watch"], DESKTOP_DIR, serviceEnv),
-  ];
+  const supervisor = createSupervisor({
+    launchElectron: () =>
+      spawnGroup(
+        createRequire(join(DESKTOP_DIR, "package.json"))("electron") as string,
+        electronArgs(process.env),
+        DESKTOP_DIR,
+        electronEnv(process.env, devServerUrl),
+      ),
+    stop: (child) => stopGroup(child),
+    exit: (code) => process.exit(code),
+    report: (message) => console.error(message),
+    restartDebounceMs: RESTART_DEBOUNCE_MS,
+  });
 
-  const electronPath = createRequire(join(DESKTOP_DIR, "package.json"))("electron") as string;
-  let electron: ChildProcess | undefined;
-  let watcher: FSWatcher | undefined;
-  let restartTimer: NodeJS.Timeout | undefined;
-  let restarting = false;
-  let stopping = false;
+  process.once("SIGINT", () => void supervisor.shutdown(130));
+  process.once("SIGTERM", () => void supervisor.shutdown(143));
+  process.once("SIGHUP", () => void supervisor.shutdown(129));
 
-  const shutdown = async (exitCode: number): Promise<void> => {
-    if (stopping) return;
-    stopping = true;
-    clearTimeout(restartTimer);
-    watcher?.close();
-    await Promise.all(
-      [...services, ...(electron ? [electron] : [])].map((child) => stopGroup(child)),
+  await supervisor.run(async () => {
+    ensureElectron(DESKTOP_DIR);
+    // A bundle left from an earlier run must not count as ready before the first build.
+    rmSync(BUNDLE_DIR, { recursive: true, force: true });
+
+    supervisor.addService(spawnGroup(vp(WEB_DIR), ["dev"], WEB_DIR, serviceEnv));
+    supervisor.addService(
+      spawnGroup(vp(DESKTOP_DIR), ["pack", "--watch"], DESKTOP_DIR, serviceEnv),
     );
-    process.exit(exitCode);
-  };
 
-  const launch = (): void => {
-    const app = spawnGroup(
-      electronPath,
-      electronArgs(process.env),
-      DESKTOP_DIR,
-      electronEnv(process.env, devServerUrl),
+    await waitUntil(
+      async () =>
+        BUNDLES.every((name) => existsSync(join(BUNDLE_DIR, name))) &&
+        (await isServing(devServerUrl)),
+      READY_TIMEOUT_MS,
+      READY_INTERVAL_MS,
+      {
+        now: () => performance.now(),
+        sleep: (ms) => new Promise((done) => setTimeout(done, ms)),
+      },
     );
-    electron = app;
-    app.once("exit", (code) => {
-      if (app === electron && !restarting) void shutdown(code ?? 0);
+    if (supervisor.isStopping()) return;
+    supervisor.launch();
+    const watcher = watch(BUNDLE_DIR, (_event, name) => {
+      if (isBundle(name)) supervisor.scheduleRestart();
     });
-  };
-
-  const restart = async (): Promise<void> => {
-    restarting = true;
-    if (electron) await stopGroup(electron);
-    restarting = false;
-    if (!stopping) launch();
-  };
-
-  process.once("SIGINT", () => void shutdown(130));
-  process.once("SIGTERM", () => void shutdown(143));
-  process.once("SIGHUP", () => void shutdown(129));
-  for (const service of services) {
-    service.once("exit", (code) => void shutdown(code ?? 1));
-  }
-
-  await waitUntil(
-    async () =>
-      BUNDLES.every((name) => existsSync(join(BUNDLE_DIR, name))) &&
-      (await isServing(devServerUrl)),
-    READY_TIMEOUT_MS,
-    READY_INTERVAL_MS,
-    {
-      now: () => performance.now(),
-      sleep: (ms) => new Promise((done) => setTimeout(done, ms)),
-    },
-  );
-  if (stopping) return;
-  launch();
-  watcher = watch(BUNDLE_DIR, (_event, name) => {
-    if (!isBundle(name)) return;
-    clearTimeout(restartTimer);
-    restartTimer = setTimeout(() => void restart(), RESTART_DEBOUNCE_MS);
+    watcher.on("error", (error) => void supervisor.fail(error));
+    supervisor.onShutdown(() => watcher.close());
   });
 }
 
