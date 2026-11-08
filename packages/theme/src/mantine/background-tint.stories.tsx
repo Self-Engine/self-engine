@@ -46,7 +46,10 @@ function Arrangement() {
         <Text fw={600}>canvas</Text>
         <Container
           role="surface"
-          style={{ border: `1px solid ${roleColor("border")}`, marginTop: "var(--mantine-spacing-xs)" }}
+          style={{
+            border: `1px solid ${roleColor("border")}`,
+            marginTop: "var(--mantine-spacing-xs)",
+          }}
         >
           <Text fw={600}>surface</Text>
           <Text c="dimmed">A tile on the content</Text>
