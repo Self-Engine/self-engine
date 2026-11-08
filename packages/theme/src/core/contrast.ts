@@ -1,6 +1,6 @@
 import { ACCENT_IDS, type ThemeCatalog } from "./catalog.ts";
 import { composite, contrastRatio } from "./color.ts";
-import { type Appearance, resolveAppearance } from "./resolve.ts";
+import { type Appearance, DEFAULT_APPEARANCE, resolveAppearance } from "./resolve.ts";
 import { COLOR_MODES, type FinalColors, type Hex, type ResolvedColorMode } from "./roles.ts";
 
 type Role = keyof FinalColors;
@@ -79,6 +79,7 @@ export function auditContrast(catalog: ThemeCatalog): ContrastFailure[] {
       ACCENT_IDS.flatMap((accent) =>
         [true, false].flatMap((backgroundTint) => {
           const appearance: Appearance = {
+            ...DEFAULT_APPEARANCE,
             lightTheme: theme.id,
             darkTheme: theme.id,
             accent,

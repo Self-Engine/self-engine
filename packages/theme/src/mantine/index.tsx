@@ -3,7 +3,14 @@ import {
   MantineProvider,
   type MantineThemeOverride,
 } from "@mantine/core";
-import { createContext, type ReactNode, use, useMemo, useSyncExternalStore } from "react";
+import {
+  createContext,
+  type ReactNode,
+  use,
+  useLayoutEffect,
+  useMemo,
+  useSyncExternalStore,
+} from "react";
 import {
   type Appearance,
   type FinalColors,
@@ -67,6 +74,16 @@ export function ThemeProvider({ appearance, catalog, children }: ThemeProviderPr
   const resolved = useMemo(() => resolveAppearance(appearance, catalog), [appearance, catalog]);
   const scheme = resolveColorMode(appearance.colorMode, prefersDark);
   useInstantChange(JSON.stringify(resolved[scheme].roles));
+  const { density, densityCss, mantineComponents, rootFontSize } = resolved.layout;
+  useLayoutEffect(() => {
+    const root = document.documentElement;
+    root.dataset.density = density;
+    root.style.fontSize = rootFontSize;
+  }, [density, rootFontSize]);
+  const mantineTheme = useMemo(
+    () => ({ ...MANTINE_THEME, components: mantineComponents }),
+    [mantineComponents],
+  );
   const cssVariablesResolver = () => ({
     variables: tokenVariables({ reducedMotion }),
     light: { ...resolved.light.cssVariables, ...resolved.light.mantineVariables },
@@ -79,8 +96,9 @@ export function ThemeProvider({ appearance, catalog, children }: ThemeProviderPr
         cssVariablesResolver={cssVariablesResolver}
         defaultColorScheme={scheme}
         forceColorScheme={scheme}
-        theme={MANTINE_THEME}
+        theme={mantineTheme}
       >
+        <style>{densityCss}</style>
         {children}
       </MantineProvider>
     </ColorsContext>
