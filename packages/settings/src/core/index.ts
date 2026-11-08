@@ -1,5 +1,10 @@
-export type { SettingEntry, SettingsAdapter } from "./adapter.ts";
-export { createLocalSettingsAdapter, type LocalSettingsStorage } from "./local-adapter.ts";
+export type { ReportedSettingEntry, SettingEntry, SettingsAdapter } from "./adapter.ts";
+export {
+  createLocalSettingsAdapter,
+  type LocalSettingsStorage,
+  type LocalStorageChange,
+  type LocalStorageEvents,
+} from "./local-adapter.ts";
 export {
   defineSetting,
   type JsonValue,

@@ -3,7 +3,15 @@ import { createLocalSettingsAdapter, createSettingsStore } from "@self-engine/se
 /** The app's one store. `main.tsx` waits for its `load` before the first render. */
 export const settingsStore = createSettingsStore({
   adapters: {
-    synced: createLocalSettingsAdapter(() => localStorage, "synced"),
-    device: createLocalSettingsAdapter(() => localStorage, "device"),
+    synced: createLocalSettingsAdapter(
+      () => localStorage,
+      "synced",
+      () => window,
+    ),
+    device: createLocalSettingsAdapter(
+      () => localStorage,
+      "device",
+      () => window,
+    ),
   },
 });

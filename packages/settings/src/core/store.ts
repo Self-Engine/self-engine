@@ -1,7 +1,7 @@
 // The Settings in memory. The app loads them once before its first render and reads them
 // synchronously from then on (ADR 0010).
 
-import type { SettingEntry, SettingsAdapter } from "./adapter.ts";
+import type { ReportedSettingEntry, SettingEntry, SettingsAdapter } from "./adapter.ts";
 import {
   type JsonValue,
   type SettingChange,
@@ -29,7 +29,7 @@ export interface SettingsStoreOptions {
 
 const SCOPES: readonly SettingScope[] = ["synced", "device"];
 
-function sameJson(a: JsonValue | undefined, b: JsonValue): boolean {
+function sameJson(a: JsonValue | undefined, b: JsonValue | undefined): boolean {
   return JSON.stringify(a) === JSON.stringify(b);
 }
 
@@ -45,17 +45,47 @@ export function createSettingsStore({ adapters }: SettingsStoreOptions): Setting
     synced: Promise.resolve(),
     device: Promise.resolve(),
   };
+  // How many unfinished saves each entry has. A report for such an entry is an echo or out of date.
+  const pendingSaves: Record<SettingScope, Map<string, number>> = {
+    synced: new Map(),
+    device: new Map(),
+  };
   let loading: Promise<void> | undefined;
   let loaded = false;
 
   async function loadScopes(): Promise<void> {
     await Promise.all(
       SCOPES.map(async (scope) => {
+        // Subscribed before loading, so nothing changes unseen between the two. What arrives
+        // meanwhile waits, since the loaded entries replace the snapshot.
+        let early: ReportedSettingEntry[] | undefined = [];
+        adapters[scope].subscribe((entries) => {
+          if (early === undefined) takeExternal(scope, entries);
+          else early.push(...entries);
+        });
         const entries = await adapters[scope].load();
         snapshot[scope] = new Map(entries.map(({ key, value }) => [key, value]));
+        takeExternal(scope, early);
+        early = undefined;
       }),
     );
     loaded = true;
+  }
+
+  function notify(): void {
+    for (const listener of listeners) listener();
+  }
+
+  function takeExternal(scope: SettingScope, reported: readonly ReportedSettingEntry[]): void {
+    const entries = snapshot[scope];
+    let changed = false;
+    for (const { key, value } of reported) {
+      if (pendingSaves[scope].has(key) || sameJson(entries.get(key), value)) continue;
+      if (value === undefined) entries.delete(key);
+      else entries.set(key, value);
+      changed = true;
+    }
+    if (changed && loaded) notify();
   }
 
   function assertLoaded(key: string): void {
@@ -72,7 +102,17 @@ export function createSettingsStore({ adapters }: SettingsStoreOptions): Setting
   }
 
   function saveInOrder(scope: SettingScope, entries: readonly SettingEntry[]): void {
-    saves[scope] = saves[scope].then(() => adapters[scope].save(entries));
+    const pending = pendingSaves[scope];
+    for (const { key } of entries) pending.set(key, (pending.get(key) ?? 0) + 1);
+    saves[scope] = saves[scope]
+      .then(() => adapters[scope].save(entries))
+      .finally(() => {
+        for (const { key } of entries) {
+          const remaining = (pending.get(key) ?? 0) - 1;
+          if (remaining > 0) pending.set(key, remaining);
+          else pending.delete(key);
+        }
+      });
   }
 
   function writeAll(changes: readonly SettingChange[]): void {
@@ -89,7 +129,7 @@ export function createSettingsStore({ adapters }: SettingsStoreOptions): Setting
     }
     if (SCOPES.every((scope) => changed[scope].size === 0)) return;
 
-    for (const listener of listeners) listener();
+    notify();
     for (const scope of SCOPES) {
       if (changed[scope].size === 0) continue;
       saveInOrder(

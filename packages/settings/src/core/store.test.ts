@@ -236,3 +236,145 @@ describe("writing", () => {
     expect(notified).toBe(0);
   });
 });
+
+describe("changes from outside", () => {
+  it("takes over only the reported entries and saves nothing", async () => {
+    const adapter = createTestAdapter({
+      "test.accent": "blue",
+      "test.window": { width: 1, height: 2 },
+    });
+    const store = await loadedStore(adapter);
+    const windowBefore = store.read(windowSize);
+
+    adapter.changeFromOutside([{ key: "test.accent", value: "green" }]);
+    await settle();
+
+    expect(store.read(accent)).toBe("green");
+    expect(store.read(windowSize)).toBe(windowBefore);
+    expect(adapter.saves).toEqual([]);
+  });
+
+  it("notifies subscribers once per report, with the new value already readable", async () => {
+    const adapter = createTestAdapter();
+    const store = await loadedStore(adapter);
+    const seen: string[] = [];
+    store.subscribe(() => seen.push(store.read(accent)));
+
+    adapter.changeFromOutside([
+      { key: "test.accent", value: "green" },
+      { key: "test.window", value: { width: 1, height: 2 } },
+    ]);
+
+    expect(seen).toEqual(["green"]);
+  });
+
+  it("ignores a report that equals the snapshot, and keeps returning the same object", async () => {
+    const adapter = createTestAdapter({ "test.window": { width: 1, height: 2 } });
+    const store = await loadedStore(adapter);
+    const before = store.read(windowSize);
+    let notified = 0;
+    store.subscribe(() => (notified += 1));
+
+    adapter.changeFromOutside([
+      { key: "test.window", value: { width: 1, height: 2 } },
+      { key: "test.accent", value: undefined },
+    ]);
+
+    expect(notified).toBe(0);
+    expect(store.read(windowSize)).toBe(before);
+  });
+
+  it("ignores a report for an entry with a pending save, so an echo cannot undo it", async () => {
+    const adapter = createTestAdapter();
+    const store = await loadedStore(adapter);
+    let notified = 0;
+    const release = adapter.holdSaves();
+    store.write(accent, "newest");
+    store.subscribe(() => (notified += 1));
+
+    adapter.changeFromOutside([{ key: "test.accent", value: "older" }]);
+
+    expect(store.read(accent)).toBe("newest");
+    expect(notified).toBe(0);
+    release();
+    await settle();
+    expect(adapter.stored.get("test.accent")).toBe("newest");
+  });
+
+  it("still takes reports for other entries while a save is pending", async () => {
+    const adapter = createTestAdapter();
+    const store = await loadedStore(adapter);
+    adapter.holdSaves();
+    store.write(accent, "newest");
+
+    adapter.changeFromOutside([{ key: "test.window", value: { width: 1, height: 2 } }]);
+
+    expect(store.read(windowSize)).toEqual({ width: 1, height: 2 });
+  });
+
+  it("treats an entry as pending until its last save has finished", async () => {
+    const adapter = createTestAdapter();
+    const store = await loadedStore(adapter);
+    const releaseFirst = adapter.holdSaves();
+    store.write(accent, "first");
+    store.write(accent, "second");
+    await settle();
+    const releaseSecond = adapter.holdSaves();
+    releaseFirst();
+    await settle();
+
+    adapter.changeFromOutside([{ key: "test.accent", value: "echo" }]);
+    expect(store.read(accent)).toBe("second");
+
+    releaseSecond();
+    await settle();
+    adapter.changeFromOutside([{ key: "test.accent", value: "from another tab" }]);
+    expect(store.read(accent)).toBe("from another tab");
+  });
+
+  it("shows the default after an entry was removed", async () => {
+    const adapter = createTestAdapter({ "test.accent": "green" });
+    const store = await loadedStore(adapter);
+    let notified = 0;
+    store.subscribe(() => (notified += 1));
+
+    adapter.changeFromOutside([{ key: "test.accent", value: undefined }]);
+
+    expect(store.read(accent)).toBe("blue");
+    expect(notified).toBe(1);
+  });
+
+  it("shows the default for a value that fails its schema, and leaves it stored", async () => {
+    const adapter = createTestAdapter({ "test.accent": "green" });
+    const store = await loadedStore(adapter);
+
+    adapter.changeFromOutside([{ key: "test.accent", value: 5 }]);
+    await settle();
+
+    expect(store.read(accent)).toBe("blue");
+    expect(adapter.stored.get("test.accent")).toBe(5);
+    expect(adapter.saves).toEqual([]);
+  });
+
+  it("applies a report only to the scope it came from", async () => {
+    const synced = createTestAdapter({ "test.scale": 1 });
+    const device = createTestAdapter({ "test.scale": 2 });
+    const store = await loadedStore(synced, device);
+
+    synced.changeFromOutside([{ key: "test.scale", value: 9 }]);
+
+    expect(store.read(scale)).toBe(2);
+  });
+
+  it("keeps a report that arrives during load, and notifies nobody before reading works", async () => {
+    const adapter = createTestAdapter({ "test.accent": "blue" });
+    const store = storeOver(adapter);
+    store.subscribe(() => store.read(accent));
+
+    const loading = store.load();
+    adapter.changeFromOutside([{ key: "test.accent", value: "green" }]);
+    await loading;
+
+    expect(store.read(accent)).toBe("green");
+  });
+});

@@ -1,4 +1,9 @@
-import type { JsonValue, SettingEntry, SettingsAdapter } from "../core/index.ts";
+import type {
+  JsonValue,
+  ReportedSettingEntry,
+  SettingEntry,
+  SettingsAdapter,
+} from "../core/index.ts";
 
 export interface TestAdapter extends SettingsAdapter {
   /** What the adapter holds right now. */
@@ -9,6 +14,8 @@ export interface TestAdapter extends SettingsAdapter {
   readonly loadCount: () => number;
   /** Saves stay unfinished until the returned function is called. */
   readonly holdSaves: () => () => void;
+  /** Another writer changes the entries, and `subscribe` reports them. */
+  readonly changeFromOutside: (entries: readonly ReportedSettingEntry[]) => void;
 }
 
 /** An adapter in memory, for tests of everything that sits on the adapter contract. */
@@ -16,6 +23,7 @@ export function createTestAdapter(initial: Readonly<Record<string, JsonValue>> =
   const stored = new Map(Object.entries(initial));
   const saves: (readonly SettingEntry[])[] = [];
   let loads = 0;
+  const listeners = new Set<(entries: readonly ReportedSettingEntry[]) => void>();
   let held: Promise<void> = Promise.resolve();
 
   return {
@@ -35,6 +43,17 @@ export function createTestAdapter(initial: Readonly<Record<string, JsonValue>> =
       saves.push(entries);
       await held;
       for (const { key, value } of entries) stored.set(key, value);
+    },
+    subscribe: (listener) => {
+      listeners.add(listener);
+      return () => listeners.delete(listener);
+    },
+    changeFromOutside: (entries) => {
+      for (const { key, value } of entries) {
+        if (value === undefined) stored.delete(key);
+        else stored.set(key, value);
+      }
+      for (const listener of listeners) listener(entries);
     },
   };
 }

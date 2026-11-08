@@ -1,10 +1,18 @@
 import { describe, expect, it } from "vite-plus/test";
-import type { SettingEntry, SettingsAdapter } from "../core/index.ts";
+import type { ReportedSettingEntry, SettingEntry, SettingsAdapter } from "../core/index.ts";
 
 /** One test's world: the same stored data behind every adapter that `open` returns. */
 export interface AdapterContractHarness {
   /** A new adapter over the same data. A second call is a restart. */
   readonly open: () => SettingsAdapter;
+  /** Another writer changes the data. Done once the adapter's subscribers have been told. */
+  readonly changeFromOutside: (entries: readonly ReportedSettingEntry[]) => void | Promise<void>;
+}
+
+function collectReports(adapter: SettingsAdapter) {
+  const reported: ReportedSettingEntry[] = [];
+  const unsubscribe = adapter.subscribe((entries) => reported.push(...entries));
+  return { reported, unsubscribe };
 }
 
 function sorted(entries: readonly SettingEntry[]): readonly SettingEntry[] {
@@ -76,6 +84,51 @@ export function describeAdapterContract(name: string, setup: () => AdapterContra
         { key: "test.changed", value: "new" },
         { key: "test.unknown", value: "kept" },
       ]);
+    });
+
+    it("reports an entry changed from outside, and loads it afterwards", async () => {
+      const harness = setup();
+      const adapter = harness.open();
+      const { reported } = collectReports(adapter);
+
+      await harness.changeFromOutside([{ key: "test.accent", value: "green" }]);
+
+      expect(reported).toStrictEqual([{ key: "test.accent", value: "green" }]);
+      await expect(adapter.load()).resolves.toEqual([{ key: "test.accent", value: "green" }]);
+    });
+
+    it("reports a stored null as a value, not as absent", async () => {
+      const harness = setup();
+      const { reported } = collectReports(harness.open());
+
+      await harness.changeFromOutside([{ key: "test.value", value: null }]);
+
+      expect(reported).toStrictEqual([{ key: "test.value", value: null }]);
+    });
+
+    it("reports a removed entry as absent, and no longer loads it", async () => {
+      const harness = setup();
+      const adapter = harness.open();
+      await adapter.save([{ key: "test.accent", value: "green" }]);
+      const { reported } = collectReports(adapter);
+
+      await harness.changeFromOutside([{ key: "test.accent", value: undefined }]);
+
+      expect(reported).toStrictEqual([{ key: "test.accent", value: undefined }]);
+      await expect(adapter.load()).resolves.toEqual([]);
+    });
+
+    it("reports nothing after unsubscribing, and keeps reporting to other subscribers", async () => {
+      const harness = setup();
+      const adapter = harness.open();
+      const gone = collectReports(adapter);
+      const staying = collectReports(adapter);
+
+      gone.unsubscribe();
+      await harness.changeFromOutside([{ key: "test.accent", value: "green" }]);
+
+      expect(gone.reported).toEqual([]);
+      expect(staying.reported).toHaveLength(1);
     });
   });
 }
