@@ -1,0 +1,35 @@
+# PR titles become the squash commits on main and the changelog (ADR 0007). The rules live in
+# scripts/check-pr-title.ts (tested) and follow .agents/skills/pr-convention/SKILL.md. Branch
+# protection on main requires this job (AGENTS.md, "Pull Requests").
+name: PR title
+
+on:
+  pull_request:
+    # `synchronize` too, so every new head commit carries the required check.
+    types: [opened, edited, reopened, synchronize]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pr-title-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  title:
+    name: title
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      # The script needs no dependencies: Node 26 runs TypeScript directly.
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: package.json
+          package-manager-cache: false
+      # Through the environment, never `${{ }}` in the script: a title cannot inject shell.
+      - run: node scripts/check-pr-title.ts
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}

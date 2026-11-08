@@ -5,6 +5,11 @@
 // one line per stage, the tail of each failing stage, and a last line `VERIFY: PASS` or
 // `VERIFY: FAIL <stages>`.
 //
+// Under CI (`CI` set, as GitHub Actions does) the format stage only checks: it fails on an
+// unformatted file instead of rewriting it, since a rewrite on the runner reaches nobody. It
+// runs as its own task, `verify:format:check`, so the cache of a check run and a write run
+// never replay each other.
+//
 // The static stages all run even after one fails, so one run reports lint and type errors
 // together; the tests run only once they pass. A pass records the verified tree
 // (verify-stamp.ts), which the push guard (verify-guard.ts) requires before `git push`.
@@ -23,6 +28,20 @@ export const STATIC_STAGES = ["format", "lint", "typecheck", "boundaries", "adrs
 export const TEST_STAGE = "test";
 export const LOG_FILE = ".cache/verify.log";
 const FAILURE_TAIL_LINES = 80;
+
+/** Whether `env` is a CI run: `CI` set to anything but empty, `false` or `0`. */
+export function isCi(env: NodeJS.ProcessEnv): boolean {
+  const value = env.CI?.trim().toLowerCase();
+  return value !== undefined && value !== "" && value !== "false" && value !== "0";
+}
+
+/**
+ * The `vp run` task of one stage: `verify:<stage>`, except that CI checks the format
+ * (`verify:format:check`) instead of rewriting it.
+ */
+export function stageTask(stage: string, env: NodeJS.ProcessEnv): string {
+  return stage === "format" && isCi(env) ? "verify:format:check" : `verify:${stage}`;
+}
 
 export interface StageResult {
   readonly stage: string;
@@ -92,7 +111,7 @@ async function main(): Promise<void> {
   const vp = join(root, "node_modules/.bin/vp");
   const results = await runStages(async (stage) => {
     const startedAt = performance.now();
-    const { code, output } = await capture(vp, ["run", `verify:${stage}`], root);
+    const { code, output } = await capture(vp, ["run", stageTask(stage, process.env)], root);
     const seconds = ((performance.now() - startedAt) / 1000).toFixed(1);
     appendFileSync(logPath, `\n===== ${stage} (exit ${code}, ${seconds}s) =====\n${output}`);
     console.log(`${code === 0 ? "ok  " : "FAIL"} ${stage} (${seconds}s)`);

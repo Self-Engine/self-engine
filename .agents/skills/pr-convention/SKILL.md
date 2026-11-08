@@ -7,7 +7,8 @@ description: Conventional-Commit title rules for pull requests in this repo. Use
 
 PRs are **squash-merged**, so the **PR title becomes the single commit on `main`**. A stable
 release builds its changelog from the commits since the last stable (ADR 0007), so the title
-is the changelog entry. CI rejects titles that break these rules.
+is the changelog entry. CI rejects titles that break these rules
+(`scripts/check-pr-title.ts`; a test keeps its type list and the table below in step).
 
 ## Rules
 

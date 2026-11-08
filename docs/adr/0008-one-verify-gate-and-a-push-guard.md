@@ -32,4 +32,6 @@ through a PR.
 - Every stage must run through a tool whose file reads Vite Task can track. The typecheck
   stage is `vp check --no-fmt --no-lint`, not plain `tsc`: TypeScript 7's native binary is
   invisible to the tracking, so a cached `tsc` task replayed a pass after new type errors.
-- The guard covers Claude Code only. CI (#8) will run the same gate for every PR.
+- The guard covers Claude Code only. CI runs the same gate for every PR and every push to
+  `main` (`.github/workflows/ci.yml`); there the format stage checks instead of rewriting
+  (`verify:format:check`), and CI does not depend on the stamp.
