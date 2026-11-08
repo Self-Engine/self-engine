@@ -276,6 +276,9 @@ importers:
       '@mantine/hooks':
         specifier: 'catalog:'
         version: 9.7.5(react@19.3.1)
+      '@self-engine/icons':
+        specifier: workspace:*
+        version: link:../../packages/icons
       '@self-engine/theme':
         specifier: workspace:*
         version: link:../../packages/theme
