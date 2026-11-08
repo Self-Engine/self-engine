@@ -2,7 +2,8 @@
 // vite.config.ts). pnpm's isolation and the `exports` field are the first two mechanisms;
 // these rules are the third: the directions allowed between packages, every workspace import
 // declared in the importer's own `package.json`, no relative imports into another package, no
-// imports past another package's `exports`, and no cycles.
+// imports past another package's `exports`, no icon library outside `@self-engine/icons`, and
+// no cycles.
 //
 // Paths are relative to the repo root, or to the fixture root in
 // scripts/dependency-cruiser.test.ts, which builds its own config with `boundaryConfig`.
@@ -125,7 +126,7 @@ export function boundaryConfig({ allowedImports, rootDir }: BoundaryOptions): IC
     {
       name: "icons-only-through-catalog",
       comment:
-        "Icons come from the catalog: import them from `@self-engine/icons`. A missing icon is one line in that package.",
+        "Icons come from the catalog: import them from `@self-engine/icons`. A missing icon is one line in that package plus one entry in the name list of its test.",
       severity: "error",
       from: { path: "^(apps|packages)/", pathNot: "^packages/icons/" },
       // The first `^` is the bare name of a library the importer has not installed, which

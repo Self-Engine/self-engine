@@ -1,5 +1,6 @@
-// The icons of the app, named by meaning. A new icon is one line here plus its import, each
-// from Phosphor's per-icon entry: the barrel file would load more than 1,500 icons.
+// The icons of the app, named by meaning. A new icon is one line here plus its import, and one
+// entry in the name list of index.test.ts. Every import comes from Phosphor's per-icon entry:
+// the barrel file would load more than 1,500 icons.
 
 import { CalendarBlankIcon } from "@phosphor-icons/react/dist/csr/CalendarBlank";
 import { ClockIcon } from "@phosphor-icons/react/dist/csr/Clock";

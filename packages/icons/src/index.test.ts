@@ -56,18 +56,32 @@ describe("the catalog", () => {
 describe("the props of an icon", () => {
   type Props = ComponentProps<typeof catalog.AddIcon>;
 
-  it("leaves color, fill and weight to the catalog", () => {
+  it("leaves color, fill, stroke and weight to the catalog", () => {
     expectTypeOf<Props>().not.toHaveProperty("color");
     expectTypeOf<Props>().not.toHaveProperty("fill");
+    expectTypeOf<Props>().not.toHaveProperty("stroke");
     expectTypeOf<Props>().not.toHaveProperty("weight");
 
     // @ts-expect-error The surrounding element decides the color.
     const color: Props = { color: "red" };
     // @ts-expect-error The surrounding element decides the color.
     const fill: Props = { fill: "red" };
+    // @ts-expect-error The surrounding element decides the color.
+    const stroke: Props = { stroke: "red" };
     // @ts-expect-error Every icon has the regular weight.
     const weight: Props = { weight: "bold" };
-    expect([color, fill, weight]).toHaveLength(3);
+    expect([color, fill, stroke, weight]).toHaveLength(4);
+  });
+
+  it("does not expose the props only Phosphor has", () => {
+    expectTypeOf<Props>().not.toHaveProperty("alt");
+    expectTypeOf<Props>().not.toHaveProperty("mirrored");
+
+    // @ts-expect-error Accessibility of icons is still undecided.
+    const alt: Props = { alt: "Add" };
+    // @ts-expect-error A change of icon library must stay a change of one mapping.
+    const mirrored: Props = { mirrored: true };
+    expect([alt, mirrored]).toHaveLength(2);
   });
 
   it("takes only the four named sizes", () => {
