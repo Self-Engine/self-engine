@@ -8,6 +8,7 @@ import { usePreviewAppearance } from "../preview-appearance.tsx";
 import { BackgroundTintPreview } from "../preview-background-tint.tsx";
 import { BadgesPreview } from "../preview-badges.tsx";
 import { DensityPreview } from "../preview-density.tsx";
+import { IconsPreview } from "../preview-icons.tsx";
 import { PreviewMantineComponents } from "../preview-mantine-components.tsx";
 import { ModuleColorsPreview } from "../preview-module-colors.tsx";
 import { MotionSample, NumbersSample } from "../preview-numbers-motion.tsx";
@@ -188,6 +189,9 @@ function ThemePreviewPage() {
       </Section>
       <Section title="Module Colors: navigation uses the Module Color, actions use the Accent">
         <ModuleColorsPreview />
+      </Section>
+      <Section title="Icons: size follows the font scale, color follows the surrounding element">
+        <IconsPreview />
       </Section>
       <Section title="Mantine components">
         <PreviewMantineComponents />

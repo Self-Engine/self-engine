@@ -2,7 +2,8 @@
 // vite.config.ts). pnpm's isolation and the `exports` field are the first two mechanisms;
 // these rules are the third: the directions allowed between packages, every workspace import
 // declared in the importer's own `package.json`, no relative imports into another package, no
-// imports past another package's `exports`, and no cycles.
+// imports past another package's `exports`, no icon library outside `@self-engine/icons`, and
+// no cycles.
 //
 // Paths are relative to the repo root, or to the fixture root in
 // scripts/dependency-cruiser.test.ts, which builds its own config with `boundaryConfig`.
@@ -22,6 +23,15 @@ export type AllowedImports = Readonly<Record<string, readonly string[]>>;
 export const ALLOWED_IMPORTS: AllowedImports = {
   "placeholder-module": ["placeholder-shared"],
 };
+
+/** Only `@self-engine/icons` may import these; Tabler and the rest would be a second library. */
+const ICON_LIBRARIES = [
+  "@phosphor-icons/react",
+  "phosphor-react-native",
+  "@tabler/icons-react",
+  "lucide-react",
+  "react-icons",
+];
 
 /** Test files may also import what `devDependencies` declares. */
 const TEST_FILE = String.raw`\.test\.[cm]?[jt]sx?$`;
@@ -136,6 +146,17 @@ export function boundaryConfig({ allowedImports, rootDir }: BoundaryOptions): IC
         "The settings core (`@self-engine/settings`) runs without React. The hook belongs in `@self-engine/settings/react`.",
     }),
     {
+      name: "icons-only-through-catalog",
+      comment:
+        "Icons come from the catalog: import them from `@self-engine/icons`. A missing icon is one line in that package plus one entry in the name list of its test.",
+      severity: "error",
+      from: { path: "^(apps|packages)/", pathNot: "^packages/icons/" },
+      // The first `^` is the bare name of a library the importer has not installed, which
+      // pnpm's isolation makes the usual case: the import does not resolve, and still gets
+      // this hint.
+      to: { path: `(^|(^|/)node_modules/)(?:${alternatives(ICON_LIBRARIES)})(/|$)` },
+    },
+    {
       name: "no-relative-import-across-packages",
       comment:
         "A relative import that leaves its app or package skips the other package's `exports`. Import it by its package name.",
@@ -203,7 +224,10 @@ export function boundaryConfig({ allowedImports, rootDir }: BoundaryOptions): IC
       // Imports of npm packages stay in the graph (so `not-to-undeclared` sees them), but
       // their own imports are not followed. `exclude` would drop them from the graph.
       doNotFollow: { path: "(^|/)node_modules/" },
-      exclude: { path: "(^|/)(dist|dist-electron|dist-release|release)/" },
+      // Only the workspace's own build output. Anchored, because most npm packages resolve
+      // into a `dist/` of their own, and rules could not see an excluded import. The empty
+      // alternative stands for `?`, whose nesting dependency-cruiser refuses as a slow pattern.
+      exclude: { path: "^((apps|packages)/[^/]+/|)(dist|dist-electron|dist-release|release)/" },
       enhancedResolveOptions: {
         // Resolve workspace packages through their `exports` only, so a deep import fails.
         exportsFields: ["exports"],
