@@ -8,6 +8,7 @@ import { usePreviewAppearance } from "../preview-appearance.tsx";
 import { BackgroundTintPreview } from "../preview-background-tint.tsx";
 import { DensityPreview } from "../preview-density.tsx";
 import { PreviewMantineComponents } from "../preview-mantine-components.tsx";
+import { ModuleColorsPreview } from "../preview-module-colors.tsx";
 import { MotionSample, NumbersSample } from "../preview-numbers-motion.tsx";
 
 export const Route = createFileRoute("/theme-preview")({ component: ThemePreviewPage });
@@ -179,6 +180,9 @@ function ThemePreviewPage() {
         {STATUSES.map((status) => (
           <StatusSample key={status} status={status} />
         ))}
+      </Section>
+      <Section title="Module Colors: navigation uses the Module Color, actions use the Accent">
+        <ModuleColorsPreview />
       </Section>
       <Section title="Mantine components">
         <PreviewMantineComponents />

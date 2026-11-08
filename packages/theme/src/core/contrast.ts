@@ -1,6 +1,12 @@
 import { ACCENT_IDS, type ColorSet, type ThemeCatalog } from "./catalog.ts";
 import { composite, contrastRatio } from "./color.ts";
-import { type Appearance, DEFAULT_APPEARANCE, FROM_THEME, resolveAppearance } from "./resolve.ts";
+import {
+  type Appearance,
+  DEFAULT_APPEARANCE,
+  FROM_THEME,
+  type ModeValues,
+  resolveAppearance,
+} from "./resolve.ts";
 import {
   type AccentColors,
   COLOR_MODES,
@@ -19,6 +25,8 @@ const HOVER = 1.1;
 /** Everything a text can stand on except `chrome`, which only the shell draws on. */
 const CONTAINERS = ["navSurface", "canvas", "surface", "surfaceRaised"] as const;
 const SURFACES = ["chrome", ...CONTAINERS] as const;
+/** Where a Module Color's text appears besides its own soft fill. */
+const MODULE_SURFACES = ["navSurface", "canvas", "surface"] as const;
 
 /** Each colored text with the soft fill it sits on. */
 const SOFT_PAIRS = [
@@ -63,7 +71,10 @@ function checkSoftHover(check: Check, set: AccentColors): void {
 }
 
 /** The pairs of one Color Mode's final values that miss their minimum. */
-export function checkContrast(roles: FinalColors): ContrastIssue[] {
+export function checkContrast({
+  roles,
+  moduleColors,
+}: Pick<ModeValues, "roles" | "moduleColors">): ContrastIssue[] {
   const { issues, check } = collector();
   const on = (foreground: Role, background: Role, minimum: number) =>
     check(`${foreground} on ${background}`, roles[foreground], roles[background], minimum);
@@ -93,6 +104,13 @@ export function checkContrast(roles: FinalColors): ContrastIssue[] {
     check(`focus ring on ${surface}`, roles.accentText, roles[surface], CONTROL);
     check(`hover against ${surface}`, hovered(surface), roles[surface], HOVER);
   }
+  for (const [name, color] of Object.entries(moduleColors)) {
+    const text = color["--se-module-text"];
+    for (const surface of MODULE_SURFACES) {
+      check(`${name} module text on ${surface}`, text, roles[surface], TEXT);
+    }
+    check(`${name} module text on its soft fill`, text, color["--se-module-soft"], TEXT);
+  }
   return issues;
 }
 
@@ -118,7 +136,7 @@ export function auditContrast(catalog: ThemeCatalog): ContrastFailure[] {
               backgroundTint,
               colorMode,
             };
-            return checkContrast(resolveAppearance(appearance, catalog)[colorMode].roles).map(
+            return checkContrast(resolveAppearance(appearance, catalog)[colorMode]).map(
               (issue) => ({ ...issue, theme: theme.id, colorMode, accent, backgroundTint }),
             );
           }),
