@@ -19,8 +19,10 @@
   },
   "devDependencies": {
     "@lingui/cli": "catalog:",
+    "@storybook/react-vite": "catalog:",
     "@types/node": "catalog:",
     "@types/react": "catalog:",
+    "storybook": "catalog:",
     "vite-plus": "catalog:"
   }
 }

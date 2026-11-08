@@ -13,7 +13,8 @@ export default defineConfig({
     browser: {
       enabled: true,
       headless: true,
-      provider: playwright(),
+      // A browser that prefers dark: a story that followed the system would go red here.
+      provider: playwright({ contextOptions: { colorScheme: "dark" } }),
       instances: [{ browser: "chromium" }],
       // A red story already names its error. Screenshots would land beside the stories.
       screenshotFailures: false,

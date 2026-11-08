@@ -239,6 +239,23 @@ describe("the script", { timeout: 30_000 }, () => {
     expect(read("de")).toContain("Gone");
   });
 
+  it("leaves the sample text of a story out of the app's catalogs", async () => {
+    const appPatterns = fileURLToPath(
+      new URL("../packages/i18n/test/lingui-temp-root.config.ts", import.meta.url),
+    );
+    const sources = join(root, "packages/sample/src");
+    mkdirSync(sources, { recursive: true });
+    const macro = (message: string) =>
+      `import { msg } from "@lingui/core/macro";\nexport const m = msg\`${message}\`;\n`;
+    writeFileSync(join(sources, "shown.tsx"), macro("Shown to users"));
+    writeFileSync(join(sources, "shown.stories.tsx"), macro("Sample in a story"));
+
+    await capture(process.execPath, [script, "--config", appPatterns], root);
+
+    expect(read("de")).toContain("Shown to users");
+    expect(read("de")).not.toContain("Sample in a story");
+  });
+
   it("with --check, names a message that is not extracted yet, for each language", async () => {
     source("Save", "New text");
     catalogs(inSync);
