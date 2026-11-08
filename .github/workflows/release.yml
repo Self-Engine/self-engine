@@ -107,6 +107,12 @@ jobs:
         env:
           CHANNEL: ${{ needs.plan.outputs.channel }}
           RELEASE_VERSION: ${{ needs.plan.outputs.version }}
+          # Only this step sees the signing secrets. A missing one fails the packaging.
+          CSC_LINK: ${{ secrets.MAC_CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ secrets.MAC_CSC_KEY_PASSWORD }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         run: pnpm package:desktop "$CHANNEL" --release-version "$RELEASE_VERSION"
       - name: Keep the artifacts
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2

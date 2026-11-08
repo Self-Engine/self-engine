@@ -21,8 +21,7 @@ export interface PublishRequest {
 /** Runs `gh` with these arguments and returns its output. */
 export type Gh = (args: string[]) => string;
 
-const UNSIGNED =
-  "This build is not signed with a Developer ID, so macOS warns the first time it is opened. " +
+const MANUAL_UPDATES =
   "There is no in-app update yet: download new versions by hand. Downloading needs access to " +
   "this repository.";
 
@@ -34,9 +33,9 @@ const OLD_APP =
 /** The body of the release. Only stable has a changelog and shares its name with the old app. */
 export function releaseNotes(channel: ReleaseChannel, commit: string, changelog: string): string {
   if (channel === "nightly") {
-    return `Nightly build of ${commit}. It installs as "Self-Engine Nightly", next to the other channels.\n\n${UNSIGNED}\n`;
+    return `Nightly build of ${commit}. It installs as "Self-Engine Nightly", next to the other channels.\n\n${MANUAL_UPDATES}\n`;
   }
-  return `${OLD_APP}\n\n${UNSIGNED}\n\n${changelog}`;
+  return `${OLD_APP}\n\n${MANUAL_UPDATES}\n\n${changelog}`;
 }
 
 function title(channel: ReleaseChannel, tag: string): string {

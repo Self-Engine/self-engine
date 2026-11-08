@@ -5,6 +5,7 @@ import { afterEach, describe, expect, it } from "vite-plus/test";
 import { bundleDirectory } from "./channel.ts";
 import {
   assertBundlesBuiltFor,
+  assertDeveloperIdRelease,
   builderConfig,
   electronDistPath,
   type PackageOptions,
@@ -12,6 +13,8 @@ import {
   parsePackageRequest,
   parseReleaseChannel,
   type ReleaseChannel,
+  resolveSigning,
+  withoutSigningInputs,
 } from "./package-channel.ts";
 
 const ELECTRON_DIST = "/local/electron/dist";
@@ -52,6 +55,64 @@ describe("parsePackageRequest", () => {
 
   it("still names the channel it needs", () => {
     expect(() => parsePackageRequest([])).toThrow(/Name the channel/);
+  });
+});
+
+const SIGNING_ENV = {
+  CSC_LINK: "link",
+  CSC_KEY_PASSWORD: "key",
+  APPLE_ID: "id",
+  APPLE_APP_SPECIFIC_PASSWORD: "app",
+  APPLE_TEAM_ID: "TEAM123456",
+};
+
+describe("resolveSigning", () => {
+  it("signs a release with the Developer ID when every input is there", () => {
+    expect(resolveSigning("1.0.0", SIGNING_ENV)).toBe("developer-id");
+  });
+
+  it("leaves a local release ad hoc without any input", () => {
+    expect(resolveSigning("1.0.0", {})).toBe("ad-hoc");
+  });
+
+  it("leaves a local inspection build ad hoc even with the inputs", () => {
+    expect(resolveSigning(undefined, SIGNING_ENV)).toBe("ad-hoc");
+  });
+
+  it("never falls back to ad hoc in CI", () => {
+    expect(() => resolveSigning("1.0.0", { CI: "true" })).toThrow(/Missing: CSC_LINK,/);
+  });
+
+  it.each(Object.keys(SIGNING_ENV))("refuses a release that lacks only %s", (name) => {
+    expect(() => resolveSigning("1.0.0", { ...SIGNING_ENV, [name]: undefined })).toThrow(
+      new RegExp(`Missing: ${name}\\.`),
+    );
+  });
+
+  it("treats a secret that expands to nothing as missing", () => {
+    expect(() => resolveSigning("1.0.0", { ...SIGNING_ENV, APPLE_ID: "", CI: "true" })).toThrow(
+      /Missing: APPLE_ID\./,
+    );
+  });
+
+  it("names only the inputs, never a value", () => {
+    const partial = { ...SIGNING_ENV, CSC_LINK: undefined };
+    expect(() => resolveSigning("1.0.0", partial)).toThrow(expect.not.stringContaining("TEAM123"));
+  });
+});
+
+describe("withoutSigningInputs", () => {
+  it("keeps everything but the inputs", () => {
+    expect(withoutSigningInputs({ ...SIGNING_ENV, PATH: "/bin" })).toEqual({ PATH: "/bin" });
+  });
+});
+
+describe("the entitlements", () => {
+  it("grant only JIT memory", () => {
+    const plist = readFileSync(join(import.meta.dirname, "../entitlements.mac.plist"), "utf8");
+    expect(plist.match(/<key>[^<]+<\/key>/g)).toEqual([
+      "<key>com.apple.security.cs.allow-jit</key>",
+    ]);
   });
 });
 
@@ -98,6 +159,17 @@ describe("builderConfig", () => {
     ["stable", "Self-Engine-${version}-${arch}.${ext}"],
   ] as const)("names the artifacts of %s without spaces", (channel, artifactName) => {
     expect(builderConfig(channel, ELECTRON_DIST).artifactName).toBe(artifactName);
+  });
+
+  it.each(["nightly", "stable"] as const)("signs a %s release for notarization", (channel) => {
+    const { mac } = builderConfig(channel, ELECTRON_DIST, "1.0.0", "developer-id");
+    expect(mac).toMatchObject({
+      hardenedRuntime: true,
+      notarize: true,
+      entitlements: "entitlements.mac.plist",
+      entitlementsInherit: "entitlements.mac.plist",
+    });
+    expect(mac).not.toHaveProperty("identity");
   });
 
   it("signs ad hoc, never with whatever identity the machine holds", () => {
@@ -169,6 +241,62 @@ describe("assertBundlesBuiltFor", () => {
   });
 });
 
+describe("assertDeveloperIdRelease", () => {
+  const SIGNED = [
+    "CodeDirectory v=20500 size=447 flags=0x10000(runtime) hashes=3+7 location=embedded",
+    "Authority=Developer ID Application: Some Name (TEAM123456)",
+    "TeamIdentifier=TEAM123456",
+  ].join("\n");
+
+  function inspectWith(details: string) {
+    const calls: string[][] = [];
+    const inspect = (command: string, args: string[]) => {
+      calls.push([command, ...args]);
+      return args[0] === "-dvv" ? details : "";
+    };
+    return { calls, inspect };
+  }
+
+  it("checks the signature, the notarization ticket and Gatekeeper", () => {
+    const { calls, inspect } = inspectWith(SIGNED);
+    assertDeveloperIdRelease("/a.app", "TEAM123456", inspect);
+    expect(calls).toEqual([
+      ["codesign", "--verify", "--deep", "--strict", "/a.app"],
+      ["codesign", "-dvv", "/a.app"],
+      ["xcrun", "stapler", "validate", "/a.app"],
+      ["spctl", "--assess", "--type", "execute", "/a.app"],
+    ]);
+  });
+
+  it("refuses an ad-hoc app", () => {
+    const details = "flags=0x10002(adhoc,runtime)\nSignature=adhoc\nTeamIdentifier=not set";
+    expect(() =>
+      assertDeveloperIdRelease("/a.app", "TEAM123456", inspectWith(details).inspect),
+    ).toThrow(/not signed with a Developer ID/);
+  });
+
+  it("refuses another team's certificate without naming the team", () => {
+    expect(() => assertDeveloperIdRelease("/a.app", "OTHER", inspectWith(SIGNED).inspect)).toThrow(
+      /team in APPLE_TEAM_ID/,
+    );
+  });
+
+  it("refuses an app without the hardened runtime", () => {
+    const details = SIGNED.replace("(runtime)", "(none)");
+    expect(() =>
+      assertDeveloperIdRelease("/a.app", "TEAM123456", inspectWith(details).inspect),
+    ).toThrow(/hardened runtime/);
+  });
+
+  it("refuses an app without a ticket", () => {
+    const inspect = (command: string, args: string[]) => {
+      if (command === "xcrun") throw new Error("stapler validate failed");
+      return args[0] === "-dvv" ? SIGNED : "";
+    };
+    expect(() => assertDeveloperIdRelease("/a.app", "TEAM123456", inspect)).toThrow(/stapler/);
+  });
+});
+
 describe("packageChannel", () => {
   let dir: string | undefined;
 
@@ -182,6 +310,7 @@ describe("packageChannel", () => {
   interface PackagingRun {
     readonly channel?: ReleaseChannel;
     readonly releaseVersion?: string;
+    readonly env?: NodeJS.ProcessEnv;
     /** The channel the fake workspace build compiles for; `null` builds nothing. */
     readonly compiledFor?: string | null;
     /** Called once the temp checkout exists, before anything runs. */
@@ -195,9 +324,10 @@ describe("packageChannel", () => {
   }
 
   function runPackaging(options: PackagingRun = {}) {
-    const { channel = "nightly", releaseVersion, seed } = options;
+    const { channel = "nightly", releaseVersion, seed, env = { PATH: "/bin" } } = options;
     const compiledFor = options.compiledFor === undefined ? channel : options.compiledFor;
     const calls = options.calls ?? [];
+    const inspected: string[][] = [];
     dir = realpathSync(mkdtempSync(join(tmpdir(), "package-channel-")));
     const desktopDir = join(dir, "apps/desktop");
     seed?.(desktopDir);
@@ -207,7 +337,13 @@ describe("packageChannel", () => {
         rootDir: dir,
         desktopDir,
         electronDist: ELECTRON_DIST,
-        env: { PATH: "/bin" },
+        env,
+        inspect: (command, args) => {
+          inspected.push([command, ...args]);
+          return args[0] === "-dvv"
+            ? "flags=0x10000(runtime)\nAuthority=Developer ID Application: A (T)\nTeamIdentifier=link\n"
+            : "";
+        },
         run: (...call) => {
           calls.push(call);
           if (isWorkspaceBuild(call) && compiledFor !== null) {
@@ -216,7 +352,7 @@ describe("packageChannel", () => {
         },
       },
     );
-    return { calls, desktopDir, root: dir };
+    return { calls, inspected, desktopDir, root: dir };
   }
 
   it("makes sure the Electron binary is there first", () => {
@@ -264,6 +400,49 @@ describe("packageChannel", () => {
     expect(JSON.parse(readFileSync(configPath, "utf8"))).toMatchObject({
       extraMetadata: { version: "0.0.1-nightly.20261108.7" },
     });
+  });
+
+  describe("with the signing inputs", () => {
+    const env = { PATH: "/bin", ...SIGNING_ENV, APPLE_TEAM_ID: "link" };
+    const releaseVersion = "1.0.0";
+
+    it("hands them only to electron-builder", () => {
+      const { calls } = runPackaging({ releaseVersion, env });
+      expect(calls[0]?.[2].env).toEqual({ PATH: "/bin" });
+      expect(calls[1]?.[2].env).toEqual({ PATH: "/bin", SELF_ENGINE_CHANNEL: "nightly" });
+      expect(calls[2]?.[2].env).toBe(env);
+    });
+
+    it("checks the signed app of the channel", () => {
+      const { inspected, desktopDir } = runPackaging({ releaseVersion, env });
+      const app = join(desktopDir, "release/nightly/mac-arm64/Self-Engine Nightly.app");
+      expect(inspected[0]).toEqual(["codesign", "--verify", "--deep", "--strict", app]);
+    });
+
+    it("writes the signing configuration", () => {
+      const { desktopDir } = runPackaging({ releaseVersion, env });
+      const config = JSON.parse(
+        readFileSync(join(desktopDir, "release/nightly/electron-builder.json"), "utf8"),
+      );
+      expect(config.mac).toMatchObject({ notarize: true, hardenedRuntime: true });
+    });
+
+    it("fails before any build when a secret is missing in CI", () => {
+      const calls: Call[] = [];
+      expect(() =>
+        runPackaging({
+          releaseVersion,
+          env: { ...env, APPLE_ID: "", CI: "true" },
+          calls,
+        }),
+      ).toThrow(/Missing: APPLE_ID/);
+      expect(calls).toHaveLength(0);
+    });
+  });
+
+  it("does not check a signature on an ad-hoc release", () => {
+    const { inspected } = runPackaging({ releaseVersion: "1.0.0" });
+    expect(inspected).toEqual([]);
   });
 
   it("packages stable", () => {
