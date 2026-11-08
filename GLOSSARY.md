@@ -56,6 +56,12 @@ _Avoid_: theme cache, boot cache
 A named set of colors for every _Color Role_, for one _Color Mode_ or both. A _Theme_ either ships with the app or was imported from another format.
 _Avoid_: skin, palette
 
+### Development
+
+**Component Catalog** (de: _Komponentenkatalog_):
+The place outside the app where every shared building block can be seen and tried out in any appearance. It never ships with the app.
+_Avoid_: catalog (on its own), design system, Storybook
+
 ### Settings
 
 **Device Setting** (de: _Geräteeinstellung_):

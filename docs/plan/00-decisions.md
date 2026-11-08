@@ -540,6 +540,29 @@ Grundlage: [`research-layer-2-data.md`](research-layer-2-data.md).
 - **D119 Änderungen von außen laufen über `subscribe` des Adapters:** andere Tabs im Web, ab #34
   `tablesChanged`, später Sync. Der Store übernimmt nur die gemeldeten Einträge und ignoriert
   Echos eigener Schreibvorgänge.
+- **D120 Der Komponentenkatalog ist eine eigene App** (#17), die nur Storybook, Toolbar und
+  Decorators enthält. Stories liegen neben ihrem Gegenstand und werden über ein Muster ohne
+  Paketnamen gefunden. `packages/ui` entsteht erst mit der ersten geteilten Komponente.
+  _Verworfen:_ Storybook in `apps/web` (übernimmt Router-Plugin und Electron-Serverwerte);
+  Storybook im UI-Paket (das Paket müsste Module kennen).
+- **D121 Ein Story-Test beweist, dass ein Baustein rendert, nicht wie er aussieht** (ADR 0012):
+  kein Fehler, kein `console.error`, `play` besteht, in einer festen Darstellung.
+  _Verworfen:_ Screenshots im Gate; alle Stories in mehreren Darstellungen.
+- **D122 Stories sind eine eigene Gate-Stufe `stories` nach `test`,** `pnpm test` bleibt ohne
+  Browser. Chromium holt ein `ensure`-Skript nach dem Muster von Electron, in CI ein eigener
+  Schritt mit den Systembibliotheken. _Verworfen:_ Vitest-Projekte in einem Lauf (jeder
+  Skript-Test bräuchte Chromium); `postinstall` (nicht jede Installation braucht den Browser).
+- **D123 `/theme-preview` behält bis #23 nur die Umschalter,** die Beispiele werden zu Stories.
+  _Grund:_ Die Seite ist bis dahin die einzige Stelle, die die Darstellung in der echten App über
+  die echten Einstellungen ändert. `/language-sample` bleibt unverändert.
+- **D124 Mantine wird nur dort einzeln angepasst, wo seine Wahl der Bedeutung einer Farbrolle
+  widerspricht:** Popover, Modal und Drawer nutzen `surfaceRaised`. Alles andere bleibt auf den
+  erzeugten Paletten `gray` und `dark`, die `Input` bereits richtig treffen. _Verworfen:_ jede
+  genutzte Komponente einzeln abbilden (hängt an Mantines internen Selektoren).
+- **D125 Die Toolbar speist direkt den `ThemeProvider`,** ohne Settings-Store, mit einem
+  Theme-Schalter für Hell und Dunkel. Startwert ist `DEFAULT_APPEARANCE` mit Hell und Englisch,
+  zugleich die feste Darstellung der Story-Tests. Kein Docs-Modus. Stories sind von der
+  Übersetzung ausgenommen.
 
 ## Fakten
 
