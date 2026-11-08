@@ -6,6 +6,7 @@ const IGNORED = [
   "prototypes/**",
   "**/dist/**",
   "**/dist-electron/**",
+  "**/dist-release/**",
   "**/release/**",
   "**/node_modules/**",
   "pnpm-lock.yaml",

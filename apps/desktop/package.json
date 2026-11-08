@@ -8,33 +8,12 @@
   "type": "module",
   "main": "dist-electron/main.cjs",
   "scripts": {
-    "build": "vp pack",
-    "package": "electron-builder --dir --mac --arm64"
+    "build": "vp pack"
   },
   "devDependencies": {
     "@types/node": "catalog:",
     "electron": "catalog:",
     "electron-builder": "catalog:",
     "vite-plus": "catalog:"
-  },
-  "build": {
-    "appId": "app.selfengine.desktop",
-    "productName": "Self-Engine",
-    "directories": {
-      "output": "release"
-    },
-    "files": [
-      "dist-electron/**",
-      "package.json",
-      {
-        "from": "../web/dist",
-        "to": "dist-renderer"
-      }
-    ],
-    "mac": {
-      "target": "dir",
-      "identity": null
-    },
-    "npmRebuild": false
   }
 }

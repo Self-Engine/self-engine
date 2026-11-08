@@ -26,12 +26,21 @@ the stable app.
   changelog is generated from the commits since the last stable (for example with git-cliff).
 - **Versions rise slowly until 1.0.0.** The project starts at `0.0.1`; a stable release
   proposes a patch bump only. The middle number rises deliberately at milestones (for example
-  a finished layer). `1.0.0` marks the switch from the old Self-Engine.
+  a finished layer). `1.0.0` is the planned switch from the old Self-Engine, unless the switch
+  comes earlier (see Consequences).
 
 ## Consequences
 
 - Every channel needs its own identity wired through the build (see the channel identity
-  issue in layer 0).
+  issue in layer 0). The channel is compiled into the bundle (`SELF_ENGINE_CHANNEL` when
+  building, unset means dev); it is never read from the running app's environment, and
+  `app.isPackaged` cannot tell nightly from stable.
+- The stable bundle `Self-Engine.app` has the same name as the old app, so installing it would
+  replace an old app still installed under that name. Its app ID and data folder stay separate.
+  Anyone with the old app therefore renames its installed bundle (for example to
+  `Self-Engine Legacy.app`) before installing stable; renaming it changes neither its data nor
+  its signature. The switch is planned for `1.0.0` but may come earlier; until then the owner
+  uses nightly (D51).
 - `main` must always be releasable, since any night can turn it into a nightly.
 
 ## Considered Options

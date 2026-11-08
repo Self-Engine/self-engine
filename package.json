@@ -10,7 +10,7 @@
     "check": "vp check",
     "dev": "node scripts/desktop-dev.ts",
     "ensure:electron": "node scripts/ensure-electron.ts",
-    "package:desktop": "vp run -r build && vp run @self-engine/desktop#package",
+    "package:desktop": "node apps/desktop/src/package-channel.ts",
     "test": "vp test run",
     "verify": "node scripts/verify.ts"
   },
