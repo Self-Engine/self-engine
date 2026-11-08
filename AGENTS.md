@@ -64,6 +64,13 @@ through its `exports` ([ADR 0006](docs/adr/0006-module-boundaries-are-enforced-t
 an import between two packages needs an entry in `ALLOWED_IMPORTS` in `.dependency-cruiser.ts`
 next to the dependency in `package.json`.
 
+## Text Outside Components
+
+Text that lives in data (a module's name, command labels, setting titles) is a `msg` descriptor
+from `@lingui/core/macro`, translated when it is displayed, so it follows a language switch.
+Never use the global `t` from that entry (`self-engine/no-global-t-macro`): it runs at import
+time, before a language is active.
+
 ## Agent skills
 
 Repo skills live in `.agents/skills/<name>/`, each linked from `.claude/skills/<name>`.
