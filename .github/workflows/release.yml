@@ -32,6 +32,8 @@ concurrency:
 jobs:
   plan:
     name: Plan the release
+    # Releases come from main only: stable ships what nightly already ran (ADR 0007).
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     outputs:
