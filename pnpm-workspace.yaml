@@ -14,6 +14,8 @@ allowBuilds:
   # No install script since Electron 45; scripts/ensure-electron.ts fetches the binary.
   electron: false
   electron-winstaller: false
+  # Storybook's transitive bundler; its postinstall only double-checks the platform binary.
+  esbuild: false
 
 catalog:
   "@fontsource-variable/inter": 5.3.0
@@ -32,6 +34,9 @@ catalog:
   "@oxlint/plugins": 1.91.0
   # Only packages/icons may depend on it (#18).
   "@phosphor-icons/react": 2.1.10
+  # The Component Catalog (apps/component-catalog). Every Storybook package moves together.
+  "@storybook/addon-vitest": 10.6.6
+  "@storybook/react-vite": 10.6.6
   # dependency-cruiser's TypeScript parser (verify:boundaries): its tsc parser needs the
   # JS compiler API, which TypeScript 7 no longer has.
   "@swc/core": 1.16.22
@@ -44,14 +49,19 @@ catalog:
   "@types/react": 19.3.0
   "@types/react-dom": 19.3.0
   "@vitejs/plugin-react": 6.2.1
+  # Renders the stories in Chromium (the `stories` stage). Move it with vite-plus.
+  "@vitest/browser-playwright": 5.1.0
   # Oklab mixing in the theme engine's core (ADR 0009).
   culori: 4.0.2
   # Module boundaries (ADR 0006), configured in .dependency-cruiser.ts.
   dependency-cruiser: 18.7.2
   electron: 45.2.3
   electron-builder: 26.18.0
+  # Its version pins the Chromium revision, so a bump downloads the browser again.
+  playwright: 1.65.0
   react: 19.3.1
   react-dom: 19.3.1
+  storybook: 10.6.6
   typescript: 7.0.2
   # Vite+ replaces vite with its own core; every package that depends on vite gets it (D28).
   vite: npm:@voidzero-dev/vite-plus-core@1.5.0

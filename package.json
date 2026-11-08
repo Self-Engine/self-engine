@@ -9,8 +9,10 @@
     "build": "vp run -r build",
     "check": "vp check",
     "dev": "node scripts/desktop-dev.ts",
+    "ensure:chromium": "node scripts/ensure-chromium.ts",
     "ensure:electron": "node scripts/ensure-electron.ts",
     "package:desktop": "node apps/desktop/src/package-channel.ts",
+    "storybook": "pnpm --filter @self-engine/component-catalog storybook",
     "test": "vp test run",
     "verify": "node scripts/verify.ts"
   },

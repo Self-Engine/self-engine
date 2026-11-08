@@ -10,10 +10,17 @@ import {
   STATIC_STAGES,
   summaryLine,
   tail,
-  TEST_STAGE,
+  TEST_STAGES,
 } from "./verify.ts";
 
 const rootPackage = fileURLToPath(new URL("../package.json", import.meta.url));
+
+/** The stories task, which unlike the others needs more than a command string. */
+function storiesTaskConfig(): { command?: string; dependsOn?: unknown } {
+  const task = config.run?.tasks?.["verify:stories"];
+  return typeof task === "object" ? task : {};
+}
+const storiesTask = storiesTaskConfig();
 
 describe("runStages", () => {
   it("runs every static stage even after one fails, and skips the tests", async () => {
@@ -26,10 +33,16 @@ describe("runStages", () => {
     expect(summaryLine(results, "log")).toBe("VERIFY: FAIL lint (full log: log)");
   });
 
-  it("runs the tests once the static stages pass", async () => {
-    const results = await runStages(async (stage) => stage !== TEST_STAGE);
-    expect(results.map((result) => result.stage)).toEqual([...STATIC_STAGES, TEST_STAGE]);
+  it("runs the tests once the static stages pass, and skips the stories when they fail", async () => {
+    const results = await runStages(async (stage) => stage !== "test");
+    expect(results.map((result) => result.stage)).toEqual([...STATIC_STAGES, "test"]);
     expect(summaryLine(results, "log")).toBe("VERIFY: FAIL test (full log: log)");
+  });
+
+  it("runs the stories last, and names them when they fail", async () => {
+    const results = await runStages(async (stage) => stage !== "stories");
+    expect(results.map((result) => result.stage)).toEqual([...STATIC_STAGES, "test", "stories"]);
+    expect(summaryLine(results, "log")).toBe("VERIFY: FAIL stories (full log: log)");
   });
 
   it("passes when every stage passes", async () => {
@@ -40,7 +53,7 @@ describe("runStages", () => {
 describe("the verify tasks", () => {
   it("define every task the stages run, locally and in CI, and no others", () => {
     const tasks = Object.keys(config.run?.tasks ?? {}).filter((name) => name.startsWith("verify:"));
-    const stages = [...STATIC_STAGES, TEST_STAGE];
+    const stages = [...STATIC_STAGES, ...TEST_STAGES];
     const used = new Set(
       [{}, { CI: "true" }].flatMap((env) => stages.map((stage) => stageTask(stage, env))),
     );
@@ -104,11 +117,27 @@ describe("the verify tasks", () => {
   it("typecheck through vp, whose reads the task cache tracks (plain tsc's it does not)", () => {
     expect(config.run?.tasks?.["verify:typecheck"]).toBe("vp check --no-fmt --no-lint");
   });
+
+  it("render the stories with the catalog's own config, so the Node tests need no browser", () => {
+    expect(storiesTask.command).toBe(
+      "vp test run --root apps/component-catalog --reporter=agent",
+    );
+    expect(config.test?.browser).toBeUndefined();
+    expect(config.test?.include?.join()).not.toContain("stories");
+  });
+
+  it("ensure Chromium before the stories, on every run even when the stories replay", () => {
+    expect(storiesTask.dependsOn).toEqual(["ensure-chromium"]);
+    expect(config.run?.tasks?.["ensure-chromium"]).toEqual({
+      command: "node scripts/ensure-chromium.ts",
+      cache: false,
+    });
+  });
 });
 
 describe("stageTask", () => {
   it("runs every stage as verify:<stage> outside CI", () => {
-    for (const stage of [...STATIC_STAGES, TEST_STAGE]) {
+    for (const stage of [...STATIC_STAGES, ...TEST_STAGES]) {
       expect(stageTask(stage, {})).toBe(`verify:${stage}`);
     }
   });
@@ -117,7 +146,8 @@ describe("stageTask", () => {
     expect(stageTask("format", { CI: "true" })).toBe("verify:format:check");
     expect(stageTask("i18n", { CI: "true" })).toBe("verify:i18n:check");
     expect(stageTask("lint", { CI: "true" })).toBe("verify:lint");
-    expect(stageTask(TEST_STAGE, { CI: "true" })).toBe("verify:test");
+    expect(stageTask("test", { CI: "true" })).toBe("verify:test");
+    expect(stageTask("stories", { CI: "true" })).toBe("verify:stories");
   });
 });
 
