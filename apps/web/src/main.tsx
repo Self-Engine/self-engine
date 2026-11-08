@@ -1,4 +1,5 @@
 import "@mantine/core/styles.css";
+import "@self-engine/theme/fonts.css";
 
 import { RouterProvider } from "@tanstack/react-router";
 import { StrictMode } from "react";

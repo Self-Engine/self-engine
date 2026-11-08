@@ -6,9 +6,11 @@
   "type": "module",
   "exports": {
     ".": "./src/core/index.ts",
-    "./mantine": "./src/mantine/index.tsx"
+    "./mantine": "./src/mantine/index.tsx",
+    "./fonts.css": "./src/fonts.css"
   },
   "dependencies": {
+    "@fontsource-variable/inter": "catalog:",
     "@mantine/core": "catalog:",
     "@mantine/hooks": "catalog:",
     "react": "catalog:",

@@ -1,0 +1,2 @@
+/* The bundled Inter, so the app needs no network for its font. The family is set in core/font.ts. */
+@import "@fontsource-variable/inter/wght.css";
