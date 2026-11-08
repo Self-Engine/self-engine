@@ -20,6 +20,9 @@ const RESTART_DEBOUNCE_MS = 150;
 const READY_TIMEOUT_MS = 60_000;
 const READY_INTERVAL_MS = 100;
 
+// macOS answers EPERM instead of ESRCH when a group holds only an unreaped zombie.
+const GROUP_GONE_CODES: unknown[] = ["ESRCH", "EPERM"];
+
 export type Kill = (pid: number, signal: NodeJS.Signals) => void;
 
 const killProcess: Kill = (pid, signal) => {
@@ -48,7 +51,9 @@ export function killGroup(pid: number, signal: NodeJS.Signals, kill: Kill = kill
   try {
     kill(-pid, signal);
   } catch (error) {
-    if (!(error instanceof Error && "code" in error && error.code === "ESRCH")) throw error;
+    if (!(error instanceof Error && "code" in error && GROUP_GONE_CODES.includes(error.code))) {
+      throw error;
+    }
   }
 }
 

@@ -12,6 +12,10 @@ import {
   waitUntil,
 } from "./desktop-dev.ts";
 
+function killError(code: string): Error {
+  return Object.assign(new Error(`kill ${code}`), { code });
+}
+
 function child(fields: Partial<ChildProcess>): ChildProcess {
   return Object.assign(new EventEmitter(), {
     pid: 7,
@@ -56,22 +60,21 @@ describe("killGroup", () => {
     expect(kill).toHaveBeenCalledWith(-42, "SIGTERM");
   });
 
-  it("accepts a group that is already gone", () => {
-    const gone = Object.assign(new Error("kill ESRCH"), { code: "ESRCH" });
+  it.each(["ESRCH", "EPERM"])("accepts a group that is already gone (%s)", (code) => {
     expect(() =>
       killGroup(42, "SIGTERM", () => {
-        throw gone;
+        throw killError(code);
       }),
     ).not.toThrow();
   });
 
   it("rethrows any other failure", () => {
-    const denied = Object.assign(new Error("kill EPERM"), { code: "EPERM" });
+    const invalid = killError("EINVAL");
     expect(() =>
       killGroup(42, "SIGTERM", () => {
-        throw denied;
+        throw invalid;
       }),
-    ).toThrow(denied);
+    ).toThrow(invalid);
   });
 });
 
@@ -105,6 +108,47 @@ describe("stopGroup", () => {
     ]);
     proc.emit("exit", null, "SIGKILL");
     await stopped;
+  });
+
+  it("keeps waiting for the exit when SIGTERM finds a group holding only a zombie", async () => {
+    const kill = vi.fn<Kill>(() => {
+      throw killError("EPERM");
+    });
+    const proc = child({});
+    let settled = false;
+    const stopped = stopGroup(proc, kill, 100).then(() => {
+      settled = true;
+    });
+    await vi.advanceTimersByTimeAsync(50);
+    expect(settled).toBe(false);
+
+    proc.emit("exit", 0, null);
+    await stopped;
+    await vi.advanceTimersByTimeAsync(200);
+    expect(kill.mock.calls).toEqual([[-7, "SIGTERM"]]);
+  });
+
+  it("still escalates to SIGKILL after an EPERM, and the escalation tolerates one too", async () => {
+    const kill = vi.fn<Kill>(() => {
+      throw killError("EPERM");
+    });
+    const proc = child({});
+    const stopped = stopGroup(proc, kill, 100);
+    await vi.advanceTimersByTimeAsync(100);
+    expect(kill.mock.calls).toEqual([
+      [-7, "SIGTERM"],
+      [-7, "SIGKILL"],
+    ]);
+    proc.emit("exit", null, "SIGKILL");
+    await stopped;
+  });
+
+  it("rejects when the signal fails for any other reason", async () => {
+    const invalid = killError("EINVAL");
+    const kill: Kill = () => {
+      throw invalid;
+    };
+    await expect(stopGroup(child({}), kill, 100)).rejects.toBe(invalid);
   });
 
   it("does nothing for a child that has already exited", async () => {
@@ -150,8 +194,12 @@ describe("createSupervisor", () => {
     vi.useRealTimers();
   });
 
-  /** A supervisor over the real `stopGroup`, with children that exit some time after SIGTERM. */
-  function setup() {
+  /**
+   * A supervisor over the real `stopGroup`, with children that exit some time after SIGTERM.
+   * With `zombies`, a signal finds the group holding only a zombie: `kill` throws EPERM and the
+   * child's exit still arrives.
+   */
+  function setup({ zombies = false } = {}) {
     let nextPid = 100;
     const children = new Map<number, ChildProcess>();
     const alive = new Set<number>();
@@ -175,6 +223,10 @@ describe("createSupervisor", () => {
     };
     const kill: Kill = (groupId, signal) => {
       const pid = -groupId;
+      if (zombies) {
+        setTimeout(() => exitChild(pid), EXIT_DELAY_MS);
+        throw killError("EPERM");
+      }
       if (signal === "SIGKILL") exitChild(pid);
       else setTimeout(() => exitChild(pid), EXIT_DELAY_MS);
     };
@@ -255,13 +307,25 @@ describe("createSupervisor", () => {
       expect(launched).toEqual([100]);
     });
 
+    it("carries on when the old Electron is already a zombie during a restart", async () => {
+      const { supervisor, alive, launched, exit, report } = setup({ zombies: true });
+      supervisor.launch();
+      supervisor.scheduleRestart();
+      await vi.advanceTimersByTimeAsync(DEBOUNCE_MS + EXIT_DELAY_MS);
+
+      expect(launched).toEqual([100, 101]);
+      expect([...alive]).toEqual([101]);
+      expect(exit).not.toHaveBeenCalled();
+      expect(report).not.toHaveBeenCalled();
+    });
+
     it("ends the run when the old Electron cannot be stopped during a restart", async () => {
       const report = vi.fn<(message: string) => void>();
       const exit = vi.fn<(code: number) => void>();
       const app = child({ pid: 100 });
       const supervisor = createSupervisor({
         launchElectron: () => app,
-        stop: () => Promise.reject(new Error("kill EPERM")),
+        stop: () => Promise.reject(killError("EINVAL")),
         exit,
         report,
         restartDebounceMs: DEBOUNCE_MS,
@@ -270,7 +334,7 @@ describe("createSupervisor", () => {
       supervisor.scheduleRestart();
       await vi.advanceTimersByTimeAsync(DEBOUNCE_MS);
 
-      expect(report).toHaveBeenCalledWith("pnpm dev failed: kill EPERM");
+      expect(report).toHaveBeenCalledWith("pnpm dev failed: kill EINVAL");
       expect(exit.mock.calls).toEqual([[1]]);
     });
   });
@@ -341,7 +405,7 @@ describe("createSupervisor", () => {
       const stubborn = child({ pid: 1 });
       const fine = child({ pid: 2 });
       const stop = vi.fn((proc: ChildProcess) =>
-        proc === stubborn ? Promise.reject(new Error("kill EPERM")) : Promise.resolve(),
+        proc === stubborn ? Promise.reject(killError("EINVAL")) : Promise.resolve(),
       );
       const supervisor = createSupervisor({
         launchElectron: () => child({}),
@@ -356,7 +420,7 @@ describe("createSupervisor", () => {
       await supervisor.shutdown(0);
 
       expect(stop).toHaveBeenCalledTimes(2);
-      expect(report).toHaveBeenCalledWith("pnpm dev could not stop a process: kill EPERM");
+      expect(report).toHaveBeenCalledWith("pnpm dev could not stop a process: kill EINVAL");
       expect(exit.mock.calls).toEqual([[1]]);
     });
   });
@@ -371,6 +435,19 @@ describe("createSupervisor", () => {
       await vi.advanceTimersByTimeAsync(EXIT_DELAY_MS);
 
       expect(exit.mock.calls).toEqual([[0]]);
+    });
+
+    it("keeps a clean exit code when a child is already a zombie", async () => {
+      const { supervisor, spawned, alive, exit, report } = setup({ zombies: true });
+      supervisor.addService(spawned());
+
+      const stopped = supervisor.shutdown(0);
+      await vi.advanceTimersByTimeAsync(EXIT_DELAY_MS);
+      await stopped;
+
+      expect([...alive]).toEqual([]);
+      expect(exit.mock.calls).toEqual([[0]]);
+      expect(report).not.toHaveBeenCalled();
     });
 
     it("stops once, closes the watcher and ignores a second request", async () => {
