@@ -5,6 +5,7 @@ import { ACCENT_IDS, BUILT_IN_THEMES, type ColorMode, FROM_THEME } from "@self-e
 import { createFileRoute } from "@tanstack/react-router";
 import type { CSSProperties, ReactNode } from "react";
 import { usePreviewAppearance } from "../preview-appearance.tsx";
+import { BackgroundTintPreview } from "../preview-background-tint.tsx";
 import { DensityPreview } from "../preview-density.tsx";
 import { PreviewMantineComponents } from "../preview-mantine-components.tsx";
 import { MotionSample, NumbersSample } from "../preview-numbers-motion.tsx";
@@ -123,6 +124,9 @@ function ThemePreviewPage() {
       </Section>
       <Section title="Motion: a Theme or Color Mode switch must not fade these">
         <MotionSample />
+      </Section>
+      <Section title="Background Tint">
+        <BackgroundTintPreview />
       </Section>
       <Section title="Surfaces, text and hover">
         <Group align="stretch" grow>

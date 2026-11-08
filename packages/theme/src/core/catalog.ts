@@ -30,7 +30,7 @@ export const NEUTRAL_THEME = {
       surface: "#ffffff",
       surfaceRaised: "#ffffff",
       text: "#18181b",
-      textMuted: "#63636b",
+      textMuted: "#62626a",
       border: "#e7e7ea",
       borderControl: "#8a8a93",
       hover: "#18181b14",

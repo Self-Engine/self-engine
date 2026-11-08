@@ -6,7 +6,7 @@ import {
   type Theme,
   type ThemeCatalog,
 } from "./catalog.ts";
-import { composite } from "./color.ts";
+import { composite, mixOklab } from "./color.ts";
 import { type Density, type FontScale, type LayoutValues, resolveLayout } from "./layout.ts";
 import { type NeutralPalette, neutralPalette } from "./neutral-palette.ts";
 import {
@@ -64,6 +64,7 @@ export type ResolvedAppearance = Readonly<Record<ResolvedColorMode, ModeValues>>
 };
 
 const NAV_SURFACE_OPACITY = 0.7;
+const BACKGROUND_TINT_STRENGTH = 0.15;
 
 /** The fixed palette key of the Accent. Mantine's `primaryColor` has to name a palette. */
 export const ACCENT_PALETTE = "accent";
@@ -137,9 +138,13 @@ function modeValues(
 ): ModeValues {
   const { colors: table, accent } = servingTheme(appearance, catalog, mode);
   const accentSet = accentColors(appearance.accent, accent, mode);
+  const chrome = appearance.backgroundTint
+    ? mixOklab(table.chrome, accentSet.accent, BACKGROUND_TINT_STRENGTH)
+    : table.chrome;
   const roles: FinalColors = {
     ...table,
-    navSurface: composite(table.surface, table.chrome, NAV_SURFACE_OPACITY),
+    chrome,
+    navSurface: composite(table.surface, chrome, NAV_SURFACE_OPACITY),
     ...accentSet,
   };
   const sets = paletteSets(mode, accentSet);

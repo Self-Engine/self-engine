@@ -8,6 +8,8 @@ import {
   DEFAULT_APPEARANCE,
   DEFAULT_THEME,
   type FinalColors,
+  FROM_THEME,
+  type ModeValues,
   resolveAppearance,
   resolveColorMode,
   type Theme,
@@ -63,12 +65,97 @@ describe("resolveAppearance with the default appearance", () => {
   });
 });
 
+describe("the Background Tint", () => {
+  // Expected mixes come from Oklab worked out with the published conversion matrices.
+  it("mixes 15 % of the resolved Accent fill into chrome in Oklab", () => {
+    expect(resolved.light.roles.chrome).toBe("#d7e3f5");
+    expect(resolved.dark.roles.chrome).toBe("#131b29");
+  });
+
+  const untinted = resolveAppearance(
+    { ...DEFAULT_APPEARANCE, backgroundTint: false },
+    BUILT_IN_THEMES,
+  );
+
+  it("is on by default", () => {
+    expect(DEFAULT_APPEARANCE.backgroundTint).toBe(true);
+  });
+
+  it("leaves the Theme's chrome alone when off", () => {
+    expect(untinted.light.roles.chrome).toBe("#f7f7f8");
+    expect(untinted.dark.roles.chrome).toBe("#0e0e10");
+  });
+
+  it("follows an explicit Accent", () => {
+    const teal = resolveAppearance({ ...DEFAULT_APPEARANCE, accent: "teal" }, BUILT_IN_THEMES);
+    expect(teal.light.roles.chrome).toBe("#d7e4e2");
+  });
+
+  it("follows the Theme's own Accent for From Theme", () => {
+    const neutral = BUILT_IN_THEMES["neutral"] as Theme;
+    const fill = { accent: "#7a1f1f", onAccent: "#ffffff" } as const;
+    const accent: ColorSet = {
+      light: { ...fill, accentSoft: "#fbeaea", accentText: "#7a1f1f" },
+      dark: { ...fill, accentSoft: "#3a1515", accentText: "#f0a0a0" },
+    };
+    const values = resolveAppearance(
+      { ...DEFAULT_APPEARANCE, lightTheme: "branded", darkTheme: "branded" },
+      { branded: { ...neutral, id: "branded", accent } },
+    );
+    expect(values.light.roles.chrome).toBe("#e6d6d5");
+    expect(values.dark.roles.chrome).toBe("#1d1213");
+  });
+
+  it("calculates navSurface from surface over the tinted chrome", () => {
+    // light: 255 * 0.7 + 215 * 0.3 = 243, 255 * 0.7 + 227 * 0.3 = 246.6, 255 * 0.7 + 245 * 0.3 = 252
+    expect(resolved.light.roles.navSurface).toBe("#f3f7fc");
+    // dark: 26 * 0.7 + 19 * 0.3 = 23.9, 26 * 0.7 + 27 * 0.3 = 26.3, 29 * 0.7 + 41 * 0.3 = 32.6
+    expect(resolved.dark.roles.navSurface).toBe("#181a21");
+  });
+
+  it.each(["light", "dark"] as const)("changes nothing but chrome and navSurface in %s", (mode) => {
+    const without = ({ roles, cssVariables, ...rest }: ModeValues) => {
+      const { chrome, navSurface, ...otherRoles } = roles;
+      const {
+        "--se-chrome": chromeVariable,
+        "--se-nav-surface": navVariable,
+        ...otherVariables
+      } = cssVariables;
+      return { otherRoles, otherVariables, ...rest };
+    };
+    expect(without(resolved[mode])).toEqual(without(untinted[mode]));
+    expect(resolved[mode].roles.chrome).not.toBe(untinted[mode].roles.chrome);
+    expect(resolved[mode].roles.navSurface).not.toBe(untinted[mode].roles.navSurface);
+  });
+
+  it("keeps navSurface opaque in every combination", () => {
+    for (const theme of Object.keys(BUILT_IN_THEMES)) {
+      for (const accent of [...ACCENT_IDS, FROM_THEME]) {
+        for (const backgroundTint of [true, false]) {
+          const values = resolveAppearance(
+            { ...DEFAULT_APPEARANCE, lightTheme: theme, darkTheme: theme, accent, backgroundTint },
+            BUILT_IN_THEMES,
+          );
+          for (const mode of ["light", "dark"] as const) {
+            const label = `${theme} ${mode} ${accent} ${backgroundTint}`;
+            expect(values[mode].roles.navSurface, label).toMatch(/^#[0-9a-f]{6}$/);
+          }
+        }
+      }
+    }
+  });
+});
+
 describe("calculated values", () => {
   it("makes navSurface surface over chrome at 70 %, opaque", () => {
+    const { light, dark } = resolveAppearance(
+      { ...DEFAULT_APPEARANCE, backgroundTint: false },
+      BUILT_IN_THEMES,
+    );
     // light: 255 * 0.7 + 247 * 0.3 = 252.6, 255 * 0.7 + 248 * 0.3 = 252.9
-    expect(resolved.light.roles.navSurface).toBe("#fdfdfd");
+    expect(light.roles.navSurface).toBe("#fdfdfd");
     // dark: 26 * 0.7 + 14 * 0.3 = 22.4, 29 * 0.7 + 16 * 0.3 = 25.1
-    expect(resolved.dark.roles.navSurface).toBe("#161619");
+    expect(dark.roles.navSurface).toBe("#161619");
   });
 });
 
@@ -133,11 +220,14 @@ describe("the Accent", () => {
     expect(values.dark.roles.accentText).toBe(set.dark.accentText);
   });
 
-  it.each(["nope", "constructor", "green", "pink"])("displays %s like From Theme", (id) => {
-    expect(resolveAppearance({ ...branded, accent: id }, catalog)).toEqual(
-      resolveAppearance(branded, catalog),
-    );
-  });
+  it.each(["nope", "constructor", "__proto__", "toString", "green", "pink"])(
+    "displays %s like From Theme",
+    (id) => {
+      expect(resolveAppearance({ ...branded, accent: id }, catalog)).toEqual(
+        resolveAppearance(branded, catalog),
+      );
+    },
+  );
 
   it("lets white text on the blue fill reach AA in light Color Mode", () => {
     expect(resolved.light.roles.onAccent).toBe("#ffffff");
@@ -148,8 +238,8 @@ describe("the Accent", () => {
 describe("the data handed to CSS and Mantine", () => {
   it("names every role as a --se-* variable in kebab case", () => {
     const { cssVariables } = resolved.light;
-    expect(cssVariables["--se-text-muted"]).toBe("#63636b");
-    expect(cssVariables["--se-nav-surface"]).toBe("#fdfdfd");
+    expect(cssVariables["--se-text-muted"]).toBe("#62626a");
+    expect(cssVariables["--se-nav-surface"]).toBe("#f3f7fc");
     expect(cssVariables["--se-on-accent"]).toBe("#ffffff");
     expect(cssVariables["--se-border-control"]).toBe("#8a8a93");
     expect(Object.keys(cssVariables)).toHaveLength(26);
@@ -188,7 +278,7 @@ describe("the neutral palette Mantine reads as gray (light) and dark (dark)", ()
     expect(gray[1], "filled input, menu hover: hover over surface").toBe("#ededed");
     expect(gray[3], "card and divider border").toBe("#e7e7ea");
     expect(gray[4], "input outline").toBe("#8a8a93");
-    expect(gray[6], "dimmed, chevrons").toBe("#63636b");
+    expect(gray[6], "dimmed, chevrons").toBe("#62626a");
     expect(gray[9], "tooltip background").toBe("#18181b");
   });
 

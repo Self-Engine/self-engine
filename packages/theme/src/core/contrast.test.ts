@@ -57,6 +57,46 @@ describe("auditContrast on the built-in catalog", () => {
     const failures = auditContrast(catalogWith({ text: "#ffffff" }));
     expect([...new Set(failures.map((failure) => failure.accent))]).toEqual(ACCENT_IDS);
   });
+
+  it("covers all 72 combinations of Theme, Color Mode, Accent and Background Tint", () => {
+    // Text in the color of the canvas fails in every combination, so each one reports it.
+    const unreadable = (table: ThemeColors): ThemeColors => ({ ...table, text: table.canvas });
+    const catalog = Object.fromEntries(
+      Object.values(BUILT_IN_THEMES).map((theme) => [
+        theme.id,
+        {
+          ...theme,
+          colors: {
+            light: unreadable(theme.colors.light as ThemeColors),
+            dark: unreadable(theme.colors.dark as ThemeColors),
+          },
+        },
+      ]),
+    );
+    const combinations = auditContrast(catalog)
+      .filter((failure) => failure.pair === "text on canvas")
+      .map((failure) =>
+        [failure.theme, failure.colorMode, failure.accent, failure.backgroundTint].join(" "),
+      );
+    expect(combinations).toHaveLength(72);
+    expect(new Set(combinations).size).toBe(72);
+  });
+});
+
+describe("the final tinted surfaces", () => {
+  // Each value reads on the untinted surface with blue and misses 4.5:1 once it is tinted.
+  it.each([
+    ["text", "chrome", "#6e6e76"],
+    ["textMuted", "chrome", "#6e6e76"],
+    ["text", "navSurface", "#74747c"],
+    ["textMuted", "navSurface", "#74747c"],
+    ["errorText", "navSurface", "#74747c"],
+  ] as const)("reports %s on %s only with the Background Tint on", (role, surface, value) => {
+    const states = auditContrast(catalogWith({ [role]: value }))
+      .filter((failure) => failure.pair === `${role} on ${surface}` && failure.accent === "blue")
+      .map((failure) => failure.backgroundTint);
+    expect(states).toEqual([true]);
+  });
 });
 
 describe("auditColorSets", () => {

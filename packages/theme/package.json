@@ -13,10 +13,12 @@
     "@fontsource-variable/inter": "catalog:",
     "@mantine/core": "catalog:",
     "@mantine/hooks": "catalog:",
+    "culori": "catalog:",
     "react": "catalog:",
     "react-dom": "catalog:"
   },
   "devDependencies": {
+    "@types/culori": "catalog:",
     "@types/node": "catalog:",
     "@types/react": "catalog:",
     "vite-plus": "catalog:"

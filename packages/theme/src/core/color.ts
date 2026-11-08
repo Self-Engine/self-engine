@@ -1,3 +1,4 @@
+import { formatHex, interpolate } from "culori";
 import type { Hex } from "./roles.ts";
 
 interface Rgba {
@@ -25,6 +26,11 @@ export function composite(top: Hex, bottom: Hex, opacity = 1): Hex {
   const alpha = front.a * opacity;
   const mix = (over: number, under: number) => over * alpha + under * (1 - alpha);
   return toHex({ r: mix(front.r, back.r), g: mix(front.g, back.g), b: mix(front.b, back.b) });
+}
+
+/** `amount` (0 to 1) of the opaque `color` mixed into the opaque `base` in Oklab, as sRGB. */
+export function mixOklab(base: Hex, color: Hex, amount: number): Hex {
+  return formatHex(interpolate([base, color], "oklab")(amount)) as Hex;
 }
 
 /** WCAG relative luminance of an opaque color, from 0 (black) to 1 (white). */
