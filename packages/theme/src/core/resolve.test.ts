@@ -5,10 +5,12 @@ import {
   type FinalColors,
   resolveAppearance,
   resolveColorMode,
+  type Theme,
   type ThemeColors,
 } from "./index.ts";
 
 const resolved = resolveAppearance(DEFAULT_APPEARANCE, BUILT_IN_THEMES);
+const neutralDark = (BUILT_IN_THEMES["neutral"] as Theme).colors.dark as ThemeColors;
 
 describe("resolveAppearance with the default appearance", () => {
   it("returns the Neutral Theme's table for each Color Mode", () => {
@@ -99,12 +101,68 @@ describe("the data handed to CSS and Mantine", () => {
 });
 
 describe("the catalog", () => {
+  it("resolves the light and the dark Theme independently", () => {
+    const values = resolveAppearance(
+      { ...DEFAULT_APPEARANCE, lightTheme: "warm", darkTheme: "cool" },
+      BUILT_IN_THEMES,
+    );
+    expect(values.light.roles.text).toBe("#1c1917");
+    expect(values.dark.roles.text).toBe("#e8edf3");
+  });
+
   it("falls back to Neutral for an unknown Theme id", () => {
     const values = resolveAppearance(
       { ...DEFAULT_APPEARANCE, lightTheme: "gone", darkTheme: "gone" },
       BUILT_IN_THEMES,
     );
     expect(values).toEqual(resolved);
+  });
+
+  it.each(["constructor", "__proto__", "toString"])(
+    "treats %s as an unknown Theme id, not as an object property",
+    (id) => {
+      const values = resolveAppearance(
+        { ...DEFAULT_APPEARANCE, lightTheme: id, darkTheme: id },
+        BUILT_IN_THEMES,
+      );
+      expect(values).toEqual(resolved);
+    },
+  );
+
+  describe("with a Theme that only has a dark variant", () => {
+    const night: Theme = {
+      version: 1,
+      id: "night",
+      name: "Night",
+      colors: { dark: { ...neutralDark, text: "#fafafa", canvas: "#000000" } },
+    };
+    const appearance = { ...DEFAULT_APPEARANCE, lightTheme: "night", darkTheme: "night" };
+    const values = resolveAppearance(appearance, { ...BUILT_IN_THEMES, night });
+
+    it("uses that Theme for dark", () => {
+      expect(values.dark.roles.text).toBe("#fafafa");
+      expect(values.dark.roles.canvas).toBe("#000000");
+    });
+
+    it("falls back to Neutral for light", () => {
+      expect(values.light).toEqual(resolved.light);
+    });
+
+    it("falls back to Neutral even when the catalog does not hold Neutral", () => {
+      expect(resolveAppearance(appearance, { night }).light).toEqual(resolved.light);
+    });
+
+    it("leaves the stored Theme ids as they are", () => {
+      expect(appearance.lightTheme).toBe("night");
+      expect(appearance.darkTheme).toBe("night");
+    });
+  });
+
+  it.each(["neutral", "warm", "cool"])("ships %s in version 1 with both Color Modes", (id) => {
+    const theme = BUILT_IN_THEMES[id] as Theme;
+    expect(theme.id).toBe(id);
+    expect(theme.version).toBe(1);
+    expect(Object.keys(theme.colors).toSorted()).toEqual(["dark", "light"]);
   });
 
   it("refuses a Theme table that lacks a Color Role at compile time", () => {
