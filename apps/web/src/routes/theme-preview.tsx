@@ -1,10 +1,11 @@
 // Throwaway page to judge the Theme before Storybook exists. #23 removes it.
 
 import { Button, Group, SegmentedControl, Stack, Text, Title } from "@mantine/core";
-import { ACCENT_IDS, type ColorMode, FROM_THEME } from "@self-engine/theme";
+import { ACCENT_IDS, BUILT_IN_THEMES, type ColorMode, FROM_THEME } from "@self-engine/theme";
 import { createFileRoute } from "@tanstack/react-router";
 import type { CSSProperties, ReactNode } from "react";
 import { usePreviewAppearance } from "../preview-appearance.tsx";
+import { MotionSample, NumbersSample } from "../preview-numbers-motion.tsx";
 
 export const Route = createFileRoute("/theme-preview")({ component: ThemePreviewPage });
 
@@ -19,6 +20,11 @@ const ACCENT_OPTIONS = [
   ...ACCENT_IDS.map((id) => ({ label: id, value: id })),
 ];
 const BUTTON_VARIANTS = ["filled", "light", "outline", "subtle"] as const;
+
+const THEME_OPTIONS = Object.values(BUILT_IN_THEMES).map(({ id, name }) => ({
+  label: name,
+  value: id,
+}));
 
 const SURFACES = ["chrome", "nav-surface", "canvas", "surface", "surface-raised"] as const;
 const STATUSES = ["error", "warning", "success"] as const;
@@ -83,6 +89,30 @@ function ThemePreviewPage() {
           }}
           value={appearance.colorMode}
         />
+      </Section>
+      <Section title="Light Theme">
+        <SegmentedControl
+          data={THEME_OPTIONS}
+          onChange={(lightTheme) => {
+            setAppearance({ ...appearance, lightTheme });
+          }}
+          value={appearance.lightTheme}
+        />
+      </Section>
+      <Section title="Dark Theme">
+        <SegmentedControl
+          data={THEME_OPTIONS}
+          onChange={(darkTheme) => {
+            setAppearance({ ...appearance, darkTheme });
+          }}
+          value={appearance.darkTheme}
+        />
+      </Section>
+      <Section title="Numbers">
+        <NumbersSample />
+      </Section>
+      <Section title="Motion: a Theme or Color Mode switch must not fade these">
+        <MotionSample />
       </Section>
       <Section title="Surfaces, text and hover">
         <Group align="stretch" grow>

@@ -18,6 +18,7 @@ export {
   formatColorSetFailure,
   formatContrastFailure,
 } from "./contrast.ts";
+export { FONT_FAMILY } from "./font.ts";
 export {
   ACCENT_PALETTE,
   type Appearance,
@@ -41,4 +42,5 @@ export {
   THEME_ROLES,
   type ThemeColors,
 } from "./roles.ts";
+export { type TokenVariables, tokenVariables } from "./tokens.ts";
 export { FILL_SHADE, type Palette } from "./variants.ts";

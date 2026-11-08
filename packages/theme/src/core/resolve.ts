@@ -64,7 +64,9 @@ function servingTheme(
   catalog: ThemeCatalog,
   mode: ResolvedColorMode,
 ): { readonly colors: ThemeColors; readonly accent: Theme["accent"] } {
-  const theme = catalog[mode === "light" ? appearance.lightTheme : appearance.darkTheme];
+  const id = mode === "light" ? appearance.lightTheme : appearance.darkTheme;
+  // A stored id is open text, so a name like "constructor" must not find an inherited property.
+  const theme = Object.hasOwn(catalog, id) ? catalog[id] : undefined;
   const colors = theme?.colors[mode];
   return colors === undefined
     ? { colors: DEFAULT_THEME.colors[mode], accent: undefined }
