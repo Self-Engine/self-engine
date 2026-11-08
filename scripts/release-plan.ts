@@ -141,7 +141,11 @@ export function planStable(input: StableInput): ReleasePlan {
 export function readTags(cwd: string): ReleaseTag[] {
   const output = execFileSync(
     "git",
-    ["for-each-ref", "--format=%(refname:strip=2)%09%(objectname)%09%(*objectname)", "refs/tags/v*"],
+    [
+      "for-each-ref",
+      "--format=%(refname:strip=2)%09%(objectname)%09%(*objectname)",
+      "refs/tags/v*",
+    ],
     { cwd, encoding: "utf8" },
   );
   return output

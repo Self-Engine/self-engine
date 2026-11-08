@@ -45,7 +45,9 @@ describe("parsePackageRequest", () => {
   });
 
   it("refuses an empty release version", () => {
-    expect(() => parsePackageRequest(["stable", "--release-version", ""])).toThrow(/needs a version/);
+    expect(() => parsePackageRequest(["stable", "--release-version", ""])).toThrow(
+      /needs a version/,
+    );
   });
 
   it("still names the channel it needs", () => {
@@ -250,7 +252,14 @@ describe("packageChannel", () => {
   it("builds and never publishes the artifacts of a release", () => {
     const { calls, desktopDir } = runPackaging({ releaseVersion: "0.0.1-nightly.20261108.7" });
     const configPath = join(desktopDir, "release/nightly/electron-builder.json");
-    expect(calls[2]?.[1]).toEqual(["--publish", "never", "--mac", "--arm64", "--config", configPath]);
+    expect(calls[2]?.[1]).toEqual([
+      "--publish",
+      "never",
+      "--mac",
+      "--arm64",
+      "--config",
+      configPath,
+    ]);
     expect(JSON.parse(readFileSync(configPath, "utf8"))).toMatchObject({
       extraMetadata: { version: "0.0.1-nightly.20261108.7" },
     });

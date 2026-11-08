@@ -183,11 +183,12 @@ describe("the release plan from a repository", () => {
     repo = undefined;
   });
 
-  function checkout(): TestRepo {
-    repo = createTestRepo("release-plan-");
-    mkdirSync(join(repo.dir, "apps/desktop"), { recursive: true });
-    writeFileSync(join(repo.dir, "apps/desktop/package.json"), '{ "version": "0.0.1" }\n');
-    return repo;
+  function checkout() {
+    const created = createTestRepo("release-plan-");
+    repo = created;
+    mkdirSync(join(created.dir, "apps/desktop"), { recursive: true });
+    writeFileSync(join(created.dir, "apps/desktop/package.json"), '{ "version": "0.0.1" }\n');
+    return { dir: created.dir, git: (...args: string[]) => created.git(...args) };
   }
 
   it("reads lightweight and annotated tags as commits, and ignores other tags", () => {
