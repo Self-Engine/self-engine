@@ -157,11 +157,7 @@ export type Inspect = (command: string, args: string[]) => string;
  * Throws unless `appPath` is signed by the team in APPLE_TEAM_ID, hardened and notarized.
  * electron-builder only warns and carries on when it finds no identity or cannot notarize.
  */
-export function assertDeveloperIdRelease(
-  appPath: string,
-  teamId: string,
-  inspect: Inspect,
-): void {
+export function assertDeveloperIdRelease(appPath: string, teamId: string, inspect: Inspect): void {
   inspect("codesign", ["--verify", "--deep", "--strict", appPath]);
   const details = inspect("codesign", ["-dvv", appPath]);
   if (!/^Authority=Developer ID Application:/m.test(details)) {
