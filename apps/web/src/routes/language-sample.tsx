@@ -1,7 +1,17 @@
 // Throwaway page to judge translation before the language Setting exists. #23 removes it.
 
 import { Plural, Trans } from "@lingui/react/macro";
-import { Alert, Anchor, Button, Group, SegmentedControl, Stack, Text, TextInput, Title } from "@mantine/core";
+import {
+  Alert,
+  Anchor,
+  Button,
+  Group,
+  SegmentedControl,
+  Stack,
+  Text,
+  TextInput,
+  Title,
+} from "@mantine/core";
 import { LANGUAGES, LANGUAGE_TAGS, type Language } from "@self-engine/i18n";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
@@ -25,6 +35,7 @@ function LanguageSamplePage() {
     try {
       await switchLanguage(next);
     } catch {
+      // Reported by the alert below. The switch changed nothing, and the next attempt loads again.
       setLoadFailed(true);
     } finally {
       setSwitching(false);
