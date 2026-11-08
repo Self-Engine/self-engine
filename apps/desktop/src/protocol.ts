@@ -40,15 +40,20 @@ export function isRendererUrl(url: string, scheme: string): boolean {
   return parsed?.protocol === `${scheme}:` && parsed.host === HOST;
 }
 
+/** The inline script of `apps/web/index.html` that paints the first frame; a test compares it. */
+const START_SCRIPT_HASH = "sha256-YCJgTIOvK792K9WdDIZDBzJmr3NP/8DjLpWk9eY8QHQ=";
+
 /**
  * The policy of every response. Styles stay `unsafe-inline` for Mantine. With a `devServer`,
- * Vite needs inline scripts for its React refresh preamble and a socket for HMR.
+ * Vite needs inline scripts for its React refresh preamble and a socket for HMR. Production
+ * allows only the start script, and the dev policy must not list it: a hash disables
+ * `unsafe-inline`.
  */
 export function contentSecurityPolicy(devServer?: URL): string {
   const dev = devServer !== undefined;
   return [
     "default-src 'self'",
-    `script-src 'self'${dev ? " 'unsafe-inline'" : ""}`,
+    `script-src 'self' ${dev ? "'unsafe-inline'" : `'${START_SCRIPT_HASH}'`}`,
     "style-src 'self' 'unsafe-inline'",
     "img-src 'self' data: blob:",
     "font-src 'self' data:",
