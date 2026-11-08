@@ -200,6 +200,15 @@ describe("themeVariables", () => {
   });
 });
 
+describe("themeVariables, for the tokens", () => {
+  it("knows the motion and number tokens of the real theme package", () => {
+    const names = themeVariables();
+    for (const name of ["--se-motion-fast", "--se-motion-base", "--se-tabular-nums"]) {
+      expect(names).toContain(name);
+    }
+  });
+});
+
 describe("the script", () => {
   const script = fileURLToPath(new URL("./check-theme-css.ts", import.meta.url));
 

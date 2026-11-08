@@ -123,14 +123,15 @@ export function collectThemeVariables(exports: unknown): Set<string> {
 }
 
 /**
- * The names the theme package defines: whatever its public exports hold as data, plus what the
- * engine outputs for the default appearance. A name only a function can produce is invisible
- * here, so a new `--se-*` variable needs to appear in an exported value or in that output.
+ * The names the theme package defines: whatever its public exports hold as data, plus what its
+ * variable-producing functions return. A new function that builds `--se-*` names has to be
+ * called here; until then the check rejects those names as unknown.
  */
 export function themeVariables(): Set<string> {
   return collectThemeVariables([
     theme,
     theme.resolveAppearance(theme.DEFAULT_APPEARANCE, theme.BUILT_IN_THEMES),
+    theme.tokenVariables({ reducedMotion: false }),
   ]);
 }
 
