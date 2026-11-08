@@ -504,6 +504,43 @@ Grundlage: [`research-layer-2-data.md`](research-layer-2-data.md).
   3:1, `hover` gegen die Fläche 1,1:1 (eigene Regel). Die erleichterten 3:1 für große Schrift
   gelten nicht, weil Rollen die Schriftgröße nicht kennen.
 
+### Runde 20 (2026-11-09): Einstellungs-Store (#15, verfeinert D62)
+
+- **D113 Adapter asynchron, Lesen synchron** (ADR 0010): Adapter haben `load`, `save` und
+  `subscribe`, auch über `localStorage`. Die App wartet vor dem ersten React-Render einmal auf
+  `load`, der Start Cache überbrückt das. Danach liest der Store synchron aus einem Abbild im
+  Speicher; Schreiben ändert sofort das Abbild und speichert im Hintergrund. _Grund:_ Ab #34 ist
+  jeder Zugriff asynchron, und Standardwerte im ersten Render würden Farben aufblitzen lassen und
+  den Start Cache überschreiben. _Verworfen:_ jetzt synchron und in #34 umbauen; asynchrones
+  Lesen mit Ladezustand in jeder Komponente.
+- **D114 Fenstergröße und -position sind keine Einstellungen** (verfeinert D62): Der Hauptprozess
+  braucht sie, bevor ein Renderer läuft, und erreicht kein `localStorage`. Sie liegen als eigene
+  Datei im `userData`-Ordner des Kanals und gehören dem Hauptprozess (#24). Geräteeinstellungen
+  bleiben im Renderer auf `localStorage`. _Verworfen:_ gemeinsame Datei mit IPC und zweitem
+  Web-Adapter.
+- **D115 Ein Eintrag pro Einstellung** (ADR 0010) unter einem dauerhaften Schlüssel; `save`
+  bekommt nur Geändertes, mehrere Einträge gemeinsam. Eine Einstellung ist eine Entscheidung des
+  Nutzers; was nur gemeinsam Sinn ergibt, ist eine Einstellung mit einem Objekt als Wert. _Grund:_
+  Zwei Geräte überschreiben sich nicht gegenseitig, unbekannte Einträge fasst niemand an.
+  _Verworfen:_ ein Objekt pro Store oder pro Bereich.
+- **D116 Neutrales Paket `@self-engine/settings`**, Kern und `./react`, ohne Importe aus dem
+  Workspace. Jeder Besitzer deklariert seine Einstellungen selbst (Schlüssel, Geltung, Standardwert,
+  Prüfung), die Darstellungs-Einstellungen liegen in der App. Die Geltung (synchronisiert oder
+  Gerät) bestimmt den Adapter. _Verworfen:_ zentrale Deklarationen im Paket (Module wären nicht
+  mehr eigenständig); alles in der App (Pakete dürfen keine Apps importieren).
+- **D117 Speicherfehler stoppen die App nie** (ADR 0010): Ein kaputter Eintrag zeigt seinen
+  Standardwert, ein gescheitertes `load` startet die Sitzung mit Standardwerten, ein gescheitertes
+  `save` lässt den Wert bis zum Neustart gelten. Gespeichertes bleibt unberührt, kein automatischer
+  Wiederholversuch, gemeldet wird über `onError`. _Verworfen:_ Fehlerbildschirm; Zurücksetzen des
+  Werts bei gescheitertem `save`.
+- **D118 Einstellungen werden mit Zod geprüft**, Zod kommt damit vor #31 in den Katalog. Offene
+  Felder (Theme, Akzent) sind `string`, geschlossene (Farbmodus, Dichte, Schriftgröße) sind Listen
+  erlaubter Werte. Ein unbekannter Wert zeigt den Standardwert und bleibt gespeichert. Ungültiges
+  Schreiben ist ein Programmierfehler und wirft. _Verworfen:_ eigene Prüffunktionen neben Zod.
+- **D119 Änderungen von außen laufen über `subscribe` des Adapters:** andere Tabs im Web, ab #34
+  `tablesChanged`, später Sync. Der Store übernimmt nur die gemeldeten Einträge und ignoriert
+  Echos eigener Schreibvorgänge.
+
 ## Fakten
 
 - Self-Engine hat Abo-Infrastruktur über Clerk Billing (`apps/web/src/features/billing`),
