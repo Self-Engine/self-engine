@@ -4,7 +4,7 @@
 
 import { resolve } from "node:path";
 import { describe, expect, it } from "vite-plus/test";
-import { ALLOWED_IMPORTS } from "../.dependency-cruiser.ts";
+import boundaryRules, { ALLOWED_IMPORTS } from "../.dependency-cruiser.ts";
 import {
   cruiseFixture,
   type FixturePackage,
@@ -368,6 +368,90 @@ describe("the translation core", () => {
       }),
     ]);
     expect(found).toEqual([]);
+  });
+});
+
+describe("icon libraries", () => {
+  const RULE = "icons-only-through-catalog";
+
+  describe.each([
+    "@phosphor-icons/react",
+    "phosphor-react-native",
+    "@tabler/icons-react",
+    "lucide-react",
+    "react-icons",
+  ])("%s", (library) => {
+    it("fails an import from an app", async () => {
+      const desktop = declaring(
+        app("desktop", { "src/main.ts": `import "${library}";\n` }),
+        library,
+      );
+      expect(await cruise([desktop])).toEqual([
+        {
+          rule: RULE,
+          from: "apps/desktop/src/main.ts",
+          to: `node_modules/${library}/dist/index.js`,
+        },
+      ]);
+    });
+
+    it("fails an import from a package outside the icon package", async () => {
+      const importing = withFiles(declaring(shared, library), {
+        "src/icon.ts": `import "${library}";\n`,
+      });
+      expect(ruleNames(await cruise([importing]))).toEqual([RULE]);
+    });
+
+    it("fails a type-only import outside the icon package", async () => {
+      const importing = withFiles(declaring(shared, library), {
+        "src/icon.ts": `import type { Icon } from "${library}";\n`,
+      });
+      expect(ruleNames(await cruise([importing]))).toEqual([RULE]);
+    });
+
+    it("fails an import the importer has not installed, and names the catalog there too", async () => {
+      const importing = withFiles(shared, { "src/icon.ts": `import "${library}";\n` });
+      expect(ruleNames(await cruise([importing]))).toEqual([RULE, "not-to-unresolvable"]);
+    });
+
+    it("passes an import inside the icon package", async () => {
+      const icons: FixturePackage = {
+        dir: "packages/icons",
+        dependencies: [library],
+        files: {
+          "src/index.ts": `import "${library}";\n`,
+          "src/types.ts": `import type { Icon } from "${library}";\n`,
+        },
+      };
+      expect(await cruise([icons])).toEqual([]);
+    });
+  });
+
+  it("fails a per-icon entry point", async () => {
+    const importing = withFiles(shared, {
+      "src/icon.ts": 'import "@phosphor-icons/react/dist/csr/Folders";\n',
+    });
+    expect(ruleNames(await cruise([importing]))).toEqual([RULE, "not-to-unresolvable"]);
+  });
+
+  it("does not exempt a package whose name only starts like the icon package", async () => {
+    const lookalike = declaring(
+      extraPackage("packages/icons-extra", { "src/icon.ts": 'import "lucide-react";\n' }),
+      "lucide-react",
+    );
+    expect(ruleNames(await cruise([lookalike]))).toEqual([RULE]);
+  });
+
+  it("passes a library whose name only starts like a listed one", async () => {
+    const importing = withFiles(declaring(shared, "lucide-react-extras"), {
+      "src/icon.ts": 'import "lucide-react-extras";\n',
+    });
+    expect(await cruise([importing])).toEqual([]);
+  });
+
+  it("names the catalog package in the rule's message", () => {
+    const rule = boundaryRules.forbidden?.find(({ name }) => name === RULE);
+    expect(rule?.comment).toContain("@self-engine/icons");
   });
 });
 
