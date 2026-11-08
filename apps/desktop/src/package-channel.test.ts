@@ -214,7 +214,9 @@ describe("packageChannel", () => {
 
   it("does not package a bundle compiled for another channel", () => {
     const calls: Call[] = [];
-    expect(() => runPackaging({ compiledFor: "dev", calls })).toThrow(/not compiled for the nightly/);
+    expect(() => runPackaging({ compiledFor: "dev", calls })).toThrow(
+      /not compiled for the nightly/,
+    );
     expect(calls).toHaveLength(2);
   });
 
