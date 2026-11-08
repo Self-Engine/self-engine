@@ -6,7 +6,7 @@ import { spawnSync } from "node:child_process";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
-import { dirname, join, resolve } from "node:path";
+import { basename, dirname, join, resolve } from "node:path";
 
 const require = createRequire(import.meta.url);
 const oxlintBin = join(
@@ -15,6 +15,14 @@ const oxlintBin = join(
   "oxlint",
 );
 const pluginPath = resolve(import.meta.dirname, "../index.ts");
+
+/**
+ * The diagnostic lines of one file, by its base name. Oxlint prints the bare file name on
+ * Linux and the absolute path on macOS, where the temp directory sits behind a symlink.
+ */
+export function diagnosticsOfFile(lines: readonly string[], fileName: string): string[] {
+  return lines.filter((line) => basename(line.split(":", 1)[0] ?? "") === fileName);
+}
 
 /**
  * The `self-engine/<rule>` diagnostics Oxlint reports for each of `sources`, one line each, in
@@ -51,9 +59,7 @@ export function lintFixtures(rule: string, sources: readonly string[]): string[]
     if (result.status !== 0 && !(result.status === 1 && hits.length > 0)) {
       throw new Error(`oxlint exited with ${result.status}:\n${result.stdout}${result.stderr}`);
     }
-    return sources.map((_source, index) =>
-      hits.filter((line) => line.includes(`/fixture-${index}.ts:`)),
-    );
+    return sources.map((_source, index) => diagnosticsOfFile(hits, `fixture-${index}.ts`));
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
