@@ -273,7 +273,10 @@ describe("the localStorage adapter", () => {
     storage.items.set(`${SYNCED_PREFIX}test.accent`, "{not json");
     storage.items.set(`${SYNCED_PREFIX}test.tint`, "true");
 
-    const adapter = createLocalSettingsAdapter({ getStorage: () => storage, getEvents: simulatedEvents }, "synced");
+    const adapter = createLocalSettingsAdapter(
+      { getStorage: () => storage, getEvents: simulatedEvents },
+      "synced",
+    );
 
     await expect(adapter.load()).resolves.toEqual([{ key: "test.tint", value: true }]);
   });
@@ -294,7 +297,10 @@ describe("the localStorage adapter", () => {
 
   it("restores a batch within the quota that ran out midway", async () => {
     const storage = simulatedStorage();
-    const adapter = createLocalSettingsAdapter({ getStorage: () => storage, getEvents: simulatedEvents }, "synced");
+    const adapter = createLocalSettingsAdapter(
+      { getStorage: () => storage, getEvents: simulatedEvents },
+      "synced",
+    );
     await adapter.save([{ key: "test.changed", value: "stored" }]);
     storage.limitQuota(12);
 

@@ -91,12 +91,7 @@ interface CorePurity {
 }
 
 /** The pure core of a package stays free of the framework its binding entry point wraps. */
-function corePurityRule({
-  folder,
-  binding,
-  npmPattern,
-  comment,
-}: CorePurity): IForbiddenRuleType {
+function corePurityRule({ folder, binding, npmPattern, comment }: CorePurity): IForbiddenRuleType {
   return {
     name: `${folder}-core-is-pure`,
     comment,
