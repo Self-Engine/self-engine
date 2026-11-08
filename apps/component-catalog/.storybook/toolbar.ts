@@ -85,11 +85,7 @@ function chosen<Option extends string | number>(
 
 /** One Theme switch sets both the light and the dark Theme. */
 export function appearanceOf(globals: Globals): Appearance {
-  const theme = chosen(
-    Object.keys(BUILT_IN_THEMES),
-    globals["theme"],
-    FIXED_APPEARANCE.lightTheme,
-  );
+  const theme = chosen(Object.keys(BUILT_IN_THEMES), globals["theme"], FIXED_APPEARANCE.lightTheme);
   return {
     lightTheme: theme,
     darkTheme: theme,
