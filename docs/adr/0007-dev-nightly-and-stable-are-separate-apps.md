@@ -1,7 +1,7 @@
 ---
 status: accepted
 date: 2026-11-08
-decisions: D38, D39, D40, D41, D43, D47, D50, D51, D108
+decisions: D38, D39, D40, D41, D43, D47, D50, D51, D108, D109
 ---
 
 # Dev, nightly and stable are separate apps
@@ -50,11 +50,15 @@ the stable app.
 - **Releases live in this private repository** (D108): the release workflow creates the tag
   and the GitHub release with the built-in token only. Downloading a build needs access to the
   repository; the owner can hand a build to the second user directly.
-- **Updates are downloaded by hand.** The in-app updater comes with the switch to public (D107)
-  and signing (issue #10): an app cannot ship a token to read a private repository, and until
-  the Developer ID of issue #10 release builds are signed ad hoc, so Squirrel.Mac would reject
-  every update. It checks an update against the designated requirement of the running app,
-  and for an ad-hoc signature that requirement is the hash of that exact build.
+- **Updates are downloaded by hand.** The in-app updater comes with the switch to public
+  (D107): an app cannot ship a token to read a private repository.
+- **macOS releases are signed with the Developer ID, hardened and notarized** (D109), and the
+  packaging checks the result, because electron-builder only warns when it cannot sign. In CI
+  a missing secret fails the run. Local packaging without the inputs stays ad hoc and needs no
+  Apple account; such a build can never be updated, since Squirrel.Mac checks an update against
+  the designated requirement of the running app, and for an ad-hoc signature that requirement
+  is the hash of that exact build. The only entitlement is `allow-jit`, which V8 needs under
+  the hardened runtime; library validation stays on.
 - The nightly schedule stays off until the repository variable `NIGHTLY_SCHEDULE_ENABLED` is
   `true`, because macOS minutes on a private repository are limited. It can always be started
   by hand.

@@ -1,10 +1,11 @@
 // `pnpm package:desktop <nightly|stable> [--release-version <version>]`: builds the workspace
 // for one release channel, into that channel's own bundle folder, and packages it into
 // `apps/desktop/release/<channel>`. Without a version it makes an unpacked app for inspection;
-// with one, the dmg a release ships. It installs and uploads nothing. It lives in the
+// with one, the dmg a release ships, signed with the Developer ID when the signing inputs are
+// in the environment and ad hoc when none are. It installs and uploads nothing. It lives in the
 // app because repo scripts may not import apps (ADR 0006) and the identity is the app's own.
 
-import { execFileSync } from "node:child_process";
+import { execFileSync, spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { dirname, join, resolve } from "node:path";
@@ -15,7 +16,42 @@ const DESKTOP_DIR = resolve(import.meta.dirname, "..");
 const ROOT_DIR = resolve(DESKTOP_DIR, "../..");
 const BUNDLES = ["main.cjs", "preload.cjs"];
 
+// electron-builder reads these from the environment: the certificate, and the Apple account
+// that notarizes.
+const SIGNING_INPUTS = [
+  "CSC_LINK",
+  "CSC_KEY_PASSWORD",
+  "APPLE_ID",
+  "APPLE_APP_SPECIFIC_PASSWORD",
+  "APPLE_TEAM_ID",
+] as const;
+const ENTITLEMENTS = "entitlements.mac.plist";
+
 export type ReleaseChannel = Exclude<Channel, "dev">;
+export type Signing = "ad-hoc" | "developer-id";
+
+/**
+ * How this package is signed. Only a release is signed with the Developer ID. Without any
+ * input a local release stays ad hoc and needs no Apple account; in CI, or with only some of
+ * the inputs, that fallback would publish a release nobody can open, so it throws.
+ */
+export function resolveSigning(
+  releaseVersion: string | undefined,
+  env: NodeJS.ProcessEnv,
+): Signing {
+  if (releaseVersion === undefined) return "ad-hoc";
+  const missing = SIGNING_INPUTS.filter((name) => !env[name]);
+  if (missing.length === 0) return "developer-id";
+  if (missing.length === SIGNING_INPUTS.length && !env.CI) return "ad-hoc";
+  throw new Error(`A signed release needs every signing input. Missing: ${missing.join(", ")}.`);
+}
+
+/** `env` for the steps that have no use for the signing inputs. */
+export function withoutSigningInputs(env: NodeJS.ProcessEnv): NodeJS.ProcessEnv {
+  const rest = { ...env };
+  for (const name of SIGNING_INPUTS) delete rest[name];
+  return rest;
+}
 
 /** The channel to package. Dev is never packaged: it has no renderer of its own. */
 export function parseReleaseChannel(value: string | undefined): ReleaseChannel {
@@ -54,6 +90,7 @@ export function builderConfig(
   channel: ReleaseChannel,
   electronDist: string,
   releaseVersion?: string,
+  signing: Signing = "ad-hoc",
 ) {
   const { appId, productName, icon } = channelIdentity(channel);
   return {
@@ -78,11 +115,17 @@ export function builderConfig(
     ],
     mac: {
       target: releaseVersion === undefined ? "dir" : "dmg",
-      // Ad hoc until the Developer ID of issue #10: not trusted by anyone, but a valid signature
-      // for the whole bundle, unlike the skipped one. Hardened runtime cannot load Electron's
-      // own frameworks under an ad-hoc signature.
-      identity: "-",
-      hardenedRuntime: false,
+      // Ad hoc is trusted by nobody, but a valid signature for the whole bundle, unlike a
+      // skipped one. Hardened runtime cannot load Electron's own frameworks under it. With the
+      // Developer ID, electron-builder takes the identity from CSC_LINK.
+      ...(signing === "developer-id"
+        ? {
+            hardenedRuntime: true,
+            notarize: true,
+            entitlements: ENTITLEMENTS,
+            entitlementsInherit: ENTITLEMENTS,
+          }
+        : { identity: "-", hardenedRuntime: false }),
       icon,
     },
     // Updates are downloaded by hand (ADR 0007), so the dmg needs no block map.
@@ -107,6 +150,29 @@ export function assertBundlesBuiltFor(channel: ReleaseChannel, bundleDir: string
   }
 }
 
+/** Runs a command and returns its output, throwing when it fails. */
+export type Inspect = (command: string, args: string[]) => string;
+
+/**
+ * Throws unless `appPath` is signed by the team in APPLE_TEAM_ID, hardened and notarized.
+ * electron-builder only warns and carries on when it finds no identity or cannot notarize.
+ */
+export function assertDeveloperIdRelease(appPath: string, teamId: string, inspect: Inspect): void {
+  inspect("codesign", ["--verify", "--deep", "--strict", appPath]);
+  const details = inspect("codesign", ["-dvv", appPath]);
+  if (!/^Authority=Developer ID Application:/m.test(details)) {
+    throw new Error(`${appPath} is not signed with a Developer ID, so it is not released.`);
+  }
+  if (!details.split("\n").includes(`TeamIdentifier=${teamId}`)) {
+    throw new Error(`${appPath} is not signed by the team in APPLE_TEAM_ID.`);
+  }
+  if (!/flags=\S*runtime/.test(details)) {
+    throw new Error(`${appPath} has no hardened runtime, so it is not released.`);
+  }
+  inspect("xcrun", ["stapler", "validate", appPath]);
+  inspect("spctl", ["--assess", "--type", "execute", appPath]);
+}
+
 export type Run = (
   command: string,
   args: string[],
@@ -119,20 +185,27 @@ export interface PackageOptions {
   readonly electronDist: string;
   readonly env: NodeJS.ProcessEnv;
   readonly run: Run;
+  readonly inspect: Inspect;
 }
 
 /** Builds with the channel compiled in, then packages that build. */
 export function packageChannel(request: PackageRequest, options: PackageOptions): void {
   const { channel, releaseVersion } = request;
-  const { rootDir, desktopDir, electronDist, env, run } = options;
-  run(process.execPath, [join(rootDir, "scripts/ensure-electron.ts")], { cwd: rootDir, env });
+  const { rootDir, desktopDir, electronDist, env, run, inspect } = options;
+  // Before any build: a missing secret must fail the run at once.
+  const signing = resolveSigning(releaseVersion, env);
+  const buildEnv = withoutSigningInputs(env);
+  run(process.execPath, [join(rootDir, "scripts/ensure-electron.ts")], {
+    cwd: rootDir,
+    env: buildEnv,
+  });
   // So a bundle from an earlier run cannot pass for this build.
   const bundleDir = join(desktopDir, bundleDirectory(channel));
   rmSync(bundleDir, { recursive: true, force: true });
   // `--no-cache`: Vite Task hides SELF_ENGINE_CHANNEL from a cached task, which then builds dev.
   run(join(rootDir, "node_modules/.bin/vp"), ["run", "--no-cache", "-r", "build"], {
     cwd: rootDir,
-    env: { ...env, SELF_ENGINE_CHANNEL: channel },
+    env: { ...buildEnv, SELF_ENGINE_CHANNEL: channel },
   });
   assertBundlesBuiltFor(channel, bundleDir);
   const outputDir = join(desktopDir, "release", channel);
@@ -140,7 +213,7 @@ export function packageChannel(request: PackageRequest, options: PackageOptions)
   const configPath = join(outputDir, "electron-builder.json");
   writeFileSync(
     configPath,
-    JSON.stringify(builderConfig(channel, electronDist, releaseVersion), null, 2),
+    JSON.stringify(builderConfig(channel, electronDist, releaseVersion, signing), null, 2),
   );
   // `--publish never`: electron-builder would otherwise publish on its own when it sees a CI tag.
   const targetArgs = releaseVersion === undefined ? ["--dir"] : ["--publish", "never"];
@@ -149,6 +222,11 @@ export function packageChannel(request: PackageRequest, options: PackageOptions)
     [...targetArgs, "--mac", "--arm64", "--config", configPath],
     { cwd: desktopDir, env },
   );
+  if (signing === "developer-id") {
+    const { productName } = channelIdentity(channel);
+    const appPath = join(outputDir, "mac-arm64", `${productName}.app`);
+    assertDeveloperIdRelease(appPath, env.APPLE_TEAM_ID ?? "", inspect);
+  }
 }
 
 if (import.meta.main) {
@@ -159,6 +237,13 @@ if (import.meta.main) {
     env: process.env,
     run: (command, args, options) => {
       execFileSync(command, args, { ...options, stdio: "inherit" });
+    },
+    // codesign reports on stderr, so both streams are the answer.
+    inspect: (command, args) => {
+      const result = spawnSync(command, args, { encoding: "utf8" });
+      const output = `${result.stdout}${result.stderr}`;
+      if (result.status !== 0) throw new Error(`${command} ${args[0]} failed:\n${output}`);
+      return output;
     },
   });
 }

@@ -469,6 +469,11 @@ Grundlage: [`research-layer-2-data.md`](research-layer-2-data.md).
   Updates ad-hoc-signierter Builds ab (die Anforderung ist der Hash genau dieses Builds).
   Der Nightly-Zeitplan ist zunächst aus (Repo-Variable `NIGHTLY_SCHEDULE_ENABLED`), weil
   macOS-Minuten im privaten Repo begrenzt sind und die Build-Dauer noch unbekannt ist.
+- **D109 macOS-Releases sind mit der Developer ID signiert, gehärtet und notarisiert (#10).**
+  Das Packen prüft das Ergebnis, weil electron-builder ohne Identität nur warnt. In CI lässt
+  ein fehlendes Secret den Lauf scheitern; lokal ohne die Eingaben bleibt der Build ad hoc und
+  braucht kein Apple-Konto. Einziges Entitlement ist `allow-jit`. Der Updater in der App wartet
+  weiter auf den Wechsel auf öffentlich (D107). Windows-Signierung ist offen.
 
 ## Fakten
 
