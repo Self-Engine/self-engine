@@ -15,6 +15,9 @@ function RootLayout() {
         <Anchor component={Link} to="/about">
           About
         </Anchor>
+        <Anchor component={Link} to="/theme-preview">
+          Theme preview
+        </Anchor>
         {badge && <Badge variant="light">{badge}</Badge>}
       </Group>
       <Outlet />

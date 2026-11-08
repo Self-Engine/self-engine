@@ -1,0 +1,26 @@
+{
+  "name": "@self-engine/theme",
+  "version": "0.0.0",
+  "private": true,
+  "license": "AGPL-3.0-only",
+  "type": "module",
+  "exports": {
+    ".": "./src/core/index.ts",
+    "./mantine": "./src/mantine/index.tsx",
+    "./fonts.css": "./src/fonts.css"
+  },
+  "dependencies": {
+    "@fontsource-variable/inter": "catalog:",
+    "@mantine/core": "catalog:",
+    "@mantine/hooks": "catalog:",
+    "culori": "catalog:",
+    "react": "catalog:",
+    "react-dom": "catalog:"
+  },
+  "devDependencies": {
+    "@types/culori": "catalog:",
+    "@types/node": "catalog:",
+    "@types/react": "catalog:",
+    "vite-plus": "catalog:"
+  }
+}

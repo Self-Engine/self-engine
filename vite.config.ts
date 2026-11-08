@@ -22,6 +22,8 @@ export default defineConfig({
   test: {
     include: ["apps/*/src/**/*.test.ts", "packages/*/src/**/*.test.ts", "scripts/**/*.test.ts"],
     environment: "node",
+    // Vitest empties CSS imports otherwise; the theme tests read Mantine's control heights.
+    css: { include: [/@mantine\/core\/styles\//] },
     allowOnly: !process.env.CI,
     // Flaky tests are fixed, not retried.
     retry: 0,
@@ -60,6 +62,8 @@ export default defineConfig({
       "verify:boundaries":
         "depcruise apps packages scripts vite.config.ts .dependency-cruiser.ts --config .dependency-cruiser.ts",
       "verify:adrs": "node scripts/check-adrs.ts",
+      // CSS uses Color Roles only (scripts/check-theme-css.ts).
+      "verify:theme-css": "node scripts/check-theme-css.ts",
       // The build scripts of apps/web and apps/desktop (ADR 0001): a broken pack entry passes
       // every other stage. Bundling never needs the Electron binary, so this runs in CI too.
       // `--cache` because `vp run` does not cache package scripts by default. `vp build` then

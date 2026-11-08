@@ -101,6 +101,19 @@ export function boundaryConfig({ allowedImports, rootDir }: BoundaryOptions): IC
     },
     ...declaredWorkspaceRules(rootDir),
     {
+      name: "theme-core-is-pure",
+      comment:
+        "The theme core (`@self-engine/theme`) runs without React or Mantine, so it can serve React Native and tests. Those imports belong in `@self-engine/theme/mantine`.",
+      severity: "error",
+      from: { path: "^packages/theme/src/core/" },
+      to: {
+        path: [
+          "(^|/)node_modules/(react|react-dom|@mantine/[^/]+)/",
+          "^packages/theme/src/mantine/",
+        ],
+      },
+    },
+    {
       name: "no-relative-import-across-packages",
       comment:
         "A relative import that leaves its app or package skips the other package's `exports`. Import it by its package name.",
