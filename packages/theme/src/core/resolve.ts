@@ -8,6 +8,7 @@ import {
 } from "./catalog.ts";
 import { composite } from "./color.ts";
 import { type Density, type FontScale, type LayoutValues, resolveLayout } from "./layout.ts";
+import { type ModuleColor, moduleColorCss, moduleColors } from "./module-colors.ts";
 import { type NeutralPalette, neutralPalette } from "./neutral-palette.ts";
 import {
   type AccentColors,
@@ -57,6 +58,10 @@ export interface ModeValues {
   readonly colorVariables: Readonly<Record<`--mantine-${string}`, Hex>>;
   /** The palettes for Mantine's `theme.colors`, by key. */
   readonly palettes: Readonly<Record<string, Palette>>;
+  /** Every Color Set as a Module Color, by Color Set name. */
+  readonly moduleColors: Readonly<Record<string, ModuleColor>>;
+  /** The rules that turn `data-module-color` into the `--se-module*` variables. */
+  readonly moduleColorCss: string;
 }
 
 export type ResolvedAppearance = Readonly<Record<ResolvedColorMode, ModeValues>> & {
@@ -143,6 +148,7 @@ function modeValues(
     ...accentSet,
   };
   const sets = paletteSets(mode, accentSet);
+  const modules = moduleColors(mode);
   return {
     roles,
     cssVariables: cssVariables(roles),
@@ -153,6 +159,8 @@ function modeValues(
       ...sets.map(([name, set]) => colorSetVariables(name, set)),
     ),
     palettes: Object.fromEntries(sets.map(([name, set]) => [name, colorSetPalette(set, mode)])),
+    moduleColors: modules,
+    moduleColorCss: moduleColorCss(modules),
   };
 }
 

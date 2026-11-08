@@ -5,12 +5,16 @@ import {
   auditColorSets,
   auditContrast,
   BUILT_IN_THEMES,
+  checkContrast,
   COLOR_SETS,
   type ColorSet,
   contrastRatio,
+  DEFAULT_APPEARANCE,
   formatColorSetFailure,
   formatContrastFailure,
   FROM_THEME,
+  type ModuleColor,
+  resolveAppearance,
   type Theme,
   type ThemeColors,
 } from "./index.ts";
@@ -173,5 +177,43 @@ describe("the pairs that are checked", () => {
 
   it("checks text on every soft fill", () => {
     expect(pairs({ warningSoft: "#000000" })).toContain("text on warningSoft");
+  });
+});
+
+describe("Module Color text", () => {
+  const moduleTextPairs = (overrides: Partial<ThemeColors>, colorSet: string) =>
+    pairs(overrides).filter((pair) => pair.startsWith(`${colorSet} module text`));
+
+  it("is checked on canvas", () => {
+    expect(moduleTextPairs({ canvas: "#808080" }, "teal")).toEqual(["teal module text on canvas"]);
+  });
+
+  it("is checked on the calculated navSurface, which a light surface over a dark chrome dims", () => {
+    expect(moduleTextPairs({ chrome: "#000000", surface: "#ffffff" }, "teal")).toEqual([
+      "teal module text on navSurface",
+    ]);
+  });
+
+  it("is checked on surface, for all eight Color Sets, green and pink included", () => {
+    const overrides = { chrome: "#808080", surface: "#808080" } as const;
+    for (const colorSet of Object.keys(COLOR_SETS)) {
+      expect(moduleTextPairs(overrides, colorSet)).toEqual([
+        `${colorSet} module text on navSurface`,
+        `${colorSet} module text on surface`,
+      ]);
+    }
+  });
+
+  it("is checked on its own soft fill", () => {
+    const { light } = resolveAppearance(
+      { ...DEFAULT_APPEARANCE, colorMode: "light" },
+      BUILT_IN_THEMES,
+    );
+    const teal = light.moduleColors["teal"] as ModuleColor;
+    const issues = checkContrast({
+      roles: light.roles,
+      moduleColors: { probe: { ...teal, "--se-module-soft": teal["--se-module-text"] } },
+    });
+    expect(issues.map((issue) => issue.pair)).toEqual(["probe module text on its soft fill"]);
   });
 });

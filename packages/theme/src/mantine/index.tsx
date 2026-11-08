@@ -97,7 +97,7 @@ export function ThemeProvider({ appearance, catalog, children }: ThemeProviderPr
         forceColorScheme={scheme}
         theme={theme}
       >
-        <style>{`${densityCss}${FOCUS_RING_CSS}`}</style>
+        <style>{`${densityCss}${resolved[scheme].moduleColorCss}${FOCUS_RING_CSS}`}</style>
         {children}
       </MantineProvider>
     </ColorsContext>
