@@ -15,13 +15,6 @@ import {
 
 const rootPackage = fileURLToPath(new URL("../package.json", import.meta.url));
 
-/** The stories task, which unlike the others needs more than a command string. */
-function storiesTaskConfig(): { command?: string; dependsOn?: unknown } {
-  const task = config.run?.tasks?.["verify:stories"];
-  return typeof task === "object" && !Array.isArray(task) ? task : {};
-}
-const storiesTask = storiesTaskConfig();
-
 describe("runStages", () => {
   it("runs every static stage even after one fails, and skips the tests", async () => {
     const ran: string[] = [];
@@ -119,13 +112,17 @@ describe("the verify tasks", () => {
   });
 
   it("render the stories with the catalog's own config, so the Node tests need no browser", () => {
-    expect(storiesTask.command).toBe("vp test run --root apps/component-catalog --reporter=agent");
+    expect(config.run?.tasks?.["verify:stories"]).toMatchObject({
+      command: "vp test run --root apps/component-catalog --reporter=agent",
+    });
     expect(config.test?.browser).toBeUndefined();
     expect(config.test?.include?.join()).not.toContain("stories");
   });
 
   it("ensure Chromium before the stories, on every run even when the stories replay", () => {
-    expect(storiesTask.dependsOn).toEqual(["ensure-chromium"]);
+    expect(config.run?.tasks?.["verify:stories"]).toMatchObject({
+      dependsOn: ["ensure-chromium"],
+    });
     expect(config.run?.tasks?.["ensure-chromium"]).toEqual({
       command: "node scripts/ensure-chromium.ts",
       cache: false,
