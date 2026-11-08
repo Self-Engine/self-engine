@@ -1,7 +1,7 @@
 ---
 status: accepted
 date: 2026-11-08
-decisions: D38, D39, D40, D41, D43, D47, D50, D51
+decisions: D38, D39, D40, D41, D43, D47, D50, D51, D108
 ---
 
 # Dev, nightly and stable are separate apps
@@ -47,10 +47,17 @@ the stable app.
   version a stable proposes is a patch bump of the last stable tag
   (`apps/desktop/package.json` seeds the first one), and a nightly is
   `<base>-nightly.<YYYYMMDD>.<run>`. Packaging stamps the version into the app.
-- Until the Developer ID of issue #10, release builds are signed ad hoc. An app signed that way
-  can find an update but cannot install one: Squirrel.Mac checks an update against the
-  designated requirement of the running app, and for an ad-hoc signature that requirement is
-  the hash of that exact build.
+- **Releases live in this private repository** (D108): the release workflow creates the tag
+  and the GitHub release with the built-in token only. Downloading a build needs access to the
+  repository; the owner can hand a build to the second user directly.
+- **Updates are downloaded by hand.** The in-app updater comes with the switch to public (D107)
+  and signing (issue #10): an app cannot ship a token to read a private repository, and until
+  the Developer ID of issue #10 release builds are signed ad hoc, so Squirrel.Mac would reject
+  every update. It checks an update against the designated requirement of the running app,
+  and for an ad-hoc signature that requirement is the hash of that exact build.
+- The nightly schedule stays off until the repository variable `NIGHTLY_SCHEDULE_ENABLED` is
+  `true`, because macOS minutes on a private repository are limited. It can always be started
+  by hand.
 
 ## Considered Options
 

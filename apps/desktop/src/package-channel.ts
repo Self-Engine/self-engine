@@ -1,7 +1,7 @@
 // `pnpm package:desktop <nightly|stable> [--release-version <version>]`: builds the workspace
 // for one release channel, into that channel's own bundle folder, and packages it into
 // `apps/desktop/release/<channel>`. Without a version it makes an unpacked app for inspection;
-// with one, the dmg and zip a release ships. It installs and uploads nothing. It lives in the
+// with one, the dmg a release ships. It installs and uploads nothing. It lives in the
 // app because repo scripts may not import apps (ADR 0006) and the identity is the app's own.
 
 import { execFileSync } from "node:child_process";
@@ -28,7 +28,7 @@ export function parseReleaseChannel(value: string | undefined): ReleaseChannel {
 
 export interface PackageRequest {
   readonly channel: ReleaseChannel;
-  /** Set for a release: stamped into the package, and the dmg and zip are built. */
+  /** Set for a release: stamped into the package, and the dmg is built. */
   readonly releaseVersion: string | undefined;
 }
 
@@ -68,7 +68,7 @@ export function builderConfig(
       ...(releaseVersion === undefined ? {} : { version: releaseVersion }),
     },
     directories: { output: `release/${channel}` },
-    // GitHub turns a space in an asset name into a dot, which would break a later update feed.
+    // GitHub turns a space in an asset name into a dot; this name stays what the build wrote.
     artifactName: `${productName.replaceAll(" ", "-")}-\${version}-\${arch}.\${ext}`,
     // Always `dist-electron` inside the package, because that is where `main` points.
     files: [
@@ -77,7 +77,7 @@ export function builderConfig(
       { from: "../web/dist", to: "dist-renderer" },
     ],
     mac: {
-      target: releaseVersion === undefined ? "dir" : ["dmg", "zip"],
+      target: releaseVersion === undefined ? "dir" : "dmg",
       // Ad hoc until the Developer ID of issue #10: not trusted by anyone, but a valid signature
       // for the whole bundle, unlike the skipped one. Hardened runtime cannot load Electron's
       // own frameworks under an ad-hoc signature.
@@ -85,6 +85,8 @@ export function builderConfig(
       hardenedRuntime: false,
       icon,
     },
+    // Updates are downloaded by hand (ADR 0007), so the dmg needs no block map.
+    dmg: { writeUpdateInfo: false },
     npmRebuild: false,
   };
 }

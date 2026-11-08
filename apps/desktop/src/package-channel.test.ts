@@ -89,7 +89,8 @@ describe("builderConfig", () => {
   it("stamps a release version and builds what a release ships", () => {
     const config = builderConfig("nightly", ELECTRON_DIST, "0.0.1-nightly.20261108.7");
     expect(config.extraMetadata).toMatchObject({ version: "0.0.1-nightly.20261108.7" });
-    expect(config.mac.target).toEqual(["dmg", "zip"]);
+    expect(config.mac.target).toBe("dmg");
+    expect(config.dmg.writeUpdateInfo).toBe(false);
   });
 
   it.each([
