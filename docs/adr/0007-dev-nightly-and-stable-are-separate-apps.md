@@ -34,9 +34,12 @@ the stable app.
   issue in layer 0). The channel is compiled into the bundle (`SELF_ENGINE_CHANNEL` when
   building, unset means dev); it is never read from the running app's environment, and
   `app.isPackaged` cannot tell nightly from stable.
-- Until the cutover to `1.0.0` the stable bundle `Self-Engine.app` has the same name as the
-  old app, so copying it to `/Applications` would replace the old app. Its app ID and data
-  folder stay separate. The owner uses nightly until then (D51).
+- The stable bundle `Self-Engine.app` has the same name as the old app, so installing it would
+  replace the old app in `/Applications`. Its app ID and data folder stay separate. Packaging
+  stable is therefore locked until the owner decides to switch: `STABLE_CUTOVER_APPROVED` in
+  `apps/desktop/src/package-channel.ts`, which depends on that decision alone, not on the
+  version. The switch is planned for `1.0.0` but may come earlier; until then the owner uses
+  nightly (D51).
 - `main` must always be releasable, since any night can turn it into a nightly.
 
 ## Considered Options
