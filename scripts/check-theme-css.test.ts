@@ -3,11 +3,7 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterEach, beforeEach, describe, expect, it } from "vite-plus/test";
-import {
-  collectThemeVariables,
-  findThemeCssProblems,
-  themeVariables,
-} from "./check-theme-css.ts";
+import { collectThemeVariables, findThemeCssProblems, themeVariables } from "./check-theme-css.ts";
 import { capture } from "./verify.ts";
 
 const KNOWN = new Set(["--se-text", "--se-text-muted"]);
@@ -108,12 +104,18 @@ describe("findThemeCssProblems", () => {
   });
 
   it("does not read an id selector as a hex color", () => {
-    write("apps/web/src/h.css", "#fff, #add .x {\n  margin: 0;\n}\n.y {\n  #abc & {\n    margin: 0;\n  }\n}\n");
+    write(
+      "apps/web/src/h.css",
+      "#fff, #add .x {\n  margin: 0;\n}\n.y {\n  #abc & {\n    margin: 0;\n  }\n}\n",
+    );
     expect(problems()).toEqual([]);
   });
 
   it("does not report a color in a feature query", () => {
-    write("apps/web/src/i.css", "@supports (color: oklch(0 0 0)) {\n  .i {\n    margin: 0;\n  }\n}\n");
+    write(
+      "apps/web/src/i.css",
+      "@supports (color: oklch(0 0 0)) {\n  .i {\n    margin: 0;\n  }\n}\n",
+    );
     expect(problems()).toEqual([]);
   });
 

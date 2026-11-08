@@ -27,7 +27,13 @@ const STATEMENT = /([^{};]*)([{};]|$)/g;
 const THEME_PACKAGE = "packages/theme/";
 
 /** Generated or installed output; hidden folders are skipped as well. */
-const SKIPPED_FOLDERS = new Set(["node_modules", "dist", "dist-electron", "dist-release", "release"]);
+const SKIPPED_FOLDERS = new Set([
+  "node_modules",
+  "dist",
+  "dist-electron",
+  "dist-release",
+  "release",
+]);
 
 function cssFiles(dir: string): string[] {
   if (!existsSync(dir)) return [];
