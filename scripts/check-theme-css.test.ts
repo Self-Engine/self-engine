@@ -212,12 +212,7 @@ describe("themeVariables, for the tokens", () => {
 describe("themeVariables, for the Module Color", () => {
   it("knows the four --se-module variables of the real theme package", () => {
     const names = themeVariables();
-    for (const name of [
-      "--se-module",
-      "--se-module-on",
-      "--se-module-soft",
-      "--se-module-text",
-    ]) {
+    for (const name of ["--se-module", "--se-module-on", "--se-module-soft", "--se-module-text"]) {
       expect(names).toContain(name);
     }
   });

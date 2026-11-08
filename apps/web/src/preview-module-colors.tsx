@@ -41,7 +41,9 @@ function ModuleSample({ name }: { readonly name: string }) {
       <Text fw={600} style={{ color: "var(--se-module-text)" }}>
         {name}
       </Text>
-      <div style={{ ...ENTRY, background: "var(--se-module-soft)", color: "var(--se-module-text)" }}>
+      <div
+        style={{ ...ENTRY, background: "var(--se-module-soft)", color: "var(--se-module-text)" }}
+      >
         Active entry
       </div>
       <div style={ENTRY}>Other entry</div>
