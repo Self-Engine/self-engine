@@ -1,7 +1,14 @@
-import { ACCENT_IDS, type ThemeCatalog } from "./catalog.ts";
+import { ACCENT_IDS, type ColorSet, type ThemeCatalog } from "./catalog.ts";
 import { composite, contrastRatio } from "./color.ts";
-import { type Appearance, DEFAULT_APPEARANCE, resolveAppearance } from "./resolve.ts";
-import { COLOR_MODES, type FinalColors, type Hex, type ResolvedColorMode } from "./roles.ts";
+import { type Appearance, DEFAULT_APPEARANCE, FROM_THEME, resolveAppearance } from "./resolve.ts";
+import {
+  type AccentColors,
+  COLOR_MODES,
+  type FinalColors,
+  type Hex,
+  type ResolvedColorMode,
+} from "./roles.ts";
+import { fillHover, outlineHover, softHover } from "./variants.ts";
 
 type Role = keyof FinalColors;
 
@@ -34,13 +41,30 @@ export interface ContrastIssue {
   readonly minimum: number;
 }
 
-/** The pairs of one Color Mode's final values that miss their minimum. */
-export function checkContrast(roles: FinalColors): ContrastIssue[] {
+type Check = (pair: string, first: Hex, second: Hex, minimum: number) => void;
+
+function collector(): { readonly issues: ContrastIssue[]; readonly check: Check } {
   const issues: ContrastIssue[] = [];
-  const check = (pair: string, first: Hex, second: Hex, minimum: number) => {
+  const check: Check = (pair, first, second, minimum) => {
     const ratio = contrastRatio(first, second);
     if (ratio < minimum) issues.push({ pair, ratio, minimum });
   };
+  return { issues, check };
+}
+
+function checkFill(check: Check, textName: string, text: Hex, fillName: string, fill: Hex): void {
+  check(`${textName} on ${fillName}`, text, fill, TEXT);
+  check(`${textName} on ${fillName} hover`, text, fillHover(fill, text), TEXT);
+}
+
+function checkSoftHover(check: Check, set: AccentColors): void {
+  const hovered = softHover(set.accent, set.accentSoft);
+  check("accentText on accentSoft hover", set.accentText, hovered, TEXT);
+}
+
+/** The pairs of one Color Mode's final values that miss their minimum. */
+export function checkContrast(roles: FinalColors): ContrastIssue[] {
+  const { issues, check } = collector();
   const on = (foreground: Role, background: Role, minimum: number) =>
     check(`${foreground} on ${background}`, roles[foreground], roles[background], minimum);
   const hovered = (surface: Role) => composite(roles.hover, roles[surface]);
@@ -56,8 +80,15 @@ export function checkContrast(roles: FinalColors): ContrastIssue[] {
     on(colored, soft, TEXT);
     on("text", soft, TEXT);
   }
-  for (const [text, fill] of FILL_PAIRS) on(text, fill, TEXT);
+  for (const [text, fill] of FILL_PAIRS) checkFill(check, text, roles[text], fill, roles[fill]);
+  checkSoftHover(check, roles);
   for (const surface of CONTAINERS) {
+    check(
+      `accentText on outline hover over ${surface}`,
+      roles.accentText,
+      composite(outlineHover(roles.accentText), roles[surface]),
+      TEXT,
+    );
     on("borderControl", surface, CONTROL);
     check(`focus ring on ${surface}`, roles.accentText, roles[surface], CONTROL);
     check(`hover against ${surface}`, hovered(surface), roles[surface], HOVER);
@@ -76,28 +107,56 @@ export interface ContrastFailure extends ContrastIssue {
 export function auditContrast(catalog: ThemeCatalog): ContrastFailure[] {
   return Object.values(catalog).flatMap((theme) =>
     COLOR_MODES.filter((mode) => theme.colors[mode] !== undefined).flatMap((colorMode) =>
-      ACCENT_IDS.flatMap((accent) =>
-        [true, false].flatMap((backgroundTint) => {
-          const appearance: Appearance = {
-            ...DEFAULT_APPEARANCE,
-            lightTheme: theme.id,
-            darkTheme: theme.id,
-            accent,
-            backgroundTint,
-            colorMode,
-          };
-          return checkContrast(resolveAppearance(appearance, catalog)[colorMode].roles).map(
-            (issue) => ({ ...issue, theme: theme.id, colorMode, accent, backgroundTint }),
-          );
-        }),
+      (theme.accent?.[colorMode] === undefined ? ACCENT_IDS : [...ACCENT_IDS, FROM_THEME]).flatMap(
+        (accent) =>
+          [true, false].flatMap((backgroundTint) => {
+            const appearance: Appearance = {
+              ...DEFAULT_APPEARANCE,
+              lightTheme: theme.id,
+              darkTheme: theme.id,
+              accent,
+              backgroundTint,
+              colorMode,
+            };
+            return checkContrast(resolveAppearance(appearance, catalog)[colorMode].roles).map(
+              (issue) => ({ ...issue, theme: theme.id, colorMode, accent, backgroundTint }),
+            );
+          }),
       ),
     ),
   );
+}
+
+export interface ColorSetFailure extends ContrastIssue {
+  readonly colorSet: string;
+  readonly colorMode: ResolvedColorMode;
+}
+
+/** Every failing pair inside the Color Sets, in both Color Modes, independent of any Theme. */
+export function auditColorSets(sets: Readonly<Record<string, ColorSet>>): ColorSetFailure[] {
+  return Object.entries(sets).flatMap(([colorSet, modes]) =>
+    COLOR_MODES.flatMap((colorMode) => {
+      const set = modes[colorMode];
+      const { issues, check } = collector();
+      checkFill(check, "onAccent", set.onAccent, "accent", set.accent);
+      check("accentText on accentSoft", set.accentText, set.accentSoft, TEXT);
+      checkSoftHover(check, set);
+      return issues.map((issue) => ({ ...issue, colorSet, colorMode }));
+    }),
+  );
+}
+
+function formatIssue({ pair, ratio, minimum }: ContrastIssue): string {
+  return `${pair} is ${ratio.toFixed(2)}:1, needs ${minimum}:1`;
+}
+
+export function formatColorSetFailure(failure: ColorSetFailure): string {
+  return `${failure.colorSet} ${failure.colorMode}: ${formatIssue(failure)}`;
 }
 
 /** One line that says where the failure is and by how much it misses. */
 export function formatContrastFailure(failure: ContrastFailure): string {
   const tint = failure.backgroundTint ? "tint on" : "tint off";
   const context = `${failure.theme} ${failure.colorMode}, accent ${failure.accent}, ${tint}`;
-  return `${context}: ${failure.pair} is ${failure.ratio.toFixed(2)}:1, needs ${failure.minimum}:1`;
+  return `${context}: ${formatIssue(failure)}`;
 }

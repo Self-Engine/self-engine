@@ -10,6 +10,7 @@ import {
 import {
   type Appearance,
   type FinalColors,
+  type ModeValues,
   resolveAppearance,
   resolveColorMode,
   type ThemeCatalog,
@@ -45,6 +46,13 @@ const NO_STORAGE: MantineColorSchemeManager = {
   clear: () => undefined,
 };
 
+/**
+ * Mantine's global CSS draws the focus ring in the filled primary color, with no variable of its
+ * own. The extra `:root` wins over it whatever the stylesheet order.
+ */
+const FOCUS_RING_CSS =
+  ":root .mantine-focus-auto:focus-visible,:root .mantine-focus-always:focus{outline-color:var(--se-accent-text)}";
+
 const ColorsContext = createContext<FinalColors | null>(null);
 
 export interface ThemeProviderProps {
@@ -61,8 +69,8 @@ export function ThemeProvider({ appearance, catalog, children }: ThemeProviderPr
     PREFERS_REDUCED_MOTION.matches,
   );
   const resolved = useMemo(() => resolveAppearance(appearance, catalog), [appearance, catalog]);
-  const theme = useMemo(() => mantineTheme(resolved), [resolved]);
   const scheme = resolveColorMode(appearance.colorMode, prefersDark);
+  const theme = useMemo(() => mantineTheme(resolved, scheme), [resolved, scheme]);
   useInstantChange(JSON.stringify(resolved[scheme].roles));
   const { density, densityCss, rootFontSize } = resolved.layout;
   useLayoutEffect(() => {
@@ -70,10 +78,15 @@ export function ThemeProvider({ appearance, catalog, children }: ThemeProviderPr
     root.dataset.density = density;
     root.style.fontSize = rootFontSize;
   }, [density, rootFontSize]);
+  const variablesFor = ({ cssVariables, mantineVariables, colorVariables }: ModeValues) => ({
+    ...cssVariables,
+    ...mantineVariables,
+    ...colorVariables,
+  });
   const cssVariablesResolver = () => ({
     variables: tokenVariables({ reducedMotion }),
-    light: { ...resolved.light.cssVariables, ...resolved.light.mantineVariables },
-    dark: { ...resolved.dark.cssVariables, ...resolved.dark.mantineVariables },
+    light: variablesFor(resolved.light),
+    dark: variablesFor(resolved.dark),
   });
   return (
     <ColorsContext value={resolved[scheme].roles}>
@@ -84,7 +97,7 @@ export function ThemeProvider({ appearance, catalog, children }: ThemeProviderPr
         forceColorScheme={scheme}
         theme={theme}
       >
-        <style>{densityCss}</style>
+        <style>{`${densityCss}${FOCUS_RING_CSS}`}</style>
         {children}
       </MantineProvider>
     </ColorsContext>

@@ -1,7 +1,7 @@
 // Throwaway page to judge the Theme before Storybook exists. #23 removes it.
 
-import { Group, SegmentedControl, Stack, Text, Title } from "@mantine/core";
-import { BUILT_IN_THEMES, type ColorMode } from "@self-engine/theme";
+import { Button, Group, SegmentedControl, Stack, Text, Title } from "@mantine/core";
+import { ACCENT_IDS, BUILT_IN_THEMES, type ColorMode, FROM_THEME } from "@self-engine/theme";
 import { createFileRoute } from "@tanstack/react-router";
 import type { CSSProperties, ReactNode } from "react";
 import { usePreviewAppearance } from "../preview-appearance.tsx";
@@ -16,6 +16,12 @@ const COLOR_MODE_OPTIONS: { label: string; value: ColorMode }[] = [
   { label: "Dark", value: "dark" },
   { label: "System", value: "system" },
 ];
+
+const ACCENT_OPTIONS = [
+  { label: "From Theme", value: FROM_THEME },
+  ...ACCENT_IDS.map((id) => ({ label: id, value: id })),
+];
+const BUTTON_VARIANTS = ["filled", "light", "outline", "subtle"] as const;
 
 const THEME_OPTIONS = Object.values(BUILT_IN_THEMES).map(({ id, name }) => ({
   label: name,
@@ -139,6 +145,27 @@ function ThemePreviewPage() {
         </div>
       </Section>
       <Section title="Accent">
+        <SegmentedControl
+          data={ACCENT_OPTIONS}
+          onChange={(value) => {
+            setAppearance({ ...appearance, accent: value });
+          }}
+          value={appearance.accent}
+        />
+        <Group>
+          {BUTTON_VARIANTS.map((variant) => (
+            <Button key={variant} variant={variant}>
+              {variant}
+            </Button>
+          ))}
+        </Group>
+        <Group>
+          {BUTTON_VARIANTS.map((variant) => (
+            <Button color="teal" key={variant} variant={variant}>
+              teal {variant}
+            </Button>
+          ))}
+        </Group>
         <Group grow>
           <div style={box(color("accent"), { color: color("on-accent") })}>accent fill</div>
           <div style={box(color("accent-soft"), { color: color("accent-text") })}>accent soft</div>

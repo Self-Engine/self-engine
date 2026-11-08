@@ -9,10 +9,13 @@ export {
 } from "./catalog.ts";
 export { contrastRatio } from "./color.ts";
 export {
+  auditColorSets,
   auditContrast,
   checkContrast,
+  type ColorSetFailure,
   type ContrastFailure,
   type ContrastIssue,
+  formatColorSetFailure,
   formatContrastFailure,
 } from "./contrast.ts";
 export { FONT_FAMILY } from "./font.ts";
@@ -26,6 +29,7 @@ export {
   type LayoutValues,
 } from "./layout.ts";
 export {
+  ACCENT_PALETTE,
   type Appearance,
   type ColorMode,
   DEFAULT_APPEARANCE,
@@ -36,6 +40,7 @@ export {
   resolveColorMode,
 } from "./resolve.ts";
 export {
+  type AccentColors,
   type AccentRole,
   COLOR_MODES,
   type ColorRole,
@@ -47,3 +52,4 @@ export {
   type ThemeColors,
 } from "./roles.ts";
 export { type TokenVariables, tokenVariables } from "./tokens.ts";
+export { FILL_SHADE, type Palette } from "./variants.ts";

@@ -1,9 +1,16 @@
 import { describe, expect, it } from "vite-plus/test";
 import {
+  ACCENT_IDS,
+  type AccentColors,
+  auditColorSets,
   auditContrast,
   BUILT_IN_THEMES,
+  COLOR_SETS,
+  type ColorSet,
   contrastRatio,
+  formatColorSetFailure,
   formatContrastFailure,
+  FROM_THEME,
   type Theme,
   type ThemeColors,
 } from "./index.ts";
@@ -21,6 +28,16 @@ function pairs(overrides: Partial<ThemeColors>): string[] {
   return [...new Set(auditContrast(catalogWith(overrides)).map((failure) => failure.pair))];
 }
 
+function pairsFromTheme(accent: AccentColors): string[] {
+  const theme = { ...catalogWith({}).probe, accent: { light: accent } };
+  const failures = auditContrast({ probe: theme });
+  return [
+    ...new Set(
+      failures.filter((failure) => failure.accent === FROM_THEME).map((failure) => failure.pair),
+    ),
+  ];
+}
+
 describe("contrastRatio", () => {
   it("matches known WCAG ratios", () => {
     expect(contrastRatio("#000000", "#ffffff")).toBe(21);
@@ -34,6 +51,54 @@ describe("contrastRatio", () => {
 describe("auditContrast on the built-in catalog", () => {
   it("finds no failure", () => {
     expect(auditContrast(BUILT_IN_THEMES).map(formatContrastFailure)).toEqual([]);
+  });
+
+  it("covers every Accent", () => {
+    const failures = auditContrast(catalogWith({ text: "#ffffff" }));
+    expect([...new Set(failures.map((failure) => failure.accent))]).toEqual(ACCENT_IDS);
+  });
+});
+
+describe("auditColorSets", () => {
+  it("finds no failure in the eight Color Sets, in either Color Mode", () => {
+    expect(auditColorSets(COLOR_SETS).map(formatColorSetFailure)).toEqual([]);
+  });
+
+  it("names the Color Set, Color Mode, pair and ratio", () => {
+    const blue = COLOR_SETS["blue"] as ColorSet;
+    const failing = { ...blue.light, accentSoft: "#1a5fc0" } as const;
+    const [failure] = auditColorSets({ probe: { light: failing, dark: blue.dark } });
+    expect(failure).toBeDefined();
+    const message = formatColorSetFailure(failure as NonNullable<typeof failure>);
+    expect(message).toMatch(/^probe light: accentText on accentSoft is 1\.00:1, needs 4\.5:1$/);
+  });
+
+  it("checks on-fill text on the fill and its calculated hover", () => {
+    const blue = COLOR_SETS["blue"] as ColorSet;
+    const failing = { ...blue.dark, onAccent: "#3f7fe0" } as const;
+    const names = auditColorSets({ probe: { light: blue.light, dark: failing } }).map(
+      (failure) => failure.pair,
+    );
+    expect(names).toEqual(["onAccent on accent", "onAccent on accent hover"]);
+  });
+});
+
+describe("a Theme's own Accent", () => {
+  const accent = { accent: "#1c6ed5", onAccent: "#1c6ed5", accentSoft: "#e7f0fc" } as const;
+
+  it("is audited under From Theme", () => {
+    const failures = auditContrast({
+      probe: {
+        version: 1,
+        id: "probe",
+        name: "Probe",
+        colors: { light: lightTable },
+        accent: { light: { ...accent, accentText: "#1a5fc0" } },
+      },
+    });
+    expect(
+      failures.filter((failure) => failure.accent === FROM_THEME).map((failure) => failure.pair),
+    ).toContain("onAccent on accent hover");
   });
 });
 
@@ -53,7 +118,7 @@ describe("a failure", () => {
 
   it("reports every combination of the Background Tint", () => {
     const states = auditContrast(catalogWith({ text: "#ffffff" }))
-      .filter((failure) => failure.pair === "text on canvas")
+      .filter((failure) => failure.pair === "text on canvas" && failure.accent === "blue")
       .map((failure) => failure.backgroundTint);
     expect(states).toEqual([true, false]);
   });
@@ -92,8 +157,18 @@ describe("the pairs that are checked", () => {
     expect(failing).not.toContain("errorText on chrome");
   });
 
-  it("checks text on its own fill", () => {
-    expect(pairs({ onSuccess: "#22aa55" })).toEqual(["onSuccess on success"]);
+  it("checks text on its own fill and the calculated fill hover", () => {
+    expect(pairs({ onSuccess: "#22aa55" })).toEqual([
+      "onSuccess on success",
+      "onSuccess on success hover",
+    ]);
+  });
+
+  it("checks the Accent's colored text on its calculated hover values", () => {
+    const blue = COLOR_SETS["blue"] as ColorSet;
+    const failing = pairsFromTheme({ ...blue.light, accentText: "#6f9ee0" });
+    expect(failing).toContain("accentText on accentSoft hover");
+    expect(failing).toContain("accentText on outline hover over canvas");
   });
 
   it("checks text on every soft fill", () => {
