@@ -54,12 +54,15 @@ async function openWindow(): Promise<void> {
   const window = new BrowserWindow({
     width: 1100,
     height: 750,
+    // The native window is white until the page paints, which the Start Cache cannot reach.
+    show: false,
     webPreferences: {
       preload: path.join(__dirname, "preload.cjs"),
       contextIsolation: true,
       sandbox: true,
     },
   });
+  window.once("ready-to-show", () => window.show());
   window.webContents.setWindowOpenHandler(() => ({ action: "deny" }));
   window.webContents.on("will-navigate", (event, url) => {
     if (!isRendererUrl(url, scheme)) event.preventDefault();

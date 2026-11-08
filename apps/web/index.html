@@ -4,6 +4,37 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Self-Engine</title>
+    <script>
+      (function () {
+        var root = document.documentElement;
+        var mode = matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+        // The neutral default: the browser's own colors for the system preference.
+        var css = "html{color-scheme:" + mode + "}";
+        try {
+          var cache = JSON.parse(localStorage.getItem("self-engine:start-cache"));
+          var cachedMode = cache.colorMode === "system" ? mode : cache.colorMode;
+          var cachedCss = cache.css[cachedMode];
+          if (
+            cache.version === 1 &&
+            typeof cachedCss === "string" &&
+            typeof cache.density === "string" &&
+            typeof cache.rootFontSize === "string"
+          ) {
+            mode = cachedMode;
+            css = cachedCss;
+            root.dataset.density = cache.density;
+            root.style.fontSize = cache.rootFontSize;
+          }
+        } catch (ignored) {
+          // No storage or an unreadable cache: the neutral default stands.
+        }
+        root.setAttribute("data-mantine-color-scheme", mode);
+        var style = document.createElement("style");
+        style.id = "se-start-cache";
+        style.textContent = css;
+        document.head.appendChild(style);
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

@@ -18,6 +18,7 @@ import {
 } from "../core/index.ts";
 import { useInstantChange } from "./instant-change.ts";
 import { mantineTheme } from "./theme.ts";
+import { useStartCache } from "./use-start-cache.ts";
 
 function systemPreference(query: string) {
   return {
@@ -72,6 +73,7 @@ export function ThemeProvider({ appearance, catalog, children }: ThemeProviderPr
   const scheme = resolveColorMode(appearance.colorMode, prefersDark);
   const theme = useMemo(() => mantineTheme(resolved, scheme), [resolved, scheme]);
   useInstantChange(JSON.stringify(resolved[scheme].roles));
+  useStartCache(appearance.colorMode, resolved);
   const { density, densityCss, rootFontSize } = resolved.layout;
   useLayoutEffect(() => {
     const root = document.documentElement;
