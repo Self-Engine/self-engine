@@ -6,7 +6,14 @@ import {
   parseThemeColor,
   type VariantColorsResolver,
 } from "@mantine/core";
-import { createContext, type ReactNode, use, useMemo, useSyncExternalStore } from "react";
+import {
+  createContext,
+  type ReactNode,
+  use,
+  useLayoutEffect,
+  useMemo,
+  useSyncExternalStore,
+} from "react";
 import {
   ACCENT_PALETTE,
   type Appearance,
@@ -97,16 +104,23 @@ export function ThemeProvider({ appearance, catalog, children }: ThemeProviderPr
   const resolved = useMemo(() => resolveAppearance(appearance, catalog), [appearance, catalog]);
   const scheme = resolveColorMode(appearance.colorMode, prefersDark);
   useInstantChange(JSON.stringify(resolved[scheme].roles));
+  const { density, densityCss, mantineComponents, rootFontSize } = resolved.layout;
+  useLayoutEffect(() => {
+    const root = document.documentElement;
+    root.dataset.density = density;
+    root.style.fontSize = rootFontSize;
+  }, [density, rootFontSize]);
   // Mantine writes numbered shades once for both schemes, so the palettes follow the active one.
-  const theme = useMemo(
+  const mantineTheme = useMemo(
     (): MantineThemeOverride => ({
       ...MANTINE_THEME,
+      components: mantineComponents,
       primaryColor: ACCENT_PALETTE,
       primaryShade: FILL_SHADE,
       colors: resolved[scheme].palettes,
       variantColorResolver,
     }),
-    [resolved, scheme],
+    [mantineComponents, resolved, scheme],
   );
   const variablesFor = ({ cssVariables, mantineVariables, colorVariables }: ModeValues) => ({
     ...cssVariables,
@@ -125,9 +139,9 @@ export function ThemeProvider({ appearance, catalog, children }: ThemeProviderPr
         cssVariablesResolver={cssVariablesResolver}
         defaultColorScheme={scheme}
         forceColorScheme={scheme}
-        theme={theme}
+        theme={mantineTheme}
       >
-        <style>{FOCUS_RING_CSS}</style>
+        <style>{`${densityCss}${FOCUS_RING_CSS}`}</style>
         {children}
       </MantineProvider>
     </ColorsContext>

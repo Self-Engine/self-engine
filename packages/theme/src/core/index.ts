@@ -20,6 +20,14 @@ export {
 } from "./contrast.ts";
 export { FONT_FAMILY } from "./font.ts";
 export {
+  DENSITIES,
+  type Density,
+  DENSITY_VARIABLES,
+  FONT_SCALES,
+  type FontScale,
+  type LayoutValues,
+} from "./layout.ts";
+export {
   ACCENT_PALETTE,
   type Appearance,
   type ColorMode,
