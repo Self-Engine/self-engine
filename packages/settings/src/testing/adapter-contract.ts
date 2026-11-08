@@ -7,6 +7,10 @@ export interface AdapterContractHarness {
   readonly open: () => SettingsAdapter;
   /** Another writer changes the data. Done once the adapter's subscribers have been told. */
   readonly changeFromOutside: (entries: readonly ReportedSettingEntry[]) => void | Promise<void>;
+  /** Reading the storage fails until the returned function is called. */
+  readonly breakReads: () => () => void;
+  /** Writing to the storage fails until the returned function is called. */
+  readonly breakWrites: () => () => void;
 }
 
 function collectReports(adapter: SettingsAdapter) {
@@ -129,6 +133,61 @@ export function describeAdapterContract(name: string, setup: () => AdapterContra
 
       expect(gone.reported).toEqual([]);
       expect(staying.reported).toHaveLength(1);
+    });
+
+    it("rejects load when the storage cannot be read", async () => {
+      const harness = setup();
+      harness.breakReads();
+
+      await expect(harness.open().load()).rejects.toBeDefined();
+    });
+
+    it("loads everything again once the storage can be read", async () => {
+      const harness = setup();
+      await harness.open().save([{ key: "test.accent", value: "green" }]);
+      const repair = harness.breakReads();
+      await expect(harness.open().load()).rejects.toBeDefined();
+
+      repair();
+
+      await expect(harness.open().load()).resolves.toEqual([
+        { key: "test.accent", value: "green" },
+      ]);
+    });
+
+    it("rejects save when the storage cannot be written", async () => {
+      const harness = setup();
+      harness.breakWrites();
+
+      await expect(
+        harness.open().save([{ key: "test.accent", value: "green" }]),
+      ).rejects.toBeDefined();
+    });
+
+    it("keeps what was stored when a save fails", async () => {
+      const harness = setup();
+      const adapter = harness.open();
+      await adapter.save([{ key: "test.accent", value: "stored" }]);
+      const repair = harness.breakWrites();
+
+      await expect(adapter.save([{ key: "test.accent", value: "lost" }])).rejects.toBeDefined();
+      repair();
+
+      await expect(harness.open().load()).resolves.toEqual([
+        { key: "test.accent", value: "stored" },
+      ]);
+    });
+
+    it("saves again once the storage can be written", async () => {
+      const harness = setup();
+      const adapter = harness.open();
+      const repair = harness.breakWrites();
+      await expect(adapter.save([{ key: "test.accent", value: "lost" }])).rejects.toBeDefined();
+
+      repair();
+      await adapter.save([{ key: "test.accent", value: "stored" }]);
+
+      await expect(adapter.load()).resolves.toEqual([{ key: "test.accent", value: "stored" }]);
     });
   });
 }

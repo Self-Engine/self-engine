@@ -13,4 +13,9 @@ export {
   type SettingDeclaration,
   type SettingScope,
 } from "./setting.ts";
-export { createSettingsStore, type SettingsStore, type SettingsStoreOptions } from "./store.ts";
+export {
+  createSettingsStore,
+  type SettingsStorageFailure,
+  type SettingsStore,
+  type SettingsStoreOptions,
+} from "./store.ts";

@@ -17,6 +17,8 @@ import { APPEARANCE_SETTINGS, appearanceChanges } from "./appearance-settings.ts
 
 type Stored = Readonly<Partial<Record<keyof Appearance, JsonValue>>>;
 
+const ignoreStorageErrors = () => {};
+
 /** A loaded store whose adapters hold `stored`, each field in the scope it declares. */
 async function storeHolding(stored: Stored) {
   const entriesOf = (scope: SettingScope) =>
@@ -30,7 +32,7 @@ async function storeHolding(stored: Stored) {
     synced: createTestAdapter(entriesOf("synced")),
     device: createTestAdapter(entriesOf("device")),
   };
-  const store = createSettingsStore({ adapters });
+  const store = createSettingsStore({ adapters, onError: ignoreStorageErrors });
   await store.load();
   return { store, adapters };
 }
@@ -150,7 +152,7 @@ describe("the appearance Settings", () => {
       new Map<string, JsonValue>([["appearance.fontScale", 112.5]]),
     );
 
-    const restarted = createSettingsStore({ adapters });
+    const restarted = createSettingsStore({ adapters, onError: ignoreStorageErrors });
     await restarted.load();
     expect(appearanceOf(restarted)).toEqual({
       ...DEFAULT_APPEARANCE,

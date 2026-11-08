@@ -16,6 +16,10 @@ export interface TestAdapter extends SettingsAdapter {
   readonly holdSaves: () => () => void;
   /** Another writer changes the entries, and `subscribe` reports them. */
   readonly changeFromOutside: (entries: readonly ReportedSettingEntry[]) => void;
+  /** Every `load` rejects with `error` until the returned function is called. */
+  readonly failLoads: (error?: unknown) => () => void;
+  /** Every `save` rejects with `error`, storing nothing, until the returned function is called. */
+  readonly failSaves: (error?: unknown) => () => void;
 }
 
 /** An adapter in memory, for tests of everything that sits on the adapter contract. */
@@ -25,6 +29,8 @@ export function createTestAdapter(initial: Readonly<Record<string, JsonValue>> =
   let loads = 0;
   const listeners = new Set<(entries: readonly ReportedSettingEntry[]) => void>();
   let held: Promise<void> = Promise.resolve();
+  let loadFailure: unknown;
+  let saveFailure: unknown;
 
   return {
     stored,
@@ -35,13 +41,27 @@ export function createTestAdapter(initial: Readonly<Record<string, JsonValue>> =
       held = promise;
       return resolve;
     },
+    failLoads: (error = new Error("load failed")) => {
+      loadFailure = error;
+      return () => {
+        loadFailure = undefined;
+      };
+    },
+    failSaves: (error = new Error("save failed")) => {
+      saveFailure = error;
+      return () => {
+        saveFailure = undefined;
+      };
+    },
     load: async () => {
       loads += 1;
+      if (loadFailure !== undefined) throw loadFailure;
       return [...stored].map(([key, value]) => ({ key, value }));
     },
     save: async (entries) => {
       saves.push(entries);
       await held;
+      if (saveFailure !== undefined) throw saveFailure;
       for (const { key, value } of entries) stored.set(key, value);
     },
     subscribe: (listener) => {

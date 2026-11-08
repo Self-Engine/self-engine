@@ -11,7 +11,7 @@ import {
 } from "./setting.ts";
 
 export interface SettingsStore {
-  /** Runs once; call it before the first render. */
+  /** Runs once; call it before the first render. Always resolves, see `onError`. */
   readonly load: () => Promise<void>;
   /** The stored value if it passes the schema, otherwise the default. Never writes. */
   readonly read: <T extends JsonValue>(setting: SettingDeclaration<T>) => T;
@@ -23,8 +23,20 @@ export interface SettingsStore {
   readonly subscribe: (listener: () => void) => () => void;
 }
 
+type StorageOperation = "load" | "save";
+
+/** One operation an adapter could not carry out. Never holds a Setting's value. */
+export interface SettingsStorageFailure {
+  /** Built by the store and names only the kind of error, see `valueFreeError`. */
+  readonly error: Error;
+  readonly operation: StorageOperation;
+  readonly scope: SettingScope;
+}
+
 export interface SettingsStoreOptions {
   readonly adapters: Readonly<Record<SettingScope, SettingsAdapter>>;
+  /** Called for every `load` or `save` an adapter could not carry out. */
+  readonly onError: (failure: SettingsStorageFailure) => void;
 }
 
 const SCOPES: readonly SettingScope[] = ["synced", "device"];
@@ -33,7 +45,16 @@ function sameJson(a: JsonValue | undefined, b: JsonValue | undefined): boolean {
   return JSON.stringify(a) === JSON.stringify(b);
 }
 
-export function createSettingsStore({ adapters }: SettingsStoreOptions): SettingsStore {
+/**
+ * What an adapter throws can quote the value it was handling, in its message, stack or cause, as
+ * `JSON.parse` does. Only the error's name passes on, and only if it looks like one.
+ */
+function valueFreeError(thrown: unknown, operation: StorageOperation, scope: SettingScope): Error {
+  const kind = thrown instanceof Error && /^\w+Error$/.test(thrown.name) ? thrown.name : "Error";
+  return new Error(`Settings ${operation} failed in scope "${scope}": ${kind}`);
+}
+
+export function createSettingsStore({ adapters, onError }: SettingsStoreOptions): SettingsStore {
   const snapshot: Record<SettingScope, Map<string, JsonValue>> = {
     synced: new Map(),
     device: new Map(),
@@ -53,18 +74,30 @@ export function createSettingsStore({ adapters }: SettingsStoreOptions): Setting
   let loading: Promise<void> | undefined;
   let loaded = false;
 
+  function report(operation: StorageOperation, scope: SettingScope, thrown: unknown): void {
+    try {
+      onError({ error: valueFreeError(thrown, operation, scope), operation, scope });
+    } catch {
+      // A broken reporter must not stop the app any more than the failure it reports.
+    }
+  }
+
   async function loadScopes(): Promise<void> {
     await Promise.all(
       SCOPES.map(async (scope) => {
         // Subscribed before loading, so nothing changes unseen between the two. What arrives
         // meanwhile waits, since the loaded entries replace the snapshot.
         let early: ReportedSettingEntry[] | undefined = [];
-        adapters[scope].subscribe((entries) => {
-          if (early === undefined) takeExternal(scope, entries);
-          else early.push(...entries);
-        });
-        const entries = await adapters[scope].load();
-        snapshot[scope] = new Map(entries.map(({ key, value }) => [key, value]));
+        try {
+          adapters[scope].subscribe((entries) => {
+            if (early === undefined) takeExternal(scope, entries);
+            else early.push(...entries);
+          });
+          const entries = await adapters[scope].load();
+          snapshot[scope] = new Map(entries.map(({ key, value }) => [key, value]));
+        } catch (thrown) {
+          report("load", scope, thrown);
+        }
         takeExternal(scope, early);
         early = undefined;
       }),
@@ -106,6 +139,7 @@ export function createSettingsStore({ adapters }: SettingsStoreOptions): Setting
     for (const { key } of entries) pending.set(key, (pending.get(key) ?? 0) + 1);
     saves[scope] = saves[scope]
       .then(() => adapters[scope].save(entries))
+      .catch((thrown: unknown) => report("save", scope, thrown))
       .finally(() => {
         for (const { key } of entries) {
           const remaining = (pending.get(key) ?? 0) - 1;
