@@ -6,7 +6,7 @@ import {
   DEFAULT_APPEARANCE,
   type FinalColors,
   resolveAppearance,
-  roleVariable,
+  roleColor,
 } from "../core/index.ts";
 import { useFinalColors } from "./index.tsx";
 
@@ -22,7 +22,7 @@ function ColorRoles() {
             <div
               data-testid={role}
               style={{
-                background: `var(${roleVariable(role)})`,
+                background: roleColor(role),
                 border: "1px solid var(--se-border)",
                 borderRadius: 4,
                 height: 32,

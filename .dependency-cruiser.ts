@@ -21,6 +21,7 @@ export type AllowedImports = Readonly<Record<string, readonly string[]>>;
  * the two lists match.
  */
 export const ALLOWED_IMPORTS: AllowedImports = {
+  icons: ["theme"],
   "placeholder-module": ["placeholder-shared"],
 };
 

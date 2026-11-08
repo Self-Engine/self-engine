@@ -48,6 +48,7 @@ export {
   type FinalColors,
   type Hex,
   type ResolvedColorMode,
+  roleColor,
   roleVariable,
   type ThemeColors,
 } from "./roles.ts";

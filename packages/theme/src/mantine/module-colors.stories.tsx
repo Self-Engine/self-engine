@@ -1,8 +1,10 @@
-// The Module Color part of the throwaway /theme-preview page. #23 removes it.
-
 import { Button, SimpleGrid, Text } from "@mantine/core";
-import { COLOR_SETS } from "@self-engine/theme";
+import type { Meta, StoryObj } from "@storybook/react-vite";
 import type { CSSProperties } from "react";
+import { expect, within } from "storybook/test";
+import { COLOR_SETS, type ColorSetId } from "../core/index.ts";
+
+const SET_NAMES = Object.keys(COLOR_SETS) as ColorSetId[];
 
 const AREA: CSSProperties = {
   background: "var(--se-nav-surface)",
@@ -42,6 +44,7 @@ function ModuleSample({ name }: { readonly name: string }) {
         {name}
       </Text>
       <div
+        data-testid="active-entry"
         style={{ ...ENTRY, background: "var(--se-module-soft)", color: "var(--se-module-text)" }}
       >
         Active entry
@@ -53,14 +56,35 @@ function ModuleSample({ name }: { readonly name: string }) {
 }
 
 /** One area per Color Set: navigation takes the Module Color, the action takes the Accent. */
-export function ModuleColorsPreview() {
+function ModuleColors() {
   return (
     <SimpleGrid cols={4}>
-      {Object.keys(COLOR_SETS).map((name) => (
-        <div data-module-color={name} key={name} style={AREA}>
+      {SET_NAMES.map((name) => (
+        <div data-module-color={name} data-testid={name} key={name} style={AREA}>
           <ModuleSample name={name} />
         </div>
       ))}
     </SimpleGrid>
   );
 }
+
+const meta = {
+  title: "Tokens/Module Colors",
+  component: ModuleColors,
+} satisfies Meta<typeof ModuleColors>;
+
+export default meta;
+
+export const Overview: StoryObj<typeof meta> = {
+  play: async ({ canvas }) => {
+    await Promise.all(
+      SET_NAMES.map(async (name) => {
+        const area = within(canvas.getByTestId(name));
+        await expect(area.getByTestId("active-entry")).toHaveStyle({
+          backgroundColor: COLOR_SETS[name].light.accentSoft,
+        });
+        await expect(area.getByRole("button", { name: "Accent action" })).toBeVisible();
+      }),
+    );
+  },
+};

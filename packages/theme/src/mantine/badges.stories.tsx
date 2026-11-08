@@ -1,8 +1,7 @@
-// The badges of the throwaway /theme-preview page. #23 removes it.
-
 import { Badge, Group, Stack } from "@mantine/core";
-import { ACCENT_PALETTE, COLOR_SETS } from "@self-engine/theme";
-import { roleColor } from "./preview-role-color.ts";
+import type { Meta, StoryObj } from "@storybook/react-vite";
+import { expect } from "storybook/test";
+import { ACCENT_PALETTE, COLOR_SETS, roleColor } from "../core/index.ts";
 
 const VARIANTS = ["filled", "light", "outline", "dot", "transparent"] as const;
 
@@ -25,7 +24,7 @@ function BadgeRow({ color }: { readonly color: string }) {
   );
 }
 
-export function BadgesPreview() {
+function Badges() {
   return (
     <Stack gap="xs">
       <BadgeRow color={ACCENT_PALETTE} />
@@ -45,3 +44,22 @@ export function BadgesPreview() {
     </Stack>
   );
 }
+
+const meta = {
+  title: "Mantine/Badges",
+  component: Badges,
+} satisfies Meta<typeof Badges>;
+
+export default meta;
+
+export const Overview: StoryObj<typeof meta> = {
+  play: async ({ canvas }) => {
+    await expect(canvas.getByText(`${ACCENT_PALETTE} filled`)).toBeVisible();
+    await Promise.all(
+      Object.keys(COLOR_SETS).map(async (name) => {
+        await expect(canvas.getByText(`${name} transparent`)).toBeVisible();
+      }),
+    );
+    await expect(canvas.getByText("error soft")).toBeVisible();
+  },
+};

@@ -46,3 +46,8 @@ export type FinalColors = Readonly<Record<ColorRole | ColorSetRole, Hex>>;
 export function roleVariable(role: ColorRole | ColorSetRole): `--se-${string}` {
   return `--se-${role.replaceAll(/[A-Z]/g, (letter) => `-${letter.toLowerCase()}`)}`;
 }
+
+/** A CSS color that follows a Color Role through its variable, whatever the appearance. */
+export function roleColor(role: ColorRole | ColorSetRole): string {
+  return `var(${roleVariable(role)})`;
+}

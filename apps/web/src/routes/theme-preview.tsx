@@ -1,18 +1,20 @@
-// Throwaway page to judge the Theme before Storybook exists. #23 removes it.
+// Throwaway page with the switches that change the appearance of the real app. Everything to look
+// at lives in the Component Catalog. #23 removes the page.
 
-import { Button, Group, SegmentedControl, Stack, Text, Title } from "@mantine/core";
-import { ACCENT_IDS, BUILT_IN_THEMES, type ColorMode, FROM_THEME } from "@self-engine/theme";
+import { SegmentedControl, Stack, Switch, Title } from "@mantine/core";
+import {
+  ACCENT_IDS,
+  BUILT_IN_THEMES,
+  type ColorMode,
+  DENSITIES,
+  type Density,
+  FONT_SCALES,
+  type FontScale,
+  FROM_THEME,
+} from "@self-engine/theme";
 import { createFileRoute } from "@tanstack/react-router";
-import type { CSSProperties, ReactNode } from "react";
+import type { ReactNode } from "react";
 import { usePreviewAppearance } from "../preview-appearance.tsx";
-import { BackgroundTintPreview } from "../preview-background-tint.tsx";
-import { BadgesPreview } from "../preview-badges.tsx";
-import { DensityPreview } from "../preview-density.tsx";
-import { IconsPreview } from "../preview-icons.tsx";
-import { PreviewMantineComponents } from "../preview-mantine-components.tsx";
-import { ModuleColorsPreview } from "../preview-module-colors.tsx";
-import { MotionSample, NumbersSample } from "../preview-numbers-motion.tsx";
-import { roleColor as color } from "../preview-role-color.ts";
 
 export const Route = createFileRoute("/theme-preview")({ component: ThemePreviewPage });
 
@@ -26,26 +28,16 @@ const ACCENT_OPTIONS = [
   { label: "From Theme", value: FROM_THEME },
   ...ACCENT_IDS.map((id) => ({ label: id, value: id })),
 ];
-const BUTTON_VARIANTS = ["filled", "light", "outline", "subtle"] as const;
 
 const THEME_OPTIONS = Object.values(BUILT_IN_THEMES).map(({ id, name }) => ({
   label: name,
   value: id,
 }));
 
-const SURFACES = ["chrome", "navSurface", "canvas", "surface", "surfaceRaised"] as const;
-const STATUS_FILL_TEXT = { error: "onError", warning: "onWarning", success: "onSuccess" } as const;
-type Status = keyof typeof STATUS_FILL_TEXT;
-const STATUSES = Object.keys(STATUS_FILL_TEXT) as Status[];
-
-function box(background: string, extra: CSSProperties = {}): CSSProperties {
-  return {
-    background,
-    padding: "var(--mantine-spacing-md)",
-    borderRadius: "var(--mantine-radius-md)",
-    ...extra,
-  };
-}
+const FONT_SCALE_OPTIONS = FONT_SCALES.map((step) => ({
+  label: `${step} %`,
+  value: String(step),
+}));
 
 function Section({ title, children }: { readonly title: string; readonly children: ReactNode }) {
   return (
@@ -55,36 +47,6 @@ function Section({ title, children }: { readonly title: string; readonly childre
       </Title>
       {children}
     </Stack>
-  );
-}
-
-function SurfaceSample({ role }: { readonly role: (typeof SURFACES)[number] }) {
-  return (
-    <div style={box(color(role), { border: `1px solid ${color("border")}` })}>
-      <Text fw={600}>{role}</Text>
-      <Text style={{ color: color("text") }}>text</Text>
-      <Text style={{ color: color("textMuted") }}>textMuted</Text>
-      {role !== "chrome" && (
-        <div style={box(color("hover"), { marginTop: "var(--mantine-spacing-xs)" })}>
-          <Text style={{ color: color("text") }}>text on hover</Text>
-          <Text style={{ color: color("textMuted") }}>textMuted on hover</Text>
-        </div>
-      )}
-    </div>
-  );
-}
-
-function StatusSample({ status }: { readonly status: Status }) {
-  return (
-    <Group grow>
-      <div style={box(color(status), { color: color(STATUS_FILL_TEXT[status]) })}>
-        {status} fill
-      </div>
-      <div style={box(color(`${status}Soft`), { color: color(`${status}Text`) })}>
-        {status} soft
-      </div>
-      <div style={box(color("surface"), { color: color(`${status}Text`) })}>{status} text</div>
-    </Group>
   );
 }
 
@@ -103,7 +65,20 @@ function ThemePreviewPage() {
         />
       </Section>
       <Section title="Density and font scale">
-        <DensityPreview />
+        <SegmentedControl
+          data={[...DENSITIES]}
+          onChange={(value) => {
+            changeAppearance({ density: value as Density });
+          }}
+          value={appearance.density}
+        />
+        <SegmentedControl
+          data={FONT_SCALE_OPTIONS}
+          onChange={(value) => {
+            changeAppearance({ fontScale: Number(value) as FontScale });
+          }}
+          value={String(appearance.fontScale)}
+        />
       </Section>
       <Section title="Light Theme">
         <SegmentedControl
@@ -123,34 +98,14 @@ function ThemePreviewPage() {
           value={appearance.darkTheme}
         />
       </Section>
-      <Section title="Numbers">
-        <NumbersSample />
-      </Section>
-      <Section title="Motion: a Theme or Color Mode switch must not fade these">
-        <MotionSample />
-      </Section>
       <Section title="Background Tint">
-        <BackgroundTintPreview />
-      </Section>
-      <Section title="Surfaces, text and hover">
-        <Group align="stretch" grow>
-          {SURFACES.map((role) => (
-            <SurfaceSample key={role} role={role} />
-          ))}
-        </Group>
-      </Section>
-      <Section title="Lines">
-        <div
-          style={{
-            borderTop: `1px solid ${color("border")}`,
-            paddingTop: "var(--mantine-spacing-xs)",
+        <Switch
+          checked={appearance.backgroundTint}
+          label="Background Tint"
+          onChange={(event) => {
+            changeAppearance({ backgroundTint: event.currentTarget.checked });
           }}
-        >
-          border (decorative)
-        </div>
-        <div style={box(color("surface"), { border: `1px solid ${color("borderControl")}` })}>
-          borderControl (input outline)
-        </div>
+        />
       </Section>
       <Section title="Accent">
         <SegmentedControl
@@ -160,41 +115,6 @@ function ThemePreviewPage() {
           }}
           value={appearance.accent}
         />
-        <Group>
-          {BUTTON_VARIANTS.map((variant) => (
-            <Button key={variant} variant={variant}>
-              {variant}
-            </Button>
-          ))}
-        </Group>
-        <Group>
-          {BUTTON_VARIANTS.map((variant) => (
-            <Button color="teal" key={variant} variant={variant}>
-              teal {variant}
-            </Button>
-          ))}
-        </Group>
-        <Group grow>
-          <div style={box(color("accent"), { color: color("onAccent") })}>accent fill</div>
-          <div style={box(color("accentSoft"), { color: color("accentText") })}>accent soft</div>
-        </Group>
-      </Section>
-      <Section title="Badges">
-        <BadgesPreview />
-      </Section>
-      <Section title="Status">
-        {STATUSES.map((status) => (
-          <StatusSample key={status} status={status} />
-        ))}
-      </Section>
-      <Section title="Module Colors: navigation uses the Module Color, actions use the Accent">
-        <ModuleColorsPreview />
-      </Section>
-      <Section title="Icons: size follows the font scale, color follows the surrounding element">
-        <IconsPreview />
-      </Section>
-      <Section title="Mantine components">
-        <PreviewMantineComponents />
       </Section>
     </Stack>
   );
