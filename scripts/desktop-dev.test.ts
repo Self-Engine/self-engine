@@ -8,6 +8,7 @@ import {
   isBundle,
   type Kill,
   killGroup,
+  serviceEnv,
   stopGroup,
   waitUntil,
 } from "./desktop-dev.ts";
@@ -50,6 +51,23 @@ describe("electronArgs", () => {
       "--remote-debugging-port=9222",
       ".",
     ]);
+  });
+
+  it("adds the data folder only when set", () => {
+    expect(electronArgs({ SELF_ENGINE_USER_DATA_DIR: "/tmp/run" })).toEqual([
+      "--user-data-dir=/tmp/run",
+      ".",
+    ]);
+  });
+});
+
+describe("serviceEnv", () => {
+  it("pins the dev channel, whatever the shell has set", () => {
+    expect(serviceEnv({ PATH: "/bin", SELF_ENGINE_CHANNEL: "nightly" }, 5733)).toEqual({
+      PATH: "/bin",
+      PORT: "5733",
+      SELF_ENGINE_CHANNEL: "dev",
+    });
   });
 });
 

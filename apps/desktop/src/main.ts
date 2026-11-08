@@ -1,6 +1,7 @@
 import path from "node:path";
 import { BrowserWindow, app, net, protocol } from "electron";
-import { desktopDataFolder, desktopScheme } from "./channel.ts";
+import { buildIdentity } from "./build-channel.ts";
+import { resolveDevServer, userDataPath } from "./channel.ts";
 import {
   contentSecurityPolicy,
   desktopUrl,
@@ -10,14 +11,15 @@ import {
   withContentSecurityPolicy,
 } from "./protocol.ts";
 
-// Set by the dev runner (scripts/desktop-dev.ts). A packaged app never follows it.
-const devServerUrl = app.isPackaged ? undefined : process.env.VITE_DEV_SERVER_URL?.trim();
-const devServer = devServerUrl ? new URL(devServerUrl) : undefined;
-const isDevelopment = devServer !== undefined;
-const scheme = desktopScheme(isDevelopment);
+const { channel, productName, dataFolder, icon, scheme } = buildIdentity;
 
-// Both must run before the app is ready.
-app.setPath("userData", path.join(app.getPath("appData"), desktopDataFolder(isDevelopment)));
+// All of these must run before the app is ready. The name comes first: Electron derives the
+// Keychain item of `safeStorage` from it, and the packaged metadata does not cover `electron .`.
+app.setName(productName);
+app.setPath(
+  "userData",
+  userDataPath(app.getPath("appData"), dataFolder, app.commandLine.getSwitchValue("user-data-dir")),
+);
 protocol.registerSchemesAsPrivileged([
   {
     scheme,
@@ -31,7 +33,7 @@ protocol.registerSchemesAsPrivileged([
   },
 ]);
 
-function registerProtocol(): void {
+function registerProtocol(devServer: URL | undefined): void {
   const policy = contentSecurityPolicy(devServer);
   const assetDirectory = path.join(app.getAppPath(), "dist-renderer");
   protocol.handle(scheme, async (request) => {
@@ -60,8 +62,12 @@ async function openWindow(): Promise<void> {
 }
 
 async function start(): Promise<void> {
+  // Set by the dev runner (scripts/desktop-dev.ts).
+  const devServer = resolveDevServer(channel, process.env.VITE_DEV_SERVER_URL);
   await app.whenReady();
-  registerProtocol();
+  // `electron .` runs under Electron's own bundle, so the Dock needs telling.
+  if (channel === "dev") app.dock?.setIcon(path.join(app.getAppPath(), icon));
+  registerProtocol(devServer);
   await openWindow();
 }
 

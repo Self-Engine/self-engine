@@ -31,7 +31,12 @@ the stable app.
 ## Consequences
 
 - Every channel needs its own identity wired through the build (see the channel identity
-  issue in layer 0).
+  issue in layer 0). The channel is compiled into the bundle (`SELF_ENGINE_CHANNEL` when
+  building, unset means dev); it is never read from the running app's environment, and
+  `app.isPackaged` cannot tell nightly from stable.
+- Until the cutover to `1.0.0` the stable bundle `Self-Engine.app` has the same name as the
+  old app, so copying it to `/Applications` would replace the old app. Its app ID and data
+  folder stay separate. The owner uses nightly until then (D51).
 - `main` must always be releasable, since any night can turn it into a nightly.
 
 ## Considered Options

@@ -40,10 +40,23 @@ export function electronEnv(env: NodeJS.ProcessEnv, devServerUrl: string): NodeJ
   return { ...rest, VITE_DEV_SERVER_URL: devServerUrl };
 }
 
-/** Electron's arguments; a debugging port lets a test drive the running window. */
+/** The environment of the dev server and the bundler; a dev run always builds the dev channel. */
+export function serviceEnv(env: NodeJS.ProcessEnv, port: number): NodeJS.ProcessEnv {
+  return { ...env, PORT: String(port), SELF_ENGINE_CHANNEL: "dev" };
+}
+
+/**
+ * Electron's arguments. A debugging port lets a test drive the running window, and a data
+ * folder keeps a test run out of the real dev data.
+ */
 export function electronArgs(env: NodeJS.ProcessEnv): string[] {
   const port = env.SELF_ENGINE_REMOTE_DEBUGGING_PORT?.trim();
-  return [...(port ? [`--remote-debugging-port=${port}`] : []), "."];
+  const dataDir = env.SELF_ENGINE_USER_DATA_DIR?.trim();
+  return [
+    ...(port ? [`--remote-debugging-port=${port}`] : []),
+    ...(dataDir ? [`--user-data-dir=${dataDir}`] : []),
+    ".",
+  ];
 }
 
 /** Signals the process group of `pid`; a group that is already gone is fine. */
@@ -219,7 +232,7 @@ async function isServing(url: string): Promise<boolean> {
 
 async function main(): Promise<void> {
   const devServerUrl = `http://127.0.0.1:${DEV_PORT}/`;
-  const serviceEnv = { ...process.env, PORT: String(DEV_PORT) };
+  const servicesEnv = serviceEnv(process.env, DEV_PORT);
   const vp = (dir: string) => join(dir, "node_modules/.bin/vp");
   const supervisor = createSupervisor({
     launchElectron: () =>
@@ -244,9 +257,9 @@ async function main(): Promise<void> {
     // A bundle left from an earlier run must not count as ready before the first build.
     rmSync(BUNDLE_DIR, { recursive: true, force: true });
 
-    supervisor.addService(spawnGroup(vp(WEB_DIR), ["dev"], WEB_DIR, serviceEnv));
+    supervisor.addService(spawnGroup(vp(WEB_DIR), ["dev"], WEB_DIR, servicesEnv));
     supervisor.addService(
-      spawnGroup(vp(DESKTOP_DIR), ["pack", "--watch"], DESKTOP_DIR, serviceEnv),
+      spawnGroup(vp(DESKTOP_DIR), ["pack", "--watch"], DESKTOP_DIR, servicesEnv),
     );
 
     await waitUntil(
