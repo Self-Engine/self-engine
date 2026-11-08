@@ -57,6 +57,16 @@ describe("the verify tasks", () => {
     expect(config.run?.tasks?.["verify:theme-css"]).toBe("node scripts/check-theme-css.ts");
   });
 
+  it("extract the catalogs locally and only check them in CI", () => {
+    expect(config.run?.tasks?.["verify:i18n"]).toBe("node scripts/check-i18n.ts");
+    expect(config.run?.tasks?.["verify:i18n:check"]).toBe("node scripts/check-i18n.ts --check");
+  });
+
+  it("check the translations before the build", () => {
+    expect(STATIC_STAGES.indexOf("i18n")).toBeGreaterThanOrEqual(0);
+    expect(STATIC_STAGES.indexOf("i18n")).toBeLessThan(STATIC_STAGES.indexOf("build"));
+  });
+
   it("let lint warnings fail the gate", () => {
     expect(config.run?.tasks?.["verify:lint"]).toContain("--deny-warnings");
   });
@@ -103,8 +113,9 @@ describe("stageTask", () => {
     }
   });
 
-  it("checks the format instead of rewriting it in CI, and leaves the other stages alone", () => {
+  it("checks format and catalogs instead of rewriting them in CI, and leaves the others", () => {
     expect(stageTask("format", { CI: "true" })).toBe("verify:format:check");
+    expect(stageTask("i18n", { CI: "true" })).toBe("verify:i18n:check");
     expect(stageTask("lint", { CI: "true" })).toBe("verify:lint");
     expect(stageTask(TEST_STAGE, { CI: "true" })).toBe("verify:test");
   });
