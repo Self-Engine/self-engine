@@ -69,3 +69,13 @@ _Avoid_: preference, option, config
 **Synced Setting** (de: _synchronisierte Einstellung_):
 A _Setting_ that belongs to the user and follows them to every device once sync exists, such as the _Theme_ or the _Accent_.
 _Avoid_: global setting, account setting
+
+### Translation
+
+**App Language** (de: _App-Sprache_):
+The language the app is shown in: German, English, or whatever the device's system uses. A user's explicit choice applies on all their devices; following the system is decided by each device for itself.
+_Avoid_: locale, UI language, account language
+
+**Base Language** (de: _Basissprache_):
+English: the language every text is first written in, and the one shown when a text has no translation in the language asked for.
+_Avoid_: default locale, fallback language, source locale
