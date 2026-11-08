@@ -5,6 +5,7 @@ import { BUILT_IN_THEMES, type ColorMode } from "@self-engine/theme";
 import { createFileRoute } from "@tanstack/react-router";
 import type { CSSProperties, ReactNode } from "react";
 import { usePreviewAppearance } from "../preview-appearance.tsx";
+import { MotionSample, NumbersSample } from "../preview-numbers-motion.tsx";
 
 export const Route = createFileRoute("/theme-preview")({ component: ThemePreviewPage });
 
@@ -100,6 +101,12 @@ function ThemePreviewPage() {
           }}
           value={appearance.darkTheme}
         />
+      </Section>
+      <Section title="Numbers">
+        <NumbersSample />
+      </Section>
+      <Section title="Motion: a Theme or Color Mode switch must not fade these">
+        <MotionSample />
       </Section>
       <Section title="Surfaces, text and hover">
         <Group align="stretch" grow>
