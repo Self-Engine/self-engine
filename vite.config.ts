@@ -1,3 +1,5 @@
+import { resolve } from "node:path";
+import { linguiPlugin } from "@self-engine/i18n/vite";
 import { defineConfig } from "vite-plus";
 import { testTimeZone } from "./scripts/testing/process-timezone.ts";
 
@@ -19,6 +21,12 @@ const IGNORED = [
 process.env.TZ = testTimeZone();
 
 export default defineConfig({
+  // Compiles the macros and catalogs in tests. The test config adds the fixture catalog.
+  plugins: [
+    linguiPlugin({
+      configPath: resolve(import.meta.dirname, "packages/i18n/test/lingui.config.ts"),
+    }),
+  ],
   test: {
     include: ["apps/*/src/**/*.test.ts", "packages/*/src/**/*.test.ts", "scripts/**/*.test.ts"],
     environment: "node",
@@ -34,6 +42,7 @@ export default defineConfig({
     // The repo's own rules (packages/oxlint-plugin), reported as `self-engine/<rule>`.
     jsPlugins: [{ name: "self-engine", specifier: "@self-engine/oxlint-plugin" }],
     rules: {
+      "self-engine/no-global-t-macro": "error",
       // dependency-cruiser cannot see `import("…")` types (.dependency-cruiser.ts).
       "self-engine/no-import-type-query": "error",
       "self-engine/no-silent-catch": "error",
@@ -65,6 +74,12 @@ export default defineConfig({
       "verify:adrs": "node scripts/check-adrs.ts",
       // CSS uses Color Roles only (scripts/check-theme-css.ts).
       "verify:theme-css": "node scripts/check-theme-css.ts",
+      // Extracts the catalogs, then checks every translation (scripts/check-i18n.ts). Extraction
+      // reads every package's source; the tracking sees those reads, which was confirmed by
+      // editing a source file in another package.
+      "verify:i18n": "node scripts/check-i18n.ts",
+      // The i18n stage under CI: fails on a stale catalog instead of rewriting it.
+      "verify:i18n:check": "node scripts/check-i18n.ts --check",
       // The build scripts of apps/web and apps/desktop (ADR 0001): a broken pack entry passes
       // every other stage. Bundling never needs the Electron binary, so this runs in CI too.
       // `--cache` because `vp run` does not cache package scripts by default. `vp build` then

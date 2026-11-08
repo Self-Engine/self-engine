@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AboutRouteImport } from './routes/about'
+import { Route as LanguageSampleRouteImport } from './routes/language-sample'
 import { Route as ThemePreviewRouteImport } from './routes/theme-preview'
 
 const IndexRoute = IndexRouteImport.update({
@@ -23,6 +24,11 @@ const AboutRoute = AboutRouteImport.update({
   path: '/about',
   getParentRoute: () => rootRouteImport,
 } as any)
+const LanguageSampleRoute = LanguageSampleRouteImport.update({
+  id: '/language-sample',
+  path: '/language-sample',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ThemePreviewRoute = ThemePreviewRouteImport.update({
   id: '/theme-preview',
   path: '/theme-preview',
@@ -32,30 +38,34 @@ const ThemePreviewRoute = ThemePreviewRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
+  '/language-sample': typeof LanguageSampleRoute
   '/theme-preview': typeof ThemePreviewRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
+  '/language-sample': typeof LanguageSampleRoute
   '/theme-preview': typeof ThemePreviewRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
+  '/language-sample': typeof LanguageSampleRoute
   '/theme-preview': typeof ThemePreviewRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/about' | '/theme-preview'
+  fullPaths: '/' | '/about' | '/language-sample' | '/theme-preview'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/about' | '/theme-preview'
-  id: '__root__' | '/' | '/about' | '/theme-preview'
+  to: '/' | '/about' | '/language-sample' | '/theme-preview'
+  id: '__root__' | '/' | '/about' | '/language-sample' | '/theme-preview'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AboutRoute: typeof AboutRoute
+  LanguageSampleRoute: typeof LanguageSampleRoute
   ThemePreviewRoute: typeof ThemePreviewRoute
 }
 
@@ -75,6 +85,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AboutRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/language-sample': {
+      id: '/language-sample'
+      path: '/language-sample'
+      fullPath: '/language-sample'
+      preLoaderRoute: typeof LanguageSampleRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/theme-preview': {
       id: '/theme-preview'
       path: '/theme-preview'
@@ -88,6 +105,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AboutRoute: AboutRoute,
+  LanguageSampleRoute: LanguageSampleRoute,
   ThemePreviewRoute: ThemePreviewRoute,
 }
 export const routeTree = rootRouteImport

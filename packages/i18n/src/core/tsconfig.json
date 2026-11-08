@@ -1,0 +1,8 @@
+{
+  // The core runs without a DOM. Without the `DOM` lib, a use of `document` fails the typecheck.
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "lib": ["ESNext"]
+  },
+  "include": [".", "../po.d.ts"]
+}

@@ -16,7 +16,7 @@ through a PR.
 
 - **One gate, `pnpm verify`**, for humans, agents and CI: format, lint with warnings as
   errors, typecheck, the module boundaries ([ADR 0006](0006-module-boundaries-are-enforced-three-ways.md)),
-  the ADR check, the theme CSS check, the workspace build, then the tests. The stages are
+  the ADR check, the theme CSS check, the translation check, the workspace build, then the tests. The stages are
   `vp run` tasks, so an unchanged stage replays from the cache. The last line is `VERIFY: PASS`
   or `VERIFY: FAIL`.
 - **A pass writes a stamp**: the git tree of the verified checkout.
@@ -27,7 +27,7 @@ through a PR.
 
 ## Consequences
 
-- The flow is commit → `pnpm verify` → commit any formatter output → push.
+- The flow is commit → `pnpm verify` → commit any formatter output and extracted catalogs → push.
 - Any edit after a pass, even a formatting fix, needs another `pnpm verify` before a push.
   The cache keeps that rerun short.
 - Every stage must run through a tool whose file reads Vite Task can track. The typecheck
@@ -37,5 +37,5 @@ through a PR.
   0001 requires: a pack entry pointing at a missing file passes typecheck and the tests and
   fails only there. It bundles and never starts Electron, so CI needs no Electron binary.
 - The guard covers Claude Code only. CI runs the same gate for every PR and every push to
-  `main` (`.github/workflows/ci.yml`); there the format stage checks instead of rewriting
-  (`verify:format:check`), and CI does not depend on the stamp.
+  `main` (`.github/workflows/ci.yml`); there the format and i18n stages check instead of
+  rewriting (`verify:<stage>:check`), and CI does not depend on the stamp.

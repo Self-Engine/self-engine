@@ -4,12 +4,14 @@
  */
 
 import { definePlugin } from "@oxlint/plugins";
+import noGlobalTMacro from "./rules/no-global-t-macro.ts";
 import noImportTypeQuery from "./rules/no-import-type-query.ts";
 import noSilentCatch from "./rules/no-silent-catch.ts";
 
 export default definePlugin({
   meta: { name: "self-engine" },
   rules: {
+    "no-global-t-macro": noGlobalTMacro,
     "no-import-type-query": noImportTypeQuery,
     "no-silent-catch": noSilentCatch,
   },

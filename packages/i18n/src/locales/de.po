@@ -1,0 +1,64 @@
+msgid ""
+msgstr ""
+"POT-Creation-Date: 2026-11-09 02:19+0700\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Generator: @lingui/cli\n"
+"Language: de\n"
+
+#: apps/web/src/routes/language-sample.tsx
+msgid "{count, plural, one {# entry} other {# entries}}"
+msgstr "{count, plural, one {# Eintrag} other {# Einträge}}"
+
+#: apps/web/src/routes/language-sample.tsx
+msgid "A link stays inside its sentence: read the <0>About page</0>."
+msgstr "Ein Link bleibt in seinem Satz: Lies die <0>Über-Seite</0>."
+
+#: apps/web/src/routes/about.tsx
+msgid "A second route, to prove navigation works."
+msgstr "Eine zweite Route, um zu zeigen, dass die Navigation funktioniert."
+
+#: apps/web/src/routes/__root.tsx
+#: apps/web/src/routes/about.tsx
+msgctxt "page name"
+msgid "About"
+msgstr "Über"
+
+#: apps/web/src/routes/language-sample.tsx
+msgid "Add an entry"
+msgstr "Eintrag hinzufügen"
+
+#: apps/web/src/routes/language-sample.tsx
+msgid "Hello {name}, nice to see you."
+msgstr "Hallo {name}, schön, dich zu sehen."
+
+#: apps/web/src/routes/__root.tsx
+msgctxt "page name"
+msgid "Home"
+msgstr "Start"
+
+#: apps/web/src/routes/__root.tsx
+#: apps/web/src/routes/language-sample.tsx
+msgid "Language sample"
+msgstr "Sprachbeispiel"
+
+#: apps/web/src/routes/index.tsx
+msgid "The empty desktop shell."
+msgstr "Die leere Desktop-Shell."
+
+#: apps/web/src/routes/language-sample.tsx
+msgid "The language could not be loaded. Please try again."
+msgstr "Die Sprache konnte nicht geladen werden. Bitte versuche es noch einmal."
+
+#: apps/web/src/routes/__root.tsx
+msgid "Theme preview"
+msgstr "Design-Vorschau"
+
+#: apps/web/src/routes/language-sample.tsx
+msgid "This sentence is translated."
+msgstr "Dieser Satz ist übersetzt."
+
+#: apps/web/src/routes/language-sample.tsx
+msgid "Your name"
+msgstr "Dein Name"

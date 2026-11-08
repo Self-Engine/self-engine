@@ -145,6 +145,13 @@ export function boundaryConfig({ allowedImports, rootDir }: BoundaryOptions): IC
       comment:
         "The settings core (`@self-engine/settings`) runs without React. The hook belongs in `@self-engine/settings/react`.",
     }),
+    corePurityRule({
+      folder: "i18n",
+      binding: "react",
+      npmPattern: "react|react-dom|@lingui/react",
+      comment:
+        "The translation core (`@self-engine/i18n`) runs without React, so it works outside a component. Those imports belong in `@self-engine/i18n/react`. Its own tsconfig keeps the DOM out.",
+    }),
     {
       name: "icons-only-through-catalog",
       comment:

@@ -340,6 +340,37 @@ describe("the theme core", () => {
   });
 });
 
+describe("the translation core", () => {
+  const i18n = (dependencies: string[], files: Record<string, string>): FixturePackage => ({
+    dir: "packages/i18n",
+    dependencies,
+    exports: { ".": "./src/core/index.ts", "./react": "./src/react/index.ts" },
+    files: { "src/react/index.ts": "export const provider = 1;\n", ...files },
+  });
+
+  it.each(["react", "@lingui/react"])("fails an import of %s", async (name) => {
+    const found = await cruise([i18n([name], { "src/core/index.ts": `import "${name}";\n` })]);
+    expect(ruleNames(found)).toEqual(["i18n-core-is-pure"]);
+  });
+
+  it("fails an import of the React entry point", async () => {
+    const found = await cruise([
+      i18n([], { "src/core/index.ts": 'import "../react/index.ts";\n' }),
+    ]);
+    expect(ruleNames(found)).toEqual(["i18n-core-is-pure"]);
+  });
+
+  it("passes those imports in the React entry point", async () => {
+    const found = await cruise([
+      i18n(["react"], {
+        "src/core/index.ts": "export const core = 1;\n",
+        "src/react/index.ts": 'import "react";\nimport "../core/index.ts";\n',
+      }),
+    ]);
+    expect(found).toEqual([]);
+  });
+});
+
 describe("the settings core", () => {
   const settings = (dependencies: string[], files: Record<string, string>): FixturePackage => ({
     dir: "packages/settings",
