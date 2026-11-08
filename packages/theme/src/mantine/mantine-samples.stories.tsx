@@ -48,7 +48,9 @@ export const Input: StoryObj<typeof meta> = {
 };
 
 export const Select: StoryObj<typeof meta> = {
-  render: () => <MantineSelect data={["One", "Two", "Three"]} label="Select" placeholder="Pick one" />,
+  render: () => (
+    <MantineSelect data={["One", "Two", "Three"]} label="Select" placeholder="Pick one" />
+  ),
   play: async ({ canvas }) => {
     const select = canvas.getByRole("combobox", { name: "Select" });
     await userEvent.click(select);
