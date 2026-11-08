@@ -17,13 +17,16 @@ export interface SettingsStore {
   readonly read: <T extends JsonValue>(setting: SettingDeclaration<T>) => T;
   /** Applies at once and saves in the background. Throws on an invalid value. */
   readonly write: <T extends JsonValue>(setting: SettingDeclaration<T>, value: NoInfer<T>) => void;
-  /** Like `write`, for changes that belong together: all apply or none, saved as one batch. */
+  /**
+   * Like `write`, for one action that changes several Settings: all apply or none, and each
+   * adapter gets one batch.
+   */
   readonly writeAll: (changes: readonly SettingChange[]) => void;
   /** Calls `listener` after every change. Returns the unsubscribe function. */
   readonly subscribe: (listener: () => void) => () => void;
 }
 
-type StorageOperation = "load" | "save";
+type StorageOperation = "load" | "save" | "subscribe";
 
 /** One operation an adapter could not carry out. Never holds a Setting's value. */
 export interface SettingsStorageFailure {
@@ -35,11 +38,15 @@ export interface SettingsStorageFailure {
 
 export interface SettingsStoreOptions {
   readonly adapters: Readonly<Record<SettingScope, SettingsAdapter>>;
-  /** Called for every `load` or `save` an adapter could not carry out. */
+  /** Called for every `load`, `save` or `subscribe` an adapter could not carry out. */
   readonly onError: (failure: SettingsStorageFailure) => void;
 }
 
 const SCOPES: readonly SettingScope[] = ["synced", "device"];
+
+function perScope<T>(make: () => T): Record<SettingScope, T> {
+  return Object.fromEntries(SCOPES.map((scope) => [scope, make()])) as Record<SettingScope, T>;
+}
 
 function sameJson(a: JsonValue | undefined, b: JsonValue | undefined): boolean {
   return JSON.stringify(a) === JSON.stringify(b);
@@ -55,22 +62,13 @@ function valueFreeError(thrown: unknown, operation: StorageOperation, scope: Set
 }
 
 export function createSettingsStore({ adapters, onError }: SettingsStoreOptions): SettingsStore {
-  const snapshot: Record<SettingScope, Map<string, JsonValue>> = {
-    synced: new Map(),
-    device: new Map(),
-  };
+  const snapshot = perScope(() => new Map<string, JsonValue>());
   // A schema builds a new object on every parse, and `useSyncExternalStore` needs the same one.
   const parsed = new WeakMap<object, { readonly stored: JsonValue; readonly value: JsonValue }>();
   const listeners = new Set<() => void>();
-  const saves: Record<SettingScope, Promise<void>> = {
-    synced: Promise.resolve(),
-    device: Promise.resolve(),
-  };
+  const saves = perScope(() => Promise.resolve());
   // How many unfinished saves each entry has. A report for such an entry is an echo or out of date.
-  const pendingSaves: Record<SettingScope, Map<string, number>> = {
-    synced: new Map(),
-    device: new Map(),
-  };
+  const pendingSaves = perScope(() => new Map<string, number>());
   let loading: Promise<void> | undefined;
   let loaded = false;
 
@@ -93,6 +91,10 @@ export function createSettingsStore({ adapters, onError }: SettingsStoreOptions)
             if (early === undefined) takeExternal(scope, entries);
             else early.push(...entries);
           });
+        } catch (thrown) {
+          report("subscribe", scope, thrown);
+        }
+        try {
           const entries = await adapters[scope].load();
           snapshot[scope] = new Map(entries.map(({ key, value }) => [key, value]));
         } catch (thrown) {
@@ -151,10 +153,7 @@ export function createSettingsStore({ adapters, onError }: SettingsStoreOptions)
 
   function writeAll(changes: readonly SettingChange[]): void {
     const valid = changes.map(validated);
-    const changed: Record<SettingScope, Map<string, JsonValue>> = {
-      synced: new Map(),
-      device: new Map(),
-    };
+    const changed = perScope(() => new Map<string, JsonValue>());
     for (const { setting, value } of valid) {
       const entries = snapshot[setting.scope];
       if (sameJson(entries.get(setting.key), value)) continue;
@@ -163,7 +162,8 @@ export function createSettingsStore({ adapters, onError }: SettingsStoreOptions)
     }
     if (SCOPES.every((scope) => changed[scope].size === 0)) return;
 
-    notify();
+    // Queued before anyone is told, so a listener's own write saves after this one and a throwing
+    // listener cannot lose it.
     for (const scope of SCOPES) {
       if (changed[scope].size === 0) continue;
       saveInOrder(
@@ -171,6 +171,7 @@ export function createSettingsStore({ adapters, onError }: SettingsStoreOptions)
         [...changed[scope]].map(([key, value]) => ({ key, value })),
       );
     }
+    notify();
   }
 
   return {

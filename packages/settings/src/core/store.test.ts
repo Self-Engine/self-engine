@@ -43,6 +43,18 @@ function reportingStore(synced: TestAdapter, device: TestAdapter = createTestAda
   return { store: storeOver(synced, device, (failure) => failures.push(failure)), failures };
 }
 
+function adapterThatCannotSubscribe(
+  thrown: unknown,
+  adapter: TestAdapter = createTestAdapter(),
+): TestAdapter {
+  return {
+    ...adapter,
+    subscribe: () => {
+      throw thrown;
+    },
+  };
+}
+
 async function loadedStore(synced: TestAdapter, device: TestAdapter = createTestAdapter()) {
   const store = storeOver(synced, device);
   await store.load();
@@ -217,6 +229,36 @@ describe("writing", () => {
     await settle();
     expect(adapter.saves).toHaveLength(2);
     expect(adapter.stored.get("test.accent")).toBe("second");
+  });
+
+  it("keeps saves in write order when a listener writes the same Setting", async () => {
+    const adapter = createTestAdapter();
+    const store = await loadedStore(adapter);
+    store.subscribe(() => {
+      if (store.read(accent) === "first") store.write(accent, "second");
+    });
+
+    store.write(accent, "first");
+    await settle();
+
+    expect(adapter.saves).toEqual([
+      [{ key: "test.accent", value: "first" }],
+      [{ key: "test.accent", value: "second" }],
+    ]);
+    expect(adapter.stored.get("test.accent")).toBe("second");
+  });
+
+  it("does not lose the save when a listener throws", async () => {
+    const adapter = createTestAdapter();
+    const store = await loadedStore(adapter);
+    store.subscribe(() => {
+      throw new Error("the listener is broken");
+    });
+
+    expect(() => store.write(accent, "green")).toThrow("the listener is broken");
+    await settle();
+
+    expect(adapter.stored.get("test.accent")).toBe("green");
   });
 
   it("throws on an invalid value and changes nothing, also for a valid value beside it", async () => {
@@ -415,19 +457,17 @@ describe("changes from outside", () => {
     expect(store.read(accent)).toBe("green");
   });
 
-  it("still resolves load and reports it when subscribing throws", async () => {
-    const adapter: TestAdapter = {
-      ...createTestAdapter({ "test.accent": "green" }),
-      subscribe: () => {
-        throw new Error("no events here");
-      },
-    };
+  it("still loads the stored values and reports its own failure when subscribing throws", async () => {
+    const adapter = adapterThatCannotSubscribe(
+      new Error("no events here"),
+      createTestAdapter({ "test.accent": "green" }),
+    );
     const { store, failures } = reportingStore(adapter);
 
     await expect(store.load()).resolves.toBeUndefined();
 
-    expect(store.read(accent)).toBe("blue");
-    expect(failures).toMatchObject([{ operation: "load", scope: "synced" }]);
+    expect(store.read(accent)).toBe("green");
+    expect(failures).toMatchObject([{ operation: "subscribe", scope: "synced" }]);
   });
 });
 
@@ -569,6 +609,15 @@ describe("what onError receives", () => {
     const adapter = createTestAdapter();
     adapter.failLoads(thrown);
     const { store, failures } = reportingStore(adapter);
+
+    await store.load();
+
+    expect(failures).toHaveLength(1);
+    expect(printed(failures[0]!)).not.toContain(SECRET);
+  });
+
+  it.each(leaks)("holds no value from a failed subscribe, through %s", async (_where, thrown) => {
+    const { store, failures } = reportingStore(adapterThatCannotSubscribe(thrown));
 
     await store.load();
 
