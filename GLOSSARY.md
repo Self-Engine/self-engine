@@ -55,3 +55,13 @@ _Avoid_: theme cache, boot cache
 **Theme** (de: _Theme_):
 A named set of colors for every _Color Role_, for one _Color Mode_ or both. A _Theme_ either ships with the app or was imported from another format.
 _Avoid_: skin, palette
+
+### Translation
+
+**App Language** (de: _App-Sprache_):
+The language the app is shown in: German, English, or whatever the device's system uses. A user's explicit choice applies on all their devices; following the system is decided by each device for itself.
+_Avoid_: locale, UI language, account language
+
+**Base Language** (de: _Basissprache_):
+English: the language every text is first written in, and the one shown when a text has no translation in the language asked for.
+_Avoid_: default locale, fallback language, source locale
