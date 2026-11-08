@@ -474,6 +474,9 @@ Grundlage: [`research-layer-2-data.md`](research-layer-2-data.md).
   ein fehlendes Secret den Lauf scheitern; lokal ohne die Eingaben bleibt der Build ad hoc und
   braucht kein Apple-Konto. Einziges Entitlement ist `allow-jit`. Der Updater in der App wartet
   weiter auf den Wechsel auf öffentlich (D107). Windows-Signierung ist offen.
+- **D110 Der Nightly-Zeitplan läuft vorerst nur jede zweite Nacht** (ungerade Monatstage) und
+  ersetzt damit den Rhythmus aus D41. Gebaut wird weiter nur, wenn sich `main` seit dem letzten
+  Nightly geändert hat; manuell geht es jederzeit.
 
 ## Fakten
 
