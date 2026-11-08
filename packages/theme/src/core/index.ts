@@ -45,4 +45,10 @@ export {
   THEME_ROLES,
   type ThemeColors,
 } from "./roles.ts";
+export {
+  serializeStartCache,
+  START_CACHE_KEY,
+  START_STYLE_ID,
+  writeStartCache,
+} from "./start-cache.ts";
 export { type TokenVariables, tokenVariables } from "./tokens.ts";

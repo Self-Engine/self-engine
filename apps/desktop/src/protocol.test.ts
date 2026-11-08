@@ -1,4 +1,5 @@
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { createHash } from "node:crypto";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";
@@ -33,9 +34,16 @@ describe("isRendererUrl", () => {
 });
 
 describe("contentSecurityPolicy", () => {
-  it("allows no inline scripts and no sockets in production", () => {
+  it("allows only the page's start script inline, and no sockets, in production", () => {
+    const html = readFileSync(new URL("../../web/index.html", import.meta.url), "utf8");
+    const startScript = /<script>([\s\S]*?)<\/script>/.exec(html)?.[1] ?? "";
+    expect(startScript).not.toBe("");
+    const hash = createHash("sha256").update(startScript).digest("base64");
+
     const policy = contentSecurityPolicy();
-    expect(policy).toContain("script-src 'self';");
+
+    // On a failure after editing the script: copy the hash into START_SCRIPT_HASH.
+    expect(policy).toContain(`script-src 'self' 'sha256-${hash}';`);
     expect(policy).toContain("connect-src 'self';");
     expect(policy).toContain("object-src 'none'");
   });

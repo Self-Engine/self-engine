@@ -21,6 +21,7 @@ import {
   tokenVariables,
 } from "../core/index.ts";
 import { useInstantChange } from "./instant-change.ts";
+import { useStartCache } from "./use-start-cache.ts";
 
 function systemPreference(query: string) {
   return {
@@ -74,6 +75,7 @@ export function ThemeProvider({ appearance, catalog, children }: ThemeProviderPr
   const resolved = useMemo(() => resolveAppearance(appearance, catalog), [appearance, catalog]);
   const scheme = resolveColorMode(appearance.colorMode, prefersDark);
   useInstantChange(JSON.stringify(resolved[scheme].roles));
+  useStartCache(appearance.colorMode, resolved);
   const { density, densityCss, mantineComponents, rootFontSize } = resolved.layout;
   useLayoutEffect(() => {
     const root = document.documentElement;
