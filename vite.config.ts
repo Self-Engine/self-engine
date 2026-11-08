@@ -2,7 +2,17 @@ import { defineConfig } from "vite-plus";
 import { testTimeZone } from "./scripts/testing/process-timezone.ts";
 
 // Reference material, not part of the workspace (see prototypes/*/RESULTS.md).
-const IGNORED = ["prototypes/**", "**/dist/**", "**/node_modules/**", "pnpm-lock.yaml"];
+const IGNORED = [
+  "prototypes/**",
+  "**/dist/**",
+  "**/dist-electron/**",
+  "**/release/**",
+  "**/node_modules/**",
+  "pnpm-lock.yaml",
+  // Written by the TanStack Router plugin in its own style, and committed so that lint and
+  // typecheck see the routes without a build.
+  "**/routeTree.gen.ts",
+];
 
 // Workers inherit the zone from this process (scripts/testing/process-timezone.ts).
 process.env.TZ = testTimeZone();
