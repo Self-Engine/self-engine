@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vite-plus/test";
 import {
   ACCENT_IDS,
-  type AccentColors,
+  type ColorSetColors,
   auditColorSets,
   auditContrast,
   BUILT_IN_THEMES,
@@ -32,7 +32,7 @@ function pairs(overrides: Partial<ThemeColors>): string[] {
   return [...new Set(auditContrast(catalogWith(overrides)).map((failure) => failure.pair))];
 }
 
-function pairsFromTheme(accent: AccentColors): string[] {
+function pairsFromTheme(accent: ColorSetColors): string[] {
   const theme = { ...catalogWith({}).probe, accent: { light: accent } };
   const failures = auditContrast({ probe: theme });
   return [

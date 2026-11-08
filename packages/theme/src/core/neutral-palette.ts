@@ -1,8 +1,6 @@
 import { composite, luminance } from "./color.ts";
 import type { Hex, ResolvedColorMode, ThemeColors } from "./roles.ts";
-
-/** Ten opaque shades, lightest first: the shape of a Mantine color tuple. */
-export type NeutralPalette = readonly [Hex, Hex, Hex, Hex, Hex, Hex, Hex, Hex, Hex, Hex];
+import type { Palette } from "./variants.ts";
 
 function mix(from: Hex, to: Hex, amount: number): Hex {
   return composite(to, from, amount);
@@ -46,7 +44,7 @@ function darkSlots(table: ThemeColors): Hex[] {
  * table, so the Accent and the Background Tint leave it alone. The sort keeps the tuple in order
  * for imported Themes whose surfaces do not step the way the built-in ones do.
  */
-export function neutralPalette(table: ThemeColors, mode: ResolvedColorMode): NeutralPalette {
+export function neutralPalette(table: ThemeColors, mode: ResolvedColorMode): Palette {
   const slots = mode === "light" ? graySlots(table) : darkSlots(table);
-  return slots.toSorted((a, b) => luminance(b) - luminance(a)) as unknown as NeutralPalette;
+  return slots.toSorted((a, b) => luminance(b) - luminance(a)) as unknown as Palette;
 }

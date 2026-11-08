@@ -1,6 +1,8 @@
 // Density and font scale are per device and never arrive from a newer app version through
 // sync, so unlike Theme and Accent ids their types stay closed.
 
+import { cssDeclarations } from "./css.ts";
+
 export const DENSITIES = ["comfortable", "compact"] as const;
 export type Density = (typeof DENSITIES)[number];
 
@@ -18,21 +20,9 @@ export const DENSITY_VARIABLES: Readonly<
   compact: { "--se-row-height": "2.125rem", "--se-padding": "0.75rem", "--se-gap": "0.125rem" },
 };
 
-const DENSITY_CSS = DENSITIES.map((density) => {
-  const declarations = Object.entries(DENSITY_VARIABLES[density])
-    .map(([name, value]) => `${name}:${value};`)
-    .join("");
-  return `:root[data-density="${density}"]{${declarations}}`;
-}).join("");
-
-/**
- * Mantine's size `sm`, its default, is taller than a compact row, and `xs` fits. Defaults only,
- * so a control with an explicit `size` keeps it. `Input` also covers every input built on it.
- */
-const COMPACT_CONTROLS = {
-  Input: { defaultProps: { size: "xs" } },
-  Button: { defaultProps: { size: "xs" } },
-} as const;
+const DENSITY_CSS = DENSITIES.map(
+  (density) => `:root[data-density="${density}"]{${cssDeclarations(DENSITY_VARIABLES[density])}}`,
+).join("");
 
 export interface LayoutValues {
   /** The value for `data-density` on the root element. */
@@ -41,8 +31,6 @@ export interface LayoutValues {
   readonly densityCss: string;
   /** The value for `font-size` on the root element; Mantine's `rem` sizes grow along with it. */
   readonly rootFontSize: `${FontScale}%`;
-  /** The entries for Mantine's `theme.components`. */
-  readonly mantineComponents: Readonly<Partial<typeof COMPACT_CONTROLS>>;
 }
 
 export function resolveLayout(density: Density, fontScale: FontScale): LayoutValues {
@@ -50,6 +38,5 @@ export function resolveLayout(density: Density, fontScale: FontScale): LayoutVal
     density,
     densityCss: DENSITY_CSS,
     rootFontSize: `${fontScale}%`,
-    mantineComponents: density === "compact" ? COMPACT_CONTROLS : {},
   };
 }

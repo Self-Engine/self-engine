@@ -1,8 +1,9 @@
 // The Start Cache: a copy of the last engine output, for the inline script in the app's HTML
 // that paints the first frame before React starts. Never the source of truth.
 
-import type { ColorMode, ModeValues, ResolvedAppearance } from "./resolve.ts";
-import { COLOR_MODES, type Hex, type ResolvedColorMode } from "./roles.ts";
+import { cssDeclarations } from "./css.ts";
+import type { ColorMode, ColorModeValues, ResolvedAppearance } from "./resolve.ts";
+import { COLOR_MODES, type ResolvedColorMode } from "./roles.ts";
 
 /** The storage key. The inline script in `apps/web/index.html` repeats it. */
 export const START_CACHE_KEY = "self-engine:start-cache";
@@ -22,17 +23,15 @@ interface StartCache {
   readonly css: Readonly<Record<ResolvedColorMode, string>>;
 }
 
-function modeCss(mode: ResolvedColorMode, values: ModeValues): string {
-  const variables = Object.entries<Hex>({ ...values.cssVariables, ...values.mantineVariables })
-    .map(([name, value]) => `${name}:${value};`)
-    .join("");
+function colorModeCss(mode: ResolvedColorMode, values: ColorModeValues): string {
+  const variables = cssDeclarations({ ...values.cssVariables, ...values.mantineVariables });
   const { canvas, text } = values.roles;
   return `${START_SELECTOR}{color-scheme:${mode};background:${canvas};color:${text};${variables}}`;
 }
 
 /** The text to store under `START_CACHE_KEY` for the current output. */
 export function serializeStartCache(colorMode: ColorMode, resolved: ResolvedAppearance): string {
-  const [light, dark] = COLOR_MODES.map((mode) => modeCss(mode, resolved[mode])) as [
+  const [light, dark] = COLOR_MODES.map((mode) => colorModeCss(mode, resolved[mode])) as [
     string,
     string,
   ];

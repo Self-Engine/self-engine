@@ -9,9 +9,9 @@ import {
 import { composite, mixOklab } from "./color.ts";
 import { type Density, type FontScale, type LayoutValues, resolveLayout } from "./layout.ts";
 import { type ModuleColor, moduleColorCss, moduleColors } from "./module-colors.ts";
-import { type NeutralPalette, neutralPalette } from "./neutral-palette.ts";
+import { neutralPalette } from "./neutral-palette.ts";
 import {
-  type AccentColors,
+  type ColorSetColors,
   COLOR_MODES,
   type FinalColors,
   type Hex,
@@ -48,12 +48,12 @@ export const DEFAULT_APPEARANCE: Appearance = {
 };
 
 /** The final values for one Color Mode: plain data for CSS, Mantine and the contrast check. */
-export interface ModeValues {
+export interface ColorModeValues {
   readonly roles: FinalColors;
   readonly cssVariables: Readonly<Record<`--se-${string}`, Hex>>;
   readonly mantineVariables: Readonly<Record<`--mantine-${string}`, Hex>>;
   /** Mantine's `gray` tuple for light, its `dark` tuple for dark. */
-  readonly neutralPalette: NeutralPalette;
+  readonly neutralPalette: Palette;
   /** Mantine's per-color variables for each Color Set and for the palette key `accent`. */
   readonly colorVariables: Readonly<Record<`--mantine-${string}`, Hex>>;
   /** The palettes for Mantine's `theme.colors`, by key. */
@@ -64,7 +64,7 @@ export interface ModeValues {
   readonly moduleColorCss: string;
 }
 
-export type ResolvedAppearance = Readonly<Record<ResolvedColorMode, ModeValues>> & {
+export type ResolvedAppearance = Readonly<Record<ResolvedColorMode, ColorModeValues>> & {
   readonly layout: LayoutValues;
 };
 
@@ -94,12 +94,13 @@ function accentColors(
   setting: string,
   themeAccent: Theme["accent"],
   mode: ResolvedColorMode,
-): AccentColors {
-  const explicit = ACCENT_IDS.includes(setting) ? COLOR_SETS[setting] : undefined;
+): ColorSetColors {
+  const id = ACCENT_IDS.find((accentId) => accentId === setting);
+  const explicit = id === undefined ? undefined : COLOR_SETS[id];
   return (explicit ?? themeAccent ?? DEFAULT_COLOR_SET)[mode] ?? DEFAULT_COLOR_SET[mode];
 }
 
-function cssVariables(roles: FinalColors): ModeValues["cssVariables"] {
+function cssVariables(roles: FinalColors): ColorModeValues["cssVariables"] {
   return Object.fromEntries(
     Object.entries(roles).map(([role, value]) => [roleVariable(role as keyof FinalColors), value]),
   );
@@ -108,7 +109,7 @@ function cssVariables(roles: FinalColors): ModeValues["cssVariables"] {
 function mantineVariables(
   roles: FinalColors,
   mode: ResolvedColorMode,
-): ModeValues["mantineVariables"] {
+): ColorModeValues["mantineVariables"] {
   return {
     // Mantine paints inputs, cards and popovers with white, in the light scheme only.
     ...(mode === "light" && { "--mantine-color-white": roles.surface }),
@@ -130,17 +131,17 @@ function mantineVariables(
 /** Each palette key with the colors it stands for in this Color Mode. */
 function paletteSets(
   mode: ResolvedColorMode,
-  accent: AccentColors,
-): readonly (readonly [string, AccentColors])[] {
+  accent: ColorSetColors,
+): readonly (readonly [string, ColorSetColors])[] {
   const sets = Object.entries(COLOR_SETS).map(([id, set]) => [id, set[mode]] as const);
   return [...sets, [ACCENT_PALETTE, accent]];
 }
 
-function modeValues(
+function colorModeValues(
   appearance: Appearance,
   catalog: ThemeCatalog,
   mode: ResolvedColorMode,
-): ModeValues {
+): ColorModeValues {
   const { colors: table, accent } = servingTheme(appearance, catalog, mode);
   const accentSet = accentColors(appearance.accent, accent, mode);
   const chrome = appearance.backgroundTint
@@ -174,9 +175,9 @@ export function resolveAppearance(
   appearance: Appearance,
   catalog: ThemeCatalog,
 ): ResolvedAppearance {
-  const [light, dark] = COLOR_MODES.map((mode) => modeValues(appearance, catalog, mode)) as [
-    ModeValues,
-    ModeValues,
+  const [light, dark] = COLOR_MODES.map((mode) => colorModeValues(appearance, catalog, mode)) as [
+    ColorModeValues,
+    ColorModeValues,
   ];
   return { light, dark, layout: resolveLayout(appearance.density, appearance.fontScale) };
 }

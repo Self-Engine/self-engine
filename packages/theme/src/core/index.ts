@@ -3,6 +3,7 @@ export {
   BUILT_IN_THEMES,
   COLOR_SETS,
   type ColorSet,
+  type ColorSetId,
   DEFAULT_THEME,
   type Theme,
   type ThemeCatalog,
@@ -20,7 +21,6 @@ export {
 } from "./contrast.ts";
 export { FONT_FAMILY } from "./font.ts";
 export type { ModuleColor } from "./module-colors.ts";
-export type { NeutralPalette } from "./neutral-palette.ts";
 export {
   DENSITIES,
   type Density,
@@ -35,21 +35,20 @@ export {
   type ColorMode,
   DEFAULT_APPEARANCE,
   FROM_THEME,
-  type ModeValues,
+  type ColorModeValues,
   type ResolvedAppearance,
   resolveAppearance,
   resolveColorMode,
 } from "./resolve.ts";
 export {
-  type AccentColors,
-  type AccentRole,
+  type ColorSetColors,
+  type ColorSetRole,
   COLOR_MODES,
   type ColorRole,
   type FinalColors,
   type Hex,
   type ResolvedColorMode,
   roleVariable,
-  THEME_ROLES,
   type ThemeColors,
 } from "./roles.ts";
 export {

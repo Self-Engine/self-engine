@@ -6,10 +6,12 @@ import { createFileRoute } from "@tanstack/react-router";
 import type { CSSProperties, ReactNode } from "react";
 import { usePreviewAppearance } from "../preview-appearance.tsx";
 import { BackgroundTintPreview } from "../preview-background-tint.tsx";
+import { BadgesPreview } from "../preview-badges.tsx";
 import { DensityPreview } from "../preview-density.tsx";
 import { PreviewMantineComponents } from "../preview-mantine-components.tsx";
 import { ModuleColorsPreview } from "../preview-module-colors.tsx";
 import { MotionSample, NumbersSample } from "../preview-numbers-motion.tsx";
+import { roleColor as color } from "../preview-role-color.ts";
 
 export const Route = createFileRoute("/theme-preview")({ component: ThemePreviewPage });
 
@@ -30,12 +32,10 @@ const THEME_OPTIONS = Object.values(BUILT_IN_THEMES).map(({ id, name }) => ({
   value: id,
 }));
 
-const SURFACES = ["chrome", "nav-surface", "canvas", "surface", "surface-raised"] as const;
-const STATUSES = ["error", "warning", "success"] as const;
-
-function color(role: string): string {
-  return `var(--se-${role})`;
-}
+const SURFACES = ["chrome", "navSurface", "canvas", "surface", "surfaceRaised"] as const;
+const STATUS_FILL_TEXT = { error: "onError", warning: "onWarning", success: "onSuccess" } as const;
+type Status = keyof typeof STATUS_FILL_TEXT;
+const STATUSES = Object.keys(STATUS_FILL_TEXT) as Status[];
 
 function box(background: string, extra: CSSProperties = {}): CSSProperties {
   return {
@@ -62,25 +62,25 @@ function SurfaceSample({ role }: { readonly role: (typeof SURFACES)[number] }) {
     <div style={box(color(role), { border: `1px solid ${color("border")}` })}>
       <Text fw={600}>{role}</Text>
       <Text style={{ color: color("text") }}>text</Text>
-      <Text style={{ color: color("text-muted") }}>textMuted</Text>
+      <Text style={{ color: color("textMuted") }}>textMuted</Text>
       {role !== "chrome" && (
         <div style={box(color("hover"), { marginTop: "var(--mantine-spacing-xs)" })}>
           <Text style={{ color: color("text") }}>text on hover</Text>
-          <Text style={{ color: color("text-muted") }}>textMuted on hover</Text>
+          <Text style={{ color: color("textMuted") }}>textMuted on hover</Text>
         </div>
       )}
     </div>
   );
 }
 
-function StatusSample({ status }: { readonly status: (typeof STATUSES)[number] }) {
+function StatusSample({ status }: { readonly status: Status }) {
   return (
     <Group grow>
-      <div style={box(color(status), { color: color(`on-${status}`) })}>{status} fill</div>
-      <div style={box(color(`${status}-soft`), { color: color(`${status}-text`) })}>
+      <div style={box(color(status), { color: color(STATUS_FILL_TEXT[status]) })}>{status} fill</div>
+      <div style={box(color(`${status}Soft`), { color: color(`${status}Text`) })}>
         {status} soft
       </div>
-      <div style={box(color("surface"), { color: color(`${status}-text`) })}>{status} text</div>
+      <div style={box(color("surface"), { color: color(`${status}Text`) })}>{status} text</div>
     </Group>
   );
 }
@@ -145,7 +145,7 @@ function ThemePreviewPage() {
         >
           border (decorative)
         </div>
-        <div style={box(color("surface"), { border: `1px solid ${color("border-control")}` })}>
+        <div style={box(color("surface"), { border: `1px solid ${color("borderControl")}` })}>
           borderControl (input outline)
         </div>
       </Section>
@@ -172,9 +172,12 @@ function ThemePreviewPage() {
           ))}
         </Group>
         <Group grow>
-          <div style={box(color("accent"), { color: color("on-accent") })}>accent fill</div>
-          <div style={box(color("accent-soft"), { color: color("accent-text") })}>accent soft</div>
+          <div style={box(color("accent"), { color: color("onAccent") })}>accent fill</div>
+          <div style={box(color("accentSoft"), { color: color("accentText") })}>accent soft</div>
         </Group>
+      </Section>
+      <Section title="Badges">
+        <BadgesPreview />
       </Section>
       <Section title="Status">
         {STATUSES.map((status) => (

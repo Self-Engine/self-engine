@@ -19,6 +19,15 @@ const COLOR_SET_PALETTES: ReadonlySet<string> = new Set([
   ACCENT_PALETTE,
 ]);
 
+/**
+ * Mantine's size `sm`, its default, is taller than a compact row, and `xs` fits. Defaults only,
+ * so a control with an explicit `size` keeps it. `Input` also covers every input built on it.
+ */
+const COMPACT_CONTROLS = {
+  Input: { defaultProps: { size: "xs" } },
+  Button: { defaultProps: { size: "xs" } },
+};
+
 /** Filled variants of a Color Set carry its on-fill text instead of Mantine's default white. */
 const variantColorResolver: VariantColorsResolver = (input) => {
   const colors = defaultVariantColorsResolver(input);
@@ -36,20 +45,20 @@ const variantColorResolver: VariantColorsResolver = (input) => {
  * already in `rem`; there is no second token system beside them. Setting `fontFamily` also sets
  * the headings, because Mantine copies it to them when merging.
  *
- * Mantine writes numbered shades once for both schemes, so the Color Set palettes follow the
- * active `scheme`. `gray` and `dark` each belong to one scheme and are always both present.
+ * Mantine writes numbered shades once for both Color Modes, so the Color Set palettes follow the
+ * active `colorMode`. `gray` and `dark` each belong to one Color Mode and are always both present.
  */
 export function mantineTheme(
   resolved: ResolvedAppearance,
-  scheme: ResolvedColorMode,
+  colorMode: ResolvedColorMode,
 ): MantineThemeOverride {
   return createTheme({
     colors: {
-      ...resolved[scheme].palettes,
+      ...resolved[colorMode].palettes,
       gray: resolved.light.neutralPalette,
       dark: resolved.dark.neutralPalette,
     },
-    components: resolved.layout.mantineComponents,
+    components: resolved.layout.density === "compact" ? COMPACT_CONTROLS : {},
     defaultRadius: "md",
     focusRing: "auto",
     fontFamily: FONT_FAMILY,

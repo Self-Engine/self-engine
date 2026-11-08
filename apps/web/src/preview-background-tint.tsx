@@ -3,6 +3,7 @@
 import { Stack, Switch, Text } from "@mantine/core";
 import type { CSSProperties, ReactNode } from "react";
 import { usePreviewAppearance } from "./preview-appearance.tsx";
+import { roleColor } from "./preview-role-color.ts";
 
 const CONTAINER: CSSProperties = {
   borderRadius: "var(--mantine-radius-md)",
@@ -14,11 +15,11 @@ function Container({
   style,
   children,
 }: {
-  readonly role: string;
+  readonly role: Parameters<typeof roleColor>[0];
   readonly style?: CSSProperties;
   readonly children: ReactNode;
 }) {
-  return <div style={{ ...CONTAINER, background: `var(--se-${role})`, ...style }}>{children}</div>;
+  return <div style={{ ...CONTAINER, background: roleColor(role), ...style }}>{children}</div>;
 }
 
 /** The B3 arrangement: the tinted chrome with the navigation and the content on top of it. */
@@ -28,7 +29,7 @@ function Arrangement() {
       role="chrome"
       style={{ display: "flex", gap: "var(--mantine-spacing-sm)", minHeight: "16rem" }}
     >
-      <Container role="nav-surface" style={{ width: "12rem" }}>
+      <Container role="navSurface" style={{ width: "12rem" }}>
         <Text fw={600}>navSurface</Text>
         <Text c="dimmed">Navigation item</Text>
       </Container>

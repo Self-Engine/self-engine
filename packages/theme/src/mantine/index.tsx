@@ -10,7 +10,7 @@ import {
 import {
   type Appearance,
   type FinalColors,
-  type ModeValues,
+  type ColorModeValues,
   resolveAppearance,
   resolveColorMode,
   type ThemeCatalog,
@@ -37,7 +37,7 @@ const PREFERS_REDUCED_MOTION = systemPreference("(prefers-reduced-motion: reduce
 /**
  * Keeps Mantine away from localStorage. `forceColorScheme` alone does not: on mount Mantine
  * still reads its manager and applies that value until the forcing effect runs. Paired with
- * `defaultColorScheme`, `get` hands back the scheme the engine resolved.
+ * `defaultColorScheme`, `get` hands back the Color Mode the engine resolved.
  */
 const NO_STORAGE: MantineColorSchemeManager = {
   get: (defaultValue) => defaultValue,
@@ -70,9 +70,9 @@ export function ThemeProvider({ appearance, catalog, children }: ThemeProviderPr
     PREFERS_REDUCED_MOTION.matches,
   );
   const resolved = useMemo(() => resolveAppearance(appearance, catalog), [appearance, catalog]);
-  const scheme = resolveColorMode(appearance.colorMode, prefersDark);
-  const theme = useMemo(() => mantineTheme(resolved, scheme), [resolved, scheme]);
-  useInstantChange(JSON.stringify(resolved[scheme].roles));
+  const activeColorMode = resolveColorMode(appearance.colorMode, prefersDark);
+  const theme = useMemo(() => mantineTheme(resolved, activeColorMode), [resolved, activeColorMode]);
+  useInstantChange(JSON.stringify(resolved[activeColorMode].roles));
   useStartCache(appearance.colorMode, resolved);
   const { density, densityCss, rootFontSize } = resolved.layout;
   useLayoutEffect(() => {
@@ -80,7 +80,7 @@ export function ThemeProvider({ appearance, catalog, children }: ThemeProviderPr
     root.dataset.density = density;
     root.style.fontSize = rootFontSize;
   }, [density, rootFontSize]);
-  const variablesFor = ({ cssVariables, mantineVariables, colorVariables }: ModeValues) => ({
+  const variablesFor = ({ cssVariables, mantineVariables, colorVariables }: ColorModeValues) => ({
     ...cssVariables,
     ...mantineVariables,
     ...colorVariables,
@@ -91,15 +91,15 @@ export function ThemeProvider({ appearance, catalog, children }: ThemeProviderPr
     dark: variablesFor(resolved.dark),
   });
   return (
-    <ColorsContext value={resolved[scheme].roles}>
+    <ColorsContext value={resolved[activeColorMode].roles}>
       <MantineProvider
         colorSchemeManager={NO_STORAGE}
         cssVariablesResolver={cssVariablesResolver}
-        defaultColorScheme={scheme}
-        forceColorScheme={scheme}
+        defaultColorScheme={activeColorMode}
+        forceColorScheme={activeColorMode}
         theme={theme}
       >
-        <style>{`${densityCss}${resolved[scheme].moduleColorCss}${FOCUS_RING_CSS}`}</style>
+        <style>{`${densityCss}${resolved[activeColorMode].moduleColorCss}${FOCUS_RING_CSS}`}</style>
         {children}
       </MantineProvider>
     </ColorsContext>

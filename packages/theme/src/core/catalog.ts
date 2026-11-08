@@ -1,7 +1,7 @@
-import type { AccentColors, ResolvedColorMode, ThemeColors } from "./roles.ts";
+import type { ColorSetColors, ResolvedColorMode, ThemeColors } from "./roles.ts";
 
 /** A Color Set per Color Mode, under the Accent role names. */
-export type ColorSet = Readonly<Record<ResolvedColorMode, AccentColors>>;
+export type ColorSet = Readonly<Record<ResolvedColorMode, ColorSetColors>>;
 
 /** A complete table of Color Roles for at least one Color Mode. */
 export interface Theme {
@@ -314,7 +314,7 @@ const PINK: ColorSet = {
 export const DEFAULT_COLOR_SET: ColorSet = BLUE;
 
 /** Every Color Set, all of them usable as a Module Color. */
-export const COLOR_SETS: Readonly<Record<string, ColorSet>> = {
+export const COLOR_SETS = {
   blue: BLUE,
   indigo: INDIGO,
   violet: VIOLET,
@@ -323,10 +323,15 @@ export const COLOR_SETS: Readonly<Record<string, ColorSet>> = {
   grape: GRAPE,
   green: GREEN,
   pink: PINK,
-};
+} as const satisfies Readonly<Record<string, ColorSet>>;
 
-/** The Color Sets a user may pick as the Accent. Green is left out: it reads as `success`. */
-export const ACCENT_IDS: readonly string[] = [
+export type ColorSetId = keyof typeof COLOR_SETS;
+
+/**
+ * The Color Sets a user may pick as the Accent. Green is left out: it reads as `success`.
+ * A stored Accent stays an open string; the engine compares it against this list.
+ */
+export const ACCENT_IDS: readonly ColorSetId[] = [
   "blue",
   "indigo",
   "violet",

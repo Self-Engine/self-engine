@@ -36,13 +36,13 @@ export type CalculatedRole = "navSurface";
 export type ColorRole = ThemeRole | CalculatedRole;
 
 /** The four roles of a Color Set, here under their Accent names. */
-export type AccentRole = "accent" | "onAccent" | "accentSoft" | "accentText";
+export type ColorSetRole = "accent" | "onAccent" | "accentSoft" | "accentText";
 
 export type ThemeColors = Readonly<Record<ThemeRole, Hex>>;
-export type AccentColors = Readonly<Record<AccentRole, Hex>>;
-export type FinalColors = Readonly<Record<ColorRole | AccentRole, Hex>>;
+export type ColorSetColors = Readonly<Record<ColorSetRole, Hex>>;
+export type FinalColors = Readonly<Record<ColorRole | ColorSetRole, Hex>>;
 
 /** The `--se-*` name of a Color Role: `textMuted` becomes `--se-text-muted`. */
-export function roleVariable(role: ColorRole | AccentRole): `--se-${string}` {
+export function roleVariable(role: ColorRole | ColorSetRole): `--se-${string}` {
   return `--se-${role.replaceAll(/[A-Z]/g, (letter) => `-${letter.toLowerCase()}`)}`;
 }

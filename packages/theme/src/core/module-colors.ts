@@ -1,14 +1,15 @@
 import { COLOR_SETS } from "./catalog.ts";
-import type { AccentRole, Hex, ResolvedColorMode } from "./roles.ts";
+import { cssDeclarations } from "./css.ts";
+import type { ColorSetRole, Hex, ResolvedColorMode } from "./roles.ts";
 
 const MODULE_VARIABLES = {
   accent: "--se-module",
   onAccent: "--se-module-on",
   accentSoft: "--se-module-soft",
   accentText: "--se-module-text",
-} as const satisfies Readonly<Record<AccentRole, `--se-${string}`>>;
+} as const satisfies Readonly<Record<ColorSetRole, `--se-${string}`>>;
 
-type ModuleVariable = (typeof MODULE_VARIABLES)[AccentRole];
+type ModuleVariable = (typeof MODULE_VARIABLES)[ColorSetRole];
 
 /** What one Module Color sets inside its scope. */
 export type ModuleColor = Readonly<Record<ModuleVariable, Hex>>;
@@ -35,11 +36,6 @@ export function moduleColors(mode: ResolvedColorMode): Readonly<Record<string, M
  */
 export function moduleColorCss(colors: Readonly<Record<string, ModuleColor>>): string {
   return Object.entries(colors)
-    .map(([name, color]) => {
-      const declarations = Object.entries(color)
-        .map(([variable, value]) => `${variable}:${value};`)
-        .join("");
-      return `[data-module-color="${name}"]{${declarations}}`;
-    })
+    .map(([name, color]) => `[data-module-color="${name}"]{${cssDeclarations(color)}}`)
     .join("");
 }

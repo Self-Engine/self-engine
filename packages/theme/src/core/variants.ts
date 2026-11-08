@@ -1,5 +1,5 @@
 import { composite, luminance } from "./color.ts";
-import type { AccentColors, Hex, ResolvedColorMode } from "./roles.ts";
+import type { ColorSetColors, Hex, ResolvedColorMode } from "./roles.ts";
 
 /** Ten shades from lightest to darkest, the shape Mantine's palettes have. */
 export type Palette = readonly [Hex, Hex, Hex, Hex, Hex, Hex, Hex, Hex, Hex, Hex];
@@ -30,7 +30,7 @@ export function outlineHover(coloredText: Hex): Hex {
 /** Mantine's per-color variables, for the palette key `name`. */
 export function colorSetVariables(
   name: string,
-  set: AccentColors,
+  set: ColorSetColors,
 ): Readonly<Record<`--mantine-${string}`, Hex>> {
   const prefix = `--mantine-color-${name}` as const;
   return {
@@ -47,7 +47,7 @@ export function colorSetVariables(
 }
 
 /** The shades around the fill. A safety net for code that reads a numbered shade. */
-export function colorSetPalette(set: AccentColors, mode: ResolvedColorMode): Palette {
+export function colorSetPalette(set: ColorSetColors, mode: ResolvedColorMode): Palette {
   const lightest = mode === "light" ? set.accentSoft : set.accentText;
   const darkest =
     mode === "light" ? composite("#000000", set.accent, PALETTE_DARKEST_SHIFT) : set.accentSoft;

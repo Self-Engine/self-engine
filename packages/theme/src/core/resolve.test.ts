@@ -1,15 +1,16 @@
-import { describe, expect, it } from "vite-plus/test";
+import { describe, expect, expectTypeOf, it } from "vite-plus/test";
 import {
   ACCENT_IDS,
   BUILT_IN_THEMES,
   COLOR_SETS,
   type ColorSet,
+  type ColorSetId,
   contrastRatio,
   DEFAULT_APPEARANCE,
   DEFAULT_THEME,
   type FinalColors,
   FROM_THEME,
-  type ModeValues,
+  type ColorModeValues,
   resolveAppearance,
   resolveColorMode,
   type Theme,
@@ -114,7 +115,7 @@ describe("the Background Tint", () => {
   });
 
   it.each(["light", "dark"] as const)("changes nothing but chrome and navSurface in %s", (mode) => {
-    const rest = (values: ModeValues) => ({
+    const rest = (values: ColorModeValues) => ({
       ...values,
       roles: { ...values.roles, chrome: "", navSurface: "" },
       cssVariables: { ...values.cssVariables, "--se-chrome": "", "--se-nav-surface": "" },
@@ -187,6 +188,10 @@ describe("the Accent", () => {
   it("offers six of the eight Color Sets as Accents", () => {
     expect(ACCENT_IDS).toEqual(["blue", "indigo", "violet", "teal", "orange", "grape"]);
     expect(Object.keys(COLOR_SETS).toSorted()).toEqual([...ACCENT_IDS, "green", "pink"].toSorted());
+  });
+
+  it("types the built-in Accents as Color Set ids, so a typo fails the typecheck", () => {
+    expectTypeOf(ACCENT_IDS).items.toEqualTypeOf<ColorSetId>();
   });
 
   it("uses blue for From Theme when the Theme has no Accent", () => {

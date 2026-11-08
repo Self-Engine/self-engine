@@ -9,8 +9,10 @@ import {
   BUILT_IN_THEMES,
   DEFAULT_APPEARANCE,
   DENSITY_VARIABLES,
+  type Density,
   resolveAppearance,
 } from "../core/index.ts";
+import { mantineTheme } from "./theme.ts";
 
 function heightInRem(css: string, variable: string): number {
   const match = new RegExp(
@@ -22,17 +24,30 @@ function heightInRem(css: string, variable: string): number {
 
 const compactRow = Number.parseFloat(DENSITY_VARIABLES.compact["--se-row-height"]);
 
+function componentsFor(density: Density) {
+  const resolved = resolveAppearance({ ...DEFAULT_APPEARANCE, density }, BUILT_IN_THEMES);
+  return mantineTheme(resolved, "light").components;
+}
+
+describe("Mantine's control sizes", () => {
+  it("are left alone when comfortable", () => {
+    expect(componentsFor("comfortable")).toEqual({});
+  });
+
+  it("default to xs for inputs and buttons when compact", () => {
+    expect(componentsFor("compact")).toEqual({
+      Input: { defaultProps: { size: "xs" } },
+      Button: { defaultProps: { size: "xs" } },
+    });
+  });
+});
+
 describe("compact Density against the pinned Mantine", () => {
   it.each([
-    ["button", buttonCss, "--button-height-xs"],
-    ["input", inputCss, "--input-height-xs"],
-  ])("fits a default %s inside a row", (_control, css, variable) => {
-    const { layout } = resolveAppearance(
-      { ...DEFAULT_APPEARANCE, density: "compact" },
-      BUILT_IN_THEMES,
-    );
-    expect(layout.mantineComponents.Button?.defaultProps.size).toBe("xs");
-    expect(layout.mantineComponents.Input?.defaultProps.size).toBe("xs");
+    ["Button", buttonCss, "--button-height-xs"],
+    ["Input", inputCss, "--input-height-xs"],
+  ])("fits a default %s inside a row", (component, css, variable) => {
+    expect(componentsFor("compact")?.[component]?.defaultProps).toEqual({ size: "xs" });
     expect(heightInRem(css, variable)).toBeLessThanOrEqual(compactRow);
   });
 

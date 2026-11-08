@@ -28,17 +28,6 @@ describe("Density", () => {
     );
     expect(densityCss).not.toContain("px");
   });
-
-  it("leaves Mantine's control sizes alone when comfortable", () => {
-    expect(layoutOf({ density: "comfortable" }).mantineComponents).toEqual({});
-  });
-
-  it("lowers the default size of inputs and buttons to xs when compact", () => {
-    expect(layoutOf({ density: "compact" }).mantineComponents).toEqual({
-      Input: { defaultProps: { size: "xs" } },
-      Button: { defaultProps: { size: "xs" } },
-    });
-  });
 });
 
 describe("font scale", () => {

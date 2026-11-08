@@ -48,6 +48,10 @@ _Avoid_: compact mode, zoom
 The _Color Set_ a module declares for itself, which marks its icon, its active entries and its charts. It is not a user setting and is separate from the _Accent_, which marks actions.
 _Avoid_: brand color, section color
 
+**Start Cache** (de: _Startcache_):
+The remembered look of the app from its last run, which paints the first frame before the app has started so that no wrong colors flash. It is only a copy and never decides a setting.
+_Avoid_: theme cache, boot cache
+
 **Theme** (de: _Theme_):
 A named set of colors for every _Color Role_, for one _Color Mode_ or both. A _Theme_ either ships with the app or was imported from another format.
 _Avoid_: skin, palette

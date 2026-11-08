@@ -4,11 +4,11 @@ import {
   type Appearance,
   DEFAULT_APPEARANCE,
   FROM_THEME,
-  type ModeValues,
+  type ColorModeValues,
   resolveAppearance,
 } from "./resolve.ts";
 import {
-  type AccentColors,
+  type ColorSetColors,
   COLOR_MODES,
   type FinalColors,
   type Hex,
@@ -65,7 +65,7 @@ function checkFill(check: Check, textName: string, text: Hex, fillName: string, 
   check(`${textName} on ${fillName} hover`, text, fillHover(fill, text), TEXT);
 }
 
-function checkSoftHover(check: Check, set: AccentColors): void {
+function checkSoftHover(check: Check, set: ColorSetColors): void {
   const hovered = softHover(set.accent, set.accentSoft);
   check("accentText on accentSoft hover", set.accentText, hovered, TEXT);
 }
@@ -74,7 +74,7 @@ function checkSoftHover(check: Check, set: AccentColors): void {
 export function checkContrast({
   roles,
   moduleColors,
-}: Pick<ModeValues, "roles" | "moduleColors">): ContrastIssue[] {
+}: Pick<ColorModeValues, "roles" | "moduleColors">): ContrastIssue[] {
   const { issues, check } = collector();
   const on = (foreground: Role, background: Role, minimum: number) =>
     check(`${foreground} on ${background}`, roles[foreground], roles[background], minimum);
