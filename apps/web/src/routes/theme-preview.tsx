@@ -5,6 +5,7 @@ import type { ColorMode } from "@self-engine/theme";
 import { createFileRoute } from "@tanstack/react-router";
 import type { CSSProperties, ReactNode } from "react";
 import { usePreviewAppearance } from "../preview-appearance.tsx";
+import { DensityPreview } from "../preview-density.tsx";
 
 export const Route = createFileRoute("/theme-preview")({ component: ThemePreviewPage });
 
@@ -22,7 +23,12 @@ function color(role: string): string {
 }
 
 function box(background: string, extra: CSSProperties = {}): CSSProperties {
-  return { background, padding: "var(--mantine-spacing-md)", borderRadius: 8, ...extra };
+  return {
+    background,
+    padding: "var(--mantine-spacing-md)",
+    borderRadius: "var(--mantine-radius-md)",
+    ...extra,
+  };
 }
 
 function Section({ title, children }: { readonly title: string; readonly children: ReactNode }) {
@@ -43,7 +49,7 @@ function SurfaceSample({ role }: { readonly role: (typeof SURFACES)[number] }) {
       <Text style={{ color: color("text") }}>text</Text>
       <Text style={{ color: color("text-muted") }}>textMuted</Text>
       {role !== "chrome" && (
-        <div style={box(color("hover"), { marginTop: 8 })}>
+        <div style={box(color("hover"), { marginTop: "0.5rem" })}>
           <Text style={{ color: color("text") }}>text on hover</Text>
           <Text style={{ color: color("text-muted") }}>textMuted on hover</Text>
         </div>
@@ -78,6 +84,9 @@ function ThemePreviewPage() {
           value={appearance.colorMode}
         />
       </Section>
+      <Section title="Density and font scale">
+        <DensityPreview />
+      </Section>
       <Section title="Surfaces, text and hover">
         <Group align="stretch" grow>
           {SURFACES.map((role) => (
@@ -86,7 +95,7 @@ function ThemePreviewPage() {
         </Group>
       </Section>
       <Section title="Lines">
-        <div style={{ borderTop: `1px solid ${color("border")}`, paddingTop: 8 }}>
+        <div style={{ borderTop: `1px solid ${color("border")}`, paddingTop: "0.5rem" }}>
           border (decorative)
         </div>
         <div style={box(color("surface"), { border: `1px solid ${color("border-control")}` })}>

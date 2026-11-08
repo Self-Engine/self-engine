@@ -1,5 +1,6 @@
 import { COLOR_SETS, DEFAULT_COLOR_SET, DEFAULT_THEME, type ThemeCatalog } from "./catalog.ts";
 import { composite } from "./color.ts";
+import { type Density, type FontScale, type LayoutValues, resolveLayout } from "./layout.ts";
 import {
   COLOR_MODES,
   type FinalColors,
@@ -21,6 +22,8 @@ export interface Appearance {
   readonly accent: string;
   readonly backgroundTint: boolean;
   readonly colorMode: ColorMode;
+  readonly density: Density;
+  readonly fontScale: FontScale;
 }
 
 export const DEFAULT_APPEARANCE: Appearance = {
@@ -29,6 +32,8 @@ export const DEFAULT_APPEARANCE: Appearance = {
   accent: FROM_THEME,
   backgroundTint: true,
   colorMode: "system",
+  density: "comfortable",
+  fontScale: 100,
 };
 
 /** The final values for one Color Mode: plain data for CSS, Mantine and the contrast check. */
@@ -38,7 +43,9 @@ export interface ModeValues {
   readonly mantineVariables: Readonly<Record<`--mantine-${string}`, Hex>>;
 }
 
-export type ResolvedAppearance = Readonly<Record<ResolvedColorMode, ModeValues>>;
+export type ResolvedAppearance = Readonly<Record<ResolvedColorMode, ModeValues>> & {
+  readonly layout: LayoutValues;
+};
 
 const NAV_SURFACE_OPACITY = 0.7;
 
@@ -97,7 +104,7 @@ export function resolveAppearance(
     ModeValues,
     ModeValues,
   ];
-  return { light, dark };
+  return { light, dark, layout: resolveLayout(appearance.density, appearance.fontScale) };
 }
 
 /** Light or dark for the `colorMode` setting and the system's current preference. */

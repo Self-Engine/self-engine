@@ -1,5 +1,12 @@
 import { type MantineColorSchemeManager, MantineProvider } from "@mantine/core";
-import { createContext, type ReactNode, use, useMemo, useSyncExternalStore } from "react";
+import {
+  createContext,
+  type ReactNode,
+  use,
+  useLayoutEffect,
+  useMemo,
+  useSyncExternalStore,
+} from "react";
 import {
   type Appearance,
   type FinalColors,
@@ -46,6 +53,12 @@ export function ThemeProvider({ appearance, catalog, children }: ThemeProviderPr
   const prefersDark = useSyncExternalStore(subscribeToSystem, systemPrefersDark);
   const resolved = useMemo(() => resolveAppearance(appearance, catalog), [appearance, catalog]);
   const scheme = resolveColorMode(appearance.colorMode, prefersDark);
+  const { density, densityCss, mantineComponents, rootFontSize } = resolved.layout;
+  useLayoutEffect(() => {
+    const root = document.documentElement;
+    root.dataset.density = density;
+    root.style.fontSize = rootFontSize;
+  }, [density, rootFontSize]);
   const cssVariablesResolver = () => ({
     variables: {},
     light: { ...resolved.light.cssVariables, ...resolved.light.mantineVariables },
@@ -58,7 +71,9 @@ export function ThemeProvider({ appearance, catalog, children }: ThemeProviderPr
         cssVariablesResolver={cssVariablesResolver}
         defaultColorScheme={scheme}
         forceColorScheme={scheme}
+        theme={{ components: mantineComponents }}
       >
+        <style>{densityCss}</style>
         {children}
       </MantineProvider>
     </ColorsContext>

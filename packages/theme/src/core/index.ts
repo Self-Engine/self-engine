@@ -16,6 +16,14 @@ export {
   formatContrastFailure,
 } from "./contrast.ts";
 export {
+  DENSITIES,
+  type Density,
+  DENSITY_VARIABLES,
+  FONT_SCALES,
+  type FontScale,
+  type LayoutValues,
+} from "./layout.ts";
+export {
   type Appearance,
   type ColorMode,
   DEFAULT_APPEARANCE,
