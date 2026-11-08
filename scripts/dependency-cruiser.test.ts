@@ -309,6 +309,37 @@ describe("apps", () => {
   });
 });
 
+describe("the theme core", () => {
+  const theme = (dependencies: string[], files: Record<string, string>): FixturePackage => ({
+    dir: "packages/theme",
+    dependencies,
+    exports: { ".": "./src/core/index.ts", "./mantine": "./src/mantine/index.ts" },
+    files: { "src/mantine/index.ts": "export const provider = 1;\n", ...files },
+  });
+
+  it.each(["react", "react-dom", "@mantine/core"])("fails an import of %s", async (name) => {
+    const found = await cruise([theme([name], { "src/core/index.ts": `import "${name}";\n` })]);
+    expect(ruleNames(found)).toEqual(["theme-core-is-pure"]);
+  });
+
+  it("fails an import of the Mantine binding", async () => {
+    const found = await cruise([
+      theme([], { "src/core/index.ts": 'import "../mantine/index.ts";\n' }),
+    ]);
+    expect(ruleNames(found)).toEqual(["theme-core-is-pure"]);
+  });
+
+  it("passes those imports in the Mantine binding", async () => {
+    const found = await cruise([
+      theme(["react"], {
+        "src/core/index.ts": "export const core = 1;\n",
+        "src/mantine/index.ts": 'import "react";\nimport "../core/index.ts";\n',
+      }),
+    ]);
+    expect(found).toEqual([]);
+  });
+});
+
 describe("the repo's workspace", () => {
   const packages = workspacePackages(resolve(import.meta.dirname, ".."));
   const folders = packages
