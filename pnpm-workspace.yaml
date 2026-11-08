@@ -11,18 +11,32 @@ allowBuilds:
   # Its postinstall only checks the platform binary and falls back to fetching @swc/wasm
   # with npm; the binary arrives as an optional dependency anyway.
   "@swc/core": false
+  # No install script since Electron 45; scripts/ensure-electron.ts fetches the binary.
+  electron: false
+  electron-winstaller: false
 
 catalog:
+  "@mantine/core": 9.7.5
+  "@mantine/hooks": 9.7.5
   # The JS plugin API of the Oxlint that vite-plus ships; move it with vite-plus.
   "@oxlint/plugins": 1.91.0
   # dependency-cruiser's TypeScript parser (verify:boundaries): its tsc parser needs the
   # JS compiler API, which TypeScript 7 no longer has.
   "@swc/core": 1.16.22
+  "@tanstack/react-router": 1.170.46
+  "@tanstack/router-plugin": 1.168.48
   # Pinned to the Node version inside Electron (45.x ships Node 24), so TypeScript
   # flags Node 26 APIs that the desktop main process does not have (D34).
   "@types/node": 24.19.2
+  "@types/react": 19.3.0
+  "@types/react-dom": 19.3.0
+  "@vitejs/plugin-react": 6.2.1
   # Module boundaries (ADR 0006), configured in .dependency-cruiser.ts.
   dependency-cruiser: 18.7.2
+  electron: 45.2.3
+  electron-builder: 26.18.0
+  react: 19.3.1
+  react-dom: 19.3.1
   typescript: 7.0.2
   # Vite+ replaces vite with its own core; every package that depends on vite gets it (D28).
   vite: npm:@voidzero-dev/vite-plus-core@1.5.0

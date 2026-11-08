@@ -1,0 +1,40 @@
+{
+  "name": "@self-engine/desktop",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Self-Engine desktop app",
+  "license": "AGPL-3.0-only",
+  "author": "Self-Engine",
+  "type": "module",
+  "main": "dist-electron/main.cjs",
+  "scripts": {
+    "build": "vp pack",
+    "package": "electron-builder --dir --mac --arm64"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "electron": "catalog:",
+    "electron-builder": "catalog:",
+    "vite-plus": "catalog:"
+  },
+  "build": {
+    "appId": "app.selfengine.desktop",
+    "productName": "Self-Engine",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist-electron/**",
+      "package.json",
+      {
+        "from": "../web/dist",
+        "to": "dist-renderer"
+      }
+    ],
+    "mac": {
+      "target": "dir",
+      "identity": null
+    },
+    "npmRebuild": false
+  }
+}

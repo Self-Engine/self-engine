@@ -6,7 +6,11 @@
   "type": "module",
   "scripts": {
     "adrs:check": "node scripts/check-adrs.ts",
+    "build": "vp run -r build",
     "check": "vp check",
+    "dev": "node scripts/desktop-dev.ts",
+    "ensure:electron": "node scripts/ensure-electron.ts",
+    "package:desktop": "vp run -r build && vp run @self-engine/desktop#package",
     "test": "vp test run",
     "verify": "node scripts/verify.ts"
   },

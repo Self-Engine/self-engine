@@ -168,7 +168,7 @@ export function boundaryConfig({ allowedImports, rootDir }: BoundaryOptions): IC
       // Imports of npm packages stay in the graph (so `not-to-undeclared` sees them), but
       // their own imports are not followed. `exclude` would drop them from the graph.
       doNotFollow: { path: "(^|/)node_modules/" },
-      exclude: { path: "(^|/)dist/" },
+      exclude: { path: "(^|/)(dist|dist-electron|release)/" },
       enhancedResolveOptions: {
         // Resolve workspace packages through their `exports` only, so a deep import fails.
         exportsFields: ["exports"],

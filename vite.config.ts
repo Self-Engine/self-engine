@@ -2,7 +2,17 @@ import { defineConfig } from "vite-plus";
 import { testTimeZone } from "./scripts/testing/process-timezone.ts";
 
 // Reference material, not part of the workspace (see prototypes/*/RESULTS.md).
-const IGNORED = ["prototypes/**", "**/dist/**", "**/node_modules/**", "pnpm-lock.yaml"];
+const IGNORED = [
+  "prototypes/**",
+  "**/dist/**",
+  "**/dist-electron/**",
+  "**/release/**",
+  "**/node_modules/**",
+  "pnpm-lock.yaml",
+  // Written by the TanStack Router plugin in its own style, and committed so that lint and
+  // typecheck see the routes without a build.
+  "**/routeTree.gen.ts",
+];
 
 // Workers inherit the zone from this process (scripts/testing/process-timezone.ts).
 process.env.TZ = testTimeZone();
@@ -49,6 +59,11 @@ export default defineConfig({
       "verify:boundaries":
         "depcruise apps packages scripts vite.config.ts .dependency-cruiser.ts --config .dependency-cruiser.ts",
       "verify:adrs": "node scripts/check-adrs.ts",
+      // The build scripts of apps/web and apps/desktop (ADR 0001): a broken pack entry passes
+      // every other stage. Bundling never needs the Electron binary, so this runs in CI too.
+      // `--cache` because `vp run` does not cache package scripts by default. `vp build` then
+      // replays; `vp pack` always runs, since its `clean` touches its own inputs.
+      "verify:build": "vp run --cache -r build",
       "verify:test": "vp test run --reporter=agent",
     },
   },
