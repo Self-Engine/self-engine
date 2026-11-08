@@ -114,6 +114,16 @@ export function boundaryConfig({ allowedImports, rootDir }: BoundaryOptions): IC
       },
     },
     {
+      name: "i18n-core-is-pure",
+      comment:
+        "The translation core (`@self-engine/i18n`) runs without React, so it works outside a component. Those imports belong in `@self-engine/i18n/react`.",
+      severity: "error",
+      from: { path: "^packages/i18n/src/core/" },
+      to: {
+        path: ["(^|/)node_modules/(react|react-dom|@lingui/react)/", "^packages/i18n/src/react/"],
+      },
+    },
+    {
       name: "no-relative-import-across-packages",
       comment:
         "A relative import that leaves its app or package skips the other package's `exports`. Import it by its package name.",

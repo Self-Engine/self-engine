@@ -1,3 +1,5 @@
+import { resolve } from "node:path";
+import { linguiPlugin } from "@self-engine/i18n/vite";
 import { defineConfig } from "vite-plus";
 import { testTimeZone } from "./scripts/testing/process-timezone.ts";
 
@@ -19,6 +21,12 @@ const IGNORED = [
 process.env.TZ = testTimeZone();
 
 export default defineConfig({
+  // Compiles the macros and catalogs in tests. The test config adds the fixture catalog.
+  plugins: [
+    linguiPlugin({
+      configPath: resolve(import.meta.dirname, "packages/i18n/test/lingui.config.ts"),
+    }),
+  ],
   test: {
     include: ["apps/*/src/**/*.test.ts", "packages/*/src/**/*.test.ts", "scripts/**/*.test.ts"],
     environment: "node",

@@ -1,0 +1,16 @@
+msgid ""
+msgstr ""
+"Content-Type: text/plain; charset=utf-8\n"
+"Language: en\n"
+
+msgid "Fixture greeting"
+msgstr "Fixture greeting"
+
+msgid "Hello {name}"
+msgstr "Hello {name}"
+
+msgid "{count, plural, one {# entry} other {# entries}}"
+msgstr "{count, plural, one {# entry} other {# entries}}"
+
+msgid "Only in English"
+msgstr "Only in English"

@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import { Anchor, Badge, Container, Group } from "@mantine/core";
 import { Link, Outlet, createRootRoute } from "@tanstack/react-router";
 import { channelBadge } from "../env.ts";
@@ -10,13 +11,13 @@ function RootLayout() {
     <Container py="md">
       <Group component="nav" mb="md">
         <Anchor component={Link} to="/">
-          Home
+          <Trans>Home</Trans>
         </Anchor>
         <Anchor component={Link} to="/about">
-          About
+          <Trans>About</Trans>
         </Anchor>
         <Anchor component={Link} to="/theme-preview">
-          Theme preview
+          <Trans>Theme preview</Trans>
         </Anchor>
         {badge && <Badge variant="light">{badge}</Badge>}
       </Group>
