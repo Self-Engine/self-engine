@@ -2,7 +2,7 @@
 // that paints the first frame before React starts. Never the source of truth.
 
 import type { ColorMode, ModeValues, ResolvedAppearance } from "./resolve.ts";
-import { COLOR_MODES, type ResolvedColorMode } from "./roles.ts";
+import { COLOR_MODES, type Hex, type ResolvedColorMode } from "./roles.ts";
 
 /** The storage key. The inline script in `apps/web/index.html` repeats it. */
 export const START_CACHE_KEY = "self-engine:start-cache";
@@ -23,7 +23,7 @@ interface StartCache {
 }
 
 function modeCss(mode: ResolvedColorMode, values: ModeValues): string {
-  const variables = Object.entries({ ...values.cssVariables, ...values.mantineVariables })
+  const variables = Object.entries<Hex>({ ...values.cssVariables, ...values.mantineVariables })
     .map(([name, value]) => `${name}:${value};`)
     .join("");
   const { canvas, text } = values.roles;

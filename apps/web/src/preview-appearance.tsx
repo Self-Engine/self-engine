@@ -26,6 +26,7 @@ function readStoredAppearance(): Appearance {
     const stored = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? "{}") as Partial<Appearance>;
     return { ...DEFAULT_APPEARANCE, ...stored };
   } catch {
+    // Blocked storage or a damaged entry: this throwaway page just starts from the defaults.
     return DEFAULT_APPEARANCE;
   }
 }

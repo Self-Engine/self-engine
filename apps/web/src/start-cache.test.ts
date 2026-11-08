@@ -68,7 +68,7 @@ function cacheOf(settings: Partial<Appearance>) {
 
 function expectFinalValues(css: string, mode: ReturnType<typeof cacheOf>["resolved"]["dark"]) {
   const variables = { ...mode.cssVariables, ...mode.mantineVariables };
-  for (const [name, value] of Object.entries(variables)) {
+  for (const [name, value] of Object.entries<string>(variables)) {
     expect(css).toContain(`${name}:${value};`);
   }
   expect(css).toContain(`background:${mode.roles.canvas};`);
