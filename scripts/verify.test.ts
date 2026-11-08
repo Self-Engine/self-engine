@@ -52,6 +52,11 @@ describe("the verify tasks", () => {
     expect(config.run?.tasks?.["verify:format:check"]).toBe("vp fmt --check");
   });
 
+  it("run the theme CSS check as a static stage", () => {
+    expect(STATIC_STAGES).toContain("theme-css");
+    expect(config.run?.tasks?.["verify:theme-css"]).toBe("node scripts/check-theme-css.ts");
+  });
+
   it("let lint warnings fail the gate", () => {
     expect(config.run?.tasks?.["verify:lint"]).toContain("--deny-warnings");
   });

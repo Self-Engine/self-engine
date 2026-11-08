@@ -16,6 +16,7 @@
   },
   "devDependencies": {
     "@self-engine/oxlint-plugin": "workspace:*",
+    "@self-engine/theme": "workspace:*",
     "@swc/core": "catalog:",
     "@types/node": "catalog:",
     "dependency-cruiser": "catalog:",

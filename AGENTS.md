@@ -10,7 +10,7 @@ planning history.
 
 A task is done when `pnpm verify` prints `VERIFY: PASS` as its last line
 ([ADR 0008](docs/adr/0008-one-verify-gate-and-a-push-guard.md)). It formats, lints
-(warnings fail), typechecks, checks the module boundaries, checks the ADRs, builds the
+(warnings fail), typechecks, checks the module boundaries, checks the ADRs, checks the theme CSS, builds the
 workspace and runs the tests; failures show their tail, the full log is `.cache/verify.log`.
 CI runs the same gate, except that its format stage only checks (`CI` set), so commit formatted files.
 `pnpm check` is the quick loop while editing; `pnpm verify` is the gate. The flow: commit,
