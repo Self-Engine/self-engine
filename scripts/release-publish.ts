@@ -47,7 +47,9 @@ function title(channel: ReleaseChannel, tag: string): string {
 export function publishRelease(request: PublishRequest, gh: Gh): void {
   const { channel, tag, commit, assets, notes } = request;
   if (assets.length === 0) throw new Error(`${tag} has no assets to publish.`);
-  const releases = JSON.parse(gh(["release", "list", "--limit", "200", "--json", "tagName,isDraft"])) as {
+  const releases = JSON.parse(
+    gh(["release", "list", "--limit", "200", "--json", "tagName,isDraft"]),
+  ) as {
     tagName: string;
     isDraft: boolean;
   }[];
@@ -108,7 +110,13 @@ export function runPublish(argv: string[], gh: Gh): void {
   // Only stable has a changelog file; a nightly run passes the same path, which does not exist.
   const text = channel === "stable" ? readFileSync(changelog ?? "", "utf8") : "";
   publishRelease(
-    { channel, tag, commit, assets: findAssets(assets), notes: releaseNotes(channel, commit, text) },
+    {
+      channel,
+      tag,
+      commit,
+      assets: findAssets(assets),
+      notes: releaseNotes(channel, commit, text),
+    },
     gh,
   );
 }
