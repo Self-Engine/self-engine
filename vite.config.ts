@@ -58,9 +58,10 @@ export default defineConfig({
       // binary whose file reads Vite Task's tracking does not see, so a cached `tsc` task
       // replayed `ok` after new type errors.
       "verify:typecheck": "vp check --no-fmt --no-lint",
-      // Module boundaries (ADR 0006), rules in .dependency-cruiser.ts.
+      // Module boundaries (ADR 0006), rules in .dependency-cruiser.ts. `err-long` also prints
+      // each rule's comment, which says how to fix the import.
       "verify:boundaries":
-        "depcruise apps packages scripts vite.config.ts .dependency-cruiser.ts --config .dependency-cruiser.ts",
+        "depcruise apps packages scripts vite.config.ts .dependency-cruiser.ts --config .dependency-cruiser.ts --output-type err-long",
       "verify:adrs": "node scripts/check-adrs.ts",
       // CSS uses Color Roles only (scripts/check-theme-css.ts).
       "verify:theme-css": "node scripts/check-theme-css.ts",

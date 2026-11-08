@@ -80,9 +80,13 @@ export async function cruiseFixture(
   const root = realpathSync(mkdtempSync(join(tmpdir(), "self-engine-depcruise-")));
   try {
     const workspace = new Map(packages.map((fixture) => [packageName(fixture.dir), fixture.dir]));
+    // The entry lies under `dist/`, as in most published libraries.
     const writeNpmPackage = (name: string) => {
-      write(join(root, "node_modules", name, "package.json"), JSON.stringify({ name }));
-      write(join(root, "node_modules", name, "index.js"), "export {};\n");
+      write(
+        join(root, "node_modules", name, "package.json"),
+        JSON.stringify({ name, main: "./dist/index.js" }),
+      );
+      write(join(root, "node_modules", name, "dist/index.js"), "export {};\n");
     };
     npmPackages.forEach(writeNpmPackage);
     for (const name of rootDependencies) {
