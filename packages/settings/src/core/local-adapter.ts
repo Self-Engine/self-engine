@@ -10,6 +10,32 @@ export interface LocalSettingsStorage {
   key(index: number): string | null;
   getItem(key: string): string | null;
   setItem(key: string, value: string): void;
+  removeItem(key: string): void;
+}
+
+/** `undefined` for an item that is damaged, which is damaged for this entry alone. */
+function parseItem(text: string): JsonValue | undefined {
+  try {
+    return JSON.parse(text) as JsonValue;
+  } catch {
+    // Safe to ignore: the Setting shows its default and the item stays stored.
+    return undefined;
+  }
+}
+
+/** Newest first, so every step is a state that fit into the quota before. */
+function restoreItems(
+  storage: LocalSettingsStorage,
+  before: readonly (readonly [item: string, text: string | null])[],
+): void {
+  for (const [item, text] of before.toReversed()) {
+    try {
+      if (text === null) storage.removeItem(item);
+      else storage.setItem(item, text);
+    } catch {
+      // The save has failed already; what the caller learns is why, not this.
+    }
+  }
 }
 
 export function createLocalSettingsAdapter(
@@ -27,13 +53,22 @@ export function createLocalSettingsAdapter(
         if (item === null || !item.startsWith(prefix)) continue;
         const text = storage.getItem(item);
         if (text === null) continue;
-        entries.push({ key: item.slice(prefix.length), value: JSON.parse(text) as JsonValue });
+        const value = parseItem(text);
+        if (value !== undefined) entries.push({ key: item.slice(prefix.length), value });
       }
       return entries;
     },
     save: async (entries) => {
       const storage = getStorage();
-      for (const { key, value } of entries) storage.setItem(prefix + key, JSON.stringify(value));
+      const before = entries.map(
+        ({ key }) => [prefix + key, storage.getItem(prefix + key)] as const,
+      );
+      try {
+        for (const { key, value } of entries) storage.setItem(prefix + key, JSON.stringify(value));
+      } catch (error) {
+        restoreItems(storage, before);
+        throw error;
+      }
     },
   };
 }

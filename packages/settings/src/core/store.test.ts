@@ -1,7 +1,12 @@
 import { describe, expect, it } from "vite-plus/test";
 import { z } from "zod";
 import { createTestAdapter, settle, type TestAdapter } from "../testing/index.ts";
-import { createSettingsStore, defineSetting, settingChange } from "./index.ts";
+import {
+  createSettingsStore,
+  defineSetting,
+  settingChange,
+  type SettingsStorageFailure,
+} from "./index.ts";
 
 const accent = defineSetting({
   key: "test.accent",
@@ -24,8 +29,18 @@ const windowSize = defineSetting({
   schema: z.object({ width: z.number(), height: z.number() }),
 });
 
-function storeOver(synced: TestAdapter, device: TestAdapter = createTestAdapter()) {
-  return createSettingsStore({ adapters: { synced, device } });
+function storeOver(
+  synced: TestAdapter,
+  device: TestAdapter = createTestAdapter(),
+  onError: (failure: SettingsStorageFailure) => void = () => {},
+) {
+  return createSettingsStore({ adapters: { synced, device }, onError });
+}
+
+/** A store over the two adapters, together with every failure it reported. */
+function reportingStore(synced: TestAdapter, device: TestAdapter = createTestAdapter()) {
+  const failures: SettingsStorageFailure[] = [];
+  return { store: storeOver(synced, device, (failure) => failures.push(failure)), failures };
 }
 
 async function loadedStore(synced: TestAdapter, device: TestAdapter = createTestAdapter()) {
@@ -234,5 +249,206 @@ describe("writing", () => {
     store.write(accent, "green");
 
     expect(notified).toBe(0);
+  });
+});
+
+describe("when load fails", () => {
+  it("resolves, starts that scope from defaults and reports the operation and scope once", async () => {
+    const adapter = createTestAdapter({ "test.accent": "green" });
+    adapter.failLoads();
+    const { store, failures } = reportingStore(adapter);
+
+    await expect(store.load()).resolves.toBeUndefined();
+
+    expect(store.read(accent)).toBe("blue");
+    expect(failures).toHaveLength(1);
+    expect(failures[0]).toMatchObject({ operation: "load", scope: "synced" });
+    expect(failures[0]?.error).toBeInstanceOf(Error);
+  });
+
+  it("leaves the other scope's Settings intact", async () => {
+    const synced = createTestAdapter({ "test.accent": "green" });
+    const device = createTestAdapter({ "test.scale": 2 });
+    synced.failLoads();
+    const { store, failures } = reportingStore(synced, device);
+
+    await store.load();
+
+    expect(store.read(accent)).toBe("blue");
+    expect(store.read(scale)).toBe(2);
+    expect(failures.map(({ scope }) => scope)).toEqual(["synced"]);
+  });
+
+  it("writes only the entry the user changed and leaves the stored ones alone", async () => {
+    const adapter = createTestAdapter({ "test.accent": "green", "test.window": "kept" });
+    adapter.failLoads();
+    const { store } = reportingStore(adapter);
+    await store.load();
+
+    store.write(accent, "red");
+    await settle();
+
+    expect(adapter.saves).toEqual([[{ key: "test.accent", value: "red" }]]);
+    expect(adapter.stored.get("test.window")).toBe("kept");
+  });
+
+  it("writes nothing on its own, so stored values are back once storage recovers", async () => {
+    const adapter = createTestAdapter({ "test.accent": "green" });
+    const restore = adapter.failLoads();
+    const { store } = reportingStore(adapter);
+    await store.load();
+    expect(store.read(accent)).toBe("blue");
+    await settle();
+    expect(adapter.saves).toEqual([]);
+
+    restore();
+
+    const restarted = await loadedStore(adapter);
+    expect(restarted.read(accent)).toBe("green");
+  });
+
+  it("reports an adapter that throws instead of rejecting", async () => {
+    const adapter = createTestAdapter();
+    const throwing = {
+      ...adapter,
+      load: () => {
+        throw new Error("no storage at all");
+      },
+    };
+    const { store, failures } = reportingStore(throwing);
+
+    await expect(store.load()).resolves.toBeUndefined();
+
+    expect(failures).toHaveLength(1);
+  });
+});
+
+describe("when save fails", () => {
+  it("keeps the new value, reports the operation and scope, and does not retry", async () => {
+    const synced = createTestAdapter({ "test.accent": "blue" });
+    const device = createTestAdapter();
+    const { store, failures } = reportingStore(synced, device);
+    await store.load();
+    device.failSaves();
+
+    store.write(scale, 2);
+    await settle();
+
+    expect(store.read(scale)).toBe(2);
+    expect(device.saves).toEqual([[{ key: "test.scale", value: 2 }]]);
+    expect(failures).toHaveLength(1);
+    expect(failures[0]).toMatchObject({ operation: "save", scope: "device" });
+  });
+
+  it("still saves what is written after the failure", async () => {
+    const adapter = createTestAdapter();
+    const { store, failures } = reportingStore(adapter);
+    await store.load();
+    const restore = adapter.failSaves();
+
+    store.write(accent, "lost");
+    await settle();
+    restore();
+    store.write(accent, "kept");
+    await settle();
+
+    expect(adapter.stored.get("test.accent")).toBe("kept");
+    expect(failures).toHaveLength(1);
+  });
+
+  it("shows the last value that was actually stored after a restart", async () => {
+    const adapter = createTestAdapter({ "test.accent": "stored" });
+    const { store } = reportingStore(adapter);
+    await store.load();
+    adapter.failSaves();
+
+    store.write(accent, "never stored");
+    await settle();
+    expect(store.read(accent)).toBe("never stored");
+
+    const restarted = storeOver(adapter);
+    await restarted.load();
+    expect(restarted.read(accent)).toBe("stored");
+  });
+});
+
+describe("what onError receives", () => {
+  const SECRET = "the-stored-value";
+  const leaks: readonly (readonly [string, unknown])[] = [
+    ["the message", new Error(`could not handle "${SECRET}"`)],
+    ["the cause", new Error("failed", { cause: SECRET })],
+    ["the name", Object.assign(new Error("failed"), { name: SECRET })],
+    ["a thrown string", SECRET],
+  ];
+
+  function printed({ error, operation, scope }: SettingsStorageFailure): string {
+    const { message, name, stack, cause } = error;
+    return JSON.stringify([message, name, stack, String(cause), operation, scope]);
+  }
+
+  it.each(leaks)("holds no value from a failed load, through %s", async (_where, thrown) => {
+    const adapter = createTestAdapter();
+    adapter.failLoads(thrown);
+    const { store, failures } = reportingStore(adapter);
+
+    await store.load();
+
+    expect(failures).toHaveLength(1);
+    expect(printed(failures[0]!)).not.toContain(SECRET);
+  });
+
+  it.each(leaks)("holds no value from a failed save, through %s", async (_where, thrown) => {
+    const adapter = createTestAdapter();
+    const { store, failures } = reportingStore(adapter);
+    await store.load();
+    adapter.failSaves(thrown);
+
+    store.write(accent, SECRET);
+    await settle();
+
+    expect(failures).toHaveLength(1);
+    expect(printed(failures[0]!)).not.toContain(SECRET);
+  });
+
+  it("keeps the kind of error, so a report can still tell quota from a blocked storage", async () => {
+    const adapter = createTestAdapter();
+    const { store, failures } = reportingStore(adapter);
+    await store.load();
+    adapter.failSaves(Object.assign(new Error("over quota"), { name: "QuotaExceededError" }));
+
+    store.write(accent, "green");
+    await settle();
+
+    expect(failures[0]?.error.message).toContain("QuotaExceededError");
+  });
+
+  it("does not let a throwing onError stop load", async () => {
+    const failing = createTestAdapter();
+    failing.failLoads();
+    const store = storeOver(failing, createTestAdapter(), () => {
+      throw new Error("the reporter is broken");
+    });
+
+    await expect(store.load()).resolves.toBeUndefined();
+
+    expect(store.read(accent)).toBe("blue");
+    expect(store.read(scale)).toBe(0);
+  });
+
+  it("does not let a throwing onError stop the saves after it", async () => {
+    const adapter = createTestAdapter();
+    const store = storeOver(adapter, createTestAdapter(), () => {
+      throw new Error("the reporter is broken");
+    });
+    await store.load();
+    const restore = adapter.failSaves();
+
+    store.write(accent, "lost");
+    await settle();
+    restore();
+    store.write(accent, "kept");
+    await settle();
+
+    expect(adapter.stored.get("test.accent")).toBe("kept");
   });
 });
