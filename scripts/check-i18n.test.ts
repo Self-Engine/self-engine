@@ -71,7 +71,9 @@ describe("checkCatalogs", () => {
     const message = "{count, plural, one {# day} other {# days}}";
     const { errors } = checkCatalogs({
       required,
-      catalogs: { de: [entry(message, "{count, plural, one {# Tag} few {# Tage} other {# Tage}}")] },
+      catalogs: {
+        de: [entry(message, "{count, plural, one {# Tag} few {# Tage} other {# Tage}}")],
+      },
     });
     expect(errors).toEqual([]);
   });

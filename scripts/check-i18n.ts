@@ -137,7 +137,8 @@ async function main(): Promise<void> {
   );
   if (sync.code !== 0) {
     console.error(sync.output.trimEnd());
-    if (values.check) console.error("check-i18n: run `pnpm verify` locally and commit the catalogs");
+    if (values.check)
+      console.error("check-i18n: run `pnpm verify` locally and commit the catalogs");
   }
 
   const config = getConfig({ configPath });
