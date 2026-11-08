@@ -55,7 +55,9 @@ const variantColorResolver: VariantColorsResolver = (input) => {
   if (input.variant !== "filled") return colors;
   const parsed = parseThemeColor({ color: input.color, theme: input.theme });
   const isColorSet = parsed.shade === undefined && COLOR_SET_PALETTES.has(parsed.color);
-  return isColorSet ? { ...colors, color: `var(--mantine-color-${parsed.color}-contrast)` } : colors;
+  return isColorSet
+    ? { ...colors, color: `var(--mantine-color-${parsed.color}-contrast)` }
+    : colors;
 };
 
 /**

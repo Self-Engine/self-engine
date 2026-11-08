@@ -68,7 +68,6 @@ describe("calculated values", () => {
     // dark: 26 * 0.7 + 14 * 0.3 = 22.4, 29 * 0.7 + 16 * 0.3 = 25.1
     expect(resolved.dark.roles.navSurface).toBe("#161619");
   });
-
 });
 
 describe("the Accent", () => {
@@ -102,9 +101,7 @@ describe("the Accent", () => {
 
   it("offers six of the eight Color Sets as Accents", () => {
     expect(ACCENT_IDS).toEqual(["blue", "indigo", "violet", "teal", "orange", "grape"]);
-    expect(Object.keys(COLOR_SETS).toSorted()).toEqual(
-      [...ACCENT_IDS, "green", "pink"].toSorted(),
-    );
+    expect(Object.keys(COLOR_SETS).toSorted()).toEqual([...ACCENT_IDS, "green", "pink"].toSorted());
   });
 
   it("uses blue for From Theme when the Theme has no Accent", () => {

@@ -107,19 +107,20 @@ export interface ContrastFailure extends ContrastIssue {
 export function auditContrast(catalog: ThemeCatalog): ContrastFailure[] {
   return Object.values(catalog).flatMap((theme) =>
     COLOR_MODES.filter((mode) => theme.colors[mode] !== undefined).flatMap((colorMode) =>
-      (theme.accent?.[colorMode] === undefined ? ACCENT_IDS : [...ACCENT_IDS, FROM_THEME]).flatMap((accent) =>
-        [true, false].flatMap((backgroundTint) => {
-          const appearance: Appearance = {
-            lightTheme: theme.id,
-            darkTheme: theme.id,
-            accent,
-            backgroundTint,
-            colorMode,
-          };
-          return checkContrast(resolveAppearance(appearance, catalog)[colorMode].roles).map(
-            (issue) => ({ ...issue, theme: theme.id, colorMode, accent, backgroundTint }),
-          );
-        }),
+      (theme.accent?.[colorMode] === undefined ? ACCENT_IDS : [...ACCENT_IDS, FROM_THEME]).flatMap(
+        (accent) =>
+          [true, false].flatMap((backgroundTint) => {
+            const appearance: Appearance = {
+              lightTheme: theme.id,
+              darkTheme: theme.id,
+              accent,
+              backgroundTint,
+              colorMode,
+            };
+            return checkContrast(resolveAppearance(appearance, catalog)[colorMode].roles).map(
+              (issue) => ({ ...issue, theme: theme.id, colorMode, accent, backgroundTint }),
+            );
+          }),
       ),
     ),
   );
