@@ -26,7 +26,8 @@ the stable app.
   changelog is generated from the commits since the last stable (for example with git-cliff).
 - **Versions rise slowly until 1.0.0.** The project starts at `0.0.1`; a stable release
   proposes a patch bump only. The middle number rises deliberately at milestones (for example
-  a finished layer). `1.0.0` marks the switch from the old Self-Engine.
+  a finished layer). `1.0.0` is the planned switch from the old Self-Engine, unless the switch
+  comes earlier (see Consequences).
 
 ## Consequences
 
@@ -39,7 +40,8 @@ the stable app.
   stable is therefore locked until the owner decides to switch: `STABLE_CUTOVER_APPROVED` in
   `apps/desktop/src/package-channel.ts`, which depends on that decision alone, not on the
   version. The switch is planned for `1.0.0` but may come earlier; until then the owner uses
-  nightly (D51).
+  nightly (D51). The lock temporarily overrides D51's "Stable 0.x erscheint für andere", and it
+  goes away once the owner has renamed the installed old app.
 - `main` must always be releasable, since any night can turn it into a nightly.
 
 ## Considered Options
