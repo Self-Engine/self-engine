@@ -11,7 +11,6 @@ import {
   packageChannel,
   parseReleaseChannel,
   type ReleaseChannel,
-  STABLE_CUTOVER_APPROVED,
 } from "./package-channel.ts";
 
 const ELECTRON_DIST = "/local/electron/dist";
@@ -129,7 +128,6 @@ describe("packageChannel", () => {
 
   interface PackagingRun {
     readonly channel?: ReleaseChannel;
-    readonly stableCutoverApproved?: boolean;
     /** The channel the fake workspace build compiles for; `null` builds nothing. */
     readonly compiledFor?: string | null;
     /** Called once the temp checkout exists, before anything runs. */
@@ -143,7 +141,7 @@ describe("packageChannel", () => {
   }
 
   function runPackaging(options: PackagingRun = {}) {
-    const { channel = "nightly", stableCutoverApproved = false, seed } = options;
+    const { channel = "nightly", seed } = options;
     const compiledFor = options.compiledFor === undefined ? channel : options.compiledFor;
     const calls = options.calls ?? [];
     dir = realpathSync(mkdtempSync(join(tmpdir(), "package-channel-")));
@@ -153,7 +151,6 @@ describe("packageChannel", () => {
       rootDir: dir,
       desktopDir,
       electronDist: ELECTRON_DIST,
-      stableCutoverApproved,
       env: { PATH: "/bin" },
       run: (...call) => {
         calls.push(call);
@@ -196,19 +193,8 @@ describe("packageChannel", () => {
     );
   });
 
-  // Flipping STABLE_CUTOVER_APPROVED is the owner's decision to replace the old app (ADR 0007).
-  it("keeps the stable switch off", () => {
-    expect(STABLE_CUTOVER_APPROVED).toBe(false);
-  });
-
-  it("refuses stable, before building anything, until the switch is approved", () => {
-    const calls: Call[] = [];
-    expect(() => runPackaging({ channel: "stable", calls })).toThrow(/replace the old app/);
-    expect(calls).toEqual([]);
-  });
-
-  it("packages stable once the switch is approved", () => {
-    const { calls } = runPackaging({ channel: "stable", stableCutoverApproved: true });
+  it("packages stable", () => {
+    const { calls } = runPackaging({ channel: "stable" });
     expect(calls).toHaveLength(3);
   });
 

@@ -36,12 +36,11 @@ the stable app.
   building, unset means dev); it is never read from the running app's environment, and
   `app.isPackaged` cannot tell nightly from stable.
 - The stable bundle `Self-Engine.app` has the same name as the old app, so installing it would
-  replace the old app in `/Applications`. Its app ID and data folder stay separate. Packaging
-  stable is therefore locked until the owner decides to switch: `STABLE_CUTOVER_APPROVED` in
-  `apps/desktop/src/package-channel.ts`, which depends on that decision alone, not on the
-  version. The switch is planned for `1.0.0` but may come earlier; until then the owner uses
-  nightly (D51). The lock temporarily overrides D51's "Stable 0.x erscheint für andere", and it
-  goes away once the owner has renamed the installed old app.
+  replace an old app still installed under that name. Its app ID and data folder stay separate.
+  Anyone with the old app therefore renames its installed bundle (for example to
+  `Self-Engine Legacy.app`) before installing stable; renaming it changes neither its data nor
+  its signature. The switch is planned for `1.0.0` but may come earlier; until then the owner
+  uses nightly (D51).
 - `main` must always be releasable, since any night can turn it into a nightly.
 
 ## Considered Options

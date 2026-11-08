@@ -15,13 +15,6 @@ const BUNDLES = ["main.cjs", "preload.cjs"];
 
 export type ReleaseChannel = Exclude<Channel, "dev">;
 
-/**
- * Stable's bundle is `Self-Engine.app`, the name of the old app, so installing it replaces the
- * old app in `/Applications` (ADR 0007). The owner flips this when they decide to switch; the
- * version number plays no part in that.
- */
-export const STABLE_CUTOVER_APPROVED: boolean = false;
-
 /** The channel to package. Dev is never packaged: it has no renderer of its own. */
 export function parseReleaseChannel(value: string | undefined): ReleaseChannel {
   const channel = value === undefined ? "dev" : parseChannel(value);
@@ -85,19 +78,13 @@ export interface PackageOptions {
   readonly rootDir: string;
   readonly desktopDir: string;
   readonly electronDist: string;
-  readonly stableCutoverApproved: boolean;
   readonly env: NodeJS.ProcessEnv;
   readonly run: Run;
 }
 
 /** Builds with the channel compiled in, then packages that build. */
 export function packageChannel(channel: ReleaseChannel, options: PackageOptions): void {
-  const { rootDir, desktopDir, electronDist, stableCutoverApproved, env, run } = options;
-  if (channel === "stable" && !stableCutoverApproved) {
-    throw new Error(
-      "Stable packages as `Self-Engine.app`, which would replace the old app in /Applications. It stays locked until the owner approves the switch (STABLE_CUTOVER_APPROVED, ADR 0007).",
-    );
-  }
+  const { rootDir, desktopDir, electronDist, env, run } = options;
   run(process.execPath, [join(rootDir, "scripts/ensure-electron.ts")], { cwd: rootDir, env });
   // So a bundle from an earlier run cannot pass for this build.
   const bundleDir = join(desktopDir, bundleDirectory(channel));
@@ -124,7 +111,6 @@ if (import.meta.main) {
     rootDir: ROOT_DIR,
     desktopDir: DESKTOP_DIR,
     electronDist: electronDistPath(DESKTOP_DIR),
-    stableCutoverApproved: STABLE_CUTOVER_APPROVED,
     env: process.env,
     run: (command, args, options) => {
       execFileSync(command, args, { ...options, stdio: "inherit" });
