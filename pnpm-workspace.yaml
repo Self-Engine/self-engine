@@ -21,6 +21,8 @@ catalog:
   "@mantine/hooks": 9.7.5
   # The JS plugin API of the Oxlint that vite-plus ships; move it with vite-plus.
   "@oxlint/plugins": 1.91.0
+  # Only packages/icons may depend on it (#18).
+  "@phosphor-icons/react": 2.1.10
   # dependency-cruiser's TypeScript parser (verify:boundaries): its tsc parser needs the
   # JS compiler API, which TypeScript 7 no longer has.
   "@swc/core": 1.16.22
