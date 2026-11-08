@@ -21,6 +21,22 @@ export const TITLE_TYPES = [
 const HEADER = /^(?<type>[^\s(!:]+)(?:\((?<scope>[^)]*)\))?(?<bang>!)?(?<colon>:\s*)(?<rest>.*)$/su;
 const SCOPE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
+export interface ParsedTitle {
+  readonly type: string;
+  readonly scope: string | undefined;
+  readonly breaking: boolean;
+  readonly description: string;
+  readonly separator: string;
+}
+
+/** The parts of `type(scope)!: description`, or undefined when it has no type and colon. */
+export function parseTitle(title: string): ParsedTitle | undefined {
+  const groups = HEADER.exec(title)?.groups;
+  if (groups === undefined) return undefined;
+  const { type = "", scope, bang, colon = "", rest = "" } = groups;
+  return { type, scope, breaking: bang !== undefined, description: rest, separator: colon };
+}
+
 /**
  * What is wrong with a PR title, empty when it follows the convention:
  * `type(scope)!: description` with a known lowercase type, an optional lowercase kebab-case
@@ -29,11 +45,11 @@ const SCOPE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
  * outside ASCII (ä, ö, ü, ß, …) fails.
  */
 export function titleProblems(title: string): string[] {
-  const match = HEADER.exec(title);
-  if (match?.groups === undefined) {
+  const parsed = parseTitle(title);
+  if (parsed === undefined) {
     return [`must look like "type(scope): description", e.g. "fix(time): …"`];
   }
-  const { type = "", scope, colon = "", rest = "" } = match.groups;
+  const { type, scope, separator: colon, description: rest } = parsed;
   const problems: string[] = [];
   if (!(TITLE_TYPES as readonly string[]).includes(type)) {
     problems.push(

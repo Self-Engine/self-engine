@@ -1,0 +1,109 @@
+# Builds a nightly or stable release (ADR 0007) from a commit the release plan picks
+# (scripts/release-plan.ts) and keeps the artifacts on the run. Nothing is published yet, and
+# there is no nightly schedule: where update artifacts are hosted is still open (issue #9), and
+# the plan reads the `v*` tags that publishing will create. Until then a stable run fails at
+# the plan, because it only builds a commit that was published as a nightly.
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      channel:
+        description: Release channel
+        required: true
+        default: nightly
+        type: choice
+        options:
+          - nightly
+          - stable
+      version:
+        description: Stable version, for example 0.1.0. Empty proposes a patch bump.
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+# Separate groups, so a nightly never holds up a stable; a publisher is never cancelled.
+concurrency:
+  group: release-${{ inputs.channel }}
+  cancel-in-progress: false
+
+jobs:
+  plan:
+    name: Plan the release
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      version: ${{ steps.plan.outputs.version }}
+      commit: ${{ steps.plan.outputs.commit }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          # The plan reads every release tag; the changelog walks the history.
+          fetch-depth: 0
+          fetch-tags: true
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: package.json
+      - name: Plan
+        id: plan
+        env:
+          CHANNEL: ${{ inputs.channel }}
+          REQUESTED_VERSION: ${{ inputs.version }}
+          COMMIT: ${{ github.sha }}
+          RUN_NUMBER: ${{ github.run_number }}
+        run: |
+          if [ "$CHANNEL" = nightly ]; then
+            node scripts/release-plan.ts nightly --commit "$COMMIT" --started-at "$(date -u +%FT%TZ)" --run-number "$RUN_NUMBER"
+          else
+            node scripts/release-plan.ts stable --version "$REQUESTED_VERSION"
+          fi
+      - name: Write the changelog
+        if: inputs.channel == 'stable'
+        env:
+          FROM: ${{ steps.plan.outputs.previous_tag }}
+          TO: ${{ steps.plan.outputs.commit }}
+        run: |
+          node scripts/release-changelog.ts --from "$FROM" --to "$TO" --output release-notes.md
+          cat release-notes.md >> "$GITHUB_STEP_SUMMARY"
+      - name: Keep the changelog
+        if: inputs.channel == 'stable'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: release-notes
+          path: release-notes.md
+          if-no-files-found: error
+
+  build:
+    name: Build the desktop app
+    needs: [plan]
+    # Apple Silicon, the only architecture packaged so far.
+    runs-on: macos-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          ref: ${{ needs.plan.outputs.commit }}
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: package.json
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Package
+        env:
+          CHANNEL: ${{ inputs.channel }}
+          RELEASE_VERSION: ${{ needs.plan.outputs.version }}
+        run: pnpm package:desktop "$CHANNEL" --release-version "$RELEASE_VERSION"
+      - name: Keep the artifacts
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: desktop-${{ inputs.channel }}-${{ needs.plan.outputs.version }}
+          path: |
+            apps/desktop/release/${{ inputs.channel }}/*.dmg
+            apps/desktop/release/${{ inputs.channel }}/*.zip
+          if-no-files-found: error
+          retention-days: 14

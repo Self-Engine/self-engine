@@ -42,6 +42,15 @@ the stable app.
   its signature. The switch is planned for `1.0.0` but may come earlier; until then the owner
   uses nightly (D51).
 - `main` must always be releasable, since any night can turn it into a nightly.
+- **No commit carries a version.** A `v*` tag marks a published release, and
+  `scripts/release-plan.ts` derives the rest from those tags: the base of a nightly and the
+  version a stable proposes is a patch bump of the last stable tag
+  (`apps/desktop/package.json` seeds the first one), and a nightly is
+  `<base>-nightly.<YYYYMMDD>.<run>`. Packaging stamps the version into the app.
+- Until the Developer ID of issue #10, release builds are signed ad hoc. An app signed that way
+  can find an update but cannot install one: Squirrel.Mac checks an update against the
+  designated requirement of the running app, and for an ad-hoc signature that requirement is
+  the hash of that exact build.
 
 ## Considered Options
 

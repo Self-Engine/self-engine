@@ -9,6 +9,7 @@ import {
   electronDistPath,
   type PackageOptions,
   packageChannel,
+  parsePackageRequest,
   parseReleaseChannel,
   type ReleaseChannel,
 } from "./package-channel.ts";
@@ -26,6 +27,29 @@ describe("parseReleaseChannel", () => {
 
   it("refuses an unknown channel", () => {
     expect(() => parseReleaseChannel("beta")).toThrow(/Unknown channel/);
+  });
+});
+
+describe("parsePackageRequest", () => {
+  it("packages an unpacked app without a version", () => {
+    expect(parsePackageRequest(["nightly"])).toEqual({
+      channel: "nightly",
+      releaseVersion: undefined,
+    });
+  });
+
+  it("takes a release version", () => {
+    expect(
+      parsePackageRequest(["nightly", "--release-version", "0.0.1-nightly.20261108.7"]),
+    ).toEqual({ channel: "nightly", releaseVersion: "0.0.1-nightly.20261108.7" });
+  });
+
+  it("refuses an empty release version", () => {
+    expect(() => parsePackageRequest(["stable", "--release-version", ""])).toThrow(/needs a version/);
+  });
+
+  it("still names the channel it needs", () => {
+    expect(() => parsePackageRequest([])).toThrow(/Name the channel/);
   });
 });
 
@@ -52,6 +76,32 @@ describe("builderConfig", () => {
 
   it("packages the local Electron binary", () => {
     expect(builderConfig("nightly", ELECTRON_DIST).electronDist).toBe(ELECTRON_DIST);
+  });
+
+  it("leaves the version alone for a local package", () => {
+    const config = builderConfig("nightly", ELECTRON_DIST);
+    expect(config.extraMetadata).not.toHaveProperty("version");
+    expect(config.mac.target).toBe("dir");
+  });
+
+  it("stamps a release version and builds what a release ships", () => {
+    const config = builderConfig("nightly", ELECTRON_DIST, "0.0.1-nightly.20261108.7");
+    expect(config.extraMetadata).toMatchObject({ version: "0.0.1-nightly.20261108.7" });
+    expect(config.mac.target).toEqual(["dmg", "zip"]);
+  });
+
+  it.each([
+    ["nightly", "Self-Engine-Nightly-${version}-${arch}.${ext}"],
+    ["stable", "Self-Engine-${version}-${arch}.${ext}"],
+  ] as const)("names the artifacts of %s without spaces", (channel, artifactName) => {
+    expect(builderConfig(channel, ELECTRON_DIST).artifactName).toBe(artifactName);
+  });
+
+  it("signs ad hoc, never with whatever identity the machine holds", () => {
+    expect(builderConfig("stable", ELECTRON_DIST).mac).toMatchObject({
+      identity: "-",
+      hardenedRuntime: false,
+    });
   });
 
   it("keeps the channels' output apart", () => {
@@ -128,6 +178,7 @@ describe("packageChannel", () => {
 
   interface PackagingRun {
     readonly channel?: ReleaseChannel;
+    readonly releaseVersion?: string;
     /** The channel the fake workspace build compiles for; `null` builds nothing. */
     readonly compiledFor?: string | null;
     /** Called once the temp checkout exists, before anything runs. */
@@ -141,24 +192,27 @@ describe("packageChannel", () => {
   }
 
   function runPackaging(options: PackagingRun = {}) {
-    const { channel = "nightly", seed } = options;
+    const { channel = "nightly", releaseVersion, seed } = options;
     const compiledFor = options.compiledFor === undefined ? channel : options.compiledFor;
     const calls = options.calls ?? [];
     dir = realpathSync(mkdtempSync(join(tmpdir(), "package-channel-")));
     const desktopDir = join(dir, "apps/desktop");
     seed?.(desktopDir);
-    packageChannel(channel, {
-      rootDir: dir,
-      desktopDir,
-      electronDist: ELECTRON_DIST,
-      env: { PATH: "/bin" },
-      run: (...call) => {
-        calls.push(call);
-        if (isWorkspaceBuild(call) && compiledFor !== null) {
-          writeBundles(join(desktopDir, bundleDirectory(channel)), compiledFor);
-        }
+    packageChannel(
+      { channel, releaseVersion },
+      {
+        rootDir: dir,
+        desktopDir,
+        electronDist: ELECTRON_DIST,
+        env: { PATH: "/bin" },
+        run: (...call) => {
+          calls.push(call);
+          if (isWorkspaceBuild(call) && compiledFor !== null) {
+            writeBundles(join(desktopDir, bundleDirectory(channel)), compiledFor);
+          }
+        },
       },
-    });
+    );
     return { calls, desktopDir, root: dir };
   }
 
@@ -191,6 +245,15 @@ describe("packageChannel", () => {
     expect(JSON.parse(readFileSync(configPath, "utf8"))).toEqual(
       builderConfig("nightly", ELECTRON_DIST),
     );
+  });
+
+  it("builds and never publishes the artifacts of a release", () => {
+    const { calls, desktopDir } = runPackaging({ releaseVersion: "0.0.1-nightly.20261108.7" });
+    const configPath = join(desktopDir, "release/nightly/electron-builder.json");
+    expect(calls[2]?.[1]).toEqual(["--publish", "never", "--mac", "--arm64", "--config", configPath]);
+    expect(JSON.parse(readFileSync(configPath, "utf8"))).toMatchObject({
+      extraMetadata: { version: "0.0.1-nightly.20261108.7" },
+    });
   });
 
   it("packages stable", () => {
