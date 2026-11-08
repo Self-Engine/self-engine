@@ -1,0 +1,11 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "module": "Preserve",
+    "moduleResolution": "Bundler",
+    // No DOM library and no Node types: the package must not reach for a global storage.
+    "lib": ["ESNext"],
+    "types": []
+  },
+  "include": ["src"]
+}

@@ -90,6 +90,27 @@ function declaredWorkspaceRules(rootDir: string): IForbiddenRuleType[] {
   });
 }
 
+interface CorePurity {
+  /** The package's folder under `packages/`, which holds `src/core/`. */
+  readonly folder: string;
+  /** The folder under `src/` where the framework code lives instead. */
+  readonly binding: string;
+  /** Alternatives, as a regular expression, of the npm packages the core must not import. */
+  readonly npmPattern: string;
+  readonly comment: string;
+}
+
+/** The pure core of a package stays free of the framework its binding entry point wraps. */
+function corePurityRule({ folder, binding, npmPattern, comment }: CorePurity): IForbiddenRuleType {
+  return {
+    name: `${folder}-core-is-pure`,
+    comment,
+    severity: "error",
+    from: { path: `^packages/${folder}/src/core/` },
+    to: { path: [`(^|/)node_modules/(${npmPattern})/`, `^packages/${folder}/src/${binding}/`] },
+  };
+}
+
 export interface BoundaryOptions {
   /** The allowed directions between packages, see ALLOWED_IMPORTS. */
   readonly allowedImports: AllowedImports;
@@ -110,29 +131,27 @@ export function boundaryConfig({ allowedImports, rootDir }: BoundaryOptions): IC
       to: { path: "^packages/", pathNot: "^packages/$1/" },
     },
     ...declaredWorkspaceRules(rootDir),
-    {
-      name: "theme-core-is-pure",
+    corePurityRule({
+      folder: "theme",
+      binding: "mantine",
+      npmPattern: "react|react-dom|@mantine/[^/]+",
       comment:
         "The theme core (`@self-engine/theme`) runs without React or Mantine, so it can serve React Native and tests. Those imports belong in `@self-engine/theme/mantine`.",
-      severity: "error",
-      from: { path: "^packages/theme/src/core/" },
-      to: {
-        path: [
-          "(^|/)node_modules/(react|react-dom|@mantine/[^/]+)/",
-          "^packages/theme/src/mantine/",
-        ],
-      },
-    },
-    {
-      name: "i18n-core-is-pure",
+    }),
+    corePurityRule({
+      folder: "settings",
+      binding: "react",
+      npmPattern: "react|react-dom",
+      comment:
+        "The settings core (`@self-engine/settings`) runs without React. The hook belongs in `@self-engine/settings/react`.",
+    }),
+    corePurityRule({
+      folder: "i18n",
+      binding: "react",
+      npmPattern: "react|react-dom|@lingui/react",
       comment:
         "The translation core (`@self-engine/i18n`) runs without React, so it works outside a component. Those imports belong in `@self-engine/i18n/react`. Its own tsconfig keeps the DOM out.",
-      severity: "error",
-      from: { path: "^packages/i18n/src/core/" },
-      to: {
-        path: ["(^|/)node_modules/(react|react-dom|@lingui/react)/", "^packages/i18n/src/react/"],
-      },
-    },
+    }),
     {
       name: "icons-only-through-catalog",
       comment:

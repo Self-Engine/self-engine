@@ -56,6 +56,8 @@ catalog:
   # Vite+ replaces vite with its own core; every package that depends on vite gets it (D28).
   vite: npm:@voidzero-dev/vite-plus-core@1.5.0
   vite-plus: 1.5.0
+  # Checks stored Settings against their declared schema (ADR 0010).
+  zod: 4.6.7
 
 overrides:
   "@types/node": "catalog:"

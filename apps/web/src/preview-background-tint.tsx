@@ -48,14 +48,14 @@ function Arrangement() {
 }
 
 export function BackgroundTintPreview() {
-  const [appearance, setAppearance] = usePreviewAppearance();
+  const [appearance, changeAppearance] = usePreviewAppearance();
   return (
     <Stack gap="xs">
       <Switch
         checked={appearance.backgroundTint}
         label="Background Tint"
         onChange={(event) => {
-          setAppearance({ ...appearance, backgroundTint: event.currentTarget.checked });
+          changeAppearance({ backgroundTint: event.currentTarget.checked });
         }}
       />
       <Arrangement />
