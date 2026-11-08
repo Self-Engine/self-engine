@@ -1,59 +1,38 @@
-// The appearance object of the throwaway /theme-preview page. It sits above the router because
-// Mantine allows one MantineProvider per document, so the page cannot wrap itself in a second
-// provider. Replaced by the settings store (#15); #23 removes the page.
+// The appearance of the throwaway /theme-preview page. It sits above the router because Mantine
+// allows one MantineProvider per document, so the page cannot wrap itself in a second provider.
+// #23 removes the page.
 
-import { type Appearance, BUILT_IN_THEMES, DEFAULT_APPEARANCE } from "@self-engine/theme";
+import { useSetting } from "@self-engine/settings/react";
+import { type Appearance, BUILT_IN_THEMES } from "@self-engine/theme";
 import { ThemeProvider } from "@self-engine/theme/mantine";
-import {
-  createContext,
-  type Dispatch,
-  type ReactNode,
-  type SetStateAction,
-  use,
-  useEffect,
-  useState,
-} from "react";
-import { appearanceFromStored } from "./stored-preview-appearance.ts";
+import type { ReactNode } from "react";
+import { APPEARANCE_SETTINGS, appearanceChanges } from "./appearance-settings.ts";
+import { settingsStore } from "./settings-store.ts";
 
-type AppearanceState = readonly [Appearance, Dispatch<SetStateAction<Appearance>>];
-
-const AppearanceContext = createContext<AppearanceState | null>(null);
-
-// Survives a reload so that the first frame from the Start Cache can be judged on this page.
-const STORAGE_KEY = "self-engine:theme-preview";
-
-function readStoredAppearance(): Appearance {
-  try {
-    return appearanceFromStored(JSON.parse(localStorage.getItem(STORAGE_KEY) ?? "{}"));
-  } catch {
-    // Blocked storage or a damaged entry: this throwaway page just starts from the defaults.
-    return DEFAULT_APPEARANCE;
-  }
+function useAppearance(): Appearance {
+  return {
+    lightTheme: useSetting(settingsStore, APPEARANCE_SETTINGS.lightTheme),
+    darkTheme: useSetting(settingsStore, APPEARANCE_SETTINGS.darkTheme),
+    accent: useSetting(settingsStore, APPEARANCE_SETTINGS.accent),
+    backgroundTint: useSetting(settingsStore, APPEARANCE_SETTINGS.backgroundTint),
+    colorMode: useSetting(settingsStore, APPEARANCE_SETTINGS.colorMode),
+    density: useSetting(settingsStore, APPEARANCE_SETTINGS.density),
+    fontScale: useSetting(settingsStore, APPEARANCE_SETTINGS.fontScale),
+  };
 }
 
-function storeAppearance(appearance: Appearance): void {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(appearance));
-  } catch {
-    // The page then simply starts from the defaults again.
-  }
+function changeAppearance(changed: Partial<Appearance>): void {
+  settingsStore.writeAll(appearanceChanges(changed));
 }
 
 export function PreviewAppearance({ children }: { readonly children: ReactNode }) {
-  const state = useState(readStoredAppearance);
-  const [appearance] = state;
-  useEffect(() => storeAppearance(appearance), [appearance]);
   return (
-    <AppearanceContext value={state}>
-      <ThemeProvider appearance={state[0]} catalog={BUILT_IN_THEMES}>
-        {children}
-      </ThemeProvider>
-    </AppearanceContext>
+    <ThemeProvider appearance={useAppearance()} catalog={BUILT_IN_THEMES}>
+      {children}
+    </ThemeProvider>
   );
 }
 
-export function usePreviewAppearance(): AppearanceState {
-  const state = use(AppearanceContext);
-  if (state === null) throw new Error("usePreviewAppearance needs PreviewAppearance above it");
-  return state;
+export function usePreviewAppearance() {
+  return [useAppearance(), changeAppearance] as const;
 }

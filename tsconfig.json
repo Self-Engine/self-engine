@@ -2,5 +2,5 @@
   "extends": "./tsconfig.base.json",
   "include": ["packages/*/src", "scripts", "*.ts", ".dependency-cruiser.ts"],
   // Have React entry points and their own tsconfig.
-  "exclude": ["packages/icons", "packages/theme"]
+  "exclude": ["packages/icons", "packages/settings", "packages/theme"]
 }

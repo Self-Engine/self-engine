@@ -221,6 +221,9 @@ catalogs:
     typescript:
       specifier: 7.0.2
       version: 7.0.2
+    zod:
+      specifier: 4.6.7
+      version: 4.6.7
 
 overrides:
   '@types/node': 24.19.2
@@ -279,6 +282,9 @@ importers:
       '@self-engine/icons':
         specifier: workspace:*
         version: link:../../packages/icons
+      '@self-engine/settings':
+        specifier: workspace:*
+        version: link:../../packages/settings
       '@self-engine/theme':
         specifier: workspace:*
         version: link:../../packages/theme
@@ -291,6 +297,9 @@ importers:
       react-dom:
         specifier: 'catalog:'
         version: 19.3.1(react@19.3.1)
+      zod:
+        specifier: 'catalog:'
+        version: 4.6.7
     devDependencies:
       '@tanstack/router-plugin':
         specifier: 'catalog:'
@@ -370,6 +379,22 @@ importers:
       vite-plus:
         specifier: 1.5.0
         version: 1.5.0(@types/node@24.19.2)(@vitest/ui@5.1.0)(jiti@2.7.0)(typescript@7.0.2)
+
+  packages/settings:
+    dependencies:
+      react:
+        specifier: 'catalog:'
+        version: 19.3.1
+      vite-plus:
+        specifier: 1.5.0
+        version: 1.5.0(@types/node@24.19.2)(@vitest/ui@5.1.0)(jiti@2.7.0)(typescript@7.0.2)
+      zod:
+        specifier: 'catalog:'
+        version: 4.6.7
+    devDependencies:
+      '@types/react':
+        specifier: 'catalog:'
+        version: 19.3.0
 
   packages/theme:
     dependencies:

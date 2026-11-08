@@ -89,7 +89,7 @@ function StatusSample({ status }: { readonly status: Status }) {
 }
 
 function ThemePreviewPage() {
-  const [appearance, setAppearance] = usePreviewAppearance();
+  const [appearance, changeAppearance] = usePreviewAppearance();
   return (
     <Stack>
       <Title order={1}>Theme preview</Title>
@@ -97,7 +97,7 @@ function ThemePreviewPage() {
         <SegmentedControl
           data={COLOR_MODE_OPTIONS}
           onChange={(value) => {
-            setAppearance({ ...appearance, colorMode: value as ColorMode });
+            changeAppearance({ colorMode: value as ColorMode });
           }}
           value={appearance.colorMode}
         />
@@ -109,7 +109,7 @@ function ThemePreviewPage() {
         <SegmentedControl
           data={THEME_OPTIONS}
           onChange={(lightTheme) => {
-            setAppearance({ ...appearance, lightTheme });
+            changeAppearance({ lightTheme });
           }}
           value={appearance.lightTheme}
         />
@@ -118,7 +118,7 @@ function ThemePreviewPage() {
         <SegmentedControl
           data={THEME_OPTIONS}
           onChange={(darkTheme) => {
-            setAppearance({ ...appearance, darkTheme });
+            changeAppearance({ darkTheme });
           }}
           value={appearance.darkTheme}
         />
@@ -156,7 +156,7 @@ function ThemePreviewPage() {
         <SegmentedControl
           data={ACCENT_OPTIONS}
           onChange={(value) => {
-            setAppearance({ ...appearance, accent: value });
+            changeAppearance({ accent: value });
           }}
           value={appearance.accent}
         />
