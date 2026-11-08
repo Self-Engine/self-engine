@@ -17,3 +17,37 @@ _Avoid_: synonyms that blur the meaning, comma-separated
 - Refer to another term in _italics_, spelled as its entry.
 
 ## Language
+
+### Appearance
+
+**Accent** (de: _Akzentfarbe_):
+The app's highlight color for filled controls, active items and links. It is either picked from a fixed list or comes from the _Theme_; a _Theme_ does not have to bring one.
+_Avoid_: primary color, brand color
+
+**Background Tint** (de: _Hintergrundtönung_):
+The slight coloring of the app's outermost background with the _Accent_. It can be switched off and never affects the containers on top of that background.
+_Avoid_: glass, wash
+
+**Color Mode** (de: _Farbmodus_):
+Whether the app is shown light or dark, or follows the system.
+_Avoid_: color scheme, mode
+
+**Color Role** (de: _Farbrolle_):
+The named purpose a color serves, such as the page background or muted text. Components choose a _Color Role_, never a concrete color.
+_Avoid_: token, shade, color variable
+
+**Color Set** (de: _Farbsatz_):
+A named group of four matching colors for one hue: a fill, the text on that fill, a soft fill, and colored text on normal backgrounds. _Accents_ and _Module Colors_ are _Color Sets_.
+_Avoid_: hue, color scale
+
+**Density** (de: _Dichte_):
+How tightly the interface is laid out, either comfortable or compact. It changes spacing and control sizes, not the size of the text.
+_Avoid_: compact mode, zoom
+
+**Module Color** (de: _Modulfarbe_):
+The _Color Set_ a module declares for itself, which marks its icon, its active entries and its charts. It is not a user setting and is separate from the _Accent_, which marks actions.
+_Avoid_: brand color, section color
+
+**Theme** (de: _Theme_):
+A named set of colors for every _Color Role_, for one _Color Mode_ or both. A _Theme_ either ships with the app or was imported from another format.
+_Avoid_: skin, palette
