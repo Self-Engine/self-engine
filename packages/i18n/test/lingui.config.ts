@@ -1,6 +1,5 @@
 import { resolve } from "node:path";
 import { defineConfig } from "@lingui/conf";
-import { formatter } from "@lingui/format-po";
 import app from "../lingui.config.ts";
 
 /**
@@ -20,5 +19,4 @@ export default defineConfig({
       include: [resolve(import.meta.dirname, "fixtures-broken")],
     },
   ],
-  format: formatter({ lineNumbers: false }),
 });

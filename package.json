@@ -15,6 +15,7 @@
     "verify": "node scripts/verify.ts"
   },
   "devDependencies": {
+    "@lingui/cli": "catalog:",
     "@lingui/conf": "catalog:",
     "@lingui/format-po": "catalog:",
     "@messageformat/parser": "catalog:",

@@ -5,9 +5,10 @@ import { Link, Outlet, createRootRoute } from "@tanstack/react-router";
 import { channelBadge } from "../env.ts";
 
 const NAVIGATION = [
-  { to: "/", label: msg`Home` },
-  { to: "/about", label: msg`About` },
+  { to: "/", label: msg({ message: "Home", context: "page name" }) },
+  { to: "/about", label: msg({ message: "About", context: "page name" }) },
   { to: "/theme-preview", label: msg`Theme preview` },
+  { to: "/language-sample", label: msg`Language sample` },
 ] as const;
 
 export const Route = createRootRoute({ component: RootLayout });

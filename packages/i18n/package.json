@@ -9,9 +9,6 @@
     "./react": "./src/react/index.tsx",
     "./vite": "./src/build/vite.ts"
   },
-  "scripts": {
-    "extract": "lingui extract --clean"
-  },
   "dependencies": {
     "@lingui/conf": "catalog:",
     "@lingui/core": "catalog:",

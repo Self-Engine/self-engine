@@ -15,7 +15,13 @@ msgstr "{count, plural, one {# Eintrag} other {# Einträge}}"
 msgid "A link stays inside its sentence: read the <0>About page</0>."
 msgstr "Ein Link bleibt in seinem Satz: Lies die <0>Über-Seite</0>."
 
+#: apps/web/src/routes/about.tsx
+msgid "A second route, to prove navigation works."
+msgstr "Eine zweite Route, um zu zeigen, dass die Navigation funktioniert."
+
 #: apps/web/src/routes/__root.tsx
+#: apps/web/src/routes/about.tsx
+msgctxt "page name"
 msgid "About"
 msgstr "Über"
 
@@ -28,13 +34,18 @@ msgid "Hello {name}, nice to see you."
 msgstr "Hallo {name}, schön, dich zu sehen."
 
 #: apps/web/src/routes/__root.tsx
+msgctxt "page name"
 msgid "Home"
 msgstr "Start"
 
-#: apps/web/src/routes/index.tsx
+#: apps/web/src/routes/__root.tsx
 #: apps/web/src/routes/language-sample.tsx
 msgid "Language sample"
 msgstr "Sprachbeispiel"
+
+#: apps/web/src/routes/index.tsx
+msgid "The empty desktop shell."
+msgstr "Die leere Desktop-Shell."
 
 #: apps/web/src/routes/language-sample.tsx
 msgid "The language could not be loaded. Please try again."

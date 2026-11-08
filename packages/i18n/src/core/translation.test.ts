@@ -7,11 +7,10 @@ import {
   type I18n,
   type Language,
 } from "./index.ts";
+import { messagesOf } from "./translation.ts";
 
-const loadFixture: CatalogLoader = async (language) => {
-  const catalog = await import(`../../test/fixtures/${language}.po`);
-  return (catalog as { readonly messages: Record<string, string> }).messages;
-};
+const loadFixture: CatalogLoader = async (language) =>
+  messagesOf(await import(`../../test/fixtures/${language}.po`));
 
 async function shownIn(language: Language): Promise<I18n> {
   const i18n = createI18n();

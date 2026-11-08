@@ -3,7 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";
-import { type CatalogEntry, checkCatalogs, requiredLanguages } from "./check-i18n.ts";
+import { type CatalogEntry, checkCatalogs } from "./check-i18n.ts";
 import { capture } from "./verify.ts";
 
 const required = ["en", "de"];
@@ -186,13 +186,13 @@ describe("the script", () => {
   }
 
   function catalogs(entries: Readonly<Record<string, Readonly<Record<string, string>>>>): void {
-    for (const [locale, messages] of Object.entries(entries)) {
-      writeFileSync(join(root, `locales/${locale}.po`), po(messages));
+    for (const [language, messages] of Object.entries(entries)) {
+      writeFileSync(join(root, `locales/${language}.po`), po(messages));
     }
   }
 
-  function read(locale: string): string {
-    return readFileSync(join(root, `locales/${locale}.po`), "utf8");
+  function read(language: string): string {
+    return readFileSync(join(root, `locales/${language}.po`), "utf8");
   }
 
   function run(...args: readonly string[]): ReturnType<typeof capture> {
@@ -236,6 +236,30 @@ describe("the script", () => {
     const { code } = await run("--check");
     expect(code).toBe(1);
     expect(read("de")).toContain("Gone");
+  });
+
+  it("with --check, names a message that is not extracted yet, for each language", async () => {
+    source("Save", "New text");
+    catalogs(inSync);
+    const { output } = await run("--check");
+    expect(output).toContain('de: "New text" is missing from the catalog');
+    expect(output).toContain('pl: "New text" is missing from the catalog');
+  });
+
+  it("with --check, names a message that is no longer in the source", async () => {
+    source("Save");
+    catalogs({ ...inSync, de: { Save: "Speichern", Gone: "Weg" } });
+    const { output } = await run("--check");
+    expect(output).toContain('de: "Gone" is no longer in the source');
+    expect(output).not.toContain('en: "Gone"');
+  });
+
+  it("with --check, calls nothing stale when a source file cannot be extracted", async () => {
+    writeFileSync(join(root, "src/a.ts"), "export const = ;\n");
+    catalogs(inSync);
+    const { code, output } = await run("--check");
+    expect(code).toBe(1);
+    expect(output).not.toContain("is no longer in the source");
   });
 
   it("with --check, fails instead of crashing on a catalog that does not exist yet", async () => {
@@ -294,11 +318,5 @@ describe("the script", () => {
     writeFileSync(join(root, "src/a.ts"), "export const = ;\n");
     catalogs(inSync);
     expect((await run()).code).toBe(1);
-  });
-});
-
-describe("requiredLanguages", () => {
-  it("requires English and German", () => {
-    expect(requiredLanguages()).toEqual(["en", "de"]);
   });
 });

@@ -14,3 +14,8 @@ export const BASE_LANGUAGE: Language = "en";
 
 /** The tags of the offered languages, in the order of {@link LANGUAGES}. */
 export const LANGUAGE_TAGS = Object.keys(LANGUAGES) as readonly Language[];
+
+/** The languages whose catalogs have to be complete; a gap in any other only warns. */
+export function requiredLanguages(): Language[] {
+  return LANGUAGE_TAGS.filter((language) => LANGUAGES[language].required);
+}

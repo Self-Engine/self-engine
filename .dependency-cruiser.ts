@@ -116,7 +116,7 @@ export function boundaryConfig({ allowedImports, rootDir }: BoundaryOptions): IC
     {
       name: "i18n-core-is-pure",
       comment:
-        "The translation core (`@self-engine/i18n`) runs without React, so it works outside a component. Those imports belong in `@self-engine/i18n/react`.",
+        "The translation core (`@self-engine/i18n`) runs without React, so it works outside a component. Those imports belong in `@self-engine/i18n/react`. Its own tsconfig keeps the DOM out.",
       severity: "error",
       from: { path: "^packages/i18n/src/core/" },
       to: {

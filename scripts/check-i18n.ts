@@ -3,14 +3,15 @@
 // translations; `--check` (the stage under CI) only compares and writes nothing. Then every
 // translation is held against its message: German and English are complete, placeholders and
 // numbered rich-text tags are the same, and every text is valid ICU. A gap in a further language
-// only warns.
+// only warns. Under `--check`, a stale catalog also names its messages, since nothing is extracted.
 
 import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { parseArgs } from "node:util";
+import { getCatalogs } from "@lingui/cli/api";
 import { type CatalogFormatter, getConfig, type LinguiConfigNormalized } from "@lingui/conf";
 import { parse, type Token } from "@messageformat/parser";
-import { LANGUAGE_TAGS, LANGUAGES } from "@self-engine/i18n";
+import { requiredLanguages } from "@self-engine/i18n";
 import { capture } from "./verify.ts";
 
 export interface CatalogEntry {
@@ -35,13 +36,17 @@ export interface CatalogCheckResult {
 /** An opening, closing or self-closing numbered tag: Lingui's form of rich text. */
 const RICH_TEXT_TAG = /<\/?\d+\/?>/g;
 
-/** The sorted placeholders and rich-text tags of an ICU text, or the parse error as a string. */
-function placeholdersOf(text: string): string[] | string {
+type ParsedText =
+  | { readonly ok: true; readonly placeholders: readonly string[] }
+  | { readonly ok: false; readonly error: string };
+
+/** The sorted placeholders and rich-text tags of an ICU text. */
+function placeholdersOf(text: string): ParsedText {
   let tokens: Token[];
   try {
     tokens = parse(text);
   } catch (error) {
-    return error instanceof Error ? error.message : String(error);
+    return { ok: false, error: error instanceof Error ? error.message : String(error) };
   }
   const found = new Set<string>();
   const visit = (list: readonly Token[]): void => {
@@ -57,11 +62,25 @@ function placeholdersOf(text: string): string[] | string {
     }
   };
   visit(tokens);
-  return [...found].sort();
+  return { ok: true, placeholders: [...found].sort() };
 }
 
 function listed(placeholders: readonly string[]): string {
   return placeholders.length > 0 ? placeholders.join(", ") : "(none)";
+}
+
+/** What is wrong with a translation that is not empty, as the end of a sentence. */
+function translationProblem(message: string, translation: string): string | undefined {
+  const expected = placeholdersOf(message);
+  if (!expected.ok) return `is not valid ICU: ${expected.error}`;
+  const actual = placeholdersOf(translation);
+  if (!actual.ok) return `is not valid ICU: ${actual.error}`;
+  if (expected.placeholders.join() === actual.placeholders.join()) return undefined;
+  return `has placeholders ${listed(actual.placeholders)}, the message has ${listed(expected.placeholders)}`;
+}
+
+function labelOf(language: string, { message, context }: CatalogEntry): string {
+  return `${language}: "${message}"${context ? ` (${context})` : ""}`;
 }
 
 /** Holds every translation against its message. */
@@ -69,53 +88,82 @@ export function checkCatalogs({ catalogs, required }: CatalogCheckInput): Catalo
   const errors: string[] = [];
   const warnings: string[] = [];
   for (const [language, entries] of Object.entries(catalogs)) {
-    for (const { message, context, translation } of entries) {
-      const label = `${language}: "${message}"${context ? ` (${context})` : ""}`;
-      if (!translation) {
+    for (const entry of entries) {
+      const label = labelOf(language, entry);
+      if (!entry.translation) {
         (required.includes(language) ? errors : warnings).push(`${label} is not translated`);
         continue;
       }
-      const expected = placeholdersOf(message);
-      const actual = placeholdersOf(translation);
-      const invalid = [expected, actual].find((result) => typeof result === "string");
-      if (typeof expected === "string" || typeof actual === "string") {
-        errors.push(`${label} is not valid ICU: ${String(invalid)}`);
-        continue;
-      }
-      if (expected.join() !== actual.join()) {
-        errors.push(
-          `${label} has placeholders ${listed(actual)}, the message has ${listed(expected)}`,
-        );
-      }
+      const problem = translationProblem(entry.message, entry.translation);
+      if (problem !== undefined) errors.push(`${label} ${problem}`);
     }
   }
   return { errors, warnings };
 }
 
-/** The languages whose catalogs have to be complete. */
-export function requiredLanguages(): string[] {
-  return LANGUAGE_TAGS.filter((language) => LANGUAGES[language].required);
+function toEntry({
+  message = "",
+  context,
+  translation = "",
+}: {
+  readonly message?: string | undefined;
+  readonly context?: string | undefined;
+  readonly translation?: string | undefined;
+}): CatalogEntry {
+  return { message, context, translation };
+}
+
+/** Names what extraction would add to or remove from each catalog. */
+function staleMessages(
+  source: readonly CatalogEntry[],
+  catalogs: CatalogCheckInput["catalogs"],
+): string[] {
+  const identity = ({ message, context }: CatalogEntry): string =>
+    JSON.stringify([message, context ?? null]);
+  const inSource = new Set(source.map(identity));
+  return Object.entries(catalogs).flatMap(([language, entries]) => {
+    const inCatalog = new Set(entries.map(identity));
+    return [
+      ...source
+        .filter((entry) => !inCatalog.has(identity(entry)))
+        .map((entry) => `${labelOf(language, entry)} is missing from the catalog`),
+      ...entries
+        .filter((entry) => !inSource.has(identity(entry)))
+        .map((entry) => `${labelOf(language, entry)} is no longer in the source`),
+    ];
+  });
+}
+
+/** The stale messages of the catalogs, without writing them. */
+async function findStaleMessages(
+  config: LinguiConfigNormalized,
+  catalogs: CatalogCheckInput["catalogs"],
+): Promise<string[]> {
+  const extracted = await Promise.all(
+    (await getCatalogs(config)).map((catalog) => catalog.collect()),
+  );
+  // A source file that cannot be extracted says nothing about the messages it would hold.
+  if (extracted.includes(undefined)) return [];
+  const source = extracted.flatMap((messages) => Object.values(messages ?? {}).map(toEntry));
+  return staleMessages(source, catalogs);
 }
 
 async function readCatalog(
   config: LinguiConfigNormalized,
-  locale: string,
+  language: string,
 ): Promise<CatalogEntry[]> {
   const format = config.format as CatalogFormatter;
-  const sourceLocale = config.sourceLocale ?? null;
   const entries = await Promise.all(
     config.catalogs.map(async (catalog) => {
-      const filename = `${catalog.path.replace("{locale}", locale)}${format.catalogExtension}`;
+      const filename = `${catalog.path.replace("{locale}", language)}${format.catalogExtension}`;
       // Only with --check: the sync step has already reported the file as missing.
       if (!existsSync(filename)) return [];
-      const content = readFileSync(filename, "utf8");
-      const parsed = await format.parse(content, { locale, sourceLocale, filename });
-      // An entry without a message has no source text of its own, so its key stands in for it.
-      return Object.entries(parsed).map(([key, { message, context, translation = "" }]) => ({
-        message: message ?? key,
-        context,
-        translation,
-      }));
+      const parsed = await format.parse(readFileSync(filename, "utf8"), {
+        locale: language,
+        sourceLocale: config.sourceLocale ?? null,
+        filename,
+      });
+      return Object.values(parsed).map(toEntry);
     }),
   );
   return entries.flat();
@@ -144,13 +192,17 @@ async function main(): Promise<void> {
   const config = getConfig({ configPath });
   const catalogs = Object.fromEntries(
     await Promise.all(
-      config.locales.map(async (locale) => [locale, await readCatalog(config, locale)] as const),
+      config.locales.map(
+        async (language) => [language, await readCatalog(config, language)] as const,
+      ),
     ),
   );
   const { errors, warnings } = checkCatalogs({ catalogs, required: requiredLanguages() });
+  const stale = values.check && sync.code !== 0 ? await findStaleMessages(config, catalogs) : [];
+  const problems = [...stale, ...errors];
   for (const warning of warnings) console.warn(`warning ${warning}`);
-  if (errors.length > 0) console.error(`check-i18n:\n${errors.join("\n")}`);
-  if (sync.code !== 0 || errors.length > 0) process.exit(1);
+  if (problems.length > 0) console.error(`check-i18n:\n${problems.join("\n")}`);
+  if (sync.code !== 0 || problems.length > 0) process.exit(1);
   console.log(`check-i18n: ok (${config.locales.join(", ")}; ${warnings.length} warnings)`);
 }
 

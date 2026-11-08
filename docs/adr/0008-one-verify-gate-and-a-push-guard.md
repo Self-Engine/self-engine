@@ -27,7 +27,7 @@ through a PR.
 
 ## Consequences
 
-- The flow is commit → `pnpm verify` → commit any formatter output → push.
+- The flow is commit → `pnpm verify` → commit any formatter output and extracted catalogs → push.
 - Any edit after a pass, even a formatting fix, needs another `pnpm verify` before a push.
   The cache keeps that rerun short.
 - Every stage must run through a tool whose file reads Vite Task can track. The typecheck
