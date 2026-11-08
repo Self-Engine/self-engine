@@ -7,5 +7,5 @@
     "lib": ["ESNext", "DOM", "DOM.Iterable"],
     "types": ["node", "vite-plus/client"]
   },
-  "include": [".storybook", "vitest.config.ts"]
+  "include": [".storybook/**/*", "vitest.config.ts"]
 }

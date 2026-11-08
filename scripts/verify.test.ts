@@ -18,7 +18,7 @@ const rootPackage = fileURLToPath(new URL("../package.json", import.meta.url));
 /** The stories task, which unlike the others needs more than a command string. */
 function storiesTaskConfig(): { command?: string; dependsOn?: unknown } {
   const task = config.run?.tasks?.["verify:stories"];
-  return typeof task === "object" ? task : {};
+  return typeof task === "object" && !Array.isArray(task) ? task : {};
 }
 const storiesTask = storiesTaskConfig();
 
@@ -119,9 +119,7 @@ describe("the verify tasks", () => {
   });
 
   it("render the stories with the catalog's own config, so the Node tests need no browser", () => {
-    expect(storiesTask.command).toBe(
-      "vp test run --root apps/component-catalog --reporter=agent",
-    );
+    expect(storiesTask.command).toBe("vp test run --root apps/component-catalog --reporter=agent");
     expect(config.test?.browser).toBeUndefined();
     expect(config.test?.include?.join()).not.toContain("stories");
   });
