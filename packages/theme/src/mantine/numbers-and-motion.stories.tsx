@@ -2,6 +2,7 @@ import { Group, Stack, Text } from "@mantine/core";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import type { CSSProperties } from "react";
 import { expect } from "storybook/test";
+import { roleColor } from "../core/index.ts";
 
 const NUMBERS = ["1,111.11", "7,420.00", "8,888.88", "10:11:11", "20:48:09"];
 
@@ -18,13 +19,14 @@ function NumberColumn({ label, style }: { readonly label: string; readonly style
   );
 }
 
-function fading(token: string): CSSProperties {
+function fading(durationVariable: string): CSSProperties {
+  const duration = `var(${durationVariable})`;
   return {
-    background: "var(--se-surface)",
-    color: "var(--se-accent-text)",
-    border: "1px solid var(--se-border)",
+    background: roleColor("surface"),
+    color: roleColor("accentText"),
+    border: `1px solid ${roleColor("border")}`,
     padding: "var(--mantine-spacing-md)",
-    transition: `background-color var(${token}), color var(${token}), border-color var(${token})`,
+    transition: `background-color ${duration}, color ${duration}, border-color ${duration}`,
   };
 }
 
@@ -47,7 +49,7 @@ function Motion() {
 }
 
 const meta = {
-  title: "Tokens/Numbers and Motion",
+  title: "Appearance/Numbers and Motion",
 } satisfies Meta;
 
 export default meta;

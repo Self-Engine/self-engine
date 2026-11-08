@@ -3,12 +3,10 @@ import type { Meta, StoryObj } from "@storybook/react-vite";
 import type { CSSProperties } from "react";
 import { expect } from "storybook/test";
 import { roleColor as color } from "../core/index.ts";
+import { STATUS_ROLES } from "./story-samples.tsx";
 
 const BUTTON_VARIANTS = ["filled", "light", "outline", "subtle"] as const;
 const SURFACES = ["chrome", "navSurface", "canvas", "surface", "surfaceRaised"] as const;
-const STATUS_FILL_TEXT = { error: "onError", warning: "onWarning", success: "onSuccess" } as const;
-type Status = keyof typeof STATUS_FILL_TEXT;
-const STATUSES = Object.keys(STATUS_FILL_TEXT) as Status[];
 
 function box(background: string, extra: CSSProperties = {}): CSSProperties {
   return {
@@ -88,16 +86,13 @@ function Accent() {
   );
 }
 
-function StatusSample({ status }: { readonly status: Status }) {
+function StatusSample({ roles }: { readonly roles: (typeof STATUS_ROLES)[number] }) {
+  const { fill, onFill, soft, text } = roles;
   return (
     <Group grow>
-      <div style={box(color(status), { color: color(STATUS_FILL_TEXT[status]) })}>
-        {status} fill
-      </div>
-      <div style={box(color(`${status}Soft`), { color: color(`${status}Text`) })}>
-        {status} soft
-      </div>
-      <div style={box(color("surface"), { color: color(`${status}Text`) })}>{status} text</div>
+      <div style={box(color(fill), { color: color(onFill) })}>{fill} fill</div>
+      <div style={box(color(soft), { color: color(text) })}>{fill} soft</div>
+      <div style={box(color("surface"), { color: color(text) })}>{fill} text</div>
     </Group>
   );
 }
@@ -105,15 +100,15 @@ function StatusSample({ status }: { readonly status: Status }) {
 function StatusRows() {
   return (
     <Stack gap="xs">
-      {STATUSES.map((status) => (
-        <StatusSample key={status} status={status} />
+      {STATUS_ROLES.map((roles) => (
+        <StatusSample key={roles.fill} roles={roles} />
       ))}
     </Stack>
   );
 }
 
 const meta = {
-  title: "Tokens/Role Samples",
+  title: "Appearance/Role Samples",
 } satisfies Meta;
 
 export default meta;

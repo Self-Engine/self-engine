@@ -21,15 +21,24 @@ describe("ensureChromium", () => {
     return dir;
   }
 
-  it("finds the CLI of the catalog's own playwright package", () => {
-    const catalog = fixture();
-    expect(playwrightCli(catalog)).toBe(join(catalog, "node_modules", "playwright", "cli.js"));
+  it("finds the CLI of the playwright package the Component Catalog depends on", () => {
+    const componentCatalog = fixture();
+    expect(playwrightCli(componentCatalog)).toBe(join(componentCatalog, "node_modules", "playwright", "cli.js"));
   });
 
   it("asks that CLI for the headless shell only, the one browser the stories use", () => {
-    const catalog = fixture();
+    const componentCatalog = fixture();
     const calls: (readonly string[])[] = [];
-    ensureChromium(catalog, (cli, args) => calls.push([cli, ...args]));
-    expect(calls).toEqual([[playwrightCli(catalog), "install", "--only-shell", "chromium"]]);
+    ensureChromium(componentCatalog, [], (cli, args) => calls.push([cli, ...args]));
+    expect(calls).toEqual([[playwrightCli(componentCatalog), "install", "--only-shell", "chromium"]]);
+  });
+
+  it("passes on extra flags, so CI can add Ubuntu's system libraries to the same install", () => {
+    const componentCatalog = fixture();
+    const calls: (readonly string[])[] = [];
+    ensureChromium(componentCatalog, ["--with-deps"], (cli, args) => calls.push([cli, ...args]));
+    expect(calls).toEqual([
+      [playwrightCli(componentCatalog), "install", "--only-shell", "chromium", "--with-deps"],
+    ]);
   });
 });

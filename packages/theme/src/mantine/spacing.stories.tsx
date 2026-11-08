@@ -1,7 +1,8 @@
 import { Group, Stack, Table, Text, useMantineTheme } from "@mantine/core";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { expect } from "storybook/test";
-import { DENSITIES, DENSITY_VARIABLES } from "../core/index.ts";
+import { DENSITIES, DENSITY_VARIABLES, roleColor } from "../core/index.ts";
+import { isStrictlyIncreasing } from "./story-samples.tsx";
 
 /** Each Density's variables share their names, so the first Density lists them for all. */
 const DENSITY_VARIABLE_NAMES = Object.keys(DENSITY_VARIABLES[DENSITIES[0]]) as Array<
@@ -12,12 +13,15 @@ function Spacing() {
   const { spacing } = useMantineTheme();
   return (
     <Stack>
+      <Text c="dimmed">
+        Mantine's own spacing scale, which the app uses as it is: the theme engine sets no spacing.
+      </Text>
       <Stack gap="xs">
         {Object.entries(spacing).map(([step, value]) => (
           <Group key={step}>
             <div
               data-testid={step}
-              style={{ background: "var(--se-accent)", height: "1rem", width: value }}
+              style={{ background: roleColor("accent"), height: "1rem", width: value }}
             />
             <Text size="sm">
               {step}: {value}
@@ -25,6 +29,7 @@ function Spacing() {
           </Group>
         ))}
       </Stack>
+      <Text c="dimmed">The Density variables, which the theme engine does own.</Text>
       <Table>
         <Table.Thead>
           <Table.Tr>
@@ -50,7 +55,7 @@ function Spacing() {
 }
 
 const meta = {
-  title: "Tokens/Spacing",
+  title: "Appearance/Spacing",
   component: Spacing,
 } satisfies Meta<typeof Spacing>;
 
@@ -61,8 +66,7 @@ export const Overview: StoryObj<typeof meta> = {
     const widths = ["xs", "sm", "md", "lg", "xl"].map(
       (step) => canvas.getByTestId(step).getBoundingClientRect().width,
     );
-    await expect(widths).toEqual(widths.toSorted((a, b) => a - b));
-    await expect(new Set(widths).size).toBe(widths.length);
+    await expect(isStrictlyIncreasing(widths)).toBe(true);
     await expect(canvas.getByText("--se-row-height")).toBeVisible();
   },
 };

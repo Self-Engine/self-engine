@@ -254,7 +254,7 @@ describe("declared dependencies", () => {
     const desktop = app("desktop", { "src/main.stories.tsx": 'import "@self-engine/tool";\n' });
     expect(
       ruleNames(await cruise([tool, desktop], { rootDependencies: ["@self-engine/tool"] })),
-    ).toEqual(["declared-workspace-dependency:apps/desktop:tests"]);
+    ).toEqual(["declared-workspace-dependency:apps/desktop:dev-only"]);
   });
 
   it("fail a devDependency imported by a source file", async () => {

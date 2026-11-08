@@ -5,7 +5,7 @@ import { expect } from "storybook/test";
 import {
   BUILT_IN_THEMES,
   type ColorRole,
-  DEFAULT_APPEARANCE,
+  FIXED_APPEARANCE,
   resolveAppearance,
   roleColor,
 } from "../core/index.ts";
@@ -31,7 +31,7 @@ function Container({
   );
 }
 
-/** The B3 arrangement: the tinted chrome with the navigation and the content on top of it. */
+/** The layers of the app window: the tinted chrome with the navigation and the content on top of it. */
 function Arrangement() {
   return (
     <Container
@@ -46,7 +46,7 @@ function Arrangement() {
         <Text fw={600}>canvas</Text>
         <Container
           role="surface"
-          style={{ border: "1px solid var(--se-border)", marginTop: "var(--mantine-spacing-xs)" }}
+          style={{ border: `1px solid ${roleColor("border")}`, marginTop: "var(--mantine-spacing-xs)" }}
         >
           <Text fw={600}>surface</Text>
           <Text c="dimmed">A tile on the content</Text>
@@ -57,17 +57,15 @@ function Arrangement() {
 }
 
 const meta = {
-  title: "Tokens/Background Tint",
+  title: "Appearance/Background Tint",
   component: Arrangement,
 } satisfies Meta<typeof Arrangement>;
 
 export default meta;
 
 function chromeWith(backgroundTint: boolean) {
-  return resolveAppearance(
-    { ...DEFAULT_APPEARANCE, backgroundTint, colorMode: "light" },
-    BUILT_IN_THEMES,
-  ).light.roles.chrome;
+  return resolveAppearance({ ...FIXED_APPEARANCE, backgroundTint }, BUILT_IN_THEMES).light.roles
+    .chrome;
 }
 
 export const On: StoryObj<typeof meta> = {

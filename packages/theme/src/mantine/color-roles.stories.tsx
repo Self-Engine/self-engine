@@ -1,14 +1,15 @@
-import { Group, Paper, SimpleGrid, Text } from "@mantine/core";
+import { Paper, SimpleGrid } from "@mantine/core";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { expect } from "storybook/test";
 import {
   BUILT_IN_THEMES,
-  DEFAULT_APPEARANCE,
+  FIXED_APPEARANCE,
   type FinalColors,
   resolveAppearance,
   roleColor,
 } from "../core/index.ts";
 import { useFinalColors } from "./index.tsx";
+import { Swatch } from "./story-samples.tsx";
 
 type Role = keyof FinalColors;
 
@@ -18,24 +19,7 @@ function ColorRoles() {
     <SimpleGrid cols={{ base: 1, sm: 2, lg: 3 }}>
       {(Object.keys(colors) as Role[]).map((role) => (
         <Paper key={role} p="xs" withBorder>
-          <Group wrap="nowrap">
-            <div
-              data-testid={role}
-              style={{
-                background: roleColor(role),
-                border: "1px solid var(--se-border)",
-                borderRadius: 4,
-                height: 32,
-                width: 32,
-              }}
-            />
-            <div>
-              <Text size="sm">{role}</Text>
-              <Text c="dimmed" size="xs">
-                {colors[role]}
-              </Text>
-            </div>
-          </Group>
+          <Swatch color={roleColor(role)} label={role} testId={role} value={colors[role]} />
         </Paper>
       ))}
     </SimpleGrid>
@@ -43,7 +27,7 @@ function ColorRoles() {
 }
 
 const meta = {
-  title: "Tokens/Color Roles",
+  title: "Appearance/Color Roles",
   component: ColorRoles,
 } satisfies Meta<typeof ColorRoles>;
 
@@ -65,10 +49,7 @@ export const InTheFixedAppearance: StoryObj<typeof meta> = {
     await expect(root.style.fontSize).toBe("100%");
     await expect(root.lang).toBe("en");
     // Only Neutral with its own Accent and the Background Tint on produces this `chrome`.
-    const { chrome } = resolveAppearance(
-      { ...DEFAULT_APPEARANCE, colorMode: "light" },
-      BUILT_IN_THEMES,
-    ).light.roles;
+    const { chrome } = resolveAppearance(FIXED_APPEARANCE, BUILT_IN_THEMES).light.roles;
     await expect(canvas.getByText(chrome)).toBeVisible();
   },
 };

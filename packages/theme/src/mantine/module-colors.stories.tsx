@@ -2,13 +2,12 @@ import { Button, SimpleGrid, Text } from "@mantine/core";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import type { CSSProperties } from "react";
 import { expect, within } from "storybook/test";
-import { COLOR_SETS, type ColorSetId } from "../core/index.ts";
-
-const SET_NAMES = Object.keys(COLOR_SETS) as ColorSetId[];
+import { COLOR_SETS, roleColor } from "../core/index.ts";
+import { SET_NAMES } from "./story-samples.tsx";
 
 const AREA: CSSProperties = {
-  background: "var(--se-nav-surface)",
-  border: "1px solid var(--se-border)",
+  background: roleColor("navSurface"),
+  border: `1px solid ${roleColor("border")}`,
   borderRadius: "var(--mantine-radius-md)",
   display: "flex",
   flexDirection: "column",
@@ -69,7 +68,7 @@ function ModuleColors() {
 }
 
 const meta = {
-  title: "Tokens/Module Colors",
+  title: "Appearance/Module Colors",
   component: ModuleColors,
 } satisfies Meta<typeof ModuleColors>;
 

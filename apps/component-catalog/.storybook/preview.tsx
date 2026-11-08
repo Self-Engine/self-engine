@@ -13,6 +13,17 @@ const i18n = createI18n();
 let consoleErrors: unknown[][] = [];
 const originalConsoleError = console.error;
 
+/**
+ * Chromium's notice that it delivered a resize in the next frame, not a fault in a component.
+ * Floating layers measure themselves, so whether it appears depends on timing, and a gate that
+ * failed on it would be flaky.
+ */
+const RESIZE_OBSERVER_NOTICE = "ResizeObserver loop completed with undelivered notifications";
+
+function isResizeObserverNotice(args: readonly unknown[]): boolean {
+  return args.some((arg) => String(arg).includes(RESIZE_OBSERVER_NOTICE));
+}
+
 const preview: Preview = {
   globalTypes,
   initialGlobals,
@@ -36,7 +47,7 @@ const preview: Preview = {
   beforeEach() {
     consoleErrors = [];
     console.error = (...args: unknown[]) => {
-      consoleErrors.push(args);
+      if (!isResizeObserverNotice(args)) consoleErrors.push(args);
       originalConsoleError(...args);
     };
   },

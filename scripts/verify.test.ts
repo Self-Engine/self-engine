@@ -111,7 +111,7 @@ describe("the verify tasks", () => {
     expect(config.run?.tasks?.["verify:typecheck"]).toBe("vp check --no-fmt --no-lint");
   });
 
-  it("render the stories with the catalog's own config, so the Node tests need no browser", () => {
+  it("render the stories with the Component Catalog's config, so the Node tests need no browser", () => {
     expect(config.run?.tasks?.["verify:stories"]).toMatchObject({
       command: "vp test run --root apps/component-catalog --reporter=agent",
     });

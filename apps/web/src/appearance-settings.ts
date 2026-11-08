@@ -9,7 +9,7 @@ import {
 } from "@self-engine/settings";
 import {
   type Appearance,
-  COLOR_MODES,
+  COLOR_MODE_CHOICES,
   DEFAULT_APPEARANCE,
   DENSITIES,
   FONT_SCALES,
@@ -54,7 +54,7 @@ export const APPEARANCE_SETTINGS: AppearanceSettings = {
     key: "appearance.colorMode",
     scope: "device",
     default: DEFAULT_APPEARANCE.colorMode,
-    schema: z.literal([...COLOR_MODES, "system"]),
+    schema: z.literal(COLOR_MODE_CHOICES),
   }),
   density: defineSetting({
     key: "appearance.density",

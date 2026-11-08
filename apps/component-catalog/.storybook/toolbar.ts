@@ -3,19 +3,14 @@ import {
   ACCENT_IDS,
   type Appearance,
   BUILT_IN_THEMES,
-  COLOR_MODES,
-  type ColorMode,
-  DEFAULT_APPEARANCE,
+  COLOR_MODE_CHOICES,
   DENSITIES,
+  FIXED_APPEARANCE,
   FONT_SCALES,
   FROM_THEME,
 } from "@self-engine/theme";
 import type { Preview } from "@storybook/react-vite";
 
-/** Independent of the browser's system preference, so every machine renders the same (ADR 0012). */
-const FIXED_APPEARANCE: Appearance = { ...DEFAULT_APPEARANCE, colorMode: "light" };
-
-const COLOR_MODE_OPTIONS: readonly ColorMode[] = [...COLOR_MODES, "system"];
 const ACCENT_OPTIONS: readonly string[] = [FROM_THEME, ...ACCENT_IDS];
 const TINT_ON = "on";
 const TINT_OFF = "off";
@@ -41,7 +36,7 @@ export const globalTypes = {
   ),
   colorMode: toolbarSwitch(
     "Color Mode",
-    COLOR_MODE_OPTIONS.map((mode) => ({ value: mode, title: mode })),
+    COLOR_MODE_CHOICES.map((mode) => ({ value: mode, title: mode })),
   ),
   backgroundTint: toolbarSwitch("Background Tint", [
     { value: TINT_ON, title: "Tint on" },
@@ -90,7 +85,7 @@ export function appearanceOf(globals: Globals): Appearance {
     lightTheme: theme,
     darkTheme: theme,
     accent: chosen(ACCENT_OPTIONS, globals["accent"], FIXED_APPEARANCE.accent),
-    colorMode: chosen(COLOR_MODE_OPTIONS, globals["colorMode"], FIXED_APPEARANCE.colorMode),
+    colorMode: chosen(COLOR_MODE_CHOICES, globals["colorMode"], FIXED_APPEARANCE.colorMode),
     backgroundTint: globals["backgroundTint"] !== TINT_OFF,
     density: chosen(DENSITIES, globals["density"], FIXED_APPEARANCE.density),
     fontScale: chosen(FONT_SCALES, globals["fontScale"], FIXED_APPEARANCE.fontScale),

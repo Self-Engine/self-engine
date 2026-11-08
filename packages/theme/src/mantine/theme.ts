@@ -12,7 +12,7 @@ import {
   FONT_FAMILY,
   type ResolvedAppearance,
   type ResolvedColorMode,
-  roleVariable,
+  roleColor,
 } from "../core/index.ts";
 
 const COLOR_SET_PALETTES: ReadonlySet<string> = new Set([
@@ -29,7 +29,7 @@ const COMPACT_CONTROLS = {
   Button: { defaultProps: { size: "xs" } },
 };
 
-const SURFACE_RAISED = { backgroundColor: `var(${roleVariable("surfaceRaised")})` };
+const SURFACE_RAISED = { backgroundColor: roleColor("surfaceRaised") };
 
 /** The header is sticky and paints its own background over the content's. */
 const RAISED_DIALOG = { styles: { content: SURFACE_RAISED, header: SURFACE_RAISED } };

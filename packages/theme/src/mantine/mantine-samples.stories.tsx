@@ -8,16 +8,13 @@ import {
   TextInput,
 } from "@mantine/core";
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { expect, userEvent, waitFor, within } from "storybook/test";
+import { expect, screen, userEvent, waitFor } from "storybook/test";
 
 const meta = {
   title: "Mantine/Samples",
 } satisfies Meta;
 
 export default meta;
-
-/** Floating layers render into a portal, outside the story's own canvas. */
-const page = () => within(document.body);
 
 export const Card: StoryObj<typeof meta> = {
   render: () => (
@@ -54,7 +51,8 @@ export const Select: StoryObj<typeof meta> = {
   play: async ({ canvas }) => {
     const select = canvas.getByRole("combobox", { name: "Select" });
     await userEvent.click(select);
-    await userEvent.click(await page().findByRole("option", { name: "Two" }));
+    // Floating layers render into a portal, outside the story's own canvas.
+    await userEvent.click(await screen.findByRole("option", { name: "Two" }));
     await expect(select).toHaveValue("Two");
   },
 };
@@ -74,7 +72,7 @@ export const Menu: StoryObj<typeof meta> = {
   ),
   play: async ({ canvas }) => {
     await userEvent.click(canvas.getByRole("button", { name: "Menu" }));
-    const item = await page().findByRole("menuitem", { name: "First item" });
+    const item = await screen.findByRole("menuitem", { name: "First item" });
     // The item exists before its opening transition has made it visible.
     await waitFor(() => expect(item).toBeVisible());
   },

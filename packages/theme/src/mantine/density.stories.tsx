@@ -2,8 +2,9 @@ import { Button, Group, Stack, Text, TextInput } from "@mantine/core";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import type { CSSProperties, ReactNode } from "react";
 import { expect } from "storybook/test";
+import { roleColor } from "../core/index.ts";
 
-/** Mantine's height of size `xs` at the 100 % font scale of the story tests. */
+/** Mantine's height of size `xs` at the 100 % font scale, which `Compact` fixes. */
 const COMPACT_CONTROL_HEIGHT = 30;
 
 function Controls() {
@@ -17,8 +18,8 @@ function Controls() {
 
 const ROW: CSSProperties = {
   alignItems: "center",
-  background: "var(--se-surface)",
-  borderBottom: "1px solid var(--se-border)",
+  background: roleColor("surface"),
+  borderBottom: `1px solid ${roleColor("border")}`,
   display: "flex",
   gap: "var(--se-gap)",
   minHeight: "var(--se-row-height)",
@@ -62,7 +63,7 @@ function Rows() {
 }
 
 const meta = {
-  title: "Tokens/Density",
+  title: "Appearance/Density",
   component: Controls,
 } satisfies Meta<typeof Controls>;
 
@@ -76,8 +77,9 @@ export const ComfortableRows: StoryObj<typeof meta> = {
   },
 };
 
+/** A height in pixels holds at one font scale only, so this statement fixes that too. */
 export const Compact: StoryObj<typeof meta> = {
-  globals: { density: "compact" },
+  globals: { density: "compact", fontScale: "100" },
   play: async ({ canvas }) => {
     const button = canvas.getByRole("button", { name: "Save" });
     await expect(button.getBoundingClientRect().height).toBe(COMPACT_CONTROL_HEIGHT);

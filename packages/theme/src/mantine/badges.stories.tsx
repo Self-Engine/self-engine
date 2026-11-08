@@ -2,15 +2,9 @@ import { Badge, Group, Stack } from "@mantine/core";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { expect } from "storybook/test";
 import { ACCENT_PALETTE, COLOR_SETS, roleColor } from "../core/index.ts";
+import { STATUS_ROLES } from "./story-samples.tsx";
 
 const VARIANTS = ["filled", "light", "outline", "dot", "transparent"] as const;
-
-/** The status Color Roles, which have no Mantine palette: a fill and a soft pair each. */
-const STATUS_BADGES = [
-  { fill: "error", onFill: "onError", soft: "errorSoft", text: "errorText" },
-  { fill: "warning", onFill: "onWarning", soft: "warningSoft", text: "warningText" },
-  { fill: "success", onFill: "onSuccess", soft: "successSoft", text: "successText" },
-] as const;
 
 function BadgeRow({ color }: { readonly color: string }) {
   return (
@@ -32,7 +26,7 @@ function Badges() {
         <BadgeRow color={name} key={name} />
       ))}
       <Group gap="xs">
-        {STATUS_BADGES.flatMap(({ fill, onFill, soft, text }) => [
+        {STATUS_ROLES.flatMap(({ fill, onFill, soft, text }) => [
           <Badge bg={roleColor(fill)} c={roleColor(onFill)} key={fill}>
             {fill} fill
           </Badge>,

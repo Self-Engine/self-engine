@@ -32,8 +32,10 @@ export {
 export {
   ACCENT_PALETTE,
   type Appearance,
+  COLOR_MODE_CHOICES,
   type ColorMode,
   DEFAULT_APPEARANCE,
+  FIXED_APPEARANCE,
   FROM_THEME,
   type ColorModeValues,
   type ResolvedAppearance,

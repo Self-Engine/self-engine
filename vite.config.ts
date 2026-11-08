@@ -86,7 +86,7 @@ export default defineConfig({
       // replays; `vp pack` always runs, since its `clean` touches its own inputs.
       "verify:build": "vp run --cache -r build",
       "verify:test": "vp test run --reporter=agent",
-      // Every story in Chromium (ADR 0012), with the catalog's own config: the Node tests above
+      // Every story in Chromium (ADR 0012), with the Component Catalog's config: the Node tests above
       // keep this one, so `pnpm test` needs no browser.
       "verify:stories": {
         command: "vp test run --root apps/component-catalog --reporter=agent",

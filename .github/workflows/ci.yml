@@ -32,6 +32,6 @@ jobs:
           node-version-file: package.json
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      # With Ubuntu's system libraries, which scripts/ensure-chromium.ts cannot add without sudo.
-      - run: pnpm --filter @self-engine/component-catalog exec playwright install --with-deps --only-shell chromium
+      # With Ubuntu's system libraries, which the `stories` stage's own call does not ask for.
+      - run: node scripts/ensure-chromium.ts --with-deps
       - run: pnpm verify

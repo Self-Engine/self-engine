@@ -86,7 +86,7 @@ function declaredWorkspaceRules(rootDir: string): IForbiddenRuleType[] {
     const prefix = `^${alternatives([dir])}/`;
     return [
       rule("", { path: prefix, pathNot: DEV_ONLY_FILE }, false),
-      rule(":tests", { path: `${prefix}.*${DEV_ONLY_FILE}` }, true),
+      rule(":dev-only", { path: `${prefix}.*${DEV_ONLY_FILE}` }, true),
     ];
   });
 }

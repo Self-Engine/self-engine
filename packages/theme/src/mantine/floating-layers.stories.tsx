@@ -1,28 +1,40 @@
-import { Button, Card, Drawer, Modal, Popover } from "@mantine/core";
+import { Button, Card, Drawer, HoverCard, Menu, Modal, Popover, Select } from "@mantine/core";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { formatRgb } from "culori";
 import { expect, screen } from "storybook/test";
-import { BUILT_IN_THEMES, DEFAULT_APPEARANCE, resolveAppearance } from "../core/index.ts";
+import { useFinalColors } from "./index.tsx";
 
 /** Dark, because the light Neutral `canvas`, `surface` and `surfaceRaised` are one white (ADR 0012). */
-const DARK_APPEARANCE = { colorMode: "dark" };
+const DARK_GLOBALS = { colorMode: "dark" };
 
-const SURFACE_RAISED = formatRgb(
-  resolveAppearance(DEFAULT_APPEARANCE, BUILT_IN_THEMES).dark.roles.surfaceRaised,
-);
+/** Publishes the `surfaceRaised` of the appearance on screen, whatever the toolbar has chosen. */
+function ActiveSurfaceRaised() {
+  const { surfaceRaised } = useFinalColors();
+  return (
+    <span data-testid="active-surface-raised" hidden>
+      {surfaceRaised}
+    </span>
+  );
+}
 
 function backgroundOf(element: Element | null): string | undefined {
   return element === null ? undefined : getComputedStyle(element).backgroundColor;
 }
 
+async function expectRaised(element: Element | null) {
+  const active = screen.getByTestId("active-surface-raised").textContent;
+  await expect(backgroundOf(element)).toBe(formatRgb(active));
+}
+
 const noop = () => undefined;
 
 const meta = {
-  title: "Tokens/Floating Layers",
+  title: "Appearance/Floating Layers",
   decorators: [
     (Story) => (
       <Card h={320} withBorder>
         Content beneath the layer
+        <ActiveSurfaceRaised />
         <Story />
       </Card>
     ),
@@ -49,18 +61,73 @@ export const PopoverLayer: Story = {
 
 export const PopoverLayerInDark: Story = {
   ...PopoverLayer,
-  globals: DARK_APPEARANCE,
+  globals: DARK_GLOBALS,
   play: async () => {
-    const dropdown = await screen.findByRole("dialog");
-    await expect(backgroundOf(dropdown)).toBe(SURFACE_RAISED);
+    await expectRaised(await screen.findByRole("dialog"));
+  },
+};
+
+// Menu, Select and HoverCard read their `theme.components` styles under their own names, so each
+// one proves that the override sits on the dropdown they all share.
+
+export const MenuLayer: Story = {
+  render: () => (
+    <Menu opened>
+      <Menu.Target>
+        <Button>Actions</Button>
+      </Menu.Target>
+      <Menu.Dropdown>
+        <Menu.Item>Archive</Menu.Item>
+      </Menu.Dropdown>
+    </Menu>
+  ),
+};
+
+export const MenuLayerInDark: Story = {
+  ...MenuLayer,
+  globals: DARK_GLOBALS,
+  play: async () => {
+    await expectRaised(await screen.findByRole("menu"));
+  },
+};
+
+export const SelectLayer: Story = {
+  render: () => <Select data={["Open", "Done"]} dropdownOpened label="Status" />,
+};
+
+export const SelectLayerInDark: Story = {
+  ...SelectLayer,
+  globals: DARK_GLOBALS,
+  play: async () => {
+    const options = await screen.findByRole("listbox");
+    await expectRaised(options.closest(".mantine-Select-dropdown"));
+  },
+};
+
+export const HoverCardLayer: Story = {
+  render: () => (
+    <HoverCard initiallyOpened>
+      <HoverCard.Target>
+        <Button>Author</Button>
+      </HoverCard.Target>
+      <HoverCard.Dropdown>Written by the owner</HoverCard.Dropdown>
+    </HoverCard>
+  ),
+};
+
+export const HoverCardLayerInDark: Story = {
+  ...HoverCardLayer,
+  globals: DARK_GLOBALS,
+  play: async () => {
+    await expectRaised(await screen.findByText("Written by the owner"));
   },
 };
 
 /** The header is sticky and paints its own background, so it has to match the content. */
 async function expectRaisedDialog() {
   const dialog = await screen.findByRole("dialog");
-  await expect(backgroundOf(dialog)).toBe(SURFACE_RAISED);
-  await expect(backgroundOf(dialog.querySelector("header"))).toBe(SURFACE_RAISED);
+  await expectRaised(dialog);
+  await expectRaised(dialog.querySelector("header"));
 }
 
 export const ModalLayer: Story = {
@@ -73,7 +140,7 @@ export const ModalLayer: Story = {
 
 export const ModalLayerInDark: Story = {
   ...ModalLayer,
-  globals: DARK_APPEARANCE,
+  globals: DARK_GLOBALS,
   play: expectRaisedDialog,
 };
 
@@ -87,6 +154,6 @@ export const DrawerLayer: Story = {
 
 export const DrawerLayerInDark: Story = {
   ...DrawerLayer,
-  globals: DARK_APPEARANCE,
+  globals: DARK_GLOBALS,
   play: expectRaisedDialog,
 };

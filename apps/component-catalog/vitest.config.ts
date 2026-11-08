@@ -8,6 +8,10 @@ import { playwright } from "vite-plus/test/browser-playwright";
 
 export default defineConfig({
   plugins: [storybookTest({ configDir: resolve(import.meta.dirname, ".storybook") })],
+  // Vite trusts a dependency cache whose lockfile and config are unchanged, even when a story has
+  // since gained an import. It then bundles that import mid-run and reloads the running stories,
+  // which fail while importing their setup file. Forcing the scan reads the current stories.
+  optimizeDeps: { force: true },
   test: {
     name: "stories",
     browser: {

@@ -1,9 +1,8 @@
-import { Group, Paper, SimpleGrid, Stack, Text, useComputedColorScheme } from "@mantine/core";
+import { Paper, SimpleGrid, Stack, Text, useComputedColorScheme } from "@mantine/core";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { expect, within } from "storybook/test";
-import { COLOR_SETS, type ColorSetId, type ColorSetRole } from "../core/index.ts";
-
-const SET_NAMES = Object.keys(COLOR_SETS) as ColorSetId[];
+import { COLOR_SETS, type ColorSetRole } from "../core/index.ts";
+import { SET_NAMES, Swatch } from "./story-samples.tsx";
 
 function ColorSets() {
   const colorMode = useComputedColorScheme("light");
@@ -14,23 +13,12 @@ function ColorSets() {
           <Stack gap="xs">
             <Text fw={600}>{name}</Text>
             {(Object.keys(COLOR_SETS[name][colorMode]) as ColorSetRole[]).map((role) => (
-              <Group key={role} wrap="nowrap">
-                <div
-                  style={{
-                    background: COLOR_SETS[name][colorMode][role],
-                    border: "1px solid var(--se-border)",
-                    borderRadius: 4,
-                    height: 32,
-                    width: 32,
-                  }}
-                />
-                <div>
-                  <Text size="sm">{role}</Text>
-                  <Text c="dimmed" size="xs">
-                    {COLOR_SETS[name][colorMode][role]}
-                  </Text>
-                </div>
-              </Group>
+              <Swatch
+                color={COLOR_SETS[name][colorMode][role]}
+                key={role}
+                label={role}
+                value={COLOR_SETS[name][colorMode][role]}
+              />
             ))}
           </Stack>
         </Paper>
@@ -40,7 +28,7 @@ function ColorSets() {
 }
 
 const meta = {
-  title: "Tokens/Color Sets",
+  title: "Appearance/Color Sets",
   component: ColorSets,
 } satisfies Meta<typeof ColorSets>;
 
