@@ -13,6 +13,7 @@ import {
   useEffect,
   useState,
 } from "react";
+import { appearanceFromStored } from "./stored-preview-appearance.ts";
 
 type AppearanceState = readonly [Appearance, Dispatch<SetStateAction<Appearance>>];
 
@@ -23,8 +24,7 @@ const STORAGE_KEY = "self-engine:theme-preview";
 
 function readStoredAppearance(): Appearance {
   try {
-    const stored = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? "{}") as Partial<Appearance>;
-    return { ...DEFAULT_APPEARANCE, ...stored };
+    return appearanceFromStored(JSON.parse(localStorage.getItem(STORAGE_KEY) ?? "{}"));
   } catch {
     // Blocked storage or a damaged entry: this throwaway page just starts from the defaults.
     return DEFAULT_APPEARANCE;
