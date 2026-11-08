@@ -114,16 +114,12 @@ describe("the Background Tint", () => {
   });
 
   it.each(["light", "dark"] as const)("changes nothing but chrome and navSurface in %s", (mode) => {
-    const without = ({ roles, cssVariables, ...rest }: ModeValues) => {
-      const { chrome, navSurface, ...otherRoles } = roles;
-      const {
-        "--se-chrome": chromeVariable,
-        "--se-nav-surface": navVariable,
-        ...otherVariables
-      } = cssVariables;
-      return { otherRoles, otherVariables, ...rest };
-    };
-    expect(without(resolved[mode])).toEqual(without(untinted[mode]));
+    const rest = (values: ModeValues) => ({
+      ...values,
+      roles: { ...values.roles, chrome: "", navSurface: "" },
+      cssVariables: { ...values.cssVariables, "--se-chrome": "", "--se-nav-surface": "" },
+    });
+    expect(rest(resolved[mode])).toEqual(rest(untinted[mode]));
     expect(resolved[mode].roles.chrome).not.toBe(untinted[mode].roles.chrome);
     expect(resolved[mode].roles.navSurface).not.toBe(untinted[mode].roles.navSurface);
   });
