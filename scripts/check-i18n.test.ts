@@ -145,7 +145,8 @@ describe("checkCatalogs", () => {
   });
 });
 
-describe("the script", () => {
+// Each run starts Node and Lingui's extraction, about a second alone and far more in a full gate.
+describe("the script", { timeout: 30_000 }, () => {
   const script = fileURLToPath(new URL("./check-i18n.ts", import.meta.url));
   const config = fileURLToPath(new URL("./testing/lingui-fixture.config.ts", import.meta.url));
   let root: string;
