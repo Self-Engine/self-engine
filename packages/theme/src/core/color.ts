@@ -27,7 +27,7 @@ export function composite(top: Hex, bottom: Hex, opacity = 1): Hex {
   return toHex({ r: mix(front.r, back.r), g: mix(front.g, back.g), b: mix(front.b, back.b) });
 }
 
-function luminance(hex: Hex): number {
+export function luminance(hex: Hex): number {
   const { r, g, b } = parseHex(hex);
   const linear = (value: number) => {
     const channel = value / 255;

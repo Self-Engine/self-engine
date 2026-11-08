@@ -1,6 +1,14 @@
-import { COLOR_SETS, DEFAULT_COLOR_SET, DEFAULT_THEME, type ThemeCatalog } from "./catalog.ts";
+import {
+  ACCENT_IDS,
+  COLOR_SETS,
+  DEFAULT_COLOR_SET,
+  DEFAULT_THEME,
+  type Theme,
+  type ThemeCatalog,
+} from "./catalog.ts";
 import { composite } from "./color.ts";
 import {
+  type AccentColors,
   COLOR_MODES,
   type FinalColors,
   type Hex,
@@ -8,6 +16,7 @@ import {
   roleVariable,
   type ThemeColors,
 } from "./roles.ts";
+import { colorSetPalette, colorSetVariables, type Palette } from "./variants.ts";
 
 export type ColorMode = ResolvedColorMode | "system";
 
@@ -36,19 +45,40 @@ export interface ModeValues {
   readonly roles: FinalColors;
   readonly cssVariables: Readonly<Record<`--se-${string}`, Hex>>;
   readonly mantineVariables: Readonly<Record<`--mantine-${string}`, Hex>>;
+  /** Mantine's per-color variables for each Color Set and for the palette key `accent`. */
+  readonly colorVariables: Readonly<Record<`--mantine-${string}`, Hex>>;
+  /** The palettes for Mantine's `theme.colors`, by key. */
+  readonly palettes: Readonly<Record<string, Palette>>;
 }
 
 export type ResolvedAppearance = Readonly<Record<ResolvedColorMode, ModeValues>>;
 
 const NAV_SURFACE_OPACITY = 0.7;
 
-function themeColors(
+/** The fixed palette key of the Accent. Mantine's `primaryColor` has to name a palette. */
+export const ACCENT_PALETTE = "accent";
+
+/** The Theme that serves a Color Mode: the chosen one if it can, else the default Theme. */
+function servingTheme(
   appearance: Appearance,
   catalog: ThemeCatalog,
   mode: ResolvedColorMode,
-): ThemeColors {
-  const id = mode === "light" ? appearance.lightTheme : appearance.darkTheme;
-  return catalog[id]?.colors[mode] ?? DEFAULT_THEME.colors[mode];
+): { readonly colors: ThemeColors; readonly accent: Theme["accent"] } {
+  const theme = catalog[mode === "light" ? appearance.lightTheme : appearance.darkTheme];
+  const colors = theme?.colors[mode];
+  return colors === undefined
+    ? { colors: DEFAULT_THEME.colors[mode], accent: undefined }
+    : { colors, accent: theme?.accent };
+}
+
+/** An id that is no selectable Accent, also a stored one from a newer app, means "From Theme". */
+function accentColors(
+  setting: string,
+  themeAccent: Theme["accent"],
+  mode: ResolvedColorMode,
+): AccentColors {
+  const explicit = ACCENT_IDS.includes(setting) ? COLOR_SETS[setting] : undefined;
+  return (explicit ?? themeAccent ?? DEFAULT_COLOR_SET)[mode] ?? DEFAULT_COLOR_SET[mode];
 }
 
 function cssVariables(roles: FinalColors): ModeValues["cssVariables"] {
@@ -74,18 +104,38 @@ function mantineVariables(roles: FinalColors): ModeValues["mantineVariables"] {
   };
 }
 
+/** Each palette key with the colors it stands for in this Color Mode. */
+function paletteSets(
+  mode: ResolvedColorMode,
+  accent: AccentColors,
+): readonly (readonly [string, AccentColors])[] {
+  const sets = Object.entries(COLOR_SETS).map(([id, set]) => [id, set[mode]] as const);
+  return [...sets, [ACCENT_PALETTE, accent]];
+}
+
 function modeValues(
   appearance: Appearance,
   catalog: ThemeCatalog,
   mode: ResolvedColorMode,
 ): ModeValues {
-  const table = themeColors(appearance, catalog, mode);
+  const { colors: table, accent } = servingTheme(appearance, catalog, mode);
+  const accentSet = accentColors(appearance.accent, accent, mode);
   const roles: FinalColors = {
     ...table,
     navSurface: composite(table.surface, table.chrome, NAV_SURFACE_OPACITY),
-    ...(COLOR_SETS[appearance.accent] ?? DEFAULT_COLOR_SET)[mode],
+    ...accentSet,
   };
-  return { roles, cssVariables: cssVariables(roles), mantineVariables: mantineVariables(roles) };
+  const sets = paletteSets(mode, accentSet);
+  return {
+    roles,
+    cssVariables: cssVariables(roles),
+    mantineVariables: mantineVariables(roles),
+    colorVariables: Object.assign(
+      { "--mantine-primary-color-contrast": accentSet.onAccent },
+      ...sets.map(([name, set]) => colorSetVariables(name, set)),
+    ),
+    palettes: Object.fromEntries(sets.map(([name, set]) => [name, colorSetPalette(set, mode)])),
+  };
 }
 
 /** Appearance settings and a catalog in, the final values for both Color Modes out. */
