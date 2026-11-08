@@ -12,8 +12,8 @@ export interface LinguiPluginOptions {
  * The plugin every bundle that translates needs: it compiles the Lingui macros and imports `.po`
  * catalogs as modules, and a catalog that does not compile fails the build.
  */
-export function linguiPlugin({
-  configPath = APP_CONFIG,
-}: LinguiPluginOptions = {}): ReturnType<typeof lingui> {
+export function linguiPlugin({ configPath = APP_CONFIG }: LinguiPluginOptions = {}): ReturnType<
+  typeof lingui
+> {
   return lingui({ configPath, macroTransform: true, failOnCompileError: true });
 }
