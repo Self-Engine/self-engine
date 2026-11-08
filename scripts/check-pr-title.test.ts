@@ -5,9 +5,7 @@ import { describe, expect, it } from "vite-plus/test";
 import { TITLE_TYPES, titleProblems } from "./check-pr-title.ts";
 
 const script = fileURLToPath(new URL("./check-pr-title.ts", import.meta.url));
-const skill = fileURLToPath(
-  new URL("../.agents/skills/pr-convention/SKILL.md", import.meta.url),
-);
+const skill = fileURLToPath(new URL("../.agents/skills/pr-convention/SKILL.md", import.meta.url));
 
 describe("titleProblems", () => {
   it.each([
@@ -59,7 +57,8 @@ describe("the title types", () => {
       .split("\n")
       .filter((line) => line.startsWith("| `"))
       .flatMap((line) => [...line.matchAll(/`([a-z]+):`/g)].map((match) => match[1]));
-    expect(tableTypes.sort()).toEqual([...TITLE_TYPES].sort());
+    const byName = (a = "", b = "") => a.localeCompare(b);
+    expect(tableTypes.sort(byName)).toEqual([...TITLE_TYPES].sort(byName));
   });
 });
 
