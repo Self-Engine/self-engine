@@ -7,14 +7,47 @@ msgstr ""
 "X-Generator: @lingui/cli\n"
 "Language: en\n"
 
+#: apps/web/src/routes/language-sample.tsx
+msgid "{count, plural, one {# entry} other {# entries}}"
+msgstr "{count, plural, one {# entry} other {# entries}}"
+
+#: apps/web/src/routes/language-sample.tsx
+msgid "A link stays inside its sentence: read the <0>About page</0>."
+msgstr "A link stays inside its sentence: read the <0>About page</0>."
+
 #: apps/web/src/routes/__root.tsx
 msgid "About"
 msgstr "About"
+
+#: apps/web/src/routes/language-sample.tsx
+msgid "Add an entry"
+msgstr "Add an entry"
+
+#: apps/web/src/routes/language-sample.tsx
+msgid "Hello {name}, nice to see you."
+msgstr "Hello {name}, nice to see you."
 
 #: apps/web/src/routes/__root.tsx
 msgid "Home"
 msgstr "Home"
 
+#: apps/web/src/routes/index.tsx
+#: apps/web/src/routes/language-sample.tsx
+msgid "Language sample"
+msgstr "Language sample"
+
+#: apps/web/src/routes/language-sample.tsx
+msgid "The language could not be loaded. Please try again."
+msgstr "The language could not be loaded. Please try again."
+
 #: apps/web/src/routes/__root.tsx
 msgid "Theme preview"
 msgstr "Theme preview"
+
+#: apps/web/src/routes/language-sample.tsx
+msgid "This sentence is translated."
+msgstr "This sentence is translated."
+
+#: apps/web/src/routes/language-sample.tsx
+msgid "Your name"
+msgstr "Your name"
