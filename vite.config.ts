@@ -22,6 +22,8 @@ export default defineConfig({
   test: {
     include: ["apps/*/src/**/*.test.ts", "packages/*/src/**/*.test.ts", "scripts/**/*.test.ts"],
     environment: "node",
+    // Vitest empties CSS imports otherwise; the theme tests read Mantine's control heights.
+    css: { include: [/@mantine\/core\/styles\//] },
     allowOnly: !process.env.CI,
     // Flaky tests are fixed, not retried.
     retry: 0,
