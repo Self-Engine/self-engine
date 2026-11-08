@@ -7,6 +7,7 @@ import {
   resolveColorMode,
   type ThemeCatalog,
 } from "../core/index.ts";
+import { mantineTheme } from "./theme.ts";
 
 const DARK_QUERY = "(prefers-color-scheme: dark)";
 
@@ -45,6 +46,7 @@ export interface ThemeProviderProps {
 export function ThemeProvider({ appearance, catalog, children }: ThemeProviderProps) {
   const prefersDark = useSyncExternalStore(subscribeToSystem, systemPrefersDark);
   const resolved = useMemo(() => resolveAppearance(appearance, catalog), [appearance, catalog]);
+  const theme = useMemo(() => mantineTheme(resolved), [resolved]);
   const scheme = resolveColorMode(appearance.colorMode, prefersDark);
   const cssVariablesResolver = () => ({
     variables: {},
@@ -58,6 +60,7 @@ export function ThemeProvider({ appearance, catalog, children }: ThemeProviderPr
         cssVariablesResolver={cssVariablesResolver}
         defaultColorScheme={scheme}
         forceColorScheme={scheme}
+        theme={theme}
       >
         {children}
       </MantineProvider>

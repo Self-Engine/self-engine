@@ -15,6 +15,7 @@ export {
   type ContrastIssue,
   formatContrastFailure,
 } from "./contrast.ts";
+export type { NeutralPalette } from "./neutral-palette.ts";
 export {
   type Appearance,
   type ColorMode,

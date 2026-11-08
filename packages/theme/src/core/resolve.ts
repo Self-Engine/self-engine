@@ -1,5 +1,6 @@
 import { COLOR_SETS, DEFAULT_COLOR_SET, DEFAULT_THEME, type ThemeCatalog } from "./catalog.ts";
 import { composite } from "./color.ts";
+import { type NeutralPalette, neutralPalette } from "./neutral-palette.ts";
 import {
   COLOR_MODES,
   type FinalColors,
@@ -36,6 +37,8 @@ export interface ModeValues {
   readonly roles: FinalColors;
   readonly cssVariables: Readonly<Record<`--se-${string}`, Hex>>;
   readonly mantineVariables: Readonly<Record<`--mantine-${string}`, Hex>>;
+  /** Mantine's `gray` tuple for light, its `dark` tuple for dark. */
+  readonly neutralPalette: NeutralPalette;
 }
 
 export type ResolvedAppearance = Readonly<Record<ResolvedColorMode, ModeValues>>;
@@ -57,8 +60,13 @@ function cssVariables(roles: FinalColors): ModeValues["cssVariables"] {
   );
 }
 
-function mantineVariables(roles: FinalColors): ModeValues["mantineVariables"] {
+function mantineVariables(
+  roles: FinalColors,
+  mode: ResolvedColorMode,
+): ModeValues["mantineVariables"] {
   return {
+    // Mantine paints inputs, cards and popovers with white, in the light scheme only.
+    ...(mode === "light" && { "--mantine-color-white": roles.surface }),
     "--mantine-color-body": roles.canvas,
     "--mantine-color-text": roles.text,
     "--mantine-color-bright": roles.text,
@@ -85,7 +93,12 @@ function modeValues(
     navSurface: composite(table.surface, table.chrome, NAV_SURFACE_OPACITY),
     ...(COLOR_SETS[appearance.accent] ?? DEFAULT_COLOR_SET)[mode],
   };
-  return { roles, cssVariables: cssVariables(roles), mantineVariables: mantineVariables(roles) };
+  return {
+    roles,
+    cssVariables: cssVariables(roles),
+    mantineVariables: mantineVariables(roles, mode),
+    neutralPalette: neutralPalette(table, mode),
+  };
 }
 
 /** Appearance settings and a catalog in, the final values for both Color Modes out. */
