@@ -114,6 +114,16 @@ export function boundaryConfig({ allowedImports, rootDir }: BoundaryOptions): IC
       },
     },
     {
+      name: "settings-core-is-pure",
+      comment:
+        "The settings core (`@self-engine/settings`) runs without React. The hook belongs in `@self-engine/settings/react`.",
+      severity: "error",
+      from: { path: "^packages/settings/src/core/" },
+      to: {
+        path: ["(^|/)node_modules/(react|react-dom)/", "^packages/settings/src/react/"],
+      },
+    },
+    {
       name: "no-relative-import-across-packages",
       comment:
         "A relative import that leaves its app or package skips the other package's `exports`. Import it by its package name.",

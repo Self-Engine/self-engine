@@ -340,6 +340,37 @@ describe("the theme core", () => {
   });
 });
 
+describe("the settings core", () => {
+  const settings = (dependencies: string[], files: Record<string, string>): FixturePackage => ({
+    dir: "packages/settings",
+    dependencies,
+    exports: { ".": "./src/core/index.ts", "./react": "./src/react/index.ts" },
+    files: { "src/react/index.ts": "export const hook = 1;\n", ...files },
+  });
+
+  it.each(["react", "react-dom"])("fails an import of %s", async (name) => {
+    const found = await cruise([settings([name], { "src/core/index.ts": `import "${name}";\n` })]);
+    expect(ruleNames(found)).toEqual(["settings-core-is-pure"]);
+  });
+
+  it("fails an import of the React binding", async () => {
+    const found = await cruise([
+      settings([], { "src/core/index.ts": 'import "../react/index.ts";\n' }),
+    ]);
+    expect(ruleNames(found)).toEqual(["settings-core-is-pure"]);
+  });
+
+  it("passes those imports in the React binding", async () => {
+    const found = await cruise([
+      settings(["react"], {
+        "src/core/index.ts": "export const core = 1;\n",
+        "src/react/index.ts": 'import "react";\nimport "../core/index.ts";\n',
+      }),
+    ]);
+    expect(found).toEqual([]);
+  });
+});
+
 describe("the repo's workspace", () => {
   const packages = workspacePackages(resolve(import.meta.dirname, ".."));
   const folders = packages

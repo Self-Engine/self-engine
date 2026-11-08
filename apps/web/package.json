@@ -11,10 +11,12 @@
   "dependencies": {
     "@mantine/core": "catalog:",
     "@mantine/hooks": "catalog:",
+    "@self-engine/settings": "workspace:*",
     "@self-engine/theme": "workspace:*",
     "@tanstack/react-router": "catalog:",
     "react": "catalog:",
-    "react-dom": "catalog:"
+    "react-dom": "catalog:",
+    "zod": "catalog:"
   },
   "devDependencies": {
     "@tanstack/router-plugin": "catalog:",

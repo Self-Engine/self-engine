@@ -1,0 +1,20 @@
+{
+  "name": "@self-engine/settings",
+  "version": "0.0.0",
+  "private": true,
+  "license": "AGPL-3.0-only",
+  "type": "module",
+  "exports": {
+    ".": "./src/core/index.ts",
+    "./react": "./src/react/index.ts",
+    "./testing": "./src/testing/index.ts"
+  },
+  "dependencies": {
+    "react": "catalog:",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@types/react": "catalog:",
+    "vite-plus": "catalog:"
+  }
+}

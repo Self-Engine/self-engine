@@ -55,7 +55,7 @@ export function BackgroundTintPreview() {
         checked={appearance.backgroundTint}
         label="Background Tint"
         onChange={(event) => {
-          setAppearance({ ...appearance, backgroundTint: event.currentTarget.checked });
+          setAppearance({ backgroundTint: event.currentTarget.checked });
         }}
       />
       <Arrangement />

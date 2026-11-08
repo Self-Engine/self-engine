@@ -31,14 +31,14 @@ export function DensityPreview() {
       <SegmentedControl
         data={[...DENSITIES]}
         onChange={(value) => {
-          setAppearance({ ...appearance, density: value as Density });
+          setAppearance({ density: value as Density });
         }}
         value={appearance.density}
       />
       <SegmentedControl
         data={FONT_SCALES.map((step) => ({ label: `${step} %`, value: String(step) }))}
         onChange={(value) => {
-          setAppearance({ ...appearance, fontScale: Number(value) as FontScale });
+          setAppearance({ fontScale: Number(value) as FontScale });
         }}
         value={String(appearance.fontScale)}
       />
