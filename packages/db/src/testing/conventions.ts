@@ -139,7 +139,8 @@ function foreignKeysOf(createTable: string): ForeignKey[] {
 function foreignKeyRules(table: string, createTable: string): string[] {
   return foreignKeysOf(createTable).flatMap(({ parent, deferred }) => [
     ...(deferred ? [] : [`foreign key to ${parent} must be DEFERRABLE INITIALLY DEFERRED`]),
-    ...(!isLocalTable(table) && isLocalTable(parent)
+    // SQLite resolves a referenced table's name in any case.
+    ...(!isLocalTable(table) && isLocalTable(parent.toLowerCase())
       ? [`must not have a foreign key to the Local Table ${parent}`]
       : []),
   ]);

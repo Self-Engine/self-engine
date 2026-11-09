@@ -375,7 +375,7 @@ describe("checkConventions", () => {
         await expect(checkConventions(database)).resolves.toEqual([TO_LOCAL]);
       });
 
-      test("is not reported for a parent whose prefix is in another case", async () => {
+      test("is reported when the parent is written in another case", async () => {
         await database.executeScript(`
           CREATE TABLE notes (
             ${SYNCED_COLUMNS},
@@ -383,7 +383,9 @@ describe("checkConventions", () => {
           ) STRICT;
         `);
 
-        await expect(checkConventions(database)).resolves.toEqual([]);
+        await expect(checkConventions(database)).resolves.toEqual([
+          { table: "notes", rule: "must not have a foreign key to the Local Table LOCAL_Figures" },
+        ]);
       });
 
       test("is allowed the other way round", async () => {
