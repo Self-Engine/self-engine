@@ -388,6 +388,39 @@ describe("the translation core", () => {
   });
 });
 
+describe("the db core", () => {
+  const db = (dependencies: string[], files: Record<string, string>): FixturePackage => ({
+    dir: "packages/db",
+    dependencies,
+    exports: { ".": "./src/core/index.ts", "./better-sqlite3": "./src/better-sqlite3/index.ts" },
+    files: { "src/better-sqlite3/index.ts": "export const open = 1;\n", ...files },
+  });
+
+  it("fails an import of the native driver", async () => {
+    const found = await cruise([
+      db(["better-sqlite3"], { "src/core/index.ts": 'import "better-sqlite3";\n' }),
+    ]);
+    expect(ruleNames(found)).toEqual(["db-core-is-pure"]);
+  });
+
+  it("fails an import of the driver entry point", async () => {
+    const found = await cruise([
+      db([], { "src/core/index.ts": 'import "../better-sqlite3/index.ts";\n' }),
+    ]);
+    expect(ruleNames(found)).toEqual(["db-core-is-pure"]);
+  });
+
+  it("passes the driver in its entry point", async () => {
+    const found = await cruise([
+      db(["better-sqlite3"], {
+        "src/core/index.ts": "export const core = 1;\n",
+        "src/better-sqlite3/index.ts": 'import "better-sqlite3";\nimport "../core/index.ts";\n',
+      }),
+    ]);
+    expect(found).toEqual([]);
+  });
+});
+
 describe("the settings core", () => {
   const settings = (dependencies: string[], files: Record<string, string>): FixturePackage => ({
     dir: "packages/settings",

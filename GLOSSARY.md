@@ -56,6 +56,12 @@ _Avoid_: theme cache, boot cache
 A named set of colors for every _Color Role_, for one _Color Mode_ or both. A _Theme_ either ships with the app or was imported from another format.
 _Avoid_: skin, palette
 
+### Data
+
+**Local Table** (de: _lokale Tabelle_):
+A table whose rows stay on one device and never sync, such as cached figures. Nothing that syncs may depend on its rows.
+_Avoid_: private table, device table
+
 ### Development
 
 **Component Catalog** (de: _Komponentenkatalog_):
@@ -78,6 +84,10 @@ _Avoid_: global setting, account setting
 
 ### Shell
 
+**Group** (de: _Gruppe_):
+A titled list in the _Module Sidebar_ whose entries come from the user's data, such as a module's clients. Unlike a _View_ it changes with that data, and not every module has one.
+_Avoid_: section, category, folder
+
 **Layout Step** (de: _Layoutstufe_):
 One of the four arrangements of the _Shell_ that depend on the window's width: wide, medium, narrow and phone.
 _Avoid_: breakpoint, responsive mode
@@ -93,6 +103,14 @@ _Avoid_: main menu, sidebar
 **Shell** (de: _Hülle_):
 The frame of the app around the modules, made of the navigation and the content area.
 _Avoid_: layout, frame, chrome
+
+**Shell Contribution** (de: _Hüllen-Beitrag_):
+What a module declares about itself so that the _Shell_ can show it, such as its name, its icon and its _Views_. The _Shell_ only puts contributions together and knows nothing else about a module.
+_Avoid_: manifest, module config, plugin
+
+**View** (de: _Ansicht_):
+One page of a module with its own address, such as the active projects or the week in the time module. A module's _Views_ are fixed by the module and do not depend on the user's data.
+_Avoid_: page, route, screen, tab
 
 ### Translation
 

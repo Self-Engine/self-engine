@@ -154,6 +154,13 @@ export function boundaryConfig({ allowedImports, rootDir }: BoundaryOptions): IC
       comment:
         "The translation core (`@self-engine/i18n`) runs without React, so it works outside a component. Those imports belong in `@self-engine/i18n/react`. Its own tsconfig keeps the DOM out.",
     }),
+    corePurityRule({
+      folder: "db",
+      binding: "better-sqlite3",
+      npmPattern: "better-sqlite3",
+      comment:
+        "The database core (`@self-engine/db`) is what modules import, so it stays free of the native driver and the web build keeps compiling. The driver belongs in `@self-engine/db/better-sqlite3`.",
+    }),
     {
       name: "icons-only-through-catalog",
       comment:
