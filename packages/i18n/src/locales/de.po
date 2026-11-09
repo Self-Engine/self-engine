@@ -75,6 +75,10 @@ msgstr "Modul-Sidebar"
 msgid "Modules"
 msgstr "Module"
 
+#: packages/placeholder-alpha/src/index.ts
+msgid "New entry"
+msgstr "Neuer Eintrag"
+
 #: apps/web/src/route-states.tsx
 msgid "Nothing was found at this address."
 msgstr "Unter dieser Adresse wurde nichts gefunden."

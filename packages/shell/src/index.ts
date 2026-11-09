@@ -5,6 +5,9 @@ export type { ShellLinkProps, ShellRouting } from "./routing.tsx";
 
 export {
   validateContributions,
+  defineContribution,
+  type ShellCommand,
+  type CommandContext,
   type ShellContribution,
   type ShellView,
   type EditDrawerProps,

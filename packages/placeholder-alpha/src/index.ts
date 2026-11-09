@@ -1,8 +1,14 @@
 import { msg } from "@lingui/core/macro";
 import { ProjectsIcon } from "@self-engine/icons";
-import type { ShellContribution } from "@self-engine/shell";
+import { defineContribution, type ShellCommand } from "@self-engine/shell";
 
-export const contribution = {
+const createEntry = {
+  id: "create-entry",
+  label: msg`New entry`,
+  load: () => import("./create-entry.ts"),
+} as const satisfies ShellCommand;
+
+export const contribution = defineContribution({
   id: "placeholder-alpha",
   name: msg`Placeholder Alpha`,
   icon: ProjectsIcon,
@@ -11,7 +17,9 @@ export const contribution = {
     { id: "overview", title: msg`Overview`, load: () => import("./entries.tsx") },
     { id: "archive", title: msg`Archive`, load: () => import("./entries.tsx") },
   ],
+  commands: [createEntry],
+  primaryAction: createEntry,
   editDrawer: () => import("./edit-drawer.tsx"),
   groups: () => import("./groups.tsx"),
   sharedSearch: ["client"],
-} satisfies ShellContribution;
+});

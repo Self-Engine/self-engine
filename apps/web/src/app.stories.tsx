@@ -182,6 +182,13 @@ export const NamesFollowLanguage: Story = {
     await expect(canvas.getByRole("link", { name: "Design-Vorschau" })).toBeVisible();
     await userEvent.click(canvas.getByRole("link", { name: "Platzhalter Beta" }));
     await expect(await canvas.findByRole("heading", { name: "Übersicht", level: 1 })).toBeVisible();
+    await userEvent.click(canvas.getByRole("link", { name: "Platzhalter Alpha" }));
+    await expect(await canvas.findByRole("button", { name: "Neuer Eintrag" })).toBeVisible();
+    await userEvent.click(canvas.getByRole("link", { name: "Einstellungen" }));
+    await userEvent.click(await canvas.findByRole("link", { name: "Sprachbeispiel" }));
+    await userEvent.click(await canvas.findByRole("radio", { name: "English" }));
+    await userEvent.click(canvas.getByRole("link", { name: "Placeholder Alpha" }));
+    await expect(await canvas.findByRole("button", { name: "New entry" })).toBeVisible();
   },
 };
 
@@ -280,4 +287,24 @@ export const BetaWithoutDrawer: Story = {
     await expectBeta(canvas);
     await expect(within(canvasElement.ownerDocument.body).queryByRole("dialog")).toBeNull();
   },
+};
+
+export const PrimaryAction: Story = {
+  args: { address: "/placeholder-alpha/overview?client=studio" },
+  play: async ({ canvas, canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await userEvent.click(await canvas.findByRole("button", { name: "New entry" }));
+    await expect(await page.findByRole("dialog")).toHaveTextContent("new");
+    await userEvent.click(page.getByRole("button", { name: "Close editor" }));
+    await waitFor(() => expect(page.queryByRole("dialog")).toBeNull());
+    await expect(canvas.getByText("Studio work")).toBeVisible();
+    await expect(canvas.queryByText("Garden work")).toBeNull();
+    await userEvent.click(canvas.getByRole("link", { name: "Placeholder Beta" }));
+    await expectBeta(canvas);
+    await expect(canvas.queryByRole("button", { name: "New entry" })).toBeNull();
+  },
+};
+export const HashPrimaryAction: Story = {
+  ...PrimaryAction,
+  args: { ...PrimaryAction.args, hash: true },
 };

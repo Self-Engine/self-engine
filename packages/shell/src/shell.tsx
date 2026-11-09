@@ -7,6 +7,7 @@ import {
   ActionIcon,
   AppShell,
   Box,
+  Button,
   Burger,
   Drawer,
   Group,
@@ -818,10 +819,21 @@ function ModuleViews({
   readonly routing: ShellRouting;
 }) {
   const { i18n } = useLingui();
+  const writeSearch = useWriteViewSearch();
   if (!module) return null;
   const Groups = module.groups && loadedGroups(module.groups);
   return (
     <Stack gap="xs" data-module-color={module.color}>
+      {module.primaryAction && (
+        <Button
+          onClick={async () => {
+            const command = await module.primaryAction!.load();
+            await command.default({ writeSearch });
+          }}
+        >
+          {i18n._(module.primaryAction.label)}
+        </Button>
+      )}
       {module.views.map((view) => (
         <NavLink
           key={view.id}

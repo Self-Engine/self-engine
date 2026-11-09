@@ -1,3 +1,4 @@
+import type { ViewSearch } from "./view-search.ts";
 import type { MessageDescriptor } from "@lingui/core";
 import type { ColorSetId } from "@self-engine/theme";
 import type { ComponentType } from "react";
@@ -14,6 +15,20 @@ export interface EditDrawerProps {
   readonly onClose: () => void;
 }
 
+/** The address capability available to loaded command code, without a router dependency. */
+export interface CommandContext {
+  readonly writeSearch: (update: (search: ViewSearch) => ViewSearch) => void;
+}
+
+export interface ShellCommand {
+  readonly id: string;
+  readonly label: MessageDescriptor;
+  readonly defaultShortcut?: string;
+  readonly load: () => Promise<{
+    readonly default: (context: CommandContext) => void | Promise<void>;
+  }>;
+}
+
 export interface ShellContribution {
   readonly id: string;
   readonly name: MessageDescriptor;
@@ -21,9 +36,21 @@ export interface ShellContribution {
   readonly color: ColorSetId;
   /** The first View is the module's default. */
   readonly views: readonly [ShellView, ...ShellView[]];
+  readonly commands?: readonly ShellCommand[];
+  readonly primaryAction?: ShellCommand;
   readonly groups?: () => Promise<{ readonly default: ComponentType }>;
   readonly editDrawer?: () => Promise<{ readonly default: ComponentType<EditDrawerProps> }>;
   readonly sharedSearch?: readonly string[];
+}
+
+/** Infer command ids from commands alone, then check the direct main-action reference. */
+export function defineContribution<const Commands extends readonly ShellCommand[] = readonly []>(
+  contribution: Omit<ShellContribution, "commands" | "primaryAction"> & {
+    readonly commands?: Commands;
+    readonly primaryAction?: NoInfer<Commands[number]>;
+  },
+): ShellContribution {
+  return contribution;
 }
 
 interface AddressContribution {
