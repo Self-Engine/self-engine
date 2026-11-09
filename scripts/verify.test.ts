@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vite-plus/test";
@@ -5,6 +6,7 @@ import config from "../vite.config.ts";
 import {
   capture,
   isCi,
+  nodeVersionProblem,
   runStages,
   stageTask,
   STATIC_STAGES,
@@ -133,6 +135,36 @@ describe("isCi", () => {
     expect(isCi({ CI: "" })).toBe(false);
     expect(isCi({ CI: "false" })).toBe(false);
     expect(isCi({ CI: "0" })).toBe(false);
+  });
+});
+
+describe("nodeVersionProblem", () => {
+  it("accepts a version inside the caret range", () => {
+    expect(nodeVersionProblem("26.0.0", "^26.0.0")).toBeNull();
+    expect(nodeVersionProblem("26.13.0", "^26.2.1")).toBeNull();
+    expect(nodeVersionProblem("26.2.1", "^26.2.1")).toBeNull();
+  });
+
+  it("names a version below or above the range", () => {
+    expect(nodeVersionProblem("24.22.2", "^26.0.0")).toBe(
+      "Node 24.22.2 is outside engines.node ^26.0.0",
+    );
+    expect(nodeVersionProblem("27.0.0", "^26.0.0")).not.toBeNull();
+    expect(nodeVersionProblem("26.2.0", "^26.2.1")).not.toBeNull();
+    expect(nodeVersionProblem("26.1.9", "^26.2.0")).not.toBeNull();
+  });
+
+  it("reports a range it cannot read instead of passing", () => {
+    expect(nodeVersionProblem("26.0.0", ">=26")).toBe(
+      'engines.node must be a caret range, got ">=26"',
+    );
+  });
+
+  it("can read the range in package.json", () => {
+    const { engines } = JSON.parse(readFileSync(rootPackage, "utf8")) as {
+      engines: { node: string };
+    };
+    expect(nodeVersionProblem(process.versions.node, engines.node)).toBeNull();
   });
 });
 
