@@ -52,7 +52,7 @@ export const StripForTheWindowButtons: Story = {
   ...atViewport("wide"),
   args: { reserveWindowButtons: true },
   play: async ({ canvas }) => {
-    const first = canvas.getByRole("button", { name: "Projects" });
+    const first = canvas.getByRole("link", { name: "Projects" });
     await expect(first.getBoundingClientRect().top).toBeCloseTo(
       navbarOf(canvas).getBoundingClientRect().top + 48,
       0,
@@ -130,7 +130,7 @@ export const TheNavbarHandleStaysGrabbableInTheDragRegion: Story = {
 export const NoStripWithoutWindowButtonsOrLogo: Story = {
   ...atViewport("wide"),
   play: async ({ canvas }) => {
-    const first = canvas.getByRole("button", { name: "Projects" });
+    const first = canvas.getByRole("link", { name: "Projects" });
     await expect(first.getBoundingClientRect().top).toBeLessThan(40);
   },
 };
@@ -175,7 +175,7 @@ export const TheMarkSitsOnTheIconAxisBesideItsNameWithoutWindowButtons: Story = 
     await expect(canvas.getByText("Self-Engine")).toBeVisible();
     await expect(mark.getBoundingClientRect().left).toBeCloseTo(22, 0);
     await expect(centerX(mark)).toBeCloseTo(
-      centerX(canvas.getByRole("button", { name: "Projects" }).querySelector("svg")!),
+      centerX(canvas.getByRole("link", { name: "Projects" }).querySelector("svg")!),
       0,
     );
   },
@@ -229,7 +229,7 @@ export const TheStripStaysForTheLogoWithoutWindowButtons: Story = {
   ...atViewport("wide"),
   args: { logo: LOGO },
   play: async ({ canvas }) => {
-    const firstEntry = canvas.getByRole("button", { name: "Projects" });
+    const firstEntry = canvas.getByRole("link", { name: "Projects" });
     await expect(firstEntry.getBoundingClientRect().top).toBeCloseTo(
       navbarOf(canvas).getBoundingClientRect().top + STRIP_HEIGHT,
       0,
@@ -277,7 +277,7 @@ export const TheIconsOnlyNavbarFollowsTheFontScaleWithWindowButtons: Story = {
   play: async ({ canvas }) => {
     const navbar = navbarOf(canvas);
     await expect(navbar.getBoundingClientRect().width).toBeCloseTo(49, 0);
-    const icon = canvas.getByRole("button", { name: "Projects" }).querySelector("svg")!;
+    const icon = canvas.getByRole("link", { name: "Projects" }).querySelector("svg")!;
     await expect(centerX(icon)).toBeCloseTo(centerX(navbar), 0);
   },
 };
@@ -367,7 +367,7 @@ export const TheIconsOnlyNavbarHoldsTheWindowButtonsWhenBothAreCollapsed: Story 
     await expectContainersReachTheTop(canvas);
     await expectEntriesBelowTheStrip(canvas);
     await expectEntriesCenteredOnTheIconsOnlyNavbar(canvas);
-    const active = canvas.getByRole("button", { name: "Time", current: "page" });
+    const active = canvas.getByRole("link", { name: "Time", current: "page" });
     await expect(widthOf(active)).toBe(36);
     await expect(Math.round(active.getBoundingClientRect().height)).toBe(40);
     await expect([...navbar.children].filter((child) => widthOf(child) === 1)).toEqual([]);
@@ -673,7 +673,7 @@ export const ACollapsedSidebarBesideAWideNavbarWithoutWindowButtons: Story = {
     await expectEntriesBelowTheStrip(canvas);
     await expect(canvas.getByText("Self-Engine")).toBeVisible();
     await expect(centerX(canvas.getByTestId("mark"))).toBeCloseTo(
-      centerX(canvas.getByRole("button", { name: "Projects" }).querySelector("svg")!),
+      centerX(canvas.getByRole("link", { name: "Projects" }).querySelector("svg")!),
       0,
     );
   },

@@ -17,6 +17,7 @@ import {
   drawerOverlay,
   expectActiveEntryFillsTheColumn,
   expectContentFillsTheFrame,
+  expectNavigationLinks,
   openDrawer,
   widthOf,
   type Story,
@@ -99,10 +100,10 @@ export const TheDrawerShowsTheNavbarBesideTheModuleSidebar: Story = {
     await expect(box.top).toBeCloseTo(strip.getBoundingClientRect().bottom, 0);
     await expect(box.bottom).toBeCloseTo(drawer.getBoundingClientRect().bottom, 0);
     const names = within(navbar)
-      .getAllByRole("button")
+      .getAllByRole("link")
       .map((entry) => entry.getAttribute("aria-label"));
     await expect(names).toEqual(["Projects", "Time", "Settings"]);
-    const settings = within(navbar).getByRole("button", { name: "Settings" });
+    const settings = within(navbar).getByRole("link", { name: "Settings" });
     await expect(settings.getBoundingClientRect().bottom).toBeCloseTo(box.bottom - 10, 0);
     const icon = settings.querySelector("svg")!;
     await expect(centerX(icon)).toBeCloseTo(centerX(navbar), 0);
@@ -139,10 +140,16 @@ export const SelectingAnEntryLeavesTheDrawerOpen: Story = {
   play: async ({ canvas }) => {
     const drawer = await openDrawer(canvas);
     const navbar = within(drawerNavbarOf(drawer));
-    await userEvent.click(navbar.getByRole("button", { name: "Projects" }));
-    await expect(meta.args.onSelectEntry).toHaveBeenCalledWith("projects");
-    await userEvent.click(navbar.getByRole("button", { name: "Settings" }));
-    await expect(meta.args.onSelectEntry).toHaveBeenLastCalledWith("settings");
+    await userEvent.click(navbar.getByRole("link", { name: "Projects" }));
+    await expect(navbar.getByRole("link", { name: "Projects" })).toHaveAttribute(
+      "href",
+      "/projects",
+    );
+    await userEvent.click(navbar.getByRole("link", { name: "Settings" }));
+    await expect(navbar.getByRole("link", { name: "Settings" })).toHaveAttribute(
+      "href",
+      "/settings",
+    );
     await expect(screen.getByRole("dialog", { name: "Module Sidebar" })).toBe(drawer);
     await expect(within(drawer).getByText("Sidebar content")).toBeVisible();
   },
@@ -153,12 +160,13 @@ export const TheDrawerNavbarNamesItsEntriesAndMarksTheActiveOne: Story = {
   play: async ({ canvas }) => {
     const drawer = await openDrawer(canvas);
     const navbar = within(drawerNavbarOf(drawer));
-    const active = navbar.getByRole("button", { name: "Time", current: "page" });
+    await expectNavigationLinks(navbar);
+    const active = navbar.getByRole("link", { name: "Time", current: "page" });
     await expect(active).toHaveStyle({
       backgroundColor: getComputedStyle(active).getPropertyValue("--se-module-soft"),
     });
     await expectActiveEntryFillsTheColumn(active);
-    await userEvent.hover(navbar.getByRole("button", { name: "Projects" }));
+    await userEvent.hover(navbar.getByRole("link", { name: "Projects" }));
     await expect(await screen.findByRole("tooltip")).toHaveTextContent("Projects");
   },
 };
@@ -169,7 +177,7 @@ export const TheDrawerLogoStartsAtTheLeftEdgeWithoutWindowButtons: Story = {
   play: async ({ canvas }) => {
     const drawer = await openDrawer(canvas);
     const mark = within(drawer).getByTestId("mark");
-    const firstEntry = within(drawerNavbarOf(drawer)).getByRole("button", { name: "Projects" });
+    const firstEntry = within(drawerNavbarOf(drawer)).getByRole("link", { name: "Projects" });
     await expect(mark.getBoundingClientRect().left).toBeCloseTo(
       firstEntry.getBoundingClientRect().left,
       0,
@@ -205,7 +213,7 @@ export const TheDrawerHeaderStaysBelowTheStripWhenTheSidebarScrolls: Story = {
   play: async ({ canvas }) => {
     const drawer = await openDrawer(canvas);
     const header = drawerHeaderOf(drawer);
-    const firstEntry = within(drawerNavbarOf(drawer)).getByRole("button", { name: "Projects" });
+    const firstEntry = within(drawerNavbarOf(drawer)).getByRole("link", { name: "Projects" });
     const top = header.getBoundingClientRect().top;
     const entryTop = firstEntry.getBoundingClientRect().top;
     const viewport = within(drawer)

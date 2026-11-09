@@ -12,17 +12,19 @@ import {
   SHELL_STANDARD_NAVBAR,
   type ShellEntry,
   type ShellProps,
+  type ShellRouting,
 } from "./index.ts";
 
 export type Canvas = ReturnType<typeof within>;
 
 export const ENTRIES: readonly ShellEntry[] = [
-  { id: "projects", label: "Projects", icon: ProjectsIcon, color: "blue" },
-  { id: "time", label: "Time", icon: TimeIcon, color: "teal" },
+  { id: "projects", to: "/projects", label: "Projects", icon: ProjectsIcon, color: "blue" },
+  { id: "time", to: "/time", label: "Time", icon: TimeIcon, color: "teal" },
 ];
 
 export const SETTINGS: ShellEntry = {
   id: "settings",
+  to: "/settings",
   label: "Settings",
   icon: SettingsIcon,
   color: "grape",
@@ -41,6 +43,12 @@ export function atViewport(value: keyof typeof VIEWPORTS) {
   return { globals: { viewport: { value, isRotated: false } } };
 }
 
+const routing: ShellRouting = {
+  Link: ({ to, ...props }) => (
+    <a {...props} href={to} onClick={(event) => event.preventDefault()} />
+  ),
+};
+
 /** What every Story file of the Shell spreads into its `meta`, next to its own `title`. */
 export const shellMeta = {
   component: Shell,
@@ -53,7 +61,7 @@ export const shellMeta = {
     onModuleSidebarCollapsedCommit: fn(),
     onModuleSidebarWidthCommit: fn(),
     onNavbarCommit: fn(),
-    onSelectEntry: fn(),
+    routing,
     pageTitle: "Time",
     settingsEntry: SETTINGS,
   },
@@ -342,7 +350,7 @@ export const expectIconsOnlyNavbarHoldsTheWindowButtons = async (canvas: Canvas)
 /** Centered on the wider icons-only Navbar, in the geometry an entry has everywhere else. */
 export const expectEntriesCenteredOnTheIconsOnlyNavbar = async (canvas: Canvas): Promise<void> => {
   const navbar = navbarOf(canvas);
-  for (const entry of within(navbar).getAllByRole("button")) {
+  for (const entry of within(navbar).getAllByRole("link")) {
     const icon = entry.querySelector("svg")!;
     // oxlint-disable-next-line no-await-in-loop -- one assertion per entry, in order
     await expect(centerX(icon)).toBeCloseTo(centerX(navbar), 0);
@@ -378,12 +386,12 @@ export const expectContainersReachTheTop = async (canvas: Canvas): Promise<void>
 
 export const expectEntriesBelowTheStrip = async (canvas: Canvas): Promise<void> => {
   await expect(
-    canvas.getByRole("button", { name: "Projects" }).getBoundingClientRect().top,
+    canvas.getByRole("link", { name: "Projects" }).getBoundingClientRect().top,
   ).toBeCloseTo(navbarOf(canvas).getBoundingClientRect().top + STRIP_HEIGHT, 0);
 };
 
 export const expectMarkOnTheIconAxis = async (canvas: Canvas): Promise<void> => {
-  const icon = canvas.getByRole("button", { name: "Projects" }).querySelector("svg")!;
+  const icon = canvas.getByRole("link", { name: "Projects" }).querySelector("svg")!;
   await expect(centerX(canvas.getByTestId("mark"))).toBeCloseTo(centerX(icon), 0);
   await expect(centerX(canvas.getByTestId("mark"))).toBeCloseTo(centerX(navbarOf(canvas)), 0);
 };
@@ -412,4 +420,27 @@ export async function expectShownWithoutReport(
   await expect(Math.round(pane?.getBoundingClientRect().width ?? 0)).toBe(shown.moduleSidebar);
   await expect(args.onNavbarCommit).not.toHaveBeenCalled();
   await expect(args.onModuleSidebarWidthCommit).not.toHaveBeenCalled();
+}
+
+/** Every navigation surface exposes the same destinations and current page. */
+export async function expectNavigationLinks(navigation: Canvas): Promise<void> {
+  await expect(navigation.getAllByRole("link")).toHaveLength(3);
+  await expect(navigation.getByRole("link", { name: "Projects" })).toHaveAttribute(
+    "href",
+    "/projects",
+  );
+  await expect(navigation.getByRole("link", { name: "Time", current: "page" })).toHaveAttribute(
+    "href",
+    "/time",
+  );
+  await expect(navigation.getByRole("link", { name: "Settings" })).toHaveAttribute(
+    "href",
+    "/settings",
+  );
+  await expect(navigation.getByRole("link", { name: "Projects" })).not.toHaveAttribute(
+    "aria-current",
+  );
+  await expect(navigation.getByRole("link", { name: "Settings" })).not.toHaveAttribute(
+    "aria-current",
+  );
 }

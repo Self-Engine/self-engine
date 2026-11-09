@@ -4,6 +4,7 @@ import { routeTree } from "./routeTree.gen.ts";
 
 export const router = createRouter({
   routeTree,
+  defaultPreload: "intent",
   history: historyKind(window) === "hash" ? createHashHistory() : createBrowserHistory(),
 });
 

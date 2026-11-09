@@ -40,7 +40,7 @@ export const TheActiveEntryOfTheIconsOnlyNavbarIs36By40: Story = {
   play: async ({ canvas }) => {
     await expect(widthOf(navbarOf(canvas))).toBe(56);
     await expectActiveEntryFillsTheColumn(
-      canvas.getByRole("button", { name: "Time", current: "page" }),
+      canvas.getByRole("link", { name: "Time", current: "page" }),
     );
   },
 };
@@ -51,7 +51,7 @@ export const TheActiveEntryIs36By40WhenTheUserCollapsedTheNavbarToo: Story = {
   play: async ({ canvas }) => {
     await expect(widthOf(navbarOf(canvas))).toBe(56);
     await expectActiveEntryFillsTheColumn(
-      canvas.getByRole("button", { name: "Time", current: "page" }),
+      canvas.getByRole("link", { name: "Time", current: "page" }),
     );
   },
 };
@@ -59,7 +59,7 @@ export const TheActiveEntryIs36By40WhenTheUserCollapsedTheNavbarToo: Story = {
 export const IconsOnlyEntriesShowTheirNameInATooltip: Story = {
   ...atViewport("medium"),
   play: async ({ canvas }) => {
-    await userEvent.hover(canvas.getByRole("button", { name: "Projects" }));
+    await userEvent.hover(canvas.getByRole("link", { name: "Projects" }));
     await expect(await screen.findByRole("tooltip")).toHaveTextContent("Projects");
   },
 };
@@ -67,12 +67,12 @@ export const IconsOnlyEntriesShowTheirNameInATooltip: Story = {
 export const ActiveEntryIsMarkedInItsModuleColor: Story = {
   ...atViewport("wide"),
   play: async ({ canvas }) => {
-    const active = canvas.getByRole("button", { name: "Time", current: "page" });
+    const active = canvas.getByRole("link", { name: "Time", current: "page" });
     const scope = getComputedStyle(active);
     await expect(active).toHaveStyle({
       backgroundColor: scope.getPropertyValue("--se-module-soft"),
     });
-    await expect(canvas.getByRole("button", { name: "Projects" })).not.toHaveAttribute(
+    await expect(canvas.getByRole("link", { name: "Projects" })).not.toHaveAttribute(
       "aria-current",
     );
   },
@@ -370,7 +370,7 @@ export const EntriesKeepTheirGeometryWhenTheLabelGoes: Story = {
   ...resizable,
   play: async ({ canvas }) => {
     const navbar = navbarOf(canvas);
-    const entry = () => within(navbar).getByRole("button", { name: "Projects" });
+    const entry = () => within(navbar).getByRole("link", { name: "Projects" });
     const geometry = () => {
       const icon = entry().querySelector("svg")!.getBoundingClientRect();
       return { height: entry().getBoundingClientRect().height, iconLeft: icon.left };
@@ -399,7 +399,7 @@ export const IconsOnlyEntriesFitAtTheSmallestFontScale: Story = {
   ...atSmallestFontScale("medium"),
   play: async ({ canvas }) => {
     const navbar = navbarOf(canvas);
-    const entry = canvas.getByRole("button", { name: "Projects" });
+    const entry = canvas.getByRole("link", { name: "Projects" });
     const entryBox = entry.getBoundingClientRect();
     const icon = entry.querySelector("svg")!.getBoundingClientRect();
     await expect(icon.left).toBeGreaterThanOrEqual(entryBox.left);

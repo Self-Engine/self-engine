@@ -41,6 +41,7 @@ import {
   SHELL_STANDARD_MODULE_SIDEBAR_WIDTH,
   useModuleSidebarResize,
 } from "./use-module-sidebar-resize.ts";
+import { ShellRoutingContext, type ShellRouting, useShellRouting } from "./routing.tsx";
 import { useNavbarResize } from "./use-navbar-resize.ts";
 
 const CONTENT_HEADER_HEIGHT = 48;
@@ -215,6 +216,7 @@ const ENTRY_STYLES = {
 
 export interface ShellEntry {
   readonly id: string;
+  readonly to: string;
   /** Already translated. */
   readonly label: string;
   readonly icon: ComponentType;
@@ -234,7 +236,7 @@ export interface ShellProps {
   /** Follows the modules: at the foot of the Navbar, last in the bottom bar. */
   readonly settingsEntry: ShellEntry;
   readonly activeEntryId: string;
-  readonly onSelectEntry: (id: string) => void;
+  readonly routing: ShellRouting;
   readonly moduleSidebar: ReactNode;
   readonly pageTitle: string;
   /** Sits in the top strip of the navigation, in the drawer at the narrow step, and in the content header while the Navbar holds the window buttons. None at phone width. */
@@ -286,10 +288,10 @@ interface EntryLinkProps {
   readonly entry: ShellEntry;
   readonly active: boolean;
   readonly appearance: keyof typeof ENTRY_STYLES;
-  readonly onSelect: (id: string) => void;
 }
 
-function EntryLink({ entry, active, appearance, onSelect }: EntryLinkProps) {
+function EntryLink({ entry, active, appearance }: EntryLinkProps) {
+  const { Link } = useShellRouting();
   const Icon = entry.icon;
   const iconsOnly = appearance === "iconsOnly";
   return (
@@ -298,13 +300,12 @@ function EntryLink({ entry, active, appearance, onSelect }: EntryLinkProps) {
         active={active}
         aria-current={active ? "page" : undefined}
         aria-label={iconsOnly ? entry.label : undefined}
-        component="button"
+        component={Link}
         data-module-color={entry.color}
         label={iconsOnly ? undefined : entry.label}
         leftSection={<Icon />}
-        onClick={() => onSelect(entry.id)}
+        to={entry.to}
         styles={ENTRY_STYLES[appearance]}
-        type="button"
         vars={ACTIVE_ENTRY_VARS}
       />
     </Tooltip>
@@ -312,13 +313,10 @@ function EntryLink({ entry, active, appearance, onSelect }: EntryLinkProps) {
 }
 
 /** The entries and what happens to them, wherever the navigation is shown. */
-type ShellNavigation = Pick<
-  ShellProps,
-  "entries" | "settingsEntry" | "activeEntryId" | "onSelectEntry"
->;
+type ShellNavigation = Pick<ShellProps, "entries" | "settingsEntry" | "activeEntryId">;
 
 function entryLink(
-  { activeEntryId, onSelectEntry }: ShellNavigation,
+  { activeEntryId }: ShellNavigation,
   entry: ShellEntry,
   appearance: EntryLinkProps["appearance"],
 ) {
@@ -328,7 +326,6 @@ function entryLink(
       appearance={appearance}
       entry={entry}
       key={entry.id}
-      onSelect={onSelectEntry}
     />
   );
 }
@@ -545,7 +542,7 @@ export function Shell({
   entries,
   settingsEntry,
   activeEntryId,
-  onSelectEntry,
+  routing,
   moduleSidebar,
   pageTitle,
   logo,
@@ -567,7 +564,7 @@ export function Shell({
     MEASURE_ON_FIRST_RENDER,
   );
   const [drawerOpened, { close: closeDrawer, toggle: toggleDrawer }] = useDisclosure(false);
-  const navigation = { entries, settingsEntry, activeEntryId, onSelectEntry };
+  const navigation = { entries, settingsEntry, activeEntryId };
 
   const isPhone = step === "phone";
   const navigationInDrawer = isPhone || step === "narrow";
@@ -607,142 +604,144 @@ export function Shell({
   }, [navigationInDrawer, closeDrawer]);
 
   return (
-    <AppShell
-      {...(isPhone && { footer: { height: BOTTOM_BAR_HEIGHT } })}
-      mode="static"
-      // `collapsed.desktop` gives the narrow step's width to the content, since the Navbar is in the
-      // drawer. `collapsed.mobile` does the same at the phone rule, which also matches at exactly
-      // `xs`, the smallest Electron window.
-      navbar={{
-        width: { base: limits.iconsOnlyWidth, lg: navbarResize.shownWidth },
-        breakpoint: "xs",
-        collapsed: { mobile: true, desktop: navigationInDrawer },
-      }}
-      padding={0}
-      ref={navbarResize.appShellRef}
-      // Mantine prefers a resized width over the responsive ones, so only the wide step gets it.
-      {...(step === "wide" && { resize: navbarResize.resize })}
-      style={ROOT_STYLE}
-      // Starts below the strip with the divider, so nothing but the drag region is up there.
-      styles={{ resizeHandle: { ...NOT_WINDOW_DRAG_STYLE, top: topStripHeight } }}
-    >
-      <Box aria-hidden style={TOP_EDGE_STYLE} />
-      {!navigationInDrawer && (
-        <AppShell.Navbar
-          aria-label={t`Modules`}
-          px={navbarHoldsWindowButtons ? iconsOnlyNavbarPadding : "xs"}
-          py="xs"
-          style={navbarStandsAlone ? NAVBAR_ALONE_STYLE : NAVBAR_STYLE}
-          withBorder={false}
-        >
-          {hasNavigationStrip && (
-            <TopStrip
-              style={
-                // The buttons float over the column, so only the padding around it can drag the window.
-                navbarHoldsWindowButtons
-                  ? {
-                      ...NAVBAR_TOP_STRIP_STYLE,
-                      marginInline: `calc(-1 * ${iconsOnlyNavbarPadding})`,
-                    }
-                  : NAVBAR_TOP_STRIP_STYLE
-              }
-            />
-          )}
-          {moduleSidebarShown && (
-            <Box aria-hidden style={{ ...NAVBAR_DIVIDER_STYLE, top: topStripHeight }} />
-          )}
-          <NavbarColumn
-            appearance={navbarIconsOnly ? "iconsOnly" : "labelled"}
-            navigation={navigation}
-          />
-        </AppShell.Navbar>
-      )}
-      {logo && !navigationInDrawer && !navbarHoldsWindowButtons && (
-        <Logo
-          logo={logo}
-          markOnly={logoMarkOnly}
-          style={{
-            ...NAVIGATION_LOGO_STYLE,
-            insetInlineStart: reserveWindowButtons
-              ? START_AFTER_WINDOW_BUTTONS
-              : rem(LOGO_START_ON_ICON_AXIS),
-          }}
-        />
-      )}
-      <AppShell.Main style={navbarStandsAlone ? MAIN_BESIDE_NAVBAR_ALONE_STYLE : MAIN_STYLE}>
-        <Splitter
-          {...moduleSidebarResize.splitterProps}
-          h="100%"
-          attributes={{
-            handle: {
-              "aria-label": t`Resize module sidebar`,
-              // A pointer drags by its own events, so only the keyboard needs the focus.
-              onMouseDown: (event: MouseEvent) => event.preventDefault(),
-            },
-          }}
-          handleIcon={null}
-          lineSize={GAP}
-          styles={{
-            // The gap is the handle. Its thumb stays invisible and only carries Mantine's focus ring.
-            handle: {
-              backgroundColor: "transparent",
-              display: moduleSidebarShown ? undefined : "none",
-            },
-            thumb: { backgroundColor: "transparent", border: "none", width: rem(GAP / 2) },
-          }}
-        >
-          <Splitter.Pane {...moduleSidebarResize.paneProps} style={MODULE_SIDEBAR_PANE_STYLE}>
-            {moduleSidebarShown && (
-              <>
-                {hasTopStrip && <TopStrip />}
-                <ScrollArea flex={1} mih={0}>
-                  <Box p="xs">{moduleSidebar}</Box>
-                </ScrollArea>
-              </>
+    <ShellRoutingContext value={routing}>
+      <AppShell
+        {...(isPhone && { footer: { height: BOTTOM_BAR_HEIGHT } })}
+        mode="static"
+        // `collapsed.desktop` gives the narrow step's width to the content, since the Navbar is in the
+        // drawer. `collapsed.mobile` does the same at the phone rule, which also matches at exactly
+        // `xs`, the smallest Electron window.
+        navbar={{
+          width: { base: limits.iconsOnlyWidth, lg: navbarResize.shownWidth },
+          breakpoint: "xs",
+          collapsed: { mobile: true, desktop: navigationInDrawer },
+        }}
+        padding={0}
+        ref={navbarResize.appShellRef}
+        // Mantine prefers a resized width over the responsive ones, so only the wide step gets it.
+        {...(step === "wide" && { resize: navbarResize.resize })}
+        style={ROOT_STYLE}
+        // Starts below the strip with the divider, so nothing but the drag region is up there.
+        styles={{ resizeHandle: { ...NOT_WINDOW_DRAG_STYLE, top: topStripHeight } }}
+      >
+        <Box aria-hidden style={TOP_EDGE_STYLE} />
+        {!navigationInDrawer && (
+          <AppShell.Navbar
+            aria-label={t`Modules`}
+            px={navbarHoldsWindowButtons ? iconsOnlyNavbarPadding : "xs"}
+            py="xs"
+            style={navbarStandsAlone ? NAVBAR_ALONE_STYLE : NAVBAR_STYLE}
+            withBorder={false}
+          >
+            {hasNavigationStrip && (
+              <TopStrip
+                style={
+                  // The buttons float over the column, so only the padding around it can drag the window.
+                  navbarHoldsWindowButtons
+                    ? {
+                        ...NAVBAR_TOP_STRIP_STYLE,
+                        marginInline: `calc(-1 * ${iconsOnlyNavbarPadding})`,
+                      }
+                    : NAVBAR_TOP_STRIP_STYLE
+                }
+              />
             )}
-          </Splitter.Pane>
-          <Splitter.Pane defaultSize={100} style={CONTENT_PANE_STYLE}>
-            <ContentHeader
-              channelBadge={channelBadge}
-              drawerOpened={drawerOpened}
-              headerEnd={headerEnd}
-              isPhone={isPhone}
-              logo={navbarHoldsWindowButtons ? logo : undefined}
-              moduleSidebarCollapsed={moduleSidebarCollapsed}
-              navigationInDrawer={navigationInDrawer}
-              onModuleSidebarCollapsedCommit={onModuleSidebarCollapsedCommit}
-              onToggleDrawer={toggleDrawer}
-              pageTitle={pageTitle}
-              startsAfterWindowButtons={navigationInDrawer && reserveWindowButtons}
+            {moduleSidebarShown && (
+              <Box aria-hidden style={{ ...NAVBAR_DIVIDER_STYLE, top: topStripHeight }} />
+            )}
+            <NavbarColumn
+              appearance={navbarIconsOnly ? "iconsOnly" : "labelled"}
+              navigation={navigation}
             />
-            <ScrollArea flex={1} mih={0}>
-              <Box p="md">{children}</Box>
-            </ScrollArea>
-          </Splitter.Pane>
-        </Splitter>
-      </AppShell.Main>
-      {isPhone && (
-        <AppShell.Footer style={BOTTOM_BAR_STYLE} withBorder={false}>
-          <ScrollArea h="100%" scrollbars="x" type="never">
-            <Group aria-label={t`Modules`} component="nav" gap="xs" p={4} wrap="nowrap">
-              {[...entries, settingsEntry].map((entry) =>
-                entryLink(navigation, entry, "bottomBar"),
+          </AppShell.Navbar>
+        )}
+        {logo && !navigationInDrawer && !navbarHoldsWindowButtons && (
+          <Logo
+            logo={logo}
+            markOnly={logoMarkOnly}
+            style={{
+              ...NAVIGATION_LOGO_STYLE,
+              insetInlineStart: reserveWindowButtons
+                ? START_AFTER_WINDOW_BUTTONS
+                : rem(LOGO_START_ON_ICON_AXIS),
+            }}
+          />
+        )}
+        <AppShell.Main style={navbarStandsAlone ? MAIN_BESIDE_NAVBAR_ALONE_STYLE : MAIN_STYLE}>
+          <Splitter
+            {...moduleSidebarResize.splitterProps}
+            h="100%"
+            attributes={{
+              handle: {
+                "aria-label": t`Resize module sidebar`,
+                // A pointer drags by its own events, so only the keyboard needs the focus.
+                onMouseDown: (event: MouseEvent) => event.preventDefault(),
+              },
+            }}
+            handleIcon={null}
+            lineSize={GAP}
+            styles={{
+              // The gap is the handle. Its thumb stays invisible and only carries Mantine's focus ring.
+              handle: {
+                backgroundColor: "transparent",
+                display: moduleSidebarShown ? undefined : "none",
+              },
+              thumb: { backgroundColor: "transparent", border: "none", width: rem(GAP / 2) },
+            }}
+          >
+            <Splitter.Pane {...moduleSidebarResize.paneProps} style={MODULE_SIDEBAR_PANE_STYLE}>
+              {moduleSidebarShown && (
+                <>
+                  {hasTopStrip && <TopStrip />}
+                  <ScrollArea flex={1} mih={0}>
+                    <Box p="xs">{moduleSidebar}</Box>
+                  </ScrollArea>
+                </>
               )}
-            </Group>
-          </ScrollArea>
-        </AppShell.Footer>
-      )}
-      <NavigationDrawer
-        hasTopStrip={hasTopStrip}
-        isPhone={isPhone}
-        logo={logo}
-        moduleSidebar={moduleSidebar}
-        moduleSidebarWidth={moduleSidebarResize.shownWidth}
-        navigation={navigation}
-        onClose={closeDrawer}
-        opened={navigationInDrawer && drawerOpened}
-        reserveWindowButtons={reserveWindowButtons}
-      />
-    </AppShell>
+            </Splitter.Pane>
+            <Splitter.Pane defaultSize={100} style={CONTENT_PANE_STYLE}>
+              <ContentHeader
+                channelBadge={channelBadge}
+                drawerOpened={drawerOpened}
+                headerEnd={headerEnd}
+                isPhone={isPhone}
+                logo={navbarHoldsWindowButtons ? logo : undefined}
+                moduleSidebarCollapsed={moduleSidebarCollapsed}
+                navigationInDrawer={navigationInDrawer}
+                onModuleSidebarCollapsedCommit={onModuleSidebarCollapsedCommit}
+                onToggleDrawer={toggleDrawer}
+                pageTitle={pageTitle}
+                startsAfterWindowButtons={navigationInDrawer && reserveWindowButtons}
+              />
+              <ScrollArea flex={1} mih={0}>
+                <Box p="md">{children}</Box>
+              </ScrollArea>
+            </Splitter.Pane>
+          </Splitter>
+        </AppShell.Main>
+        {isPhone && (
+          <AppShell.Footer style={BOTTOM_BAR_STYLE} withBorder={false}>
+            <ScrollArea h="100%" scrollbars="x" type="never">
+              <Group aria-label={t`Modules`} component="nav" gap="xs" p={4} wrap="nowrap">
+                {[...entries, settingsEntry].map((entry) =>
+                  entryLink(navigation, entry, "bottomBar"),
+                )}
+              </Group>
+            </ScrollArea>
+          </AppShell.Footer>
+        )}
+        <NavigationDrawer
+          hasTopStrip={hasTopStrip}
+          isPhone={isPhone}
+          logo={logo}
+          moduleSidebar={moduleSidebar}
+          moduleSidebarWidth={moduleSidebarResize.shownWidth}
+          navigation={navigation}
+          onClose={closeDrawer}
+          opened={navigationInDrawer && drawerOpened}
+          reserveWindowButtons={reserveWindowButtons}
+        />
+      </AppShell>
+    </ShellRoutingContext>
   );
 }

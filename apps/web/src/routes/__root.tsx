@@ -5,8 +5,8 @@ import { Badge, Text } from "@mantine/core";
 import { AssistantIcon, CalendarIcon, ProjectsIcon, SettingsIcon } from "@self-engine/icons";
 import { BrandMark } from "@self-engine/icons/brand-mark";
 import { useSetting } from "@self-engine/settings/react";
-import { Shell, type ShellEntry } from "@self-engine/shell";
-import { Outlet, createRootRoute, useNavigate, useRouterState } from "@tanstack/react-router";
+import { Shell, type ShellEntry, type ShellRouting } from "@self-engine/shell";
+import { Link, Outlet, createRootRoute, useRouterState } from "@tanstack/react-router";
 import { channelBadge, reservesWindowButtons } from "../env.ts";
 import { settingsStore } from "../settings-store.ts";
 import { SHELL_SETTINGS } from "../shell-settings.ts";
@@ -36,6 +36,12 @@ const SETTINGS = {
   color: "grape",
 } as const;
 
+const ROUTING: ShellRouting = {
+  Link: ({ to, target, ...props }) => (
+    <Link {...props} {...(target !== undefined && { target })} to={to} />
+  ),
+};
+
 const PAGES = [...MODULES, SETTINGS];
 
 // The name of the product, which is not translated.
@@ -45,7 +51,6 @@ export const Route = createRootRoute({ component: RootLayout });
 
 function RootLayout() {
   const { _ } = useLingui();
-  const navigate = useNavigate();
   const pathname = useRouterState({ select: (state) => state.location.pathname });
   const badge = channelBadge(window);
   const activePage = PAGES.find(({ to }) => to === pathname);
@@ -55,6 +60,7 @@ function RootLayout() {
 
   const entryOf = ({ to, label, icon, color }: (typeof PAGES)[number]): ShellEntry => ({
     id: to,
+    to,
     label: _(label),
     icon,
     color,
@@ -81,10 +87,7 @@ function RootLayout() {
         settingsStore.write(SHELL_SETTINGS.moduleSidebarWidth, width)
       }
       onNavbarCommit={(next) => settingsStore.write(SHELL_SETTINGS.navbar, next)}
-      onSelectEntry={(id) => {
-        const page = PAGES.find(({ to }) => to === id);
-        if (page) void navigate({ to: page.to });
-      }}
+      routing={ROUTING}
       pageTitle={activePage ? _(activePage.label) : ""}
       reserveWindowButtons={reservesWindowButtons(window)}
       settingsEntry={entryOf(SETTINGS)}
