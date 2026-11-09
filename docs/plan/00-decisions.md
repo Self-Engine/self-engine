@@ -652,6 +652,20 @@ Grundlage: [`research-layer-3-core.md`](research-layer-3-core.md).
   gilt die Gerätezeitzone und das Fehlerprotokoll bekommt einen Eintrag. _Verworfen:_ Historie der
   Zeitzone (jede Tagesberechnung bräuchte sie, Sync-Konflikte verschöben Tage rückwirkend; kann
   später ergänzt werden), Gerätezeitzone als Autorität, Zeitzone an jedem Eintrag.
+- **D138 (L3.6) `time` wird Datei für Datei übernommen, mit Pflicht-Uhr und Typen bis in die
+  Zeile.** Übernommen werden Typen, Uhr, Zonen, Kalender, relative Tage, Formatierung,
+  Geräte-Brücke und Zonenliste mit ihren Tests; `legacy.ts` entfällt; die Testuhr kommt nach
+  `./testing`; die Wochenstart-Vorgabe je Region wandert aus dem alten `i18n` nach `time`. Die Uhr
+  ist ein Pflichtargument ohne Standardwert, der Port bekommt sie als Kontext neben dem Space
+  (D134), `systemClock` wird nur beim Zusammenbau der App gesetzt. `time` liefert Zod-Schemas für
+  `Instant`, `CalendarDay` und `WallClockTime`, die Entitäten benutzen sie; gespeichert wird nur die
+  kanonische Form. Das Repo-Plugin bekommt die fünf alten Lint-Regeln, neu ein Verbot von
+  `Date.now()` und `new Date()` ohne Argument, gültig in `packages/` und `apps/` außer `time`, und
+  ein Verbot direkter Importe von `date-fns`, `dayjs` und `luxon`; Mantines Datumsfelder dürfen
+  `dayjs` intern nutzen. Dateien mit `.tz.test.ts` laufen zusätzlich in Los Angeles. #91 bleibt wie
+  geplant; das `time`-Issue übernimmt als Abnahmekriterium, dass der Helfer in `db` danach auf
+  `time` aufsetzt. _Verworfen:_ 1:1 mit optionaler Uhr, #91 auf `time` warten lassen (bräche die
+  Reihenfolge der Issue-Nummern), Temporal statt `Intl` (Polyfill auf Hermes).
 
 ## Fakten
 
