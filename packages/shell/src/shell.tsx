@@ -120,16 +120,22 @@ const DRAWER_STRIP_FRAME_STYLE: CSSProperties = {
   paddingBlockStart: rem(GAP),
 };
 
-// The navigation's surface, and only the columns below the strip scroll.
-const NAVIGATION_DRAWER_STYLE: CSSProperties = {
-  backgroundColor: roleColor("navSurface"),
-  display: "flex",
-  flexDirection: "column",
-  overflow: "hidden",
-};
+// It opens over the content header, whose drag region would swallow the clicks.
+const DRAWER_STYLES = { content: NOT_WINDOW_DRAG_STYLE, overlay: NOT_WINDOW_DRAG_STYLE };
 
-// Mantine's header has a surface of its own, for the Drawer that scrolls as a whole.
-const NAVIGATION_DRAWER_HEADER_STYLE: CSSProperties = { backgroundColor: "transparent" };
+const NAVIGATION_DRAWER_STYLES = {
+  ...DRAWER_STYLES,
+  // The navigation's surface, and only the columns below the strip scroll.
+  content: {
+    ...NOT_WINDOW_DRAG_STYLE,
+    backgroundColor: roleColor("navSurface"),
+    display: "flex",
+    flexDirection: "column",
+    overflow: "hidden",
+  },
+  // Mantine's header has a surface of its own, for the Drawer that scrolls as a whole.
+  header: { backgroundColor: "transparent" },
+} satisfies Record<string, CSSProperties>;
 
 const DRAWER_NAVBAR_STYLE: CSSProperties = {
   display: "flex",
@@ -563,7 +569,9 @@ export function Shell({
               gap="sm"
               h={rem(CONTENT_HEADER_HEIGHT)}
               pe="md"
-              ps={step === "narrow" && reserveWindowButtons ? HEADER_START_AFTER_WINDOW_BUTTONS : "md"}
+              ps={
+                step === "narrow" && reserveWindowButtons ? HEADER_START_AFTER_WINDOW_BUTTONS : "md"
+              }
               style={WINDOW_DRAG_STYLE}
               wrap="nowrap"
             >
@@ -607,12 +615,7 @@ export function Shell({
             ? shownModuleSidebarWidth
             : NAVBAR_ICONS_ONLY_WIDTH + SHELL_STANDARD_MODULE_SIDEBAR_WIDTH
         }
-        // It opens over the content header, whose drag region would swallow the clicks.
-        styles={{
-          content: { ...NOT_WINDOW_DRAG_STYLE, ...(!isPhone && NAVIGATION_DRAWER_STYLE) },
-          header: isPhone ? undefined : NAVIGATION_DRAWER_HEADER_STYLE,
-          overlay: NOT_WINDOW_DRAG_STYLE,
-        }}
+        styles={isPhone ? DRAWER_STYLES : NAVIGATION_DRAWER_STYLES}
       >
         <Drawer.Overlay />
         <Drawer.Content>
