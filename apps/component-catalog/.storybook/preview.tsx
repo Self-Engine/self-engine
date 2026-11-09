@@ -24,11 +24,25 @@ function isResizeObserverNotice(args: readonly unknown[]): boolean {
   return args.some((arg) => String(arg).includes(RESIZE_OBSERVER_NOTICE));
 }
 
+/**
+ * A loader, because Storybook runs every loader before `beforeEach`. Replaces the previous
+ * collector rather than wrapping it: `afterEach` does not run after a failed story.
+ */
+function collectConsoleErrors(): void {
+  consoleErrors = [];
+  console.error = (...args: unknown[]) => {
+    if (!isResizeObserverNotice(args)) consoleErrors.push(args);
+    originalConsoleError(...args);
+  };
+}
+
 const preview: Preview = {
   globalTypes,
   initialGlobals,
-  // Before the render, so that no story shows the previous language for a moment.
   loaders: [
+    // First, and synchronous: loaders of one level start in array order, those of a story later.
+    collectConsoleErrors,
+    // Before the render, so that no story shows the previous language for a moment.
     async ({ globals }) => {
       await activateLanguage(i18n, languageOf(globals));
     },
@@ -44,13 +58,6 @@ const preview: Preview = {
   ],
   // Collected here and raised afterwards: throwing from `console.error` itself stays green
   // when React recovers (ADR 0012).
-  beforeEach() {
-    consoleErrors = [];
-    console.error = (...args: unknown[]) => {
-      if (!isResizeObserverNotice(args)) consoleErrors.push(args);
-      originalConsoleError(...args);
-    };
-  },
   afterEach() {
     console.error = originalConsoleError;
     if (consoleErrors.length > 0) {
