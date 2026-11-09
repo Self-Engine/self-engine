@@ -666,6 +666,22 @@ Grundlage: [`research-layer-3-core.md`](research-layer-3-core.md).
   geplant; das `time`-Issue übernimmt als Abnahmekriterium, dass der Helfer in `db` danach auf
   `time` aufsetzt. _Verworfen:_ 1:1 mit optionaler Uhr, #91 auf `time` warten lassen (bräche die
   Reihenfolge der Issue-Nummern), Temporal statt `Intl` (Polyfill auf Hermes).
+- **D139 (L3.7) Ergänzungen zu D138 aus einer unabhängigen Prüfung.** `TimeZone` wird ein geprüfter
+  Typ mit Zod-Schema; die Auflösung aus D137 ist der einzige Weg dorthin, führt Aliasse auf einen
+  festen Namen zurück und lehnt Offsets ab; die Auswahlliste nutzt immer die eigene Zonenliste.
+  Gültig sind nur die Jahre 1000 bis 9999, geprüft in Konstruktoren und Parsern; `addDays` und
+  `addMonths` nehmen nur ganze Zahlen. `instantRangeOf(span, zone)` kommt sofort,
+  `splitIntervalByDay` und `groupByCalendarDay` mit dem ersten Nutzer, ein Cache nur nach Messung.
+  Uhrzeiten sind nur `HH:MM`, Zod-Schemas prüfen nur die kanonische Form, das tolerante
+  `parseInstant` bleibt für Import und Sync. Explizite Exporte statt `export *`; `now()` entfällt;
+  `fixedClock` kommt nach `./testing`; `systemClock` bekommt einen eigenen Einstieg nur für den
+  Zusammenbau der App. Die relative Anzeige rechnet mit Kalendertagen; ein `today`, das um
+  Mitternacht umspringt, kommt mit der ersten Oberfläche nach `./react`. Die Lint-Regeln verbieten
+  zusätzlich `new Date(y, m, d)`, Zeitangaben ohne Offset, `toLocale*String` und
+  `Intl.DateTimeFormat` ohne `timeZone`. Tests: `fast-check` mit festem Seed, Parser als Tabellen
+  gegen die Zod-Schemas, der Test mit der echten Uhr entfällt. Von der Wochenstart-Tabelle werden
+  nur `de-DE` und `en-US` übernommen. _Zurückgestellt:_ doppelte Mitternacht in historischen
+  kanadischen Zeitzonen, Prüfung auf Hermes.
 
 ## Fakten
 

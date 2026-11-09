@@ -162,6 +162,19 @@ parallel schon umgewandelt wurde. Payouts brauchen das Gleiche.
 Die Verknüpfung Eintrag ↔ Termin wurde erst n:m gebaut und später auf einen Termin begrenzt
 (ADR 0022). Eine generische Oberfläche „verknüpfte Einträge“ gibt es nicht.
 
+## 5a. Prüfung von `packages/time` vor der Übernahme
+
+Unabhängige Prüfung mit Testläufen (Node 26.13, ICU 79.1, tzdata 2026e); Maßnahmen in D139.
+
+- **In Ordnung:** DST- und Datumsgrenzen-Auflösung über 419 Zonen und 20.806 Umstellungen
+  (1970–2040), ISO-Wochen über 73.049 Tage, Sortierung kanonischer Instants.
+- **Fehler:** Zeitzonen-Namen sind nicht stabil (`Asia/Calcutta` statt `Asia/Kolkata`, die Laufzeit
+  kennt `Europe/Kiev`, aber nicht `Europe/Kyiv` und `UTC` nicht in ihrer Liste). `Date.UTC` bildet
+  die Jahre 0–99 auf 19xx ab. `formatRelativeInstant` rechnet in 24-Stunden-Blöcken statt
+  Kalendertagen.
+- **Leistung:** `calendarDayOf` für 50.000 Instants in Berlin: 151 ms mit dem vorhandenen
+  Formatter-Cache. Reicht auf Node; Hermes ist nicht gemessen.
+
 ## 6. Paketrichtung in der alten App
 
 `packages/core` umfasst rund 23.000 Zeilen in gut 20 Bereichen, darunter Finanzen, Habits, Tasks,

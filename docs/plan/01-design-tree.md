@@ -31,8 +31,9 @@ Pro Runde werden nur 2–3 Fragen gestellt; die Nummern sind stabil.
       - ✅ Geld: Eingabe, Formatierung, Benennung, Zod-Schemas (D136)
       - ✅ Zeit: eine Zeitzone ohne Server (D137)
       - ✅ Zeit: Übernahme von `packages/time`, Uhr, Lint-Regeln (D138)
-      - ❓ Zeit: weitere Verbesserungen bei der Übernahme (Prüfung läuft)
-      - ⏳ Tags, Icon und Farbe
+      - ✅ Zeit: Ergänzungen aus unabhängiger Prüfung (D139)
+      - ❓ Tags
+      - ⏳ Icon und Farbe an Entitäten
       - ⏳ Abläufe über mehrere Module, Brückentabellen
       - ⏳ Zerlegung in Issues (`layer:3`)
     - ⏳ Schicht 4 Projekte + Zeit
