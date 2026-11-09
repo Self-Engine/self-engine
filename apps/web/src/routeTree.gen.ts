@@ -10,63 +10,52 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as AboutRouteImport } from './routes/about'
-import { Route as LanguageSampleRouteImport } from './routes/language-sample'
-import { Route as ThemePreviewRouteImport } from './routes/theme-preview'
+import { Route as ModuleRouteImport } from './routes/$module'
+import { Route as ModuleViewRouteImport } from './routes/$module.$view'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AboutRoute = AboutRouteImport.update({
-  id: '/about',
-  path: '/about',
+const ModuleRoute = ModuleRouteImport.update({
+  id: '/$module',
+  path: '/$module',
   getParentRoute: () => rootRouteImport,
 } as any)
-const LanguageSampleRoute = LanguageSampleRouteImport.update({
-  id: '/language-sample',
-  path: '/language-sample',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ThemePreviewRoute = ThemePreviewRouteImport.update({
-  id: '/theme-preview',
-  path: '/theme-preview',
-  getParentRoute: () => rootRouteImport,
+const ModuleViewRoute = ModuleViewRouteImport.update({
+  id: '/$view',
+  path: '/$view',
+  getParentRoute: () => ModuleRoute,
 } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/about': typeof AboutRoute
-  '/language-sample': typeof LanguageSampleRoute
-  '/theme-preview': typeof ThemePreviewRoute
+  '/$module': typeof ModuleRouteWithChildren
+  '/$module/$view': typeof ModuleViewRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/about': typeof AboutRoute
-  '/language-sample': typeof LanguageSampleRoute
-  '/theme-preview': typeof ThemePreviewRoute
+  '/$module': typeof ModuleRouteWithChildren
+  '/$module/$view': typeof ModuleViewRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/about': typeof AboutRoute
-  '/language-sample': typeof LanguageSampleRoute
-  '/theme-preview': typeof ThemePreviewRoute
+  '/$module': typeof ModuleRouteWithChildren
+  '/$module/$view': typeof ModuleViewRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/about' | '/language-sample' | '/theme-preview'
+  fullPaths: '/' | '/$module' | '/$module/$view'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/about' | '/language-sample' | '/theme-preview'
-  id: '__root__' | '/' | '/about' | '/language-sample' | '/theme-preview'
+  to: '/' | '/$module' | '/$module/$view'
+  id: '__root__' | '/' | '/$module' | '/$module/$view'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  AboutRoute: typeof AboutRoute
-  LanguageSampleRoute: typeof LanguageSampleRoute
-  ThemePreviewRoute: typeof ThemePreviewRoute
+  ModuleRoute: typeof ModuleRouteWithChildren
 }
 
 declare module '@tanstack/react-router' {
@@ -78,35 +67,37 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/about': {
-      id: '/about'
-      path: '/about'
-      fullPath: '/about'
-      preLoaderRoute: typeof AboutRouteImport
+    '/$module': {
+      id: '/$module'
+      path: '/$module'
+      fullPath: '/$module'
+      preLoaderRoute: typeof ModuleRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/language-sample': {
-      id: '/language-sample'
-      path: '/language-sample'
-      fullPath: '/language-sample'
-      preLoaderRoute: typeof LanguageSampleRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/theme-preview': {
-      id: '/theme-preview'
-      path: '/theme-preview'
-      fullPath: '/theme-preview'
-      preLoaderRoute: typeof ThemePreviewRouteImport
-      parentRoute: typeof rootRouteImport
+    '/$module/$view': {
+      id: '/$module/$view'
+      path: '/$view'
+      fullPath: '/$module/$view'
+      preLoaderRoute: typeof ModuleViewRouteImport
+      parentRoute: typeof ModuleRoute
     }
   }
 }
 
+interface ModuleRouteChildren {
+  ModuleViewRoute: typeof ModuleViewRoute
+}
+
+const ModuleRouteChildren: ModuleRouteChildren = {
+  ModuleViewRoute: ModuleViewRoute,
+}
+
+const ModuleRouteWithChildren =
+  ModuleRoute._addFileChildren(ModuleRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  AboutRoute: AboutRoute,
-  LanguageSampleRoute: LanguageSampleRoute,
-  ThemePreviewRoute: ThemePreviewRoute,
+  ModuleRoute: ModuleRouteWithChildren,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

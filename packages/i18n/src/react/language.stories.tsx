@@ -11,7 +11,7 @@ function TranslatedText() {
   return (
     <>
       <p>
-        <Trans context="page name">Home</Trans>
+        <Trans>Settings</Trans>
       </p>
       <p data-testid="first-language">{firstLanguage}</p>
     </>
@@ -28,7 +28,7 @@ export default meta;
 export const English: StoryObj<typeof meta> = {
   globals: { language: "en" },
   play: async ({ canvas }) => {
-    await expect(canvas.getByText("Home")).toBeVisible();
+    await expect(canvas.getByText("Settings")).toBeVisible();
     await expect(document.documentElement.lang).toBe("en");
   },
 };
@@ -36,7 +36,7 @@ export const English: StoryObj<typeof meta> = {
 export const German: StoryObj<typeof meta> = {
   globals: { language: "de" },
   play: async ({ canvas }) => {
-    await expect(canvas.getByText("Start")).toBeVisible();
+    await expect(canvas.getByText("Einstellungen")).toBeVisible();
     await expect(canvas.getByTestId("first-language")).toHaveTextContent("de");
     await expect(document.documentElement.lang).toBe("de");
   },

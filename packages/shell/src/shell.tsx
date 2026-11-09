@@ -1,4 +1,5 @@
 import { useLingui } from "@lingui/react/macro";
+import type { ShellContribution, ShellView } from "./contributions.ts";
 import {
   ActionIcon,
   AppShell,
@@ -214,7 +215,7 @@ const ENTRY_STYLES = {
   },
 } as const;
 
-export interface ShellEntry {
+interface NavigationEntry {
   readonly id: string;
   readonly to: string;
   /** Already translated. */
@@ -230,15 +231,16 @@ export interface ShellLogo {
   readonly name: string;
 }
 
-export interface ShellProps {
+interface ShellFrameProps {
   /** The modules, in Navbar order. */
-  readonly entries: readonly ShellEntry[];
+  readonly entries: readonly NavigationEntry[];
   /** Follows the modules: at the foot of the Navbar, last in the bottom bar. */
-  readonly settingsEntry: ShellEntry;
+  readonly settingsEntry: NavigationEntry;
   readonly activeEntryId: string;
   readonly routing: ShellRouting;
   readonly moduleSidebar: ReactNode;
   readonly pageTitle: string;
+  readonly activeColor: ColorSetId | undefined;
   /** Sits in the top strip of the navigation, in the drawer at the narrow step, and in the content header while the Navbar holds the window buttons. None at phone width. */
   readonly logo?: ShellLogo;
   /** The free end of the content header. */
@@ -285,7 +287,7 @@ function Logo({ logo, markOnly = false, style }: LogoProps) {
 }
 
 interface EntryLinkProps {
-  readonly entry: ShellEntry;
+  readonly entry: NavigationEntry;
   readonly active: boolean;
   readonly appearance: keyof typeof ENTRY_STYLES;
 }
@@ -313,11 +315,11 @@ function EntryLink({ entry, active, appearance }: EntryLinkProps) {
 }
 
 /** The entries and what happens to them, wherever the navigation is shown. */
-type ShellNavigation = Pick<ShellProps, "entries" | "settingsEntry" | "activeEntryId">;
+type ShellNavigation = Pick<ShellFrameProps, "entries" | "settingsEntry" | "activeEntryId">;
 
 function entryLink(
   { activeEntryId }: ShellNavigation,
-  entry: ShellEntry,
+  entry: NavigationEntry,
   appearance: EntryLinkProps["appearance"],
 ) {
   return (
@@ -349,8 +351,8 @@ function NavbarColumn({ navigation, appearance }: NavbarColumnProps) {
 }
 
 /** Props the Shell hands on as they came in, given or not. */
-type PassedOn<Name extends keyof ShellProps> = {
-  readonly [Key in Name]-?: ShellProps[Key] | undefined;
+type PassedOn<Name extends keyof ShellFrameProps> = {
+  readonly [Key in Name]-?: ShellFrameProps[Key] | undefined;
 };
 
 interface ContentHeaderProps extends PassedOn<
@@ -538,13 +540,14 @@ function NavigationDrawer({
  * for no platform either, but it does carry the geometry of the macOS window buttons, which
  * `reserveWindowButtons` switches on.
  */
-export function Shell({
+function ShellFrame({
   entries,
   settingsEntry,
   activeEntryId,
   routing,
   moduleSidebar,
   pageTitle,
+  activeColor,
   logo,
   headerEnd,
   channelBadge,
@@ -556,7 +559,7 @@ export function Shell({
   onModuleSidebarCollapsedCommit,
   reserveWindowButtons = false,
   children,
-}: ShellProps) {
+}: ShellFrameProps) {
   const { t } = useLingui();
   const theme = useMantineTheme();
   const step = useMatches<(typeof LAYOUT_STEPS)[keyof typeof LAYOUT_STEPS]>(
@@ -689,7 +692,11 @@ export function Shell({
               thumb: { backgroundColor: "transparent", border: "none", width: rem(GAP / 2) },
             }}
           >
-            <Splitter.Pane {...moduleSidebarResize.paneProps} style={MODULE_SIDEBAR_PANE_STYLE}>
+            <Splitter.Pane
+              {...moduleSidebarResize.paneProps}
+              data-module-color={activeColor}
+              style={MODULE_SIDEBAR_PANE_STYLE}
+            >
               {moduleSidebarShown && (
                 <>
                   {hasTopStrip && <TopStrip />}
@@ -699,7 +706,11 @@ export function Shell({
                 </>
               )}
             </Splitter.Pane>
-            <Splitter.Pane defaultSize={100} style={CONTENT_PANE_STYLE}>
+            <Splitter.Pane
+              defaultSize={100}
+              data-module-color={activeColor}
+              style={CONTENT_PANE_STYLE}
+            >
               <ContentHeader
                 channelBadge={channelBadge}
                 drawerOpened={drawerOpened}
@@ -743,5 +754,68 @@ export function Shell({
         />
       </AppShell>
     </ShellRoutingContext>
+  );
+}
+
+/** Contributions are translated at display time, including after a language switch. */
+export interface ShellProps extends Omit<
+  ShellFrameProps,
+  "entries" | "settingsEntry" | "activeEntryId" | "moduleSidebar" | "pageTitle" | "activeColor"
+> {
+  readonly contributions: readonly ShellContribution[];
+  readonly settings: ShellContribution;
+  readonly activeModule: ShellContribution | undefined;
+  readonly activeView: ShellView | undefined;
+}
+
+export function Shell({ contributions, settings, activeModule, activeView, ...props }: ShellProps) {
+  const { i18n } = useLingui();
+  const entryOf = (module: ShellContribution): NavigationEntry => ({
+    id: module.id,
+    to: `/${module.id}/${module.views[0].id}`,
+    label: i18n._(module.name),
+    icon: module.icon,
+    color: module.color,
+  });
+  return (
+    <ShellFrame
+      {...props}
+      entries={contributions.map(entryOf)}
+      settingsEntry={entryOf(settings)}
+      activeEntryId={activeModule?.id ?? ""}
+      activeColor={activeModule?.color}
+      pageTitle={activeView ? i18n._(activeView.title) : ""}
+      moduleSidebar={
+        <ModuleViews module={activeModule} activeView={activeView} routing={props.routing} />
+      }
+    />
+  );
+}
+
+function ModuleViews({
+  module,
+  activeView,
+  routing,
+}: {
+  readonly module: ShellContribution | undefined;
+  readonly activeView: ShellView | undefined;
+  readonly routing: ShellRouting;
+}) {
+  const { i18n } = useLingui();
+  if (!module) return null;
+  return (
+    <Stack gap="xs" data-module-color={module.color}>
+      {module.views.map((view) => (
+        <NavLink
+          key={view.id}
+          component={routing.Link}
+          to={`/${module.id}/${view.id}`}
+          label={i18n._(view.title)}
+          active={view.id === activeView?.id}
+          aria-current={view.id === activeView?.id ? "page" : undefined}
+          vars={ACTIVE_ENTRY_VARS}
+        />
+      ))}
+    </Stack>
   );
 }

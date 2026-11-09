@@ -1,27 +1,14 @@
 // Throwaway page to judge translation before the language Setting exists. #23 removes it.
 
 import { Plural, Trans } from "@lingui/react/macro";
-import {
-  Alert,
-  Anchor,
-  Button,
-  Group,
-  SegmentedControl,
-  Stack,
-  Text,
-  TextInput,
-  Title,
-} from "@mantine/core";
+import { Alert, Button, Group, SegmentedControl, Stack, Text, TextInput } from "@mantine/core";
 import { LANGUAGES, LANGUAGE_TAGS, type Language } from "@self-engine/i18n";
-import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
-import { usePreviewLanguage } from "../preview-language.tsx";
-
-export const Route = createFileRoute("/language-sample")({ component: LanguageSamplePage });
+import { usePreviewLanguage } from "./preview-language.tsx";
 
 const LANGUAGE_OPTIONS = LANGUAGE_TAGS.map((tag) => ({ label: LANGUAGES[tag].name, value: tag }));
 
-function LanguageSamplePage() {
+export default function LanguageSamplePage() {
   const [language, switchLanguage] = usePreviewLanguage();
   const [switching, setSwitching] = useState(false);
   const [loadFailed, setLoadFailed] = useState(false);
@@ -44,9 +31,6 @@ function LanguageSamplePage() {
 
   return (
     <Stack align="flex-start">
-      <Title order={1}>
-        <Trans>Language sample</Trans>
-      </Title>
       {/* Disabled during a load, so that a slower earlier load cannot overwrite a later switch. */}
       <SegmentedControl
         data={LANGUAGE_OPTIONS}
@@ -87,15 +71,6 @@ function LanguageSamplePage() {
           <Trans>Add an entry</Trans>
         </Button>
       </Group>
-      <Text>
-        <Trans>
-          A link stays inside its sentence: read the{" "}
-          <Anchor component={Link} to="/about">
-            About page
-          </Anchor>
-          .
-        </Trans>
-      </Text>
     </Stack>
   );
 }

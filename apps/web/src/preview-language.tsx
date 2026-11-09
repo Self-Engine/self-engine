@@ -1,4 +1,4 @@
-// The App Language of the throwaway /language-sample page. It sits above the router because every
+// The App Language of the throwaway /settings/language-sample page. It sits above the router because every
 // text is inside the provider, and it stores nothing. #23 replaces it with the Setting.
 
 import { activateLanguage, type I18n, type Language } from "@self-engine/i18n";

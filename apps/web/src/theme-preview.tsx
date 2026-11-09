@@ -12,11 +12,8 @@ import {
   type FontScale,
   FROM_THEME,
 } from "@self-engine/theme";
-import { createFileRoute } from "@tanstack/react-router";
 import type { ReactNode } from "react";
-import { usePreviewAppearance } from "../preview-appearance.tsx";
-
-export const Route = createFileRoute("/theme-preview")({ component: ThemePreviewPage });
+import { usePreviewAppearance } from "./preview-appearance.tsx";
 
 const COLOR_MODE_OPTIONS: { label: string; value: ColorMode }[] = [
   { label: "Light", value: "light" },
@@ -50,11 +47,10 @@ function Section({ title, children }: { readonly title: string; readonly childre
   );
 }
 
-function ThemePreviewPage() {
+export default function ThemePreviewPage() {
   const [appearance, changeAppearance] = usePreviewAppearance();
   return (
     <Stack>
-      <Title order={1}>Theme preview</Title>
       <Section title="Color Mode">
         <SegmentedControl
           data={COLOR_MODE_OPTIONS}

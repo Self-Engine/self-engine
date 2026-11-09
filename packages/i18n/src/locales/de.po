@@ -7,25 +7,11 @@ msgstr ""
 "X-Generator: @lingui/cli\n"
 "Language: de\n"
 
-#: apps/web/src/routes/language-sample.tsx
+#: apps/web/src/language-sample.tsx
 msgid "{count, plural, one {# entry} other {# entries}}"
 msgstr "{count, plural, one {# Eintrag} other {# Einträge}}"
 
-#: apps/web/src/routes/language-sample.tsx
-msgid "A link stays inside its sentence: read the <0>About page</0>."
-msgstr "Ein Link bleibt in seinem Satz: Lies die <0>Über-Seite</0>."
-
-#: apps/web/src/routes/about.tsx
-msgid "A second route, to prove navigation works."
-msgstr "Eine zweite Route, um zu zeigen, dass die Navigation funktioniert."
-
-#: apps/web/src/routes/__root.tsx
-#: apps/web/src/routes/about.tsx
-msgctxt "page name"
-msgid "About"
-msgstr "Über"
-
-#: apps/web/src/routes/language-sample.tsx
+#: apps/web/src/language-sample.tsx
 msgid "Add an entry"
 msgstr "Eintrag hinzufügen"
 
@@ -45,17 +31,11 @@ msgstr "Modul-Sidebar einklappen"
 msgid "Expand module sidebar"
 msgstr "Modul-Sidebar ausklappen"
 
-#: apps/web/src/routes/language-sample.tsx
+#: apps/web/src/language-sample.tsx
 msgid "Hello {name}, nice to see you."
 msgstr "Hallo {name}, schön, dich zu sehen."
 
-#: apps/web/src/routes/__root.tsx
-msgctxt "page name"
-msgid "Home"
-msgstr "Start"
-
-#: apps/web/src/routes/__root.tsx
-#: apps/web/src/routes/language-sample.tsx
+#: apps/web/src/modules.ts
 msgid "Language sample"
 msgstr "Sprachbeispiel"
 
@@ -67,6 +47,10 @@ msgstr "Modul-Sidebar"
 msgid "Modules"
 msgstr "Module"
 
+#: apps/web/src/route-states.tsx
+msgid "Nothing was found at this address."
+msgstr "Unter dieser Adresse wurde nichts gefunden."
+
 #: packages/shell/src/shell.tsx
 msgid "Open module sidebar"
 msgstr "Modul-Sidebar öffnen"
@@ -74,6 +58,14 @@ msgstr "Modul-Sidebar öffnen"
 #: packages/shell/src/shell.tsx
 msgid "Open navigation"
 msgstr "Navigation öffnen"
+
+#: packages/placeholder-beta/src/index.ts
+msgid "Overview"
+msgstr "Übersicht"
+
+#: packages/placeholder-beta/src/index.ts
+msgid "Placeholder Beta"
+msgstr "Platzhalter Beta"
 
 #: packages/shell/src/shell.tsx
 msgid "Resize module sidebar"
@@ -83,26 +75,30 @@ msgstr "Breite der Modul-Sidebar ändern"
 msgid "Resize navbar"
 msgstr "Breite der Navbar ändern"
 
-#: apps/web/src/routes/index.tsx
-msgid "The empty desktop shell."
-msgstr "Die leere Desktop-Shell."
+#: apps/web/src/modules.ts
+msgid "Settings"
+msgstr "Einstellungen"
 
-#: apps/web/src/routes/language-sample.tsx
+#: apps/web/src/language-sample.tsx
 msgid "The language could not be loaded. Please try again."
 msgstr "Die Sprache konnte nicht geladen werden. Bitte versuche es noch einmal."
 
-#: apps/web/src/routes/__root.tsx
-msgid "The views of the active module will appear here."
-msgstr "Hier erscheinen später die Ansichten des aktiven Moduls."
+#: packages/placeholder-beta/src/overview.tsx
+msgid "The minimal module View."
+msgstr "Die minimale Modulansicht."
 
-#: apps/web/src/routes/__root.tsx
+#: apps/web/src/modules.ts
 msgid "Theme preview"
 msgstr "Design-Vorschau"
 
-#: apps/web/src/routes/language-sample.tsx
+#: apps/web/src/language-sample.tsx
 msgid "This sentence is translated."
 msgstr "Dieser Satz ist übersetzt."
 
-#: apps/web/src/routes/language-sample.tsx
+#: apps/web/src/route-states.tsx
+msgid "This View could not be loaded. Please try again."
+msgstr "Diese Ansicht konnte nicht geladen werden. Bitte versuche es erneut."
+
+#: apps/web/src/language-sample.tsx
 msgid "Your name"
 msgstr "Dein Name"

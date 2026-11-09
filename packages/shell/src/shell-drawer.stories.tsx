@@ -6,6 +6,7 @@ import {
   LOGO_AND_WINDOW_BUTTONS,
   STRIP_HEIGHT,
   appRegionOf,
+  LONG_MODULE,
   atFrameWidth,
   atSmallestFontScale,
   atViewport,
@@ -102,7 +103,7 @@ export const TheDrawerShowsTheNavbarBesideTheModuleSidebar: Story = {
     const names = within(navbar)
       .getAllByRole("link")
       .map((entry) => entry.getAttribute("aria-label"));
-    await expect(names).toEqual(["Projects", "Time", "Settings"]);
+    await expect(names).toEqual(["Projects", "Time", "Third module", "Settings"]);
     const settings = within(navbar).getByRole("link", { name: "Settings" });
     await expect(settings.getBoundingClientRect().bottom).toBeCloseTo(box.bottom - 10, 0);
     const icon = settings.querySelector("svg")!;
@@ -111,9 +112,9 @@ export const TheDrawerShowsTheNavbarBesideTheModuleSidebar: Story = {
     await expect(header.left).toBeCloseTo(box.right, 0);
     await expect(header.right).toBeCloseTo(drawer.getBoundingClientRect().right, 0);
     await expect(within(drawer).getByRole("button", { name: "Close navigation" })).toBeVisible();
-    await expect(within(drawer).getByText("Sidebar content").getBoundingClientRect().left).toBe(
-      header.left + 16,
-    );
+    await expect(
+      within(drawer).getByRole("link", { name: "Sidebar content" }).getBoundingClientRect().left,
+    ).toBe(header.left + 16);
   },
 };
 
@@ -143,12 +144,12 @@ export const SelectingAnEntryLeavesTheDrawerOpen: Story = {
     await userEvent.click(navbar.getByRole("link", { name: "Projects" }));
     await expect(navbar.getByRole("link", { name: "Projects" })).toHaveAttribute(
       "href",
-      "/projects",
+      "/projects/overview",
     );
     await userEvent.click(navbar.getByRole("link", { name: "Settings" }));
     await expect(navbar.getByRole("link", { name: "Settings" })).toHaveAttribute(
       "href",
-      "/settings",
+      "/settings/overview",
     );
     await expect(screen.getByRole("dialog", { name: "Module Sidebar" })).toBe(drawer);
     await expect(within(drawer).getByText("Sidebar content")).toBeVisible();
@@ -208,7 +209,7 @@ export const TheDrawerHeaderStaysBelowTheStripWhenTheSidebarScrolls: Story = {
   ...atViewport("narrow"),
   args: {
     ...LOGO_AND_WINDOW_BUTTONS,
-    moduleSidebar: <p style={{ height: 3000 }}>Sidebar content</p>,
+    activeModule: LONG_MODULE,
   },
   play: async ({ canvas }) => {
     const drawer = await openDrawer(canvas);
@@ -295,7 +296,7 @@ export const ThePhoneDrawerHeaderSitsBelowTheStripWithWindowButtons: Story = {
 export const ThePhoneDrawerHeaderStaysBelowTheStripWhenTheSidebarScrolls: Story = {
   ...atViewport("phone"),
   args: {
-    moduleSidebar: <p style={{ height: 3000 }}>Sidebar content</p>,
+    activeModule: LONG_MODULE,
     reserveWindowButtons: true,
   },
   play: async ({ canvas }) => {

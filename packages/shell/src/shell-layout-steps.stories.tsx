@@ -41,7 +41,7 @@ export const Wide: Story = {
     await expect(screen.queryByRole("contentinfo")).toBeNull();
     await expect(navbar.getByRole("link", { name: "Projects" })).toHaveAttribute(
       "href",
-      "/projects",
+      "/projects/overview",
     );
     await expect(navbar.getByRole("link", { name: "Time", current: "page" })).toBeVisible();
   },
@@ -133,13 +133,13 @@ export const Phone: Story = {
     const bottomBar = within(screen.getByRole("contentinfo"));
     await expectNavigationLinks(bottomBar);
     const names = bottomBar.getAllByRole("link").map((entry) => entry.textContent);
-    await expect(names).toEqual(["Projects", "Time", "Settings"]);
+    await expect(names).toEqual(["Projects", "Time", "Third module", "Settings"]);
     await expect(bottomBar.getByRole("link", { name: "Time", current: "page" })).toBeVisible();
     await expect(canvas.getByRole("button", { name: "Open module sidebar" })).toBeVisible();
     await userEvent.click(bottomBar.getByRole("link", { name: "Projects" }));
     await expect(bottomBar.getByRole("link", { name: "Projects" })).toHaveAttribute(
       "href",
-      "/projects",
+      "/projects/overview",
     );
     await expect(
       canvas.queryAllByRole("navigation", { name: "Modules", hidden: true }),
@@ -159,10 +159,16 @@ export const PhoneDark = inDark(Phone);
 export const BottomBarScrollsSideways: Story = {
   ...atViewport("phone"),
   args: {
-    entries: Array.from({ length: 12 }, (_, index) => ({
+    contributions: Array.from({ length: 12 }, (_, index) => ({
       id: `module-${index}`,
-      to: `/module-${index}`,
-      label: `Module ${index}`,
+      name: { id: `module-${index}`, message: `Module ${index}` },
+      views: [
+        {
+          id: "overview",
+          title: { id: "overview", message: "Overview" },
+          load: async () => ({ default: () => null }),
+        },
+      ] as const,
       icon: ProjectsIcon,
       color: "blue" as const,
     })),

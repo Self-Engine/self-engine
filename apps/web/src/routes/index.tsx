@@ -1,16 +1,8 @@
-import { Trans } from "@lingui/react/macro";
-import { Text, Title } from "@mantine/core";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, redirect } from "@tanstack/react-router";
+import { defaultAddress, modules } from "../modules.ts";
 
-export const Route = createFileRoute("/")({ component: HomePage });
-
-function HomePage() {
-  return (
-    <>
-      <Title order={1}>Self-Engine</Title>
-      <Text>
-        <Trans>The empty desktop shell.</Trans>
-      </Text>
-    </>
-  );
-}
+export const Route = createFileRoute("/")({
+  beforeLoad: () => {
+    throw redirect({ href: defaultAddress(modules[0]!) });
+  },
+});

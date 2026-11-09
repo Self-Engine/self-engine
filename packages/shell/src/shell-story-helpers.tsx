@@ -10,24 +10,47 @@ import {
   Shell,
   SHELL_STANDARD_MODULE_SIDEBAR_WIDTH,
   SHELL_STANDARD_NAVBAR,
-  type ShellEntry,
+  type ShellContribution,
   type ShellProps,
   type ShellRouting,
 } from "./index.ts";
 
 export type Canvas = ReturnType<typeof within>;
 
-export const ENTRIES: readonly ShellEntry[] = [
-  { id: "projects", to: "/projects", label: "Projects", icon: ProjectsIcon, color: "blue" },
-  { id: "time", to: "/time", label: "Time", icon: TimeIcon, color: "teal" },
+const load = async () => ({ default: () => null });
+export const ENTRIES: readonly ShellContribution[] = [
+  {
+    id: "projects",
+    name: { id: "story-Projects", message: "Projects" },
+    icon: ProjectsIcon,
+    color: "blue",
+    views: [
+      { id: "overview", title: { id: "story-Sidebar content", message: "Sidebar content" }, load },
+    ],
+  },
+  {
+    id: "time",
+    name: { id: "story-Time", message: "Time" },
+    icon: TimeIcon,
+    color: "teal",
+    views: [
+      { id: "overview", title: { id: "story-Sidebar content", message: "Sidebar content" }, load },
+    ],
+  },
+  {
+    id: "third",
+    name: { id: "story-Third module", message: "Third module" },
+    icon: ProjectsIcon,
+    color: "orange",
+    views: [{ id: "overview", title: { id: "story-Overview", message: "Overview" }, load }],
+  },
 ];
-
-export const SETTINGS: ShellEntry = {
+export const SETTINGS: ShellContribution = {
   id: "settings",
-  to: "/settings",
-  label: "Settings",
+  name: { id: "story-Settings", message: "Settings" },
   icon: SettingsIcon,
   color: "grape",
+  views: [{ id: "overview", title: { id: "story-Settings", message: "Settings" }, load }],
 };
 
 /** One real window width per Layout Step, around Mantine's own breakpoints. */
@@ -54,16 +77,15 @@ export const shellMeta = {
   component: Shell,
   parameters: { layout: "fullscreen", viewport: { options: VIEWPORTS } },
   args: {
-    activeEntryId: "time",
+    activeModule: ENTRIES[1],
+    activeView: { id: "overview", title: { id: "story-Time", message: "Time" }, load },
     children: <p>Page content</p>,
-    entries: ENTRIES,
-    moduleSidebar: <p>Sidebar content</p>,
+    contributions: ENTRIES,
     onModuleSidebarCollapsedCommit: fn(),
     onModuleSidebarWidthCommit: fn(),
     onNavbarCommit: fn(),
     routing,
-    pageTitle: "Time",
-    settingsEntry: SETTINGS,
+    settings: SETTINGS,
   },
 } satisfies Meta<ShellProps>;
 
@@ -424,18 +446,18 @@ export async function expectShownWithoutReport(
 
 /** Every navigation surface exposes the same destinations and current page. */
 export async function expectNavigationLinks(navigation: Canvas): Promise<void> {
-  await expect(navigation.getAllByRole("link")).toHaveLength(3);
+  await expect(navigation.getAllByRole("link")).toHaveLength(4);
   await expect(navigation.getByRole("link", { name: "Projects" })).toHaveAttribute(
     "href",
-    "/projects",
+    "/projects/overview",
   );
   await expect(navigation.getByRole("link", { name: "Time", current: "page" })).toHaveAttribute(
     "href",
-    "/time",
+    "/time/overview",
   );
   await expect(navigation.getByRole("link", { name: "Settings" })).toHaveAttribute(
     "href",
-    "/settings",
+    "/settings/overview",
   );
   await expect(navigation.getByRole("link", { name: "Projects" })).not.toHaveAttribute(
     "aria-current",
@@ -444,3 +466,15 @@ export async function expectNavigationLinks(navigation: Canvas): Promise<void> {
     "aria-current",
   );
 }
+
+export const LONG_MODULE: ShellContribution = {
+  ...ENTRIES[1]!,
+  views: [
+    ENTRIES[1]!.views[0],
+    ...Array.from({ length: 80 }, (_, index) => ({
+      id: `view-${index}`,
+      title: { id: `sample-view-${index}`, message: `View ${index}` },
+      load,
+    })),
+  ],
+};
