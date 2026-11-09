@@ -1,0 +1,99 @@
+import { sql } from "kysely";
+import { afterEach, beforeEach, describe, expect, test } from "vite-plus/test";
+import { createMigrationRunner } from "../core/index.ts";
+import type { Database, Migration } from "../core/index.ts";
+import { openDatabase } from "./index.ts";
+
+function createTable(name: string, table: string): Migration {
+  return { name, sql: `CREATE TABLE ${table} (id TEXT PRIMARY KEY) STRICT;` };
+}
+
+let database: Database;
+
+async function tables(): Promise<string[]> {
+  const { rows } = await sql<{ name: string }>`
+    SELECT name FROM sqlite_master
+    WHERE type = 'table' AND name NOT LIKE 'kysely_%' AND name NOT LIKE 'sqlite_%'
+    ORDER BY name
+  `.execute(database.kysely);
+  return rows.map((row) => row.name);
+}
+
+beforeEach(() => {
+  database = openDatabase(":memory:");
+});
+
+afterEach(async () => {
+  await database.close();
+});
+
+describe("a migration run", () => {
+  test("creates the tables of every migration and reports what it ran", async () => {
+    const runner = createMigrationRunner(database, [
+      createTable("time/0001", "time_entries"),
+      createTable("finance/0001", "invoices"),
+    ]);
+
+    await expect(runner.run()).resolves.toEqual(["finance/0001", "time/0001"]);
+    await expect(tables()).resolves.toEqual(["invoices", "time_entries"]);
+  });
+
+  test("a failing migration rolls back the whole run, including earlier migrations", async () => {
+    const runner = createMigrationRunner(database, [
+      createTable("finance/0001", "invoices"),
+      createTable("time/0001", "time_entries"),
+      { name: "time/0002", sql: "CREATE TABLE half (id TEXT) STRICT; THIS IS NOT SQL;" },
+    ]);
+
+    await expect(runner.run()).rejects.toThrow(/time\/0002/);
+    await expect(tables()).resolves.toEqual([]);
+  });
+
+  test("a second run changes nothing", async () => {
+    const migrations = [createTable("time/0001", "time_entries")];
+    await createMigrationRunner(database, migrations).run();
+
+    await expect(createMigrationRunner(database, migrations).run()).resolves.toEqual([]);
+    await expect(tables()).resolves.toEqual(["time_entries"]);
+  });
+
+  test("refuses a database that ran a migration this app does not know", async () => {
+    await createMigrationRunner(database, [
+      createTable("time/0001", "time_entries"),
+      createTable("time/0002", "time_breaks"),
+    ]).run();
+
+    const olderApp = createMigrationRunner(database, [createTable("time/0001", "time_entries")]);
+
+    await expect(olderApp.run()).rejects.toThrow(/time\/0002/);
+  });
+
+  test("runs a new module whose name sorts before the migrations that already ran", async () => {
+    const time = createTable("time/0001", "time_entries");
+    await createMigrationRunner(database, [time]).run();
+
+    const withFinance = [createTable("finance/0001", "invoices"), time];
+
+    await expect(createMigrationRunner(database, withFinance).run()).resolves.toEqual([
+      "finance/0001",
+    ]);
+    await expect(tables()).resolves.toEqual(["invoices", "time_entries"]);
+  });
+
+  test("rejects two migrations with the same name", () => {
+    expect(() =>
+      createMigrationRunner(database, [
+        createTable("time/0001", "time_entries"),
+        createTable("time/0001", "time_breaks"),
+      ]),
+    ).toThrow(/time\/0001/);
+  });
+
+  test("reports whether migrations are pending", async () => {
+    const runner = createMigrationRunner(database, [createTable("time/0001", "time_entries")]);
+
+    await expect(runner.hasPending()).resolves.toBe(true);
+    await runner.run();
+    await expect(runner.hasPending()).resolves.toBe(false);
+  });
+});

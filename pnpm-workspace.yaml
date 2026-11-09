@@ -45,18 +45,23 @@ catalog:
   # Pinned to the Node version inside Electron (45.x ships Node 24), so TypeScript
   # flags Node 26 APIs that the desktop main process does not have (D34).
   "@types/node": 24.19.2
+  "@types/better-sqlite3": 9.6.0
   "@types/culori": 4.0.1
   "@types/react": 19.3.0
   "@types/react-dom": 19.3.0
   "@vitejs/plugin-react": 6.2.1
   # Renders the stories in Chromium (the `stories` stage). Move it with vite-plus.
   "@vitest/browser-playwright": 5.1.0
+  # N-API, so one binary serves Node and Electron (D33).
+  better-sqlite3: 13.0.3
   # Oklab mixing in the theme engine's core (ADR 0009).
   culori: 4.0.2
   # Module boundaries (ADR 0006), configured in .dependency-cruiser.ts.
   dependency-cruiser: 18.7.2
   electron: 45.2.3
   electron-builder: 26.18.0
+  # The query layer and the migration runner (D91).
+  kysely: 0.29.8
   # Its version pins the Chromium revision, so a bump downloads the browser again.
   playwright: 1.65.0
   react: 19.3.1

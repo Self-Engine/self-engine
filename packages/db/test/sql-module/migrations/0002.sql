@@ -1,0 +1,1 @@
+CREATE TABLE sql_module_tags (id TEXT PRIMARY KEY) STRICT;
