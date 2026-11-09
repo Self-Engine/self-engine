@@ -1,8 +1,9 @@
 // `pnpm verify`: the one gate for humans and agents (ADR 0008). It runs the
 // `verify:*` tasks from vite.config.ts through `vp run`, which caches them: format, lint
 // (warnings fail), typecheck, the module boundaries (.dependency-cruiser.ts), the ADR check,
-// the theme CSS check, the translations and the workspace build, then the tests and the stories
-// in Chromium. Every stage's output goes to `.cache/verify.log`; the console gets
+// the guard against changed migrations, the theme CSS check, the translations and the workspace
+// build, then the tests and the stories in Chromium. Every stage's output goes to
+// `.cache/verify.log`; the console gets
 // one line per stage, the tail of each failing stage, and a last line `VERIFY: PASS` or
 // `VERIFY: FAIL <stages>`.
 //
@@ -32,6 +33,7 @@ export const STATIC_STAGES = [
   "typecheck",
   "boundaries",
   "adrs",
+  "migrations",
   "theme-css",
   "i18n",
   "build",

@@ -77,6 +77,9 @@ export default defineConfig({
       "verify:boundaries":
         "depcruise apps packages scripts vite.config.ts .dependency-cruiser.ts --config .dependency-cruiser.ts --output-type err-long",
       "verify:adrs": "node scripts/check-adrs.ts",
+      // Merged migrations stay unchanged (scripts/check-migrations.ts). Uncached: the result
+      // depends on git history, so a replay could pass after main moved or history went missing.
+      "verify:migrations": { command: "node scripts/check-migrations.ts", cache: false },
       // CSS uses Color Roles only (scripts/check-theme-css.ts).
       "verify:theme-css": "node scripts/check-theme-css.ts",
       // Extracts the catalogs, then checks every translation (scripts/check-i18n.ts). Extraction
