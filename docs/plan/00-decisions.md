@@ -604,6 +604,18 @@ Grundlage: [`research-layer-3-core.md`](research-layer-3-core.md).
   `db`. `time` lag als eigenes Paket ganz unten und blieb ohne Kopien. _Verworfen:_ `time`, `money`
   und ein `core` für Spaces und Tags (lädt wieder zum Sammeln ein), ein einziges Paket mit
   mehreren Einstiegen (Werte lägen über `db`).
+- **D134 (L3.2) Schicht 3 baut genau einen persönlichen Space, ohne Oberfläche.** Tabelle `spaces`
+  mit `kind` (vorerst nur `personal`); die Zeile trägt ihre eigene `id` als `space_id` und besteht
+  so die Konventionsprüfung aus #30 ohne Ausnahme. Das Paket `spaces` legt sie beim Start nach den
+  Migrationen an, mit zufälliger UUIDv7 und nur falls keine existiert; ein eindeutiger Index
+  erlaubt höchstens einen persönlichen Space. Der Port bekommt den Space beim Erzeugen als Kontext,
+  Operationen nehmen ihn nicht als Eingabe, jede Abfrage filtert danach; das Contract-Kit (#32)
+  prüft, dass fremde Spaces unsichtbar bleiben. Jede Fachtabelle hat einen Fremdschlüssel auf
+  `spaces`, Verweise zwischen Zeilen bleiben innerhalb eines Space. _Folge für Sync:_ Das erste
+  Gerät behält seine ID, ein weiteres mit Offline-Daten schreibt seine `space_id` einmalig in einer
+  Transaktion um. _Verworfen:_ `spaceId` in jeder Operation (ein vergessener Filter bliebe
+  unbemerkt), feste ID per Migration (kollidiert auf dem Server, jedes Gerät müsste umschreiben),
+  sichtbare Spaces jetzt schon (wird mit Sync und Organisationen entschieden).
 
 ## Fakten
 

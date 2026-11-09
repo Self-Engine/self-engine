@@ -26,8 +26,8 @@ Pro Runde werden nur 2–3 Fragen gestellt; die Nummern sind stabil.
       - ✅ Keine eigene Verschlüsselung, nur Desktop, Issues (D96–D98)
     - ❓ Schicht 3 Gemeinsamer Kern → research-layer-3-core.md
       - ✅ Zuschnitt: `time`, `money`, `spaces`, `tags`, kein `core` (D133)
-      - ❓ Spaces: was gebaut wird, woher `space_id` kommt (blockiert #32)
-      - ⏳ Geldbeträge und Stundensätze
+      - ✅ Spaces: ein persönlicher Space, `space_id` als Port-Kontext (D134)
+      - ❓ Geldbeträge und Stundensätze
       - ⏳ Zeit: Übernahme, Konto-Zeitzone ohne Server, Uhr, Lint-Regeln
       - ⏳ Tags, Icon und Farbe
       - ⏳ Abläufe über mehrere Module, Brückentabellen
