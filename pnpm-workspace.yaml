@@ -2,8 +2,8 @@ packages:
   - apps/*
   - packages/*
 
-# Refuse installs on a Node version outside `engines` (Node 26, D34).
-engineStrict: true
+# No `engineStrict`: Dependabot runs pnpm on its own, older Node and could not update the
+# lockfile. CI runs on the Node from `engines`.
 
 # pnpm 12 fails installs when a dependency has an unapproved build script.
 # true = may run its build script, false = never. Add entries as dependencies arrive.

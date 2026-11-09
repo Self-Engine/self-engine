@@ -13,6 +13,10 @@ updates:
     labels: []
     commit-message:
       prefix: chore
+    ignore:
+      # Pinned to the Node inside Electron (D34): raise its major together with Electron.
+      - dependency-name: "@types/node"
+        update-types: ["version-update:semver-major"]
     groups:
       minor-and-patch:
         update-types: [minor, patch]
