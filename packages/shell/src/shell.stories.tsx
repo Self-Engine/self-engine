@@ -1059,9 +1059,7 @@ export const TheDrawerShowsTheNavbarBesideTheModuleSidebar: Story = {
     const header = drawerHeaderOf(drawer).getBoundingClientRect();
     await expect(header.left).toBeCloseTo(box.right, 0);
     await expect(header.right).toBeCloseTo(drawer.getBoundingClientRect().right, 0);
-    await expect(
-      within(drawer).getByRole("button", { name: "Close navigation" }),
-    ).toBeVisible();
+    await expect(within(drawer).getByRole("button", { name: "Close navigation" })).toBeVisible();
     await expect(within(drawer).getByText("Sidebar content").getBoundingClientRect().left).toBe(
       header.left + 16,
     );
@@ -1523,9 +1521,10 @@ export const TheTopRowSpansTheWindowWhileTheModuleSidebarIsCollapsed: Story = {
     await expect(row.querySelector("a, button, input, [tabindex]")).toBeNull();
     await expect(getComputedStyle(row).backgroundColor).toBe("rgba(0, 0, 0, 0)");
     await expect(navbarOf(canvas).getBoundingClientRect().top).toBeCloseTo(TOP_ROW_HEIGHT, 0);
-    await expect(
-      paneOf(canvas, "Page content").getBoundingClientRect().top,
-    ).toBeCloseTo(TOP_ROW_HEIGHT, 0);
+    await expect(paneOf(canvas, "Page content").getBoundingClientRect().top).toBeCloseTo(
+      TOP_ROW_HEIGHT,
+      0,
+    );
   },
 };
 

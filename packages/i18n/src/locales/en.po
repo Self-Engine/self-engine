@@ -33,6 +33,18 @@ msgstr "Add an entry"
 msgid "Close module sidebar"
 msgstr "Close module sidebar"
 
+#: packages/shell/src/shell.tsx
+msgid "Close navigation"
+msgstr "Close navigation"
+
+#: packages/shell/src/shell.tsx
+msgid "Collapse module sidebar"
+msgstr "Collapse module sidebar"
+
+#: packages/shell/src/shell.tsx
+msgid "Expand module sidebar"
+msgstr "Expand module sidebar"
+
 #: apps/web/src/routes/language-sample.tsx
 msgid "Hello {name}, nice to see you."
 msgstr "Hello {name}, nice to see you."
