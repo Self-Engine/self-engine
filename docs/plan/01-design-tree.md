@@ -33,8 +33,9 @@ Pro Runde werden nur 2–3 Fragen gestellt; die Nummern sind stabil.
       - ✅ Zeit: Übernahme von `packages/time`, Uhr, Lint-Regeln (D138)
       - ✅ Zeit: Ergänzungen aus unabhängiger Prüfung (D139)
       - ✅ Tags (D140)
-      - ❓ Icon und Farbe an Entitäten
-      - ⏳ Abläufe über mehrere Module, Brückentabellen
+      - ✅ Icon und Farbe an Entitäten (D141)
+      - ❓ Abläufe über mehrere Module, Brückentabellen
+      - ⏳ Einstellungen des Kerns: Standardwährung, Region
       - ⏳ Zerlegung in Issues (`layer:3`)
     - ⏳ Schicht 4 Projekte + Zeit
     - ⏳ Schicht 5 Import

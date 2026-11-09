@@ -696,6 +696,16 @@ Grundlage: [`research-layer-3-core.md`](research-layer-3-core.md).
   angelegter gleicher Tags gehört in die Sync-Phase. _Verworfen:_ generische Tabelle `taggings`
   (keine Prüfung der Verweise, siehe `habit_link`), `tags` besitzt alle Brücken (dreht die Richtung
   aus D133 um), `modules` weglassen (D9).
+- **D141 (L3.9) Icon und Farbe an Entitäten, ohne neues Paket.** Zwei optionale Textspalten `icon`
+  und `color`, nur wo nötig. `icon` hält einen Namen oder genau ein Emoji, unterschieden am
+  Zeichentyp (Muster aus ADR 0009 der alten App). `color` ist der Name eines Farbsatzes und wird
+  wie die Modulfarben dargestellt, nie als Farbwert; `theme` bekommt die fehlenden Farbsätze `red`,
+  `cyan`, `lime` und `yellow` unter derselben Kontrastprüfung, die Akzentfarben-Auswahl bleibt.
+  `icons` bekommt ein gemeinsames Verzeichnis aus Name und Icon für alle Entitäten, mit den alten
+  Namen, und einen Einstieg ohne React mit Erkennung und Zod-Schema; `theme` liefert ein Schema für
+  Farbsätze. Geschrieben werden nur bekannte Namen und genau ein Emoji; beim Lesen zeigt ein
+  unbekannter Wert das Standard-Icon oder die neutrale Farbe. _Verworfen:_ alte Farben beim Import
+  umbiegen (verändert Daten), Listen je Entität, eigene Spalte für Emoji.
 
 ## Fakten
 
