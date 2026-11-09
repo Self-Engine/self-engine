@@ -131,8 +131,8 @@ export function builderConfig(
       target: releaseVersion === undefined ? "dir" : "dmg",
       // Ad hoc is trusted by nobody, but a valid signature for the whole bundle, unlike a
       // skipped one. Hardened runtime cannot load Electron's own frameworks under it. With the
-      // Developer ID, electron-builder takes the identity from CSC_LINK. `notarize: false`, or
-      // Apple credentials this repo does not use, left in a shell, would upload an ad-hoc build.
+      // Developer ID, electron-builder takes the identity from CSC_LINK. Without
+      // `notarize: false`, an Apple API key in the shell would send an ad-hoc build to Apple.
       ...(signing === "developer-id"
         ? {
             hardenedRuntime: true,
