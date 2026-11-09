@@ -28,6 +28,14 @@ msgid "Clients"
 msgstr "Kunden"
 
 #: packages/shell/src/shell.tsx
+msgid "Close editor"
+msgstr "Editor schließen"
+
+#: packages/placeholder-alpha/src/edit-drawer.tsx
+msgid "Close entry"
+msgstr "Eintrag schließen"
+
+#: packages/shell/src/shell.tsx
 msgid "Close module sidebar"
 msgstr "Modul-Sidebar schließen"
 

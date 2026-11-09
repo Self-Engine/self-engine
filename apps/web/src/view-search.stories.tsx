@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { fn, expect, userEvent, waitFor } from "storybook/test";
+import { fn, expect, userEvent, waitFor, within } from "storybook/test";
 import {
   createMemoryHistory,
   createRootRoute,
@@ -76,5 +76,64 @@ export const SelectiveUpdates: Story = {
       expect(canvas.getByLabelText("Selected client")).toHaveTextContent("garden"),
     );
     await expect(rendered).toHaveBeenCalledWith("garden");
+  },
+};
+
+const viewRendered = fn();
+const loadDrawer = fn(async () => ({
+  default: ({ id, onClose }: { id: string; onClose: () => void }) => (
+    <button onClick={onClose}>Close {id}</button>
+  ),
+}));
+const drawerModule = {
+  ...modules[1]!,
+  editDrawer: loadDrawer,
+};
+function ObservedView() {
+  const client = useViewSearch((search) => search.client);
+  viewRendered(client);
+  const write = useWriteViewSearch();
+  return (
+    <button onClick={() => write((search) => ({ ...search, edit: "sample" }))}>Edit sample</button>
+  );
+}
+function DrawerIsolationStory() {
+  const [router] = useState(() => {
+    const root = createRootRoute({
+      component: () => (
+        <Shell
+          contributions={[drawerModule]}
+          settings={settings}
+          activeModule={drawerModule}
+          activeView={drawerModule.views[0]}
+          routing={ROUTING}
+        >
+          <ObservedView />
+        </Shell>
+      ),
+    });
+    return createRouter({
+      routeTree: root,
+      history: createMemoryHistory({ initialEntries: ["/"] }),
+    });
+  });
+  return <RouterProvider router={router} />;
+}
+export const DrawerIsolation: Story = {
+  render: () => <DrawerIsolationStory />,
+  beforeEach: () => {
+    loadDrawer.mockClear();
+    viewRendered.mockClear();
+  },
+  play: async ({ canvas, canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await expect(await canvas.findByRole("button", { name: "Edit sample" })).toBeVisible();
+    await expect(loadDrawer).not.toHaveBeenCalled();
+    viewRendered.mockClear();
+    await userEvent.click(canvas.getByRole("button", { name: "Edit sample" }));
+    await userEvent.click(await page.findByRole("button", { name: "Close sample" }));
+    await waitFor(() => expect(page.queryByRole("dialog")).toBeNull());
+    await expect(loadDrawer).toHaveBeenCalledTimes(1);
+    await expect(viewRendered).not.toHaveBeenCalled();
   },
 };

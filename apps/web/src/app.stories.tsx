@@ -232,3 +232,52 @@ export const InvalidClientFilter: Story = {
     await expect(canvas.getByText("Garden work")).toBeVisible();
   },
 };
+
+export const EditDrawer: Story = {
+  args: { address: "/placeholder-alpha/overview?client=studio" },
+  play: async ({ canvas, canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await userEvent.click(await canvas.findByRole("button", { name: "Studio work" }));
+    await expect(await page.findByRole("dialog")).toHaveTextContent("studio");
+    await userEvent.click(page.getByRole("button", { name: "Close editor" }));
+    await waitFor(() => expect(page.queryByRole("dialog")).toBeNull());
+    await userEvent.click(canvas.getByRole("button", { name: "Reload router" }));
+    await expect(await canvas.findByRole("button", { name: "Studio work" })).toBeVisible();
+    await expect(page.queryByRole("dialog")).toBeNull();
+    await userEvent.click(canvas.getByRole("button", { name: "Back in history" }));
+    await expect(await page.findByRole("dialog")).toHaveTextContent("studio");
+    await userEvent.click(canvas.getByRole("button", { name: "Reload router" }));
+    await expect(await page.findByRole("dialog")).toHaveTextContent("studio");
+    await userEvent.click(canvas.getByRole("link", { name: "Archive" }));
+    await expect(await canvas.findByRole("heading", { name: "Archive", level: 1 })).toBeVisible();
+    await waitFor(() => expect(page.queryByRole("dialog")).toBeNull());
+  },
+};
+export const HashEditDrawer: Story = { ...EditDrawer, args: { ...EditDrawer.args, hash: true } };
+
+export const EditDeepLink: Story = {
+  args: { address: "/placeholder-alpha/archive?edit=linked-entry" },
+  play: async ({ canvas, canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await expect(await page.findByRole("dialog")).toHaveTextContent("linked-entry");
+    await userEvent.click(canvas.getByRole("button", { name: "Reload router" }));
+    await expect(await page.findByRole("dialog")).toHaveTextContent("linked-entry");
+    await userEvent.click(canvas.getByRole("link", { name: "Placeholder Beta" }));
+    await expectBeta(canvas);
+    await waitFor(() => expect(page.queryByRole("dialog")).toBeNull());
+    await userEvent.click(canvas.getByRole("button", { name: "Back in history" }));
+    await expect(await page.findByRole("dialog")).toHaveTextContent("linked-entry");
+  },
+};
+export const HashEditDeepLink: Story = {
+  ...EditDeepLink,
+  args: { ...EditDeepLink.args, hash: true },
+};
+
+export const BetaWithoutDrawer: Story = {
+  args: { address: "/placeholder-beta/overview?edit=ignored" },
+  play: async ({ canvas, canvasElement }) => {
+    await expectBeta(canvas);
+    await expect(within(canvasElement.ownerDocument.body).queryByRole("dialog")).toBeNull();
+  },
+};

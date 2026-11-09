@@ -9,6 +9,11 @@ export interface ShellView {
   readonly load: () => Promise<{ readonly default: ComponentType }>;
 }
 
+export interface EditDrawerProps {
+  readonly id: string;
+  readonly onClose: () => void;
+}
+
 export interface ShellContribution {
   readonly id: string;
   readonly name: MessageDescriptor;
@@ -17,6 +22,7 @@ export interface ShellContribution {
   /** The first View is the module's default. */
   readonly views: readonly [ShellView, ...ShellView[]];
   readonly groups?: () => Promise<{ readonly default: ComponentType }>;
+  readonly editDrawer?: () => Promise<{ readonly default: ComponentType<EditDrawerProps> }>;
   readonly sharedSearch?: readonly string[];
 }
 

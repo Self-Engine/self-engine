@@ -1,3 +1,5 @@
+import type { EditDrawerProps } from "./contributions.ts";
+import { useViewSearch, useWriteViewSearch } from "./routing.tsx";
 import { ACTIVE_ENTRY_VARS } from "./navigation-style.ts";
 import { useLingui } from "@lingui/react/macro";
 import type { ShellContribution, ShellView } from "./contributions.ts";
@@ -233,6 +235,7 @@ interface ShellFrameProps {
   readonly activeEntryId: string;
   readonly routing: ShellRouting;
   readonly moduleSidebar: ReactNode;
+  readonly editDrawer?: ReactNode;
   readonly pageTitle: string;
   readonly activeColor: ColorSetId | undefined;
   /** Sits in the top strip of the navigation, in the drawer at the narrow step, and in the content header while the Navbar holds the window buttons. None at phone width. */
@@ -540,6 +543,7 @@ function ShellFrame({
   activeEntryId,
   routing,
   moduleSidebar,
+  editDrawer,
   pageTitle,
   activeColor,
   logo,
@@ -746,6 +750,7 @@ function ShellFrame({
           opened={navigationInDrawer && drawerOpened}
           reserveWindowButtons={reserveWindowButtons}
         />
+        {editDrawer}
       </AppShell>
     </ShellRoutingContext>
   );
@@ -754,7 +759,13 @@ function ShellFrame({
 /** Contributions are translated at display time, including after a language switch. */
 export interface ShellProps extends Omit<
   ShellFrameProps,
-  "entries" | "settingsEntry" | "activeEntryId" | "moduleSidebar" | "pageTitle" | "activeColor"
+  | "entries"
+  | "settingsEntry"
+  | "activeEntryId"
+  | "moduleSidebar"
+  | "pageTitle"
+  | "activeColor"
+  | "editDrawer"
 > {
   readonly contributions: readonly ShellContribution[];
   readonly settings: ShellContribution;
@@ -779,6 +790,7 @@ export function Shell({ contributions, settings, activeModule, activeView, ...pr
       activeEntryId={activeModule?.id ?? ""}
       activeColor={activeModule?.color}
       pageTitle={activeView ? i18n._(activeView.title) : ""}
+      editDrawer={activeView && <ModuleEditDrawer module={activeModule} />}
       moduleSidebar={
         <ModuleViews module={activeModule} activeView={activeView} routing={props.routing} />
       }
@@ -827,5 +839,40 @@ function ModuleViews({
         </Suspense>
       )}
     </Stack>
+  );
+}
+
+const drawerComponents = new WeakMap<
+  NonNullable<ShellContribution["editDrawer"]>,
+  ComponentType<EditDrawerProps>
+>();
+function ModuleEditDrawer({ module }: { readonly module: ShellContribution | undefined }) {
+  const { t } = useLingui();
+  const id = useViewSearch((search) => (typeof search.edit === "string" ? search.edit : undefined));
+  const write = useWriteViewSearch();
+  const close = () =>
+    write((search) => {
+      const { edit: _edit, ...rest } = search;
+      return rest;
+    });
+  const load = module?.editDrawer;
+  if (!load || id === undefined) return null;
+  let Content = drawerComponents.get(load);
+  if (!Content) {
+    Content = lazy(load);
+    drawerComponents.set(load, Content);
+  }
+  return (
+    <Drawer
+      opened
+      onClose={close}
+      position="right"
+      closeButtonProps={{ "aria-label": t`Close editor` }}
+      styles={DRAWER_STYLES}
+    >
+      <Suspense fallback={null}>
+        <Content id={id} onClose={close} />
+      </Suspense>
+    </Drawer>
   );
 }

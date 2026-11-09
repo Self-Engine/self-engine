@@ -11,6 +11,7 @@ export const contribution = {
     { id: "overview", title: msg`Overview`, load: () => import("./entries.tsx") },
     { id: "archive", title: msg`Archive`, load: () => import("./entries.tsx") },
   ],
+  editDrawer: () => import("./edit-drawer.tsx"),
   groups: () => import("./groups.tsx"),
   sharedSearch: ["client"],
 } satisfies ShellContribution;
