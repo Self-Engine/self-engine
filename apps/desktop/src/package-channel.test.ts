@@ -10,6 +10,7 @@ import {
   electronDistPath,
   type PackageOptions,
   packageChannel,
+  packagedDmgPath,
   parsePackageRequest,
   parseReleaseChannel,
   type ReleaseChannel,
@@ -179,6 +180,12 @@ describe("builderConfig", () => {
     });
   });
 
+  it("never sends an ad-hoc build to Apple for notarization", () => {
+    expect(builderConfig("nightly", ELECTRON_DIST, "1.0.0", "ad-hoc").mac).toMatchObject({
+      notarize: false,
+    });
+  });
+
   it("keeps the channels' output apart", () => {
     expect(builderConfig("nightly", ELECTRON_DIST).directories.output).not.toBe(
       builderConfig("stable", ELECTRON_DIST).directories.output,
@@ -194,6 +201,14 @@ describe("builderConfig", () => {
       });
     },
   );
+});
+
+describe("packagedDmgPath", () => {
+  it("is where electron-builder writes the dmg of a version", () => {
+    expect(packagedDmgPath("/repo/apps/desktop", "nightly", "0.0.3-nightly.20261109.7")).toBe(
+      "/repo/apps/desktop/release/nightly/Self-Engine-Nightly-0.0.3-nightly.20261109.7-arm64.dmg",
+    );
+  });
 });
 
 function writeBundles(bundleDir: string, compiledFor: string): void {
