@@ -13,9 +13,13 @@
     "react-dom": "catalog:"
   },
   "devDependencies": {
+    "@mantine/core": "catalog:",
+    "@self-engine/theme": "workspace:*",
+    "@storybook/react-vite": "catalog:",
     "@types/node": "catalog:",
     "@types/react": "catalog:",
     "@types/react-dom": "catalog:",
+    "storybook": "catalog:",
     "vite-plus": "catalog:"
   }
 }

@@ -14,7 +14,6 @@
     "@mantine/core": "catalog:",
     "@mantine/hooks": "catalog:",
     "@self-engine/i18n": "workspace:*",
-    "@self-engine/icons": "workspace:*",
     "@self-engine/settings": "workspace:*",
     "@self-engine/theme": "workspace:*",
     "@tanstack/react-router": "catalog:",

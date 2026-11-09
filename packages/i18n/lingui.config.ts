@@ -18,7 +18,13 @@ export default defineConfig({
       // Down to the files: Lingui expands only a literal directory, not a pattern that matches one.
       include: ["<rootDir>/apps/*/src/**/*.{ts,tsx}", "<rootDir>/packages/*/src/**/*.{ts,tsx}"],
       // Absolute like `include`: Lingui matches relative excludes against the working directory.
-      exclude: ["<rootDir>/**/node_modules/**", "<rootDir>/**/*.test.*", "<rootDir>/**/*.d.ts"],
+      // A story's sample text is plain English that no user ever sees.
+      exclude: [
+        "<rootDir>/**/node_modules/**",
+        "<rootDir>/**/*.test.*",
+        "<rootDir>/**/*.stories.*",
+        "<rootDir>/**/*.d.ts",
+      ],
     },
   ],
   // Line numbers would change with every edit elsewhere in a file.

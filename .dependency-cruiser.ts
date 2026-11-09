@@ -21,6 +21,7 @@ export type AllowedImports = Readonly<Record<string, readonly string[]>>;
  * the two lists match.
  */
 export const ALLOWED_IMPORTS: AllowedImports = {
+  icons: ["theme"],
   "placeholder-module": ["placeholder-shared"],
 };
 
@@ -33,8 +34,8 @@ const ICON_LIBRARIES = [
   "react-icons",
 ];
 
-/** Test files may also import what `devDependencies` declares. */
-const TEST_FILE = String.raw`\.test\.[cm]?[jt]sx?$`;
+/** Test and story files may also import what `devDependencies` declares. */
+const DEV_ONLY_FILE = String.raw`\.(?:test|stories)\.[cm]?[jt]sx?$`;
 
 function alternatives(names: readonly string[]): string {
   return names.map((name) => name.replaceAll(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|");
@@ -73,7 +74,7 @@ function declaredWorkspaceRules(rootDir: string): IForbiddenRuleType[] {
       dev: boolean,
     ): IForbiddenRuleType => ({
       name: `declared-workspace-dependency:${dir}${kind}`,
-      comment: `${dir} imports a workspace package that its package.json does not declare${dev ? " (tests may use devDependencies)" : " in dependencies"}.`,
+      comment: `${dir} imports a workspace package that its package.json does not declare${dev ? " (tests and stories may use devDependencies)" : " in dependencies"}.`,
       severity: "error",
       from,
       to: {
@@ -84,8 +85,8 @@ function declaredWorkspaceRules(rootDir: string): IForbiddenRuleType[] {
     });
     const prefix = `^${alternatives([dir])}/`;
     return [
-      rule("", { path: prefix, pathNot: TEST_FILE }, false),
-      rule(":tests", { path: `${prefix}.*${TEST_FILE}` }, true),
+      rule("", { path: prefix, pathNot: DEV_ONLY_FILE }, false),
+      rule(":dev-only", { path: `${prefix}.*${DEV_ONLY_FILE}` }, true),
     ];
   });
 }

@@ -18,9 +18,11 @@
     "react-dom": "catalog:"
   },
   "devDependencies": {
+    "@storybook/react-vite": "catalog:",
     "@types/culori": "catalog:",
     "@types/node": "catalog:",
     "@types/react": "catalog:",
+    "storybook": "catalog:",
     "vite-plus": "catalog:"
   }
 }

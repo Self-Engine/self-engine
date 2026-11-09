@@ -240,6 +240,23 @@ describe("declared dependencies", () => {
     expect(await cruise([tool, desktop])).toEqual([]);
   });
 
+  it("pass a devDependency imported by a story file", async () => {
+    const tool = extraPackage("packages/tool");
+    const desktop = {
+      ...app("desktop", { "src/main.stories.tsx": 'import "@self-engine/tool";\n' }),
+      devDependencies: ["@self-engine/tool"],
+    };
+    expect(await cruise([tool, desktop])).toEqual([]);
+  });
+
+  it("fail a workspace package a story file imports without declaring it at all", async () => {
+    const tool = extraPackage("packages/tool");
+    const desktop = app("desktop", { "src/main.stories.tsx": 'import "@self-engine/tool";\n' });
+    expect(
+      ruleNames(await cruise([tool, desktop], { rootDependencies: ["@self-engine/tool"] })),
+    ).toEqual(["declared-workspace-dependency:apps/desktop:dev-only"]);
+  });
+
   it("fail a devDependency imported by a source file", async () => {
     const tool = extraPackage("packages/tool");
     const desktop = {

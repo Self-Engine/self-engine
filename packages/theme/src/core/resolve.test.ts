@@ -6,7 +6,9 @@ import {
   type ColorSet,
   type ColorSetId,
   contrastRatio,
+  COLOR_MODE_CHOICES,
   DEFAULT_APPEARANCE,
+  FIXED_APPEARANCE,
   DEFAULT_THEME,
   type FinalColors,
   FROM_THEME,
@@ -482,6 +484,24 @@ describe("the catalog", () => {
     // @ts-expect-error `textMuted` and the other roles are missing.
     const incomplete: ThemeColors = { text: "#000000" };
     expect(incomplete.text).toBe("#000000");
+  });
+});
+
+describe("the Color Mode choices and the fixed appearance", () => {
+  it("offers both Color Modes and following the system", () => {
+    expect(COLOR_MODE_CHOICES).toEqual(["light", "dark", "system"]);
+  });
+
+  it("fixes a light appearance that no system preference can change (ADR 0012)", () => {
+    expect(FIXED_APPEARANCE).toEqual({
+      lightTheme: "neutral",
+      darkTheme: "neutral",
+      accent: "fromTheme",
+      backgroundTint: true,
+      colorMode: "light",
+      density: "comfortable",
+      fontScale: 100,
+    });
   });
 });
 

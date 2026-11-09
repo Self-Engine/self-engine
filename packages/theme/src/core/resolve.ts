@@ -21,7 +21,9 @@ import {
 } from "./roles.ts";
 import { colorSetPalette, colorSetVariables, type Palette } from "./variants.ts";
 
-export type ColorMode = ResolvedColorMode | "system";
+/** Every Color Mode a user can choose: the two the engine resolves to, and following the system. */
+export const COLOR_MODE_CHOICES = [...COLOR_MODES, "system"] as const;
+export type ColorMode = (typeof COLOR_MODE_CHOICES)[number];
 
 /** The `accent` setting that uses the Theme's own Accent, or blue if it has none. */
 export const FROM_THEME = "fromTheme";
@@ -46,6 +48,12 @@ export const DEFAULT_APPEARANCE: Appearance = {
   density: "comfortable",
   fontScale: 100,
 };
+
+/**
+ * The appearance the Component Catalog starts in and story tests run in: the default, with a Color
+ * Mode that no browser's system preference can change, so every machine renders the same (ADR 0012).
+ */
+export const FIXED_APPEARANCE: Appearance = { ...DEFAULT_APPEARANCE, colorMode: "light" };
 
 /** The final values for one Color Mode: plain data for CSS, Mantine and the contrast check. */
 export interface ColorModeValues {

@@ -16,7 +16,7 @@ through a PR.
 
 - **One gate, `pnpm verify`**, for humans, agents and CI: format, lint with warnings as
   errors, typecheck, the module boundaries ([ADR 0006](0006-module-boundaries-are-enforced-three-ways.md)),
-  the ADR check, the theme CSS check, the translation check, the workspace build, then the tests. The stages are
+  the ADR check, the theme CSS check, the translation check, the workspace build, then the tests and the story tests. The stages are
   `vp run` tasks, so an unchanged stage replays from the cache. The last line is `VERIFY: PASS`
   or `VERIFY: FAIL`.
 - **A pass writes a stamp**: the git tree of the verified checkout.

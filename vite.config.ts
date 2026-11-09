@@ -28,7 +28,12 @@ export default defineConfig({
     }),
   ],
   test: {
-    include: ["apps/*/src/**/*.test.ts", "packages/*/src/**/*.test.ts", "scripts/**/*.test.ts"],
+    include: [
+      "apps/*/src/**/*.test.ts",
+      "apps/component-catalog/.storybook/*.test.ts",
+      "packages/*/src/**/*.test.ts",
+      "scripts/**/*.test.ts",
+    ],
     environment: "node",
     // Vitest empties CSS imports otherwise; the theme tests read Mantine's control heights.
     css: { include: [/@mantine\/core\/styles\//] },
@@ -86,6 +91,14 @@ export default defineConfig({
       // replays; `vp pack` always runs, since its `clean` touches its own inputs.
       "verify:build": "vp run --cache -r build",
       "verify:test": "vp test run --reporter=agent",
+      // Every story in Chromium (ADR 0012), with the Component Catalog's config: the Node tests above
+      // keep this one, so `pnpm test` needs no browser.
+      "verify:stories": {
+        command: "vp test run --root apps/component-catalog --reporter=agent",
+        dependsOn: ["ensure-chromium"],
+      },
+      // Uncached: a replay would report a browser as there after it was removed.
+      "ensure-chromium": { command: "node scripts/ensure-chromium.ts", cache: false },
     },
   },
 });

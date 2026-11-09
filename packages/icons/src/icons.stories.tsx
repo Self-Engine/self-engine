@@ -1,19 +1,24 @@
-// The icon part of the throwaway /theme-preview page. #23 removes it.
-
 import { Button, Group, SimpleGrid, Stack, Text } from "@mantine/core";
-import * as icons from "@self-engine/icons";
-import { COLOR_SETS } from "@self-engine/theme";
-import { roleColor } from "./preview-role-color.ts";
+import { COLOR_SETS, roleColor } from "@self-engine/theme";
+import type { Meta, StoryObj } from "@storybook/react-vite";
+import { expect } from "storybook/test";
+import * as icons from "./index.ts";
 
 const SIZES = ["xs", "sm", "md", "lg"] as const;
 const BUTTON_VARIANTS = ["filled", "light", "outline", "subtle"] as const;
 const TEXT_ROLES = ["text", "textMuted"] as const;
 
-/** Reads the package's exports, so a new icon shows up here without touching this page. */
+/** Reads the package's exports, so a new icon shows up here by itself. */
 const CATALOG = Object.entries(icons);
 
-function Catalog() {
-  return (
+const meta = {
+  title: "Icons/Catalog",
+} satisfies Meta;
+
+export default meta;
+
+export const Catalog: StoryObj<typeof meta> = {
+  render: () => (
     <SimpleGrid cols={4}>
       {CATALOG.map(([name, Icon]) => (
         <Group gap="xs" key={name}>
@@ -22,12 +27,16 @@ function Catalog() {
         </Group>
       ))}
     </SimpleGrid>
-  );
-}
+  ),
+  play: async ({ canvas, canvasElement }) => {
+    await expect(canvasElement.querySelectorAll("svg")).toHaveLength(CATALOG.length);
+    await expect(canvas.getByText("TimeIcon")).toBeVisible();
+  },
+};
 
 /** Each step beside text of the same step, to judge the proportion at every font scale. */
-function Sizes() {
-  return (
+export const Sizes: StoryObj<typeof meta> = {
+  render: () => (
     <Group gap="xl">
       {SIZES.map((size) => (
         <Group gap="xs" key={size}>
@@ -36,12 +45,19 @@ function Sizes() {
         </Group>
       ))}
     </Group>
-  );
-}
+  ),
+  play: async ({ canvasElement }) => {
+    const widths = [...canvasElement.querySelectorAll("svg")].map(
+      (icon) => icon.getBoundingClientRect().width,
+    );
+    await expect(widths).toHaveLength(SIZES.length);
+    await expect(new Set(widths).size).toBe(SIZES.length);
+  },
+};
 
 /** The surrounding element decides the color: text, an Accent action, or a Module Color. */
-function Colors() {
-  return (
+export const Colors: StoryObj<typeof meta> = {
+  render: () => (
     <Stack gap="xs">
       <Group gap="xl">
         {TEXT_ROLES.map((role) => (
@@ -72,15 +88,9 @@ function Colors() {
         ))}
       </Group>
     </Stack>
-  );
-}
-
-export function IconsPreview() {
-  return (
-    <Stack>
-      <Catalog />
-      <Sizes />
-      <Colors />
-    </Stack>
-  );
-}
+  ),
+  play: async ({ canvas }) => {
+    await expect(canvas.getByRole("button", { name: "filled" })).toBeVisible();
+    await expect(canvas.getByText("teal")).toBeVisible();
+  },
+};

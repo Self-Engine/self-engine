@@ -1,7 +1,8 @@
 // `pnpm verify`: the one gate for humans and agents (ADR 0008). It runs the
 // `verify:*` tasks from vite.config.ts through `vp run`, which caches them: format, lint
 // (warnings fail), typecheck, the module boundaries (.dependency-cruiser.ts), the ADR check,
-// the theme CSS check, the translations and the workspace build, then the tests. Every stage's output goes to `.cache/verify.log`; the console gets
+// the theme CSS check, the translations and the workspace build, then the tests and the stories
+// in Chromium. Every stage's output goes to `.cache/verify.log`; the console gets
 // one line per stage, the tail of each failing stage, and a last line `VERIFY: PASS` or
 // `VERIFY: FAIL <stages>`.
 //
@@ -11,8 +12,9 @@
 // check run and a write run never replay each other.
 //
 // The static stages all run even after one fails, so one run reports lint and type errors
-// together; the tests run only once they pass. A pass records the verified tree
-// (verify-stamp.ts), which the push guard (verify-guard.ts) requires before `git push`.
+// together; the tests run only once they pass, and the stories only once the tests pass. A pass
+// records the verified tree (verify-stamp.ts), which the push guard (verify-guard.ts) requires
+// before `git push`.
 
 import { spawn } from "node:child_process";
 import { appendFileSync, mkdirSync, writeFileSync } from "node:fs";
@@ -34,7 +36,7 @@ export const STATIC_STAGES = [
   "i18n",
   "build",
 ] as const;
-export const TEST_STAGE = "test";
+export const TEST_STAGES = ["test", "stories"] as const;
 export const LOG_FILE = ".cache/verify.log";
 const FAILURE_TAIL_LINES = 80;
 
@@ -66,8 +68,8 @@ export function tail(output: string, count: number): string {
 }
 
 /**
- * Runs the static stages, then the test stage if they all passed. `runStage` reports
- * whether one stage passed.
+ * Runs the static stages, then each test stage as long as everything before it passed.
+ * `runStage` reports whether one stage passed.
  */
 export async function runStages(
   runStage: (stage: string) => Promise<boolean>,
@@ -76,8 +78,9 @@ export async function runStages(
   for (const stage of STATIC_STAGES) {
     results.push({ stage, ok: await runStage(stage) });
   }
-  if (results.every((result) => result.ok)) {
-    results.push({ stage: TEST_STAGE, ok: await runStage(TEST_STAGE) });
+  for (const stage of TEST_STAGES) {
+    if (!results.every((result) => result.ok)) break;
+    results.push({ stage, ok: await runStage(stage) });
   }
   return results;
 }
