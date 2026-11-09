@@ -41,7 +41,17 @@ export const Overview: StoryObj<typeof meta> = {
   },
 };
 
+/** Fixes every switch against the toolbar. `toolbar.test.ts` proves that stories start here. */
 export const InTheFixedAppearance: StoryObj<typeof meta> = {
+  globals: {
+    theme: FIXED_APPEARANCE.lightTheme,
+    accent: FIXED_APPEARANCE.accent,
+    colorMode: FIXED_APPEARANCE.colorMode,
+    backgroundTint: FIXED_APPEARANCE.backgroundTint ? "on" : "off",
+    density: FIXED_APPEARANCE.density,
+    fontScale: String(FIXED_APPEARANCE.fontScale),
+    language: "en",
+  },
   play: async ({ canvas }) => {
     const root = document.documentElement;
     await expect(root.getAttribute("data-mantine-color-scheme")).toBe("light");

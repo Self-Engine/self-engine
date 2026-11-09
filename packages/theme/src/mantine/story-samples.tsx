@@ -12,6 +12,12 @@ export const STATUS_ROLES = [
   { fill: "success", onFill: "onSuccess", soft: "successSoft", text: "successText" },
 ] as const;
 
+/** The Color Mode on screen, which the toolbar's `system` leaves to the browser. */
+export function activeColorMode(): "light" | "dark" {
+  const scheme = document.documentElement.getAttribute("data-mantine-color-scheme");
+  return scheme === "dark" ? "dark" : "light";
+}
+
 export function isStrictlyIncreasing(values: readonly number[]): boolean {
   return values.every((value, index) => index === 0 || (values[index - 1] ?? value) < value);
 }

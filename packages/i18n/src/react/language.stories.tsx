@@ -26,6 +26,7 @@ const meta = {
 export default meta;
 
 export const English: StoryObj<typeof meta> = {
+  globals: { language: "en" },
   play: async ({ canvas }) => {
     await expect(canvas.getByText("Home")).toBeVisible();
     await expect(document.documentElement.lang).toBe("en");

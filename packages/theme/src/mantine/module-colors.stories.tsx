@@ -3,7 +3,7 @@ import type { Meta, StoryObj } from "@storybook/react-vite";
 import type { CSSProperties } from "react";
 import { expect, within } from "storybook/test";
 import { COLOR_SETS, roleColor } from "../core/index.ts";
-import { SET_NAMES } from "./story-samples.tsx";
+import { activeColorMode, SET_NAMES } from "./story-samples.tsx";
 
 const AREA: CSSProperties = {
   background: roleColor("navSurface"),
@@ -80,7 +80,7 @@ export const Overview: StoryObj<typeof meta> = {
       SET_NAMES.map(async (name) => {
         const area = within(canvas.getByTestId(name));
         await expect(area.getByTestId("active-entry")).toHaveStyle({
-          backgroundColor: COLOR_SETS[name].light.accentSoft,
+          backgroundColor: COLOR_SETS[name][activeColorMode()].accentSoft,
         });
         await expect(area.getByRole("button", { name: "Accent action" })).toBeVisible();
       }),

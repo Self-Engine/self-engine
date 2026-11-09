@@ -9,6 +9,7 @@ import {
   resolveAppearance,
   roleColor,
 } from "../core/index.ts";
+import { activeColorMode } from "./story-samples.tsx";
 
 const CONTAINER: CSSProperties = {
   borderRadius: "var(--mantine-radius-md)",
@@ -66,21 +67,35 @@ const meta = {
 
 export default meta;
 
-function chromeWith(backgroundTint: boolean) {
-  return resolveAppearance({ ...FIXED_APPEARANCE, backgroundTint }, BUILT_IN_THEMES).light.roles
-    .chrome;
+/** The engine's `chrome` with this tint, for the Theme, Accent and Color Mode the toolbar chose. */
+function chromeWith(backgroundTint: boolean, globals: Readonly<Record<string, unknown>>) {
+  const theme = String(globals["theme"]);
+  const appearance = {
+    ...FIXED_APPEARANCE,
+    lightTheme: theme,
+    darkTheme: theme,
+    accent: String(globals["accent"]),
+    backgroundTint,
+  };
+  return resolveAppearance(appearance, BUILT_IN_THEMES)[activeColorMode()].roles.chrome;
 }
 
+// The outermost background differs with the tint, so each story fixes that one switch.
+
 export const On: StoryObj<typeof meta> = {
-  play: async ({ canvas }) => {
-    await expect(canvas.getByTestId("chrome")).toHaveStyle({ backgroundColor: chromeWith(true) });
+  globals: { backgroundTint: "on" },
+  play: async ({ canvas, globals }) => {
+    await expect(canvas.getByTestId("chrome")).toHaveStyle({
+      backgroundColor: chromeWith(true, globals),
+    });
   },
 };
 
-/** The outermost background differs without the tint, so this statement needs its own appearance. */
 export const Off: StoryObj<typeof meta> = {
   globals: { backgroundTint: "off" },
-  play: async ({ canvas }) => {
-    await expect(canvas.getByTestId("chrome")).toHaveStyle({ backgroundColor: chromeWith(false) });
+  play: async ({ canvas, globals }) => {
+    await expect(canvas.getByTestId("chrome")).toHaveStyle({
+      backgroundColor: chromeWith(false, globals),
+    });
   },
 };

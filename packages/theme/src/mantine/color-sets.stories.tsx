@@ -44,13 +44,15 @@ function expectValuesOf(canvasElement: HTMLElement, mode: "light" | "dark") {
   );
 }
 
+// The values change with the Color Mode, so each statement needs its own appearance.
+
 export const Light: StoryObj<typeof meta> = {
+  globals: { colorMode: "light" },
   play: async ({ canvasElement }) => {
     await expectValuesOf(canvasElement, "light");
   },
 };
 
-/** The values change with the Color Mode, so this statement needs its own appearance. */
 export const Dark: StoryObj<typeof meta> = {
   globals: { colorMode: "dark" },
   play: async ({ canvasElement }) => {
