@@ -340,8 +340,8 @@ export const LabelsAreTranslated: Story = {
     await expect(canvas.getByRole("navigation", { name: "Module" })).toBeVisible();
     await userEvent.click(canvas.getByRole("button", { name: "Modul-Sidebar öffnen" }));
     const drawer = await screen.findByRole("dialog", { name: "Modul-Sidebar" });
-    await expect(
-      within(drawer).getByRole("button", { name: "Modul-Sidebar schließen" }),
-    ).toBeVisible();
+    await waitFor(() =>
+      expect(within(drawer).getByRole("button", { name: "Modul-Sidebar schließen" })).toBeVisible(),
+    );
   },
 };

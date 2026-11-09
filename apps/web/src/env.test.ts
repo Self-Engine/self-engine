@@ -27,9 +27,9 @@ describe("channelBadge", () => {
 
 describe("reservesWindowButtons", () => {
   it("keeps the strip free in the macOS desktop app", () => {
-    expect(reservesWindowButtons({ desktopBridge: { platform: "darwin", channel: "stable" } })).toBe(
-      true,
-    );
+    expect(
+      reservesWindowButtons({ desktopBridge: { platform: "darwin", channel: "stable" } }),
+    ).toBe(true);
   });
 
   it("wastes no room on the Windows desktop app", () => {
