@@ -75,7 +75,7 @@ function expectFinalValues(css: string, mode: ReturnType<typeof cacheOf>["resolv
 }
 
 describe("the start script with a usable cache", () => {
-  it("applies the dark values, Density and font scale when the Color Mode is dark", () => {
+  it("applies the dark values and Density when the Color Mode is dark, at any font scale", () => {
     const { resolved, stored } = cacheOf({
       colorMode: "dark",
       darkTheme: "warm",
@@ -87,8 +87,25 @@ describe("the start script with a usable cache", () => {
 
     expect(result.scheme).toBe("dark");
     expect(result.density).toBe("compact");
-    expect(result.fontSize).toBe("112.5%");
     expect(result.css).toContain("color-scheme:dark;");
+    expectFinalValues(result.css, resolved.dark);
+  });
+
+  it("leaves the root element's font size alone", () => {
+    const { stored } = cacheOf({ fontScale: 112.5 });
+
+    expect(JSON.parse(stored)).not.toHaveProperty("rootFontSize");
+    expect(runStartScript({ stored }).fontSize).toBeUndefined();
+  });
+
+  it("still uses a cache from before the font scale moved, and ignores its root font size", () => {
+    const { resolved, stored } = cacheOf({ colorMode: "dark" });
+    const older = JSON.stringify({ ...JSON.parse(stored), rootFontSize: "112.5%" });
+
+    const result = runStartScript({ stored: older });
+
+    expect(result.scheme).toBe("dark");
+    expect(result.fontSize).toBeUndefined();
     expectFinalValues(result.css, resolved.dark);
   });
 
@@ -144,7 +161,6 @@ describe("the start script without a usable cache", () => {
     ["no css for the Color Mode", { stored: changed({ css: { light: "x" } }) }],
     ["css that is not text", { stored: changed({ css: { dark: 5, light: 5 } }) }],
     ["a Density that is not text", { stored: changed({ density: 5 }) }],
-    ["a font size that is not text", { stored: changed({ rootFontSize: null }) }],
     [
       "a storage that throws on read",
       {

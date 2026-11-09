@@ -74,12 +74,10 @@ export function ThemeProvider({ appearance, catalog, children }: ThemeProviderPr
   const theme = useMemo(() => mantineTheme(resolved, activeColorMode), [resolved, activeColorMode]);
   useInstantChange(JSON.stringify(resolved[activeColorMode].roles));
   useStartCache(appearance.colorMode, resolved);
-  const { density, densityCss, rootFontSize } = resolved.layout;
+  const { density, densityCss } = resolved.layout;
   useLayoutEffect(() => {
-    const root = document.documentElement;
-    root.dataset.density = density;
-    root.style.fontSize = rootFontSize;
-  }, [density, rootFontSize]);
+    document.documentElement.dataset.density = density;
+  }, [density]);
   const variablesFor = ({ cssVariables, mantineVariables, colorVariables }: ColorModeValues) => ({
     ...cssVariables,
     ...mantineVariables,

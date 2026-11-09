@@ -88,6 +88,15 @@ export const Compact: StoryObj<typeof meta> = {
   },
 };
 
+/** A comfortable row is 44 px at 100 % and grows with the font scale, like Mantine's sizes do. */
+export const AtTheLargestFontScale: StoryObj<typeof meta> = {
+  globals: { density: "comfortable", fontScale: "112.5" },
+  render: () => <div data-testid="row" style={{ height: "var(--se-row-height)" }} />,
+  play: async ({ canvas }) => {
+    await expect(canvas.getByTestId("row").getBoundingClientRect().height).toBe(49.5);
+  },
+};
+
 export const CompactRows: StoryObj<typeof meta> = {
   globals: { density: "compact" },
   render: () => <Rows />,

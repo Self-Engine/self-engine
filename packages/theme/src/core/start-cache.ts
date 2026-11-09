@@ -19,7 +19,6 @@ interface StartCache {
   readonly version: 1;
   readonly colorMode: ColorMode;
   readonly density: string;
-  readonly rootFontSize: string;
   readonly css: Readonly<Record<ResolvedColorMode, string>>;
 }
 
@@ -39,7 +38,6 @@ export function serializeStartCache(colorMode: ColorMode, resolved: ResolvedAppe
     version: 1,
     colorMode,
     density: resolved.layout.density,
-    rootFontSize: resolved.layout.rootFontSize,
     css: { light, dark },
   };
   return JSON.stringify(cache);

@@ -55,6 +55,15 @@ export const Sizes: StoryObj<typeof meta> = {
   },
 };
 
+/** An icon grows with the font scale: `md` is 18 px at 100 %, and 12.5 % more at this step. */
+export const AtTheLargestFontScale: StoryObj<typeof meta> = {
+  globals: { fontScale: "112.5" },
+  render: () => <icons.TimeIcon data-testid="icon" />,
+  play: async ({ canvas }) => {
+    await expect(canvas.getByTestId("icon").getBoundingClientRect().width).toBe(20.25);
+  },
+};
+
 /** The surrounding element decides the color: text, an Accent action, or a Module Color. */
 export const Colors: StoryObj<typeof meta> = {
   render: () => (
