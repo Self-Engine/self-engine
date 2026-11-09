@@ -1,8 +1,4 @@
-import {
-  createSettingsStore,
-  type JsonValue,
-  type SettingsStore,
-} from "@self-engine/settings";
+import { createSettingsStore, type JsonValue, type SettingsStore } from "@self-engine/settings";
 import { createTestAdapter, settle, type TestAdapter } from "@self-engine/settings/testing";
 import { describe, expect, it } from "vite-plus/test";
 import { SHELL_SETTINGS } from "./shell-settings.ts";
