@@ -272,9 +272,9 @@ export const ThePhoneDrawerHeaderSitsBelowTheStripWithWindowButtons: Story = {
       0,
     );
     const stripBottom = strip.getBoundingClientRect().bottom;
-    await expect(within(drawer).getByText("Module Sidebar").getBoundingClientRect().top).toBeGreaterThanOrEqual(
-      stripBottom,
-    );
+    await expect(
+      within(drawer).getByText("Module Sidebar").getBoundingClientRect().top,
+    ).toBeGreaterThanOrEqual(stripBottom);
     const close = within(drawer).getByRole("button", { name: "Close module sidebar" });
     await expect(close.getBoundingClientRect().top).toBeGreaterThanOrEqual(stripBottom);
     await expect(within(drawer).queryByRole("navigation")).toBeNull();
