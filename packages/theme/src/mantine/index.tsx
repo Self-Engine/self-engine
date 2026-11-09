@@ -18,6 +18,7 @@ import {
 } from "../core/index.ts";
 import { useInstantChange } from "./instant-change.ts";
 import { mantineTheme } from "./theme.ts";
+import { useLastInput } from "./use-last-input.ts";
 import { useStartCache } from "./use-start-cache.ts";
 
 function systemPreference(query: string) {
@@ -49,10 +50,11 @@ const NO_STORAGE: MantineColorSchemeManager = {
 
 /**
  * Mantine's global CSS draws the focus ring in the filled primary color, with no variable of its
- * own. The extra `:root` wins over it whatever the stylesheet order.
+ * own. The extra `:root` wins over it whatever the stylesheet order. After the pointer there is
+ * no ring at all, see `useLastInput`.
  */
 const FOCUS_RING_CSS =
-  ":root .mantine-focus-auto:focus-visible,:root .mantine-focus-always:focus{outline-color:var(--se-accent-text)}";
+  ":root .mantine-focus-auto:focus-visible,:root .mantine-focus-always:focus{outline-color:var(--se-accent-text)}:root[data-last-input=pointer] .mantine-focus-auto:focus-visible{outline:none}";
 
 const ColorsContext = createContext<FinalColors | null>(null);
 
@@ -74,6 +76,7 @@ export function ThemeProvider({ appearance, catalog, children }: ThemeProviderPr
   const theme = useMemo(() => mantineTheme(resolved, activeColorMode), [resolved, activeColorMode]);
   useInstantChange(JSON.stringify(resolved[activeColorMode].roles));
   useStartCache(appearance.colorMode, resolved);
+  useLastInput();
   const { density, densityCss } = resolved.layout;
   useLayoutEffect(() => {
     document.documentElement.dataset.density = density;

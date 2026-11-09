@@ -1649,6 +1649,54 @@ export const TheLogoDoesNotMoveWhenTogglingWithoutWindowButtons: Story = {
   },
 };
 
+const ringOf = (element: Element) => getComputedStyle(element).outlineStyle;
+
+const focused = () => {
+  const element = document.activeElement;
+  if (element === null || element === document.body) throw new Error("nothing has the focus");
+  return element;
+};
+
+/**
+ * `userEvent` moves the focus by script, and Chromium shows `:focus-visible` after that. So does a
+ * real click on a control that already had the keyboard's focus, which is where the owner saw it.
+ */
+export const TheFocusRingFollowsTheKeyboardAndNotAClick: Story = {
+  ...atViewport("wide"),
+  play: async ({ canvas }) => {
+    const toggle = collapseToggle(canvas);
+    await userEvent.click(toggle);
+    await expect(toggle).toHaveFocus();
+    await expect(ringOf(toggle)).toBe("none");
+    await userEvent.tab({ shift: true });
+    await userEvent.tab();
+    await expect(toggle).toHaveFocus();
+    await expect(ringOf(toggle)).toBe("solid");
+    await userEvent.click(toggle);
+    await expect(ringOf(toggle)).toBe("none");
+  },
+};
+
+/** The Drawer's focus trap and its focus return move the focus by script, after a pointer too. */
+export const NoFocusRingAfterOpeningAndClosingTheDrawerWithThePointer: Story = {
+  ...atViewport("narrow"),
+  play: async ({ canvas }) => {
+    const burger = burgerOf(canvas);
+    await userEvent.tab();
+    await expect(burger).toHaveFocus();
+    await expect(ringOf(burger)).toBe("solid");
+    const drawer = await openDrawer(canvas);
+    await waitFor(() => expect(drawer.contains(document.activeElement)).toBe(true));
+    await expect(ringOf(focused())).toBe("none");
+    const close = within(drawer).getByRole("button", { name: "Close navigation" });
+    await userEvent.click(close);
+    await expect(ringOf(close)).toBe("none");
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+    await waitFor(() => expect(burger).toHaveFocus());
+    await expect(ringOf(burger)).toBe("none");
+  },
+};
+
 export const LabelsAreTranslated: Story = {
   globals: { ...atViewport("narrow").globals, language: "de" },
   play: async ({ canvas }) => {
