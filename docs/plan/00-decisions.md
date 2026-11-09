@@ -755,6 +755,20 @@ Grundlage: [`research-layer-3-core.md`](research-layer-3-core.md).
   Farbsätze. Geschrieben werden nur bekannte Namen und genau ein Emoji; beim Lesen zeigt ein
   unbekannter Wert das Standard-Icon oder die neutrale Farbe. _Verworfen:_ alte Farben beim Import
   umbiegen (verändert Daten), Listen je Entität, eigene Spalte für Emoji.
+- **D152 (L3.10) Abläufe über mehrere Module laufen über Brücken.** Ein Modul importiert ein anderes
+  nur, wenn die Abhängigkeit fachlich zwingend und einseitig ist (das Zeitmodul darf `projects`
+  importieren). Alles andere läuft über ein eigenes Brücken-Paket über den beteiligten Modulen,
+  benannt nach seinem Zweck (etwa `billing`); es besitzt die Brückentabellen und benannten
+  Operationen, die Module kennen es nicht. Jede Operation gibt es auch in einer Form, die eine
+  laufende Transaktion annimmt; die Brücke öffnet sie, `tablesChanged` meldet alle betroffenen
+  Tabellen zusammen. Eine Brücke liest über die Abfragen der Module, nie aus ihren Tabellen.
+  Operationen öffnen keine Dialoge, sondern geben einen typisierten Konflikt mit Optionen zurück und
+  werden mit der Wahl erneut aufgerufen. Schutzregeln (etwa „abgerechnet nicht löschen“) meldet die
+  Brücke beim Zusammenbau der App an, sie laufen in derselben Transaktion. Schicht 3 baut keine
+  Brücke: Sie liefert die Regeln als ADR und die Transaktions-Form in #32; die erste Brücke kommt
+  mit Finanzen oder Kalender. _Verworfen:_ feste Reihenfolge aller Module ohne Brücken (Arbeit und
+  Kalender brauchen sich gegenseitig), Ereignisse statt Aufrufe (keine Transaktion über beide
+  Seiten), Brückentabellen im „größeren“ Modul (bringt die alten Zyklen zurück).
 
 ## Fakten
 

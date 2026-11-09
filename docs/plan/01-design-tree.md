@@ -34,8 +34,8 @@ Pro Runde werden nur 2–3 Fragen gestellt; die Nummern sind stabil.
       - ✅ Zeit: Ergänzungen aus unabhängiger Prüfung (D149)
       - ✅ Tags (D150)
       - ✅ Icon und Farbe an Entitäten (D151)
-      - ❓ Abläufe über mehrere Module, Brückentabellen
-      - ⏳ Einstellungen des Kerns: Standardwährung, Region
+      - ✅ Abläufe über mehrere Module, Brücken (D152)
+      - ❓ Einstellungen des Kerns: Standardwährung, Region
       - ⏳ Zerlegung in Issues (`layer:3`)
     - ⏳ Schicht 4 Projekte + Zeit
     - ⏳ Schicht 5 Import
