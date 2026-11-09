@@ -1,5 +1,6 @@
 // The Shell's layout as the user left it. It lives in the app, because the Shell knows no Settings.
-// All three are Device Settings: a width depends on the screen, so it does not sync.
+// All three are Device Settings and do not sync: the widths depend on the screen, and what is
+// collapsed goes with the room that screen has.
 
 import { defineSetting } from "@self-engine/settings";
 import { SHELL_STANDARD_MODULE_SIDEBAR_WIDTH, SHELL_STANDARD_NAVBAR } from "@self-engine/shell";
