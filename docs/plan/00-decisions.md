@@ -639,6 +639,19 @@ Grundlage: [`research-layer-3-core.md`](research-layer-3-core.md).
   Eingabefeld entsteht mit dem ersten Modul, das eines braucht, auf Basis von Mantines
   `NumberInput`. _Grund:_ In der alten App wurde `12.5` im Deutschen still zu 125. _Verworfen:_
   Formatierung in `i18n`, strenges Ablehnen von `12.5`, Spaltenname `amount` ohne Einheit.
+- **D137 (L3.5) Eine Zeitzone ohne Server, ADR 0046 der alten App gilt weiter.** Eine Zeitzone als
+  Synced Setting entscheidet über „heute“, Mitternacht und Wochengrenzen; der Wochenstart ist eine
+  eigene Einstellung. Beim ersten Start kommt sie still vom Gerät, beim Import aus der alten App.
+  Sie ändert sich nur durch den Nutzer: Ein abweichendes Gerät bietet den Wechsel an, „dem Gerät
+  folgen“ ist eine Option (aus); „nicht mehr fragen“ ist eine Device Setting; die Entscheidung
+  liegt rein in `time`. Keine Historie: Vergangene Zeitpunkte erscheinen in der aktuellen Zeitzone
+  und können auf einen anderen Tag rutschen, Calendar days bewegen sich nie. Tageslogik nie in SQL,
+  weil SQLite keine IANA-Zeitzonen kennt: `time` rechnet Tagesgrenzen im Datenprozess um, gruppiert
+  wird in TypeScript; der Datenprozess liest die Einstellung pro Operation und übergibt sie
+  ausdrücklich. Eine einzige Funktion löst die Zeitzone auf; kennt die Laufzeit den Namen nicht,
+  gilt die Gerätezeitzone und das Fehlerprotokoll bekommt einen Eintrag. _Verworfen:_ Historie der
+  Zeitzone (jede Tagesberechnung bräuchte sie, Sync-Konflikte verschöben Tage rückwirkend; kann
+  später ergänzt werden), Gerätezeitzone als Autorität, Zeitzone an jedem Eintrag.
 
 ## Fakten
 

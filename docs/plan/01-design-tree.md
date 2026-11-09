@@ -29,8 +29,8 @@ Pro Runde werden nur 2–3 Fragen gestellt; die Nummern sind stabil.
       - ✅ Spaces: ein persönlicher Space, `space_id` als Port-Kontext (D134)
       - ✅ Geldbeträge und Stundensätze (D135)
       - ✅ Geld: Eingabe, Formatierung, Benennung, Zod-Schemas (D136)
-      - ❓ Zeit: Konto-Zeitzone ohne Server
-      - ⏳ Zeit: Übernahme von `packages/time`, Uhr, Lint-Regeln
+      - ✅ Zeit: eine Zeitzone ohne Server (D137)
+      - ❓ Zeit: Übernahme von `packages/time`, Uhr, Lint-Regeln
       - ⏳ Tags, Icon und Farbe
       - ⏳ Abläufe über mehrere Module, Brückentabellen
       - ⏳ Zerlegung in Issues (`layer:3`)
