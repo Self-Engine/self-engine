@@ -2,8 +2,9 @@
 // for one release channel, into that channel's own bundle folder, and packages it into
 // `apps/desktop/release/<channel>`. Without a version it makes an unpacked app for inspection;
 // with one, the dmg a release ships, signed with the Developer ID when the signing inputs are
-// in the environment and ad hoc when none are. It installs and uploads nothing. It lives in the
-// app because repo scripts may not import apps (ADR 0006) and the identity is the app's own.
+// in the environment and ad hoc when none are. It installs and uploads nothing; to build the
+// Nightly on this Mac and install it, use `pnpm nightly:local` (nightly-local.ts). It lives in
+// the app because repo scripts may not import apps (ADR 0006) and the identity is the app's own.
 
 import { execFileSync, spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
@@ -12,8 +13,8 @@ import { dirname, join, resolve } from "node:path";
 import { parseArgs } from "node:util";
 import { type Channel, bundleDirectory, channelIdentity, parseChannel } from "./channel.ts";
 
-const DESKTOP_DIR = resolve(import.meta.dirname, "..");
-const ROOT_DIR = resolve(DESKTOP_DIR, "../..");
+export const DESKTOP_DIR = resolve(import.meta.dirname, "..");
+export const ROOT_DIR = resolve(DESKTOP_DIR, "../..");
 const BUNDLES = ["main.cjs", "preload.cjs"];
 
 // electron-builder reads these from the environment: the certificate, and the Apple account
@@ -66,6 +67,8 @@ export interface PackageRequest {
   readonly channel: ReleaseChannel;
   /** Set for a release: stamped into the package, and the dmg is built. */
   readonly releaseVersion: string | undefined;
+  /** Set for a build that stays on this Mac: stamped into an unpacked, ad-hoc app, no dmg. */
+  readonly localVersion?: string | undefined;
 }
 
 export function parsePackageRequest(argv: readonly string[]): PackageRequest {
@@ -91,8 +94,10 @@ export function builderConfig(
   electronDist: string,
   releaseVersion?: string,
   signing: Signing = "ad-hoc",
+  localVersion?: string,
 ) {
   const { appId, productName, icon } = channelIdentity(channel);
+  const version = releaseVersion ?? localVersion;
   return {
     appId,
     productName,
@@ -102,7 +107,7 @@ export function builderConfig(
     // `build.productName`. A release carries the version the plan resolved; no commit does.
     extraMetadata: {
       productName,
-      ...(releaseVersion === undefined ? {} : { version: releaseVersion }),
+      ...(version === undefined ? {} : { version }),
     },
     directories: { output: `release/${channel}` },
     // GitHub turns a space in an asset name into a dot; this name stays what the build wrote.
@@ -179,6 +184,19 @@ export type Run = (
   options: { cwd: string; env: NodeJS.ProcessEnv },
 ) => void;
 
+/** Runs a command in the open, throwing when it fails. */
+export const runInherited: Run = (command, args, options) => {
+  execFileSync(command, args, { ...options, stdio: "inherit" });
+};
+
+// codesign reports on stderr, so both streams are the answer.
+const inspectCommand: Inspect = (command, args) => {
+  const result = spawnSync(command, args, { encoding: "utf8" });
+  const output = `${result.stdout}${result.stderr}`;
+  if (result.status !== 0) throw new Error(`${command} ${args[0]} failed:\n${output}`);
+  return output;
+};
+
 export interface PackageOptions {
   readonly rootDir: string;
   readonly desktopDir: string;
@@ -188,9 +206,27 @@ export interface PackageOptions {
   readonly inspect: Inspect;
 }
 
+/** This checkout and the real commands. Finds Electron when called, so call it after an install. */
+export function checkoutPackageOptions(env: NodeJS.ProcessEnv): PackageOptions {
+  return {
+    rootDir: ROOT_DIR,
+    desktopDir: DESKTOP_DIR,
+    electronDist: electronDistPath(DESKTOP_DIR),
+    env,
+    run: runInherited,
+    inspect: inspectCommand,
+  };
+}
+
+/** Where electron-builder leaves the app of `channel`. */
+export function packagedAppPath(desktopDir: string, channel: ReleaseChannel): string {
+  const { productName } = channelIdentity(channel);
+  return join(desktopDir, "release", channel, "mac-arm64", `${productName}.app`);
+}
+
 /** Builds with the channel compiled in, then packages that build. */
 export function packageChannel(request: PackageRequest, options: PackageOptions): void {
-  const { channel, releaseVersion } = request;
+  const { channel, releaseVersion, localVersion } = request;
   const { rootDir, desktopDir, electronDist, env, run, inspect } = options;
   // Before any build: a missing secret must fail the run at once.
   const signing = resolveSigning(releaseVersion, env);
@@ -213,7 +249,11 @@ export function packageChannel(request: PackageRequest, options: PackageOptions)
   const configPath = join(outputDir, "electron-builder.json");
   writeFileSync(
     configPath,
-    JSON.stringify(builderConfig(channel, electronDist, releaseVersion, signing), null, 2),
+    JSON.stringify(
+      builderConfig(channel, electronDist, releaseVersion, signing, localVersion),
+      null,
+      2,
+    ),
   );
   // `--publish never`: electron-builder would otherwise publish on its own when it sees a CI tag.
   const targetArgs = releaseVersion === undefined ? ["--dir"] : ["--publish", "never"];
@@ -223,27 +263,11 @@ export function packageChannel(request: PackageRequest, options: PackageOptions)
     { cwd: desktopDir, env },
   );
   if (signing === "developer-id") {
-    const { productName } = channelIdentity(channel);
-    const appPath = join(outputDir, "mac-arm64", `${productName}.app`);
+    const appPath = packagedAppPath(desktopDir, channel);
     assertDeveloperIdRelease(appPath, env.APPLE_TEAM_ID ?? "", inspect);
   }
 }
 
 if (import.meta.main) {
-  packageChannel(parsePackageRequest(process.argv.slice(2)), {
-    rootDir: ROOT_DIR,
-    desktopDir: DESKTOP_DIR,
-    electronDist: electronDistPath(DESKTOP_DIR),
-    env: process.env,
-    run: (command, args, options) => {
-      execFileSync(command, args, { ...options, stdio: "inherit" });
-    },
-    // codesign reports on stderr, so both streams are the answer.
-    inspect: (command, args) => {
-      const result = spawnSync(command, args, { encoding: "utf8" });
-      const output = `${result.stdout}${result.stderr}`;
-      if (result.status !== 0) throw new Error(`${command} ${args[0]} failed:\n${output}`);
-      return output;
-    },
-  });
+  packageChannel(parsePackageRequest(process.argv.slice(2)), checkoutPackageOptions(process.env));
 }
