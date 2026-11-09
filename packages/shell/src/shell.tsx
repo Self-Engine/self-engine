@@ -1,5 +1,6 @@
 import { useLingui } from "@lingui/react/macro";
 import {
+  ActionIcon,
   AppShell,
   Box,
   Burger,
@@ -18,6 +19,7 @@ import {
   useMantineTheme,
 } from "@mantine/core";
 import { clamp, type SplitterPaneSize, useDisclosure } from "@mantine/hooks";
+import { SidePanelIcon } from "@self-engine/icons";
 import { type ColorSetId, roleColor } from "@self-engine/theme";
 import {
   type ComponentType,
@@ -30,7 +32,7 @@ import {
 } from "react";
 
 /** Starting values from #19, in Mantine's unscaled numbers. */
-const NAVBAR_ICONS_ONLY_WIDTH = 68;
+const NAVBAR_ICONS_ONLY_WIDTH = 56;
 const NAVBAR_STANDARD_WIDTH = 220;
 const NAVBAR_MIN_WIDE_WIDTH = 168;
 const NAVBAR_MAX_WIDTH = 280;
@@ -49,6 +51,8 @@ const BOTTOM_BAR_HEIGHT = 64;
 const ENTRY_HEIGHT = 40;
 /** As high as the content header and level with it, so window buttons, logo and page title share a line. */
 const TOP_STRIP_HEIGHT = CONTENT_HEADER_HEIGHT;
+/** The strip and the frame's gap above it, measured from the window edge. */
+const TOP_ROW_HEIGHT = GAP + TOP_STRIP_HEIGHT;
 /**
  * Where anything beside the macOS window buttons starts, from the window edge: they end at 76 px
  * (see `titleBarOptions`). In real pixels, because the buttons do not follow Mantine's scale.
@@ -97,7 +101,16 @@ const NAVBAR_STYLE: CSSProperties = {
   borderRadius: `${RADIUS} 0 0 ${RADIUS}`,
 };
 
+/** Without the Module Sidebar beside it, the Navbar is a container of its own. */
+const NAVBAR_ALONE_STYLE: CSSProperties = { ...NAVBAR_STYLE, borderRadius: RADIUS };
+
 const MAIN_STYLE: CSSProperties = { minHeight: 0, minWidth: 0 };
+
+/** The gap that the Module Sidebar's handle keeps while it is there. */
+const MAIN_BESIDE_NAVBAR_ALONE_STYLE: CSSProperties = {
+  ...MAIN_STYLE,
+  paddingInlineStart: rem(GAP),
+};
 
 const NAVBAR_TOP_STRIP_STYLE: CSSProperties = {
   // Starts where the Navbar starts, not below its padding.
@@ -114,10 +127,21 @@ const NAVIGATION_LOGO_STYLE: CSSProperties = {
   zIndex: "calc(var(--mantine-z-index-app) + 2)",
 };
 
-// The Drawer starts at the window edge, the strip at the frame, level with the content header.
-const DRAWER_STRIP_FRAME_STYLE: CSSProperties = {
+// Its surroundings start at the window edge, the strip at the frame, level with the content header.
+const STRIP_FRAME_STYLE: CSSProperties = {
   ...WINDOW_DRAG_STYLE,
   paddingBlockStart: rem(GAP),
+};
+
+// Mantine's header stays inside the frame, and this one reaches the edges of the window. Its
+// `sticky` would hold it below the frame's padding, however far the margin pulls it.
+const TOP_ROW_STYLE: CSSProperties = {
+  ...STRIP_FRAME_STYLE,
+  backgroundColor: "transparent",
+  marginBlockStart: rem(-GAP),
+  marginInline: rem(-GAP),
+  pointerEvents: "none",
+  position: "relative",
 };
 
 // It opens over the content header, whose drag region would swallow the clicks.
@@ -250,11 +274,15 @@ export interface ShellProps {
   readonly channelBadge?: ReactNode;
   readonly navbar?: ShellNavbarState;
   readonly moduleSidebarWidth?: number;
+  /** Whether the user closed the Module Sidebar. Only the wide and medium Layout Steps show it. */
+  readonly moduleSidebarCollapsed?: boolean;
   /** Called once per change, when the user releases the handle or presses a key. */
   readonly onNavbarCommit?: (navbar: ShellNavbarState) => void;
   /** Called once per change, when the user releases the handle or presses a key. */
   readonly onModuleSidebarWidthCommit?: (width: number) => void;
-  /** Keeps room for the macOS window buttons: in the navigation's top strip, and in the content header at the narrow step. */
+  /** Called once per press of the collapse button. */
+  readonly onModuleSidebarCollapsedCommit?: (collapsed: boolean) => void;
+  /** Keeps room for the macOS window buttons: in the navigation's top strip or the top row, and in the content header at the narrow step. */
   readonly reserveWindowButtons?: boolean;
   /** The page. Stays mounted whichever Layout Step the window is in. */
   readonly children: ReactNode;
@@ -348,8 +376,10 @@ export function Shell({
   channelBadge,
   navbar = SHELL_STANDARD_NAVBAR,
   moduleSidebarWidth = SHELL_STANDARD_MODULE_SIDEBAR_WIDTH,
+  moduleSidebarCollapsed = false,
   onNavbarCommit,
   onModuleSidebarWidthCommit,
+  onModuleSidebarCollapsedCommit,
   reserveWindowButtons = false,
   children,
 }: ShellProps) {
@@ -363,6 +393,9 @@ export function Shell({
 
   const isPhone = step === "phone";
   const sidebarInDrawer = isPhone || step === "narrow";
+  // The pane stays either way and is only empty, so that the page beside it does not remount.
+  const moduleSidebarShown = !sidebarInDrawer && !moduleSidebarCollapsed;
+  const navbarStandsAlone = !sidebarInDrawer && moduleSidebarCollapsed;
   // Set only during a drag, so the commit on release is still the one report of a change.
   const [draggedCollapsed, setDraggedCollapsed] = useState<boolean | null>(null);
   const entryAppearance =
@@ -380,10 +413,12 @@ export function Shell({
   const [draggedPaneSize, setDraggedPaneSize] = useState<SplitterPaneSize | null>(null);
   const moduleSidebarDragging = useRef(false);
   const hasTopStrip = reserveWindowButtons || logo !== undefined;
-  const topStripHeight = hasTopStrip ? rem(TOP_STRIP_HEIGHT) : 0;
-  const moduleSidebarPaneSize = sidebarInDrawer
-    ? "0px"
-    : (draggedPaneSize ?? paneSize(shownModuleSidebarWidth));
+  const hasNavigationStrip = hasTopStrip && moduleSidebarShown;
+  const hasTopRow = hasTopStrip && navbarStandsAlone;
+  const topStripHeight = hasNavigationStrip ? rem(TOP_STRIP_HEIGHT) : 0;
+  const moduleSidebarPaneSize = moduleSidebarShown
+    ? (draggedPaneSize ?? paneSize(shownModuleSidebarWidth))
+    : "0px";
 
   const commitModuleSidebarWidth = (width: number) => {
     if (width !== shownModuleSidebarWidth) onModuleSidebarWidthCommit?.(width);
@@ -461,13 +496,14 @@ export function Shell({
   const drawerHeader = (
     <Drawer.Header>
       <Drawer.Title>{t`Module Sidebar`}</Drawer.Title>
-      <Drawer.CloseButton aria-label={t`Close module sidebar`} />
+      <Drawer.CloseButton aria-label={isPhone ? t`Close module sidebar` : t`Close navigation`} />
     </Drawer.Header>
   );
 
   return (
     <AppShell
       {...(isPhone && { footer: { height: BOTTOM_BAR_HEIGHT } })}
+      {...(hasTopRow && { header: { height: TOP_ROW_HEIGHT } })}
       mode="static"
       // `collapsed.desktop` gives the narrow step's width to the content, since the Navbar is in the
       // drawer. `collapsed.mobile` does the same at the phone rule, which also matches at exactly
@@ -486,10 +522,22 @@ export function Shell({
       styles={{ resizeHandle: { ...NOT_WINDOW_DRAG_STYLE, top: topStripHeight } }}
     >
       <Box aria-hidden style={TOP_EDGE_STYLE} />
+      {hasTopRow && (
+        <AppShell.Header aria-hidden style={TOP_ROW_STYLE} withBorder={false}>
+          <TopStrip />
+        </AppShell.Header>
+      )}
       {!sidebarInDrawer && (
-        <AppShell.Navbar aria-label={t`Modules`} p="xs" style={NAVBAR_STYLE} withBorder={false}>
-          {hasTopStrip && <TopStrip style={NAVBAR_TOP_STRIP_STYLE} />}
-          <Box aria-hidden style={{ ...NAVBAR_DIVIDER_STYLE, top: topStripHeight }} />
+        <AppShell.Navbar
+          aria-label={t`Modules`}
+          p="xs"
+          style={navbarStandsAlone ? NAVBAR_ALONE_STYLE : NAVBAR_STYLE}
+          withBorder={false}
+        >
+          {hasNavigationStrip && <TopStrip style={NAVBAR_TOP_STRIP_STYLE} />}
+          {moduleSidebarShown && (
+            <Box aria-hidden style={{ ...NAVBAR_DIVIDER_STYLE, top: topStripHeight }} />
+          )}
           {navbarColumn(entryAppearance)}
         </AppShell.Navbar>
       )}
@@ -504,7 +552,7 @@ export function Shell({
           }}
         />
       )}
-      <AppShell.Main style={MAIN_STYLE}>
+      <AppShell.Main style={navbarStandsAlone ? MAIN_BESIDE_NAVBAR_ALONE_STYLE : MAIN_STYLE}>
         <Splitter
           h="100%"
           attributes={{
@@ -543,7 +591,7 @@ export function Shell({
             // The gap is the handle. Its thumb stays invisible and only carries Mantine's focus ring.
             handle: {
               backgroundColor: "transparent",
-              display: sidebarInDrawer ? "none" : undefined,
+              display: moduleSidebarShown ? undefined : "none",
             },
             thumb: { backgroundColor: "transparent", border: "none", width: rem(GAP / 2) },
           }}
@@ -554,7 +602,7 @@ export function Shell({
             min={paneSize(MODULE_SIDEBAR_MIN_WIDTH)}
             style={MODULE_SIDEBAR_PANE_STYLE}
           >
-            {!sidebarInDrawer && (
+            {moduleSidebarShown && (
               <>
                 {hasTopStrip && <TopStrip />}
                 <ScrollArea flex={1} mih={0}>
@@ -575,7 +623,7 @@ export function Shell({
               style={WINDOW_DRAG_STYLE}
               wrap="nowrap"
             >
-              {sidebarInDrawer && (
+              {sidebarInDrawer ? (
                 <Burger
                   aria-label={isPhone ? t`Open module sidebar` : t`Open navigation`}
                   onClick={toggleDrawer}
@@ -583,6 +631,18 @@ export function Shell({
                   size="sm"
                   style={BURGER_STYLE}
                 />
+              ) : (
+                <ActionIcon
+                  aria-label={
+                    moduleSidebarCollapsed ? t`Expand module sidebar` : t`Collapse module sidebar`
+                  }
+                  color="gray"
+                  onClick={() => onModuleSidebarCollapsedCommit?.(!moduleSidebarCollapsed)}
+                  style={NOT_WINDOW_DRAG_STYLE}
+                  variant="subtle"
+                >
+                  <SidePanelIcon />
+                </ActionIcon>
               )}
               <Group flex={1} gap="sm" miw={0} wrap="nowrap">
                 <Title lineClamp={1} order={1} size="h4">
@@ -627,7 +687,7 @@ export function Shell({
           ) : (
             <>
               {hasTopStrip && (
-                <Box style={DRAWER_STRIP_FRAME_STYLE}>
+                <Box style={STRIP_FRAME_STYLE}>
                   <TopStrip>
                     {logo && (
                       <Logo

@@ -55,6 +55,7 @@ function RootLayout() {
   // Held in memory until #87 stores them as Device Settings.
   const [navbar, setNavbar] = useState(SHELL_STANDARD_NAVBAR);
   const [moduleSidebarWidth, setModuleSidebarWidth] = useState(SHELL_STANDARD_MODULE_SIDEBAR_WIDTH);
+  const [moduleSidebarCollapsed, setModuleSidebarCollapsed] = useState(false);
 
   const entryOf = ({ to, label, icon, color }: (typeof PAGES)[number]): ShellEntry => ({
     id: to,
@@ -74,8 +75,10 @@ function RootLayout() {
           <Trans>The views of the active module will appear here.</Trans>
         </Text>
       }
+      moduleSidebarCollapsed={moduleSidebarCollapsed}
       moduleSidebarWidth={moduleSidebarWidth}
       navbar={navbar}
+      onModuleSidebarCollapsedCommit={setModuleSidebarCollapsed}
       onModuleSidebarWidthCommit={setModuleSidebarWidth}
       onNavbarCommit={setNavbar}
       onSelectEntry={(id) => {
