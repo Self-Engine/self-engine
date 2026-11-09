@@ -64,4 +64,22 @@ describe("openDatabase", () => {
     await expect(pragma(database, "auto_vacuum")).resolves.toBe(0);
     await database.close();
   });
+
+  test("close closes the connection even when no query went through Kysely", async () => {
+    const database = openDatabase(file);
+    await database.executeScript("CREATE TABLE notes (id TEXT PRIMARY KEY) STRICT;");
+
+    await database.close();
+
+    await expect(
+      Promise.resolve().then(() => database.executeScript("SELECT 1;")),
+    ).rejects.toThrow(/not open/);
+  });
+
+  test("close also works after a query went through Kysely", async () => {
+    const database = openDatabase(file);
+    await pragma(database, "journal_mode");
+
+    await expect(database.close()).resolves.toBeUndefined();
+  });
 });

@@ -40,6 +40,10 @@ export function openDatabase(path: string): Database {
       sqlite.exec(sql);
       return Promise.resolve();
     },
-    close: () => kysely.destroy(),
+    close: async () => {
+      await kysely.destroy();
+      // Kysely only closes the connection if a query already went through it.
+      if (sqlite.open) sqlite.close();
+    },
   };
 }
