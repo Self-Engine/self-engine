@@ -30,11 +30,10 @@ import {
 } from "react";
 
 /** Starting values from #19, in Mantine's unscaled numbers. */
-const NAVBAR_ICONS_ONLY_WIDTH = 68;
+const NAVBAR_ICONS_ONLY_WIDTH = 76;
 const NAVBAR_STANDARD_WIDTH = 220;
 const NAVBAR_MIN_WIDE_WIDTH = 168;
 const NAVBAR_MAX_WIDTH = 280;
-const NAVBAR_COLLAPSE_BELOW = (NAVBAR_ICONS_ONLY_WIDTH + NAVBAR_MIN_WIDE_WIDTH) / 2;
 /** The variables Mantine's handle writes in `static` mode, and removes again on its own. */
 const NAVBAR_PREVIEW_VARIABLES = ["--app-shell-navbar-width", "--app-shell-navbar-grid-width"];
 const MODULE_SIDEBAR_MIN_WIDTH = 200;
@@ -50,7 +49,7 @@ const ENTRY_HEIGHT = 40;
 /** As high as the content header and level with it, so window buttons, logo and page title share a line. */
 const TOP_STRIP_HEIGHT = CONTENT_HEADER_HEIGHT;
 /**
- * Where the logo starts beside the macOS window buttons, from the window edge: they end at 68 px
+ * Where the logo starts beside the macOS window buttons, from the window edge: they end at 76 px
  * (see `titleBarOptions`). In real pixels, because the buttons do not follow Mantine's scale.
  */
 const LOGO_START_AFTER_WINDOW_BUTTONS = "84px";
@@ -91,20 +90,39 @@ const TOP_EDGE_STYLE: CSSProperties = {
 };
 
 const NAVBAR_TOP_STRIP_STYLE: CSSProperties = {
-  ...WINDOW_DRAG_STYLE,
   // Starts where the Navbar starts, not below its padding.
   marginBlockStart: "calc(-1 * var(--mantine-spacing-xs))",
 };
 
+const LOGO_STYLE: CSSProperties = { ...WINDOW_DRAG_STYLE, pointerEvents: "none" };
+
 // Outside the Navbar, so that neither its width nor its form can reach the logo.
-const LOGO_STYLE: CSSProperties = {
-  ...WINDOW_DRAG_STYLE,
+const NAVIGATION_LOGO_STYLE: CSSProperties = {
   insetBlockStart: rem(GAP),
-  pointerEvents: "none",
   position: "fixed",
   // Over the Navbar, under the Drawer.
   zIndex: "calc(var(--mantine-z-index-app) + 2)",
 };
+
+// Mantine's Drawer scrolls as a whole and only its header sticks, so the strip has to stick with it.
+const DRAWER_TOP_STYLE: CSSProperties = {
+  backgroundColor: "var(--mantine-color-body)",
+  position: "sticky",
+  top: 0,
+  zIndex: 1000,
+};
+
+// The Drawer starts at the window edge, the strip at the frame, level with the navigation's.
+const DRAWER_STRIP_FRAME_STYLE: CSSProperties = {
+  ...WINDOW_DRAG_STYLE,
+  paddingBlockStart: rem(GAP),
+};
+
+const DRAWER_LOGO_STYLE: CSSProperties = {
+  marginInlineStart: LOGO_START_AFTER_WINDOW_BUTTONS,
+};
+
+const BURGER_STYLE: CSSProperties = { ...NOT_WINDOW_DRAG_STYLE, borderRadius: RADIUS };
 
 const CONTENT_PANE_STYLE: CSSProperties = {
   backgroundColor: roleColor("canvas"),
@@ -147,8 +165,11 @@ const ACTIVE_ENTRY_VARS = () => ({
 
 const ENTRY_ROOT_STYLE: CSSProperties = { borderRadius: "var(--mantine-radius-sm)" };
 
+/** Set on the Shell's root, because the width depends on its props and the font scale. */
+const ICONS_ONLY_WIDTH_VARIABLE = "--shell-navbar-icons-only-width";
+
 /** As wide as the icons-only Navbar has room, so an icon sits on its axis at every width. */
-const ICON_AXIS_SLOT_WIDTH = `calc(${rem(NAVBAR_ICONS_ONLY_WIDTH)} - 2 * var(--mantine-spacing-xs))`;
+const ICON_AXIS_SLOT_WIDTH = `calc(var(${ICONS_ONLY_WIDTH_VARIABLE}) - 2 * var(--mantine-spacing-xs))`;
 
 /** One geometry with and without a label, so that only the label goes. */
 const NAVBAR_ENTRY_STYLES = {
@@ -219,11 +240,27 @@ export interface ShellProps {
   readonly children: ReactNode;
 }
 
+/**
+ * The icons-only width, in Mantine's unscaled numbers like every other width. The macOS window
+ * buttons do not follow the font scale, so the Navbar around them never renders below its width
+ * in real pixels.
+ */
+function iconsOnlyWidthFor(reserveWindowButtons: boolean, scale: number): number {
+  return reserveWindowButtons
+    ? Math.max(NAVBAR_ICONS_ONLY_WIDTH, NAVBAR_ICONS_ONLY_WIDTH / scale)
+    : NAVBAR_ICONS_ONLY_WIDTH;
+}
+
+function collapseMidpoint(iconsOnlyWidth: number): number {
+  return (iconsOnlyWidth + NAVBAR_MIN_WIDE_WIDTH) / 2;
+}
+
 /** A stored width outside the current limits is clamped when shown, not reset. */
-function shownWidthOf({ collapsed, expandedWidth }: ShellNavbarState): number {
-  return collapsed
-    ? NAVBAR_ICONS_ONLY_WIDTH
-    : clamp(expandedWidth, NAVBAR_MIN_WIDE_WIDTH, NAVBAR_MAX_WIDTH);
+function shownWidthOf(
+  { collapsed, expandedWidth }: ShellNavbarState,
+  iconsOnlyWidth: number,
+): number {
+  return collapsed ? iconsOnlyWidth : clamp(expandedWidth, NAVBAR_MIN_WIDE_WIDTH, NAVBAR_MAX_WIDTH);
 }
 
 /**
@@ -234,12 +271,45 @@ function settledNavbar(
   width: number,
   current: ShellNavbarState,
   dragged: boolean,
+  iconsOnlyWidth: number,
 ): ShellNavbarState {
   if (width >= NAVBAR_MIN_WIDE_WIDTH) return { collapsed: false, expandedWidth: Math.round(width) };
-  const collapses = dragged ? width < NAVBAR_COLLAPSE_BELOW : width <= shownWidthOf(current);
+  const collapses = dragged
+    ? width < collapseMidpoint(iconsOnlyWidth)
+    : width <= shownWidthOf(current, iconsOnlyWidth);
   return collapses
     ? { ...current, collapsed: true }
     : { collapsed: false, expandedWidth: NAVBAR_MIN_WIDE_WIDTH };
+}
+
+/** The empty band at the top of a navigation surface, which moves the window. */
+function TopStrip({ children, style }: { children?: ReactNode; style?: CSSProperties }) {
+  return (
+    <Box flex="none" h={rem(TOP_STRIP_HEIGHT)} style={{ ...WINDOW_DRAG_STYLE, ...style }}>
+      {children}
+    </Box>
+  );
+}
+
+interface LogoProps {
+  readonly logo: ShellLogo;
+  readonly markOnly?: boolean;
+  readonly style: CSSProperties;
+}
+
+function Logo({ logo, markOnly = false, style }: LogoProps) {
+  return (
+    <Group gap="xs" h={rem(TOP_STRIP_HEIGHT)} style={{ ...LOGO_STYLE, ...style }} wrap="nowrap">
+      {markOnly ? (
+        <Center w={ICON_AXIS_SLOT_WIDTH}>{logo.mark}</Center>
+      ) : (
+        <>
+          {logo.mark}
+          <Text fw={600}>{logo.name}</Text>
+        </>
+      )}
+    </Group>
+  );
 }
 
 interface EntryLinkProps {
@@ -303,9 +373,10 @@ export function Shell({
   const [draggedCollapsed, setDraggedCollapsed] = useState<boolean | null>(null);
   const entryAppearance =
     step !== "wide" || (draggedCollapsed ?? navbar.collapsed) ? "iconsOnly" : "labelled";
+  const iconsOnlyWidth = iconsOnlyWidthFor(reserveWindowButtons, theme.scale);
   const navbarWidth = navbar.collapsed
-    ? NAVBAR_ICONS_ONLY_WIDTH
-    : { base: NAVBAR_ICONS_ONLY_WIDTH, lg: shownWidthOf(navbar) };
+    ? iconsOnlyWidth
+    : { base: iconsOnlyWidth, lg: shownWidthOf(navbar, iconsOnlyWidth) };
   // `Splitter` resolves sizes without Mantine's scale, so widths are converted here, once.
   const paneSize = (width: number): `${number}px` => `${width * theme.scale}px`;
   const shownModuleSidebarWidth = clamp(
@@ -316,7 +387,7 @@ export function Shell({
   const [draggedPaneSize, setDraggedPaneSize] = useState<SplitterPaneSize | null>(null);
   const moduleSidebarDragging = useRef(false);
   const hasTopStrip = !isPhone && (reserveWindowButtons || logo !== undefined);
-  // The 68 px Navbar is all that is left of the navigation, and the window buttons fill it.
+  // The icons-only Navbar is all that is left of the navigation, and the window buttons fill it.
   const logoHasRoom = !isPhone && !(step === "narrow" && reserveWindowButtons);
   const topStripHeight = hasTopStrip ? rem(TOP_STRIP_HEIGHT) : 0;
   const moduleSidebarPaneSize = sidebarInDrawer
@@ -337,26 +408,30 @@ export function Shell({
   const appShellRef = useRef<HTMLDivElement>(null);
   const navbarResize = useAppShellResize({
     navbar: {
-      min: NAVBAR_ICONS_ONLY_WIDTH,
+      min: iconsOnlyWidth,
       max: NAVBAR_MAX_WIDTH,
       label: t`Resize navbar`,
-      collapseThreshold: NAVBAR_COLLAPSE_BELOW,
+      collapseThreshold: collapseMidpoint(iconsOnlyWidth),
     },
     onCollapseChange: (_, collapsed) => setDraggedCollapsed(collapsed),
     // Runs right after Mantine wrote the pointer's width, and only the gap needs correcting.
     onResize: ({ navbar: width }) => {
       if (width === undefined || width >= NAVBAR_MIN_WIDE_WIDTH) return;
-      const shown = rem(shownWidthOf(settledNavbar(width, navbar, true)));
+      const shown = rem(
+        shownWidthOf(settledNavbar(width, navbar, true, iconsOnlyWidth), iconsOnlyWidth),
+      );
       for (const variable of NAVBAR_PREVIEW_VARIABLES)
         appShellRef.current?.style.setProperty(variable, shown);
     },
     onResizeEnd: ({ navbar: width }) => {
       if (width === undefined) return;
-      commitNavbar(settledNavbar(width, navbar, navbarResize.activeSection === "navbar"));
+      commitNavbar(
+        settledNavbar(width, navbar, navbarResize.activeSection === "navbar", iconsOnlyWidth),
+      );
     },
   });
   // Our props are the truth: Mantine would otherwise prefer the size it remembers from a drag.
-  const shownNavbarWidth = shownWidthOf(navbar);
+  const shownNavbarWidth = shownWidthOf(navbar, iconsOnlyWidth);
   const controlledNavbarResize = {
     ...navbarResize,
     // Every way out of a resize passes here: release, Escape, a key press.
@@ -387,6 +462,13 @@ export function Shell({
     />
   );
 
+  const drawerHeader = (
+    <Drawer.Header>
+      <Drawer.Title>{t`Module Sidebar`}</Drawer.Title>
+      <Drawer.CloseButton aria-label={t`Close module sidebar`} />
+    </Drawer.Header>
+  );
+
   return (
     <AppShell
       {...(isPhone && { footer: { height: BOTTOM_BAR_HEIGHT } })}
@@ -398,7 +480,7 @@ export function Shell({
       ref={appShellRef}
       // Mantine prefers a resized width over the responsive ones, so only the wide step gets it.
       {...(step === "wide" && { resize: controlledNavbarResize })}
-      style={ROOT_STYLE}
+      style={{ ...ROOT_STYLE, [ICONS_ONLY_WIDTH_VARIABLE]: rem(iconsOnlyWidth) } as CSSProperties}
       // Starts below the strip with the divider, so nothing but the drag region is up there.
       styles={{ resizeHandle: { ...NOT_WINDOW_DRAG_STYLE, top: topStripHeight } }}
     >
@@ -413,9 +495,7 @@ export function Shell({
           }}
           withBorder={false}
         >
-          {hasTopStrip && (
-            <Box flex="none" h={rem(TOP_STRIP_HEIGHT)} style={NAVBAR_TOP_STRIP_STYLE} />
-          )}
+          {hasTopStrip && <TopStrip style={NAVBAR_TOP_STRIP_STYLE} />}
           {!sidebarInDrawer && (
             <Box aria-hidden style={{ ...NAVBAR_DIVIDER_STYLE, top: topStripHeight }} />
           )}
@@ -426,26 +506,16 @@ export function Shell({
         </AppShell.Navbar>
       )}
       {logo && logoHasRoom && (
-        <Group
-          gap="xs"
-          h={rem(TOP_STRIP_HEIGHT)}
+        <Logo
+          logo={logo}
+          markOnly={step === "narrow"}
           style={{
-            ...LOGO_STYLE,
+            ...NAVIGATION_LOGO_STYLE,
             insetInlineStart: reserveWindowButtons
               ? LOGO_START_AFTER_WINDOW_BUTTONS
               : LOGO_START_AT_CONTAINER_EDGE,
           }}
-          wrap="nowrap"
-        >
-          {step === "narrow" ? (
-            <Center w={ICON_AXIS_SLOT_WIDTH}>{logo.mark}</Center>
-          ) : (
-            <>
-              {logo.mark}
-              <Text fw={600}>{logo.name}</Text>
-            </>
-          )}
-        </Group>
+        />
       )}
       <AppShell.Main
         style={{
@@ -505,9 +575,7 @@ export function Shell({
           >
             {!sidebarInDrawer && (
               <>
-                {hasTopStrip && (
-                  <Box flex="none" h={rem(TOP_STRIP_HEIGHT)} style={WINDOW_DRAG_STYLE} />
-                )}
+                {hasTopStrip && <TopStrip />}
                 <ScrollArea flex={1} mih={0}>
                   <Box p="xs">{moduleSidebar}</Box>
                 </ScrollArea>
@@ -529,7 +597,7 @@ export function Shell({
                   onClick={toggleDrawer}
                   opened={drawerOpened}
                   size="sm"
-                  style={NOT_WINDOW_DRAG_STYLE}
+                  style={BURGER_STYLE}
                 />
               )}
               <Group flex={1} gap="sm" miw={0} wrap="nowrap">
@@ -555,17 +623,28 @@ export function Shell({
           </ScrollArea>
         </AppShell.Footer>
       )}
-      <Drawer
-        closeButtonProps={{ "aria-label": t`Close module sidebar` }}
+      <Drawer.Root
         onClose={closeDrawer}
         opened={sidebarInDrawer && drawerOpened}
-        size={shownModuleSidebarWidth}
+        size={reserveWindowButtons ? SHELL_STANDARD_MODULE_SIDEBAR_WIDTH : shownModuleSidebarWidth}
         // It opens over the content header, whose drag region would swallow the clicks.
         styles={{ content: NOT_WINDOW_DRAG_STYLE, overlay: NOT_WINDOW_DRAG_STYLE }}
-        title={t`Module Sidebar`}
       >
-        {moduleSidebar}
-      </Drawer>
+        <Drawer.Overlay />
+        <Drawer.Content>
+          {reserveWindowButtons ? (
+            <Box style={DRAWER_TOP_STYLE}>
+              <Box style={DRAWER_STRIP_FRAME_STYLE}>
+                <TopStrip>{logo && <Logo logo={logo} style={DRAWER_LOGO_STYLE} />}</TopStrip>
+              </Box>
+              {drawerHeader}
+            </Box>
+          ) : (
+            drawerHeader
+          )}
+          <Drawer.Body>{moduleSidebar}</Drawer.Body>
+        </Drawer.Content>
+      </Drawer.Root>
     </AppShell>
   );
 }
