@@ -12,8 +12,8 @@ import { dirname, join, resolve } from "node:path";
 import { parseArgs } from "node:util";
 import { type Channel, bundleDirectory, channelIdentity, parseChannel } from "./channel.ts";
 
-const DESKTOP_DIR = resolve(import.meta.dirname, "..");
-const ROOT_DIR = resolve(DESKTOP_DIR, "../..");
+export const DESKTOP_DIR = resolve(import.meta.dirname, "..");
+export const ROOT_DIR = resolve(DESKTOP_DIR, "../..");
 const BUNDLES = ["main.cjs", "preload.cjs"];
 
 // electron-builder reads these from the environment: the certificate, and the Apple account
@@ -85,6 +85,21 @@ export function electronDistPath(desktopDir: string): string {
   return join(dirname(require.resolve("electron/package.json")), "dist");
 }
 
+// GitHub turns a space in an asset name into a dot; this name stays what the build wrote.
+function artifactName(productName: string, version: string, arch: string, ext: string): string {
+  return `${productName.replaceAll(" ", "-")}-${version}-${arch}.${ext}`;
+}
+
+/** Where electron-builder leaves the dmg of `version`. */
+export function packagedDmgPath(
+  desktopDir: string,
+  channel: ReleaseChannel,
+  version: string,
+): string {
+  const { productName } = channelIdentity(channel);
+  return join(desktopDir, "release", channel, artifactName(productName, version, "arm64", "dmg"));
+}
+
 /** The electron-builder configuration of `channel`. */
 export function builderConfig(
   channel: ReleaseChannel,
@@ -105,8 +120,7 @@ export function builderConfig(
       ...(releaseVersion === undefined ? {} : { version: releaseVersion }),
     },
     directories: { output: `release/${channel}` },
-    // GitHub turns a space in an asset name into a dot; this name stays what the build wrote.
-    artifactName: `${productName.replaceAll(" ", "-")}-\${version}-\${arch}.\${ext}`,
+    artifactName: artifactName(productName, "${version}", "${arch}", "${ext}"),
     // Always `dist-electron` inside the package, because that is where `main` points.
     files: [
       "package.json",
@@ -117,7 +131,8 @@ export function builderConfig(
       target: releaseVersion === undefined ? "dir" : "dmg",
       // Ad hoc is trusted by nobody, but a valid signature for the whole bundle, unlike a
       // skipped one. Hardened runtime cannot load Electron's own frameworks under it. With the
-      // Developer ID, electron-builder takes the identity from CSC_LINK.
+      // Developer ID, electron-builder takes the identity from CSC_LINK. Without
+      // `notarize: false`, an Apple API key in the shell would send an ad-hoc build to Apple.
       ...(signing === "developer-id"
         ? {
             hardenedRuntime: true,
@@ -125,7 +140,7 @@ export function builderConfig(
             entitlements: ENTITLEMENTS,
             entitlementsInherit: ENTITLEMENTS,
           }
-        : { identity: "-", hardenedRuntime: false }),
+        : { identity: "-", hardenedRuntime: false, notarize: false }),
       icon,
     },
     // Updates are downloaded by hand (ADR 0007), so the dmg needs no block map.
@@ -179,6 +194,19 @@ export type Run = (
   options: { cwd: string; env: NodeJS.ProcessEnv },
 ) => void;
 
+/** Runs a command in the open, throwing when it fails. */
+export const runInherited: Run = (command, args, options) => {
+  execFileSync(command, args, { ...options, stdio: "inherit" });
+};
+
+// codesign reports on stderr, so both streams are the answer.
+const inspectCommand: Inspect = (command, args) => {
+  const result = spawnSync(command, args, { encoding: "utf8" });
+  const output = `${result.stdout}${result.stderr}`;
+  if (result.status !== 0) throw new Error(`${command} ${args[0]} failed:\n${output}`);
+  return output;
+};
+
 export interface PackageOptions {
   readonly rootDir: string;
   readonly desktopDir: string;
@@ -186,6 +214,18 @@ export interface PackageOptions {
   readonly env: NodeJS.ProcessEnv;
   readonly run: Run;
   readonly inspect: Inspect;
+}
+
+/** This checkout and the real commands. Finds Electron when called, so call it after an install. */
+export function checkoutPackageOptions(env: NodeJS.ProcessEnv): PackageOptions {
+  return {
+    rootDir: ROOT_DIR,
+    desktopDir: DESKTOP_DIR,
+    electronDist: electronDistPath(DESKTOP_DIR),
+    env,
+    run: runInherited,
+    inspect: inspectCommand,
+  };
 }
 
 /** Builds with the channel compiled in, then packages that build. */
@@ -230,20 +270,5 @@ export function packageChannel(request: PackageRequest, options: PackageOptions)
 }
 
 if (import.meta.main) {
-  packageChannel(parsePackageRequest(process.argv.slice(2)), {
-    rootDir: ROOT_DIR,
-    desktopDir: DESKTOP_DIR,
-    electronDist: electronDistPath(DESKTOP_DIR),
-    env: process.env,
-    run: (command, args, options) => {
-      execFileSync(command, args, { ...options, stdio: "inherit" });
-    },
-    // codesign reports on stderr, so both streams are the answer.
-    inspect: (command, args) => {
-      const result = spawnSync(command, args, { encoding: "utf8" });
-      const output = `${result.stdout}${result.stderr}`;
-      if (result.status !== 0) throw new Error(`${command} ${args[0]} failed:\n${output}`);
-      return output;
-    },
-  });
+  packageChannel(parsePackageRequest(process.argv.slice(2)), checkoutPackageOptions(process.env));
 }

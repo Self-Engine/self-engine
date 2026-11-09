@@ -11,6 +11,7 @@
     "dev": "node scripts/desktop-dev.ts",
     "ensure:chromium": "node scripts/ensure-chromium.ts",
     "ensure:electron": "node scripts/ensure-electron.ts",
+    "nightly:local": "node apps/desktop/src/nightly-local.ts",
     "package:desktop": "node apps/desktop/src/package-channel.ts",
     "storybook": "pnpm --filter @self-engine/component-catalog storybook",
     "test": "vp test run",
