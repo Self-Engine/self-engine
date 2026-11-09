@@ -81,8 +81,14 @@ export function ThemeProvider({ appearance, catalog, children }: ThemeProviderPr
   useLayoutEffect(() => {
     document.documentElement.dataset.density = density;
   }, [density]);
-  const variablesFor = ({ cssVariables, mantineVariables, colorVariables }: ColorModeValues) => ({
+  const variablesFor = ({
+    cssVariables,
+    brandVariables,
+    mantineVariables,
+    colorVariables,
+  }: ColorModeValues) => ({
     ...cssVariables,
+    ...brandVariables,
     ...mantineVariables,
     ...colorVariables,
   });

@@ -4,14 +4,12 @@ const STAR_PATH = "M64 18Q69.5 64.5 92 70Q69.5 75.5 64 98Q58.5 75.5 36 70Q58.5 6
 const FACETS_PATH =
   "M64 70L64 10L124 10ZM64 70L124 70L124 130ZM64 70L64 130L4 130ZM64 70L4 70L4 10Z";
 
-// The brand's own colors, which do not follow the Accent. `light-dark()` reads the CSS
-// `color-scheme` that Mantine sets, so a switch of the Color Mode repaints without a render.
-const STAR_TOP = "light-dark(#f7a062, #ffe2cf)";
-const STAR_BOTTOM = "light-dark(#d06d3d, #e0855a)";
-/** Both at 50 % opacity. */
-const RING = "light-dark(#c5836180, #e0855a80)";
-/** At 22 % and 30 % opacity. */
-const FACETS = "light-dark(#3a1a0c38, #3a1a0c4d)";
+// The brand's own colors, from the theme engine. Variables, so a switch of the Color Mode repaints
+// without a render.
+const STAR_TOP = "var(--se-brand-star-top)";
+const STAR_BOTTOM = "var(--se-brand-star-bottom)";
+const RING = "var(--se-brand-ring)";
+const FACETS = "var(--se-brand-facets)";
 
 /** Multiplied by Mantine's scale, so the mark follows the font scale like the icons do. */
 const LENGTH = "calc(1.75rem * var(--mantine-scale))";
