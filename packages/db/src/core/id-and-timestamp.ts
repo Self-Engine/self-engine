@@ -22,7 +22,7 @@ const systemClock: Clock = () => new Date();
 const TIMESTAMP_LENGTH = "2026-11-09T14:07:46.297Z".length;
 
 /** The current time in UTC, always as `2026-11-09T14:07:46.297Z`. SQLite orders text by character. */
-export function timestamp(clock: Clock = systemClock): string {
+export function newTimestamp(clock: Clock = systemClock): string {
   const value = clock().toISOString();
   // Outside the years 0 to 9999, `toISOString` writes a longer year, which would sort wrongly.
   if (value.length !== TIMESTAMP_LENGTH) throw new Error(`${value} does not fit a timestamp`);

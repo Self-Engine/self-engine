@@ -174,6 +174,18 @@ describe("checkConventions", () => {
       await expect(checkConventions(database)).resolves.toEqual([]);
     });
 
+    test("asks them of a table whose prefix is in another case", async () => {
+      await database.executeScript("CREATE TABLE LOCAL_figures (total INTEGER) STRICT;");
+
+      await expect(checkConventions(database)).resolves.toEqual([
+        { table: "LOCAL_figures", rule: ID_RULE },
+        { table: "LOCAL_figures", rule: CREATED_RULE },
+        { table: "LOCAL_figures", rule: UPDATED_RULE },
+        { table: "LOCAL_figures", rule: DELETED_RULE },
+        { table: "LOCAL_figures", rule: SPACE_RULE },
+      ]);
+    });
+
     test("still asks a Local Table to be STRICT", async () => {
       await database.executeScript("CREATE TABLE local_figures (total INTEGER);");
 
@@ -276,6 +288,10 @@ describe("checkConventions", () => {
         "a comment inside the clause",
         "project_id TEXT REFERENCES projects (id) /* why */ DEFERRABLE -- note\n INITIALLY DEFERRED",
       ],
+      [
+        "a deferral after a later column constraint",
+        "project_id TEXT REFERENCES projects (id) NOT NULL DEFERRABLE INITIALLY DEFERRED",
+      ],
     ])("accepts %s", async (_name, definition) => {
       await database.executeScript(`CREATE TABLE notes (${SYNCED_COLUMNS}, ${definition}) STRICT;`);
 
@@ -299,6 +315,18 @@ describe("checkConventions", () => {
           ${SYNCED_COLUMNS},
           folder_id TEXT REFERENCES folders (id) DEFERRABLE INITIALLY DEFERRED,
           project_id TEXT REFERENCES projects (id)
+        ) STRICT;
+      `);
+
+      await expect(checkConventions(database)).resolves.toEqual([NOT_DEFERRED]);
+    });
+
+    test("does not credit a later key's deferral to an earlier key", async () => {
+      await database.executeScript(`
+        CREATE TABLE notes (
+          ${SYNCED_COLUMNS},
+          project_id TEXT REFERENCES projects (id) NOT NULL,
+          folder_id TEXT REFERENCES folders (id) DEFERRABLE INITIALLY DEFERRED
         ) STRICT;
       `);
 
@@ -347,7 +375,7 @@ describe("checkConventions", () => {
         await expect(checkConventions(database)).resolves.toEqual([TO_LOCAL]);
       });
 
-      test("is reported whatever the case of the parent's name", async () => {
+      test("is not reported for a parent whose prefix is in another case", async () => {
         await database.executeScript(`
           CREATE TABLE notes (
             ${SYNCED_COLUMNS},
@@ -355,12 +383,7 @@ describe("checkConventions", () => {
           ) STRICT;
         `);
 
-        await expect(checkConventions(database)).resolves.toEqual([
-          {
-            table: "notes",
-            rule: "must not have a foreign key to the Local Table LOCAL_Figures",
-          },
-        ]);
+        await expect(checkConventions(database)).resolves.toEqual([]);
       });
 
       test("is allowed the other way round", async () => {

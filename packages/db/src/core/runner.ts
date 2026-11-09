@@ -18,13 +18,21 @@ function providerOf(database: Database, migrations: readonly Migration[]): Migra
   return { getMigrations: () => Promise.resolve(Object.fromEntries(entries)) };
 }
 
-/** A runner for the given migrations. The caller composes the list, so this knows no module. */
+const MIGRATION_NAME = /^[a-z][a-z0-9-]*\/\d{4}$/;
+
+/**
+ * A runner for the given migrations. The caller composes the list, so this knows no module.
+ * Every migration passes through here, so this is the one check of a migration's name.
+ */
 export function createMigrationRunner(
   database: Database,
   migrations: readonly Migration[],
 ): MigrationRunner {
   const seen = new Set<string>();
   for (const { name } of migrations) {
+    if (!MIGRATION_NAME.test(name)) {
+      throw new Error(`Migration ${name} must be named <module>/<four digits>, like time/0003`);
+    }
     if (seen.has(name)) throw new Error(`Two migrations are named ${name}`);
     seen.add(name);
   }

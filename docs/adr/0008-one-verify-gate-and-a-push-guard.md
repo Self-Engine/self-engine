@@ -1,7 +1,7 @@
 ---
 status: accepted
 date: 2026-11-08
-decisions: D44, D45
+decisions: D44, D45, D142
 ---
 
 # One verify gate and a push guard

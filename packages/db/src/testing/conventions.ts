@@ -27,8 +27,6 @@ const SKIPPED_TABLES: ReadonlySet<string> = new Set([
   "kysely_migration_lock",
   "sqlite_sequence",
   "sqlite_stat1",
-  "sqlite_stat2",
-  "sqlite_stat3",
   "sqlite_stat4",
 ]);
 
@@ -74,9 +72,9 @@ const REQUIRED_COLUMNS: readonly {
   },
 ];
 
-/** SQLite treats table names without regard to case, so the marker does too. */
+/** A Local Table is marked by exactly this prefix, in lower case. */
 function isLocalTable(name: string): boolean {
-  return name.toLowerCase().startsWith("local_");
+  return name.startsWith("local_");
 }
 
 function columnRules(table: string, columns: readonly ColumnRow[]): string[] {
@@ -110,35 +108,32 @@ function unquoted(name: string): string {
 
 interface ForeignKey {
   readonly parent: string;
-  readonly deferred: boolean;
-}
-
-/** Reads the clause after `REFERENCES`, whose first token is at `start`: the parent's name. */
-function readForeignKey(tokens: readonly string[], start: number): ForeignKey {
-  const word = (index: number) => tokens[index]?.toUpperCase();
-  let at = start + 1;
-  if (tokens[at] === "(") at = tokens.indexOf(")", at) + 1;
-  while (word(at) === "ON" || word(at) === "MATCH") {
-    if (word(at) === "MATCH") at += 2;
-    else at += word(at + 2) === "SET" || word(at + 2) === "NO" ? 4 : 3;
-  }
-  return {
-    parent: unquoted(tokens[start] ?? ""),
-    deferred:
-      word(at) === "DEFERRABLE" && word(at + 1) === "INITIALLY" && word(at + 2) === "DEFERRED",
-  };
+  deferred: boolean;
 }
 
 /**
  * The foreign keys of a `CREATE TABLE` statement. SQLite's `foreign_key_list` does not report
- * deferral, so they are read from the text SQLite keeps. `REFERENCES` is a reserved word, so
- * unquoted it starts nothing else.
+ * deferral, so they are read from the text SQLite keeps. `REFERENCES` and `DEFERRABLE` are
+ * reserved words, so unquoted they start nothing else. Like SQLite, a deferral clause applies to
+ * the latest foreign key, even with other column constraints in between, and the last clause wins.
  */
 function foreignKeysOf(createTable: string): ForeignKey[] {
   const tokens = tokensOf(createTable);
-  return tokens.flatMap((token, index) =>
-    token.toUpperCase() === "REFERENCES" ? [readForeignKey(tokens, index + 1)] : [],
-  );
+  const word = (index: number) => tokens[index]?.toUpperCase();
+  const keys: ForeignKey[] = [];
+  tokens.forEach((_token, index) => {
+    if (word(index) === "REFERENCES") {
+      keys.push({ parent: unquoted(tokens[index + 1] ?? ""), deferred: false });
+    } else if (word(index) === "DEFERRABLE") {
+      const latest = keys.at(-1);
+      if (latest === undefined) return;
+      latest.deferred =
+        word(index - 1) !== "NOT" &&
+        word(index + 1) === "INITIALLY" &&
+        word(index + 2) === "DEFERRED";
+    }
+  });
+  return keys;
 }
 
 function foreignKeyRules(table: string, createTable: string): string[] {

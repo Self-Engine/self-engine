@@ -11,6 +11,7 @@ function createTable(name: string, table: string): Migration {
 let database: Database;
 
 async function tables(): Promise<string[]> {
+  // Kysely creates its two bookkeeping tables before the transaction starts, so they survive a failed run.
   const { rows } = await sql<{ name: string }>`
     SELECT name FROM sqlite_master
     WHERE type = 'table' AND name NOT LIKE 'kysely_%' AND name NOT LIKE 'sqlite_%'
@@ -87,6 +88,31 @@ describe("a migration run", () => {
         createTable("time/0001", "time_breaks"),
       ]),
     ).toThrow(/time\/0001/);
+  });
+
+  test.each([
+    "time",
+    "time/1",
+    "time/00001",
+    "time/0001.sql",
+    "/0001",
+    "Time/0001",
+    "my module/0001",
+    "time/entries/0001",
+    "../time/0001",
+  ])("rejects the migration name %s", (name) => {
+    expect(() => createMigrationRunner(database, [createTable(name, "time_entries")])).toThrow(
+      name,
+    );
+  });
+
+  test("accepts a module name with a hyphen or a digit", () => {
+    expect(() =>
+      createMigrationRunner(database, [
+        createTable("sql-module/0001", "a"),
+        createTable("i18n/0001", "b"),
+      ]),
+    ).not.toThrow();
   });
 
   test("reports whether migrations are pending", async () => {

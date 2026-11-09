@@ -1,5 +1,5 @@
 export type { Database } from "./database.ts";
-export { newId, timestamp } from "./id-and-timestamp.ts";
+export { newId, newTimestamp } from "./id-and-timestamp.ts";
 export type { Clock, IdSources } from "./id-and-timestamp.ts";
 export { defineMigrations } from "./migration.ts";
 export type { Migration } from "./migration.ts";

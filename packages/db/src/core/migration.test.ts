@@ -14,10 +14,20 @@ describe("defineMigrations", () => {
     ]);
   });
 
-  test.each(["./migrations/1.sql", "./migrations/0001-entries.sql", "./migrations/0001.txt"])(
-    "rejects the file name %s",
-    (path) => {
-      expect(() => defineMigrations("time", { [path]: "" })).toThrow(path);
-    },
-  );
+  test.each([
+    "./migrations/1.sql",
+    "./migrations/0001-entries.sql",
+    "./migrations/0001.txt",
+    "src/sql/0001.sql",
+    "./0001.sql",
+    "./my-migrations/0001.sql",
+  ])("rejects the file path %s", (path) => {
+    expect(() => defineMigrations("time", { [path]: "" })).toThrow(path);
+  });
+
+  test("accepts a migrations folder nested in the module", () => {
+    expect(defineMigrations("time", { "src/migrations/0001.sql": "" })).toEqual([
+      { name: "time/0001", sql: "" },
+    ]);
+  });
 });
