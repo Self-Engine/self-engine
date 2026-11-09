@@ -3,12 +3,14 @@ import {
   AppShell,
   Box,
   Burger,
+  Center,
   Drawer,
   Group,
   NavLink,
   rem,
   ScrollArea,
   Splitter,
+  Text,
   Title,
   Tooltip,
   useAppShellResize,
@@ -20,6 +22,7 @@ import { type ColorSetId, roleColor } from "@self-engine/theme";
 import {
   type ComponentType,
   type CSSProperties,
+  type MouseEvent,
   type ReactNode,
   useEffect,
   useRef,
@@ -32,6 +35,8 @@ const NAVBAR_STANDARD_WIDTH = 220;
 const NAVBAR_MIN_WIDE_WIDTH = 168;
 const NAVBAR_MAX_WIDTH = 280;
 const NAVBAR_COLLAPSE_BELOW = (NAVBAR_ICONS_ONLY_WIDTH + NAVBAR_MIN_WIDE_WIDTH) / 2;
+/** The variables Mantine's handle writes in `static` mode, and removes again on its own. */
+const NAVBAR_PREVIEW_VARIABLES = ["--app-shell-navbar-width", "--app-shell-navbar-grid-width"];
 const MODULE_SIDEBAR_MIN_WIDTH = 200;
 const MODULE_SIDEBAR_MAX_WIDTH = 360;
 export const SHELL_STANDARD_MODULE_SIDEBAR_WIDTH = 240;
@@ -41,7 +46,10 @@ const KEYBOARD_SHIFT_STEP = 50;
 const GAP = 8;
 const CONTENT_HEADER_HEIGHT = 48;
 const BOTTOM_BAR_HEIGHT = 64;
-const WINDOW_BUTTONS_STRIP_HEIGHT = 40;
+const ENTRY_HEIGHT = 40;
+const LOGO_ROW_HEIGHT = 48;
+/** As high as the content header and level with it, so window buttons and page title share a line. */
+const WINDOW_BUTTONS_STRIP_HEIGHT = CONTENT_HEADER_HEIGHT;
 
 export const SHELL_STANDARD_NAVBAR: ShellNavbarState = {
   collapsed: false,
@@ -63,6 +71,24 @@ const ROOT_STYLE = {
   overflow: "hidden",
   padding: rem(GAP),
 } as CSSProperties;
+
+// Plain CSS that moves the window in Electron and means nothing in a browser, so the Shell needs
+// no platform check. Electron cuts `no-drag` out of what `drag` claims, whatever is on top.
+const WINDOW_DRAG_STYLE = { WebkitAppRegion: "drag" } as CSSProperties;
+const NOT_WINDOW_DRAG_STYLE = { WebkitAppRegion: "no-drag" } as CSSProperties;
+
+const TOP_EDGE_STYLE: CSSProperties = {
+  ...WINDOW_DRAG_STYLE,
+  height: rem(GAP),
+  inset: "0 0 auto 0",
+  position: "fixed",
+};
+
+const WINDOW_BUTTONS_STRIP_STYLE: CSSProperties = {
+  ...WINDOW_DRAG_STYLE,
+  // Starts where the Navbar starts, not below its padding.
+  marginBlockStart: "calc(-1 * var(--mantine-spacing-xs))",
+};
 
 const CONTENT_PANE_STYLE: CSSProperties = {
   backgroundColor: roleColor("canvas"),
@@ -94,13 +120,18 @@ const ACTIVE_ENTRY_VARS = () => ({
 
 const ENTRY_ROOT_STYLE: CSSProperties = { borderRadius: "var(--mantine-radius-sm)" };
 
+/** As wide as the icons-only Navbar has room, so an icon sits on its axis at every width. */
+const ICON_AXIS_SLOT_WIDTH = `calc(${rem(NAVBAR_ICONS_ONLY_WIDTH)} - 2 * var(--mantine-spacing-xs))`;
+
+/** One geometry with and without a label, so that only the label goes. */
+const NAVBAR_ENTRY_STYLES = {
+  root: { ...ENTRY_ROOT_STYLE, height: rem(ENTRY_HEIGHT), padding: 0 },
+  section: { flex: "none", marginInlineEnd: 0, width: ICON_AXIS_SLOT_WIDTH },
+};
+
 const ENTRY_STYLES = {
-  labelled: { root: ENTRY_ROOT_STYLE },
-  iconsOnly: {
-    root: { ...ENTRY_ROOT_STYLE, justifyContent: "center" },
-    section: { marginInlineEnd: 0 },
-    body: { display: "none" },
-  },
+  labelled: NAVBAR_ENTRY_STYLES,
+  iconsOnly: { ...NAVBAR_ENTRY_STYLES, body: { display: "none" } },
   bottomBar: {
     root: {
       ...ENTRY_ROOT_STYLE,
@@ -128,6 +159,14 @@ export interface ShellNavbarState {
   readonly expandedWidth: number;
 }
 
+/** The app's brand. The Shell only places it: its artwork comes in from outside. */
+export interface ShellLogo {
+  /** Stays on the axis of the entry icons, at every Navbar width. */
+  readonly mark: ReactNode;
+  /** Shown beside the mark when the Navbar is labelled. */
+  readonly name: string;
+}
+
 export interface ShellProps {
   /** The modules, in Navbar order. */
   readonly entries: readonly ShellEntry[];
@@ -137,6 +176,8 @@ export interface ShellProps {
   readonly onSelectEntry: (id: string) => void;
   readonly moduleSidebar: ReactNode;
   readonly pageTitle: string;
+  /** The top row of the Navbar. No logo at phone width, where there is no Navbar. */
+  readonly logo?: ShellLogo;
   /** The free end of the content header. */
   readonly headerEnd?: ReactNode;
   readonly channelBadge?: ReactNode;
@@ -212,6 +253,7 @@ export function Shell({
   onSelectEntry,
   moduleSidebar,
   pageTitle,
+  logo,
   headerEnd,
   channelBadge,
   navbar = SHELL_STANDARD_NAVBAR,
@@ -231,7 +273,10 @@ export function Shell({
 
   const isPhone = step === "phone";
   const sidebarInDrawer = isPhone || step === "narrow";
-  const entryAppearance = step !== "wide" || navbar.collapsed ? "iconsOnly" : "labelled";
+  // Set only during a drag, so the commit on release is still the one report of a change.
+  const [draggedCollapsed, setDraggedCollapsed] = useState<boolean | null>(null);
+  const entryAppearance =
+    step !== "wide" || (draggedCollapsed ?? navbar.collapsed) ? "iconsOnly" : "labelled";
   const navbarWidth = navbar.collapsed
     ? NAVBAR_ICONS_ONLY_WIDTH
     : { base: NAVBAR_ICONS_ONLY_WIDTH, lg: shownWidthOf(navbar) };
@@ -259,8 +304,22 @@ export function Shell({
     if (next.collapsed !== navbar.collapsed || next.expandedWidth !== navbar.expandedWidth)
       onNavbarCommit?.(next);
   };
+  const appShellRef = useRef<HTMLDivElement>(null);
   const navbarResize = useAppShellResize({
-    navbar: { min: NAVBAR_ICONS_ONLY_WIDTH, max: NAVBAR_MAX_WIDTH, label: t`Resize navbar` },
+    navbar: {
+      min: NAVBAR_ICONS_ONLY_WIDTH,
+      max: NAVBAR_MAX_WIDTH,
+      label: t`Resize navbar`,
+      collapseThreshold: NAVBAR_COLLAPSE_BELOW,
+    },
+    onCollapseChange: (_, collapsed) => setDraggedCollapsed(collapsed),
+    // Runs right after Mantine wrote the pointer's width, and only the gap needs correcting.
+    onResize: ({ navbar: width }) => {
+      if (width === undefined || width >= NAVBAR_MIN_WIDE_WIDTH) return;
+      const shown = rem(shownWidthOf(settledNavbar(width, navbar, true)));
+      for (const variable of NAVBAR_PREVIEW_VARIABLES)
+        appShellRef.current?.style.setProperty(variable, shown);
+    },
     onResizeEnd: ({ navbar: width }) => {
       if (width === undefined) return;
       commitNavbar(settledNavbar(width, navbar, navbarResize.activeSection === "navbar"));
@@ -270,6 +329,11 @@ export function Shell({
   const shownNavbarWidth = shownWidthOf(navbar);
   const controlledNavbarResize = {
     ...navbarResize,
+    // Every way out of a resize passes here: release, Escape, a key press.
+    endResize: (...args: Parameters<typeof navbarResize.endResize>) => {
+      setDraggedCollapsed(null);
+      navbarResize.endResize(...args);
+    },
     sizes: { navbar: shownNavbarWidth },
     navbar: {
       ...navbarResize.navbar,
@@ -301,10 +365,13 @@ export function Shell({
       // which is the smallest Electron window.
       navbar={{ width: navbarWidth, breakpoint: "xs", collapsed: { mobile: true } }}
       padding={0}
+      ref={appShellRef}
       // Mantine prefers a resized width over the responsive ones, so only the wide step gets it.
       {...(step === "wide" && { resize: controlledNavbarResize })}
       style={ROOT_STYLE}
+      styles={{ resizeHandle: NOT_WINDOW_DRAG_STYLE }}
     >
+      <Box aria-hidden style={TOP_EDGE_STYLE} />
       {!isPhone && (
         <AppShell.Navbar
           aria-label={t`Modules`}
@@ -315,7 +382,25 @@ export function Shell({
           }}
           withBorder={!sidebarInDrawer}
         >
-          {reserveWindowButtons && <Box flex="none" h={rem(WINDOW_BUTTONS_STRIP_HEIGHT)} />}
+          {reserveWindowButtons && (
+            <Box
+              flex="none"
+              h={rem(WINDOW_BUTTONS_STRIP_HEIGHT)}
+              style={WINDOW_BUTTONS_STRIP_STYLE}
+            />
+          )}
+          {logo && (
+            <Group flex="none" gap={0} h={rem(LOGO_ROW_HEIGHT)} wrap="nowrap">
+              <Center flex="none" w={ICON_AXIS_SLOT_WIDTH}>
+                {logo.mark}
+              </Center>
+              {entryAppearance === "labelled" && (
+                <Text fw={600} truncate>
+                  {logo.name}
+                </Text>
+              )}
+            </Group>
+          )}
           <AppShell.Section component={ScrollArea} grow>
             {entries.map((entry) => entryLink(entry, entryAppearance))}
           </AppShell.Section>
@@ -331,7 +416,13 @@ export function Shell({
       >
         <Splitter
           h="100%"
-          attributes={{ handle: { "aria-label": t`Resize module sidebar` } }}
+          attributes={{
+            handle: {
+              "aria-label": t`Resize module sidebar`,
+              // A pointer drags by its own events, so only the keyboard needs the focus.
+              onMouseDown: (event: MouseEvent) => event.preventDefault(),
+            },
+          }}
           // Below, because Mantine's reset restores the ratio of the panes, not the standard width.
           resetOnDoubleClick={false}
           handleIcon={null}
@@ -379,22 +470,30 @@ export function Shell({
             )}
           </Splitter.Pane>
           <Splitter.Pane defaultSize={100} style={CONTENT_PANE_STYLE}>
-            <Group flex="none" gap="sm" h={rem(CONTENT_HEADER_HEIGHT)} px="md" wrap="nowrap">
+            <Group
+              flex="none"
+              gap="sm"
+              h={rem(CONTENT_HEADER_HEIGHT)}
+              px="md"
+              style={WINDOW_DRAG_STYLE}
+              wrap="nowrap"
+            >
               {sidebarInDrawer && (
                 <Burger
                   aria-label={t`Open module sidebar`}
                   onClick={toggleDrawer}
                   opened={drawerOpened}
                   size="sm"
+                  style={NOT_WINDOW_DRAG_STYLE}
                 />
               )}
               <Group flex={1} gap="sm" miw={0} wrap="nowrap">
                 <Title lineClamp={1} order={1} size="h4">
                   {pageTitle}
                 </Title>
-                {channelBadge}
+                {channelBadge && <Box style={NOT_WINDOW_DRAG_STYLE}>{channelBadge}</Box>}
               </Group>
-              {headerEnd}
+              {headerEnd && <Box style={NOT_WINDOW_DRAG_STYLE}>{headerEnd}</Box>}
             </Group>
             <ScrollArea flex={1} mih={0}>
               <Box p="md">{children}</Box>
@@ -416,6 +515,8 @@ export function Shell({
         onClose={closeDrawer}
         opened={sidebarInDrawer && drawerOpened}
         size={shownModuleSidebarWidth}
+        // It opens over the content header, whose drag region would swallow the clicks.
+        styles={{ content: NOT_WINDOW_DRAG_STYLE, overlay: NOT_WINDOW_DRAG_STYLE }}
         title={t`Module Sidebar`}
       >
         {moduleSidebar}

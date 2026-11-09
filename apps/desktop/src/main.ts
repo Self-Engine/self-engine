@@ -10,6 +10,7 @@ import {
   serveAsset,
   withContentSecurityPolicy,
 } from "./protocol.ts";
+import { titleBarOptions } from "./title-bar.ts";
 
 const { channel, productName, dataFolder, icon, scheme } = buildIdentity;
 
@@ -58,6 +59,7 @@ async function openWindow(): Promise<void> {
     height: 800,
     minWidth: 576,
     useContentSize: true,
+    ...titleBarOptions(process.platform),
     // The native window is white until the page paints, which the Start Cache cannot reach.
     show: false,
     webPreferences: {

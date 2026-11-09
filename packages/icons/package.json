@@ -5,7 +5,8 @@
   "license": "AGPL-3.0-only",
   "type": "module",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./brand-mark": "./src/brand-mark.tsx"
   },
   "dependencies": {
     "@phosphor-icons/react": "catalog:",

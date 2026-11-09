@@ -3,6 +3,7 @@ import { useLingui } from "@lingui/react";
 import { Trans } from "@lingui/react/macro";
 import { Badge, Text } from "@mantine/core";
 import { AssistantIcon, CalendarIcon, ProjectsIcon, SettingsIcon } from "@self-engine/icons";
+import { BrandMark } from "@self-engine/icons/brand-mark";
 import {
   Shell,
   SHELL_STANDARD_MODULE_SIDEBAR_WIDTH,
@@ -40,6 +41,9 @@ const SETTINGS = {
 
 const PAGES = [...MODULES, SETTINGS];
 
+// The name of the product, which is not translated.
+const LOGO = { mark: <BrandMark />, name: "Self-Engine" };
+
 export const Route = createRootRoute({ component: RootLayout });
 
 function RootLayout() {
@@ -64,6 +68,7 @@ function RootLayout() {
       activeEntryId={activePage?.to ?? ""}
       channelBadge={badge && <Badge variant="light">{badge}</Badge>}
       entries={MODULES.map(entryOf)}
+      logo={LOGO}
       moduleSidebar={
         <Text c="dimmed" size="sm">
           <Trans>The views of the active module will appear here.</Trans>

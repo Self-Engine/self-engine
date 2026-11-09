@@ -77,6 +77,10 @@ function navbarOf(canvas: ReturnType<typeof within>): HTMLElement {
   return canvas.getByRole("navigation", { name: "Modules" });
 }
 
+function canvasRoot(canvas: ReturnType<typeof within>): HTMLElement {
+  return navbarOf(canvas).parentElement!;
+}
+
 /** Rendered widths, rounded: subpixel layout must not fail a story. */
 function widthOf(element: Element): number {
   return Math.round(element.getBoundingClientRect().width);
@@ -302,6 +306,79 @@ export const StripForTheWindowButtons: Story = {
   },
 };
 
+const centerY = (element: Element) => {
+  const { top, height } = element.getBoundingClientRect();
+  return top + height / 2;
+};
+
+export const WindowButtonsAndPageTitleShareALine: Story = {
+  ...atViewport("wide"),
+  args: { reserveWindowButtons: true },
+  play: async ({ canvas }) => {
+    const strip = navbarOf(canvas).firstElementChild!;
+    const title = canvas.getByRole("heading", { name: "Time" });
+    await expect(centerY(strip)).toBeCloseTo(centerY(title), 0);
+  },
+};
+
+const appRegionOf = (element: Element) =>
+  getComputedStyle(element).getPropertyValue("-webkit-app-region");
+
+/** Plain CSS: it moves the window in Electron and means nothing in a browser. */
+export const TheTopEdgeDragsTheWindowAndItsControlsStayClickable: Story = {
+  ...atViewport("narrow"),
+  args: {
+    channelBadge: <span>Nightly</span>,
+    headerEnd: <button type="button">Search</button>,
+    reserveWindowButtons: true,
+  },
+  play: async ({ canvas }) => {
+    const title = canvas.getByRole("heading", { name: "Time" });
+    const header = title.parentElement!.parentElement!;
+    await expect(appRegionOf(header)).toBe("drag");
+    await expect(appRegionOf(navbarOf(canvas).firstElementChild!)).toBe("drag");
+    await expect(appRegionOf(canvas.getByRole("button", { name: "Open module sidebar" }))).toBe(
+      "no-drag",
+    );
+    await expect(appRegionOf(canvas.getByRole("button", { name: "Search" }).parentElement!)).toBe(
+      "no-drag",
+    );
+    await expect(appRegionOf(canvas.getByText("Nightly").parentElement!)).toBe("no-drag");
+    const topEdge = [...canvasRoot(canvas).querySelectorAll("*")].find(
+      (element) =>
+        appRegionOf(element) === "drag" && getComputedStyle(element).position === "fixed",
+    );
+    await expect(topEdge?.getBoundingClientRect()).toMatchObject({ top: 0, left: 0, width: 800 });
+  },
+};
+
+export const TheNavbarHandleStaysGrabbableInTheDragRegion: Story = {
+  ...atViewport("wide"),
+  args: { reserveWindowButtons: true },
+  play: async ({ canvas }) => {
+    await expect(appRegionOf(navbarHandle(canvas))).toBe("no-drag");
+  },
+};
+
+export const TheDrawerStaysClickableAboveTheDragRegion: Story = {
+  ...atViewport("narrow"),
+  play: async ({ canvas }) => {
+    await userEvent.click(canvas.getByRole("button", { name: "Open module sidebar" }));
+    const drawer = await screen.findByRole("dialog", { name: "Module Sidebar" });
+    await expect(appRegionOf(drawer)).toBe("no-drag");
+  },
+};
+
+export const TheBackgroundReachesTheWindowEdge: Story = {
+  ...atViewport("wide"),
+  play: async ({ canvas }) => {
+    const root = canvasRoot(canvas);
+    await expect(root.getBoundingClientRect()).toMatchObject({ top: 0, left: 0 });
+    await expect(root.getBoundingClientRect().width).toBe(document.documentElement.clientWidth);
+    await expect(root.getBoundingClientRect().height).toBe(window.innerHeight);
+  },
+};
+
 export const NoStripWithoutWindowButtons: Story = {
   ...atViewport("wide"),
   play: async ({ canvas }) => {
@@ -473,7 +550,7 @@ export const NavbarSettlesOnTheMinimumWideWidth: Story = {
     const navbar = navbarOf(canvas);
     const drag = await pressHandle(navbarHandle(canvas));
     await drag.moveBy(-102);
-    await expect(widthOf(navbar)).toBe(118);
+    await expect(widthOf(navbar)).toBe(168);
     await drag.release(-102);
     await expect(widthOf(navbar)).toBe(168);
     await expect(within(navbar).getByText("Projects")).toBeVisible();
@@ -481,6 +558,44 @@ export const NavbarSettlesOnTheMinimumWideWidth: Story = {
       collapsed: false,
       expandedWidth: 168,
     });
+  },
+};
+
+/** No width between the two forms ever shows, so no label is ever cut off. */
+export const NavbarSwitchesFormWhileDragging: Story = {
+  ...atViewport("wide"),
+  ...resizable,
+  play: async ({ args, canvas }) => {
+    const navbar = navbarOf(canvas);
+    const drag = await pressHandle(navbarHandle(canvas));
+    await drag.moveBy(-103);
+    await expect(widthOf(navbar)).toBe(68);
+    await waitFor(() => expect(within(navbar).queryByText("Projects")).toBeNull());
+    await drag.moveBy(-60);
+    await expect(widthOf(navbar)).toBe(168);
+    await waitFor(() => expect(within(navbar).getByText("Projects")).toBeVisible());
+    await drag.moveBy(-30);
+    await expect(widthOf(navbar)).toBe(190);
+    await expect(args.onNavbarCommit).not.toHaveBeenCalled();
+    await drag.moveBy(-120);
+    await drag.release(-120);
+    await expect(widthOf(navbar)).toBe(68);
+    await expectReportedOnce(args.onNavbarCommit, { collapsed: true, expandedWidth: 220 });
+  },
+};
+
+export const EscapeBringsTheNavbarBackAfterItSwitched: Story = {
+  ...atViewport("wide"),
+  ...resizable,
+  play: async ({ args, canvas }) => {
+    const navbar = navbarOf(canvas);
+    const drag = await pressHandle(navbarHandle(canvas));
+    await drag.moveBy(-120);
+    await waitFor(() => expect(within(navbar).queryByText("Projects")).toBeNull());
+    await userEvent.keyboard("{Escape}");
+    await waitFor(() => expect(widthOf(navbar)).toBe(220));
+    await waitFor(() => expect(within(navbar).getByText("Projects")).toBeVisible());
+    await expect(args.onNavbarCommit).not.toHaveBeenCalled();
   },
 };
 
@@ -595,6 +710,76 @@ export const EscapeCancelsANavbarDrag: Story = {
   },
 };
 
+export const EntriesKeepTheirGeometryWhenTheLabelGoes: Story = {
+  ...atViewport("wide"),
+  ...resizable,
+  play: async ({ canvas }) => {
+    const navbar = navbarOf(canvas);
+    const entry = () => within(navbar).getByRole("button", { name: "Projects" });
+    const geometry = () => {
+      const icon = entry().querySelector("svg")!.getBoundingClientRect();
+      return { height: entry().getBoundingClientRect().height, iconLeft: icon.left };
+    };
+    const labelled = geometry();
+    await userEvent.dblClick(navbarHandle(canvas));
+    await waitFor(() => expect(widthOf(navbar)).toBe(68));
+    await expect(geometry()).toEqual(labelled);
+    const icon = entry().querySelector("svg")!.getBoundingClientRect();
+    const box = navbar.getBoundingClientRect();
+    await expect(icon.left + icon.width / 2).toBeCloseTo(box.left + box.width / 2, 0);
+  },
+};
+
+const LOGO = { mark: <svg data-testid="mark" height={28} width={28} />, name: "Self-Engine" };
+
+const centerX = (element: Element) => {
+  const { left, width } = element.getBoundingClientRect();
+  return left + width / 2;
+};
+
+export const LogoStaysOnTheIconAxisAndOnlyItsNameGoes: Story = {
+  ...atViewport("wide"),
+  ...resizable,
+  args: { logo: LOGO },
+  play: async ({ canvas }) => {
+    const navbar = navbarOf(canvas);
+    const mark = canvas.getByTestId("mark");
+    const firstEntry = () => within(navbar).getByRole("button", { name: "Projects" });
+    const place = () => ({
+      markLeft: mark.getBoundingClientRect().left,
+      entryTop: firstEntry().getBoundingClientRect().top,
+    });
+    await expect(canvas.getByText("Self-Engine")).toBeVisible();
+    await expect(centerX(mark)).toBeCloseTo(centerX(firstEntry().querySelector("svg")!), 0);
+    await expect(mark.getBoundingClientRect().bottom).toBeLessThanOrEqual(place().entryTop);
+    const expanded = place();
+    await userEvent.dblClick(navbarHandle(canvas));
+    await waitFor(() => expect(widthOf(navbar)).toBe(68));
+    await expect(canvas.queryByText("Self-Engine")).toBeNull();
+    await expect(place()).toEqual(expanded);
+  },
+};
+
+export const LogoSitsBelowTheWindowButtons: Story = {
+  ...atViewport("wide"),
+  args: { logo: LOGO, reserveWindowButtons: true },
+  play: async ({ canvas }) => {
+    const strip = navbarOf(canvas).firstElementChild!;
+    await expect(canvas.getByTestId("mark").getBoundingClientRect().top).toBeGreaterThanOrEqual(
+      strip.getBoundingClientRect().bottom,
+    );
+  },
+};
+
+export const NoLogoAtPhoneWidth: Story = {
+  ...atViewport("phone"),
+  args: { logo: LOGO },
+  play: async ({ canvas }) => {
+    await expect(canvas.queryByTestId("mark")).toBeNull();
+    await expect(canvas.queryByText("Self-Engine")).toBeNull();
+  },
+};
+
 export const NavbarHasAHandleOnlyAtTheWideStep: Story = {
   ...atViewport("medium"),
   ...resizable,
@@ -699,6 +884,18 @@ export const ModuleSidebarDoubleClickRestoresTheStandardWidth: Story = {
     await userEvent.dblClick(sidebarHandle(canvas));
     await waitFor(() => expect(widthOf(sidebar)).toBe(240));
     await expectReportedOnce(args.onModuleSidebarWidthCommit, 240);
+  },
+};
+
+/** Mantine's ring follows the focus, and a later key press would light it on a clicked handle. */
+export const OnlyTheKeyboardFocusesTheModuleSidebarHandle: Story = {
+  ...atViewport("wide"),
+  ...resizable,
+  play: async ({ canvas }) => {
+    const handle = sidebarHandle(canvas);
+    await userEvent.click(handle);
+    await expect(handle).not.toHaveFocus();
+    await expect(handle).toHaveAttribute("tabindex", "0");
   },
 };
 
