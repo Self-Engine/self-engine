@@ -47,9 +47,15 @@ const GAP = 8;
 const CONTENT_HEADER_HEIGHT = 48;
 const BOTTOM_BAR_HEIGHT = 64;
 const ENTRY_HEIGHT = 40;
-const LOGO_ROW_HEIGHT = 48;
-/** As high as the content header and level with it, so window buttons and page title share a line. */
-const WINDOW_BUTTONS_STRIP_HEIGHT = CONTENT_HEADER_HEIGHT;
+/** As high as the content header and level with it, so window buttons, logo and page title share a line. */
+const TOP_STRIP_HEIGHT = CONTENT_HEADER_HEIGHT;
+/**
+ * Where the logo starts beside the macOS window buttons, from the window edge: they end at 68 px
+ * (see `titleBarOptions`). In real pixels, because the buttons do not follow Mantine's scale.
+ */
+const LOGO_START_AFTER_WINDOW_BUTTONS = "84px";
+/** The Navbar's own padding, on top of the frame around the Shell. */
+const LOGO_START_AT_CONTAINER_EDGE = `calc(${rem(GAP)} + var(--mantine-spacing-xs))`;
 
 export const SHELL_STANDARD_NAVBAR: ShellNavbarState = {
   collapsed: false,
@@ -84,10 +90,20 @@ const TOP_EDGE_STYLE: CSSProperties = {
   position: "fixed",
 };
 
-const WINDOW_BUTTONS_STRIP_STYLE: CSSProperties = {
+const NAVBAR_TOP_STRIP_STYLE: CSSProperties = {
   ...WINDOW_DRAG_STYLE,
   // Starts where the Navbar starts, not below its padding.
   marginBlockStart: "calc(-1 * var(--mantine-spacing-xs))",
+};
+
+// Outside the Navbar, so that neither its width nor its form can reach the logo.
+const LOGO_STYLE: CSSProperties = {
+  ...WINDOW_DRAG_STYLE,
+  insetBlockStart: rem(GAP),
+  pointerEvents: "none",
+  position: "fixed",
+  // Over the Navbar, under the Drawer.
+  zIndex: "calc(var(--mantine-z-index-app) + 2)",
 };
 
 const CONTENT_PANE_STYLE: CSSProperties = {
@@ -101,6 +117,17 @@ const CONTENT_PANE_STYLE: CSSProperties = {
 const MODULE_SIDEBAR_PANE_STYLE: CSSProperties = {
   backgroundColor: roleColor("navSurface"),
   borderRadius: `0 ${RADIUS} ${RADIUS} 0`,
+  display: "flex",
+  flexDirection: "column",
+};
+
+// A line of its own, because Mantine's border could only run the whole height of the Navbar.
+const NAVBAR_DIVIDER_STYLE: CSSProperties = {
+  backgroundColor: roleColor("border"),
+  bottom: 0,
+  position: "absolute",
+  right: 0,
+  width: 1,
 };
 
 const BOTTOM_BAR_STYLE: CSSProperties = {
@@ -161,9 +188,8 @@ export interface ShellNavbarState {
 
 /** The app's brand. The Shell only places it: its artwork comes in from outside. */
 export interface ShellLogo {
-  /** Stays on the axis of the entry icons, at every Navbar width. */
   readonly mark: ReactNode;
-  /** Shown beside the mark when the Navbar is labelled. */
+  /** Shown beside the mark. */
   readonly name: string;
 }
 
@@ -176,7 +202,7 @@ export interface ShellProps {
   readonly onSelectEntry: (id: string) => void;
   readonly moduleSidebar: ReactNode;
   readonly pageTitle: string;
-  /** The top row of the Navbar. No logo at phone width, where there is no Navbar. */
+  /** Sits in the top strip of the navigation, at a place of its own. None at phone width. */
   readonly logo?: ShellLogo;
   /** The free end of the content header. */
   readonly headerEnd?: ReactNode;
@@ -187,7 +213,7 @@ export interface ShellProps {
   readonly onNavbarCommit?: (navbar: ShellNavbarState) => void;
   /** Called once per change, when the user releases the handle or presses a key. */
   readonly onModuleSidebarWidthCommit?: (width: number) => void;
-  /** Keeps a strip free at the top of the Navbar for the macOS window buttons. */
+  /** Keeps room in the top strip of the navigation for the macOS window buttons. */
   readonly reserveWindowButtons?: boolean;
   /** The page. Stays mounted whichever Layout Step the window is in. */
   readonly children: ReactNode;
@@ -289,6 +315,10 @@ export function Shell({
   );
   const [draggedPaneSize, setDraggedPaneSize] = useState<SplitterPaneSize | null>(null);
   const moduleSidebarDragging = useRef(false);
+  const hasTopStrip = !isPhone && (reserveWindowButtons || logo !== undefined);
+  // The 68 px Navbar is all that is left of the navigation, and the window buttons fill it.
+  const logoHasRoom = !isPhone && !(step === "narrow" && reserveWindowButtons);
+  const topStripHeight = hasTopStrip ? rem(TOP_STRIP_HEIGHT) : 0;
   const moduleSidebarPaneSize = sidebarInDrawer
     ? "0px"
     : (draggedPaneSize ?? paneSize(shownModuleSidebarWidth));
@@ -369,7 +399,8 @@ export function Shell({
       // Mantine prefers a resized width over the responsive ones, so only the wide step gets it.
       {...(step === "wide" && { resize: controlledNavbarResize })}
       style={ROOT_STYLE}
-      styles={{ resizeHandle: NOT_WINDOW_DRAG_STYLE }}
+      // Starts below the strip with the divider, so nothing but the drag region is up there.
+      styles={{ resizeHandle: { ...NOT_WINDOW_DRAG_STYLE, top: topStripHeight } }}
     >
       <Box aria-hidden style={TOP_EDGE_STYLE} />
       {!isPhone && (
@@ -380,32 +411,41 @@ export function Shell({
             backgroundColor: roleColor("navSurface"),
             borderRadius: sidebarInDrawer ? RADIUS : `${RADIUS} 0 0 ${RADIUS}`,
           }}
-          withBorder={!sidebarInDrawer}
+          withBorder={false}
         >
-          {reserveWindowButtons && (
-            <Box
-              flex="none"
-              h={rem(WINDOW_BUTTONS_STRIP_HEIGHT)}
-              style={WINDOW_BUTTONS_STRIP_STYLE}
-            />
+          {hasTopStrip && (
+            <Box flex="none" h={rem(TOP_STRIP_HEIGHT)} style={NAVBAR_TOP_STRIP_STYLE} />
           )}
-          {logo && (
-            <Group flex="none" gap={0} h={rem(LOGO_ROW_HEIGHT)} wrap="nowrap">
-              <Center flex="none" w={ICON_AXIS_SLOT_WIDTH}>
-                {logo.mark}
-              </Center>
-              {entryAppearance === "labelled" && (
-                <Text fw={600} truncate>
-                  {logo.name}
-                </Text>
-              )}
-            </Group>
+          {!sidebarInDrawer && (
+            <Box aria-hidden style={{ ...NAVBAR_DIVIDER_STYLE, top: topStripHeight }} />
           )}
           <AppShell.Section component={ScrollArea} grow>
             {entries.map((entry) => entryLink(entry, entryAppearance))}
           </AppShell.Section>
           <AppShell.Section>{entryLink(settingsEntry, entryAppearance)}</AppShell.Section>
         </AppShell.Navbar>
+      )}
+      {logo && logoHasRoom && (
+        <Group
+          gap="xs"
+          h={rem(TOP_STRIP_HEIGHT)}
+          style={{
+            ...LOGO_STYLE,
+            insetInlineStart: reserveWindowButtons
+              ? LOGO_START_AFTER_WINDOW_BUTTONS
+              : LOGO_START_AT_CONTAINER_EDGE,
+          }}
+          wrap="nowrap"
+        >
+          {step === "narrow" ? (
+            <Center w={ICON_AXIS_SLOT_WIDTH}>{logo.mark}</Center>
+          ) : (
+            <>
+              {logo.mark}
+              <Text fw={600}>{logo.name}</Text>
+            </>
+          )}
+        </Group>
       )}
       <AppShell.Main
         style={{
@@ -464,9 +504,14 @@ export function Shell({
             style={MODULE_SIDEBAR_PANE_STYLE}
           >
             {!sidebarInDrawer && (
-              <ScrollArea h="100%">
-                <Box p="xs">{moduleSidebar}</Box>
-              </ScrollArea>
+              <>
+                {hasTopStrip && (
+                  <Box flex="none" h={rem(TOP_STRIP_HEIGHT)} style={WINDOW_DRAG_STYLE} />
+                )}
+                <ScrollArea flex={1} mih={0}>
+                  <Box p="xs">{moduleSidebar}</Box>
+                </ScrollArea>
+              </>
             )}
           </Splitter.Pane>
           <Splitter.Pane defaultSize={100} style={CONTENT_PANE_STYLE}>

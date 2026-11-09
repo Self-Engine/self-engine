@@ -302,7 +302,10 @@ export const StripForTheWindowButtons: Story = {
   args: { reserveWindowButtons: true },
   play: async ({ canvas }) => {
     const first = canvas.getByRole("button", { name: "Projects" });
-    await expect(first.getBoundingClientRect().top).toBeGreaterThanOrEqual(40);
+    await expect(first.getBoundingClientRect().top).toBeCloseTo(
+      navbarOf(canvas).getBoundingClientRect().top + 48,
+      0,
+    );
   },
 };
 
@@ -379,7 +382,7 @@ export const TheBackgroundReachesTheWindowEdge: Story = {
   },
 };
 
-export const NoStripWithoutWindowButtons: Story = {
+export const NoStripWithoutWindowButtonsOrLogo: Story = {
   ...atViewport("wide"),
   play: async ({ canvas }) => {
     const first = canvas.getByRole("button", { name: "Projects" });
@@ -737,37 +740,167 @@ const centerX = (element: Element) => {
   return left + width / 2;
 };
 
-export const LogoStaysOnTheIconAxisAndOnlyItsNameGoes: Story = {
+const brandPlace = (canvas: ReturnType<typeof within>) => {
+  const mark = canvas.getByTestId("mark").getBoundingClientRect();
+  const name = canvas.getByText("Self-Engine").getBoundingClientRect();
+  return { markLeft: mark.left, markTop: mark.top, nameLeft: name.left };
+};
+
+export const LogoDoesNotMoveWithTheNavbar: Story = {
   ...atViewport("wide"),
   ...resizable,
-  args: { logo: LOGO },
+  args: { logo: LOGO, reserveWindowButtons: true },
   play: async ({ canvas }) => {
     const navbar = navbarOf(canvas);
-    const mark = canvas.getByTestId("mark");
-    const firstEntry = () => within(navbar).getByRole("button", { name: "Projects" });
-    const place = () => ({
-      markLeft: mark.getBoundingClientRect().left,
-      entryTop: firstEntry().getBoundingClientRect().top,
-    });
-    await expect(canvas.getByText("Self-Engine")).toBeVisible();
-    await expect(centerX(mark)).toBeCloseTo(centerX(firstEntry().querySelector("svg")!), 0);
-    await expect(mark.getBoundingClientRect().bottom).toBeLessThanOrEqual(place().entryTop);
-    const expanded = place();
+    const place = brandPlace(canvas);
+    const drag = await pressHandle(navbarHandle(canvas));
+    await drag.release(40);
+    await expect(widthOf(navbar)).toBe(260);
+    await expect(brandPlace(canvas)).toEqual(place);
     await userEvent.dblClick(navbarHandle(canvas));
     await waitFor(() => expect(widthOf(navbar)).toBe(68));
-    await expect(canvas.queryByText("Self-Engine")).toBeNull();
-    await expect(place()).toEqual(expanded);
+    await expect(brandPlace(canvas)).toEqual(place);
   },
 };
 
-export const LogoSitsBelowTheWindowButtons: Story = {
+/** The macOS buttons end 68 px from the window edge: 16 px inset and 52 px wide. */
+export const LogoSitsRightOfTheWindowButtons: Story = {
   ...atViewport("wide"),
   args: { logo: LOGO, reserveWindowButtons: true },
   play: async ({ canvas }) => {
-    const strip = navbarOf(canvas).firstElementChild!;
-    await expect(canvas.getByTestId("mark").getBoundingClientRect().top).toBeGreaterThanOrEqual(
-      strip.getBoundingClientRect().bottom,
+    const mark = canvas.getByTestId("mark");
+    await expect(mark.getBoundingClientRect().left).toBeGreaterThanOrEqual(68 + 8);
+    await expect(centerY(mark)).toBeCloseTo(
+      centerY(canvas.getByRole("heading", { name: "Time" })),
+      0,
     );
+  },
+};
+
+export const LogoStartsAtTheContainerEdgeWithoutWindowButtons: Story = {
+  ...atViewport("wide"),
+  args: { logo: LOGO },
+  play: async ({ canvas }) => {
+    const firstEntry = canvas.getByRole("button", { name: "Projects" });
+    await expect(canvas.getByTestId("mark").getBoundingClientRect().left).toBeCloseTo(
+      firstEntry.getBoundingClientRect().left,
+      0,
+    );
+  },
+};
+
+export const LogoKeepsItsNameOverAnIconsOnlyNavbar: Story = {
+  ...atViewport("medium"),
+  args: { logo: LOGO, reserveWindowButtons: true },
+  play: async ({ canvas }) => {
+    await expect(widthOf(navbarOf(canvas))).toBe(68);
+    await expect(canvas.getByText("Self-Engine")).toBeVisible();
+  },
+};
+
+const STRIP_HEIGHT = 48;
+
+const dividerOf = (canvas: ReturnType<typeof within>) => {
+  const divider = [...navbarOf(canvas).children].find((child) => widthOf(child) === 1);
+  if (divider === undefined) throw new Error("the Navbar has no divider");
+  return divider;
+};
+
+export const TheStripReadsAsOneSurface: Story = {
+  ...atViewport("wide"),
+  args: { logo: LOGO, reserveWindowButtons: true },
+  play: async ({ canvas }) => {
+    const navbar = navbarOf(canvas);
+    const box = navbar.getBoundingClientRect();
+    const divider = dividerOf(canvas).getBoundingClientRect();
+    await expect(getComputedStyle(navbar).borderInlineEndWidth).toBe("0px");
+    await expect(divider.top).toBeCloseTo(box.top + STRIP_HEIGHT, 0);
+    await expect(divider.bottom).toBeCloseTo(box.bottom, 0);
+    await expect(divider.right).toBeCloseTo(box.right, 0);
+    await expect(dividerOf(canvas)).toHaveStyle({
+      backgroundColor: getComputedStyle(navbar).getPropertyValue("--se-border"),
+    });
+    await expect(navbarHandle(canvas).getBoundingClientRect().top).toBeCloseTo(
+      box.top + STRIP_HEIGHT,
+      0,
+    );
+  },
+};
+
+export const TheDividerRunsTheFullHeightWithoutAStrip: Story = {
+  ...atViewport("wide"),
+  play: async ({ canvas }) => {
+    await expect(dividerOf(canvas).getBoundingClientRect().top).toBeCloseTo(
+      navbarOf(canvas).getBoundingClientRect().top,
+      0,
+    );
+  },
+};
+
+export const TheStripStaysForTheLogoWithoutWindowButtons: Story = {
+  ...atViewport("wide"),
+  args: { logo: LOGO },
+  play: async ({ canvas }) => {
+    const firstEntry = canvas.getByRole("button", { name: "Projects" });
+    await expect(firstEntry.getBoundingClientRect().top).toBeCloseTo(
+      navbarOf(canvas).getBoundingClientRect().top + STRIP_HEIGHT,
+      0,
+    );
+  },
+};
+
+export const TheModuleSidebarGetsADragStripAboveIt: Story = {
+  ...atViewport("wide"),
+  args: { logo: LOGO },
+  play: async ({ canvas }) => {
+    const pane = paneOf(canvas, "Sidebar content");
+    const strip = pane.firstElementChild!;
+    await expect(appRegionOf(strip)).toBe("drag");
+    await expect(strip.getBoundingClientRect()).toMatchObject({
+      top: pane.getBoundingClientRect().top,
+      height: STRIP_HEIGHT,
+      width: pane.getBoundingClientRect().width,
+    });
+    await expect(canvas.getByText("Sidebar content").getBoundingClientRect().top).toBeGreaterThan(
+      pane.getBoundingClientRect().top + STRIP_HEIGHT,
+    );
+  },
+};
+
+/** Mantine's Drawer sits at 200 and the Navbar is the one it has to clear. */
+export const TheLogoDragsTheWindowAndTakesNoPointer: Story = {
+  ...atViewport("wide"),
+  args: { logo: LOGO },
+  play: async ({ canvas }) => {
+    const logo = getComputedStyle(canvas.getByTestId("mark").parentElement!);
+    await expect(logo.getPropertyValue("-webkit-app-region")).toBe("drag");
+    await expect(logo.pointerEvents).toBe("none");
+    await expect(Number(logo.zIndex)).toBeGreaterThan(
+      Number(getComputedStyle(navbarOf(canvas)).zIndex),
+    );
+    await expect(Number(logo.zIndex)).toBeLessThan(200);
+  },
+};
+
+export const NoLogoBesideTheWindowButtonsInTheNarrowStep: Story = {
+  ...atViewport("narrow"),
+  args: { logo: LOGO, reserveWindowButtons: true },
+  play: async ({ canvas }) => {
+    await expect(canvas.queryByTestId("mark")).toBeNull();
+    await expect(canvas.queryByText("Self-Engine")).toBeNull();
+    await expect(
+      canvas.getByRole("button", { name: "Projects" }).getBoundingClientRect().top,
+    ).toBeCloseTo(navbarOf(canvas).getBoundingClientRect().top + STRIP_HEIGHT, 0);
+  },
+};
+
+export const OnlyTheMarkOnTheIconAxisInTheNarrowStep: Story = {
+  ...atViewport("narrow"),
+  args: { logo: LOGO },
+  play: async ({ canvas }) => {
+    const icon = canvas.getByRole("button", { name: "Projects" }).querySelector("svg")!;
+    await expect(canvas.queryByText("Self-Engine")).toBeNull();
+    await expect(centerX(canvas.getByTestId("mark"))).toBeCloseTo(centerX(icon), 0);
   },
 };
 
