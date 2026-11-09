@@ -248,6 +248,23 @@ export const CollapsedNavbarCanBeDraggedWide: Story = {
   },
 };
 
+/** A drag says where it wants the Navbar, so unlike a key press it does not bring the stored width back. */
+export const ACollapsedNavbarDraggedIntoTheGapSettlesOnTheMinimum: Story = {
+  ...atViewport("wide"),
+  ...resizable,
+  args: { navbar: { collapsed: true, expandedWidth: 260 } },
+  play: async ({ args, canvas }) => {
+    const navbar = navbarOf(canvas);
+    const drag = await pressHandle(navbarHandle(canvas));
+    await drag.release(64);
+    await expect(widthOf(navbar)).toBe(168);
+    await expectReportedOnce(args.onNavbarCommit, {
+      collapsed: false,
+      expandedWidth: 168,
+    });
+  },
+};
+
 export const NavbarDoubleClickTogglesAndRestoresTheWidth: Story = {
   ...atViewport("wide"),
   ...resizable,
@@ -290,6 +307,29 @@ export const NavbarMovesWithTheArrowKeys: Story = {
 
 /** The settling rule would otherwise pull every key press back and trap the keyboard user. */
 export const ArrowKeysCrossTheGapBetweenIconsOnlyAndWide: Story = {
+  ...atViewport("wide"),
+  ...resizable,
+  args: { navbar: { collapsed: false, expandedWidth: 260 } },
+  play: async ({ args, canvas }) => {
+    const navbar = navbarOf(canvas);
+    navbarHandle(canvas).focus();
+    await userEvent.keyboard("{Home}");
+    await waitFor(() => expect(widthOf(navbar)).toBe(56));
+    await expect(args.onNavbarCommit).toHaveBeenLastCalledWith({
+      collapsed: true,
+      expandedWidth: 260,
+    });
+    await userEvent.keyboard("{ArrowRight}");
+    await waitFor(() => expect(widthOf(navbar)).toBe(260));
+    await expect(args.onNavbarCommit).toHaveBeenLastCalledWith({
+      collapsed: false,
+      expandedWidth: 260,
+    });
+  },
+};
+
+/** Only from the minimum does one step left reach the gap. */
+export const ArrowLeftCrossesTheGapFromTheMinimumWideWidth: Story = {
   ...atViewport("wide"),
   ...resizable,
   args: { navbar: { collapsed: false, expandedWidth: 168 } },

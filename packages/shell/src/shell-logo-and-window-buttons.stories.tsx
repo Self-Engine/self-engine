@@ -527,10 +527,11 @@ export const TheIconsOnlyNavbarHoldingTheWindowButtonsCanBeDraggedWide: Story = 
   },
 };
 
+/** The stored 168 is below this minimum of 215, so it comes back clamped and stays stored as it was. */
 export const ArrowKeysCrossTheGapFromTheIconsOnlyNavbarHoldingTheWindowButtons: Story = {
   ...atViewport("wide"),
   ...resizable,
-  args: BOTH_COLLAPSED,
+  args: { ...BOTH_COLLAPSED, navbar: { collapsed: true, expandedWidth: 168 } },
   play: async ({ args, canvas }) => {
     const navbar = navbarOf(canvas);
     navbarHandle(canvas).focus();
@@ -538,13 +539,13 @@ export const ArrowKeysCrossTheGapFromTheIconsOnlyNavbarHoldingTheWindowButtons: 
     await waitFor(() => expect(widthOf(navbar)).toBe(215));
     await expect(args.onNavbarCommit).toHaveBeenLastCalledWith({
       collapsed: false,
-      expandedWidth: 215,
+      expandedWidth: 168,
     });
     await userEvent.keyboard("{ArrowLeft}");
     await waitFor(() => expect(widthOf(navbar)).toBe(76));
     await expect(args.onNavbarCommit).toHaveBeenLastCalledWith({
       collapsed: true,
-      expandedWidth: 215,
+      expandedWidth: 168,
     });
   },
 };

@@ -93,7 +93,8 @@ export function shownWidthOf(
 
 /**
  * Where the Navbar comes to rest. A drag snaps by position. A key press only has a direction,
- * and snapping by position would pull it back every time, so it crosses the gap in one step.
+ * and snapping by position would pull it back every time, so it crosses the gap in one step and
+ * leaves the stored width alone.
  */
 export function settledNavbar(
   width: number,
@@ -102,10 +103,8 @@ export function settledNavbar(
   limits: NavbarLimits,
 ): ShellNavbarState {
   if (width >= limits.minWideWidth) return { collapsed: false, expandedWidth: Math.round(width) };
-  const collapses = dragged
-    ? width < collapseMidpointOf(limits)
-    : width <= shownWidthOf(current, limits);
-  return collapses
+  if (!dragged) return { ...current, collapsed: width <= shownWidthOf(current, limits) };
+  return width < collapseMidpointOf(limits)
     ? { ...current, collapsed: true }
     : { collapsed: false, expandedWidth: limits.minWideWidth };
 }
