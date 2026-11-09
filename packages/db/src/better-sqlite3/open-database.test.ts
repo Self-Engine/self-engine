@@ -71,9 +71,9 @@ describe("openDatabase", () => {
 
     await database.close();
 
-    await expect(
-      Promise.resolve().then(() => database.executeScript("SELECT 1;")),
-    ).rejects.toThrow(/not open/);
+    await expect(Promise.resolve().then(() => database.executeScript("SELECT 1;"))).rejects.toThrow(
+      /not open/,
+    );
   });
 
   test("close also works after a query went through Kysely", async () => {
