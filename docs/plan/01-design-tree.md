@@ -28,8 +28,9 @@ Pro Runde werden nur 2–3 Fragen gestellt; die Nummern sind stabil.
       - ✅ Zuschnitt: `time`, `money`, `spaces`, `tags`, kein `core` (D133)
       - ✅ Spaces: ein persönlicher Space, `space_id` als Port-Kontext (D134)
       - ✅ Geldbeträge und Stundensätze (D135)
-      - ❓ Geld: Eingabe, Formatierung, Zod-Schemas
-      - ⏳ Zeit: Übernahme, Konto-Zeitzone ohne Server, Uhr, Lint-Regeln
+      - ✅ Geld: Eingabe, Formatierung, Benennung, Zod-Schemas (D136)
+      - ❓ Zeit: Konto-Zeitzone ohne Server
+      - ⏳ Zeit: Übernahme von `packages/time`, Uhr, Lint-Regeln
       - ⏳ Tags, Icon und Farbe
       - ⏳ Abläufe über mehrere Module, Brückentabellen
       - ⏳ Zerlegung in Issues (`layer:3`)

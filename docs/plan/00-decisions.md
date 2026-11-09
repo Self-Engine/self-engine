@@ -628,6 +628,17 @@ Grundlage: [`research-layer-3-core.md`](research-layer-3-core.md).
   gemeldet. _Verworfen:_ `REAL` (Rundungsfehler), Dezimal als Text (SQLite kann nicht summieren),
   Sätze mit zwei Extrastellen (zweite, verwechselbare Einheit, in den geprüften Daten kein Bedarf),
   Stellenzahl aus `Intl` (weicht von ISO 4217 ab und hängt an der Laufzeit).
+- **D136 (L3.4) Eingabe, Anzeige und Benennung von Geld.** `parseAmount` und `formatMoney` liegen
+  in `money`, das Gebietsschema ist immer ein Parameter; `i18n` bleibt reine Übersetzung. Ein
+  Trennzeichen, das als Tausendergruppe gültig ist, folgt dem Gebietsschema; eines, das keine
+  gültige Gruppe sein kann, gilt als Dezimaltrenner (`12.5` im Deutschen ist 12,50). Mehr Stellen,
+  als die Währung hat, sind ein Eingabefehler; ob null erlaubt ist, entscheidet die Operation. Die
+  Anzeige nutzt den Katalog aus D135, glatte Beträge bleiben ohne Nachkommastellen. Spalten und
+  Felder in der kleinsten Einheit enden auf `_minor` bzw. `Minor`, über die Grenze zur Oberfläche
+  gehen sie als `{ amountMinor, currency }`. `money` liefert die Zod-Schemas selbst mit. Das
+  Eingabefeld entsteht mit dem ersten Modul, das eines braucht, auf Basis von Mantines
+  `NumberInput`. _Grund:_ In der alten App wurde `12.5` im Deutschen still zu 125. _Verworfen:_
+  Formatierung in `i18n`, strenges Ablehnen von `12.5`, Spaltenname `amount` ohne Einheit.
 
 ## Fakten
 
