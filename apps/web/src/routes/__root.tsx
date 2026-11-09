@@ -4,15 +4,12 @@ import { Trans } from "@lingui/react/macro";
 import { Badge, Text } from "@mantine/core";
 import { AssistantIcon, CalendarIcon, ProjectsIcon, SettingsIcon } from "@self-engine/icons";
 import { BrandMark } from "@self-engine/icons/brand-mark";
-import {
-  Shell,
-  SHELL_STANDARD_MODULE_SIDEBAR_WIDTH,
-  SHELL_STANDARD_NAVBAR,
-  type ShellEntry,
-} from "@self-engine/shell";
+import { useSetting } from "@self-engine/settings/react";
+import { Shell, type ShellEntry } from "@self-engine/shell";
 import { Outlet, createRootRoute, useNavigate, useRouterState } from "@tanstack/react-router";
-import { useState } from "react";
 import { channelBadge, reservesWindowButtons } from "../env.ts";
+import { settingsStore } from "../settings-store.ts";
+import { SHELL_SETTINGS } from "../shell-settings.ts";
 
 // Until #20 the entries are the existing pages, so their icons and colors are placeholders.
 const MODULES = [
@@ -52,10 +49,9 @@ function RootLayout() {
   const pathname = useRouterState({ select: (state) => state.location.pathname });
   const badge = channelBadge(window);
   const activePage = PAGES.find(({ to }) => to === pathname);
-  // Held in memory until #87 stores them as Device Settings.
-  const [navbar, setNavbar] = useState(SHELL_STANDARD_NAVBAR);
-  const [moduleSidebarWidth, setModuleSidebarWidth] = useState(SHELL_STANDARD_MODULE_SIDEBAR_WIDTH);
-  const [moduleSidebarCollapsed, setModuleSidebarCollapsed] = useState(false);
+  const navbar = useSetting(settingsStore, SHELL_SETTINGS.navbar);
+  const moduleSidebarWidth = useSetting(settingsStore, SHELL_SETTINGS.moduleSidebarWidth);
+  const moduleSidebarCollapsed = useSetting(settingsStore, SHELL_SETTINGS.moduleSidebarCollapsed);
 
   const entryOf = ({ to, label, icon, color }: (typeof PAGES)[number]): ShellEntry => ({
     id: to,
@@ -78,9 +74,13 @@ function RootLayout() {
       moduleSidebarCollapsed={moduleSidebarCollapsed}
       moduleSidebarWidth={moduleSidebarWidth}
       navbar={navbar}
-      onModuleSidebarCollapsedCommit={setModuleSidebarCollapsed}
-      onModuleSidebarWidthCommit={setModuleSidebarWidth}
-      onNavbarCommit={setNavbar}
+      onModuleSidebarCollapsedCommit={(collapsed) =>
+        settingsStore.write(SHELL_SETTINGS.moduleSidebarCollapsed, collapsed)
+      }
+      onModuleSidebarWidthCommit={(width) =>
+        settingsStore.write(SHELL_SETTINGS.moduleSidebarWidth, width)
+      }
+      onNavbarCommit={(next) => settingsStore.write(SHELL_SETTINGS.navbar, next)}
       onSelectEntry={(id) => {
         const page = PAGES.find(({ to }) => to === id);
         if (page) void navigate({ to: page.to });
