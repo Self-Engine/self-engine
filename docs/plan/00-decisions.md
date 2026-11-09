@@ -590,11 +590,11 @@ Grundlage: [`research-layer-2-data.md`](research-layer-2-data.md).
   nebeneinander passen. Der Streifen dafür erscheint per Prop nur auf dem Mac-Desktop
   (verfeinert D78).
 
-### Runde 21 (2026-11-09): Schicht 3, Zuschnitt
+### Runde 22 (2026-11-09): Schicht 3, gemeinsamer Kern
 
 Grundlage: [`research-layer-3-core.md`](research-layer-3-core.md).
 
-- **D133 (L3.1) Der gemeinsame Kern besteht aus vier Paketen, ein Paket `core` gibt es nicht.**
+- **D143 (L3.1) Der gemeinsame Kern besteht aus vier Paketen, ein Paket `core` gibt es nicht.**
   `time` und `money` sind reine Werte und importieren kein anderes Paket des Repos. `spaces` und
   `tags` haben eigene Tabellen, Port und Migrationen (`spaces/0001`, `tags/0001`) und liegen über
   `db`. Fachmodule und `contracts` importieren nach unten, nie umgekehrt. Einstiege wie bei
@@ -604,7 +604,7 @@ Grundlage: [`research-layer-3-core.md`](research-layer-3-core.md).
   `db`. `time` lag als eigenes Paket ganz unten und blieb ohne Kopien. _Verworfen:_ `time`, `money`
   und ein `core` für Spaces und Tags (lädt wieder zum Sammeln ein), ein einziges Paket mit
   mehreren Einstiegen (Werte lägen über `db`).
-- **D134 (L3.2) Schicht 3 baut genau einen persönlichen Space, ohne Oberfläche.** Tabelle `spaces`
+- **D144 (L3.2) Schicht 3 baut genau einen persönlichen Space, ohne Oberfläche.** Tabelle `spaces`
   mit `kind` (vorerst nur `personal`); die Zeile trägt ihre eigene `id` als `space_id` und besteht
   so die Konventionsprüfung aus #30 ohne Ausnahme. Das Paket `spaces` legt sie beim Start nach den
   Migrationen an, mit zufälliger UUIDv7 und nur falls keine existiert; ein eindeutiger Index
@@ -616,7 +616,7 @@ Grundlage: [`research-layer-3-core.md`](research-layer-3-core.md).
   Transaktion um. _Verworfen:_ `spaceId` in jeder Operation (ein vergessener Filter bliebe
   unbemerkt), feste ID per Migration (kollidiert auf dem Server, jedes Gerät müsste umschreiben),
   sichtbare Spaces jetzt schon (wird mit Sync und Organisationen entschieden).
-- **D135 (L3.3) Geld wird ganzzahlig gespeichert und einmal gerundet.** Beträge sind `INTEGER` in
+- **D145 (L3.3) Geld wird ganzzahlig gespeichert und einmal gerundet.** Beträge sind `INTEGER` in
   der kleinsten Einheit plus Währung als ISO-4217-Text, geprüft im Code statt per SQL-`CHECK`; in
   TypeScript eine sichere Ganzzahl mit eigenem Typ, ohne `BigInt`. `money` führt einen eigenen
   Katalog aus Währungscode und Stellenzahl: Neue Währungen dürfen dazukommen, die Stellen einer
@@ -628,18 +628,18 @@ Grundlage: [`research-layer-3-core.md`](research-layer-3-core.md).
   gemeldet. _Verworfen:_ `REAL` (Rundungsfehler), Dezimal als Text (SQLite kann nicht summieren),
   Sätze mit zwei Extrastellen (zweite, verwechselbare Einheit, in den geprüften Daten kein Bedarf),
   Stellenzahl aus `Intl` (weicht von ISO 4217 ab und hängt an der Laufzeit).
-- **D136 (L3.4) Eingabe, Anzeige und Benennung von Geld.** `parseAmount` und `formatMoney` liegen
+- **D146 (L3.4) Eingabe, Anzeige und Benennung von Geld.** `parseAmount` und `formatMoney` liegen
   in `money`, das Gebietsschema ist immer ein Parameter; `i18n` bleibt reine Übersetzung. Ein
   Trennzeichen, das als Tausendergruppe gültig ist, folgt dem Gebietsschema; eines, das keine
   gültige Gruppe sein kann, gilt als Dezimaltrenner (`12.5` im Deutschen ist 12,50). Mehr Stellen,
   als die Währung hat, sind ein Eingabefehler; ob null erlaubt ist, entscheidet die Operation. Die
-  Anzeige nutzt den Katalog aus D135, glatte Beträge bleiben ohne Nachkommastellen. Spalten und
+  Anzeige nutzt den Katalog aus D145, glatte Beträge bleiben ohne Nachkommastellen. Spalten und
   Felder in der kleinsten Einheit enden auf `_minor` bzw. `Minor`, über die Grenze zur Oberfläche
   gehen sie als `{ amountMinor, currency }`. `money` liefert die Zod-Schemas selbst mit. Das
   Eingabefeld entsteht mit dem ersten Modul, das eines braucht, auf Basis von Mantines
   `NumberInput`. _Grund:_ In der alten App wurde `12.5` im Deutschen still zu 125. _Verworfen:_
   Formatierung in `i18n`, strenges Ablehnen von `12.5`, Spaltenname `amount` ohne Einheit.
-- **D137 (L3.5) Eine Zeitzone ohne Server, ADR 0046 der alten App gilt weiter.** Eine Zeitzone als
+- **D147 (L3.5) Eine Zeitzone ohne Server, ADR 0046 der alten App gilt weiter.** Eine Zeitzone als
   Synced Setting entscheidet über „heute“, Mitternacht und Wochengrenzen; der Wochenstart ist eine
   eigene Einstellung. Beim ersten Start kommt sie still vom Gerät, beim Import aus der alten App.
   Sie ändert sich nur durch den Nutzer: Ein abweichendes Gerät bietet den Wechsel an, „dem Gerät
@@ -652,12 +652,12 @@ Grundlage: [`research-layer-3-core.md`](research-layer-3-core.md).
   gilt die Gerätezeitzone und das Fehlerprotokoll bekommt einen Eintrag. _Verworfen:_ Historie der
   Zeitzone (jede Tagesberechnung bräuchte sie, Sync-Konflikte verschöben Tage rückwirkend; kann
   später ergänzt werden), Gerätezeitzone als Autorität, Zeitzone an jedem Eintrag.
-- **D138 (L3.6) `time` wird Datei für Datei übernommen, mit Pflicht-Uhr und Typen bis in die
+- **D148 (L3.6) `time` wird Datei für Datei übernommen, mit Pflicht-Uhr und Typen bis in die
   Zeile.** Übernommen werden Typen, Uhr, Zonen, Kalender, relative Tage, Formatierung,
   Geräte-Brücke und Zonenliste mit ihren Tests; `legacy.ts` entfällt; die Testuhr kommt nach
   `./testing`; die Wochenstart-Vorgabe je Region wandert aus dem alten `i18n` nach `time`. Die Uhr
   ist ein Pflichtargument ohne Standardwert, der Port bekommt sie als Kontext neben dem Space
-  (D134), `systemClock` wird nur beim Zusammenbau der App gesetzt. `time` liefert Zod-Schemas für
+  (D144), `systemClock` wird nur beim Zusammenbau der App gesetzt. `time` liefert Zod-Schemas für
   `Instant`, `CalendarDay` und `WallClockTime`, die Entitäten benutzen sie; gespeichert wird nur die
   kanonische Form. Das Repo-Plugin bekommt die fünf alten Lint-Regeln, neu ein Verbot von
   `Date.now()` und `new Date()` ohne Argument, gültig in `packages/` und `apps/` außer `time`, und
@@ -666,8 +666,8 @@ Grundlage: [`research-layer-3-core.md`](research-layer-3-core.md).
   geplant; das `time`-Issue übernimmt als Abnahmekriterium, dass der Helfer in `db` danach auf
   `time` aufsetzt. _Verworfen:_ 1:1 mit optionaler Uhr, #91 auf `time` warten lassen (bräche die
   Reihenfolge der Issue-Nummern), Temporal statt `Intl` (Polyfill auf Hermes).
-- **D139 (L3.7) Ergänzungen zu D138 aus einer unabhängigen Prüfung.** `TimeZone` wird ein geprüfter
-  Typ mit Zod-Schema; die Auflösung aus D137 ist der einzige Weg dorthin, führt Aliasse auf einen
+- **D149 (L3.7) Ergänzungen zu D148 aus einer unabhängigen Prüfung.** `TimeZone` wird ein geprüfter
+  Typ mit Zod-Schema; die Auflösung aus D147 ist der einzige Weg dorthin, führt Aliasse auf einen
   festen Namen zurück und lehnt Offsets ab; die Auswahlliste nutzt immer die eigene Zonenliste.
   Gültig sind nur die Jahre 1000 bis 9999, geprüft in Konstruktoren und Parsern; `addDays` und
   `addMonths` nehmen nur ganze Zahlen. `instantRangeOf(span, zone)` kommt sofort,
@@ -682,7 +682,7 @@ Grundlage: [`research-layer-3-core.md`](research-layer-3-core.md).
   gegen die Zod-Schemas, der Test mit der echten Uhr entfällt. Von der Wochenstart-Tabelle werden
   nur `de-DE` und `en-US` übernommen. _Zurückgestellt:_ doppelte Mitternacht in historischen
   kanadischen Zeitzonen, Prüfung auf Hermes.
-- **D140 (L3.8) Tags hängen über Brücken der Module an Einträgen.** Tabelle `tags` mit Titel,
+- **D150 (L3.8) Tags hängen über Brücken der Module an Einträgen.** Tabelle `tags` mit Titel,
   optionaler Beschreibung und `modules` als JSON-Text mit Modul-IDs (leer heißt überall). Der Titel
   ist pro Space eindeutig, über eine in TypeScript berechnete Spalte `normalized_title` mit
   eindeutigem Index für nicht gelöschte Zeilen, weil SQLites `lower()` nur ASCII kennt. Jedes Modul
@@ -695,8 +695,8 @@ Grundlage: [`research-layer-3-core.md`](research-layer-3-core.md).
   _Folgen:_ Der Import führt doppelte Titel zusammen und meldet das; das Zusammenführen offline
   angelegter gleicher Tags gehört in die Sync-Phase. _Verworfen:_ generische Tabelle `taggings`
   (keine Prüfung der Verweise, siehe `habit_link`), `tags` besitzt alle Brücken (dreht die Richtung
-  aus D133 um), `modules` weglassen (D9).
-- **D141 (L3.9) Icon und Farbe an Entitäten, ohne neues Paket.** Zwei optionale Textspalten `icon`
+  aus D143 um), `modules` weglassen (D9).
+- **D151 (L3.9) Icon und Farbe an Entitäten, ohne neues Paket.** Zwei optionale Textspalten `icon`
   und `color`, nur wo nötig. `icon` hält einen Namen oder genau ein Emoji, unterschieden am
   Zeichentyp (Muster aus ADR 0009 der alten App). `color` ist der Name eines Farbsatzes und wird
   wie die Modulfarben dargestellt, nie als Farbwert; `theme` bekommt die fehlenden Farbsätze `red`,

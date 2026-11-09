@@ -164,7 +164,7 @@ Die Verknüpfung Eintrag ↔ Termin wurde erst n:m gebaut und später auf einen 
 
 ## 5a. Prüfung von `packages/time` vor der Übernahme
 
-Unabhängige Prüfung mit Testläufen (Node 26.13, ICU 79.1, tzdata 2026e); Maßnahmen in D139.
+Unabhängige Prüfung mit Testläufen (Node 26.13, ICU 79.1, tzdata 2026e); Maßnahmen in D149.
 
 - **In Ordnung:** DST- und Datumsgrenzen-Auflösung über 419 Zonen und 20.806 Umstellungen
   (1970–2040), ISO-Wochen über 73.049 Tage, Sortierung kanonischer Instants.
