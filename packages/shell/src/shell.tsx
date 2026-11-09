@@ -479,7 +479,9 @@ export function Shell({
     // Runs right after Mantine wrote the pointer's width, and only the gap needs correcting.
     onResize: ({ navbar: width }) => {
       if (width === undefined || width >= minWideWidth) return;
-      const shown = rem(shownWidthOf(settledNavbar(width, navbar, true, minWideWidth), minWideWidth));
+      const shown = rem(
+        shownWidthOf(settledNavbar(width, navbar, true, minWideWidth), minWideWidth),
+      );
       for (const variable of NAVBAR_PREVIEW_VARIABLES)
         appShellRef.current?.style.setProperty(variable, shown);
     },
