@@ -61,7 +61,12 @@ type Story = StoryObj<typeof meta>;
 
 /** The largest channel of a computed color, which tells a dark surface from a light one. */
 function brightnessOf(color: string): number {
-  return Math.max(...color.match(/[\d.]+/g)!.slice(0, 3).map(Number));
+  return Math.max(
+    ...color
+      .match(/[\d.]+/g)!
+      .slice(0, 3)
+      .map(Number),
+  );
 }
 
 /** The window really has the width of its Layout Step, and the frame the story's Color Mode. */
