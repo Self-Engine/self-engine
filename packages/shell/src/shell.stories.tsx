@@ -977,9 +977,9 @@ export const TheDrawerHeaderSitsBelowTheStripWithWindowButtons: Story = {
     );
     await waitFor(() => expect(mark.getBoundingClientRect().left).toBeCloseTo(84, 0));
     await expect(widthOf(drawer)).toBe(240);
-    await expect(within(drawer).getByText("Self-Engine").getBoundingClientRect().right).toBeLessThan(
-      drawer.getBoundingClientRect().right,
-    );
+    await expect(
+      within(drawer).getByText("Self-Engine").getBoundingClientRect().right,
+    ).toBeLessThan(drawer.getBoundingClientRect().right);
   },
 };
 
@@ -991,9 +991,9 @@ export const TheDrawerLogoFitsAtTheSmallestFontScale: Story = {
     await waitFor(() =>
       expect(within(drawer).getByTestId("mark").getBoundingClientRect().left).toBeCloseTo(84, 0),
     );
-    await expect(within(drawer).getByText("Self-Engine").getBoundingClientRect().right).toBeLessThan(
-      drawer.getBoundingClientRect().right,
-    );
+    await expect(
+      within(drawer).getByText("Self-Engine").getBoundingClientRect().right,
+    ).toBeLessThan(drawer.getBoundingClientRect().right);
   },
 };
 
