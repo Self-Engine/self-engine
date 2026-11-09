@@ -29,6 +29,10 @@ msgstr "Über"
 msgid "Add an entry"
 msgstr "Eintrag hinzufügen"
 
+#: packages/shell/src/shell.tsx
+msgid "Close module sidebar"
+msgstr "Modul-Sidebar schließen"
+
 #: apps/web/src/routes/language-sample.tsx
 msgid "Hello {name}, nice to see you."
 msgstr "Hallo {name}, schön, dich zu sehen."
@@ -43,6 +47,18 @@ msgstr "Start"
 msgid "Language sample"
 msgstr "Sprachbeispiel"
 
+#: packages/shell/src/shell.tsx
+msgid "Module Sidebar"
+msgstr "Modul-Sidebar"
+
+#: packages/shell/src/shell.tsx
+msgid "Modules"
+msgstr "Module"
+
+#: packages/shell/src/shell.tsx
+msgid "Open module sidebar"
+msgstr "Modul-Sidebar öffnen"
+
 #: apps/web/src/routes/index.tsx
 msgid "The empty desktop shell."
 msgstr "Die leere Desktop-Shell."
@@ -50,6 +66,10 @@ msgstr "Die leere Desktop-Shell."
 #: apps/web/src/routes/language-sample.tsx
 msgid "The language could not be loaded. Please try again."
 msgstr "Die Sprache konnte nicht geladen werden. Bitte versuche es noch einmal."
+
+#: apps/web/src/routes/__root.tsx
+msgid "The views of the active module will appear here."
+msgstr "Hier erscheinen später die Ansichten des aktiven Moduls."
 
 #: apps/web/src/routes/__root.tsx
 msgid "Theme preview"
