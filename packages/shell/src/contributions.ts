@@ -29,28 +29,58 @@ export interface ShellCommand {
   }>;
 }
 
-export interface ShellContribution {
+interface ContributionMetadata {
   readonly id: string;
   readonly name: MessageDescriptor;
   readonly icon: ComponentType;
   readonly color: ColorSetId;
   /** The first View is the module's default. */
   readonly views: readonly [ShellView, ...ShellView[]];
-  readonly commands?: readonly ShellCommand[];
-  readonly primaryAction?: ShellCommand;
   readonly groups?: () => Promise<{ readonly default: ComponentType }>;
   readonly editDrawer?: () => Promise<{ readonly default: ComponentType<EditDrawerProps> }>;
   readonly sharedSearch?: readonly string[];
 }
 
+/** Private state prevents object literals and spreads from forging checked membership. */
+class ContributionAction {
+  readonly #commands: readonly ShellCommand[];
+  readonly #primaryAction: ShellCommand;
+  constructor(commands: readonly ShellCommand[], primaryAction: ShellCommand) {
+    if (!commands.includes(primaryAction)) {
+      throw new Error("The primary action must reference one of the contribution's commands");
+    }
+    this.#commands = commands;
+    this.#primaryAction = primaryAction;
+  }
+  get commands() {
+    return this.#commands;
+  }
+  get primaryAction() {
+    return this.#primaryAction;
+  }
+}
+
+/** Actions can only enter the public contract through defineContribution. */
+export type ShellContribution = ContributionMetadata &
+  (
+    | { readonly commands?: readonly ShellCommand[]; readonly primaryAction?: never }
+    | ContributionAction
+  );
+
 /** Infer command ids from commands alone, then check the direct main-action reference. */
 export function defineContribution<const Commands extends readonly ShellCommand[] = readonly []>(
-  contribution: Omit<ShellContribution, "commands" | "primaryAction"> & {
+  contribution: ContributionMetadata & {
     readonly commands?: Commands;
-    readonly primaryAction?: NoInfer<Commands[number]>;
+    readonly primaryAction?: string extends Commands[number]["id"]
+      ? never
+      : NoInfer<Commands[number]>;
   },
 ): ShellContribution {
-  return contribution;
+  const { commands, primaryAction, ...metadata } = contribution;
+  if (primaryAction) {
+    return Object.assign(new ContributionAction(commands ?? [], primaryAction), metadata);
+  }
+  return commands ? { ...metadata, commands } : metadata;
 }
 
 interface AddressContribution {

@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { fn, expect, userEvent, waitFor, within } from "storybook/test";
+import { fn, spyOn, expect, userEvent, waitFor, within } from "storybook/test";
 import {
   createMemoryHistory,
   createRootRoute,
@@ -8,7 +8,10 @@ import {
 } from "@tanstack/react-router";
 import { Shell, useViewSearch, useWriteViewSearch } from "@self-engine/shell";
 import { memo, useState } from "react";
+import { contribution as alpha } from "@self-engine/placeholder-alpha";
 import { modules, settings } from "./modules.ts";
+import { settingsStore } from "./settings-store.ts";
+import { createAppRouter } from "./app-router.ts";
 import { ROUTING } from "./shell-routing.tsx";
 
 const rendered = fn();
@@ -85,10 +88,6 @@ const loadDrawer = fn(async () => ({
     <button onClick={onClose}>Close {id}</button>
   ),
 }));
-const drawerModule = {
-  ...modules[1]!,
-  editDrawer: loadDrawer,
-};
 function ObservedView() {
   const client = useViewSearch((search) => search.client);
   viewRendered(client);
@@ -99,31 +98,27 @@ function ObservedView() {
 }
 function DrawerIsolationStory() {
   const [router] = useState(() => {
-    const root = createRootRoute({
-      component: () => (
-        <Shell
-          contributions={[drawerModule]}
-          settings={settings}
-          activeModule={drawerModule}
-          activeView={drawerModule.views[0]}
-          routing={ROUTING}
-        >
-          <ObservedView />
-        </Shell>
-      ),
-    });
-    return createRouter({
-      routeTree: root,
-      history: createMemoryHistory({ initialEntries: ["/"] }),
-    });
+    return createAppRouter(
+      createMemoryHistory({ initialEntries: ["/placeholder-alpha/overview?client=studio"] }),
+    );
   });
   return <RouterProvider router={router} />;
 }
 export const DrawerIsolation: Story = {
+  loaders: [() => settingsStore.load()],
   render: () => <DrawerIsolationStory />,
   beforeEach: () => {
     loadDrawer.mockClear();
     viewRendered.mockClear();
+    const view = spyOn(alpha.views[0], "load").mockResolvedValue({ default: ObservedView });
+    const drawer = spyOn(
+      alpha as { editDrawer: NonNullable<typeof alpha.editDrawer> },
+      "editDrawer",
+    ).mockImplementation(loadDrawer);
+    return () => {
+      view.mockRestore();
+      drawer.mockRestore();
+    };
   },
   play: async ({ canvas, canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);

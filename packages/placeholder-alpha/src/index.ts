@@ -15,7 +15,11 @@ export const contribution = defineContribution({
   color: "blue",
   views: [
     { id: "overview", title: msg`Overview`, load: () => import("./entries.tsx") },
-    { id: "archive", title: msg`Archive`, load: () => import("./entries.tsx") },
+    {
+      id: "archive",
+      title: msg({ message: "Archive", context: "View title" }),
+      load: () => import("./entries.tsx"),
+    },
   ],
   commands: [createEntry],
   primaryAction: createEntry,

@@ -799,15 +799,21 @@ export function Shell({ contributions, settings, activeModule, activeView, ...pr
   );
 }
 
-const groupComponents = new WeakMap<NonNullable<ShellContribution["groups"]>, ComponentType>();
-function loadedGroups(load: NonNullable<ShellContribution["groups"]>) {
-  let component = groupComponents.get(load);
-  if (!component) {
-    component = lazy(load);
-    groupComponents.set(load, component);
-  }
-  return component;
+/** Keep lazy component identity stable across search and Shell updates. */
+function lazyComponentCache<Props extends object>() {
+  type Load = () => Promise<{ readonly default: ComponentType<Props> }>;
+  const components = new WeakMap<Load, ComponentType<Props>>();
+  return (load: Load): ComponentType<Props> => {
+    let component = components.get(load);
+    if (!component) {
+      component = lazy(load);
+      components.set(load, component);
+    }
+    return component;
+  };
 }
+const loadedGroups = lazyComponentCache<Record<string, never>>();
+const loadedDrawer = lazyComponentCache<EditDrawerProps>();
 
 function ModuleViews({
   module,
@@ -854,10 +860,6 @@ function ModuleViews({
   );
 }
 
-const drawerComponents = new WeakMap<
-  NonNullable<ShellContribution["editDrawer"]>,
-  ComponentType<EditDrawerProps>
->();
 function ModuleEditDrawer({ module }: { readonly module: ShellContribution | undefined }) {
   const { t } = useLingui();
   const id = useViewSearch((search) => (typeof search.edit === "string" ? search.edit : undefined));
@@ -869,11 +871,7 @@ function ModuleEditDrawer({ module }: { readonly module: ShellContribution | und
     });
   const load = module?.editDrawer;
   if (!load || id === undefined) return null;
-  let Content = drawerComponents.get(load);
-  if (!Content) {
-    Content = lazy(load);
-    drawerComponents.set(load, Content);
-  }
+  const Content = loadedDrawer(load);
   return (
     <Drawer
       opened

@@ -18,7 +18,7 @@ import {
 export type Canvas = ReturnType<typeof within>;
 
 const load = async () => ({ default: () => null });
-export const ENTRIES: readonly ShellContribution[] = [
+export const ENTRIES = [
   {
     id: "projects",
     name: { id: "story-Projects", message: "Projects" },
@@ -44,7 +44,7 @@ export const ENTRIES: readonly ShellContribution[] = [
     color: "orange",
     views: [{ id: "overview", title: { id: "story-Overview", message: "Overview" }, load }],
   },
-];
+] satisfies readonly ShellContribution[];
 export const SETTINGS: ShellContribution = {
   id: "settings",
   name: { id: "story-Settings", message: "Settings" },

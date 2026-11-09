@@ -20,6 +20,7 @@ msgid "All clients"
 msgstr "All clients"
 
 #: packages/placeholder-alpha/src/index.ts
+msgctxt "View title"
 msgid "Archive"
 msgstr "Archive"
 
