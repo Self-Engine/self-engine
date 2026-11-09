@@ -30,7 +30,8 @@ function scaledDensityVariables(density: Density): Readonly<Record<DensityVariab
 }
 
 const DENSITY_CSS = DENSITIES.map(
-  (density) => `:root[data-density="${density}"]{${cssDeclarations(scaledDensityVariables(density))}}`,
+  (density) =>
+    `:root[data-density="${density}"]{${cssDeclarations(scaledDensityVariables(density))}}`,
 ).join("");
 
 export interface LayoutValues {

@@ -26,7 +26,9 @@ describe.each(ICON_NAMES)("%s", (name) => {
   });
 
   it("is 1.125rem by default, grown by the font scale", () => {
-    expect(markup).toMatch(/^<svg [^>]*style="[^"]*width:calc\(1\.125rem \* var\(--mantine-scale\)\)/);
+    expect(markup).toMatch(
+      /^<svg [^>]*style="[^"]*width:calc\(1\.125rem \* var\(--mantine-scale\)\)/,
+    );
   });
 
   it.each([
@@ -105,7 +107,9 @@ describe("the props of an icon", () => {
   });
 
   it("keeps a style of the caller beside its own size", () => {
-    const markup = renderToStaticMarkup(createElement(catalog.AddIcon, { style: { opacity: 0.5 } }));
+    const markup = renderToStaticMarkup(
+      createElement(catalog.AddIcon, { style: { opacity: 0.5 } }),
+    );
     expect(markup).toMatch(/^<svg [^>]*style="[^"]*opacity:0\.5/);
     expect(markup).toMatch(/^<svg [^>]*style="[^"]*width:calc\(/);
   });
