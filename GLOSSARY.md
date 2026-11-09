@@ -56,6 +56,12 @@ _Avoid_: theme cache, boot cache
 A named set of colors for every _Color Role_, for one _Color Mode_ or both. A _Theme_ either ships with the app or was imported from another format.
 _Avoid_: skin, palette
 
+### Data
+
+**Local Table** (de: _lokale Tabelle_):
+A table whose rows stay on one device and never sync, such as cached figures. Nothing that syncs may depend on its rows.
+_Avoid_: private table, device table
+
 ### Development
 
 **Component Catalog** (de: _Komponentenkatalog_):

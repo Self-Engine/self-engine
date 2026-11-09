@@ -63,6 +63,14 @@ describe("the verify tasks", () => {
     expect(config.run?.tasks?.["verify:theme-css"]).toBe("node scripts/check-theme-css.ts");
   });
 
+  it("guard merged migrations as a static stage that no cache can replay", () => {
+    expect(STATIC_STAGES).toContain("migrations");
+    expect(config.run?.tasks?.["verify:migrations"]).toEqual({
+      command: "node scripts/check-migrations.ts",
+      cache: false,
+    });
+  });
+
   it("extract the catalogs locally and only check them in CI", () => {
     expect(config.run?.tasks?.["verify:i18n"]).toBe("node scripts/check-i18n.ts");
     expect(config.run?.tasks?.["verify:i18n:check"]).toBe("node scripts/check-i18n.ts --check");
