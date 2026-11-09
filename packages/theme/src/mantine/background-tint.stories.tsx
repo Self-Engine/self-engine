@@ -1,4 +1,4 @@
-import { Text } from "@mantine/core";
+import { rem, Text } from "@mantine/core";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import type { CSSProperties, ReactNode } from "react";
 import { expect } from "storybook/test";
@@ -37,9 +37,9 @@ function Arrangement() {
   return (
     <Container
       role="chrome"
-      style={{ display: "flex", gap: "var(--mantine-spacing-sm)", minHeight: "16rem" }}
+      style={{ display: "flex", gap: "var(--mantine-spacing-sm)", minHeight: rem(256) }}
     >
-      <Container role="navSurface" style={{ width: "12rem" }}>
+      <Container role="navSurface" style={{ width: rem(192) }}>
         <Text fw={600}>navSurface</Text>
         <Text c="dimmed">Navigation item</Text>
       </Container>

@@ -21,6 +21,11 @@ const CHANNEL_BADGES: Readonly<Record<DesktopChannel, string | undefined>> = {
   stable: undefined,
 };
 
+/** The macOS desktop app is the only place where window buttons sit on top of the page. */
+export function reservesWindowButtons(win: Pick<Window, "desktopBridge">): boolean {
+  return win.desktopBridge?.platform === "darwin";
+}
+
 /** The badge that marks a pre-release app; stable and the web have none. */
 export function channelBadge(win: Pick<Window, "desktopBridge">): string | undefined {
   return win.desktopBridge && CHANNEL_BADGES[win.desktopBridge.channel];

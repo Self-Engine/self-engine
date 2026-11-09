@@ -1,4 +1,4 @@
-import { Group, Stack, Table, Text, useMantineTheme } from "@mantine/core";
+import { Group, rem, Stack, Table, Text, useMantineTheme } from "@mantine/core";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { expect } from "storybook/test";
 import { DENSITIES, DENSITY_VARIABLES, roleColor } from "../core/index.ts";
@@ -21,7 +21,7 @@ function Spacing() {
           <Group key={step}>
             <div
               data-testid={step}
-              style={{ background: roleColor("accent"), height: "1rem", width: value }}
+              style={{ background: roleColor("accent"), height: rem(16), width: value }}
             />
             <Text size="sm">
               {step}: {value}

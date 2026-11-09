@@ -5,7 +5,8 @@ import { type ComponentProps, createElement } from "react";
 // so does not resolve for the boundary check, and the barrel is off limits. Every icon has it.
 type PhosphorIcon = typeof PlusIcon;
 
-// In rem, so an icon follows the font scale like text does. Density does not change it.
+// Multiplied by Mantine's scale, so an icon follows the font scale like text does. Density does
+// not change it.
 const SIZES = { xs: "0.875rem", sm: "1rem", md: "1.125rem", lg: "1.25rem" };
 
 // Phosphor passes unknown props on to the <svg>, so `fill` and `stroke` have to be ruled out here
@@ -19,10 +20,12 @@ type IconProps = Omit<
 
 /** A catalog icon, made from one Phosphor icon. */
 export function catalogIcon(SourceIcon: PhosphorIcon) {
-  return function CatalogIcon({ size = "md", ...props }: IconProps) {
+  return function CatalogIcon({ size = "md", style, ...props }: IconProps) {
+    const length = `calc(${SIZES[size]} * var(--mantine-scale))`;
     return createElement(SourceIcon, {
       ...props,
-      size: SIZES[size],
+      // In CSS, because the svg's width and height attributes cannot hold a variable.
+      style: { width: length, height: length, ...style },
       weight: "regular",
       color: "currentColor",
     });

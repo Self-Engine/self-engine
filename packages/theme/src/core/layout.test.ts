@@ -17,14 +17,14 @@ describe("Density", () => {
     expect(layout.density).toBe("comfortable");
   });
 
-  it("sets row height, padding and gap in rem under the data-density attribute", () => {
+  it("sets row height, padding and gap under the data-density attribute, grown by the font scale", () => {
     const { densityCss } = layoutOf({});
-    // 44/16/4 px and 34/12/2 px at the 16 px root size.
+    // 44/16/4 px and 34/12/2 px at the 100 % font scale.
     expect(densityCss).toContain(
-      ':root[data-density="comfortable"]{--se-row-height:2.75rem;--se-padding:1rem;--se-gap:0.25rem;}',
+      ':root[data-density="comfortable"]{--se-row-height:calc(2.75rem * var(--mantine-scale));--se-padding:calc(1rem * var(--mantine-scale));--se-gap:calc(0.25rem * var(--mantine-scale));}',
     );
     expect(densityCss).toContain(
-      ':root[data-density="compact"]{--se-row-height:2.125rem;--se-padding:0.75rem;--se-gap:0.125rem;}',
+      ':root[data-density="compact"]{--se-row-height:calc(2.125rem * var(--mantine-scale));--se-padding:calc(0.75rem * var(--mantine-scale));--se-gap:calc(0.125rem * var(--mantine-scale));}',
     );
     expect(densityCss).not.toContain("px");
   });
@@ -33,16 +33,16 @@ describe("Density", () => {
 describe("font scale", () => {
   it("defaults to 100 %", () => {
     expect(DEFAULT_APPEARANCE.fontScale).toBe(100);
-    expect(layoutOf({}).rootFontSize).toBe("100%");
+    expect(layoutOf({}).scale).toBe(1);
   });
 
   it.each([
-    [87.5, "87.5%"],
-    [93.75, "93.75%"],
-    [100, "100%"],
-    [106.25, "106.25%"],
-    [112.5, "112.5%"],
-  ] as const)("step %s is the percentage %s on the root element", (fontScale, expected) => {
-    expect(layoutOf({ fontScale }).rootFontSize).toBe(expected);
+    [87.5, 0.875],
+    [93.75, 0.9375],
+    [100, 1],
+    [106.25, 1.0625],
+    [112.5, 1.125],
+  ] as const)("step %s is Mantine's scale %s", (fontScale, expected) => {
+    expect(layoutOf({ fontScale }).scale).toBe(expected);
   });
 });

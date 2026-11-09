@@ -86,6 +86,7 @@ export function mantineTheme(
     primaryColor: ACCENT_PALETTE,
     primaryShade: FILL_SHADE,
     respectReducedMotion: true,
+    scale: resolved.layout.scale,
     variantColorResolver,
   });
 }

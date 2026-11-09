@@ -238,6 +238,32 @@ describe("the Accent", () => {
   });
 });
 
+describe("the brand's colors", () => {
+  const LIGHT = {
+    "--se-brand-star-top": "#f7a062",
+    "--se-brand-star-bottom": "#d06d3d",
+    "--se-brand-ring": "#c5836180",
+    "--se-brand-facets": "#3a1a0c38",
+  };
+  const DARK = {
+    "--se-brand-star-top": "#ffe2cf",
+    "--se-brand-star-bottom": "#e0855a",
+    "--se-brand-ring": "#e0855a80",
+    "--se-brand-facets": "#3a1a0c4d",
+  };
+
+  it("are the brand's own values in each Color Mode", () => {
+    expect(resolved.light.brandVariables).toEqual(LIGHT);
+    expect(resolved.dark.brandVariables).toEqual(DARK);
+  });
+
+  it("do not follow the Accent", () => {
+    const teal = resolveAppearance({ ...DEFAULT_APPEARANCE, accent: "teal" }, BUILT_IN_THEMES);
+    expect(teal.light.brandVariables).toEqual(LIGHT);
+    expect(teal.dark.brandVariables).toEqual(DARK);
+  });
+});
+
 describe("the data handed to CSS and Mantine", () => {
   it("names every role as a --se-* variable in kebab case", () => {
     const { cssVariables } = resolved.light;

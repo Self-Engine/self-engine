@@ -1,3 +1,4 @@
+import { BRAND_VARIABLES, type BrandVariables } from "./brand.ts";
 import {
   ACCENT_IDS,
   COLOR_SETS,
@@ -59,6 +60,7 @@ export const FIXED_APPEARANCE: Appearance = { ...DEFAULT_APPEARANCE, colorMode: 
 export interface ColorModeValues {
   readonly roles: FinalColors;
   readonly cssVariables: Readonly<Record<`--se-${string}`, Hex>>;
+  readonly brandVariables: BrandVariables;
   readonly mantineVariables: Readonly<Record<`--mantine-${string}`, Hex>>;
   /** Mantine's `gray` tuple for light, its `dark` tuple for dark. */
   readonly neutralPalette: Palette;
@@ -166,6 +168,7 @@ function colorModeValues(
   return {
     roles,
     cssVariables: cssVariables(roles),
+    brandVariables: BRAND_VARIABLES[mode],
     mantineVariables: mantineVariables(roles, mode),
     neutralPalette: neutralPalette(table, mode),
     colorVariables: Object.assign(

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vite-plus/test";
-import { channelBadge, historyKind } from "./env.ts";
+import { channelBadge, historyKind, reservesWindowButtons } from "./env.ts";
 
 describe("historyKind", () => {
   it("uses hash history in Electron, where the preload installs the bridge", () => {
@@ -22,5 +22,23 @@ describe("channelBadge", () => {
 
   it("shows nothing on the web", () => {
     expect(channelBadge({})).toBeUndefined();
+  });
+});
+
+describe("reservesWindowButtons", () => {
+  it("keeps the strip free in the macOS desktop app", () => {
+    expect(
+      reservesWindowButtons({ desktopBridge: { platform: "darwin", channel: "stable" } }),
+    ).toBe(true);
+  });
+
+  it("wastes no room on the Windows desktop app", () => {
+    expect(reservesWindowButtons({ desktopBridge: { platform: "win32", channel: "stable" } })).toBe(
+      false,
+    );
+  });
+
+  it("wastes no room on the web", () => {
+    expect(reservesWindowButtons({})).toBe(false);
   });
 });

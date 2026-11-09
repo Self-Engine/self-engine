@@ -23,6 +23,7 @@ export type AllowedImports = Readonly<Record<string, readonly string[]>>;
 export const ALLOWED_IMPORTS: AllowedImports = {
   icons: ["theme"],
   "placeholder-module": ["placeholder-shared"],
+  shell: ["icons", "theme"],
 };
 
 /** Only `@self-engine/icons` may import these; Tabler and the rest would be a second library. */

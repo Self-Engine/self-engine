@@ -56,7 +56,8 @@ export const InTheFixedAppearance: StoryObj<typeof meta> = {
     const root = document.documentElement;
     await expect(root.getAttribute("data-mantine-color-scheme")).toBe("light");
     await expect(root.dataset["density"]).toBe("comfortable");
-    await expect(root.style.fontSize).toBe("100%");
+    await expect(root.style.fontSize).toBe("");
+    await expect(getComputedStyle(root).getPropertyValue("--mantine-scale")).toBe("1");
     await expect(root.lang).toBe("en");
     // Only Neutral with its own Accent and the Background Tint on produces this `chrome`.
     const { chrome } = resolveAppearance(FIXED_APPEARANCE, BUILT_IN_THEMES).light.roles;

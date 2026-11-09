@@ -10,6 +10,7 @@ import {
   serveAsset,
   withContentSecurityPolicy,
 } from "./protocol.ts";
+import { titleBarOptions } from "./title-bar.ts";
 
 const { channel, productName, dataFolder, icon, scheme } = buildIdentity;
 
@@ -52,8 +53,13 @@ function registerProtocol(devServer: URL | undefined): void {
 
 async function openWindow(): Promise<void> {
   const window = new BrowserWindow({
-    width: 1100,
-    height: 750,
+    // Large enough for the wide Layout Step. The minimum width is the page's width, not the
+    // frame's, so that a Windows frame cannot let the phone Layout Step appear.
+    width: 1280,
+    height: 800,
+    minWidth: 576,
+    useContentSize: true,
+    ...titleBarOptions(process.platform),
     // The native window is white until the page paints, which the Start Cache cannot reach.
     show: false,
     webPreferences: {
