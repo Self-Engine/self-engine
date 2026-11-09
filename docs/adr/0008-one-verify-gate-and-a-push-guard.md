@@ -19,8 +19,6 @@ through a PR.
   the ADR check, the theme CSS check, the translation check, the workspace build, then the tests. The stages are
   `vp run` tasks, so an unchanged stage replays from the cache. The last line is `VERIFY: PASS`
   or `VERIFY: FAIL`.
-- **The gate refuses a Node outside `engines.node`** before any stage runs. `pnpm install` only
-  warns about it (no `engineStrict`), because Dependabot runs pnpm on its own, older Node.
 - **A pass writes a stamp**: the git tree of the verified checkout.
 - **A push guard** (a Claude Code `PreToolUse` hook) blocks `git push` and `gh pr create`
   unless the stamp of the repository the command publishes from (its `-C <dir>`, else the

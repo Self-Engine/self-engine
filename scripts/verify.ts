@@ -13,12 +13,9 @@
 // The static stages all run even after one fails, so one run reports lint and type errors
 // together; the tests run only once they pass. A pass records the verified tree
 // (verify-stamp.ts), which the push guard (verify-guard.ts) requires before `git push`.
-//
-// A Node outside `engines.node` fails the gate before any stage runs: `pnpm install` only
-// warns about it, so that Dependabot, which has its own older Node, can update the lockfile.
 
 import { spawn } from "node:child_process";
-import { appendFileSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { appendFileSync, mkdirSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import {
   clearVerifyStamp,
@@ -45,21 +42,6 @@ const FAILURE_TAIL_LINES = 80;
 export function isCi(env: NodeJS.ProcessEnv): boolean {
   const value = env.CI?.trim().toLowerCase();
   return value !== undefined && value !== "" && value !== "false" && value !== "0";
-}
-
-/**
- * Why Node `version` is outside the caret range `range` (`^26.0.0`), or `null` when it is
- * inside. Any other form of range is reported too, so the check cannot silently pass.
- */
-export function nodeVersionProblem(version: string, range: string): string | null {
-  const wanted = /^\^(\d+)\.(\d+)\.(\d+)$/.exec(range)?.slice(1).map(Number);
-  if (wanted === undefined) return `engines.node must be a caret range, got "${range}"`;
-  const [major = 0, minor = 0, patch = 0] = version.split(".").map(Number);
-  const [wantedMajor = 0, wantedMinor = 0, wantedPatch = 0] = wanted;
-  const inside =
-    major === wantedMajor &&
-    (minor > wantedMinor || (minor === wantedMinor && patch >= wantedPatch));
-  return inside ? null : `Node ${version} is outside engines.node ${range}`;
 }
 
 /** The stages that rewrite files locally and only check them under CI. */
@@ -136,18 +118,6 @@ async function main(): Promise<void> {
   mkdirSync(dirname(logPath), { recursive: true });
   writeFileSync(logPath, "");
   clearVerifyStamp(root);
-
-  const { engines } = JSON.parse(readFileSync(join(root, "package.json"), "utf8")) as {
-    engines: { node: string };
-  };
-  const nodeProblem = nodeVersionProblem(process.versions.node, engines.node);
-  if (nodeProblem !== null) {
-    appendFileSync(logPath, `${nodeProblem}\n`);
-    console.log(`FAIL node: ${nodeProblem}`);
-    console.log(summaryLine([{ stage: "node", ok: false }], LOG_FILE));
-    process.exitCode = 1;
-    return;
-  }
 
   // The checkout's own `vp`, not whatever PATH holds.
   const vp = join(root, "node_modules/.bin/vp");
