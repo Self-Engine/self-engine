@@ -60,6 +60,10 @@ msgid "Open module sidebar"
 msgstr "Open module sidebar"
 
 #: packages/shell/src/shell.tsx
+msgid "Open navigation"
+msgstr "Open navigation"
+
+#: packages/shell/src/shell.tsx
 msgid "Resize module sidebar"
 msgstr "Resize module sidebar"
 

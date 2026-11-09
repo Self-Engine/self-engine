@@ -3,13 +3,13 @@ import {
   AppShell,
   Box,
   Burger,
-  Center,
   Drawer,
   Group,
   NavLink,
   rem,
   ScrollArea,
   Splitter,
+  Stack,
   Text,
   Title,
   Tooltip,
@@ -50,10 +50,12 @@ const ENTRY_HEIGHT = 40;
 /** As high as the content header and level with it, so window buttons, logo and page title share a line. */
 const TOP_STRIP_HEIGHT = CONTENT_HEADER_HEIGHT;
 /**
- * Where the logo starts beside the macOS window buttons, from the window edge: they end at 76 px
+ * Where anything beside the macOS window buttons starts, from the window edge: they end at 76 px
  * (see `titleBarOptions`). In real pixels, because the buttons do not follow Mantine's scale.
  */
-const LOGO_START_AFTER_WINDOW_BUTTONS = "84px";
+const START_AFTER_WINDOW_BUTTONS = "84px";
+/** The same place from inside the frame, for the content header that the buttons float over. */
+const HEADER_START_AFTER_WINDOW_BUTTONS = `calc(${START_AFTER_WINDOW_BUTTONS} - ${rem(GAP)})`;
 /** The Navbar's own padding, on top of the frame around the Shell. */
 const LOGO_START_AT_CONTAINER_EDGE = `calc(${rem(GAP)} + var(--mantine-spacing-xs))`;
 
@@ -90,6 +92,13 @@ const TOP_EDGE_STYLE: CSSProperties = {
   position: "fixed",
 };
 
+const NAVBAR_STYLE: CSSProperties = {
+  backgroundColor: roleColor("navSurface"),
+  borderRadius: `${RADIUS} 0 0 ${RADIUS}`,
+};
+
+const MAIN_STYLE: CSSProperties = { minHeight: 0, minWidth: 0 };
+
 const NAVBAR_TOP_STRIP_STYLE: CSSProperties = {
   // Starts where the Navbar starts, not below its padding.
   marginBlockStart: "calc(-1 * var(--mantine-spacing-xs))",
@@ -105,22 +114,29 @@ const NAVIGATION_LOGO_STYLE: CSSProperties = {
   zIndex: "calc(var(--mantine-z-index-app) + 2)",
 };
 
-// Mantine's Drawer scrolls as a whole and only its header sticks, so the strip has to stick with it.
-const DRAWER_TOP_STYLE: CSSProperties = {
-  backgroundColor: "var(--mantine-color-body)",
-  position: "sticky",
-  top: 0,
-  zIndex: 1000,
-};
-
-// The Drawer starts at the window edge, the strip at the frame, level with the navigation's.
+// The Drawer starts at the window edge, the strip at the frame, level with the content header.
 const DRAWER_STRIP_FRAME_STYLE: CSSProperties = {
   ...WINDOW_DRAG_STYLE,
   paddingBlockStart: rem(GAP),
 };
 
-const DRAWER_LOGO_STYLE: CSSProperties = {
-  marginInlineStart: LOGO_START_AFTER_WINDOW_BUTTONS,
+// The navigation's surface, and only the columns below the strip scroll.
+const NAVIGATION_DRAWER_STYLE: CSSProperties = {
+  backgroundColor: roleColor("navSurface"),
+  display: "flex",
+  flexDirection: "column",
+  overflow: "hidden",
+};
+
+// Mantine's header has a surface of its own, for the Drawer that scrolls as a whole.
+const NAVIGATION_DRAWER_HEADER_STYLE: CSSProperties = { backgroundColor: "transparent" };
+
+const DRAWER_NAVBAR_STYLE: CSSProperties = {
+  display: "flex",
+  flex: "none",
+  flexDirection: "column",
+  position: "relative",
+  width: rem(NAVBAR_ICONS_ONLY_WIDTH),
 };
 
 const BURGER_STYLE: CSSProperties = { ...NOT_WINDOW_DRAG_STYLE, borderRadius: RADIUS };
@@ -221,7 +237,7 @@ export interface ShellProps {
   readonly onSelectEntry: (id: string) => void;
   readonly moduleSidebar: ReactNode;
   readonly pageTitle: string;
-  /** Sits in the top strip of the navigation, at a place of its own. None at phone width. */
+  /** Sits in the top strip of the navigation, in the drawer at the narrow step. None at phone width. */
   readonly logo?: ShellLogo;
   /** The free end of the content header. */
   readonly headerEnd?: ReactNode;
@@ -232,7 +248,7 @@ export interface ShellProps {
   readonly onNavbarCommit?: (navbar: ShellNavbarState) => void;
   /** Called once per change, when the user releases the handle or presses a key. */
   readonly onModuleSidebarWidthCommit?: (width: number) => void;
-  /** Keeps room in the top strip of the navigation for the macOS window buttons. */
+  /** Keeps room for the macOS window buttons: in the navigation's top strip, and in the content header at the narrow step. */
   readonly reserveWindowButtons?: boolean;
   /** The page. Stays mounted whichever Layout Step the window is in. */
   readonly children: ReactNode;
@@ -272,21 +288,14 @@ function TopStrip({ children, style }: { children?: ReactNode; style?: CSSProper
 
 interface LogoProps {
   readonly logo: ShellLogo;
-  readonly markOnly?: boolean;
   readonly style: CSSProperties;
 }
 
-function Logo({ logo, markOnly = false, style }: LogoProps) {
+function Logo({ logo, style }: LogoProps) {
   return (
     <Group gap="xs" h={rem(TOP_STRIP_HEIGHT)} style={{ ...LOGO_STYLE, ...style }} wrap="nowrap">
-      {markOnly ? (
-        <Center w={ICON_AXIS_SLOT_WIDTH}>{logo.mark}</Center>
-      ) : (
-        <>
-          {logo.mark}
-          <Text fw={600}>{logo.name}</Text>
-        </>
-      )}
+      {logo.mark}
+      <Text fw={600}>{logo.name}</Text>
     </Group>
   );
 }
@@ -364,9 +373,7 @@ export function Shell({
   );
   const [draggedPaneSize, setDraggedPaneSize] = useState<SplitterPaneSize | null>(null);
   const moduleSidebarDragging = useRef(false);
-  const hasTopStrip = !isPhone && (reserveWindowButtons || logo !== undefined);
-  // The icons-only Navbar is all that is left of the navigation, and the window buttons fill it.
-  const logoHasRoom = !isPhone && !(step === "narrow" && reserveWindowButtons);
+  const hasTopStrip = reserveWindowButtons || logo !== undefined;
   const topStripHeight = hasTopStrip ? rem(TOP_STRIP_HEIGHT) : 0;
   const moduleSidebarPaneSize = sidebarInDrawer
     ? "0px"
@@ -436,6 +443,15 @@ export function Shell({
     />
   );
 
+  const navbarColumn = (appearance: EntryLinkProps["appearance"]) => (
+    <>
+      <AppShell.Section component={ScrollArea} grow>
+        {entries.map((entry) => entryLink(entry, appearance))}
+      </AppShell.Section>
+      <AppShell.Section>{entryLink(settingsEntry, appearance)}</AppShell.Section>
+    </>
+  );
+
   const drawerHeader = (
     <Drawer.Header>
       <Drawer.Title>{t`Module Sidebar`}</Drawer.Title>
@@ -447,9 +463,14 @@ export function Shell({
     <AppShell
       {...(isPhone && { footer: { height: BOTTOM_BAR_HEIGHT } })}
       mode="static"
-      // `collapsed.mobile`, because without it Mantine's phone rule also matches at exactly `xs`,
-      // which is the smallest Electron window.
-      navbar={{ width: navbarWidth, breakpoint: "xs", collapsed: { mobile: true } }}
+      // `collapsed.desktop` gives the narrow step's width to the content, since the Navbar is in the
+      // drawer. `collapsed.mobile` does the same at the phone rule, which also matches at exactly
+      // `xs`, the smallest Electron window.
+      navbar={{
+        width: navbarWidth,
+        breakpoint: "xs",
+        collapsed: { mobile: true, desktop: sidebarInDrawer },
+      }}
       padding={0}
       ref={appShellRef}
       // Mantine prefers a resized width over the responsive ones, so only the wide step gets it.
@@ -459,45 +480,25 @@ export function Shell({
       styles={{ resizeHandle: { ...NOT_WINDOW_DRAG_STYLE, top: topStripHeight } }}
     >
       <Box aria-hidden style={TOP_EDGE_STYLE} />
-      {!isPhone && (
-        <AppShell.Navbar
-          aria-label={t`Modules`}
-          p="xs"
-          style={{
-            backgroundColor: roleColor("navSurface"),
-            borderRadius: sidebarInDrawer ? RADIUS : `${RADIUS} 0 0 ${RADIUS}`,
-          }}
-          withBorder={false}
-        >
+      {!sidebarInDrawer && (
+        <AppShell.Navbar aria-label={t`Modules`} p="xs" style={NAVBAR_STYLE} withBorder={false}>
           {hasTopStrip && <TopStrip style={NAVBAR_TOP_STRIP_STYLE} />}
-          {!sidebarInDrawer && (
-            <Box aria-hidden style={{ ...NAVBAR_DIVIDER_STYLE, top: topStripHeight }} />
-          )}
-          <AppShell.Section component={ScrollArea} grow>
-            {entries.map((entry) => entryLink(entry, entryAppearance))}
-          </AppShell.Section>
-          <AppShell.Section>{entryLink(settingsEntry, entryAppearance)}</AppShell.Section>
+          <Box aria-hidden style={{ ...NAVBAR_DIVIDER_STYLE, top: topStripHeight }} />
+          {navbarColumn(entryAppearance)}
         </AppShell.Navbar>
       )}
-      {logo && logoHasRoom && (
+      {logo && !sidebarInDrawer && (
         <Logo
           logo={logo}
-          markOnly={step === "narrow"}
           style={{
             ...NAVIGATION_LOGO_STYLE,
             insetInlineStart: reserveWindowButtons
-              ? LOGO_START_AFTER_WINDOW_BUTTONS
+              ? START_AFTER_WINDOW_BUTTONS
               : LOGO_START_AT_CONTAINER_EDGE,
           }}
         />
       )}
-      <AppShell.Main
-        style={{
-          minHeight: 0,
-          minWidth: 0,
-          paddingInlineStart: step === "narrow" ? rem(GAP) : 0,
-        }}
-      >
+      <AppShell.Main style={MAIN_STYLE}>
         <Splitter
           h="100%"
           attributes={{
@@ -561,13 +562,14 @@ export function Shell({
               flex="none"
               gap="sm"
               h={rem(CONTENT_HEADER_HEIGHT)}
-              px="md"
+              pe="md"
+              ps={step === "narrow" && reserveWindowButtons ? HEADER_START_AFTER_WINDOW_BUTTONS : "md"}
               style={WINDOW_DRAG_STYLE}
               wrap="nowrap"
             >
               {sidebarInDrawer && (
                 <Burger
-                  aria-label={t`Open module sidebar`}
+                  aria-label={isPhone ? t`Open module sidebar` : t`Open navigation`}
                   onClick={toggleDrawer}
                   opened={drawerOpened}
                   size="sm"
@@ -600,23 +602,57 @@ export function Shell({
       <Drawer.Root
         onClose={closeDrawer}
         opened={sidebarInDrawer && drawerOpened}
-        size={reserveWindowButtons ? SHELL_STANDARD_MODULE_SIDEBAR_WIDTH : shownModuleSidebarWidth}
+        size={
+          isPhone
+            ? shownModuleSidebarWidth
+            : NAVBAR_ICONS_ONLY_WIDTH + SHELL_STANDARD_MODULE_SIDEBAR_WIDTH
+        }
         // It opens over the content header, whose drag region would swallow the clicks.
-        styles={{ content: NOT_WINDOW_DRAG_STYLE, overlay: NOT_WINDOW_DRAG_STYLE }}
+        styles={{
+          content: { ...NOT_WINDOW_DRAG_STYLE, ...(!isPhone && NAVIGATION_DRAWER_STYLE) },
+          header: isPhone ? undefined : NAVIGATION_DRAWER_HEADER_STYLE,
+          overlay: NOT_WINDOW_DRAG_STYLE,
+        }}
       >
         <Drawer.Overlay />
         <Drawer.Content>
-          {reserveWindowButtons ? (
-            <Box style={DRAWER_TOP_STYLE}>
-              <Box style={DRAWER_STRIP_FRAME_STYLE}>
-                <TopStrip>{logo && <Logo logo={logo} style={DRAWER_LOGO_STYLE} />}</TopStrip>
-              </Box>
+          {isPhone ? (
+            <>
               {drawerHeader}
-            </Box>
+              <Drawer.Body>{moduleSidebar}</Drawer.Body>
+            </>
           ) : (
-            drawerHeader
+            <>
+              {hasTopStrip && (
+                <Box style={DRAWER_STRIP_FRAME_STYLE}>
+                  <TopStrip>
+                    {logo && (
+                      <Logo
+                        logo={logo}
+                        style={{
+                          marginInlineStart: reserveWindowButtons
+                            ? START_AFTER_WINDOW_BUTTONS
+                            : "var(--mantine-spacing-xs)",
+                        }}
+                      />
+                    )}
+                  </TopStrip>
+                </Box>
+              )}
+              <Group align="stretch" flex={1} gap={0} mih={0} wrap="nowrap">
+                <Box aria-label={t`Modules`} component="nav" p="xs" style={DRAWER_NAVBAR_STYLE}>
+                  <Box aria-hidden style={{ ...NAVBAR_DIVIDER_STYLE, top: 0 }} />
+                  {navbarColumn("iconsOnly")}
+                </Box>
+                <Stack flex={1} gap={0} miw={0}>
+                  {drawerHeader}
+                  <ScrollArea flex={1} mih={0}>
+                    <Drawer.Body pt={0}>{moduleSidebar}</Drawer.Body>
+                  </ScrollArea>
+                </Stack>
+              </Group>
+            </>
           )}
-          <Drawer.Body>{moduleSidebar}</Drawer.Body>
         </Drawer.Content>
       </Drawer.Root>
     </AppShell>

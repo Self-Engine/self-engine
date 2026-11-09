@@ -66,7 +66,7 @@ export const Wide: Story = {
     await expect(canvas.getByText("Sidebar content")).toBeVisible();
     await expect(canvas.getByRole("heading", { name: "Time" })).toBeVisible();
     await expect(canvas.getByText("Page content")).toBeVisible();
-    await expect(canvas.queryByRole("button", { name: "Open module sidebar" })).toBeNull();
+    await expect(canvas.queryByRole("button", { name: /^Open / })).toBeNull();
     await expect(screen.queryByRole("contentinfo")).toBeNull();
     await userEvent.click(navbar.getByRole("button", { name: "Projects" }));
     await expect(meta.args.onSelectEntry).toHaveBeenCalledWith("projects");
@@ -78,7 +78,18 @@ function navbarOf(canvas: ReturnType<typeof within>): HTMLElement {
 }
 
 function canvasRoot(canvas: ReturnType<typeof within>): HTMLElement {
-  return navbarOf(canvas).parentElement!;
+  return canvas.getByRole("main").parentElement!;
+}
+
+/** The narrow step: no Navbar in the frame, and the content has the outer gap on both sides. */
+async function expectContentFillsTheFrame(
+  canvas: ReturnType<typeof within>,
+  windowWidth: number,
+): Promise<void> {
+  await expect(canvas.queryByRole("navigation", { name: "Modules" })).toBeNull();
+  const content = paneOf(canvas, "Page content").getBoundingClientRect();
+  await expect(content.left).toBeCloseTo(8, 0);
+  await expect(content.right).toBeCloseTo(windowWidth - 8, 0);
 }
 
 /** Rendered widths, rounded: subpixel layout must not fail a story. */
@@ -104,7 +115,7 @@ export const Medium: Story = {
     await expect(within(navbar).queryByText("Projects")).toBeNull();
     await expect(within(navbar).getByRole("button", { name: "Projects" })).toBeVisible();
     await expect(canvas.getByText("Sidebar content")).toBeVisible();
-    await expect(canvas.queryByRole("button", { name: "Open module sidebar" })).toBeNull();
+    await expect(canvas.queryByRole("button", { name: /^Open / })).toBeNull();
   },
 };
 
@@ -178,9 +189,9 @@ export const HeaderShowsItsSlots: Story = {
 export const Narrow: Story = {
   ...atViewport("narrow"),
   play: async ({ canvas }) => {
-    await expect(widthOf(navbarOf(canvas))).toBe(68);
+    await expectContentFillsTheFrame(canvas, 800);
     await expect(canvas.queryByText("Sidebar content")).toBeNull();
-    await userEvent.click(canvas.getByRole("button", { name: "Open module sidebar" }));
+    await userEvent.click(canvas.getByRole("button", { name: "Open navigation" }));
     const drawer = await screen.findByRole("dialog", { name: "Module Sidebar" });
     await waitFor(() => expect(within(drawer).getByText("Sidebar content")).toBeVisible());
     await userEvent.click(within(drawer).getByRole("button", { name: "Close module sidebar" }));
@@ -192,11 +203,7 @@ export const Narrow: Story = {
 export const NarrowAtExactlyTheMinimumWindowWidth: Story = {
   ...atViewport("narrowest"),
   play: async ({ canvas }) => {
-    const navbar = navbarOf(canvas);
-    await expect(navbar).toBeVisible();
-    await expect(widthOf(navbar)).toBe(68);
-    await expect(navbar.getBoundingClientRect().left).toBe(8);
-    await expect(widthOf(canvas.getByRole("main"))).toBeLessThan(576 - 76);
+    await expectContentFillsTheFrame(canvas, 576);
     await expect(screen.queryByRole("contentinfo")).toBeNull();
   },
 };
@@ -265,7 +272,7 @@ export const ContentStaysMountedAcrossLayoutSteps: Story = {
     await userEvent.type(draft, "unsaved");
     for (const [width, button] of [
       [1100, null],
-      [800, "Open module sidebar"],
+      [800, "Open navigation"],
       [390, "Open module sidebar"],
     ] as const) {
       // oxlint-disable-next-line no-await-in-loop -- the steps are walked one after the other
@@ -282,16 +289,51 @@ export const ContentStaysMountedAcrossLayoutSteps: Story = {
   },
 };
 
+/** The Navbar leaves and comes back at this step, and the page beside it must not notice. */
+export const ContentStaysMountedAcrossTheNarrowStep: Story = {
+  ...atViewport("medium"),
+  args: { children: <input aria-label="Draft" /> },
+  play: async ({ canvas }) => {
+    const draft = canvas.getByRole("textbox", { name: "Draft" });
+    await userEvent.type(draft, "unsaved");
+    const expectDraftKept = async () => {
+      await expect(canvas.getByRole("textbox", { name: "Draft" })).toBe(draft);
+      await expect(draft).toHaveValue("unsaved");
+    };
+    const navbarIsThere = () => expect(canvas.queryByRole("navigation")).not.toBeNull();
+    const navbarIsGone = () => expect(canvas.queryByRole("navigation")).toBeNull();
+    await waitFor(navbarIsThere);
+    await atFrameWidth(800, async () => {
+      await waitFor(navbarIsGone);
+      await expectDraftKept();
+      await atFrameWidth(1100, async () => {
+        await waitFor(navbarIsThere);
+        await expectDraftKept();
+      });
+      await waitFor(navbarIsGone);
+      await expectDraftKept();
+      await atFrameWidth(390, async () => {
+        await waitFor(() => expect(screen.getByRole("contentinfo")).toBeVisible());
+        await expectDraftKept();
+      });
+      await waitFor(() => expect(screen.queryByRole("contentinfo")).toBeNull());
+      await expectDraftKept();
+    });
+    await waitFor(navbarIsThere);
+    await expectDraftKept();
+  },
+};
+
 export const WidenedWindowClosesTheDrawer: Story = {
   ...atViewport("narrow"),
   play: async ({ canvas }) => {
-    await userEvent.click(canvas.getByRole("button", { name: "Open module sidebar" }));
+    await userEvent.click(canvas.getByRole("button", { name: "Open navigation" }));
     await screen.findByRole("dialog", { name: "Module Sidebar" });
     await atFrameWidth(1100, async () => {
       await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
     });
     await waitFor(() =>
-      expect(canvas.getByRole("button", { name: "Open module sidebar" })).toBeVisible(),
+      expect(canvas.getByRole("button", { name: "Open navigation" })).toBeVisible(),
     );
     await expect(screen.queryByRole("dialog")).toBeNull();
   },
@@ -306,6 +348,7 @@ export const StripForTheWindowButtons: Story = {
       navbarOf(canvas).getBoundingClientRect().top + 48,
       0,
     );
+    await expect(appRegionOf(navbarOf(canvas).firstElementChild!)).toBe("drag");
   },
 };
 
@@ -339,8 +382,7 @@ export const TheTopEdgeDragsTheWindowAndItsControlsStayClickable: Story = {
     const title = canvas.getByRole("heading", { name: "Time" });
     const header = title.parentElement!.parentElement!;
     await expect(appRegionOf(header)).toBe("drag");
-    await expect(appRegionOf(navbarOf(canvas).firstElementChild!)).toBe("drag");
-    await expect(appRegionOf(canvas.getByRole("button", { name: "Open module sidebar" }))).toBe(
+    await expect(appRegionOf(canvas.getByRole("button", { name: "Open navigation" }))).toBe(
       "no-drag",
     );
     await expect(appRegionOf(canvas.getByRole("button", { name: "Search" }).parentElement!)).toBe(
@@ -366,7 +408,7 @@ export const TheNavbarHandleStaysGrabbableInTheDragRegion: Story = {
 export const TheDrawerStaysClickableAboveTheDragRegion: Story = {
   ...atViewport("narrow"),
   play: async ({ canvas }) => {
-    await userEvent.click(canvas.getByRole("button", { name: "Open module sidebar" }));
+    await userEvent.click(canvas.getByRole("button", { name: "Open navigation" }));
     const drawer = await screen.findByRole("dialog", { name: "Module Sidebar" });
     await expect(appRegionOf(drawer)).toBe("no-drag");
   },
@@ -800,11 +842,13 @@ export const LogoKeepsItsNameOverAnIconsOnlyNavbar: Story = {
 
 const STRIP_HEIGHT = 48;
 
-const dividerOf = (canvas: ReturnType<typeof within>) => {
-  const divider = [...navbarOf(canvas).children].find((child) => widthOf(child) === 1);
+const dividerIn = (navbar: Element) => {
+  const divider = [...navbar.children].find((child) => widthOf(child) === 1);
   if (divider === undefined) throw new Error("the Navbar has no divider");
   return divider;
 };
+
+const dividerOf = (canvas: ReturnType<typeof within>) => dividerIn(navbarOf(canvas));
 
 export const TheStripReadsAsOneSurface: Story = {
   ...atViewport("wide"),
@@ -882,25 +926,12 @@ export const TheLogoDragsTheWindowAndTakesNoPointer: Story = {
   },
 };
 
-export const NoLogoBesideTheWindowButtonsInTheNarrowStep: Story = {
-  ...atViewport("narrow"),
-  args: { logo: LOGO, reserveWindowButtons: true },
-  play: async ({ canvas }) => {
-    await expect(canvas.queryByTestId("mark")).toBeNull();
-    await expect(canvas.queryByText("Self-Engine")).toBeNull();
-    await expect(
-      canvas.getByRole("button", { name: "Projects" }).getBoundingClientRect().top,
-    ).toBeCloseTo(navbarOf(canvas).getBoundingClientRect().top + STRIP_HEIGHT, 0);
-  },
-};
-
-export const OnlyTheMarkOnTheIconAxisInTheNarrowStep: Story = {
+export const NoLogoInTheFrameAtTheNarrowStep: Story = {
   ...atViewport("narrow"),
   args: { logo: LOGO },
   play: async ({ canvas }) => {
-    const icon = canvas.getByRole("button", { name: "Projects" }).querySelector("svg")!;
+    await expect(canvas.queryByTestId("mark")).toBeNull();
     await expect(canvas.queryByText("Self-Engine")).toBeNull();
-    await expect(centerX(canvas.getByTestId("mark"))).toBeCloseTo(centerX(icon), 0);
   },
 };
 
@@ -938,8 +969,11 @@ export const ACollapsedNavbarFollowsTheFontScaleWithWindowButtons: Story = {
   },
 };
 
-async function openDrawer(canvas: ReturnType<typeof within>): Promise<HTMLElement> {
-  await userEvent.click(canvas.getByRole("button", { name: "Open module sidebar" }));
+async function openDrawer(
+  canvas: ReturnType<typeof within>,
+  burger = "Open navigation",
+): Promise<HTMLElement> {
+  await userEvent.click(canvas.getByRole("button", { name: burger }));
   const drawer = await screen.findByRole("dialog", { name: "Module Sidebar" });
   await waitFor(() => expect(within(drawer).getByText("Sidebar content")).toBeVisible());
   return drawer;
@@ -951,28 +985,128 @@ const drawerHeaderOf = (drawer: HTMLElement) => {
   return header;
 };
 
+const drawerNavbarOf = (drawer: HTMLElement) =>
+  within(drawer).getByRole("navigation", { name: "Modules" });
+
 /** The native buttons float above the Drawer too, so its title has to start below them. */
 export const TheDrawerHeaderSitsBelowTheStripWithWindowButtons: Story = {
   ...atViewport("narrow"),
   args: { logo: LOGO, moduleSidebarWidth: 320, reserveWindowButtons: true },
   play: async ({ canvas }) => {
-    const navigationStrip = navbarOf(canvas).firstElementChild!;
+    const pageTitle = canvas.getByRole("heading", { name: "Time" });
     const drawer = await openDrawer(canvas);
     const mark = within(drawer).getByTestId("mark");
     const strip = mark.parentElement!.parentElement!;
     await expect(appRegionOf(strip)).toBe("drag");
     await expect(getComputedStyle(strip).borderBlockEndWidth).toBe("0px");
     await expect(strip.getBoundingClientRect().height).toBeCloseTo(STRIP_HEIGHT, 0);
-    await expect(centerY(strip)).toBeCloseTo(centerY(navigationStrip), 0);
+    await expect(centerY(strip)).toBeCloseTo(centerY(pageTitle), 0);
     await expect(drawerHeaderOf(drawer).getBoundingClientRect().top).toBeCloseTo(
       strip.getBoundingClientRect().bottom,
       0,
     );
     await waitFor(() => expect(mark.getBoundingClientRect().left).toBeCloseTo(84, 0));
-    await expect(widthOf(drawer)).toBe(240);
     await expect(
       within(drawer).getByText("Self-Engine").getBoundingClientRect().right,
     ).toBeLessThan(drawer.getBoundingClientRect().right);
+  },
+};
+
+/** The whole navigation of the frame, side by side under the strip. */
+export const TheDrawerShowsTheNavbarBesideTheModuleSidebar: Story = {
+  ...atViewport("narrow"),
+  args: { logo: LOGO, moduleSidebarWidth: 320, reserveWindowButtons: true },
+  play: async ({ canvas }) => {
+    const drawer = await openDrawer(canvas);
+    const navbar = drawerNavbarOf(drawer);
+    const strip = within(drawer).getByTestId("mark").parentElement!.parentElement!;
+    const box = navbar.getBoundingClientRect();
+    await expect(widthOf(drawer)).toBe(68 + 240);
+    await expect(widthOf(navbar)).toBe(68);
+    await expect(box.top).toBeCloseTo(strip.getBoundingClientRect().bottom, 0);
+    await expect(box.bottom).toBeCloseTo(drawer.getBoundingClientRect().bottom, 0);
+    const names = within(navbar)
+      .getAllByRole("button")
+      .map((entry) => entry.getAttribute("aria-label"));
+    await expect(names).toEqual(["Projects", "Time", "Settings"]);
+    const settings = within(navbar).getByRole("button", { name: "Settings" });
+    await expect(settings.getBoundingClientRect().bottom).toBeCloseTo(box.bottom - 10, 0);
+    const icon = settings.querySelector("svg")!;
+    await expect(centerX(icon)).toBeCloseTo(centerX(navbar), 0);
+    const header = drawerHeaderOf(drawer).getBoundingClientRect();
+    await expect(header.left).toBeCloseTo(box.right, 0);
+    await expect(header.right).toBeCloseTo(drawer.getBoundingClientRect().right, 0);
+    await expect(
+      within(drawer).getByRole("button", { name: "Close module sidebar" }),
+    ).toBeVisible();
+    await expect(within(drawer).getByText("Sidebar content").getBoundingClientRect().left).toBe(
+      header.left + 16,
+    );
+  },
+};
+
+export const TheDrawerDividerStartsBelowTheStripAndLooksLikeTheFrame: Story = {
+  ...atViewport("narrow"),
+  args: { logo: LOGO, reserveWindowButtons: true },
+  play: async ({ canvas }) => {
+    const drawer = await openDrawer(canvas);
+    const navbar = drawerNavbarOf(drawer);
+    const box = navbar.getBoundingClientRect();
+    const divider = dividerIn(navbar);
+    await expect(divider.getBoundingClientRect().top).toBeCloseTo(box.top, 0);
+    await expect(divider.getBoundingClientRect().bottom).toBeCloseTo(box.bottom, 0);
+    await expect(divider.getBoundingClientRect().right).toBeCloseTo(box.right, 0);
+    const role = (name: string) => getComputedStyle(navbar).getPropertyValue(name);
+    await expect(divider).toHaveStyle({ backgroundColor: role("--se-border") });
+    await expect(drawer).toHaveStyle({ backgroundColor: role("--se-nav-surface") });
+  },
+};
+
+/** The Module Sidebar beside the Navbar shows the chosen module's views, so the drawer stays. */
+export const SelectingAnEntryLeavesTheDrawerOpen: Story = {
+  ...atViewport("narrow"),
+  play: async ({ canvas }) => {
+    const drawer = await openDrawer(canvas);
+    const navbar = within(drawerNavbarOf(drawer));
+    await userEvent.click(navbar.getByRole("button", { name: "Projects" }));
+    await expect(meta.args.onSelectEntry).toHaveBeenCalledWith("projects");
+    await userEvent.click(navbar.getByRole("button", { name: "Settings" }));
+    await expect(meta.args.onSelectEntry).toHaveBeenLastCalledWith("settings");
+    await expect(screen.getByRole("dialog", { name: "Module Sidebar" })).toBe(drawer);
+    await expect(within(drawer).getByText("Sidebar content")).toBeVisible();
+  },
+};
+
+export const TheDrawerNavbarNamesItsEntriesAndMarksTheActiveOne: Story = {
+  ...atViewport("narrow"),
+  play: async ({ canvas }) => {
+    const drawer = await openDrawer(canvas);
+    const navbar = within(drawerNavbarOf(drawer));
+    const active = navbar.getByRole("button", { name: "Time", current: "page" });
+    await expect(active).toHaveStyle({
+      backgroundColor: getComputedStyle(active).getPropertyValue("--se-module-soft"),
+    });
+    await userEvent.hover(navbar.getByRole("button", { name: "Projects" }));
+    await expect(await screen.findByRole("tooltip")).toHaveTextContent("Projects");
+  },
+};
+
+export const TheDrawerLogoStartsAtTheLeftEdgeWithoutWindowButtons: Story = {
+  ...atViewport("narrow"),
+  args: { logo: LOGO },
+  play: async ({ canvas }) => {
+    const drawer = await openDrawer(canvas);
+    const mark = within(drawer).getByTestId("mark");
+    const firstEntry = within(drawerNavbarOf(drawer)).getByRole("button", { name: "Projects" });
+    await expect(mark.getBoundingClientRect().left).toBeCloseTo(
+      firstEntry.getBoundingClientRect().left,
+      0,
+    );
+    await expect(appRegionOf(mark.parentElement!.parentElement!)).toBe("drag");
+    await expect(drawerNavbarOf(drawer).getBoundingClientRect().top).toBeCloseTo(
+      mark.parentElement!.parentElement!.getBoundingClientRect().bottom,
+      0,
+    );
   },
 };
 
@@ -1000,25 +1134,96 @@ export const TheDrawerHeaderStaysBelowTheStripWhenTheSidebarScrolls: Story = {
   play: async ({ canvas }) => {
     const drawer = await openDrawer(canvas);
     const header = drawerHeaderOf(drawer);
+    const firstEntry = within(drawerNavbarOf(drawer)).getByRole("button", { name: "Projects" });
     const top = header.getBoundingClientRect().top;
-    drawer.scrollTop = 400;
-    await expect(drawer.scrollTop).toBe(400);
+    const entryTop = firstEntry.getBoundingClientRect().top;
+    const viewport = within(drawer)
+      .getByText("Sidebar content")
+      .closest(".mantine-ScrollArea-viewport");
+    if (viewport === null) throw new Error("the Module Sidebar is not in a ScrollArea");
+    viewport.scrollTop = 400;
+    await expect(viewport.scrollTop).toBe(400);
     await expect(header.getBoundingClientRect().top).toBeCloseTo(top, 0);
+    await expect(firstEntry.getBoundingClientRect().top).toBeCloseTo(entryTop, 0);
     await expect(within(drawer).getByTestId("mark").getBoundingClientRect().top).toBeGreaterThan(0);
   },
 };
 
-export const TheDrawerHasNoStripWithoutWindowButtons: Story = {
+export const TheDrawerHasNoStripWithoutWindowButtonsOrLogo: Story = {
   ...atViewport("narrow"),
-  args: { logo: LOGO, moduleSidebarWidth: 320 },
   play: async ({ canvas }) => {
     const drawer = await openDrawer(canvas);
+    const top = drawer.getBoundingClientRect().top;
+    await expect(drawerHeaderOf(drawer).getBoundingClientRect().top).toBeCloseTo(top, 0);
+    await expect(drawerNavbarOf(drawer).getBoundingClientRect().top).toBeCloseTo(top, 0);
+  },
+};
+
+/** Unchanged at phone width: the bottom bar holds the modules, the drawer only the views. */
+export const ThePhoneDrawerHoldsOnlyTheModuleSidebar: Story = {
+  ...atViewport("phone"),
+  args: { logo: LOGO, moduleSidebarWidth: 320 },
+  play: async ({ canvas }) => {
+    const drawer = await openDrawer(canvas, "Open module sidebar");
+    await expect(within(drawer).queryByRole("navigation")).toBeNull();
     await expect(within(drawer).queryByTestId("mark")).toBeNull();
     await expect(drawerHeaderOf(drawer).getBoundingClientRect().top).toBeCloseTo(
       drawer.getBoundingClientRect().top,
       0,
     );
     await expect(widthOf(drawer)).toBe(320);
+    await expect(drawer).toHaveStyle({
+      backgroundColor: getComputedStyle(drawer).getPropertyValue("--mantine-color-body"),
+    });
+  },
+};
+
+const burgerOf = (canvas: ReturnType<typeof within>) =>
+  canvas.getByRole("button", { name: "Open navigation" });
+
+/** One row: the window buttons end 76 px from the window edge, then Burger, title and badge. */
+export const TheNarrowHeaderStartsAfterTheWindowButtons: Story = {
+  ...atViewport("narrow"),
+  args: { channelBadge: <span>Nightly</span>, reserveWindowButtons: true },
+  play: async ({ canvas }) => {
+    const burger = burgerOf(canvas);
+    const title = canvas.getByRole("heading", { name: "Time" });
+    const badge = canvas.getByText("Nightly");
+    await expect(burger.getBoundingClientRect().left).toBeCloseTo(84, 0);
+    await expect(title.getBoundingClientRect().left).toBeGreaterThan(
+      burger.getBoundingClientRect().right,
+    );
+    await expect(badge.getBoundingClientRect().left).toBeGreaterThan(
+      title.getBoundingClientRect().right,
+    );
+    await expect(centerY(burger)).toBeCloseTo(centerY(title), 0);
+    await expect(centerY(badge)).toBeCloseTo(centerY(title), 0);
+  },
+};
+
+/** The native buttons do not follow the font scale, so neither does the room for them. */
+export const TheNarrowHeaderClearsTheWindowButtonsAtTheSmallestFontScale: Story = {
+  ...atSmallestFontScale("narrow"),
+  args: { reserveWindowButtons: true },
+  play: async ({ canvas }) => {
+    await expect(burgerOf(canvas).getBoundingClientRect().left).toBeCloseTo(84, 0);
+  },
+};
+
+export const TheNarrowHeaderKeepsItsPaddingWithoutWindowButtons: Story = {
+  ...atViewport("narrow"),
+  play: async ({ canvas }) => {
+    await expect(burgerOf(canvas).getBoundingClientRect().left).toBeCloseTo(8 + 16, 0);
+  },
+};
+
+export const TheHeaderKeepsItsPaddingBesideTheNavbarWithWindowButtons: Story = {
+  ...atViewport("medium"),
+  args: { reserveWindowButtons: true },
+  play: async ({ canvas }) => {
+    await expect(
+      canvas.getByRole("heading", { name: "Time" }).getBoundingClientRect().left,
+    ).toBeCloseTo(paneOf(canvas, "Page content").getBoundingClientRect().left + 16, 0);
   },
 };
 
@@ -1026,7 +1231,7 @@ export const TheDrawerHasNoStripWithoutWindowButtons: Story = {
 export const TheBurgerIsAsRoundAsTheOtherControls: Story = {
   ...atViewport("narrow"),
   play: async ({ canvas }) => {
-    const burger = canvas.getByRole("button", { name: "Open module sidebar" });
+    const burger = canvas.getByRole("button", { name: "Open navigation" });
     const drawer = await openDrawer(canvas);
     const close = within(drawer).getByRole("button", { name: "Close module sidebar" });
     const radius = getComputedStyle(close).borderRadius;
@@ -1165,11 +1370,11 @@ export const ModuleSidebarHandleIsHiddenInTheDrawerSteps: Story = {
 export const LabelsAreTranslated: Story = {
   globals: { ...atViewport("narrow").globals, language: "de" },
   play: async ({ canvas }) => {
-    await expect(canvas.getByRole("navigation", { name: "Module" })).toBeVisible();
-    await userEvent.click(canvas.getByRole("button", { name: "Modul-Sidebar öffnen" }));
+    await userEvent.click(canvas.getByRole("button", { name: "Navigation öffnen" }));
     const drawer = await screen.findByRole("dialog", { name: "Modul-Sidebar" });
     await waitFor(() =>
       expect(within(drawer).getByRole("button", { name: "Modul-Sidebar schließen" })).toBeVisible(),
     );
+    await expect(within(drawer).getByRole("navigation", { name: "Module" })).toBeVisible();
   },
 };
