@@ -346,7 +346,9 @@ export const SurfacesUseTheirColorRoles: Story = {
 /** Holds the widths the way the app does, so a commit shows up in the next render. */
 function ResizableShell(args: ShellProps) {
   const [navbar, setNavbar] = useState(args.navbar ?? SHELL_STANDARD_NAVBAR);
-  const [width, setWidth] = useState(args.moduleSidebarWidth ?? SHELL_STANDARD_MODULE_SIDEBAR_WIDTH);
+  const [width, setWidth] = useState(
+    args.moduleSidebarWidth ?? SHELL_STANDARD_MODULE_SIDEBAR_WIDTH,
+  );
   return (
     <Shell
       {...args}
@@ -374,6 +376,11 @@ const paneOf = (canvas: ReturnType<typeof within>, text: string) => {
   if (pane === null) throw new Error(`"${text}" is not in a pane`);
   return pane;
 };
+
+async function expectReportedOnce(callback: unknown, value: unknown): Promise<void> {
+  await expect(callback).toHaveBeenCalledTimes(1);
+  await expect(callback).toHaveBeenCalledWith(value);
+}
 
 const nextFrame = () => new Promise((resolve) => requestAnimationFrame(resolve));
 
@@ -470,7 +477,7 @@ export const NavbarSettlesOnTheMinimumWideWidth: Story = {
     await drag.release(-102);
     await expect(widthOf(navbar)).toBe(168);
     await expect(within(navbar).getByText("Projects")).toBeVisible();
-    await expect(args.onNavbarCommit).toHaveBeenCalledExactlyOnceWith({
+    await expectReportedOnce(args.onNavbarCommit, {
       collapsed: false,
       expandedWidth: 168,
     });
@@ -487,7 +494,7 @@ export const NavbarSettlesOnIconsOnlyBelowTheMidpoint: Story = {
     await drag.release(-133);
     await expect(widthOf(navbar)).toBe(68);
     await expect(within(navbar).queryByText("Projects")).toBeNull();
-    await expect(args.onNavbarCommit).toHaveBeenCalledExactlyOnceWith({
+    await expectReportedOnce(args.onNavbarCommit, {
       collapsed: true,
       expandedWidth: 250,
     });
@@ -504,7 +511,7 @@ export const CollapsedNavbarCanBeDraggedWide: Story = {
     await drag.release(132);
     await expect(widthOf(navbar)).toBe(200);
     await expect(within(navbar).getByText("Projects")).toBeVisible();
-    await expect(args.onNavbarCommit).toHaveBeenCalledExactlyOnceWith({
+    await expectReportedOnce(args.onNavbarCommit, {
       collapsed: false,
       expandedWidth: 200,
     });
@@ -519,7 +526,7 @@ export const NavbarDoubleClickTogglesAndRestoresTheWidth: Story = {
     const navbar = navbarOf(canvas);
     await userEvent.dblClick(navbarHandle(canvas));
     await waitFor(() => expect(widthOf(navbar)).toBe(68));
-    await expect(args.onNavbarCommit).toHaveBeenCalledExactlyOnceWith({
+    await expectReportedOnce(args.onNavbarCommit, {
       collapsed: true,
       expandedWidth: 260,
     });
@@ -541,7 +548,7 @@ export const NavbarMovesWithTheArrowKeys: Story = {
     navbarHandle(canvas).focus();
     await userEvent.keyboard("{ArrowRight}");
     await waitFor(() => expect(widthOf(navbar)).toBe(230));
-    await expect(args.onNavbarCommit).toHaveBeenCalledExactlyOnceWith({
+    await expectReportedOnce(args.onNavbarCommit, {
       collapsed: false,
       expandedWidth: 230,
     });
@@ -632,7 +639,7 @@ export const DraggingTheModuleSidebarChangesOnlyItAndTheContent: Story = {
     await expect(widthOf(sidebar)).toBe(290);
     await expect(widthOf(navbar)).toBe(220);
     await expect(widthOf(content)).toBe(contentWidth - 50);
-    await expect(args.onModuleSidebarWidthCommit).toHaveBeenCalledExactlyOnceWith(290);
+    await expectReportedOnce(args.onModuleSidebarWidthCommit, 290);
     await expect(args.onNavbarCommit).not.toHaveBeenCalled();
   },
 };
@@ -645,7 +652,7 @@ export const ModuleSidebarDragStopsAtItsLimits: Story = {
     const drag = await pressHandle(sidebarHandle(canvas));
     await drag.release(-200);
     await expect(widthOf(sidebar)).toBe(200);
-    await expect(args.onModuleSidebarWidthCommit).toHaveBeenCalledExactlyOnceWith(200);
+    await expectReportedOnce(args.onModuleSidebarWidthCommit, 200);
     const second = await pressHandle(sidebarHandle(canvas));
     await second.release(400);
     await expect(widthOf(sidebar)).toBe(360);
@@ -664,7 +671,7 @@ export const ModuleSidebarDragFollowsThePointerAt112Percent: Story = {
     await expect(sidebar.getBoundingClientRect().width).toBeCloseTo(271, 1);
     await drag.release(45);
     await expect(sidebar.getBoundingClientRect().width).toBeCloseTo(315, 0);
-    await expect(args.onModuleSidebarWidthCommit).toHaveBeenCalledExactlyOnceWith(280);
+    await expectReportedOnce(args.onModuleSidebarWidthCommit, 280);
   },
 };
 
@@ -676,7 +683,7 @@ export const ModuleSidebarMovesWithTheArrowKeys: Story = {
     sidebarHandle(canvas).focus();
     await userEvent.keyboard("{ArrowRight}");
     await waitFor(() => expect(widthOf(sidebar)).toBe(250));
-    await expect(args.onModuleSidebarWidthCommit).toHaveBeenCalledExactlyOnceWith(250);
+    await expectReportedOnce(args.onModuleSidebarWidthCommit, 250);
     await userEvent.keyboard("{ArrowLeft}");
     await waitFor(() => expect(widthOf(sidebar)).toBe(240));
     await expect(args.onModuleSidebarWidthCommit).toHaveBeenCalledTimes(2);
@@ -691,7 +698,7 @@ export const ModuleSidebarDoubleClickRestoresTheStandardWidth: Story = {
     const sidebar = paneOf(canvas, "Sidebar content");
     await userEvent.dblClick(sidebarHandle(canvas));
     await waitFor(() => expect(widthOf(sidebar)).toBe(240));
-    await expect(args.onModuleSidebarWidthCommit).toHaveBeenCalledExactlyOnceWith(240);
+    await expectReportedOnce(args.onModuleSidebarWidthCommit, 240);
   },
 };
 

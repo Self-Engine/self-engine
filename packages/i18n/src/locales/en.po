@@ -59,6 +59,14 @@ msgstr "Modules"
 msgid "Open module sidebar"
 msgstr "Open module sidebar"
 
+#: packages/shell/src/shell.tsx
+msgid "Resize module sidebar"
+msgstr "Resize module sidebar"
+
+#: packages/shell/src/shell.tsx
+msgid "Resize navbar"
+msgstr "Resize navbar"
+
 #: apps/web/src/routes/index.tsx
 msgid "The empty desktop shell."
 msgstr "The empty desktop shell."

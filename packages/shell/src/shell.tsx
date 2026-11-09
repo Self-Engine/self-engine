@@ -359,7 +359,10 @@ export function Shell({
           step={paneSize(KEYBOARD_STEP)}
           styles={{
             // The gap is the handle. Its thumb stays invisible and only carries Mantine's focus ring.
-            handle: { backgroundColor: "transparent", display: sidebarInDrawer ? "none" : undefined },
+            handle: {
+              backgroundColor: "transparent",
+              display: sidebarInDrawer ? "none" : undefined,
+            },
             thumb: { backgroundColor: "transparent", border: "none", width: rem(GAP / 2) },
           }}
         >
