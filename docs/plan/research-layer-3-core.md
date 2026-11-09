@@ -183,7 +183,12 @@ Paket ohne Abhängigkeiten darunter und wird von `db` (88 Dateien), `core` (70),
 
 ## Nicht geprüft
 
-- Ob echte Stundensätze mehr als zwei Nachkommastellen haben.
+- Stundensätze in echten Daten nur teilweise: Von 23 aktiven Projekten wurden die 11 mit
+  Arbeitsbezug gelesen, nur eines hat einen Satz (40 USD). Archivierte Projekte und die Sätze an
+  alten Zeiteinträgen sind nicht geprüft. Die Konten nutzen EUR, USD und THB.
+- Nachkommastellen je Währung: `Intl` (ICU 79.1, CLDR 49) nennt 32 Währungen mit 0 Stellen, darunter
+  HUF, IDR, COP und IQD, für die ISO 4217 nach bisherigem Wissen 2 bzw. 3 Stellen festlegt. Die
+  offizielle ISO-Liste ist beim Bau gegenzuprüfen.
 - In welchem Textformat PowerSync Instants lokal ablegt.
 - Wie Termine in der App gelöscht werden (es gibt Spalten für weiches Löschen).
 - Die Zahl der Testblöcke in `packages/time` stammt aus dem Quelltext, die Tests liefen hier nicht.

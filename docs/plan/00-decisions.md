@@ -616,6 +616,18 @@ Grundlage: [`research-layer-3-core.md`](research-layer-3-core.md).
   Transaktion um. _Verworfen:_ `spaceId` in jeder Operation (ein vergessener Filter bliebe
   unbemerkt), feste ID per Migration (kollidiert auf dem Server, jedes Gerät müsste umschreiben),
   sichtbare Spaces jetzt schon (wird mit Sync und Organisationen entschieden).
+- **D135 (L3.3) Geld wird ganzzahlig gespeichert und einmal gerundet.** Beträge sind `INTEGER` in
+  der kleinsten Einheit plus Währung als ISO-4217-Text, geprüft im Code statt per SQL-`CHECK`; in
+  TypeScript eine sichere Ganzzahl mit eigenem Typ, ohne `BigInt`. `money` führt einen eigenen
+  Katalog aus Währungscode und Stellenzahl: Neue Währungen dürfen dazukommen, die Stellen einer
+  vorhandenen ändern sich nie (ein Test sichert das). Stundensätze werden genauso gespeichert
+  (13,00 €/h als `1300`). `money` hat genau eine Funktion für Satz × Sekunden / 3600, ganzzahlig
+  und kaufmännisch gerundet; gerundet wird einmal auf die Summe der Sekunden einer Abrechnung, nie
+  pro Eintrag. ADR 0002 der alten App gilt weiter: keine Kurse, keine Basiswährung, Summen nur pro
+  Währung. _Folge für den Import:_ Alte Fließkommawerte werden gerundet, jede Abweichung wird
+  gemeldet. _Verworfen:_ `REAL` (Rundungsfehler), Dezimal als Text (SQLite kann nicht summieren),
+  Sätze mit zwei Extrastellen (zweite, verwechselbare Einheit, in den geprüften Daten kein Bedarf),
+  Stellenzahl aus `Intl` (weicht von ISO 4217 ab und hängt an der Laufzeit).
 
 ## Fakten
 

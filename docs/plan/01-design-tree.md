@@ -27,7 +27,8 @@ Pro Runde werden nur 2–3 Fragen gestellt; die Nummern sind stabil.
     - ❓ Schicht 3 Gemeinsamer Kern → research-layer-3-core.md
       - ✅ Zuschnitt: `time`, `money`, `spaces`, `tags`, kein `core` (D133)
       - ✅ Spaces: ein persönlicher Space, `space_id` als Port-Kontext (D134)
-      - ❓ Geldbeträge und Stundensätze
+      - ✅ Geldbeträge und Stundensätze (D135)
+      - ❓ Geld: Eingabe, Formatierung, Zod-Schemas
       - ⏳ Zeit: Übernahme, Konto-Zeitzone ohne Server, Uhr, Lint-Regeln
       - ⏳ Tags, Icon und Farbe
       - ⏳ Abläufe über mehrere Module, Brückentabellen
