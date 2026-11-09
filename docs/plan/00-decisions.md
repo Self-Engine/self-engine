@@ -590,6 +590,21 @@ Grundlage: [`research-layer-2-data.md`](research-layer-2-data.md).
   nebeneinander passen. Der Streifen dafür erscheint per Prop nur auf dem Mac-Desktop
   (verfeinert D78).
 
+### Runde 21 (2026-11-09): Schicht 3, Zuschnitt
+
+Grundlage: [`research-layer-3-core.md`](research-layer-3-core.md).
+
+- **D133 (L3.1) Der gemeinsame Kern besteht aus vier Paketen, ein Paket `core` gibt es nicht.**
+  `time` und `money` sind reine Werte und importieren kein anderes Paket des Repos. `spaces` und
+  `tags` haben eigene Tabellen, Port und Migrationen (`spaces/0001`, `tags/0001`) und liegen über
+  `db`. Fachmodule und `contracts` importieren nach unten, nie umgekehrt. Einstiege wie bei
+  `settings`: `.`, bei Bedarf `./react` und `./testing`. „Gemeinsamer Kern“ bleibt nur der Name
+  der Schicht. _Gründe:_ Das alte `packages/core` wurde mit rund 23.000 Zeilen zum Sammelbecken;
+  153 seiner Dateien importieren `db`, umgekehrt keine, deshalb entstanden Kopien der Rundung in
+  `db`. `time` lag als eigenes Paket ganz unten und blieb ohne Kopien. _Verworfen:_ `time`, `money`
+  und ein `core` für Spaces und Tags (lädt wieder zum Sammeln ein), ein einziges Paket mit
+  mehreren Einstiegen (Werte lägen über `db`).
+
 ## Fakten
 
 - Self-Engine hat Abo-Infrastruktur über Clerk Billing (`apps/web/src/features/billing`),
