@@ -39,8 +39,13 @@ const NAVBAR_SMALLEST_WIDE_WIDTH = 168;
 const NAVBAR_MAX_WIDTH = 280;
 /** Mantine's `xs`, which is the Navbar's padding and the gap between the mark and the name. */
 const NAVBAR_PADDING = 10;
-/** The 28 px mark, the gap and "Self-Engine" in its weight, measured at the standard scale. */
-const LOGO_WITH_NAME_WIDTH = 28 + NAVBAR_PADDING + 91;
+/** What the icons-only Navbar has inside its padding: the column every entry centers its icon in. */
+const ICON_COLUMN_WIDTH = NAVBAR_ICONS_ONLY_WIDTH - 2 * NAVBAR_PADDING;
+const LOGO_MARK_WIDTH = 28;
+/** The mark, the gap and "Self-Engine" in its weight, measured at the standard scale. */
+const LOGO_WITH_NAME_WIDTH = LOGO_MARK_WIDTH + NAVBAR_PADDING + 91;
+/** Centers the mark in the column of the icons-only Navbar, where the entries center their icons. */
+const LOGO_MARK_INSET = (ICON_COLUMN_WIDTH - LOGO_MARK_WIDTH) / 2;
 /** The variables Mantine's handle writes in `static` mode, and removes again on its own. */
 const NAVBAR_PREVIEW_VARIABLES = ["--app-shell-navbar-width", "--app-shell-navbar-grid-width"];
 const MODULE_SIDEBAR_MIN_WIDTH = 200;
@@ -55,8 +60,6 @@ const BOTTOM_BAR_HEIGHT = 64;
 const ENTRY_HEIGHT = 40;
 /** As high as the content header and level with it, so window buttons, logo and page title share a line. */
 const TOP_STRIP_HEIGHT = CONTENT_HEADER_HEIGHT;
-/** The strip and the frame's gap above it, measured from the window edge. */
-const TOP_ROW_HEIGHT = GAP + TOP_STRIP_HEIGHT;
 /**
  * Where anything beside the macOS window buttons starts, from the window edge: they end at 76 px
  * (see `titleBarOptions`). In real pixels, because the buttons do not follow Mantine's scale.
@@ -65,8 +68,8 @@ const START_AFTER_WINDOW_BUTTONS_PX = 84;
 const START_AFTER_WINDOW_BUTTONS = `${START_AFTER_WINDOW_BUTTONS_PX}px`;
 /** The same place from inside the frame, for the content header that the buttons float over. */
 const HEADER_START_AFTER_WINDOW_BUTTONS = `calc(${START_AFTER_WINDOW_BUTTONS} - ${rem(GAP)})`;
-/** The Navbar's own padding, on top of the frame around the Shell. */
-const LOGO_START_AT_CONTAINER_EDGE = `calc(${rem(GAP)} + var(--mantine-spacing-xs))`;
+/** The mark on the icon axis, with or without its name, so that only the name comes and goes. */
+const LOGO_START_ON_ICON_AXIS = rem(GAP + NAVBAR_PADDING + LOGO_MARK_INSET);
 
 export const SHELL_STANDARD_NAVBAR: ShellNavbarState = {
   collapsed: false,
@@ -136,17 +139,6 @@ const NAVIGATION_LOGO_STYLE: CSSProperties = {
 const STRIP_FRAME_STYLE: CSSProperties = {
   ...WINDOW_DRAG_STYLE,
   paddingBlockStart: rem(GAP),
-};
-
-// Mantine's header stays inside the frame, and this one reaches the edges of the window. Its
-// `sticky` would hold it below the frame's padding, however far the margin pulls it.
-const TOP_ROW_STYLE: CSSProperties = {
-  ...STRIP_FRAME_STYLE,
-  backgroundColor: "transparent",
-  marginBlockStart: rem(-GAP),
-  marginInline: rem(-GAP),
-  pointerEvents: "none",
-  position: "relative",
 };
 
 // It opens over the content header, whose drag region would swallow the clicks.
@@ -220,12 +212,6 @@ const ENTRY_ROOT_STYLE: CSSProperties = { borderRadius: "var(--mantine-radius-sm
 /** As wide as the icons-only Navbar has room, so an icon sits on its axis at every width. */
 const ICON_AXIS_SLOT_WIDTH = `calc(${rem(NAVBAR_ICONS_ONLY_WIDTH)} - 2 * var(--mantine-spacing-xs))`;
 
-/** The mark alone in the Navbar, centered where the entries center their icons. */
-const LOGO_ON_ICON_AXIS_STYLE: CSSProperties = {
-  justifyContent: "center",
-  width: ICON_AXIS_SLOT_WIDTH,
-};
-
 /** One geometry with and without a label, so that only the label goes. */
 const NAVBAR_ENTRY_STYLES = {
   root: { ...ENTRY_ROOT_STYLE, height: rem(ENTRY_HEIGHT), padding: 0 },
@@ -278,7 +264,7 @@ export interface ShellProps {
   readonly onSelectEntry: (id: string) => void;
   readonly moduleSidebar: ReactNode;
   readonly pageTitle: string;
-  /** Sits in the top strip of the navigation, in the drawer at the narrow step. None at phone width. */
+  /** Sits in the top strip of the navigation, in the drawer at the narrow step, and in the content header while the Navbar holds the window buttons. None at phone width. */
   readonly logo?: ShellLogo;
   /** The free end of the content header. */
   readonly headerEnd?: ReactNode;
@@ -293,34 +279,39 @@ export interface ShellProps {
   readonly onModuleSidebarWidthCommit?: (width: number) => void;
   /** Called once per press of the collapse button. */
   readonly onModuleSidebarCollapsedCommit?: (collapsed: boolean) => void;
-  /** Keeps room for the macOS window buttons: in the navigation's top strip, in the top row beside an icons-only Navbar without Module Sidebar, and in the content header at the narrow step. */
+  /** Keeps room for the macOS window buttons: in the navigation's top strip, on an icons-only Navbar widened to hold them while the Module Sidebar is closed, and in the content header at the narrow step. */
   readonly reserveWindowButtons?: boolean;
   /** The page. Stays mounted whichever Layout Step the window is in. */
   readonly children: ReactNode;
 }
 
 /**
- * The narrowest wide Navbar, in Mantine's unscaled numbers: the logo with its name has to fit its
- * strip. The window buttons stay in real pixels, so the unscaled room for them depends on the scale.
+ * Where anything beside the window buttons starts inside the frame, in Mantine's unscaled numbers.
+ * The frame follows the scale and the buttons stay in real pixels, so it depends on the scale.
  */
+const startAfterWindowButtons = (scale: number) => START_AFTER_WINDOW_BUTTONS_PX / scale - GAP;
+
+/** The narrowest wide Navbar, in Mantine's unscaled numbers: the logo with its name has to fit its strip. */
 function navbarMinWideWidth(scale: number, reserveWindowButtons: boolean): number {
   const logoStart = reserveWindowButtons
-    ? START_AFTER_WINDOW_BUTTONS_PX / scale - GAP
-    : NAVBAR_PADDING;
+    ? startAfterWindowButtons(scale)
+    : NAVBAR_PADDING + LOGO_MARK_INSET;
   return Math.max(
     NAVBAR_SMALLEST_WIDE_WIDTH,
     Math.ceil(logoStart + LOGO_WITH_NAME_WIDTH + NAVBAR_PADDING),
   );
 }
 
-const collapseMidpointOf = (minWideWidth: number) => (NAVBAR_ICONS_ONLY_WIDTH + minWideWidth) / 2;
+const collapseMidpointOf = (minWideWidth: number, iconsOnlyWidth: number) =>
+  (iconsOnlyWidth + minWideWidth) / 2;
 
 /** A stored width outside the current limits is clamped when shown, not reset. */
 function shownWidthOf(
   { collapsed, expandedWidth }: ShellNavbarState,
   minWideWidth: number,
+  iconsOnlyWidth: number,
 ): number {
-  return collapsed ? NAVBAR_ICONS_ONLY_WIDTH : clamp(expandedWidth, minWideWidth, NAVBAR_MAX_WIDTH);
+  return collapsed ? iconsOnlyWidth : clamp(expandedWidth, minWideWidth, NAVBAR_MAX_WIDTH);
 }
 
 /**
@@ -332,11 +323,12 @@ function settledNavbar(
   current: ShellNavbarState,
   dragged: boolean,
   minWideWidth: number,
+  iconsOnlyWidth: number,
 ): ShellNavbarState {
   if (width >= minWideWidth) return { collapsed: false, expandedWidth: Math.round(width) };
   const collapses = dragged
-    ? width < collapseMidpointOf(minWideWidth)
-    : width <= shownWidthOf(current, minWideWidth);
+    ? width < collapseMidpointOf(minWideWidth, iconsOnlyWidth)
+    : width <= shownWidthOf(current, minWideWidth, iconsOnlyWidth);
   return collapses
     ? { ...current, collapsed: true }
     : { collapsed: false, expandedWidth: minWideWidth };
@@ -354,7 +346,7 @@ function TopStrip({ children, style }: { children?: ReactNode; style?: CSSProper
 interface LogoProps {
   readonly logo: ShellLogo;
   readonly markOnly?: boolean;
-  readonly style: CSSProperties;
+  readonly style?: CSSProperties;
 }
 
 function Logo({ logo, markOnly = false, style }: LogoProps) {
@@ -433,9 +425,14 @@ export function Shell({
   const navbarIconsOnly = step !== "wide" || (draggedCollapsed ?? navbar.collapsed);
   const entryAppearance = navbarIconsOnly ? "iconsOnly" : "labelled";
   const minWideWidth = navbarMinWideWidth(theme.scale, reserveWindowButtons);
+  // Whatever form the Navbar has right now: a drag has to know the width it would collapse to.
+  const iconsOnlyWidth =
+    reserveWindowButtons && navbarStandsAlone
+      ? Math.ceil(startAfterWindowButtons(theme.scale))
+      : NAVBAR_ICONS_ONLY_WIDTH;
   const navbarWidth = navbar.collapsed
-    ? NAVBAR_ICONS_ONLY_WIDTH
-    : { base: NAVBAR_ICONS_ONLY_WIDTH, lg: shownWidthOf(navbar, minWideWidth) };
+    ? iconsOnlyWidth
+    : { base: iconsOnlyWidth, lg: shownWidthOf(navbar, minWideWidth, iconsOnlyWidth) };
   // `Splitter` resolves sizes without Mantine's scale, so widths are converted here, once.
   const paneSize = (width: number): `${number}px` => `${width * theme.scale}px`;
   const shownModuleSidebarWidth = clamp(
@@ -447,10 +444,11 @@ export function Shell({
   const moduleSidebarDragging = useRef(false);
   const hasTopStrip = reserveWindowButtons || logo !== undefined;
   const logoMarkOnly = navbarStandsAlone && navbarIconsOnly;
-  // The window buttons are wider than the icons-only Navbar, so only there do they need a row of
-  // their own. It follows the form on screen, which a drag changes before its commit.
-  const hasTopRow = reserveWindowButtons && navbarStandsAlone && navbarIconsOnly;
-  const hasNavigationStrip = hasTopStrip && !sidebarInDrawer && !hasTopRow;
+  // The form on screen, which a drag changes before its commit. The buttons take the logo's place.
+  const navbarHoldsWindowButtons = reserveWindowButtons && logoMarkOnly;
+  // Keeps the entries in their column, so the wider rail only adds room on both sides of it.
+  const railPadding = rem((iconsOnlyWidth - ICON_COLUMN_WIDTH) / 2);
+  const hasNavigationStrip = hasTopStrip && !sidebarInDrawer;
   const topStripHeight = hasNavigationStrip ? rem(TOP_STRIP_HEIGHT) : 0;
   const moduleSidebarPaneSize = moduleSidebarShown
     ? (draggedPaneSize ?? paneSize(shownModuleSidebarWidth))
@@ -470,17 +468,21 @@ export function Shell({
   const appShellRef = useRef<HTMLDivElement>(null);
   const navbarResize = useAppShellResize({
     navbar: {
-      min: NAVBAR_ICONS_ONLY_WIDTH,
+      min: iconsOnlyWidth,
       max: NAVBAR_MAX_WIDTH,
       label: t`Resize navbar`,
-      collapseThreshold: collapseMidpointOf(minWideWidth),
+      collapseThreshold: collapseMidpointOf(minWideWidth, iconsOnlyWidth),
     },
     onCollapseChange: (_, collapsed) => setDraggedCollapsed(collapsed),
     // Runs right after Mantine wrote the pointer's width, and only the gap needs correcting.
     onResize: ({ navbar: width }) => {
       if (width === undefined || width >= minWideWidth) return;
       const shown = rem(
-        shownWidthOf(settledNavbar(width, navbar, true, minWideWidth), minWideWidth),
+        shownWidthOf(
+          settledNavbar(width, navbar, true, minWideWidth, iconsOnlyWidth),
+          minWideWidth,
+          iconsOnlyWidth,
+        ),
       );
       for (const variable of NAVBAR_PREVIEW_VARIABLES)
         appShellRef.current?.style.setProperty(variable, shown);
@@ -488,12 +490,18 @@ export function Shell({
     onResizeEnd: ({ navbar: width }) => {
       if (width === undefined) return;
       commitNavbar(
-        settledNavbar(width, navbar, navbarResize.activeSection === "navbar", minWideWidth),
+        settledNavbar(
+          width,
+          navbar,
+          navbarResize.activeSection === "navbar",
+          minWideWidth,
+          iconsOnlyWidth,
+        ),
       );
     },
   });
   // Our props are the truth: Mantine would otherwise prefer the size it remembers from a drag.
-  const shownNavbarWidth = shownWidthOf(navbar, minWideWidth);
+  const shownNavbarWidth = shownWidthOf(navbar, minWideWidth, iconsOnlyWidth);
   const controlledNavbarResize = {
     ...navbarResize,
     // Every way out of a resize passes here: release, Escape, a key press.
@@ -543,7 +551,6 @@ export function Shell({
   return (
     <AppShell
       {...(isPhone && { footer: { height: BOTTOM_BAR_HEIGHT } })}
-      {...(hasTopRow && { header: { height: TOP_ROW_HEIGHT } })}
       mode="static"
       // `collapsed.desktop` gives the narrow step's width to the content, since the Navbar is in the
       // drawer. `collapsed.mobile` does the same at the phone rule, which also matches at exactly
@@ -562,35 +569,39 @@ export function Shell({
       styles={{ resizeHandle: { ...NOT_WINDOW_DRAG_STYLE, top: topStripHeight } }}
     >
       <Box aria-hidden style={TOP_EDGE_STYLE} />
-      {hasTopRow && (
-        <AppShell.Header aria-hidden style={TOP_ROW_STYLE} withBorder={false}>
-          <TopStrip />
-        </AppShell.Header>
-      )}
       {!sidebarInDrawer && (
         <AppShell.Navbar
           aria-label={t`Modules`}
-          p="xs"
+          px={navbarHoldsWindowButtons ? railPadding : "xs"}
+          py="xs"
           style={navbarStandsAlone ? NAVBAR_ALONE_STYLE : NAVBAR_STYLE}
           withBorder={false}
         >
-          {hasNavigationStrip && <TopStrip style={NAVBAR_TOP_STRIP_STYLE} />}
+          {hasNavigationStrip && (
+            <TopStrip
+              style={
+                // The buttons float over the column, so only the padding around it can drag the window.
+                navbarHoldsWindowButtons
+                  ? { ...NAVBAR_TOP_STRIP_STYLE, marginInline: `calc(-1 * ${railPadding})` }
+                  : NAVBAR_TOP_STRIP_STYLE
+              }
+            />
+          )}
           {moduleSidebarShown && (
             <Box aria-hidden style={{ ...NAVBAR_DIVIDER_STYLE, top: topStripHeight }} />
           )}
           {navbarColumn(entryAppearance)}
         </AppShell.Navbar>
       )}
-      {logo && !sidebarInDrawer && (
+      {logo && !sidebarInDrawer && !navbarHoldsWindowButtons && (
         <Logo
           logo={logo}
           markOnly={logoMarkOnly}
           style={{
             ...NAVIGATION_LOGO_STYLE,
-            ...(logoMarkOnly && !reserveWindowButtons && LOGO_ON_ICON_AXIS_STYLE),
             insetInlineStart: reserveWindowButtons
               ? START_AFTER_WINDOW_BUTTONS
-              : LOGO_START_AT_CONTAINER_EDGE,
+              : LOGO_START_ON_ICON_AXIS,
           }}
         />
       )}
@@ -665,6 +676,7 @@ export function Shell({
               style={WINDOW_DRAG_STYLE}
               wrap="nowrap"
             >
+              {logo && navbarHoldsWindowButtons && <Logo logo={logo} markOnly />}
               {sidebarInDrawer ? (
                 <Burger
                   aria-label={isPhone ? t`Open module sidebar` : t`Open navigation`}

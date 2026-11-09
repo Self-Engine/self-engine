@@ -829,15 +829,32 @@ export const LogoSitsRightOfTheWindowButtons: Story = {
   },
 };
 
-export const LogoStartsAtTheContainerEdgeWithoutWindowButtons: Story = {
+/** Where the entries center their icons: 8 of frame, 10 of padding, 4 to center 28 px in 36. */
+export const TheMarkSitsOnTheIconAxisBesideItsNameWithoutWindowButtons: Story = {
   ...atViewport("wide"),
   args: { logo: LOGO },
   play: async ({ canvas }) => {
-    const firstEntry = canvas.getByRole("button", { name: "Projects" });
-    await expect(canvas.getByTestId("mark").getBoundingClientRect().left).toBeCloseTo(
-      firstEntry.getBoundingClientRect().left,
+    const mark = canvas.getByTestId("mark");
+    await expect(canvas.getByText("Self-Engine")).toBeVisible();
+    await expect(mark.getBoundingClientRect().left).toBeCloseTo(22, 0);
+    await expect(centerX(mark)).toBeCloseTo(
+      centerX(canvas.getByRole("button", { name: "Projects" }).querySelector("svg")!),
       0,
     );
+  },
+};
+
+/** Only the name goes: the mark does not jump when it has the place to itself. */
+export const TheMarkDoesNotMoveWhenItsNameGoesWithoutWindowButtons: Story = {
+  ...atViewport("medium"),
+  ...resizable,
+  args: { logo: LOGO },
+  play: async ({ canvas }) => {
+    await expect(canvas.getByText("Self-Engine")).toBeVisible();
+    const place = canvas.getByTestId("mark").getBoundingClientRect().left;
+    await userEvent.click(collapseToggle(canvas));
+    await waitFor(() => expect(canvas.queryByText("Self-Engine")).toBeNull());
+    await expect(canvas.getByTestId("mark").getBoundingClientRect().left).toBe(place);
   },
 };
 
@@ -959,7 +976,7 @@ const atSmallestFontScale = (viewport: keyof typeof VIEWPORTS) => ({
   globals: { ...atViewport(viewport).globals, fontScale: "87.5" },
 });
 
-/** 56 px at the standard scale, with or without window buttons: they sit in the strip above it. */
+/** 56 px at the standard scale while the Module Sidebar is open: the buttons sit in its strip. */
 export const TheIconsOnlyNavbarFollowsTheFontScaleWithWindowButtons: Story = {
   ...atSmallestFontScale("medium"),
   args: { reserveWindowButtons: true },
@@ -1500,123 +1517,243 @@ export const TheCollapsedStateDoesNotReachTheNarrowDrawer: Story = {
   },
 };
 
-const topRowOf = (canvas: ReturnType<typeof within>) =>
-  canvasRoot(canvas).querySelector(".mantine-AppShell-header");
+/** The macOS state with both collapsed: Module Sidebar closed and the Navbar icons-only. */
+const BOTH_COLLAPSED = {
+  logo: LOGO,
+  moduleSidebarCollapsed: true,
+  navbar: { collapsed: true, expandedWidth: 260 },
+  reserveWindowButtons: true,
+};
 
-const TOP_ROW_HEIGHT = STRIP_HEIGHT + 8;
+/** The rail ends 8 px after the window buttons, which end 76 px from the window edge. */
+const expectRailHoldsTheWindowButtons = async (
+  canvas: ReturnType<typeof within>,
+): Promise<void> => {
+  await expect(navbarOf(canvas).getBoundingClientRect().right).toBeCloseTo(84, 0);
+};
 
-export const TheTopRowSpansTheWindowOverAnIconsOnlyNavbarWithWindowButtons: Story = {
+/** Centered on the wider rail, in the geometry an entry has everywhere else. */
+const expectEntriesCenteredOnTheRail = async (canvas: ReturnType<typeof within>): Promise<void> => {
+  const navbar = navbarOf(canvas);
+  for (const entry of within(navbar).getAllByRole("button")) {
+    const icon = entry.querySelector("svg")!;
+    // oxlint-disable-next-line no-await-in-loop -- one assertion per entry, in order
+    await expect(centerX(icon)).toBeCloseTo(centerX(navbar), 0);
+  }
+};
+
+export const TheRailHoldsTheWindowButtonsWhenBothAreCollapsed: Story = {
   ...atViewport("wide"),
-  args: {
-    logo: LOGO,
-    moduleSidebarCollapsed: true,
-    navbar: { collapsed: true, expandedWidth: 260 },
-    reserveWindowButtons: true,
-  },
+  args: BOTH_COLLAPSED,
   play: async ({ canvas }) => {
-    const row = topRowOf(canvas);
-    if (row === null) throw new Error("no top row");
-    await expect(row.getBoundingClientRect()).toMatchObject({
-      top: 0,
-      left: 0,
-      width: 1280,
-      height: TOP_ROW_HEIGHT,
-    });
-    await expect(appRegionOf(row)).toBe("drag");
-    await expect(getComputedStyle(row).pointerEvents).toBe("none");
-    await expect(row.querySelector("a, button, input, [tabindex]")).toBeNull();
-    await expect(getComputedStyle(row).backgroundColor).toBe("rgba(0, 0, 0, 0)");
-    await expect(navbarOf(canvas).getBoundingClientRect().top).toBeCloseTo(TOP_ROW_HEIGHT, 0);
-    await expect(paneOf(canvas, "Page content").getBoundingClientRect().top).toBeCloseTo(
-      TOP_ROW_HEIGHT,
+    const navbar = navbarOf(canvas);
+    await expect(widthOf(navbar)).toBe(76);
+    await expectRailHoldsTheWindowButtons(canvas);
+    await expectContainersReachTheTop(canvas);
+    await expectEntriesBelowTheStrip(canvas);
+    await expectEntriesCenteredOnTheRail(canvas);
+    const active = canvas.getByRole("button", { name: "Time", current: "page" });
+    await expect(widthOf(active)).toBe(36);
+    await expect(Math.round(active.getBoundingClientRect().height)).toBe(40);
+    await expect([...navbar.children].filter((child) => widthOf(child) === 1)).toEqual([]);
+    await expect(navbarHandle(canvas).getBoundingClientRect().top).toBeCloseTo(
+      navbar.getBoundingClientRect().top + STRIP_HEIGHT,
       0,
     );
   },
 };
 
-export const TheTopRowFollowsTheFontScale: Story = {
+/** The buttons float over the middle of the rail, so only its full width leaves room to drag. */
+export const TheStripSpansTheRailSoTheWindowStaysDraggable: Story = {
+  ...atViewport("wide"),
+  args: BOTH_COLLAPSED,
+  play: async ({ canvas }) => {
+    const navbar = navbarOf(canvas);
+    const strip = navbar.firstElementChild!;
+    await expect(appRegionOf(strip)).toBe("drag");
+    await expect(strip.getBoundingClientRect().left).toBeCloseTo(
+      navbar.getBoundingClientRect().left,
+      0,
+    );
+    await expect(widthOf(strip)).toBe(76);
+  },
+};
+
+export const TheMediumStepWidensTheRailWhenTheModuleSidebarIsClosed: Story = {
+  ...atViewport("medium"),
+  args: { logo: LOGO, moduleSidebarCollapsed: true, reserveWindowButtons: true },
+  play: async ({ canvas }) => {
+    await expect(widthOf(navbarOf(canvas))).toBe(76);
+    await expectRailHoldsTheWindowButtons(canvas);
+    await expectContainersReachTheTop(canvas);
+    await expectEntriesBelowTheStrip(canvas);
+  },
+};
+
+/** The buttons stay in real pixels, so the rail is wider in Mantine's numbers at a smaller scale. */
+export const TheRailHoldsTheWindowButtonsAtTheSmallestFontScale: Story = {
   ...atSmallestFontScale("medium"),
   args: { moduleSidebarCollapsed: true, reserveWindowButtons: true },
   play: async ({ canvas }) => {
-    await expect(topRowOf(canvas)?.getBoundingClientRect().height).toBeCloseTo(49, 0);
-    await expect(navbarOf(canvas).getBoundingClientRect().top).toBeCloseTo(49, 0);
+    // 84 px / 0.875 - 8, at the scale of 0.875.
+    await expect(navbarOf(canvas).getBoundingClientRect().width).toBeCloseTo(88 * 0.875, 0);
+    await expectRailHoldsTheWindowButtons(canvas);
+    await expectEntriesCenteredOnTheRail(canvas);
   },
 };
 
-/** The row replaces the strip across the two columns, it does not stack on top of it. */
-export const TheCollapsedNavbarHasNoStripOrDividerOfItsOwn: Story = {
+export const TheRailHoldsTheWindowButtonsAt112Percent: Story = {
+  ...wideAt112Percent,
+  args: BOTH_COLLAPSED,
+  play: async ({ canvas }) => {
+    // 84 px / 1.125 - 8, rounded up, at the scale of 1.125.
+    await expect(navbarOf(canvas).getBoundingClientRect().width).toBeCloseTo(67 * 1.125, 0);
+    await expectRailHoldsTheWindowButtons(canvas);
+    await expectEntriesCenteredOnTheRail(canvas);
+  },
+};
+
+export const TheRailStaysNarrowWhileTheModuleSidebarIsOpen: Story = {
   ...atViewport("wide"),
-  args: {
-    logo: LOGO,
-    moduleSidebarCollapsed: true,
-    navbar: { collapsed: true, expandedWidth: 260 },
-    reserveWindowButtons: true,
-  },
+  args: { ...BOTH_COLLAPSED, moduleSidebarCollapsed: false },
   play: async ({ canvas }) => {
-    const navbar = navbarOf(canvas);
-    const box = navbar.getBoundingClientRect();
-    await expect(
-      canvas.getByRole("button", { name: "Projects" }).getBoundingClientRect().top,
-    ).toBeCloseTo(box.top + 10, 0);
-    await expect([...navbar.children].filter((child) => widthOf(child) === 1)).toEqual([]);
-    await expect(navbarHandle(canvas).getBoundingClientRect().top).toBeCloseTo(box.top, 0);
+    await expect(widthOf(navbarOf(canvas))).toBe(56);
+    await expect(canvas.getByText("Self-Engine")).toBeVisible();
+    await expectContainersReachTheTop(canvas);
   },
 };
 
-/** Alone in the frame, the Navbar is a container of its own, one gap away from the content. */
-export const TheCollapsedNavbarStandsAloneBesideTheContent: Story = {
-  ...atViewport("medium"),
-  args: { moduleSidebarCollapsed: true },
+export const TheRailStaysNarrowWithoutWindowButtons: Story = {
+  ...atViewport("wide"),
+  args: { ...BOTH_COLLAPSED, reserveWindowButtons: false },
   play: async ({ canvas }) => {
-    const navbar = navbarOf(canvas);
-    await expect(paneOf(canvas, "Page content").getBoundingClientRect().left).toBeCloseTo(
-      navbar.getBoundingClientRect().right + 8,
+    await expect(widthOf(navbarOf(canvas))).toBe(56);
+    await expectContainersReachTheTop(canvas);
+  },
+};
+
+const headerOf = (canvas: ReturnType<typeof within>) =>
+  canvas.getByRole("heading", { name: "Time" }).parentElement!.parentElement!;
+
+export const TheContentHeaderStartsWithTheMarkWhenBothAreCollapsed: Story = {
+  ...atViewport("wide"),
+  args: BOTH_COLLAPSED,
+  play: async ({ canvas }) => {
+    const mark = canvas.getByTestId("mark");
+    const logo = mark.parentElement!;
+    const toggle = expandToggle(canvas);
+    await expect(canvas.queryByText("Self-Engine")).toBeNull();
+    await expect(headerOf(canvas).firstElementChild).toBe(logo);
+    await expect(getComputedStyle(logo).position).not.toBe("fixed");
+    await expect(mark.getBoundingClientRect().left).toBeCloseTo(
+      paneOf(canvas, "Page content").getBoundingClientRect().left + 16,
       0,
     );
-    const radius = getComputedStyle(paneOf(canvas, "Page content")).borderTopLeftRadius;
-    await expect(getComputedStyle(navbar).borderTopRightRadius).toBe(radius);
-    await expect(getComputedStyle(navbar).borderBottomRightRadius).toBe(radius);
+    await expect(mark.getBoundingClientRect().right).toBeLessThan(
+      toggle.getBoundingClientRect().left,
+    );
+    await expect(centerY(mark)).toBeCloseTo(
+      centerY(canvas.getByRole("heading", { name: "Time" })),
+      0,
+    );
+    await expect(appRegionOf(logo)).toBe("drag");
+    await expect(getComputedStyle(logo).pointerEvents).toBe("none");
+    await expect(appRegionOf(toggle)).toBe("no-drag");
   },
 };
 
-export const TheCollapsedNavbarCanStillBeResized: Story = {
+export const TheMarkLeavesTheContentHeaderWhenTheModuleSidebarOpens: Story = {
+  ...atViewport("medium"),
+  ...resizable,
+  args: { logo: LOGO, moduleSidebarCollapsed: true, reserveWindowButtons: true },
+  play: async ({ canvas }) => {
+    await expect(headerOf(canvas).firstElementChild).toBe(canvas.getByTestId("mark").parentElement);
+    await userEvent.click(expandToggle(canvas));
+    await waitFor(() => expect(canvas.getByText("Self-Engine")).toBeVisible());
+    await expect(widthOf(navbarOf(canvas))).toBe(56);
+    await expect(canvas.getByTestId("mark").getBoundingClientRect().left).toBeCloseTo(84, 0);
+  },
+};
+
+export const TheHeaderHasNoMarkWhenTheNavbarIsWide: Story = {
+  ...atViewport("wide"),
+  args: { logo: LOGO, moduleSidebarCollapsed: true, reserveWindowButtons: true },
+  play: async ({ canvas }) => {
+    await expect(headerOf(canvas).firstElementChild).toBe(expandToggle(canvas));
+  },
+};
+
+export const TheRailAndTheLogoFollowTheNavbarWhileDragging: Story = {
+  ...atViewport("wide"),
+  ...resizable,
+  args: { logo: LOGO, moduleSidebarCollapsed: true, reserveWindowButtons: true },
+  play: async ({ args, canvas }) => {
+    const navbar = navbarOf(canvas);
+    const drag = await pressHandle(navbarHandle(canvas));
+    await drag.moveBy(-120);
+    await waitFor(() => expect(canvas.queryByText("Self-Engine")).toBeNull());
+    await expect(widthOf(navbar)).toBe(76);
+    await expect(headerOf(canvas).firstElementChild).toBe(canvas.getByTestId("mark").parentElement);
+    await drag.moveBy(-10);
+    await waitFor(() => expect(canvas.getByText("Self-Engine")).toBeVisible());
+    await expect(widthOf(navbar)).toBe(215);
+    await expect(headerOf(canvas).firstElementChild).toBe(expandToggle(canvas));
+    await expect(args.onNavbarCommit).not.toHaveBeenCalled();
+    await drag.moveBy(-130);
+    await drag.release(-130);
+    await waitFor(() => expect(canvas.queryByText("Self-Engine")).toBeNull());
+    await expect(widthOf(navbar)).toBe(76);
+    await expectReportedOnce(args.onNavbarCommit, { collapsed: true, expandedWidth: 220 });
+  },
+};
+
+/** The midpoint of 76 and 215 is 145.5, where the midpoint of the 56 px rail would be 135.5. */
+export const TheMidpointFollowsTheRailThatHoldsTheWindowButtons: Story = {
   ...atViewport("wide"),
   ...resizable,
   args: { moduleSidebarCollapsed: true, reserveWindowButtons: true },
   play: async ({ args, canvas }) => {
     const navbar = navbarOf(canvas);
     const drag = await pressHandle(navbarHandle(canvas));
-    await drag.release(40);
-    await expect(widthOf(navbar)).toBe(260);
-    await expectReportedOnce(args.onNavbarCommit, { collapsed: false, expandedWidth: 260 });
+    await drag.release(-80);
+    await expect(widthOf(navbar)).toBe(76);
+    await expectReportedOnce(args.onNavbarCommit, { collapsed: true, expandedWidth: 220 });
   },
 };
 
-export const NoTopRowWhileTheModuleSidebarIsVisible: Story = {
+export const TheRailCanBeDraggedWide: Story = {
   ...atViewport("wide"),
-  args: { logo: LOGO, reserveWindowButtons: true },
-  play: async ({ canvas }) => {
-    await expect(topRowOf(canvas)).toBeNull();
-    await expect(navbarOf(canvas).getBoundingClientRect().top).toBeCloseTo(8, 0);
+  ...resizable,
+  args: BOTH_COLLAPSED,
+  play: async ({ args, canvas }) => {
+    const navbar = navbarOf(canvas);
+    const drag = await pressHandle(navbarHandle(canvas));
+    await drag.release(100);
+    await expect(widthOf(navbar)).toBe(215);
+    await expect(within(navbar).getByText("Projects")).toBeVisible();
+    await expectReportedOnce(args.onNavbarCommit, { collapsed: false, expandedWidth: 215 });
   },
 };
 
-export const NoTopRowWithoutWindowButtonsOrLogo: Story = {
+export const ArrowKeysCrossTheGapBetweenTheRailAndWide: Story = {
   ...atViewport("wide"),
-  args: { moduleSidebarCollapsed: true },
-  play: async ({ canvas }) => {
-    await expect(topRowOf(canvas)).toBeNull();
-    await expect(navbarOf(canvas).getBoundingClientRect().top).toBeCloseTo(8, 0);
-    await expect(paneOf(canvas, "Page content").getBoundingClientRect().top).toBeCloseTo(8, 0);
-  },
-};
-
-export const NoTopRowAtTheNarrowStep: Story = {
-  ...atViewport("narrow"),
-  args: { logo: LOGO, moduleSidebarCollapsed: true, reserveWindowButtons: true },
-  play: async ({ canvas }) => {
-    await expect(topRowOf(canvas)).toBeNull();
-    await expect(paneOf(canvas, "Page content").getBoundingClientRect().top).toBeCloseTo(8, 0);
+  ...resizable,
+  args: BOTH_COLLAPSED,
+  play: async ({ args, canvas }) => {
+    const navbar = navbarOf(canvas);
+    navbarHandle(canvas).focus();
+    await userEvent.keyboard("{ArrowRight}");
+    await waitFor(() => expect(widthOf(navbar)).toBe(215));
+    await expect(args.onNavbarCommit).toHaveBeenLastCalledWith({
+      collapsed: false,
+      expandedWidth: 215,
+    });
+    await userEvent.keyboard("{ArrowLeft}");
+    await waitFor(() => expect(widthOf(navbar)).toBe(76));
+    await expect(args.onNavbarCommit).toHaveBeenLastCalledWith({
+      collapsed: true,
+      expandedWidth: 215,
+    });
   },
 };
 
@@ -1625,19 +1762,14 @@ const markPlace = (canvas: ReturnType<typeof within>) => {
   return { left, top };
 };
 
-const markStaysPutWhenToggling = async (
-  canvas: ReturnType<typeof within>,
-  collapsed: { topRow: boolean; name: boolean },
-): Promise<void> => {
+const markStaysPutWhenToggling = async (canvas: ReturnType<typeof within>): Promise<void> => {
   const place = markPlace(canvas);
   await userEvent.click(collapseToggle(canvas));
   await waitFor(() => expect(canvas.queryByText("Sidebar content")).toBeNull());
-  await expect(topRowOf(canvas) !== null).toBe(collapsed.topRow);
-  await expect(canvas.queryByText("Self-Engine") !== null).toBe(collapsed.name);
+  await expect(canvas.getByText("Self-Engine")).toBeVisible();
   await expect(markPlace(canvas)).toEqual(place);
   await userEvent.click(expandToggle(canvas));
   await waitFor(() => expect(canvas.getByText("Sidebar content")).toBeVisible());
-  await expect(topRowOf(canvas)).toBeNull();
   await expect(canvas.getByText("Self-Engine")).toBeVisible();
   await expect(markPlace(canvas)).toEqual(place);
 };
@@ -1647,17 +1779,7 @@ export const TheLogoDoesNotMoveWhenTogglingBesideAWideNavbar: Story = {
   ...resizable,
   args: { logo: LOGO, reserveWindowButtons: true },
   play: async ({ canvas }) => {
-    await markStaysPutWhenToggling(canvas, { topRow: false, name: true });
-  },
-};
-
-/** The one state with the top row: the mark stays at the logo's place, only the name goes. */
-export const TheMarkDoesNotMoveWhenTogglingAtTheMediumStep: Story = {
-  ...atViewport("medium"),
-  ...resizable,
-  args: { logo: LOGO, reserveWindowButtons: true },
-  play: async ({ canvas }) => {
-    await markStaysPutWhenToggling(canvas, { topRow: true, name: false });
+    await markStaysPutWhenToggling(canvas);
   },
 };
 
@@ -1666,11 +1788,13 @@ export const TheLogoDoesNotMoveWhenTogglingWithoutWindowButtons: Story = {
   ...resizable,
   args: { logo: LOGO },
   play: async ({ canvas }) => {
-    await markStaysPutWhenToggling(canvas, { topRow: false, name: true });
+    await markStaysPutWhenToggling(canvas);
   },
 };
 
+/** No row of its own above them, in any state. */
 const expectContainersReachTheTop = async (canvas: ReturnType<typeof within>): Promise<void> => {
+  await expect(canvasRoot(canvas).querySelector(".mantine-AppShell-header")).toBeNull();
   await expect(navbarOf(canvas).getBoundingClientRect().top).toBeCloseTo(8, 0);
   await expect(paneOf(canvas, "Page content").getBoundingClientRect().top).toBeCloseTo(8, 0);
 };
@@ -1692,7 +1816,7 @@ export const AnIconsOnlyNavbarAloneCarriesTheMarkOnItsIconAxis: Story = {
   ...atViewport("medium"),
   args: { logo: LOGO, moduleSidebarCollapsed: true },
   play: async ({ canvas }) => {
-    await expect(topRowOf(canvas)).toBeNull();
+    await expect(widthOf(navbarOf(canvas))).toBe(56);
     await expectContainersReachTheTop(canvas);
     await expectEntriesBelowTheStrip(canvas);
     await expect(canvas.queryByText("Self-Engine")).toBeNull();
@@ -1708,25 +1832,9 @@ export const ACollapsedNavbarAloneCarriesTheMarkAtTheWideStepToo: Story = {
     navbar: { collapsed: true, expandedWidth: 260 },
   },
   play: async ({ canvas }) => {
-    await expect(topRowOf(canvas)).toBeNull();
     await expectContainersReachTheTop(canvas);
     await expect(canvas.queryByText("Self-Engine")).toBeNull();
     await expectMarkOnTheIconAxis(canvas);
-  },
-};
-
-/** The 60 px button group does not fit the 56 px Navbar, and the Navbar does not grow for it. */
-export const TheTopRowHoldsTheMarkBesideTheWindowButtons: Story = {
-  ...atViewport("medium"),
-  args: { logo: LOGO, moduleSidebarCollapsed: true, reserveWindowButtons: true },
-  play: async ({ canvas }) => {
-    await expect(topRowOf(canvas)).not.toBeNull();
-    await expect(widthOf(navbarOf(canvas))).toBe(56);
-    await expect(navbarOf(canvas).getBoundingClientRect().top).toBeCloseTo(TOP_ROW_HEIGHT, 0);
-    await expect(canvas.queryByText("Self-Engine")).toBeNull();
-    const mark = canvas.getByTestId("mark");
-    await expect(mark.getBoundingClientRect().left).toBeCloseTo(84, 0);
-    await expect(centerY(mark)).toBeCloseTo(8 + STRIP_HEIGHT / 2, 0);
   },
 };
 
@@ -1736,33 +1844,7 @@ export const TheNameStaysWhileTheModuleSidebarIsVisibleOverAnIconsOnlyNavbar: St
   play: async ({ canvas }) => {
     await expect(widthOf(navbarOf(canvas))).toBe(56);
     await expect(canvas.getByText("Self-Engine")).toBeVisible();
-    await expect(topRowOf(canvas)).toBeNull();
     await expectContainersReachTheTop(canvas);
-  },
-};
-
-export const TheTopRowAndTheNameFollowTheNavbarWhileDragging: Story = {
-  ...atViewport("wide"),
-  ...resizable,
-  args: { logo: LOGO, moduleSidebarCollapsed: true, reserveWindowButtons: true },
-  play: async ({ args, canvas }) => {
-    const navbar = navbarOf(canvas);
-    const drag = await pressHandle(navbarHandle(canvas));
-    await drag.moveBy(-120);
-    await waitFor(() => expect(topRowOf(canvas)).not.toBeNull());
-    await expect(widthOf(navbar)).toBe(56);
-    await expect(canvas.queryByText("Self-Engine")).toBeNull();
-    await expect(navbar.getBoundingClientRect().top).toBeCloseTo(TOP_ROW_HEIGHT, 0);
-    await drag.moveBy(-10);
-    await waitFor(() => expect(topRowOf(canvas)).toBeNull());
-    await expect(canvas.getByText("Self-Engine")).toBeVisible();
-    await expect(widthOf(navbar)).toBe(215);
-    await expect(args.onNavbarCommit).not.toHaveBeenCalled();
-    await drag.moveBy(-130);
-    await drag.release(-130);
-    await waitFor(() => expect(topRowOf(canvas)).not.toBeNull());
-    await expect(widthOf(navbar)).toBe(56);
-    await expectReportedOnce(args.onNavbarCommit, { collapsed: true, expandedWidth: 220 });
   },
 };
 
@@ -1774,18 +1856,16 @@ export const ACollapsingNavbarLosesTheNameWithoutWindowButtons: Story = {
     await expect(canvas.getByText("Self-Engine")).toBeVisible();
     await userEvent.dblClick(navbarHandle(canvas));
     await waitFor(() => expect(canvas.queryByText("Self-Engine")).toBeNull());
-    await expect(topRowOf(canvas)).toBeNull();
     await expectMarkOnTheIconAxis(canvas);
   },
 };
 
-/** A wide Navbar has room for the window buttons, so the strip moves into its column. */
+/** A wide Navbar has room for the window buttons, so it stays wide and keeps the logo. */
 export const ACollapsedSidebarBesideAWideNavbarKeepsTheStripInTheNavbar: Story = {
   ...atViewport("wide"),
   args: { logo: LOGO, moduleSidebarCollapsed: true, reserveWindowButtons: true },
   play: async ({ canvas }) => {
     const navbar = navbarOf(canvas);
-    await expect(topRowOf(canvas)).toBeNull();
     await expectContainersReachTheTop(canvas);
     await expectEntriesBelowTheStrip(canvas);
     await expect(appRegionOf(navbar.firstElementChild!)).toBe("drag");
@@ -1807,12 +1887,11 @@ export const ACollapsedSidebarBesideAWideNavbarWithoutWindowButtons: Story = {
   ...atViewport("wide"),
   args: { logo: LOGO, moduleSidebarCollapsed: true },
   play: async ({ canvas }) => {
-    await expect(topRowOf(canvas)).toBeNull();
     await expectContainersReachTheTop(canvas);
     await expectEntriesBelowTheStrip(canvas);
     await expect(canvas.getByText("Self-Engine")).toBeVisible();
-    await expect(canvas.getByTestId("mark").getBoundingClientRect().left).toBeCloseTo(
-      canvas.getByRole("button", { name: "Projects" }).getBoundingClientRect().left,
+    await expect(centerX(canvas.getByTestId("mark"))).toBeCloseTo(
+      centerX(canvas.getByRole("button", { name: "Projects" }).querySelector("svg")!),
       0,
     );
   },
