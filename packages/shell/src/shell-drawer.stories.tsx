@@ -14,6 +14,7 @@ import {
   dividerIn,
   drawerHeaderOf,
   drawerNavbarOf,
+  drawerOverlay,
   expectActiveEntryFillsTheColumn,
   expectContentFillsTheFrame,
   openDrawer,
@@ -47,6 +48,16 @@ export const TheDrawerStaysClickableAboveTheDragRegion: Story = {
     await userEvent.click(canvas.getByRole("button", { name: "Open navigation" }));
     const drawer = await screen.findByRole("dialog", { name: "Module Sidebar" });
     await expect(appRegionOf(drawer)).toBe("no-drag");
+    await expect(appRegionOf(drawerOverlay())).toBe("no-drag");
+  },
+};
+
+export const ThePhoneDrawerStaysClickableAboveTheDragRegion: Story = {
+  ...atViewport("phone"),
+  play: async ({ canvas }) => {
+    const drawer = await openDrawer(canvas, "Open module sidebar");
+    await expect(appRegionOf(drawer)).toBe("no-drag");
+    await expect(appRegionOf(drawerOverlay())).toBe("no-drag");
   },
 };
 

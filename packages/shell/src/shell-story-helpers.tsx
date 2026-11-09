@@ -303,6 +303,13 @@ export const drawerHeaderOf = (drawer: HTMLElement) => {
   return header;
 };
 
+/** In a portal, outside the dialog, and clicking it closes the Drawer. */
+export const drawerOverlay = () => {
+  const overlay = document.querySelector(".mantine-Drawer-overlay");
+  if (overlay === null) throw new Error("the Drawer has no overlay");
+  return overlay;
+};
+
 export const drawerNavbarOf = (drawer: HTMLElement) =>
   within(drawer).getByRole("navigation", { name: "Modules" });
 
