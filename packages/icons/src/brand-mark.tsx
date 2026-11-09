@@ -1,7 +1,8 @@
 import { type ComponentProps, useId } from "react";
 
 const STAR_PATH = "M64 18Q69.5 64.5 92 70Q69.5 75.5 64 98Q58.5 75.5 36 70Q58.5 64.5 64 18Z";
-const FACETS_PATH = "M64 70L64 10L124 10ZM64 70L124 70L124 130ZM64 70L64 130L4 130ZM64 70L4 70L4 10Z";
+const FACETS_PATH =
+  "M64 70L64 10L124 10ZM64 70L124 70L124 130ZM64 70L64 130L4 130ZM64 70L4 70L4 10Z";
 
 // The brand's own colors, which do not follow the Accent. `light-dark()` reads the CSS
 // `color-scheme` that Mantine sets, so a switch of the Color Mode repaints without a render.
