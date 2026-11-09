@@ -76,6 +76,24 @@ _Avoid_: preference, option, config
 A _Setting_ that belongs to the user and follows them to every device once sync exists, such as the _Theme_ or the _Accent_.
 _Avoid_: global setting, account setting
 
+### Shell
+
+**Layout Step** (de: _Layoutstufe_):
+One of the four arrangements of the _Shell_ that depend on the window's width: wide, medium, narrow and phone.
+_Avoid_: breakpoint, responsive mode
+
+**Module Sidebar** (de: _Modul-Sidebar_):
+The bar next to the _Navbar_ with the main action, the views and the groups of the active module.
+_Avoid_: secondary sidebar, sub navigation
+
+**Navbar** (de: _Navbar_):
+The outermost bar with one entry per module, either narrow with icons only or wide with labels.
+_Avoid_: main menu, sidebar
+
+**Shell** (de: _Hülle_):
+The frame of the app around the modules, made of the navigation and the content area.
+_Avoid_: layout, frame, chrome
+
 ### Translation
 
 **App Language** (de: _App-Sprache_):

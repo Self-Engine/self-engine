@@ -563,6 +563,32 @@ Grundlage: [`research-layer-2-data.md`](research-layer-2-data.md).
   Theme-Schalter für Hell und Dunkel. Startwert ist `DEFAULT_APPEARANCE` mit Hell und Englisch,
   zugleich die feste Darstellung der Story-Tests. Kein Docs-Modus. Stories sind von der
   Übersetzung ausgenommen.
+- **D126 Mantine zuerst** (#19): Was Mantine bietet, wird genutzt und über Theme oder Styles API
+  angepasst, selbst gebaut wird nur der Rest. Der Prototyp gibt nur die allgemeine Struktur vor,
+  nicht Verhalten oder Maße (verfeinert D65, D67).
+- **D127 Die Hülle ist ein eigenes Paket `@self-engine/shell`** ohne Router, Settings und
+  Plattformwissen. Sie bekommt alles als Props, die App verdrahtet. Der Hüllen-Beitrag aus #20
+  liegt im selben Paket (verfeinert D74). _Verworfen:_ Router und Settings im Paket (jede Story
+  bräuchte deren Aufbau), Hülle in `apps/web` (Module könnten den Beitragstyp nicht importieren).
+- **D128 Aufbau aus `AppShell` und `Splitter`:** `AppShell` im `static`-Modus, die Navbar ist
+  seine Navbar mit Mantines Griff, Modul-Sidebar und Inhalt liegen in einem `Splitter` im
+  Hauptbereich. Beide Breiten sind unabhängig veränderbar, der Inhalt gleicht aus. _Verworfen:_
+  der ganze Navigations-Container als `AppShell.Navbar` mit innerem `Splitter` (beim Einklappen
+  der Navbar würde die Modul-Sidebar breiter statt der Inhalt).
+- **D129 Zwei Geräteeinstellungen für die Breiten:** `shell.navbar` mit
+  `{ collapsed, expandedWidth }` und `shell.moduleSidebarWidth`, eine Breite für alle Module.
+  Geschrieben wird beim Loslassen, eine von der Layoutstufe erzwungene Icon-Navbar schreibt nie.
+  Doppelklick schaltet die Navbar um und setzt die Modul-Sidebar auf den Standard zurück.
+- **D130 Die Schriftstufe läuft über Mantines `theme.scale`,** die Root-Schriftgröße bleibt bei
+  100 % (ändert #14). Mantines Griff rechnet mit 16 px pro `rem`, bei anderer Root-Größe springt
+  die Navbar beim Ziehen. _Verworfen:_ eigener Griff (Tastatur, Escape und ARIA neu bauen).
+- **D131 Layoutstufen auf Mantines `xs`, `md`, `lg`** statt der Prototyp-Werte (verfeinert D59).
+  Electron startet mit 1280 × 800 und ist mindestens 576 px breit, die Handy-Stufe gibt es damit
+  nur im Web, ohne Plattformabfrage in der Hülle.
+- **D132 Die Hülle rendert immer eine Kopfzeile im Inhalt** mit `Burger`, Seitentitel und freiem
+  Platz rechts für #22. Die Icon-Navbar ist 68 px breit, damit die macOS-Fensterknöpfe
+  nebeneinander passen. Der Streifen dafür erscheint per Prop nur auf dem Mac-Desktop
+  (verfeinert D78).
 
 ## Fakten
 
