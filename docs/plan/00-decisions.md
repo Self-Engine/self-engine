@@ -769,6 +769,16 @@ Grundlage: [`research-layer-3-core.md`](research-layer-3-core.md).
   mit Finanzen oder Kalender. _Verworfen:_ feste Reihenfolge aller Module ohne Brücken (Arbeit und
   Kalender brauchen sich gegenseitig), Ereignisse statt Aufrufe (keine Transaktion über beide
   Seiten), Brückentabellen im „größeren“ Modul (bringt die alten Zyklen zurück).
+- **D153 (L3.11) Einstellungen des Kerns.** Die Region folgt vorerst über genau eine Funktion aus
+  der Sprache (`de` → `de-DE`, `en` → `en-US`); eine eigene Regionen-Einstellung lässt sich dort
+  später ergänzen. Der Wochenstart ist eine Synced Setting mit dem Wert „automatisch“, der der
+  Region folgt. Die Standardwährung ist eine Synced Setting, die nur vorbelegt und nie umrechnet;
+  sie kommt beim ersten Start aus der Region (`EUR`, `USD`), beim Import aus der alten App.
+  Einstellungen, die Oberfläche und Datenprozess beide lesen (Zeitzone, „dem Gerät folgen“,
+  Wochenstart, Standardwährung), werden in `contracts` deklariert, reine Oberflächen-Einstellungen
+  bleiben in `apps/web`. `formatMoney` hält `Intl.NumberFormat`-Objekte pro Gebietsschema und
+  Währung vor. Standard-Stundensatz und Rundung gehören in Schicht 4. _Verworfen:_ eigene
+  Regionen-Einstellung sofort, Standardwährung fest auf `USD`, doppelte Deklaration.
 
 ## Fakten
 

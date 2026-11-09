@@ -35,7 +35,7 @@ Pro Runde werden nur 2–3 Fragen gestellt; die Nummern sind stabil.
       - ✅ Tags (D150)
       - ✅ Icon und Farbe an Entitäten (D151)
       - ✅ Abläufe über mehrere Module, Brücken (D152)
-      - ❓ Einstellungen des Kerns: Standardwährung, Region
+      - ✅ Einstellungen des Kerns: Standardwährung, Region (D153) → 06-layer-3-core.md
       - ⏳ Zerlegung in Issues (`layer:3`)
     - ⏳ Schicht 4 Projekte + Zeit
     - ⏳ Schicht 5 Import
