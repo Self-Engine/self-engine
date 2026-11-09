@@ -32,8 +32,8 @@ Pro Runde werden nur 2–3 Fragen gestellt; die Nummern sind stabil.
       - ✅ Zeit: eine Zeitzone ohne Server (D137)
       - ✅ Zeit: Übernahme von `packages/time`, Uhr, Lint-Regeln (D138)
       - ✅ Zeit: Ergänzungen aus unabhängiger Prüfung (D139)
-      - ❓ Tags
-      - ⏳ Icon und Farbe an Entitäten
+      - ✅ Tags (D140)
+      - ❓ Icon und Farbe an Entitäten
       - ⏳ Abläufe über mehrere Module, Brückentabellen
       - ⏳ Zerlegung in Issues (`layer:3`)
     - ⏳ Schicht 4 Projekte + Zeit

@@ -682,6 +682,20 @@ Grundlage: [`research-layer-3-core.md`](research-layer-3-core.md).
   gegen die Zod-Schemas, der Test mit der echten Uhr entfällt. Von der Wochenstart-Tabelle werden
   nur `de-DE` und `en-US` übernommen. _Zurückgestellt:_ doppelte Mitternacht in historischen
   kanadischen Zeitzonen, Prüfung auf Hermes.
+- **D140 (L3.8) Tags hängen über Brücken der Module an Einträgen.** Tabelle `tags` mit Titel,
+  optionaler Beschreibung und `modules` als JSON-Text mit Modul-IDs (leer heißt überall). Der Titel
+  ist pro Space eindeutig, über eine in TypeScript berechnete Spalte `normalized_title` mit
+  eindeutigem Index für nicht gelöschte Zeilen, weil SQLites `lower()` nur ASCII kennt. Jedes Modul
+  besitzt seine Brücke (z. B. `project_tags`) mit eigener `id`, Fremdschlüssel auf `tags` und
+  eindeutigem Paar; `tags` liefert eine gemeinsame Funktion zum Setzen und ein Contract-Kit in
+  `./testing`. Module lesen nur Tag-IDs aus ihrer Brücke und filtern darüber, die Oberfläche löst
+  Titel über einen Hook aus `tags/react` auf. Löschen ist weich und per Rückgängig samt Zuordnungen
+  umkehrbar; eine entfernte und neu gesetzte Zuordnung belebt dieselbe Zeile wieder. Farbe, Icon,
+  Hierarchie und Starter-Tags sind vorerst nicht dabei; Starter-Tags gehören zum Onboarding.
+  _Folgen:_ Der Import führt doppelte Titel zusammen und meldet das; das Zusammenführen offline
+  angelegter gleicher Tags gehört in die Sync-Phase. _Verworfen:_ generische Tabelle `taggings`
+  (keine Prüfung der Verweise, siehe `habit_link`), `tags` besitzt alle Brücken (dreht die Richtung
+  aus D133 um), `modules` weglassen (D9).
 
 ## Fakten
 
