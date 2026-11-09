@@ -3,8 +3,14 @@ import { useLingui } from "@lingui/react";
 import { Trans } from "@lingui/react/macro";
 import { Badge, Text } from "@mantine/core";
 import { AssistantIcon, CalendarIcon, ProjectsIcon, SettingsIcon } from "@self-engine/icons";
-import { Shell, type ShellEntry } from "@self-engine/shell";
+import {
+  Shell,
+  SHELL_STANDARD_MODULE_SIDEBAR_WIDTH,
+  SHELL_STANDARD_NAVBAR,
+  type ShellEntry,
+} from "@self-engine/shell";
 import { Outlet, createRootRoute, useNavigate, useRouterState } from "@tanstack/react-router";
+import { useState } from "react";
 import { channelBadge, reservesWindowButtons } from "../env.ts";
 
 // Until #20 the entries are the existing pages, so their icons and colors are placeholders.
@@ -42,6 +48,9 @@ function RootLayout() {
   const pathname = useRouterState({ select: (state) => state.location.pathname });
   const badge = channelBadge(window);
   const activePage = PAGES.find(({ to }) => to === pathname);
+  // Held in memory until #87 stores them as Device Settings.
+  const [navbar, setNavbar] = useState(SHELL_STANDARD_NAVBAR);
+  const [moduleSidebarWidth, setModuleSidebarWidth] = useState(SHELL_STANDARD_MODULE_SIDEBAR_WIDTH);
 
   const entryOf = ({ to, label, icon, color }: (typeof PAGES)[number]): ShellEntry => ({
     id: to,
@@ -60,6 +69,10 @@ function RootLayout() {
           <Trans>The views of the active module will appear here.</Trans>
         </Text>
       }
+      moduleSidebarWidth={moduleSidebarWidth}
+      navbar={navbar}
+      onModuleSidebarWidthCommit={setModuleSidebarWidth}
+      onNavbarCommit={setNavbar}
       onSelectEntry={(id) => {
         const page = PAGES.find(({ to }) => to === id);
         if (page) void navigate({ to: page.to });

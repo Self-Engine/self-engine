@@ -1,8 +1,15 @@
 import { MantineThemeProvider } from "@mantine/core";
 import { ProjectsIcon, SettingsIcon, TimeIcon } from "@self-engine/icons";
 import type { Meta, StoryObj } from "@storybook/react-vite";
+import { useState } from "react";
 import { expect, fn, screen, userEvent, waitFor, within } from "storybook/test";
-import { Shell, type ShellEntry, type ShellProps } from "./index.ts";
+import {
+  Shell,
+  SHELL_STANDARD_MODULE_SIDEBAR_WIDTH,
+  SHELL_STANDARD_NAVBAR,
+  type ShellEntry,
+  type ShellProps,
+} from "./index.ts";
 
 const ENTRIES: readonly ShellEntry[] = [
   { id: "projects", label: "Projects", icon: ProjectsIcon, color: "blue" },
@@ -38,6 +45,8 @@ const meta = {
     children: <p>Page content</p>,
     entries: ENTRIES,
     moduleSidebar: <p>Sidebar content</p>,
+    onModuleSidebarWidthCommit: fn(),
+    onNavbarCommit: fn(),
     onSelectEntry: fn(),
     pageTitle: "Time",
     settingsEntry: SETTINGS,
@@ -331,6 +340,366 @@ export const SurfacesUseTheirColorRoles: Story = {
     await expect(
       canvas.getByRole("heading", { name: "Time" }).closest(".mantine-Splitter-pane"),
     ).toHaveStyle({ backgroundColor: roleOf("--se-canvas") });
+  },
+};
+
+/** Holds the widths the way the app does, so a commit shows up in the next render. */
+function ResizableShell(args: ShellProps) {
+  const [navbar, setNavbar] = useState(args.navbar ?? SHELL_STANDARD_NAVBAR);
+  const [width, setWidth] = useState(args.moduleSidebarWidth ?? SHELL_STANDARD_MODULE_SIDEBAR_WIDTH);
+  return (
+    <Shell
+      {...args}
+      moduleSidebarWidth={width}
+      navbar={navbar}
+      onModuleSidebarWidthCommit={(next) => {
+        args.onModuleSidebarWidthCommit?.(next);
+        setWidth(next);
+      }}
+      onNavbarCommit={(next) => {
+        args.onNavbarCommit?.(next);
+        setNavbar(next);
+      }}
+    />
+  );
+}
+
+const resizable = { render: (args: ShellProps) => <ResizableShell {...args} /> };
+
+const navbarHandle = (canvas: ReturnType<typeof within>) =>
+  canvas.getByRole("separator", { name: "Resize navbar" });
+
+const paneOf = (canvas: ReturnType<typeof within>, text: string) => {
+  const pane = canvas.getByText(text).closest(".mantine-Splitter-pane");
+  if (pane === null) throw new Error(`"${text}" is not in a pane`);
+  return pane;
+};
+
+const nextFrame = () => new Promise((resolve) => requestAnimationFrame(resolve));
+
+/** Real pointer events with exact coordinates, which `userEvent` does not promise in a browser. */
+async function pressHandle(handle: HTMLElement) {
+  const { left, top, width } = handle.getBoundingClientRect();
+  const startX = left + width / 2;
+  const fire = (type: string, x: number) =>
+    handle.dispatchEvent(
+      new PointerEvent(type, {
+        bubbles: true,
+        button: 0,
+        clientX: x,
+        clientY: top + 100,
+        pointerId: 1,
+      }),
+    );
+  fire("pointerdown", startX);
+  await nextFrame();
+  return {
+    moveBy: async (distance: number) => {
+      fire("pointermove", startX + distance);
+      await nextFrame();
+      await nextFrame();
+    },
+    /** Moves there first, as a real release does. */
+    release: async (distance: number) => {
+      fire("pointermove", startX + distance);
+      await nextFrame();
+      fire("pointerup", startX + distance);
+      await nextFrame();
+      await nextFrame();
+    },
+  };
+}
+
+export const DraggingTheNavbarChangesOnlyTheNavbarAndTheContent: Story = {
+  ...atViewport("wide"),
+  ...resizable,
+  play: async ({ args, canvas }) => {
+    const navbar = navbarOf(canvas);
+    const sidebar = paneOf(canvas, "Sidebar content");
+    const content = paneOf(canvas, "Page content");
+    const contentWidth = widthOf(content);
+    const drag = await pressHandle(navbarHandle(canvas));
+    await drag.moveBy(20);
+    await expect(widthOf(navbar)).toBe(240);
+    await expect(args.onNavbarCommit).not.toHaveBeenCalled();
+    await drag.moveBy(40);
+    await drag.release(40);
+    await expect(widthOf(navbar)).toBe(260);
+    await expect(widthOf(sidebar)).toBe(240);
+    await expect(widthOf(content)).toBe(contentWidth - 40);
+    await expect(args.onNavbarCommit).toHaveBeenCalledTimes(1);
+    await expect(args.onNavbarCommit).toHaveBeenCalledWith({
+      collapsed: false,
+      expandedWidth: 260,
+    });
+  },
+};
+
+/** The real font scale, through the Catalog's toolbar global. */
+const wideAt112Percent = { globals: { ...atViewport("wide").globals, fontScale: "112.5" } };
+
+export const NavbarDragFollowsThePointerAt112Percent: Story = {
+  ...wideAt112Percent,
+  ...resizable,
+  play: async ({ args, canvas }) => {
+    const navbar = navbarOf(canvas);
+    const start = navbar.getBoundingClientRect().width;
+    await expect(start).toBeCloseTo(247.5, 0);
+    const drag = await pressHandle(navbarHandle(canvas));
+    await drag.moveBy(1);
+    await expect(navbar.getBoundingClientRect().width).toBeCloseTo(start + 1, 1);
+    await drag.moveBy(36);
+    await expect(navbar.getBoundingClientRect().width).toBeCloseTo(start + 36, 1);
+    await drag.release(36);
+    await expect(navbar.getBoundingClientRect().width).toBeCloseTo(start + 36, 0);
+    await expect(args.onNavbarCommit).toHaveBeenCalledWith({
+      collapsed: false,
+      expandedWidth: 252,
+    });
+  },
+};
+
+export const NavbarSettlesOnTheMinimumWideWidth: Story = {
+  ...atViewport("wide"),
+  ...resizable,
+  play: async ({ args, canvas }) => {
+    const navbar = navbarOf(canvas);
+    const drag = await pressHandle(navbarHandle(canvas));
+    await drag.moveBy(-102);
+    await expect(widthOf(navbar)).toBe(118);
+    await drag.release(-102);
+    await expect(widthOf(navbar)).toBe(168);
+    await expect(within(navbar).getByText("Projects")).toBeVisible();
+    await expect(args.onNavbarCommit).toHaveBeenCalledExactlyOnceWith({
+      collapsed: false,
+      expandedWidth: 168,
+    });
+  },
+};
+
+export const NavbarSettlesOnIconsOnlyBelowTheMidpoint: Story = {
+  ...atViewport("wide"),
+  ...resizable,
+  args: { navbar: { collapsed: false, expandedWidth: 250 } },
+  play: async ({ args, canvas }) => {
+    const navbar = navbarOf(canvas);
+    const drag = await pressHandle(navbarHandle(canvas));
+    await drag.release(-133);
+    await expect(widthOf(navbar)).toBe(68);
+    await expect(within(navbar).queryByText("Projects")).toBeNull();
+    await expect(args.onNavbarCommit).toHaveBeenCalledExactlyOnceWith({
+      collapsed: true,
+      expandedWidth: 250,
+    });
+  },
+};
+
+export const CollapsedNavbarCanBeDraggedWide: Story = {
+  ...atViewport("wide"),
+  ...resizable,
+  args: { navbar: { collapsed: true, expandedWidth: 260 } },
+  play: async ({ args, canvas }) => {
+    const navbar = navbarOf(canvas);
+    const drag = await pressHandle(navbarHandle(canvas));
+    await drag.release(132);
+    await expect(widthOf(navbar)).toBe(200);
+    await expect(within(navbar).getByText("Projects")).toBeVisible();
+    await expect(args.onNavbarCommit).toHaveBeenCalledExactlyOnceWith({
+      collapsed: false,
+      expandedWidth: 200,
+    });
+  },
+};
+
+export const NavbarDoubleClickTogglesAndRestoresTheWidth: Story = {
+  ...atViewport("wide"),
+  ...resizable,
+  args: { navbar: { collapsed: false, expandedWidth: 260 } },
+  play: async ({ args, canvas }) => {
+    const navbar = navbarOf(canvas);
+    await userEvent.dblClick(navbarHandle(canvas));
+    await waitFor(() => expect(widthOf(navbar)).toBe(68));
+    await expect(args.onNavbarCommit).toHaveBeenCalledExactlyOnceWith({
+      collapsed: true,
+      expandedWidth: 260,
+    });
+    await userEvent.dblClick(navbarHandle(canvas));
+    await waitFor(() => expect(widthOf(navbar)).toBe(260));
+    await expect(args.onNavbarCommit).toHaveBeenCalledTimes(2);
+    await expect(args.onNavbarCommit).toHaveBeenLastCalledWith({
+      collapsed: false,
+      expandedWidth: 260,
+    });
+  },
+};
+
+export const NavbarMovesWithTheArrowKeys: Story = {
+  ...atViewport("wide"),
+  ...resizable,
+  play: async ({ args, canvas }) => {
+    const navbar = navbarOf(canvas);
+    navbarHandle(canvas).focus();
+    await userEvent.keyboard("{ArrowRight}");
+    await waitFor(() => expect(widthOf(navbar)).toBe(230));
+    await expect(args.onNavbarCommit).toHaveBeenCalledExactlyOnceWith({
+      collapsed: false,
+      expandedWidth: 230,
+    });
+    await userEvent.keyboard("{ArrowLeft}");
+    await waitFor(() => expect(widthOf(navbar)).toBe(220));
+    await expect(args.onNavbarCommit).toHaveBeenCalledTimes(2);
+  },
+};
+
+/** The settling rule would otherwise pull every key press back and trap the keyboard user. */
+export const ArrowKeysCrossTheGapBetweenIconsOnlyAndWide: Story = {
+  ...atViewport("wide"),
+  ...resizable,
+  args: { navbar: { collapsed: false, expandedWidth: 168 } },
+  play: async ({ args, canvas }) => {
+    const navbar = navbarOf(canvas);
+    navbarHandle(canvas).focus();
+    await userEvent.keyboard("{ArrowLeft}");
+    await waitFor(() => expect(widthOf(navbar)).toBe(68));
+    await expect(args.onNavbarCommit).toHaveBeenLastCalledWith({
+      collapsed: true,
+      expandedWidth: 168,
+    });
+    await userEvent.keyboard("{ArrowRight}");
+    await waitFor(() => expect(widthOf(navbar)).toBe(168));
+    await expect(args.onNavbarCommit).toHaveBeenLastCalledWith({
+      collapsed: false,
+      expandedWidth: 168,
+    });
+  },
+};
+
+export const EscapeCancelsANavbarDrag: Story = {
+  ...atViewport("wide"),
+  ...resizable,
+  play: async ({ args, canvas }) => {
+    const navbar = navbarOf(canvas);
+    const drag = await pressHandle(navbarHandle(canvas));
+    await drag.moveBy(40);
+    await expect(widthOf(navbar)).toBe(260);
+    await userEvent.keyboard("{Escape}");
+    await waitFor(() => expect(widthOf(navbar)).toBe(220));
+    await expect(args.onNavbarCommit).not.toHaveBeenCalled();
+  },
+};
+
+export const NavbarHasAHandleOnlyAtTheWideStep: Story = {
+  ...atViewport("medium"),
+  ...resizable,
+  play: async ({ canvas }) => {
+    await expect(canvas.queryByRole("separator", { name: "Resize navbar" })).toBeNull();
+  },
+};
+
+export const NavbarWidthComesBackAfterTheWindowWasNarrow: Story = {
+  ...atViewport("wide"),
+  ...resizable,
+  play: async ({ args, canvas }) => {
+    const navbar = navbarOf(canvas);
+    const drag = await pressHandle(navbarHandle(canvas));
+    await drag.release(40);
+    await expect(widthOf(navbar)).toBe(260);
+    await expect(args.onNavbarCommit).toHaveBeenCalledTimes(1);
+    await atFrameWidth(1100, async () => {
+      await waitFor(() => expect(widthOf(navbar)).toBe(68));
+    });
+    await waitFor(() => expect(widthOf(navbarOf(canvas))).toBe(260));
+    await expect(args.onNavbarCommit).toHaveBeenCalledTimes(1);
+  },
+};
+
+const sidebarHandle = (canvas: ReturnType<typeof within>) =>
+  canvas.getByRole("separator", { name: "Resize module sidebar" });
+
+export const DraggingTheModuleSidebarChangesOnlyItAndTheContent: Story = {
+  ...atViewport("wide"),
+  ...resizable,
+  play: async ({ args, canvas }) => {
+    const navbar = navbarOf(canvas);
+    const sidebar = paneOf(canvas, "Sidebar content");
+    const content = paneOf(canvas, "Page content");
+    const contentWidth = widthOf(content);
+    const drag = await pressHandle(sidebarHandle(canvas));
+    await drag.moveBy(20);
+    await expect(widthOf(sidebar)).toBe(260);
+    await expect(args.onModuleSidebarWidthCommit).not.toHaveBeenCalled();
+    await drag.release(50);
+    await expect(widthOf(sidebar)).toBe(290);
+    await expect(widthOf(navbar)).toBe(220);
+    await expect(widthOf(content)).toBe(contentWidth - 50);
+    await expect(args.onModuleSidebarWidthCommit).toHaveBeenCalledExactlyOnceWith(290);
+    await expect(args.onNavbarCommit).not.toHaveBeenCalled();
+  },
+};
+
+export const ModuleSidebarDragStopsAtItsLimits: Story = {
+  ...atViewport("wide"),
+  ...resizable,
+  play: async ({ args, canvas }) => {
+    const sidebar = paneOf(canvas, "Sidebar content");
+    const drag = await pressHandle(sidebarHandle(canvas));
+    await drag.release(-200);
+    await expect(widthOf(sidebar)).toBe(200);
+    await expect(args.onModuleSidebarWidthCommit).toHaveBeenCalledExactlyOnceWith(200);
+    const second = await pressHandle(sidebarHandle(canvas));
+    await second.release(400);
+    await expect(widthOf(sidebar)).toBe(360);
+    await expect(args.onModuleSidebarWidthCommit).toHaveBeenLastCalledWith(360);
+  },
+};
+
+export const ModuleSidebarDragFollowsThePointerAt112Percent: Story = {
+  ...wideAt112Percent,
+  ...resizable,
+  play: async ({ args, canvas }) => {
+    const sidebar = paneOf(canvas, "Sidebar content");
+    await expect(sidebar.getBoundingClientRect().width).toBeCloseTo(270, 0);
+    const drag = await pressHandle(sidebarHandle(canvas));
+    await drag.moveBy(1);
+    await expect(sidebar.getBoundingClientRect().width).toBeCloseTo(271, 1);
+    await drag.release(45);
+    await expect(sidebar.getBoundingClientRect().width).toBeCloseTo(315, 0);
+    await expect(args.onModuleSidebarWidthCommit).toHaveBeenCalledExactlyOnceWith(280);
+  },
+};
+
+export const ModuleSidebarMovesWithTheArrowKeys: Story = {
+  ...atViewport("wide"),
+  ...resizable,
+  play: async ({ args, canvas }) => {
+    const sidebar = paneOf(canvas, "Sidebar content");
+    sidebarHandle(canvas).focus();
+    await userEvent.keyboard("{ArrowRight}");
+    await waitFor(() => expect(widthOf(sidebar)).toBe(250));
+    await expect(args.onModuleSidebarWidthCommit).toHaveBeenCalledExactlyOnceWith(250);
+    await userEvent.keyboard("{ArrowLeft}");
+    await waitFor(() => expect(widthOf(sidebar)).toBe(240));
+    await expect(args.onModuleSidebarWidthCommit).toHaveBeenCalledTimes(2);
+  },
+};
+
+export const ModuleSidebarDoubleClickRestoresTheStandardWidth: Story = {
+  ...atViewport("wide"),
+  ...resizable,
+  args: { moduleSidebarWidth: 320 },
+  play: async ({ args, canvas }) => {
+    const sidebar = paneOf(canvas, "Sidebar content");
+    await userEvent.dblClick(sidebarHandle(canvas));
+    await waitFor(() => expect(widthOf(sidebar)).toBe(240));
+    await expect(args.onModuleSidebarWidthCommit).toHaveBeenCalledExactlyOnceWith(240);
+  },
+};
+
+export const ModuleSidebarHandleIsHiddenInTheDrawerSteps: Story = {
+  ...atViewport("narrow"),
+  ...resizable,
+  play: async ({ canvas }) => {
+    await expect(canvas.queryByRole("separator")).toBeNull();
   },
 };
 

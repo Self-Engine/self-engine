@@ -11,23 +11,39 @@ import {
   Splitter,
   Title,
   Tooltip,
+  useAppShellResize,
   useMatches,
   useMantineTheme,
 } from "@mantine/core";
-import { useDisclosure } from "@mantine/hooks";
+import { clamp, type SplitterPaneSize, useDisclosure } from "@mantine/hooks";
 import { type ColorSetId, roleColor } from "@self-engine/theme";
-import { type ComponentType, type CSSProperties, type ReactNode, useEffect } from "react";
+import {
+  type ComponentType,
+  type CSSProperties,
+  type ReactNode,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 
 /** Starting values from #19, in Mantine's unscaled numbers. */
 const NAVBAR_ICONS_ONLY_WIDTH = 68;
 const NAVBAR_STANDARD_WIDTH = 220;
-const MODULE_SIDEBAR_STANDARD_WIDTH = 240;
+const NAVBAR_MIN_WIDE_WIDTH = 168;
+const NAVBAR_MAX_WIDTH = 280;
+const NAVBAR_COLLAPSE_BELOW = (NAVBAR_ICONS_ONLY_WIDTH + NAVBAR_MIN_WIDE_WIDTH) / 2;
+const MODULE_SIDEBAR_MIN_WIDTH = 200;
+const MODULE_SIDEBAR_MAX_WIDTH = 360;
+export const SHELL_STANDARD_MODULE_SIDEBAR_WIDTH = 240;
+/** The same steps as Mantine's Navbar handle. */
+const KEYBOARD_STEP = 10;
+const KEYBOARD_SHIFT_STEP = 50;
 const GAP = 8;
 const CONTENT_HEADER_HEIGHT = 48;
 const BOTTOM_BAR_HEIGHT = 64;
 const WINDOW_BUTTONS_STRIP_HEIGHT = 40;
 
-const NAVBAR_STANDARD_STATE: ShellNavbarState = {
+export const SHELL_STANDARD_NAVBAR: ShellNavbarState = {
   collapsed: false,
   expandedWidth: NAVBAR_STANDARD_WIDTH,
 };
@@ -126,10 +142,37 @@ export interface ShellProps {
   readonly channelBadge?: ReactNode;
   readonly navbar?: ShellNavbarState;
   readonly moduleSidebarWidth?: number;
+  /** Called once per change, when the user releases the handle or presses a key. */
+  readonly onNavbarCommit?: (navbar: ShellNavbarState) => void;
+  /** Called once per change, when the user releases the handle or presses a key. */
+  readonly onModuleSidebarWidthCommit?: (width: number) => void;
   /** Keeps a strip free at the top of the Navbar for the macOS window buttons. */
   readonly reserveWindowButtons?: boolean;
   /** The page. Stays mounted whichever Layout Step the window is in. */
   readonly children: ReactNode;
+}
+
+/** A stored width outside the current limits is clamped when shown, not reset. */
+function shownWidthOf({ collapsed, expandedWidth }: ShellNavbarState): number {
+  return collapsed
+    ? NAVBAR_ICONS_ONLY_WIDTH
+    : clamp(expandedWidth, NAVBAR_MIN_WIDE_WIDTH, NAVBAR_MAX_WIDTH);
+}
+
+/**
+ * Where the Navbar comes to rest. A drag snaps by position. A key press only has a direction,
+ * and snapping by position would pull it back every time, so it crosses the gap in one step.
+ */
+function settledNavbar(
+  width: number,
+  current: ShellNavbarState,
+  dragged: boolean,
+): ShellNavbarState {
+  if (width >= NAVBAR_MIN_WIDE_WIDTH) return { collapsed: false, expandedWidth: Math.round(width) };
+  const collapses = dragged ? width < NAVBAR_COLLAPSE_BELOW : width <= shownWidthOf(current);
+  return collapses
+    ? { ...current, collapsed: true }
+    : { collapsed: false, expandedWidth: NAVBAR_MIN_WIDE_WIDTH };
 }
 
 interface EntryLinkProps {
@@ -171,8 +214,10 @@ export function Shell({
   pageTitle,
   headerEnd,
   channelBadge,
-  navbar = NAVBAR_STANDARD_STATE,
-  moduleSidebarWidth = MODULE_SIDEBAR_STANDARD_WIDTH,
+  navbar = SHELL_STANDARD_NAVBAR,
+  moduleSidebarWidth = SHELL_STANDARD_MODULE_SIDEBAR_WIDTH,
+  onNavbarCommit,
+  onModuleSidebarWidthCommit,
   reserveWindowButtons = false,
   children,
 }: ShellProps) {
@@ -189,11 +234,50 @@ export function Shell({
   const entryAppearance = step !== "wide" || navbar.collapsed ? "iconsOnly" : "labelled";
   const navbarWidth = navbar.collapsed
     ? NAVBAR_ICONS_ONLY_WIDTH
-    : { base: NAVBAR_ICONS_ONLY_WIDTH, lg: navbar.expandedWidth };
-  // `Splitter` resolves sizes without Mantine's scale, so the width is converted here, once.
-  const moduleSidebarPaneSize: `${number}px` = sidebarInDrawer
+    : { base: NAVBAR_ICONS_ONLY_WIDTH, lg: shownWidthOf(navbar) };
+  // `Splitter` resolves sizes without Mantine's scale, so widths are converted here, once.
+  const paneSize = (width: number): `${number}px` => `${width * theme.scale}px`;
+  const shownModuleSidebarWidth = clamp(
+    moduleSidebarWidth,
+    MODULE_SIDEBAR_MIN_WIDTH,
+    MODULE_SIDEBAR_MAX_WIDTH,
+  );
+  const [draggedPaneSize, setDraggedPaneSize] = useState<SplitterPaneSize | null>(null);
+  const moduleSidebarDragging = useRef(false);
+  const moduleSidebarPaneSize = sidebarInDrawer
     ? "0px"
-    : `${moduleSidebarWidth * theme.scale}px`;
+    : (draggedPaneSize ?? paneSize(shownModuleSidebarWidth));
+
+  const commitModuleSidebarWidth = (width: number) => {
+    if (width !== shownModuleSidebarWidth) onModuleSidebarWidthCommit?.(width);
+  };
+  const commitPaneSize = (size: SplitterPaneSize | undefined) => {
+    commitModuleSidebarWidth(Math.round(Number.parseFloat(String(size)) / theme.scale));
+  };
+
+  const commitNavbar = (next: ShellNavbarState) => {
+    if (next.collapsed !== navbar.collapsed || next.expandedWidth !== navbar.expandedWidth)
+      onNavbarCommit?.(next);
+  };
+  const navbarResize = useAppShellResize({
+    navbar: { min: NAVBAR_ICONS_ONLY_WIDTH, max: NAVBAR_MAX_WIDTH, label: t`Resize navbar` },
+    onResizeEnd: ({ navbar: width }) => {
+      if (width === undefined) return;
+      commitNavbar(settledNavbar(width, navbar, navbarResize.activeSection === "navbar"));
+    },
+  });
+  // Our props are the truth: Mantine would otherwise prefer the size it remembers from a drag.
+  const shownNavbarWidth = shownWidthOf(navbar);
+  const controlledNavbarResize = {
+    ...navbarResize,
+    sizes: { navbar: shownNavbarWidth },
+    navbar: {
+      ...navbarResize.navbar,
+      size: shownNavbarWidth,
+      // Mantine calls this on a double-click, to go back to the configured width.
+      reset: () => commitNavbar({ ...navbar, collapsed: !navbar.collapsed }),
+    },
+  };
 
   useEffect(() => {
     if (!sidebarInDrawer) closeDrawer();
@@ -217,6 +301,8 @@ export function Shell({
       // which is the smallest Electron window.
       navbar={{ width: navbarWidth, breakpoint: "xs", collapsed: { mobile: true } }}
       padding={0}
+      // Mantine prefers a resized width over the responsive ones, so only the wide step gets it.
+      {...(step === "wide" && { resize: controlledNavbarResize })}
       style={ROOT_STYLE}
     >
       {!isPhone && (
@@ -245,19 +331,44 @@ export function Shell({
       >
         <Splitter
           h="100%"
+          attributes={{ handle: { "aria-label": t`Resize module sidebar` } }}
+          // Below, because Mantine's reset restores the ratio of the panes, not the standard width.
+          resetOnDoubleClick={false}
+          handleIcon={null}
           lineSize={GAP}
-          sizes={[moduleSidebarPaneSize, 100]}
-          styles={{
-            // The gap is the handle, and #85 makes it draggable. Until then nothing can take hold of it.
-            handle: {
-              backgroundColor: "transparent",
-              display: sidebarInDrawer ? "none" : undefined,
-              visibility: "hidden",
-            },
+          onDoubleClick={(event) => {
+            const target = event.target as Element;
+            if (target.parentElement === event.currentTarget && target.role === "separator")
+              commitModuleSidebarWidth(SHELL_STANDARD_MODULE_SIDEBAR_WIDTH);
           }}
-          withHandle={false}
+          onResizeEnd={(_, sizes) => {
+            moduleSidebarDragging.current = false;
+            setDraggedPaneSize(null);
+            commitPaneSize(sizes[0]);
+          }}
+          onResizeStart={() => {
+            moduleSidebarDragging.current = true;
+          }}
+          // A key press reaches only this callback, a drag ends in `onResizeEnd`.
+          onSizeChange={(sizes) => {
+            if (moduleSidebarDragging.current) setDraggedPaneSize(sizes[0] ?? null);
+            else commitPaneSize(sizes[0]);
+          }}
+          shiftStep={paneSize(KEYBOARD_SHIFT_STEP)}
+          sizes={[moduleSidebarPaneSize, 100]}
+          step={paneSize(KEYBOARD_STEP)}
+          styles={{
+            // The gap is the handle. Its thumb stays invisible and only carries Mantine's focus ring.
+            handle: { backgroundColor: "transparent", display: sidebarInDrawer ? "none" : undefined },
+            thumb: { backgroundColor: "transparent", border: "none", width: rem(GAP / 2) },
+          }}
         >
-          <Splitter.Pane defaultSize={moduleSidebarPaneSize} style={MODULE_SIDEBAR_PANE_STYLE}>
+          <Splitter.Pane
+            defaultSize={moduleSidebarPaneSize}
+            max={paneSize(MODULE_SIDEBAR_MAX_WIDTH)}
+            min={paneSize(MODULE_SIDEBAR_MIN_WIDTH)}
+            style={MODULE_SIDEBAR_PANE_STYLE}
+          >
             {!sidebarInDrawer && (
               <ScrollArea h="100%">
                 <Box p="xs">{moduleSidebar}</Box>
@@ -301,7 +412,7 @@ export function Shell({
         closeButtonProps={{ "aria-label": t`Close module sidebar` }}
         onClose={closeDrawer}
         opened={sidebarInDrawer && drawerOpened}
-        size={moduleSidebarWidth}
+        size={shownModuleSidebarWidth}
         title={t`Module Sidebar`}
       >
         {moduleSidebar}
