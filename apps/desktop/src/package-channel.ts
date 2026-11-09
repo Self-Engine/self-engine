@@ -2,9 +2,8 @@
 // for one release channel, into that channel's own bundle folder, and packages it into
 // `apps/desktop/release/<channel>`. Without a version it makes an unpacked app for inspection;
 // with one, the dmg a release ships, signed with the Developer ID when the signing inputs are
-// in the environment and ad hoc when none are. It installs and uploads nothing; to build the
-// Nightly on this Mac and install it, use `pnpm nightly:local` (nightly-local.ts). It lives in
-// the app because repo scripts may not import apps (ADR 0006) and the identity is the app's own.
+// in the environment and ad hoc when none are. It installs and uploads nothing. It lives in the
+// app because repo scripts may not import apps (ADR 0006) and the identity is the app's own.
 
 import { execFileSync, spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
@@ -67,8 +66,6 @@ export interface PackageRequest {
   readonly channel: ReleaseChannel;
   /** Set for a release: stamped into the package, and the dmg is built. */
   readonly releaseVersion: string | undefined;
-  /** Set for a build that stays on this Mac: stamped into an unpacked, ad-hoc app, no dmg. */
-  readonly localVersion?: string | undefined;
 }
 
 export function parsePackageRequest(argv: readonly string[]): PackageRequest {
@@ -88,16 +85,29 @@ export function electronDistPath(desktopDir: string): string {
   return join(dirname(require.resolve("electron/package.json")), "dist");
 }
 
+// GitHub turns a space in an asset name into a dot; this name stays what the build wrote.
+function artifactName(productName: string, version: string, arch: string, ext: string): string {
+  return `${productName.replaceAll(" ", "-")}-${version}-${arch}.${ext}`;
+}
+
+/** Where electron-builder leaves the dmg of `version`. */
+export function packagedDmgPath(
+  desktopDir: string,
+  channel: ReleaseChannel,
+  version: string,
+): string {
+  const { productName } = channelIdentity(channel);
+  return join(desktopDir, "release", channel, artifactName(productName, version, "arm64", "dmg"));
+}
+
 /** The electron-builder configuration of `channel`. */
 export function builderConfig(
   channel: ReleaseChannel,
   electronDist: string,
   releaseVersion?: string,
   signing: Signing = "ad-hoc",
-  localVersion?: string,
 ) {
   const { appId, productName, icon } = channelIdentity(channel);
-  const version = releaseVersion ?? localVersion;
   return {
     appId,
     productName,
@@ -107,11 +117,10 @@ export function builderConfig(
     // `build.productName`. A release carries the version the plan resolved; no commit does.
     extraMetadata: {
       productName,
-      ...(version === undefined ? {} : { version }),
+      ...(releaseVersion === undefined ? {} : { version: releaseVersion }),
     },
     directories: { output: `release/${channel}` },
-    // GitHub turns a space in an asset name into a dot; this name stays what the build wrote.
-    artifactName: `${productName.replaceAll(" ", "-")}-\${version}-\${arch}.\${ext}`,
+    artifactName: artifactName(productName, "${version}", "${arch}", "${ext}"),
     // Always `dist-electron` inside the package, because that is where `main` points.
     files: [
       "package.json",
@@ -122,7 +131,8 @@ export function builderConfig(
       target: releaseVersion === undefined ? "dir" : "dmg",
       // Ad hoc is trusted by nobody, but a valid signature for the whole bundle, unlike a
       // skipped one. Hardened runtime cannot load Electron's own frameworks under it. With the
-      // Developer ID, electron-builder takes the identity from CSC_LINK.
+      // Developer ID, electron-builder takes the identity from CSC_LINK. `notarize: false`, or
+      // Apple credentials this repo does not use, left in a shell, would upload an ad-hoc build.
       ...(signing === "developer-id"
         ? {
             hardenedRuntime: true,
@@ -130,7 +140,7 @@ export function builderConfig(
             entitlements: ENTITLEMENTS,
             entitlementsInherit: ENTITLEMENTS,
           }
-        : { identity: "-", hardenedRuntime: false }),
+        : { identity: "-", hardenedRuntime: false, notarize: false }),
       icon,
     },
     // Updates are downloaded by hand (ADR 0007), so the dmg needs no block map.
@@ -218,15 +228,9 @@ export function checkoutPackageOptions(env: NodeJS.ProcessEnv): PackageOptions {
   };
 }
 
-/** Where electron-builder leaves the app of `channel`. */
-export function packagedAppPath(desktopDir: string, channel: ReleaseChannel): string {
-  const { productName } = channelIdentity(channel);
-  return join(desktopDir, "release", channel, "mac-arm64", `${productName}.app`);
-}
-
 /** Builds with the channel compiled in, then packages that build. */
 export function packageChannel(request: PackageRequest, options: PackageOptions): void {
-  const { channel, releaseVersion, localVersion } = request;
+  const { channel, releaseVersion } = request;
   const { rootDir, desktopDir, electronDist, env, run, inspect } = options;
   // Before any build: a missing secret must fail the run at once.
   const signing = resolveSigning(releaseVersion, env);
@@ -249,11 +253,7 @@ export function packageChannel(request: PackageRequest, options: PackageOptions)
   const configPath = join(outputDir, "electron-builder.json");
   writeFileSync(
     configPath,
-    JSON.stringify(
-      builderConfig(channel, electronDist, releaseVersion, signing, localVersion),
-      null,
-      2,
-    ),
+    JSON.stringify(builderConfig(channel, electronDist, releaseVersion, signing), null, 2),
   );
   // `--publish never`: electron-builder would otherwise publish on its own when it sees a CI tag.
   const targetArgs = releaseVersion === undefined ? ["--dir"] : ["--publish", "never"];
@@ -263,7 +263,8 @@ export function packageChannel(request: PackageRequest, options: PackageOptions)
     { cwd: desktopDir, env },
   );
   if (signing === "developer-id") {
-    const appPath = packagedAppPath(desktopDir, channel);
+    const { productName } = channelIdentity(channel);
+    const appPath = join(outputDir, "mac-arm64", `${productName}.app`);
     assertDeveloperIdRelease(appPath, env.APPLE_TEAM_ID ?? "", inspect);
   }
 }

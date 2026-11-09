@@ -1,11 +1,10 @@
 import {
-  cpSync,
+  copyFileSync,
   mkdirSync,
   mkdtempSync,
   readFileSync,
   readdirSync,
   realpathSync,
-  renameSync,
   rmSync,
   writeFileSync,
 } from "node:fs";
@@ -13,8 +12,8 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vite-plus/test";
 import {
+  buildLocalNightly,
   type CommandResult,
-  installLocalNightly,
   localNightlyVersion,
   type NightlyLocalOptions,
 } from "./nightly-local.ts";
@@ -57,10 +56,10 @@ describe("localNightlyVersion", () => {
 
 const OK = (stdout = ""): CommandResult => ({ status: 0, stdout, stderr: "" });
 const FULL_COMMIT = "fedcba9876543210fedcba9876543210fedcba98";
-const INSTALLED_VERSION = "0.0.3-nightly.20261108.local.0000aaa";
-const NEW_VERSION = "0.0.3-nightly.20261109.local.fedcba9";
+const VERSION = "0.0.3-nightly.20261109.local.fedcba9";
+const DMG_NAME = `Self-Engine-Nightly-${VERSION}-arm64.dmg`;
 
-describe("installLocalNightly", () => {
+describe("buildLocalNightly", () => {
   let dir: string | undefined;
 
   afterEach(() => {
@@ -71,35 +70,25 @@ describe("installLocalNightly", () => {
   interface Scenario {
     readonly branch?: string;
     readonly status?: string;
-    /** The exit code of `pgrep`, per call. */
-    readonly pgrep?: readonly number[];
     readonly failOn?: string;
-    /** The version the fake build stamps. */
-    readonly builtVersion?: string;
-    readonly rename?: NightlyLocalOptions["rename"];
+    /** Whether the fake build writes a dmg. */
+    readonly buildsDmg?: boolean;
     readonly env?: NodeJS.ProcessEnv;
   }
 
-  function writeApp(appPath: string, version: string): void {
-    mkdirSync(join(appPath, "Contents"), { recursive: true });
-    writeFileSync(join(appPath, "Contents/Info.plist"), version);
-  }
-
   function setUp(scenario: Scenario = {}) {
-    const { branch = "main", status = "", failOn, builtVersion = NEW_VERSION } = scenario;
+    const { branch = "main", status = "", failOn, buildsDmg = true } = scenario;
     dir = realpathSync(mkdtempSync(join(tmpdir(), "nightly-local-")));
     const rootDir = join(dir, "repo");
     const desktopDir = join(rootDir, "apps/desktop");
-    const applicationsDir = join(dir, "Applications");
-    mkdirSync(applicationsDir, { recursive: true });
-    const installed = join(applicationsDir, "Self-Engine Nightly.app");
-    writeApp(installed, INSTALLED_VERSION);
+    const homeDir = join(dir, "home");
+    const downloads = join(homeDir, "Downloads");
+    mkdirSync(downloads, { recursive: true });
 
     const steps: string[] = [];
     const printed: string[] = [];
     const requests: PackageRequest[] = [];
     const envs: NodeJS.ProcessEnv[] = [];
-    const pgrep = [...(scenario.pgrep ?? [])];
     const step = (name: string) => {
       steps.push(name);
       if (failOn !== undefined && name.startsWith(failOn)) throw new Error(`${name} failed`);
@@ -108,10 +97,9 @@ describe("installLocalNightly", () => {
     const options: NightlyLocalOptions = {
       rootDir,
       desktopDir,
-      applicationsDir,
+      homeDir,
       env: scenario.env ?? { PATH: "/bin" },
       now: () => new Date("2026-11-09T01:30:00.000Z"),
-      rename: scenario.rename ?? renameSync,
       print: (line) => printed.push(line),
       query: (command, args) => {
         const line = [command === process.execPath ? "node" : command, ...args].join(" ");
@@ -119,46 +107,40 @@ describe("installLocalNightly", () => {
         if (command === "git" && args[0] === "branch") return OK(`${branch}\n`);
         if (command === "git" && args[0] === "status") return OK(status);
         if (command === "git" && args[0] === "rev-parse") return OK(`${FULL_COMMIT}\n`);
-        if (command === "pgrep") return { status: pgrep.shift() ?? 1, stdout: "", stderr: "" };
-        if (command === "plutil") return OK(`${readFileSync(args.at(-1) ?? "", "utf8")}\n`);
         return OK("channel=nightly\nversion=0.0.3-nightly.20261109.1\ntag=v0.0.3\n");
       },
       run: (command, args, { env }) => {
         envs.push(env);
-        if (command === "ditto") {
-          const [source = "", target = ""] = args;
-          // Leaves a partial copy behind, as a full disk would.
-          if (failOn === "ditto") mkdirSync(target, { recursive: true });
-          step("ditto");
-          cpSync(source, target, { recursive: true });
-          return;
-        }
         step([command, ...args].join(" "));
       },
       packageApp: (request, env) => {
         envs.push(env);
         step("package");
         requests.push(request);
-        writeApp(
-          join(desktopDir, "release/nightly/mac-arm64/Self-Engine Nightly.app"),
-          builtVersion,
-        );
+        if (!buildsDmg) return;
+        const output = join(desktopDir, "release/nightly");
+        mkdirSync(output, { recursive: true });
+        writeFileSync(join(output, DMG_NAME), "the built dmg");
+      },
+      copyFile: (from, to) => {
+        // Leaves a partial file behind, as a full disk would.
+        if (failOn === "copy") writeFileSync(to, "half");
+        step("copy");
+        copyFileSync(from, to);
       },
     };
-    return { options, steps, printed, requests, envs, installed, applicationsDir };
-  }
-
-  function installedVersion(installed: string): string {
-    return readFileSync(join(installed, "Contents/Info.plist"), "utf8");
+    return { options, steps, printed, requests, envs, downloads };
   }
 
   describe("refuses before changing anything", () => {
     function expectRefusal(scenario: Scenario, message: RegExp) {
-      const { options, steps, requests, installed } = setUp(scenario);
-      expect(() => installLocalNightly(options)).toThrow(message);
-      expect(steps.filter((name) => !/^(git (branch|status)|pgrep)/.test(name))).toEqual([]);
+      const { options, steps, requests, downloads } = setUp(scenario);
+      expect(() => buildLocalNightly(options)).toThrow(message);
+      expect(
+        steps.filter((name) => !name.startsWith("git branch") && !name.startsWith("git status")),
+      ).toEqual([]);
       expect(requests).toEqual([]);
-      expect(installedVersion(installed)).toBe(INSTALLED_VERSION);
+      expect(readdirSync(downloads)).toEqual([]);
     }
 
     it("on another branch", () => {
@@ -169,35 +151,28 @@ describe("installLocalNightly", () => {
       expectRefusal({ branch: "" }, /detached.*main/);
     });
 
-    it("with uncommitted changes, naming them", () => {
-      expectRefusal({ status: " M README.md\n?? notes.txt\n" }, /uncommitted[\s\S]*README\.md/);
+    it("with a changed file, naming it", () => {
+      expectRefusal({ status: " M README.md\n" }, /uncommitted[\s\S]*README\.md/);
     });
 
-    it("while the Nightly runs", () => {
-      expectRefusal({ pgrep: [0] }, /Self-Engine Nightly is running/);
-    });
-
-    it("when it cannot tell whether the Nightly runs", () => {
-      expectRefusal({ pgrep: [3] }, /pgrep/);
+    it("with an untracked file, naming it", () => {
+      expectRefusal({ status: "?? notes.txt\n" }, /uncommitted[\s\S]*notes\.txt/);
     });
   });
 
   describe("a full run", () => {
-    it("updates, then reads the commit, then builds, then installs", () => {
+    it("updates, then reads the commit, then builds, then copies", () => {
       const { options, steps } = setUp();
-      installLocalNightly(options);
+      buildLocalNightly(options);
       expect(steps).toEqual([
         "git branch --show-current",
-        "git status --porcelain",
-        "pgrep -x Self-Engine Nightly",
+        "git status --porcelain --untracked-files=normal",
         "git pull --ff-only",
         "pnpm install --frozen-lockfile",
         "git rev-parse HEAD",
         "release-plan",
         "package",
-        "ditto",
-        expect.stringMatching(/^plutil /),
-        "pgrep -x Self-Engine Nightly",
+        "copy",
       ]);
     });
 
@@ -205,7 +180,7 @@ describe("installLocalNightly", () => {
       const { options } = setUp();
       const calls: string[][] = [];
       const { query } = options;
-      installLocalNightly({
+      buildLocalNightly({
         ...options,
         query: (command, args, cwd) => {
           calls.push([command, ...args]);
@@ -225,99 +200,88 @@ describe("installLocalNightly", () => {
       ]);
     });
 
-    it("packages the Nightly with the local version and no release version", () => {
+    it("packages the Nightly's dmg under the local version", () => {
       const { options, requests } = setUp();
-      installLocalNightly(options);
-      expect(requests).toEqual([
-        { channel: "nightly", releaseVersion: undefined, localVersion: NEW_VERSION },
-      ]);
+      buildLocalNightly(options);
+      expect(requests).toEqual([{ channel: "nightly", releaseVersion: VERSION }]);
     });
 
-    it("gives no step the signing inputs", () => {
+    it("gives no step the signing inputs, so the build stays ad hoc", () => {
       const { options, envs } = setUp({
-        env: { PATH: "/bin", CSC_LINK: "link", APPLE_ID: "id" },
+        env: {
+          PATH: "/bin",
+          CSC_LINK: "link",
+          CSC_KEY_PASSWORD: "password",
+          APPLE_ID: "id",
+          APPLE_APP_SPECIFIC_PASSWORD: "password",
+          APPLE_TEAM_ID: "team",
+        },
       });
-      installLocalNightly(options);
+      buildLocalNightly(options);
       expect(envs.length).toBeGreaterThan(0);
       for (const env of envs) expect(env).toEqual({ PATH: "/bin" });
     });
 
-    it("replaces the installed app and leaves nothing beside it", () => {
-      const { options, installed, applicationsDir } = setUp();
-      installLocalNightly(options);
-      expect(installedVersion(installed)).toBe(NEW_VERSION);
-      expect(readdirSync(applicationsDir)).toEqual(["Self-Engine Nightly.app"]);
+    it("does not count as CI, which would refuse an ad-hoc dmg", () => {
+      const { options, envs } = setUp({ env: { PATH: "/bin", CI: "1" } });
+      buildLocalNightly(options);
+      for (const env of envs) expect(env).toEqual({ PATH: "/bin" });
     });
 
-    it("installs when no copy is there yet", () => {
-      const { options, installed } = setUp();
-      rmSync(installed, { recursive: true });
-      installLocalNightly(options);
-      expect(installedVersion(installed)).toBe(NEW_VERSION);
+    it("leaves only the dmg in Downloads", () => {
+      const { options, downloads } = setUp();
+      buildLocalNightly(options);
+      expect(readdirSync(downloads)).toEqual([DMG_NAME]);
+      expect(readFileSync(join(downloads, DMG_NAME), "utf8")).toBe("the built dmg");
     });
 
-    it("prints the installed version and path", () => {
-      const { options, printed, installed } = setUp();
-      installLocalNightly(options);
-      expect(printed.at(-1)).toBe(`Installed Self-Engine Nightly ${NEW_VERSION} at ${installed}`);
+    it("overwrites a dmg of the same name", () => {
+      const { options, downloads } = setUp();
+      writeFileSync(join(downloads, DMG_NAME), "from this morning");
+      buildLocalNightly(options);
+      expect(readFileSync(join(downloads, DMG_NAME), "utf8")).toBe("the built dmg");
+    });
+
+    it("creates a missing Downloads folder", () => {
+      const { options, downloads } = setUp();
+      rmSync(downloads, { recursive: true });
+      buildLocalNightly(options);
+      expect(readdirSync(downloads)).toEqual([DMG_NAME]);
+    });
+
+    it("prints the path of the dmg", () => {
+      const { options, printed, downloads } = setUp();
+      buildLocalNightly(options);
+      expect(printed.at(-1)).toContain(join(downloads, DMG_NAME));
     });
   });
 
-  describe("leaves the installed app alone", () => {
-    function expectUntouched(scenario: Scenario, message: RegExp) {
-      const { options, installed, applicationsDir } = setUp(scenario);
-      expect(() => installLocalNightly(options)).toThrow(message);
-      expect(installedVersion(installed)).toBe(INSTALLED_VERSION);
-      expect(readdirSync(applicationsDir)).toEqual(["Self-Engine Nightly.app"]);
+  describe("leaves no file in Downloads", () => {
+    function expectNothingDelivered(scenario: Scenario, message: RegExp) {
+      const { options, downloads } = setUp(scenario);
+      expect(() => buildLocalNightly(options)).toThrow(message);
+      expect(readdirSync(downloads)).toEqual([]);
     }
 
     it.each([
       ["the pull", "git pull"],
       ["the install of dependencies", "pnpm install"],
       ["the build", "package"],
-      ["the copy", "ditto"],
+      ["the copy, half done", "copy"],
     ])("when %s fails", (_name, failOn) => {
-      expectUntouched({ failOn }, new RegExp(`${failOn} .*failed|${failOn} failed`));
+      expectNothingDelivered({ failOn }, /failed/);
     });
 
-    it("when the built app does not carry the stamped version", () => {
-      expectUntouched({ builtVersion: "0.0.1" }, /says 0\.0\.1, not/);
+    it("when the build wrote no dmg", () => {
+      expectNothingDelivered({ buildsDmg: false }, /ENOENT/);
     });
 
-    it("when the Nightly was opened during the build", () => {
-      expectUntouched({ pgrep: [1, 0] }, /Self-Engine Nightly is running/);
-    });
-
-    it("when the new app cannot be moved into place", () => {
-      const rename = (from: string, to: string) => {
-        if (from.endsWith(".new")) throw new Error("rename refused");
-        renameSync(from, to);
-      };
-      expectUntouched({ rename }, /rename refused/);
-    });
-  });
-
-  describe("after an earlier run was cut off", () => {
-    it("clears a half-finished copy", () => {
-      const { options, installed, applicationsDir } = setUp();
-      const stale = join(applicationsDir, ".Self-Engine Nightly.app.new");
-      writeApp(stale, "stale");
-      writeFileSync(join(stale, "leftover"), "");
-      installLocalNightly(options);
-      expect(installedVersion(installed)).toBe(NEW_VERSION);
-      expect(readdirSync(applicationsDir)).toEqual(["Self-Engine Nightly.app"]);
-    });
-
-    it("keeps the set-aside app until the new one is in place", () => {
-      const { options, installed, applicationsDir } = setUp();
-      const old = join(applicationsDir, ".Self-Engine Nightly.app.old");
-      renameSync(installed, old);
-      const rename = (from: string, to: string) => {
-        if (from.endsWith(".new")) throw new Error("rename refused");
-        renameSync(from, to);
-      };
-      expect(() => installLocalNightly({ ...options, rename })).toThrow(/rename refused/);
-      expect(installedVersion(installed)).toBe(INSTALLED_VERSION);
+    it("beside the target when the copy cannot take its name", () => {
+      const { options, downloads } = setUp();
+      // A rename cannot replace a directory with a file.
+      mkdirSync(join(downloads, DMG_NAME, "in-the-way"), { recursive: true });
+      expect(() => buildLocalNightly(options)).toThrow();
+      expect(readdirSync(downloads)).toEqual([DMG_NAME]);
     });
   });
 });

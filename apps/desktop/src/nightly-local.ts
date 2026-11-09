@@ -1,23 +1,24 @@
-// `pnpm nightly:local`: builds the Nightly on this Mac and installs it into /Applications, so the
-// owner sees the app's progress without spending GitHub minutes. It updates this checkout, stamps
-// a version that says which commit it is, packages through `packageChannel` (ad hoc, nothing is
-// uploaded) and swaps the new app in only once it is complete. The app's identity and data
-// folder are the channel's and stay as they are. A version comes from `scripts/release-plan.ts`,
-// run as a command because the app may not import a repo script (ADR 0006).
+// `pnpm nightly:local`: builds the Nightly on this Mac and leaves its dmg in ~/Downloads, as if it
+// had been downloaded, so the owner sees the app's progress without spending GitHub minutes and
+// drags it into Applications themselves. It updates this checkout, stamps a version that says
+// which commit it is and packages through `packageChannel` (ad hoc, nothing is uploaded). It
+// installs and replaces nothing. A version comes from `scripts/release-plan.ts`, run as a command
+// because the app may not import a repo script (ADR 0006).
 //
 // This file and `packageChannel` are already loaded when `git pull` runs, so a change to them
 // takes effect on the next run.
 
 import { spawnSync } from "node:child_process";
-import { existsSync, renameSync, rmSync } from "node:fs";
-import { join } from "node:path";
+import { copyFileSync, mkdirSync, renameSync, rmSync } from "node:fs";
+import { homedir } from "node:os";
+import { basename, join } from "node:path";
 import { channelIdentity } from "./channel.ts";
 import {
   checkoutPackageOptions,
   DESKTOP_DIR,
   packageChannel,
   type PackageRequest,
-  packagedAppPath,
+  packagedDmgPath,
   ROOT_DIR,
   type Run,
   runInherited,
@@ -25,8 +26,6 @@ import {
 } from "./package-channel.ts";
 
 const NIGHTLY = channelIdentity("nightly");
-
-const APPLICATIONS_DIR = "/Applications";
 
 const PLANNED_NIGHTLY = /^(\d+\.\d+\.\d+-nightly\.\d{8})\.\d+$/;
 const SHORT_COMMIT_LENGTH = 7;
@@ -57,13 +56,13 @@ export type Query = (command: string, args: string[], cwd: string) => CommandRes
 export interface NightlyLocalOptions {
   readonly rootDir: string;
   readonly desktopDir: string;
-  readonly applicationsDir: string;
+  readonly homeDir: string;
   readonly env: NodeJS.ProcessEnv;
   readonly now: () => Date;
   readonly query: Query;
   readonly run: Run;
   readonly packageApp: (request: PackageRequest, env: NodeJS.ProcessEnv) => void;
-  readonly rename: (from: string, to: string) => void;
+  readonly copyFile: (from: string, to: string) => void;
   readonly print: (line: string) => void;
 }
 
@@ -75,22 +74,15 @@ function answer(options: NightlyLocalOptions, command: string, args: string[]): 
   return result.stdout.trim();
 }
 
-function assertNightlyNotRunning(options: NightlyLocalOptions): void {
-  const { productName } = NIGHTLY;
-  const { status, stderr } = options.query("pgrep", ["-x", productName], options.rootDir);
-  if (status === 0) throw new Error(`${productName} is running. Quit it and run this again.`);
-  if (status !== 1) throw new Error(`pgrep could not tell whether ${productName} runs: ${stderr}`);
-}
-
 function assertReadyToUpdate(options: NightlyLocalOptions): void {
   const branch = answer(options, "git", ["branch", "--show-current"]);
   if (branch === "") throw new Error("This checkout has a detached HEAD. Switch to main first.");
   if (branch !== "main") throw new Error(`This checkout is on "${branch}". Switch to main first.`);
-  const changes = answer(options, "git", ["status", "--porcelain"]);
+  // Named, because `status.showUntrackedFiles` could otherwise hide untracked files.
+  const changes = answer(options, "git", ["status", "--porcelain", "--untracked-files=normal"]);
   if (changes !== "") {
     throw new Error(`This checkout has uncommitted changes. Commit them first:\n${changes}`);
   }
-  assertNightlyNotRunning(options);
 }
 
 /** The version for HEAD, read after the update so that it names what is built. */
@@ -111,81 +103,47 @@ function resolveLocalVersion(options: NightlyLocalOptions): string {
   return localNightlyVersion(planned, commit);
 }
 
-function bundleVersion(options: NightlyLocalOptions, appPath: string): string {
-  return answer(options, "plutil", [
-    "-extract",
-    "CFBundleShortVersionString",
-    "raw",
-    "-o",
-    "-",
-    join(appPath, "Contents/Info.plist"),
-  ]);
-}
-
-/**
- * Moves `staged` to `target`, which only a rename can do without a moment of half an app. The
- * two renames are not one step, so a failure of the second puts the old app back.
- */
-function swapIn(options: NightlyLocalOptions, staged: string, target: string, old: string): void {
-  if (existsSync(target)) {
-    rmSync(old, { recursive: true, force: true });
-    options.rename(target, old);
-  }
+/** Copies under a temporary name first, so that a failed copy leaves no half dmg to open. */
+function copyToDownloads(options: NightlyLocalOptions, version: string): string {
+  const built = packagedDmgPath(options.desktopDir, "nightly", version);
+  const downloads = join(options.homeDir, "Downloads");
+  const name = basename(built);
+  const target = join(downloads, name);
+  const partial = join(downloads, `.${name}.partial`);
+  mkdirSync(downloads, { recursive: true });
   try {
-    options.rename(staged, target);
-  } catch (error) {
-    if (existsSync(old)) options.rename(old, target);
-    throw error;
-  }
-  rmSync(old, { recursive: true, force: true });
-}
-
-/**
- * Copies the built app beside the installed one, checks the copy, then swaps. Neither name ends
- * in `.app`, so macOS never lists the copy as a second Nightly, and both are on the volume of
- * the target, so the swap is a rename. `ditto` keeps the symlinks and the signature of a bundle.
- */
-function install(options: NightlyLocalOptions, version: string, env: NodeJS.ProcessEnv): string {
-  const { applicationsDir, desktopDir, rootDir } = options;
-  const name = `${NIGHTLY.productName}.app`;
-  const target = join(applicationsDir, name);
-  const staged = join(applicationsDir, `.${name}.new`);
-  rmSync(staged, { recursive: true, force: true });
-  try {
-    options.run("ditto", [packagedAppPath(desktopDir, "nightly"), staged], { cwd: rootDir, env });
-    const copied = bundleVersion(options, staged);
-    if (copied !== version) {
-      throw new Error(`The built app says ${copied}, not ${version}, so it is not installed.`);
-    }
-    // The build takes minutes, and the owner may have opened the app meanwhile.
-    assertNightlyNotRunning(options);
-    swapIn(options, staged, target, join(applicationsDir, `.${name}.old`));
+    // Never add a quarantine attribute: Gatekeeper would block this ad hoc signed app.
+    options.copyFile(built, partial);
+    renameSync(partial, target);
   } finally {
-    rmSync(staged, { recursive: true, force: true });
+    rmSync(partial, { force: true });
   }
   return target;
 }
 
-/** Builds this checkout's `main` as the Nightly and installs it into `applicationsDir`. */
-export function installLocalNightly(options: NightlyLocalOptions): void {
+/** Builds this checkout's `main` as a Nightly dmg and leaves it in the owner's Downloads. */
+export function buildLocalNightly(options: NightlyLocalOptions): void {
   assertReadyToUpdate(options);
   const { rootDir, run } = options;
-  // A local build is ad hoc and is never notarized, whatever this shell has loaded.
+  // A local build is ad hoc and is never notarized, whatever this shell has loaded. In CI a
+  // release without the inputs is refused, and this is no CI.
   const env = withoutSigningInputs(options.env);
+  delete env.CI;
   run("git", ["pull", "--ff-only"], { cwd: rootDir, env });
   run("pnpm", ["install", "--frozen-lockfile"], { cwd: rootDir, env });
-  const localVersion = resolveLocalVersion(options);
-  options.packageApp({ channel: "nightly", releaseVersion: undefined, localVersion }, env);
-  const installed = install(options, localVersion, env);
-  options.print(`Installed ${NIGHTLY.productName} ${localVersion} at ${installed}`);
+  const version = resolveLocalVersion(options);
+  options.packageApp({ channel: "nightly", releaseVersion: version }, env);
+  const dmg = copyToDownloads(options, version);
+  options.print(`Built ${NIGHTLY.productName} ${version}. Open it and drag it to Applications:`);
+  options.print(dmg);
 }
 
 if (import.meta.main) {
   try {
-    installLocalNightly({
+    buildLocalNightly({
       rootDir: ROOT_DIR,
       desktopDir: DESKTOP_DIR,
-      applicationsDir: APPLICATIONS_DIR,
+      homeDir: homedir(),
       env: process.env,
       now: () => new Date(),
       query: (command, args, cwd) => {
@@ -195,7 +153,7 @@ if (import.meta.main) {
       run: runInherited,
       // Late, because `pnpm install` above may have replaced Electron.
       packageApp: (request, env) => packageChannel(request, checkoutPackageOptions(env)),
-      rename: renameSync,
+      copyFile: copyFileSync,
       print: console.log,
     });
   } catch (error) {

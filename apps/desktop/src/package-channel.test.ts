@@ -10,6 +10,7 @@ import {
   electronDistPath,
   type PackageOptions,
   packageChannel,
+  packagedDmgPath,
   parsePackageRequest,
   parseReleaseChannel,
   type ReleaseChannel,
@@ -154,20 +155,6 @@ describe("builderConfig", () => {
     expect(config.dmg.writeUpdateInfo).toBe(false);
   });
 
-  it("stamps a local version into an unpacked, ad-hoc app", () => {
-    const config = builderConfig(
-      "nightly",
-      ELECTRON_DIST,
-      undefined,
-      "ad-hoc",
-      "0.0.1-nightly.20261109.local.abc1234",
-    );
-    expect(config.extraMetadata).toMatchObject({
-      version: "0.0.1-nightly.20261109.local.abc1234",
-    });
-    expect(config.mac).toMatchObject({ target: "dir", identity: "-" });
-  });
-
   it.each([
     ["nightly", "Self-Engine-Nightly-${version}-${arch}.${ext}"],
     ["stable", "Self-Engine-${version}-${arch}.${ext}"],
@@ -193,6 +180,12 @@ describe("builderConfig", () => {
     });
   });
 
+  it("never sends an ad-hoc build to Apple for notarization", () => {
+    expect(builderConfig("nightly", ELECTRON_DIST, "1.0.0", "ad-hoc").mac).toMatchObject({
+      notarize: false,
+    });
+  });
+
   it("keeps the channels' output apart", () => {
     expect(builderConfig("nightly", ELECTRON_DIST).directories.output).not.toBe(
       builderConfig("stable", ELECTRON_DIST).directories.output,
@@ -208,6 +201,14 @@ describe("builderConfig", () => {
       });
     },
   );
+});
+
+describe("packagedDmgPath", () => {
+  it("is where electron-builder writes the dmg of a version", () => {
+    expect(packagedDmgPath("/repo/apps/desktop", "nightly", "0.0.3-nightly.20261109.7")).toBe(
+      "/repo/apps/desktop/release/nightly/Self-Engine-Nightly-0.0.3-nightly.20261109.7-arm64.dmg",
+    );
+  });
 });
 
 function writeBundles(bundleDir: string, compiledFor: string): void {
@@ -324,7 +325,6 @@ describe("packageChannel", () => {
   interface PackagingRun {
     readonly channel?: ReleaseChannel;
     readonly releaseVersion?: string;
-    readonly localVersion?: string;
     readonly env?: NodeJS.ProcessEnv;
     /** The channel the fake workspace build compiles for; `null` builds nothing. */
     readonly compiledFor?: string | null;
@@ -339,8 +339,7 @@ describe("packageChannel", () => {
   }
 
   function runPackaging(options: PackagingRun = {}) {
-    const { channel = "nightly", releaseVersion, localVersion, seed } = options;
-    const { env = { PATH: "/bin" } } = options;
+    const { channel = "nightly", releaseVersion, seed, env = { PATH: "/bin" } } = options;
     const compiledFor = options.compiledFor === undefined ? channel : options.compiledFor;
     const calls = options.calls ?? [];
     const inspected: string[][] = [];
@@ -348,7 +347,7 @@ describe("packageChannel", () => {
     const desktopDir = join(dir, "apps/desktop");
     seed?.(desktopDir);
     packageChannel(
-      { channel, releaseVersion, localVersion },
+      { channel, releaseVersion },
       {
         rootDir: dir,
         desktopDir,
@@ -418,18 +417,6 @@ describe("packageChannel", () => {
     });
   });
 
-  it("stamps a local version without building a dmg", () => {
-    const { calls, desktopDir } = runPackaging({
-      localVersion: "0.0.1-nightly.20261109.local.abc1234",
-    });
-    const configPath = join(desktopDir, "release/nightly/electron-builder.json");
-    expect(calls[2]?.[1]).toEqual(["--dir", "--mac", "--arm64", "--config", configPath]);
-    expect(JSON.parse(readFileSync(configPath, "utf8"))).toMatchObject({
-      extraMetadata: { version: "0.0.1-nightly.20261109.local.abc1234" },
-      mac: { target: "dir", identity: "-" },
-    });
-  });
-
   describe("with the signing inputs", () => {
     const env = { PATH: "/bin", ...SIGNING_ENV, APPLE_TEAM_ID: "link" };
     const releaseVersion = "1.0.0";
@@ -445,19 +432,6 @@ describe("packageChannel", () => {
       const { inspected, desktopDir } = runPackaging({ releaseVersion, env });
       const app = join(desktopDir, "release/nightly/mac-arm64/Self-Engine Nightly.app");
       expect(inspected[0]).toEqual(["codesign", "--verify", "--deep", "--strict", app]);
-    });
-
-    it("stays ad hoc for a local version, even with every input", () => {
-      const { desktopDir, inspected } = runPackaging({
-        localVersion: "0.0.1-nightly.20261109.local.abc1234",
-        env,
-      });
-      const config = JSON.parse(
-        readFileSync(join(desktopDir, "release/nightly/electron-builder.json"), "utf8"),
-      );
-      expect(config.mac).toMatchObject({ identity: "-", hardenedRuntime: false });
-      expect(config.mac).not.toHaveProperty("notarize");
-      expect(inspected).toEqual([]);
     });
 
     it("writes the signing configuration", () => {
