@@ -25,8 +25,10 @@ describe.each(ICON_NAMES)("%s", (name) => {
     expect(markup).toMatch(/^<svg [^>]*fill="currentColor"/);
   });
 
-  it("is 1.125rem by default", () => {
-    expect(markup).toMatch(/^<svg [^>]*width="1\.125rem" height="1\.125rem"/);
+  it("is 1.125rem by default, grown by the font scale", () => {
+    expect(markup).toMatch(
+      /^<svg [^>]*style="[^"]*width:calc\(1\.125rem \* var\(--mantine-scale\)\)/,
+    );
   });
 
   it.each([
@@ -34,9 +36,10 @@ describe.each(ICON_NAMES)("%s", (name) => {
     ["sm", "1rem"],
     ["md", "1.125rem"],
     ["lg", "1.25rem"],
-  ] as const)("is %s = %s", (size, rem) => {
+  ] as const)("is %s = %s, grown by the font scale", (size, rem) => {
     const sized = renderToStaticMarkup(createElement(catalog[name], { size }));
-    expect(sized).toContain(`width="${rem}" height="${rem}"`);
+    const scaled = `calc(${rem} * var(--mantine-scale))`;
+    expect(sized).toContain(`width:${scaled};height:${scaled}`);
   });
 });
 
@@ -101,5 +104,13 @@ describe("the props of an icon", () => {
     );
     expect(markup).toMatch(/^<svg [^>]*class="nav-icon"/);
     expect(markup).toMatch(/^<svg [^>]*aria-hidden="true"/);
+  });
+
+  it("keeps a style of the caller beside its own size", () => {
+    const markup = renderToStaticMarkup(
+      createElement(catalog.AddIcon, { style: { opacity: 0.5 } }),
+    );
+    expect(markup).toMatch(/^<svg [^>]*style="[^"]*opacity:0\.5/);
+    expect(markup).toMatch(/^<svg [^>]*style="[^"]*width:calc\(/);
   });
 });

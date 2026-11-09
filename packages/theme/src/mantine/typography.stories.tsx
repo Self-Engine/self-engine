@@ -55,3 +55,12 @@ export const Overview: StoryObj<typeof meta> = {
     await expect(canvas.getByRole("heading", { level: 6 })).toBeVisible();
   },
 };
+
+/** Text grows with the font scale while the root element stays at the browser's 16 px. */
+export const AtTheLargestFontScale: StoryObj<typeof meta> = {
+  globals: { fontScale: "112.5" },
+  play: async ({ canvas }) => {
+    await expect(getComputedStyle(document.documentElement).fontSize).toBe("16px");
+    await expect(getComputedStyle(canvas.getByTestId("md")).fontSize).toBe("18px");
+  },
+};

@@ -17,13 +17,11 @@
           if (
             cache.version === 1 &&
             typeof cachedCss === "string" &&
-            typeof cache.density === "string" &&
-            typeof cache.rootFontSize === "string"
+            typeof cache.density === "string"
           ) {
             mode = cachedMode;
             css = cachedCss;
             root.dataset.density = cache.density;
-            root.style.fontSize = cache.rootFontSize;
           }
         } catch (ignored) {
           // No storage or an unreadable cache: the neutral default stands.

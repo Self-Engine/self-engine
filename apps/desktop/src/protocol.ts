@@ -41,7 +41,7 @@ export function isRendererUrl(url: string, scheme: string): boolean {
 }
 
 /** The inline script of `apps/web/index.html` that paints the first frame; a test compares it. */
-const START_SCRIPT_HASH = "sha256-YCJgTIOvK792K9WdDIZDBzJmr3NP/8DjLpWk9eY8QHQ=";
+const START_SCRIPT_HASH = "sha256-7bXdgxfElyFiApdx3D/SRBbEzayuqlIKvruPtpoSc+4=";
 
 /**
  * The policy of every response. Styles stay `unsafe-inline` for Mantine. With a `devServer`,

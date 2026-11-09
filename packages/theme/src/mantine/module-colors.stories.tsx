@@ -1,4 +1,4 @@
-import { Button, SimpleGrid, Text } from "@mantine/core";
+import { Button, rem, SimpleGrid, Text } from "@mantine/core";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import type { CSSProperties } from "react";
 import { expect, within } from "storybook/test";
@@ -22,9 +22,9 @@ const MARK: CSSProperties = {
   color: "var(--se-module-on)",
   display: "flex",
   fontWeight: 700,
-  height: "2rem",
+  height: rem(32),
   justifyContent: "center",
-  width: "2rem",
+  width: rem(32),
 };
 
 const ENTRY: CSSProperties = {

@@ -63,11 +63,17 @@ describe("compact Density against the pinned Mantine", () => {
   );
 });
 
-describe("Mantine's type tokens", () => {
-  it("keeps scale at 1, so that the root font size alone drives the font scale", () => {
-    expect(DEFAULT_THEME.scale).toBe(1);
+describe("the font scale in Mantine's theme", () => {
+  it("becomes Mantine's scale, which its own sizes are multiplied by", () => {
+    const resolved = resolveAppearance(
+      { ...DEFAULT_APPEARANCE, fontScale: 112.5 },
+      BUILT_IN_THEMES,
+    );
+    expect(mantineTheme(resolved, "light").scale).toBe(1.125);
   });
+});
 
+describe("Mantine's type tokens", () => {
   it("defines no font size in pixels", () => {
     const tokens = [
       ...Object.values(DEFAULT_THEME.fontSizes),
