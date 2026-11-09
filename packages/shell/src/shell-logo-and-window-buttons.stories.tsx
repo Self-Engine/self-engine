@@ -319,6 +319,26 @@ export const TheNarrowHeaderClearsTheWindowButtonsAtTheSmallestFontScale: Story 
   },
 };
 
+/** Zoom in Electron can shrink the window's CSS width to this step, and the buttons stay. */
+export const ThePhoneHeaderStartsAfterTheWindowButtons: Story = {
+  ...atViewport("phone"),
+  args: { reserveWindowButtons: true },
+  play: async ({ canvas }) => {
+    const burger = canvas.getByRole("button", { name: "Open module sidebar" });
+    await expect(burger.getBoundingClientRect().left).toBeGreaterThanOrEqual(76 + 8);
+    await expect(appRegionOf(burger)).toBe("no-drag");
+  },
+};
+
+export const ThePhoneHeaderKeepsItsPaddingWithoutWindowButtons: Story = {
+  ...atViewport("phone"),
+  play: async ({ canvas }) => {
+    await expect(
+      canvas.getByRole("button", { name: "Open module sidebar" }).getBoundingClientRect().left,
+    ).toBeCloseTo(8 + 16, 0);
+  },
+};
+
 export const TheNarrowHeaderKeepsItsPaddingWithoutWindowButtons: Story = {
   ...atViewport("narrow"),
   play: async ({ canvas }) => {

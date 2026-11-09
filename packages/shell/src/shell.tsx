@@ -119,16 +119,22 @@ const STRIP_FRAME_STYLE: CSSProperties = {
 // It opens over the content header, whose drag region would swallow the clicks.
 const DRAWER_STYLES = { content: NOT_WINDOW_DRAG_STYLE, overlay: NOT_WINDOW_DRAG_STYLE };
 
+// Only what is below the strip scrolls, or the title would slide back under the window buttons.
+const DRAWER_BELOW_STRIP_SCROLLS_STYLE: CSSProperties = {
+  ...NOT_WINDOW_DRAG_STYLE,
+  display: "flex",
+  flexDirection: "column",
+  overflow: "hidden",
+};
+
+const PHONE_DRAWER_WITH_STRIP_STYLES = {
+  ...DRAWER_STYLES,
+  content: DRAWER_BELOW_STRIP_SCROLLS_STYLE,
+};
+
 const NAVIGATION_DRAWER_STYLES = {
   ...DRAWER_STYLES,
-  // The navigation's surface, and only the columns below the strip scroll.
-  content: {
-    ...NOT_WINDOW_DRAG_STYLE,
-    backgroundColor: roleColor("navSurface"),
-    display: "flex",
-    flexDirection: "column",
-    overflow: "hidden",
-  },
+  content: { ...DRAWER_BELOW_STRIP_SCROLLS_STYLE, backgroundColor: roleColor("navSurface") },
   // Mantine's header has a surface of its own, for the Drawer that scrolls as a whole.
   header: { backgroundColor: "transparent" },
 } satisfies Record<string, CSSProperties>;
@@ -246,7 +252,7 @@ export interface ShellProps {
   readonly onModuleSidebarWidthCommit?: (width: number) => void;
   /** Called once per press of the collapse button. */
   readonly onModuleSidebarCollapsedCommit?: (collapsed: boolean) => void;
-  /** Keeps room for the macOS window buttons: in the navigation's top strip, on an icons-only Navbar widened to hold them while the Module Sidebar is closed, and in the content header at the narrow step. */
+  /** Keeps room for the macOS window buttons: in the navigation's top strip, on an icons-only Navbar widened to hold them while the Module Sidebar is closed, and at the narrow and phone steps in the content header and at the top of the drawer. */
   readonly reserveWindowButtons?: boolean;
   /** The page. Stays mounted whichever Layout Step the window is in. */
   readonly children: ReactNode;
@@ -423,6 +429,31 @@ function ContentHeader({
   );
 }
 
+interface DrawerTopStripProps {
+  readonly logo?: ShellLogo | undefined;
+  readonly reserveWindowButtons: boolean;
+}
+
+/** Starts at the window edge, so the native buttons have nothing else under them. */
+function DrawerTopStrip({ logo, reserveWindowButtons }: DrawerTopStripProps) {
+  return (
+    <Box style={STRIP_FRAME_STYLE}>
+      <TopStrip>
+        {logo && (
+          <Logo
+            logo={logo}
+            style={{
+              marginInlineStart: reserveWindowButtons
+                ? START_AFTER_WINDOW_BUTTONS
+                : "var(--mantine-spacing-xs)",
+            }}
+          />
+        )}
+      </TopStrip>
+    </Box>
+  );
+}
+
 interface NavigationDrawerProps extends PassedOn<"logo" | "moduleSidebar"> {
   readonly navigation: ShellNavigation;
   readonly opened: boolean;
@@ -452,6 +483,24 @@ function NavigationDrawer({
       <Drawer.CloseButton aria-label={isPhone ? t`Close module sidebar` : t`Close navigation`} />
     </Drawer.Header>
   );
+  const scrollingBody = (
+    <ScrollArea flex={1} mih={0}>
+      <Drawer.Body pt={0}>{moduleSidebar}</Drawer.Body>
+    </ScrollArea>
+  );
+  const phoneStyles = reserveWindowButtons ? PHONE_DRAWER_WITH_STRIP_STYLES : DRAWER_STYLES;
+  const phoneContent = reserveWindowButtons ? (
+    <>
+      <DrawerTopStrip reserveWindowButtons />
+      {header}
+      {scrollingBody}
+    </>
+  ) : (
+    <>
+      {header}
+      <Drawer.Body>{moduleSidebar}</Drawer.Body>
+    </>
+  );
   return (
     <Drawer.Root
       onClose={onClose}
@@ -459,32 +508,16 @@ function NavigationDrawer({
       size={
         isPhone ? moduleSidebarWidth : NAVBAR_ICONS_ONLY_WIDTH + SHELL_STANDARD_MODULE_SIDEBAR_WIDTH
       }
-      styles={isPhone ? DRAWER_STYLES : NAVIGATION_DRAWER_STYLES}
+      styles={isPhone ? phoneStyles : NAVIGATION_DRAWER_STYLES}
     >
       <Drawer.Overlay />
       <Drawer.Content>
         {isPhone ? (
-          <>
-            {header}
-            <Drawer.Body>{moduleSidebar}</Drawer.Body>
-          </>
+          phoneContent
         ) : (
           <>
             {hasTopStrip && (
-              <Box style={STRIP_FRAME_STYLE}>
-                <TopStrip>
-                  {logo && (
-                    <Logo
-                      logo={logo}
-                      style={{
-                        marginInlineStart: reserveWindowButtons
-                          ? START_AFTER_WINDOW_BUTTONS
-                          : "var(--mantine-spacing-xs)",
-                      }}
-                    />
-                  )}
-                </TopStrip>
-              </Box>
+              <DrawerTopStrip logo={logo} reserveWindowButtons={reserveWindowButtons} />
             )}
             <Group align="stretch" flex={1} gap={0} mih={0} wrap="nowrap">
               <Box aria-label={t`Modules`} component="nav" p="xs" style={DRAWER_NAVBAR_STYLE}>
@@ -493,9 +526,7 @@ function NavigationDrawer({
               </Box>
               <Stack flex={1} gap={0} miw={0}>
                 {header}
-                <ScrollArea flex={1} mih={0}>
-                  <Drawer.Body pt={0}>{moduleSidebar}</Drawer.Body>
-                </ScrollArea>
+                {scrollingBody}
               </Stack>
             </Group>
           </>
@@ -682,7 +713,7 @@ export function Shell({
               onModuleSidebarCollapsedCommit={onModuleSidebarCollapsedCommit}
               onToggleDrawer={toggleDrawer}
               pageTitle={pageTitle}
-              startsAfterWindowButtons={step === "narrow" && reserveWindowButtons}
+              startsAfterWindowButtons={navigationInDrawer && reserveWindowButtons}
             />
             <ScrollArea flex={1} mih={0}>
               <Box p="md">{children}</Box>

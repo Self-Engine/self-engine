@@ -241,6 +241,59 @@ export const ThePhoneDrawerHoldsOnlyTheModuleSidebar: Story = {
   },
 };
 
+/** The native buttons float above this Drawer too. The strip is all it adds: no logo, no Navbar. */
+export const ThePhoneDrawerHeaderSitsBelowTheStripWithWindowButtons: Story = {
+  ...atViewport("phone"),
+  args: { ...LOGO_AND_WINDOW_BUTTONS, moduleSidebarWidth: 320 },
+  play: async ({ canvas }) => {
+    const pageTitle = canvas.getByRole("heading", { name: "Time" });
+    const drawer = await openDrawer(canvas, "Open module sidebar");
+    const header = drawerHeaderOf(drawer);
+    const frame = drawer.firstElementChild!;
+    const strip = frame.firstElementChild!;
+    await expect(frame).not.toBe(header);
+    await expect(appRegionOf(frame)).toBe("drag");
+    await expect(appRegionOf(strip)).toBe("drag");
+    await expect(strip.getBoundingClientRect().height).toBeCloseTo(STRIP_HEIGHT, 0);
+    await expect(centerY(strip)).toBeCloseTo(centerY(pageTitle), 0);
+    await expect(header.getBoundingClientRect().top).toBeCloseTo(
+      strip.getBoundingClientRect().bottom,
+      0,
+    );
+    const stripBottom = strip.getBoundingClientRect().bottom;
+    await expect(within(drawer).getByText("Module Sidebar").getBoundingClientRect().top).toBeGreaterThanOrEqual(
+      stripBottom,
+    );
+    const close = within(drawer).getByRole("button", { name: "Close module sidebar" });
+    await expect(close.getBoundingClientRect().top).toBeGreaterThanOrEqual(stripBottom);
+    await expect(within(drawer).queryByRole("navigation")).toBeNull();
+    await expect(within(drawer).queryByTestId("mark")).toBeNull();
+    await expect(widthOf(drawer)).toBe(320);
+  },
+};
+
+/** Scrolled with the page, the title would slide back under the native buttons. */
+export const ThePhoneDrawerHeaderStaysBelowTheStripWhenTheSidebarScrolls: Story = {
+  ...atViewport("phone"),
+  args: {
+    moduleSidebar: <p style={{ height: 3000 }}>Sidebar content</p>,
+    reserveWindowButtons: true,
+  },
+  play: async ({ canvas }) => {
+    const drawer = await openDrawer(canvas, "Open module sidebar");
+    const header = drawerHeaderOf(drawer);
+    const top = header.getBoundingClientRect().top;
+    const viewport = within(drawer)
+      .getByText("Sidebar content")
+      .closest(".mantine-ScrollArea-viewport");
+    if (viewport === null) throw new Error("the Module Sidebar is not in a ScrollArea");
+    viewport.scrollTop = 400;
+    await expect(viewport.scrollTop).toBe(400);
+    await expect(header.getBoundingClientRect().top).toBeCloseTo(top, 0);
+    await expect(top).toBeGreaterThan(drawer.getBoundingClientRect().top);
+  },
+};
+
 /** A focus ring follows the corners of its element, and Mantine's Burger has square ones. */
 export const TheBurgerIsAsRoundAsTheOtherControls: Story = {
   ...atViewport("narrow"),
