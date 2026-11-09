@@ -620,8 +620,10 @@ export function Shell({
           handleIcon={null}
           lineSize={GAP}
           onDoubleClick={(event) => {
-            const target = event.target as Element;
-            if (target.parentElement === event.currentTarget && target.role === "separator")
+            // The pointer mostly hits the thumb inside the handle. Only this Splitter's own handle
+            // counts, not a separator in a pane or a nested Splitter's.
+            const handle = (event.target as Element).closest('[role="separator"]');
+            if (handle?.parentElement === event.currentTarget)
               commitModuleSidebarWidth(SHELL_STANDARD_MODULE_SIDEBAR_WIDTH);
           }}
           onResizeEnd={(_, sizes) => {

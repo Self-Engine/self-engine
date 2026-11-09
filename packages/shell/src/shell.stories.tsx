@@ -1563,6 +1563,24 @@ export const ModuleSidebarDoubleClickRestoresTheStandardWidth: Story = {
   },
 };
 
+/** A real pointer in the middle of the gap hits Mantine's thumb, not the handle around it. */
+export const ModuleSidebarDoubleClickWorksOnTheMiddleOfTheGap: Story = {
+  ...atViewport("wide"),
+  ...resizable,
+  args: { moduleSidebarWidth: 320 },
+  play: async ({ args, canvas }) => {
+    const sidebar = paneOf(canvas, "Sidebar content");
+    const handle = sidebarHandle(canvas);
+    const { left, top, width, height } = handle.getBoundingClientRect();
+    const hit = document.elementFromPoint(left + width / 2, top + height / 2)!;
+    await expect(handle.contains(hit)).toBe(true);
+    await expect(hit).not.toBe(handle);
+    await userEvent.dblClick(hit);
+    await waitFor(() => expect(widthOf(sidebar)).toBe(240));
+    await expectReportedOnce(args.onModuleSidebarWidthCommit, 240);
+  },
+};
+
 /** Mantine's ring follows the focus, and a later key press would light it on a clicked handle. */
 export const OnlyTheKeyboardFocusesTheModuleSidebarHandle: Story = {
   ...atViewport("wide"),
