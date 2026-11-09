@@ -93,7 +93,8 @@ function columnRules(table: string, columns: readonly ColumnRow[]): string[] {
 }
 
 // A comment, a string, a quoted name, a word, or any other single character.
-const SQL_TOKEN = /--[^\n]*|\/\*[\s\S]*?\*\/|'(?:[^']|'')*'|"(?:[^"]|"")*"|`(?:[^`]|``)*`|\[[^\]]*\]|[\w$]+|\S/g;
+const SQL_TOKEN =
+  /--[^\n]*|\/\*[\s\S]*?\*\/|'(?:[^']|'')*'|"(?:[^"]|"")*"|`(?:[^`]|``)*`|\[[^\]]*\]|[\w$]+|\S/g;
 
 function tokensOf(createTable: string): string[] {
   return (createTable.match(SQL_TOKEN) ?? []).filter(
@@ -102,7 +103,9 @@ function tokensOf(createTable: string): string[] {
 }
 
 function unquoted(name: string): string {
-  return /^["'`[]/.test(name) ? name.slice(1, -1).replace(/""|''|``/g, (pair) => pair.charAt(0)) : name;
+  return /^["'`[]/.test(name)
+    ? name.slice(1, -1).replace(/""|''|``/g, (pair) => pair.charAt(0))
+    : name;
 }
 
 interface ForeignKey {
@@ -121,7 +124,8 @@ function readForeignKey(tokens: readonly string[], start: number): ForeignKey {
   }
   return {
     parent: unquoted(tokens[start] ?? ""),
-    deferred: word(at) === "DEFERRABLE" && word(at + 1) === "INITIALLY" && word(at + 2) === "DEFERRED",
+    deferred:
+      word(at) === "DEFERRABLE" && word(at + 1) === "INITIALLY" && word(at + 2) === "DEFERRED",
   };
 }
 

@@ -185,9 +185,18 @@ describe("checkConventions", () => {
 
   describe("a timestamp column", () => {
     test.each([
-      ["created_at", "created_at TEXT NOT NULL DEFAULT 'x', updated_at TEXT NOT NULL, deleted_at TEXT"],
-      ["updated_at", "created_at TEXT NOT NULL, updated_at TEXT NOT NULL DEFAULT 'x', deleted_at TEXT"],
-      ["deleted_at", "created_at TEXT NOT NULL, updated_at TEXT NOT NULL, deleted_at TEXT DEFAULT 'x'"],
+      [
+        "created_at",
+        "created_at TEXT NOT NULL DEFAULT 'x', updated_at TEXT NOT NULL, deleted_at TEXT",
+      ],
+      [
+        "updated_at",
+        "created_at TEXT NOT NULL, updated_at TEXT NOT NULL DEFAULT 'x', deleted_at TEXT",
+      ],
+      [
+        "deleted_at",
+        "created_at TEXT NOT NULL, updated_at TEXT NOT NULL, deleted_at TEXT DEFAULT 'x'",
+      ],
     ])("reports an SQL DEFAULT on %s", async (column, timestamps) => {
       await database.executeScript(
         `CREATE TABLE notes (id TEXT PRIMARY KEY, ${timestamps}, space_id TEXT NOT NULL) STRICT;`,
@@ -227,7 +236,10 @@ describe("checkConventions", () => {
       ["no deferral clause", "project_id TEXT REFERENCES projects (id)"],
       ["NOT DEFERRABLE", "project_id TEXT REFERENCES projects (id) NOT DEFERRABLE"],
       ["only DEFERRABLE", "project_id TEXT REFERENCES projects (id) DEFERRABLE"],
-      ["INITIALLY IMMEDIATE", "project_id TEXT REFERENCES projects (id) DEFERRABLE INITIALLY IMMEDIATE"],
+      [
+        "INITIALLY IMMEDIATE",
+        "project_id TEXT REFERENCES projects (id) DEFERRABLE INITIALLY IMMEDIATE",
+      ],
       ["another constraint after it", "project_id TEXT REFERENCES projects (id) NOT NULL"],
       ["no parent columns", "project_id TEXT REFERENCES projects"],
       ["only actions", "project_id TEXT REFERENCES projects (id) ON DELETE CASCADE"],
@@ -240,15 +252,16 @@ describe("checkConventions", () => {
         "project_id TEXT REFERENCES projects (id) /* DEFERRABLE INITIALLY DEFERRED */",
       ],
     ])("reports %s", async (_name, definition) => {
-      await database.executeScript(
-        `CREATE TABLE notes (${SYNCED_COLUMNS}, ${definition}) STRICT;`,
-      );
+      await database.executeScript(`CREATE TABLE notes (${SYNCED_COLUMNS}, ${definition}) STRICT;`);
 
       await expect(checkConventions(database)).resolves.toEqual([NOT_DEFERRED]);
     });
 
     test.each([
-      ["a deferred column", "project_id TEXT REFERENCES projects (id) DEFERRABLE INITIALLY DEFERRED"],
+      [
+        "a deferred column",
+        "project_id TEXT REFERENCES projects (id) DEFERRABLE INITIALLY DEFERRED",
+      ],
       ["no parent columns", "project_id TEXT REFERENCES projects DEFERRABLE INITIALLY DEFERRED"],
       ["lower case", "project_id TEXT references projects (id) deferrable initially deferred"],
       [
@@ -264,9 +277,7 @@ describe("checkConventions", () => {
         "project_id TEXT REFERENCES projects (id) /* why */ DEFERRABLE -- note\n INITIALLY DEFERRED",
       ],
     ])("accepts %s", async (_name, definition) => {
-      await database.executeScript(
-        `CREATE TABLE notes (${SYNCED_COLUMNS}, ${definition}) STRICT;`,
-      );
+      await database.executeScript(`CREATE TABLE notes (${SYNCED_COLUMNS}, ${definition}) STRICT;`);
 
       await expect(checkConventions(database)).resolves.toEqual([]);
     });
@@ -277,9 +288,7 @@ describe("checkConventions", () => {
       ["a line comment", "body TEXT -- REFERENCES projects (id)\n"],
       ["a quoted column name", '"REFERENCES" TEXT'],
     ])("is not read from %s", async (_name, definition) => {
-      await database.executeScript(
-        `CREATE TABLE notes (${SYNCED_COLUMNS}, ${definition}) STRICT;`,
-      );
+      await database.executeScript(`CREATE TABLE notes (${SYNCED_COLUMNS}, ${definition}) STRICT;`);
 
       await expect(checkConventions(database)).resolves.toEqual([]);
     });
