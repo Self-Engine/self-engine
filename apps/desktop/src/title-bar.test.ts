@@ -2,7 +2,7 @@ import { describe, expect, it } from "vite-plus/test";
 import { titleBarOptions } from "./title-bar.ts";
 
 describe("titleBarOptions", () => {
-  it("hides the macOS title bar and keeps the buttons inside the icons-only Navbar", () => {
+  it("hides the macOS title bar and places the buttons in the Shell's strip", () => {
     expect(titleBarOptions("darwin")).toEqual({
       titleBarStyle: "hiddenInset",
       trafficLightPosition: { x: 16, y: 25 },

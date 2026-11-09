@@ -30,10 +30,11 @@ import {
 } from "react";
 
 /** Starting values from #19, in Mantine's unscaled numbers. */
-const NAVBAR_ICONS_ONLY_WIDTH = 76;
+const NAVBAR_ICONS_ONLY_WIDTH = 68;
 const NAVBAR_STANDARD_WIDTH = 220;
 const NAVBAR_MIN_WIDE_WIDTH = 168;
 const NAVBAR_MAX_WIDTH = 280;
+const NAVBAR_COLLAPSE_MIDPOINT = (NAVBAR_ICONS_ONLY_WIDTH + NAVBAR_MIN_WIDE_WIDTH) / 2;
 /** The variables Mantine's handle writes in `static` mode, and removes again on its own. */
 const NAVBAR_PREVIEW_VARIABLES = ["--app-shell-navbar-width", "--app-shell-navbar-grid-width"];
 const MODULE_SIDEBAR_MIN_WIDTH = 200;
@@ -165,11 +166,8 @@ const ACTIVE_ENTRY_VARS = () => ({
 
 const ENTRY_ROOT_STYLE: CSSProperties = { borderRadius: "var(--mantine-radius-sm)" };
 
-/** Set on the Shell's root, because the width depends on its props and the font scale. */
-const ICONS_ONLY_WIDTH_VARIABLE = "--shell-navbar-icons-only-width";
-
 /** As wide as the icons-only Navbar has room, so an icon sits on its axis at every width. */
-const ICON_AXIS_SLOT_WIDTH = `calc(var(${ICONS_ONLY_WIDTH_VARIABLE}) - 2 * var(--mantine-spacing-xs))`;
+const ICON_AXIS_SLOT_WIDTH = `calc(${rem(NAVBAR_ICONS_ONLY_WIDTH)} - 2 * var(--mantine-spacing-xs))`;
 
 /** One geometry with and without a label, so that only the label goes. */
 const NAVBAR_ENTRY_STYLES = {
@@ -240,27 +238,11 @@ export interface ShellProps {
   readonly children: ReactNode;
 }
 
-/**
- * The icons-only width, in Mantine's unscaled numbers like every other width. The macOS window
- * buttons do not follow the font scale, so the Navbar around them never renders below its width
- * in real pixels.
- */
-function iconsOnlyWidthFor(reserveWindowButtons: boolean, scale: number): number {
-  return reserveWindowButtons
-    ? Math.max(NAVBAR_ICONS_ONLY_WIDTH, NAVBAR_ICONS_ONLY_WIDTH / scale)
-    : NAVBAR_ICONS_ONLY_WIDTH;
-}
-
-function collapseMidpoint(iconsOnlyWidth: number): number {
-  return (iconsOnlyWidth + NAVBAR_MIN_WIDE_WIDTH) / 2;
-}
-
 /** A stored width outside the current limits is clamped when shown, not reset. */
-function shownWidthOf(
-  { collapsed, expandedWidth }: ShellNavbarState,
-  iconsOnlyWidth: number,
-): number {
-  return collapsed ? iconsOnlyWidth : clamp(expandedWidth, NAVBAR_MIN_WIDE_WIDTH, NAVBAR_MAX_WIDTH);
+function shownWidthOf({ collapsed, expandedWidth }: ShellNavbarState): number {
+  return collapsed
+    ? NAVBAR_ICONS_ONLY_WIDTH
+    : clamp(expandedWidth, NAVBAR_MIN_WIDE_WIDTH, NAVBAR_MAX_WIDTH);
 }
 
 /**
@@ -271,12 +253,9 @@ function settledNavbar(
   width: number,
   current: ShellNavbarState,
   dragged: boolean,
-  iconsOnlyWidth: number,
 ): ShellNavbarState {
   if (width >= NAVBAR_MIN_WIDE_WIDTH) return { collapsed: false, expandedWidth: Math.round(width) };
-  const collapses = dragged
-    ? width < collapseMidpoint(iconsOnlyWidth)
-    : width <= shownWidthOf(current, iconsOnlyWidth);
+  const collapses = dragged ? width < NAVBAR_COLLAPSE_MIDPOINT : width <= shownWidthOf(current);
   return collapses
     ? { ...current, collapsed: true }
     : { collapsed: false, expandedWidth: NAVBAR_MIN_WIDE_WIDTH };
@@ -373,10 +352,9 @@ export function Shell({
   const [draggedCollapsed, setDraggedCollapsed] = useState<boolean | null>(null);
   const entryAppearance =
     step !== "wide" || (draggedCollapsed ?? navbar.collapsed) ? "iconsOnly" : "labelled";
-  const iconsOnlyWidth = iconsOnlyWidthFor(reserveWindowButtons, theme.scale);
   const navbarWidth = navbar.collapsed
-    ? iconsOnlyWidth
-    : { base: iconsOnlyWidth, lg: shownWidthOf(navbar, iconsOnlyWidth) };
+    ? NAVBAR_ICONS_ONLY_WIDTH
+    : { base: NAVBAR_ICONS_ONLY_WIDTH, lg: shownWidthOf(navbar) };
   // `Splitter` resolves sizes without Mantine's scale, so widths are converted here, once.
   const paneSize = (width: number): `${number}px` => `${width * theme.scale}px`;
   const shownModuleSidebarWidth = clamp(
@@ -408,30 +386,26 @@ export function Shell({
   const appShellRef = useRef<HTMLDivElement>(null);
   const navbarResize = useAppShellResize({
     navbar: {
-      min: iconsOnlyWidth,
+      min: NAVBAR_ICONS_ONLY_WIDTH,
       max: NAVBAR_MAX_WIDTH,
       label: t`Resize navbar`,
-      collapseThreshold: collapseMidpoint(iconsOnlyWidth),
+      collapseThreshold: NAVBAR_COLLAPSE_MIDPOINT,
     },
     onCollapseChange: (_, collapsed) => setDraggedCollapsed(collapsed),
     // Runs right after Mantine wrote the pointer's width, and only the gap needs correcting.
     onResize: ({ navbar: width }) => {
       if (width === undefined || width >= NAVBAR_MIN_WIDE_WIDTH) return;
-      const shown = rem(
-        shownWidthOf(settledNavbar(width, navbar, true, iconsOnlyWidth), iconsOnlyWidth),
-      );
+      const shown = rem(shownWidthOf(settledNavbar(width, navbar, true)));
       for (const variable of NAVBAR_PREVIEW_VARIABLES)
         appShellRef.current?.style.setProperty(variable, shown);
     },
     onResizeEnd: ({ navbar: width }) => {
       if (width === undefined) return;
-      commitNavbar(
-        settledNavbar(width, navbar, navbarResize.activeSection === "navbar", iconsOnlyWidth),
-      );
+      commitNavbar(settledNavbar(width, navbar, navbarResize.activeSection === "navbar"));
     },
   });
   // Our props are the truth: Mantine would otherwise prefer the size it remembers from a drag.
-  const shownNavbarWidth = shownWidthOf(navbar, iconsOnlyWidth);
+  const shownNavbarWidth = shownWidthOf(navbar);
   const controlledNavbarResize = {
     ...navbarResize,
     // Every way out of a resize passes here: release, Escape, a key press.
@@ -480,7 +454,7 @@ export function Shell({
       ref={appShellRef}
       // Mantine prefers a resized width over the responsive ones, so only the wide step gets it.
       {...(step === "wide" && { resize: controlledNavbarResize })}
-      style={{ ...ROOT_STYLE, [ICONS_ONLY_WIDTH_VARIABLE]: rem(iconsOnlyWidth) } as CSSProperties}
+      style={ROOT_STYLE}
       // Starts below the strip with the divider, so nothing but the drag region is up there.
       styles={{ resizeHandle: { ...NOT_WINDOW_DRAG_STYLE, top: topStripHeight } }}
     >
