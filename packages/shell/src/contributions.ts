@@ -16,6 +16,8 @@ export interface ShellContribution {
   readonly color: ColorSetId;
   /** The first View is the module's default. */
   readonly views: readonly [ShellView, ...ShellView[]];
+  readonly groups?: () => Promise<{ readonly default: ComponentType }>;
+  readonly sharedSearch?: readonly string[];
 }
 
 interface AddressContribution {

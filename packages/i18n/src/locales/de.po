@@ -15,6 +15,18 @@ msgstr "{count, plural, one {# Eintrag} other {# Einträge}}"
 msgid "Add an entry"
 msgstr "Eintrag hinzufügen"
 
+#: packages/placeholder-alpha/src/groups.tsx
+msgid "All clients"
+msgstr "Alle Kunden"
+
+#: packages/placeholder-alpha/src/index.ts
+msgid "Archive"
+msgstr "Archiv"
+
+#: packages/placeholder-alpha/src/groups.tsx
+msgid "Clients"
+msgstr "Kunden"
+
 #: packages/shell/src/shell.tsx
 msgid "Close module sidebar"
 msgstr "Modul-Sidebar schließen"
@@ -30,6 +42,14 @@ msgstr "Modul-Sidebar einklappen"
 #: packages/shell/src/shell.tsx
 msgid "Expand module sidebar"
 msgstr "Modul-Sidebar ausklappen"
+
+#: packages/placeholder-alpha/src/sample-data.ts
+msgid "Garden"
+msgstr "Garten"
+
+#: packages/placeholder-alpha/src/sample-data.ts
+msgid "Garden work"
+msgstr "Gartenarbeit"
 
 #: apps/web/src/language-sample.tsx
 msgid "Hello {name}, nice to see you."
@@ -59,9 +79,14 @@ msgstr "Modul-Sidebar öffnen"
 msgid "Open navigation"
 msgstr "Navigation öffnen"
 
+#: packages/placeholder-alpha/src/index.ts
 #: packages/placeholder-beta/src/index.ts
 msgid "Overview"
 msgstr "Übersicht"
+
+#: packages/placeholder-alpha/src/index.ts
+msgid "Placeholder Alpha"
+msgstr "Platzhalter Alpha"
 
 #: packages/placeholder-beta/src/index.ts
 msgid "Placeholder Beta"
@@ -78,6 +103,14 @@ msgstr "Breite der Navbar ändern"
 #: apps/web/src/modules.ts
 msgid "Settings"
 msgstr "Einstellungen"
+
+#: packages/placeholder-alpha/src/sample-data.ts
+msgid "Studio"
+msgstr "Studio"
+
+#: packages/placeholder-alpha/src/sample-data.ts
+msgid "Studio work"
+msgstr "Studioarbeit"
 
 #: apps/web/src/language-sample.tsx
 msgid "The language could not be loaded. Please try again."

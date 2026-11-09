@@ -1,19 +1,14 @@
+import { ROUTING } from "../shell-routing.tsx";
 import { Badge } from "@mantine/core";
 import { BrandMark } from "@self-engine/icons/brand-mark";
 import { useSetting } from "@self-engine/settings/react";
-import { Shell, type ShellRouting } from "@self-engine/shell";
-import { Link, Outlet, createRootRoute, useRouterState } from "@tanstack/react-router";
+import { Shell } from "@self-engine/shell";
+import { Outlet, createRootRoute, useRouterState } from "@tanstack/react-router";
 import { channelBadge, reservesWindowButtons } from "../env.ts";
 import { settingsStore } from "../settings-store.ts";
 import { modules, settings, findModule } from "../modules.ts";
 import { NotFound, ViewLoadError } from "../route-states.tsx";
 import { SHELL_SETTINGS } from "../shell-settings.ts";
-
-const ROUTING: ShellRouting = {
-  Link: ({ to, target, ...props }) => (
-    <Link {...props} {...(target !== undefined && { target })} to={to} />
-  ),
-};
 
 // The name of the product, which is not translated.
 const LOGO = { mark: <BrandMark />, name: "Self-Engine" };

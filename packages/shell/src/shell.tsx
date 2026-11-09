@@ -1,3 +1,4 @@
+import { ACTIVE_ENTRY_VARS } from "./navigation-style.ts";
 import { useLingui } from "@lingui/react/macro";
 import type { ShellContribution, ShellView } from "./contributions.ts";
 import {
@@ -27,6 +28,8 @@ import {
   type MouseEvent,
   type ReactNode,
   useEffect,
+  lazy,
+  Suspense,
 } from "react";
 import {
   GAP,
@@ -180,15 +183,6 @@ const BOTTOM_BAR_STYLE: CSSProperties = {
   borderRadius: RADIUS,
   marginTop: rem(GAP),
 };
-
-const ACTIVE_ENTRY_VARS = () => ({
-  root: {
-    "--nl-bg": "var(--se-module-soft)",
-    "--nl-color": "var(--se-module-text)",
-    "--nl-hover": "var(--se-module-soft)",
-  },
-  children: {},
-});
 
 const ENTRY_ROOT_STYLE: CSSProperties = { borderRadius: "var(--mantine-radius-sm)" };
 
@@ -792,6 +786,16 @@ export function Shell({ contributions, settings, activeModule, activeView, ...pr
   );
 }
 
+const groupComponents = new WeakMap<NonNullable<ShellContribution["groups"]>, ComponentType>();
+function loadedGroups(load: NonNullable<ShellContribution["groups"]>) {
+  let component = groupComponents.get(load);
+  if (!component) {
+    component = lazy(load);
+    groupComponents.set(load, component);
+  }
+  return component;
+}
+
 function ModuleViews({
   module,
   activeView,
@@ -803,6 +807,7 @@ function ModuleViews({
 }) {
   const { i18n } = useLingui();
   if (!module) return null;
+  const Groups = module.groups && loadedGroups(module.groups);
   return (
     <Stack gap="xs" data-module-color={module.color}>
       {module.views.map((view) => (
@@ -816,6 +821,11 @@ function ModuleViews({
           vars={ACTIVE_ENTRY_VARS}
         />
       ))}
+      {Groups && (
+        <Suspense fallback={null}>
+          <Groups />
+        </Suspense>
+      )}
     </Stack>
   );
 }

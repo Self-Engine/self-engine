@@ -35,6 +35,12 @@ function AppStory({ address, hash = false }: AppStoryProps) {
     <>
       <RouterProvider key={generation} router={router} />
       <button
+        style={{ position: "fixed", bottom: 56, right: 16, zIndex: 500 }}
+        onClick={() => history.back()}
+      >
+        Back in history
+      </button>
+      <button
         style={{ position: "fixed", bottom: 16, right: 16, zIndex: 500 }}
         onClick={() =>
           setRouter(({ generation }) => ({
@@ -176,5 +182,53 @@ export const NamesFollowLanguage: Story = {
     await expect(canvas.getByRole("link", { name: "Design-Vorschau" })).toBeVisible();
     await userEvent.click(canvas.getByRole("link", { name: "Platzhalter Beta" }));
     await expect(await canvas.findByRole("heading", { name: "Übersicht", level: 1 })).toBeVisible();
+  },
+};
+
+export const GroupFilters: Story = {
+  args: { address: "/placeholder-alpha/overview?client=studio&page=2&edit=sample" },
+  play: async ({ canvas }) => {
+    await expect(await canvas.findByText("Studio work")).toBeVisible();
+    await expect(canvas.queryByText("Garden work")).toBeNull();
+    const archive = canvas.getByRole("link", { name: "Archive" });
+    await expect(archive.getAttribute("href")?.split("#").at(-1)).toBe(
+      "/placeholder-alpha/archive?client=studio",
+    );
+    await userEvent.click(archive);
+    await expect(await canvas.findByRole("heading", { name: "Archive", level: 1 })).toBeVisible();
+    await expect(canvas.getByText("Studio work")).toBeVisible();
+    await userEvent.click(await canvas.findByRole("link", { name: "Garden" }));
+    await expect(await canvas.findByText("Garden work")).toBeVisible();
+    await expect(canvas.queryByText("Studio work")).toBeNull();
+    await userEvent.click(canvas.getByRole("button", { name: "Back in history" }));
+    await expect(await canvas.findByText("Studio work")).toBeVisible();
+    await userEvent.click(await canvas.findByRole("link", { name: "Garden" }));
+    await expect(await canvas.findByText("Garden work")).toBeVisible();
+    await userEvent.click(canvas.getByRole("button", { name: "Reload router" }));
+    await expect(await canvas.findByText("Garden work")).toBeVisible();
+    await userEvent.click(canvas.getByRole("link", { name: "Placeholder Beta" }));
+    await expectBeta(canvas);
+    await expect(
+      canvas
+        .getByRole("link", { name: "Placeholder Alpha" })
+        .getAttribute("href")
+        ?.split("#")
+        .at(-1),
+    ).toBe("/placeholder-alpha/overview");
+    await userEvent.click(canvas.getByRole("link", { name: "Placeholder Alpha" }));
+    await expect(await canvas.findByText("Studio work")).toBeVisible();
+    await expect(canvas.getByText("Garden work")).toBeVisible();
+  },
+};
+export const HashGroupFilters: Story = {
+  ...GroupFilters,
+  args: { ...GroupFilters.args, hash: true },
+};
+
+export const InvalidClientFilter: Story = {
+  args: { address: "/placeholder-alpha/overview?client=unknown" },
+  play: async ({ canvas }) => {
+    await expect(await canvas.findByText("Studio work")).toBeVisible();
+    await expect(canvas.getByText("Garden work")).toBeVisible();
   },
 };

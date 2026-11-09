@@ -15,6 +15,7 @@
     "@mantine/hooks": "catalog:",
     "@self-engine/i18n": "workspace:*",
     "@self-engine/icons": "workspace:*",
+    "@self-engine/placeholder-alpha": "workspace:*",
     "@self-engine/placeholder-beta": "workspace:*",
     "@self-engine/settings": "workspace:*",
     "@self-engine/shell": "workspace:*",

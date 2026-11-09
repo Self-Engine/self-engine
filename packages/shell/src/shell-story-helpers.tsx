@@ -67,6 +67,8 @@ export function atViewport(value: keyof typeof VIEWPORTS) {
 }
 
 const routing: ShellRouting = {
+  useSearch: (selector) => selector({}),
+  useWriteSearch: () => () => {},
   Link: ({ to, ...props }) => (
     <a {...props} href={to} onClick={(event) => event.preventDefault()} />
   ),

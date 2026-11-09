@@ -4,3 +4,7 @@ export { SHELL_STANDARD_MODULE_SIDEBAR_WIDTH } from "./use-module-sidebar-resize
 export type { ShellLinkProps, ShellRouting } from "./routing.tsx";
 
 export { validateContributions, type ShellContribution, type ShellView } from "./contributions.ts";
+
+export { useViewSearch, useWriteViewSearch } from "./routing.tsx";
+export { retainedViewSearch, type ViewSearch } from "./view-search.ts";
+export { ShellGroup, ShellGroupEntry } from "./groups.tsx";
