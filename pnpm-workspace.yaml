@@ -68,6 +68,8 @@ catalog:
   react-dom: 19.3.1
   storybook: 10.6.6
   typescript: 7.0.2
+  # Every record's id: a time-ordered UUIDv7 (D141).
+  uuid: 14.0.3
   # Vite+ replaces vite with its own core; every package that depends on vite gets it (D28).
   vite: npm:@voidzero-dev/vite-plus-core@1.5.0
   vite-plus: 1.5.0
