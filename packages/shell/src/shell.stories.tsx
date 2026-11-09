@@ -59,9 +59,38 @@ export default meta;
 
 type Story = StoryObj<typeof meta>;
 
+/** The largest channel of a computed color, which tells a dark surface from a light one. */
+function brightnessOf(color: string): number {
+  return Math.max(...color.match(/[\d.]+/g)!.slice(0, 3).map(Number));
+}
+
+/** The window really has the width of its Layout Step, and the frame the story's Color Mode. */
+async function expectWindow(
+  canvas: ReturnType<typeof within>,
+  viewport: keyof typeof VIEWPORTS,
+  { colorMode }: Readonly<Record<string, unknown>>,
+): Promise<void> {
+  await expect(`${window.innerWidth}px`).toBe(VIEWPORTS[viewport].styles.width);
+  await expect(document.documentElement).toHaveAttribute(
+    "data-mantine-color-scheme",
+    String(colorMode),
+  );
+  for (const surface of [canvasRoot(canvas), paneOf(canvas, "Page content")]) {
+    const brightness = brightnessOf(getComputedStyle(surface).backgroundColor);
+    // oxlint-disable-next-line no-await-in-loop -- one assertion per surface, in order
+    await expect(colorMode === "dark" ? brightness < 64 : brightness > 200).toBe(true);
+  }
+}
+
+const inDark = (story: Story): Story => ({
+  ...story,
+  globals: { ...story.globals, colorMode: "dark" },
+});
+
 export const Wide: Story = {
   ...atViewport("wide"),
-  play: async ({ canvas }) => {
+  play: async ({ canvas, globals }) => {
+    await expectWindow(canvas, "wide", globals);
     const navbar = within(canvas.getByRole("navigation", { name: "Modules" }));
     await expect(navbar.getByText("Projects")).toBeVisible();
     await expect(navbar.getByText("Settings")).toBeVisible();
@@ -89,7 +118,9 @@ async function expectContentFillsTheFrame(
   windowWidth: number,
 ): Promise<void> {
   await expect(canvas.queryByRole("navigation", { name: "Modules" })).toBeNull();
+  await expect(canvasRoot(canvas).querySelector(".mantine-AppShell-header")).toBeNull();
   const content = paneOf(canvas, "Page content").getBoundingClientRect();
+  await expect(content.top).toBeCloseTo(8, 0);
   await expect(content.left).toBeCloseTo(8, 0);
   await expect(content.right).toBeCloseTo(windowWidth - 8, 0);
 }
@@ -111,13 +142,41 @@ export const NavbarIsWideAtTheWideStep: Story = {
 
 export const Medium: Story = {
   ...atViewport("medium"),
-  play: async ({ canvas }) => {
+  play: async ({ canvas, globals }) => {
+    await expectWindow(canvas, "medium", globals);
     const navbar = navbarOf(canvas);
     await expect(widthOf(navbar)).toBe(56);
     await expect(within(navbar).queryByText("Projects")).toBeNull();
     await expect(within(navbar).getByRole("button", { name: "Projects" })).toBeVisible();
     await expect(canvas.getByText("Sidebar content")).toBeVisible();
     await expect(canvas.queryByRole("button", { name: /^Open / })).toBeNull();
+  },
+};
+
+/** The 56 px Navbar has 36 px inside its padding, so the mark of the active entry is 36 × 40. */
+async function expectActiveEntryFillsTheColumn(active: HTMLElement): Promise<void> {
+  await expect(Math.round(active.getBoundingClientRect().width)).toBe(36);
+  await expect(Math.round(active.getBoundingClientRect().height)).toBe(40);
+}
+
+export const TheActiveEntryOfTheIconsOnlyNavbarIs36By40: Story = {
+  ...atViewport("medium"),
+  play: async ({ canvas }) => {
+    await expect(widthOf(navbarOf(canvas))).toBe(56);
+    await expectActiveEntryFillsTheColumn(
+      canvas.getByRole("button", { name: "Time", current: "page" }),
+    );
+  },
+};
+
+export const TheActiveEntryIs36By40WhenTheUserCollapsedTheNavbarToo: Story = {
+  ...atViewport("wide"),
+  args: { navbar: { collapsed: true, expandedWidth: 260 } },
+  play: async ({ canvas }) => {
+    await expect(widthOf(navbarOf(canvas))).toBe(56);
+    await expectActiveEntryFillsTheColumn(
+      canvas.getByRole("button", { name: "Time", current: "page" }),
+    );
   },
 };
 
@@ -190,7 +249,8 @@ export const HeaderShowsItsSlots: Story = {
 
 export const Narrow: Story = {
   ...atViewport("narrow"),
-  play: async ({ canvas }) => {
+  play: async ({ canvas, globals }) => {
+    await expectWindow(canvas, "narrow", globals);
     await expectContentFillsTheFrame(canvas, 800);
     await expect(canvas.queryByText("Sidebar content")).toBeNull();
     await userEvent.click(canvas.getByRole("button", { name: "Open navigation" }));
@@ -215,7 +275,10 @@ export const Phone: Story = {
   args: {
     channelBadge: <span>Nightly</span>,
   },
-  play: async ({ canvas }) => {
+  play: async ({ canvas, globals }) => {
+    await expectWindow(canvas, "phone", globals);
+    await expect(paneOf(canvas, "Page content").getBoundingClientRect().top).toBeCloseTo(8, 0);
+    await expect(canvas.queryByRole("separator")).toBeNull();
     await expect(canvas.queryByText("Sidebar content")).toBeNull();
     await expect(canvas.getByText("Nightly")).toBeVisible();
     const bottomBar = within(screen.getByRole("contentinfo"));
@@ -230,6 +293,14 @@ export const Phone: Story = {
     ).toHaveLength(1);
   },
 };
+
+export const WideDark = inDark(Wide);
+
+export const MediumDark = inDark(Medium);
+
+export const NarrowDark = inDark(Narrow);
+
+export const PhoneDark = inDark(Phone);
 
 /** Many modules: nothing is cut off, the bar scrolls sideways. */
 export const BottomBarScrollsSideways: Story = {
@@ -351,6 +422,50 @@ export const StripForTheWindowButtons: Story = {
       0,
     );
     await expect(appRegionOf(navbarOf(canvas).firstElementChild!)).toBe("drag");
+  },
+};
+
+/**
+ * The window buttons end 76 px from the window edge, past a 56 px Navbar, so the strip has to run
+ * on over the Module Sidebar. Nothing but the drag region may sit under them.
+ */
+async function expectStripOverAnIconsOnlyNavbar(canvas: ReturnType<typeof within>): Promise<void> {
+  const navbar = navbarOf(canvas);
+  await expect(widthOf(navbar)).toBe(56);
+  await expectContainersReachTheTop(canvas);
+  await expect(appRegionOf(navbar.firstElementChild!)).toBe("drag");
+  await expect(Math.round(navbar.firstElementChild!.getBoundingClientRect().height)).toBe(
+    STRIP_HEIGHT,
+  );
+  await expectEntriesBelowTheStrip(canvas);
+  const pane = paneOf(canvas, "Sidebar content");
+  await expect(appRegionOf(pane.firstElementChild!)).toBe("drag");
+  await expect(Math.round(pane.firstElementChild!.getBoundingClientRect().height)).toBe(
+    STRIP_HEIGHT,
+  );
+  await expect(canvas.getByText("Sidebar content").getBoundingClientRect().top).toBeGreaterThan(
+    pane.getBoundingClientRect().top + STRIP_HEIGHT,
+  );
+}
+
+/** The medium step forces the icons, and the Module Sidebar is open beside them. */
+export const StripOverTheIconsOnlyNavbarAtTheMediumStep: Story = {
+  ...atViewport("medium"),
+  args: { reserveWindowButtons: true },
+  play: async ({ canvas }) => {
+    await expectStripOverAnIconsOnlyNavbar(canvas);
+  },
+};
+
+export const StripOverANavbarTheUserCollapsed: Story = {
+  ...atViewport("wide"),
+  args: { navbar: { collapsed: true, expandedWidth: 260 }, reserveWindowButtons: true },
+  play: async ({ canvas }) => {
+    await expectStripOverAnIconsOnlyNavbar(canvas);
+    await expect(navbarHandle(canvas).getBoundingClientRect().top).toBeCloseTo(
+      navbarOf(canvas).getBoundingClientRect().top + STRIP_HEIGHT,
+      0,
+    );
   },
 };
 
@@ -595,6 +710,30 @@ export const NavbarDragFollowsThePointerAt112Percent: Story = {
       collapsed: false,
       expandedWidth: 252,
     });
+  },
+};
+
+/** A press that changes nothing is no change to store, on either handle. */
+export const AReleaseWithoutAChangeReportsNothing: Story = {
+  ...atViewport("wide"),
+  ...resizable,
+  play: async ({ args, canvas }) => {
+    const navbar = navbarOf(canvas);
+    const sidebar = paneOf(canvas, "Sidebar content");
+    const atRest = await pressHandle(navbarHandle(canvas));
+    await atRest.release(0);
+    const andBack = await pressHandle(navbarHandle(canvas));
+    await andBack.moveBy(40);
+    await andBack.release(0);
+    await expect(widthOf(navbar)).toBe(220);
+    const sidebarAtRest = await pressHandle(sidebarHandle(canvas));
+    await sidebarAtRest.release(0);
+    const sidebarAndBack = await pressHandle(sidebarHandle(canvas));
+    await sidebarAndBack.moveBy(40);
+    await sidebarAndBack.release(0);
+    await expect(widthOf(sidebar)).toBe(240);
+    await expect(args.onNavbarCommit).not.toHaveBeenCalled();
+    await expect(args.onModuleSidebarWidthCommit).not.toHaveBeenCalled();
   },
 };
 
@@ -1125,6 +1264,7 @@ export const TheDrawerNavbarNamesItsEntriesAndMarksTheActiveOne: Story = {
     await expect(active).toHaveStyle({
       backgroundColor: getComputedStyle(active).getPropertyValue("--se-module-soft"),
     });
+    await expectActiveEntryFillsTheColumn(active);
     await userEvent.hover(navbar.getByRole("button", { name: "Projects" }));
     await expect(await screen.findByRole("tooltip")).toHaveTextContent("Projects");
   },
@@ -1360,6 +1500,34 @@ export const ModuleSidebarDragFollowsThePointerAt112Percent: Story = {
     await drag.release(45);
     await expect(sidebar.getBoundingClientRect().width).toBeCloseTo(315, 0);
     await expectReportedOnce(args.onModuleSidebarWidthCommit, 280);
+  },
+};
+
+export const ModuleSidebarStaysResizableAtTheMediumStep: Story = {
+  ...atViewport("medium"),
+  ...resizable,
+  play: async ({ args, canvas }) => {
+    const sidebar = paneOf(canvas, "Sidebar content");
+    const drag = await pressHandle(sidebarHandle(canvas));
+    await drag.release(30);
+    await expect(widthOf(sidebar)).toBe(270);
+    await expectReportedOnce(args.onModuleSidebarWidthCommit, 270);
+  },
+};
+
+/** The steps are Mantine's numbers, like the widths, so they grow with the scale too. */
+export const ModuleSidebarKeyStepsFollowTheScale: Story = {
+  ...wideAt112Percent,
+  ...resizable,
+  play: async ({ args, canvas }) => {
+    const sidebar = paneOf(canvas, "Sidebar content");
+    sidebarHandle(canvas).focus();
+    await userEvent.keyboard("{ArrowRight}");
+    await waitFor(() => expect(sidebar.getBoundingClientRect().width).toBeCloseTo(281.25, 0));
+    await expectReportedOnce(args.onModuleSidebarWidthCommit, 250);
+    await userEvent.keyboard("{Shift>}{ArrowRight}{/Shift}");
+    await waitFor(() => expect(sidebar.getBoundingClientRect().width).toBeCloseTo(337.5, 0));
+    await expect(args.onModuleSidebarWidthCommit).toHaveBeenLastCalledWith(300);
   },
 };
 
@@ -1854,9 +2022,14 @@ export const ACollapsingNavbarLosesTheNameWithoutWindowButtons: Story = {
   args: { logo: LOGO, moduleSidebarCollapsed: true },
   play: async ({ canvas }) => {
     await expect(canvas.getByText("Self-Engine")).toBeVisible();
+    const place = markPlace(canvas);
     await userEvent.dblClick(navbarHandle(canvas));
     await waitFor(() => expect(canvas.queryByText("Self-Engine")).toBeNull());
     await expectMarkOnTheIconAxis(canvas);
+    await expect(markPlace(canvas)).toEqual(place);
+    await userEvent.dblClick(navbarHandle(canvas));
+    await waitFor(() => expect(canvas.getByText("Self-Engine")).toBeVisible());
+    await expect(markPlace(canvas)).toEqual(place);
   },
 };
 
@@ -1986,6 +2159,19 @@ export const TheNameFitsTheMinimumWideWidthAt112Percent: Story = {
     // 84 px / 1.125 - 8 + 129 + 10, rounded up, at the scale of 1.125.
     await expect(navbarOf(canvas).getBoundingClientRect().width).toBeCloseTo(206 * 1.125, 0);
     await expectNameFitsTheNavbar(canvas);
+  },
+};
+
+/** The real mark: the frame, the entries and the mark all grow by the same scale. */
+export const TheMarkStaysOnTheIconAxisAt112Percent: Story = {
+  ...wideAt112Percent,
+  args: {
+    logo: SCALING_LOGO,
+    moduleSidebarCollapsed: true,
+    navbar: { collapsed: true, expandedWidth: 260 },
+  },
+  play: async ({ canvas }) => {
+    await expectMarkOnTheIconAxis(canvas);
   },
 };
 
