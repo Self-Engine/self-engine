@@ -16,6 +16,7 @@ const ICON_NAMES = [
   "SendIcon",
   "AssistantIcon",
   "SidePanelIcon",
+  "ErrorIcon",
 ] as const;
 
 describe.each(ICON_NAMES)("%s", (name) => {

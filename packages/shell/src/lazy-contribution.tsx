@@ -1,5 +1,5 @@
 import { useLingui } from "@lingui/react/macro";
-import { Button, Stack, Text } from "@mantine/core";
+import { ErrorState } from "@self-engine/ui";
 import { Component, type ComponentType, type ReactNode, lazy, Suspense } from "react";
 
 type LoadComponent<Props extends object> = () => Promise<{
@@ -28,29 +28,9 @@ export function lazyComponents<Props extends object>(): LazyComponents<Props> {
   };
 }
 
-export function ContributionFailure({
-  message,
-  onRetry,
-}: {
-  readonly message: string;
-  readonly onRetry: () => void;
-}) {
-  const { t } = useLingui();
-  return (
-    <Stack align="flex-start" gap="xs">
-      <Text role="alert" size="sm">
-        {message}
-      </Text>
-      <Button onClick={onRetry} size="xs" variant="default">
-        {t`Try again`}
-      </Button>
-    </Stack>
-  );
-}
-
 function FailedContribution({ onRetry }: { readonly onRetry: () => void }) {
   const { t } = useLingui();
-  return <ContributionFailure message={t`This part could not be loaded.`} onRetry={onRetry} />;
+  return <ErrorState onRetry={onRetry} title={t`This part could not be loaded.`} />;
 }
 
 interface BoundaryProps {
@@ -96,12 +76,15 @@ interface LazyContributionProps<Props extends object> {
 }
 
 /** A module's code, loaded when it is first shown. Give it a key per thing it shows. */
-export function LazyContribution<Props extends object>(allProps: LazyContributionProps<Props>) {
-  const { components, load } = allProps;
+export function LazyContribution<Props extends object>({
+  fallback = null,
+  ...contribution
+}: LazyContributionProps<Props> & { readonly fallback?: ReactNode }) {
+  const { components, load } = contribution;
   return (
     <ContributionBoundary onFailure={() => components.forget(load)}>
-      <Suspense fallback={null}>
-        <LoadedContribution {...allProps} />
+      <Suspense fallback={fallback}>
+        <LoadedContribution {...contribution} />
       </Suspense>
     </ContributionBoundary>
   );

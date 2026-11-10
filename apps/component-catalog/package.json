@@ -12,6 +12,7 @@
     "@mantine/hooks": "catalog:",
     "@self-engine/i18n": "workspace:*",
     "@self-engine/theme": "workspace:*",
+    "@self-engine/ui": "workspace:*",
     "react": "catalog:",
     "react-dom": "catalog:"
   },

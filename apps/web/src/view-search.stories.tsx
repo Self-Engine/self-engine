@@ -6,7 +6,14 @@ import {
   createRouter,
   RouterProvider,
 } from "@tanstack/react-router";
-import { Shell, useViewSearch, useWriteViewSearch } from "@self-engine/shell";
+import {
+  type EditDrawerProps,
+  Shell,
+  useEditDrawerTitle,
+  useUnsavedChanges,
+  useViewSearch,
+  useWriteViewSearch,
+} from "@self-engine/shell";
 import { memo, type ReactNode, useState } from "react";
 import { contribution as alpha } from "@self-engine/placeholder-alpha";
 import { modules, settings } from "./modules.ts";
@@ -114,11 +121,21 @@ export const SelectorReturningAFreshObject: Story = {
 };
 
 const viewRendered = fn();
-const loadDrawer = fn(async () => ({
-  default: ({ id, onClose }: { id: string; onClose: () => void }) => (
-    <button onClick={onClose}>Close {id}</button>
-  ),
-}));
+function TitledDrawer({ id, onCancel, onDone }: EditDrawerProps) {
+  const [name, setName] = useState("First name");
+  const [changed, setChanged] = useState(false);
+  useEditDrawerTitle(name);
+  useUnsavedChanges(() => changed);
+  return (
+    <>
+      <button onClick={() => setName("Second name")}>Rename {id}</button>
+      <button onClick={() => setChanged(true)}>Change {id}</button>
+      <button onClick={onCancel}>Cancel {id}</button>
+      <button onClick={onDone}>Finish {id}</button>
+    </>
+  );
+}
+const loadDrawer = fn(async () => ({ default: TitledDrawer }));
 function ObservedView() {
   const client = useViewSearch((search) => search.client);
   viewRendered(client);
@@ -157,7 +174,19 @@ export const DrawerIsolation: Story = {
     await expect(loadDrawer).not.toHaveBeenCalled();
     viewRendered.mockClear();
     await userEvent.click(canvas.getByRole("button", { name: "Edit sample" }));
-    await userEvent.click(await page.findByRole("button", { name: "Close sample" }));
+    await page.findByRole("dialog", { name: "First name" });
+    await userEvent.click(await page.findByRole("button", { name: "Rename sample" }));
+    await page.findByRole("dialog", { name: "Second name" });
+    await userEvent.click(page.getByRole("button", { name: "Change sample" }));
+    await userEvent.click(page.getByRole("button", { name: "Cancel sample" }));
+    const asked = within(await page.findByRole("dialog", { name: "Discard changes?" }));
+    await userEvent.click(asked.getByRole("button", { name: "Keep editing" }));
+    await waitFor(() =>
+      expect(page.queryByRole("dialog", { name: "Discard changes?" })).toBeNull(),
+    );
+    await userEvent.click(page.getByRole("button", { name: "Cancel sample" }));
+    const askedAgain = within(await page.findByRole("dialog", { name: "Discard changes?" }));
+    await userEvent.click(askedAgain.getByRole("button", { name: "Discard" }));
     await waitFor(() => expect(page.queryByRole("dialog")).toBeNull());
     await expect(loadDrawer).toHaveBeenCalledTimes(1);
     await expect(viewRendered).not.toHaveBeenCalled();

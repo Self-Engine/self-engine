@@ -1,4 +1,14 @@
-import { Button, Card, Drawer, HoverCard, Menu, Modal, Popover, Select } from "@mantine/core";
+import {
+  Button,
+  Card,
+  Drawer,
+  HoverCard,
+  Menu,
+  Modal,
+  Notification,
+  Popover,
+  Select,
+} from "@mantine/core";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { formatRgb } from "culori";
 import { expect, screen } from "storybook/test";
@@ -156,4 +166,16 @@ export const DrawerLayerInDark: Story = {
   ...DrawerLayer,
   globals: DARK_GLOBALS,
   play: expectRaisedDialog,
+};
+
+export const NotificationLayer: Story = {
+  render: () => <Notification>Entry deleted</Notification>,
+};
+
+export const NotificationLayerInDark: Story = {
+  ...NotificationLayer,
+  globals: DARK_GLOBALS,
+  play: async () => {
+    await expectRaised(await screen.findByRole("alert"));
+  },
 };

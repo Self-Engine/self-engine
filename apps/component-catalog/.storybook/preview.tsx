@@ -5,6 +5,7 @@ import { activateLanguage, createI18n } from "@self-engine/i18n";
 import { LanguageProvider } from "@self-engine/i18n/react";
 import { BUILT_IN_THEMES } from "@self-engine/theme";
 import { ThemeProvider } from "@self-engine/theme/mantine";
+import { FeedbackHost } from "@self-engine/ui";
 import type { Preview } from "@storybook/react-vite";
 import { appearanceOf, globalTypes, initialGlobals, languageOf } from "./toolbar.ts";
 
@@ -51,7 +52,9 @@ const preview: Preview = {
     (Story, { globals }) => (
       <LanguageProvider i18n={i18n} language={languageOf(globals)}>
         <ThemeProvider appearance={appearanceOf(globals)} catalog={BUILT_IN_THEMES}>
-          <Story />
+          <FeedbackHost>
+            <Story />
+          </FeedbackHost>
         </ThemeProvider>
       </LanguageProvider>
     ),

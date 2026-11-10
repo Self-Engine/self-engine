@@ -13,6 +13,7 @@ import { PlusIcon } from "@phosphor-icons/react/dist/csr/Plus";
 import { SidebarSimpleIcon } from "@phosphor-icons/react/dist/csr/SidebarSimple";
 import { SparkleIcon } from "@phosphor-icons/react/dist/csr/Sparkle";
 import { WalletIcon } from "@phosphor-icons/react/dist/csr/Wallet";
+import { WarningCircleIcon } from "@phosphor-icons/react/dist/csr/WarningCircle";
 import { XIcon } from "@phosphor-icons/react/dist/csr/X";
 import { catalogIcon } from "./catalog-icon.ts";
 
@@ -28,3 +29,4 @@ export const CloseIcon = catalogIcon(XIcon);
 export const SendIcon = catalogIcon(PaperPlaneRightIcon);
 export const AssistantIcon = catalogIcon(SparkleIcon);
 export const SidePanelIcon = catalogIcon(SidebarSimpleIcon);
+export const ErrorIcon = catalogIcon(WarningCircleIcon);

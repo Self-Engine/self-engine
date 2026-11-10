@@ -43,6 +43,12 @@ const FLOATING_LAYERS = {
   PopoverDropdown: { defaultProps: { styles: { dropdown: SURFACE_RAISED } } },
   Modal: RAISED_DIALOG,
   Drawer: RAISED_DIALOG,
+  Notification: { styles: { root: SURFACE_RAISED } },
+};
+
+/** Every "nothing here" and "that failed" block has the same size and alignment. */
+const STATE_BLOCKS = {
+  EmptyState: { defaultProps: { size: "md", align: "center" } },
 };
 
 /** Filled variants of a Color Set carry its on-fill text instead of Mantine's default white. */
@@ -77,6 +83,7 @@ export function mantineTheme(
     },
     components: {
       ...FLOATING_LAYERS,
+      ...STATE_BLOCKS,
       ...(resolved.layout.density === "compact" && COMPACT_CONTROLS),
     },
     defaultRadius: "md",

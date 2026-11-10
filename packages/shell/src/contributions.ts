@@ -12,7 +12,10 @@ export interface ShellView {
 
 export interface EditDrawerProps {
   readonly id: string;
-  readonly onClose: () => void;
+  /** Asks first when `useUnsavedChanges` reports changes. */
+  readonly onCancel: () => void;
+  /** Closes without asking, after a successful save or delete. A failed save calls neither. */
+  readonly onDone: () => void;
 }
 
 /** The address capability available to loaded command code, without a router dependency. */

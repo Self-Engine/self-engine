@@ -84,6 +84,10 @@ _Avoid_: global setting, account setting
 
 ### Shell
 
+**Edit Drawer** (de: _Bearbeiten-Drawer_):
+The panel on the right in which a module edits one entry, opened through the address. Every way out asks before unsaved changes are lost, except the end of a successful save or delete.
+_Avoid_: edit modal, side panel
+
 **Group** (de: _Gruppe_):
 A titled list in the _Module Sidebar_ whose entries come from the user's data, such as a module's clients. Unlike a _View_ it changes with that data, and not every module has one.
 _Avoid_: section, category, folder
@@ -99,6 +103,10 @@ _Avoid_: secondary sidebar, sub navigation
 **Navbar** (de: _Navbar_):
 The outermost bar with one entry per module, either narrow with icons only or wide with labels.
 _Avoid_: main menu, sidebar
+
+**Notice** (de: _Hinweis_):
+A short message bottom right that says something happened or failed, stays for eight seconds and can offer to undo. It asks nothing; a question that needs an answer is a confirmation dialog.
+_Avoid_: toast, snackbar, notification
 
 **Shell** (de: _Hülle_):
 The frame of the app around the modules, made of the navigation and the content area.

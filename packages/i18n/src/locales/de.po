@@ -24,17 +24,23 @@ msgctxt "View title"
 msgid "Archive"
 msgstr "Archiv"
 
+#: packages/placeholder-alpha/src/edit-drawer.tsx
+#: packages/ui/src/feedback.tsx
+msgid "Cancel"
+msgstr "Abbrechen"
+
 #: packages/placeholder-alpha/src/groups.tsx
 msgid "Clients"
 msgstr "Kunden"
 
+#: packages/placeholder-alpha/src/edit-drawer.tsx
+msgctxt "Close the drawer"
+msgid "Close"
+msgstr "Schließen"
+
 #: packages/shell/src/shell.tsx
 msgid "Close editor"
 msgstr "Editor schließen"
-
-#: packages/placeholder-alpha/src/edit-drawer.tsx
-msgid "Close entry"
-msgstr "Eintrag schließen"
 
 #: packages/shell/src/shell.tsx
 msgid "Close module sidebar"
@@ -44,17 +50,50 @@ msgstr "Modul-Sidebar schließen"
 msgid "Close navigation"
 msgstr "Navigation schließen"
 
+#: packages/ui/src/feedback.tsx
+msgid "Close notice"
+msgstr "Hinweis schließen"
+
 #: packages/shell/src/shell.tsx
 msgid "Collapse module sidebar"
 msgstr "Modul-Sidebar einklappen"
 
-#: packages/shell/src/shell.tsx
-msgid "Editor"
-msgstr "Editor"
+#: packages/placeholder-alpha/src/edit-drawer.tsx
+#: packages/placeholder-alpha/src/entries.tsx
+msgid "Delete"
+msgstr "Löschen"
+
+#: packages/placeholder-alpha/src/entries.tsx
+msgid "Delete {name}"
+msgstr "{name} löschen"
+
+#: packages/placeholder-alpha/src/delete-with-undo.tsx
+msgid "Deleted"
+msgstr "Gelöscht"
+
+#: packages/shell/src/edit-drawer-exits.tsx
+msgid "Discard"
+msgstr "Verwerfen"
+
+#: packages/shell/src/edit-drawer-exits.tsx
+msgid "Discard changes?"
+msgstr "Änderungen verwerfen?"
+
+#: packages/placeholder-alpha/src/entries.tsx
+msgid "Entries you create appear here."
+msgstr "Einträge, die du anlegst, erscheinen hier."
+
+#: packages/placeholder-alpha/src/edit-drawer.tsx
+msgid "Entry not found"
+msgstr "Eintrag nicht gefunden"
 
 #: packages/shell/src/shell.tsx
 msgid "Expand module sidebar"
 msgstr "Modul-Sidebar ausklappen"
+
+#: packages/placeholder-alpha/src/sample-data.ts
+msgid "Flaky work"
+msgstr "Wackelige Arbeit"
 
 #: packages/placeholder-alpha/src/sample-data.ts
 msgid "Garden"
@@ -68,9 +107,17 @@ msgstr "Gartenarbeit"
 msgid "Hello {name}, nice to see you."
 msgstr "Hallo {name}, schön, dich zu sehen."
 
+#: packages/shell/src/edit-drawer-exits.tsx
+msgid "Keep editing"
+msgstr "Weiter bearbeiten"
+
 #: apps/web/src/modules.ts
 msgid "Language sample"
 msgstr "Sprachbeispiel"
+
+#: packages/ui/src/state-blocks.tsx
+msgid "Loading"
+msgstr "Wird geladen"
 
 #: packages/shell/src/shell.tsx
 msgid "Module Sidebar"
@@ -80,9 +127,19 @@ msgstr "Modul-Sidebar"
 msgid "Modules"
 msgstr "Module"
 
+#: packages/placeholder-alpha/src/edit-drawer.tsx
+msgid "Name"
+msgstr "Name"
+
+#: packages/placeholder-alpha/src/edit-drawer.tsx
+#: packages/placeholder-alpha/src/entries.tsx
 #: packages/placeholder-alpha/src/index.ts
 msgid "New entry"
 msgstr "Neuer Eintrag"
+
+#: packages/placeholder-alpha/src/entries.tsx
+msgid "No entries here"
+msgstr "Hier gibt es keine Einträge"
 
 #: apps/web/src/route-states.tsx
 msgid "Nothing was found at this address."
@@ -117,6 +174,10 @@ msgstr "Breite der Modul-Sidebar ändern"
 msgid "Resize navbar"
 msgstr "Breite der Navbar ändern"
 
+#: packages/placeholder-alpha/src/edit-drawer.tsx
+msgid "Save"
+msgstr "Speichern"
+
 #: apps/web/src/modules.ts
 msgid "Settings"
 msgstr "Einstellungen"
@@ -128,6 +189,10 @@ msgstr "Studio"
 #: packages/placeholder-alpha/src/sample-data.ts
 msgid "Studio work"
 msgstr "Studioarbeit"
+
+#: packages/ui/src/feedback.tsx
+msgid "That could not be undone."
+msgstr "Das konnte nicht rückgängig gemacht werden."
 
 #: packages/shell/src/primary-action.tsx
 msgid "The action could not be completed. Please try again."
@@ -145,6 +210,10 @@ msgstr "Die minimale Modulansicht."
 msgid "Theme preview"
 msgstr "Design-Vorschau"
 
+#: packages/placeholder-alpha/src/edit-drawer.tsx
+msgid "This entry could not be loaded."
+msgstr "Dieser Eintrag konnte nicht geladen werden."
+
 #: packages/shell/src/lazy-contribution.tsx
 msgid "This part could not be loaded."
 msgstr "Dieser Bereich konnte nicht geladen werden."
@@ -157,9 +226,17 @@ msgstr "Dieser Satz ist übersetzt."
 msgid "This View could not be loaded. Please try again."
 msgstr "Diese Ansicht konnte nicht geladen werden. Bitte versuche es erneut."
 
-#: packages/shell/src/lazy-contribution.tsx
+#: packages/ui/src/state-blocks.tsx
 msgid "Try again"
 msgstr "Erneut versuchen"
+
+#: packages/ui/src/feedback.tsx
+msgid "Undo"
+msgstr "Rückgängig"
+
+#: packages/shell/src/edit-drawer-exits.tsx
+msgid "What you changed here will be lost."
+msgstr "Was du hier geändert hast, geht verloren."
 
 #: apps/web/src/language-sample.tsx
 msgid "Your name"

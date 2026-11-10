@@ -4,9 +4,10 @@
 import { ProjectsIcon, SettingsIcon, TimeIcon } from "@self-engine/icons";
 import { BrandMark } from "@self-engine/icons/brand-mark";
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { expect, fn, screen, userEvent, waitFor, within } from "storybook/test";
 import {
+  type LeaveGuard,
   Shell,
   SHELL_STANDARD_MODULE_SIDEBAR_WIDTH,
   SHELL_STANDARD_NAVBAR,
@@ -18,6 +19,19 @@ import {
 } from "./index.ts";
 
 export type Canvas = ReturnType<typeof within>;
+
+/**
+ * Esc as the browser delivers it. Between the listeners of a real key press the browser runs
+ * microtasks, and with them React, which a scripted event does not allow. Only the story runner
+ * can press a key, so in the Catalog's own page this stays scripted.
+ */
+export async function pressEscape() {
+  const keyboard =
+    import.meta.env.MODE === "test"
+      ? (await import("vite-plus/test/browser")).userEvent
+      : userEvent;
+  await keyboard.keyboard("{Escape}");
+}
 
 const load = async () => ({ default: () => null });
 export const ENTRIES = [
@@ -74,21 +88,37 @@ export function storyRouting(initial: ViewSearch = {}): ShellRouting & {
 } {
   let search = initial;
   const listeners = new Set<() => void>();
+  const guards = new Set<LeaveGuard>();
+  const leave = async (next: ViewSearch) => {
+    const addressOf = (at: ViewSearch) => ({ pathname: "/story", search: at });
+    for (const guard of guards) {
+      // oxlint-disable-next-line no-await-in-loop -- like the router, one guard after the other
+      if (!(await guard({ current: addressOf(search), next: addressOf(next) }))) return;
+    }
+    search = next;
+    for (const listener of listeners) listener();
+  };
   const address: ViewAddress = {
     subscribe: (listener) => {
       listeners.add(listener);
       return () => listeners.delete(listener);
     },
     search: () => search,
-    writeSearch: (update) => {
-      search = update(search);
-      for (const listener of listeners) listener();
-    },
+    writeSearch: (update) => void leave(update(search)),
     scopedWriteSearch: () => address.writeSearch,
   };
   return {
     address,
     useAddress: () => address,
+    useLeaveGuard: (guard, enabled) => {
+      useEffect(() => {
+        if (!enabled) return undefined;
+        guards.add(guard);
+        return () => {
+          guards.delete(guard);
+        };
+      }, [guard, enabled]);
+    },
     Link: ({ to, search: nextSearch, onClick, ...props }) => (
       <a
         {...props}

@@ -1,4 +1,4 @@
-import { useMemo, type ComponentPropsWithRef } from "react";
+import { useCallback, useMemo, type ComponentPropsWithRef } from "react";
 import {
   retainedViewSearch,
   type ShellRouting,
@@ -6,7 +6,14 @@ import {
   type ViewSearch,
   type WriteViewSearch,
 } from "@self-engine/shell";
-import { type AnyRouter, createLink, useRouter, useRouterState } from "@tanstack/react-router";
+import {
+  type AnyRouter,
+  createLink,
+  type ShouldBlockFn,
+  useBlocker,
+  useRouter,
+  useRouterState,
+} from "@tanstack/react-router";
 import { findModule } from "./modules.ts";
 
 /** What the Shell shows: the page being left, until the next one has loaded. */
@@ -56,10 +63,43 @@ function createAddress(router: AnyRouter): ViewAddress {
   };
 }
 
+/**
+ * How far the browser's history moved from the entry the router is still on. Unknown on an entry
+ * the router did not write, such as a hand-edited hash: it has no index to measure from.
+ */
+function stepsTraversed(history: AnyRouter["history"]): number | undefined {
+  const browserEntry = window.history.state as Partial<typeof history.location.state> | null;
+  const target = browserEntry?.__TSR_index;
+  return target === undefined ? undefined : target - history.location.state.__TSR_index;
+}
+
 export const ROUTING: ShellRouting = {
   useAddress: () => {
     const router = useRouter();
     return useMemo(() => createAddress(router), [router]);
+  },
+  useLeaveGuard: (guard, enabled) => {
+    const router = useRouter();
+    const shouldBlockFn = useCallback<ShouldBlockFn>(
+      ({ action, current, next }) => {
+        const answer = guard({ current, next });
+        if (typeof answer === "boolean") return !answer;
+        // Read here, while a traversing browser is still on the target.
+        const steps =
+          action === "PUSH" || action === "REPLACE" ? undefined : stepsTraversed(router.history);
+        if (steps === undefined) return answer.then((leave) => !leave);
+        // The browser has already moved. Left there until the answer, a second Back would be
+        // measured from the wrong entry and undo the wrong distance, so it goes back at once and
+        // the step is taken again on "yes".
+        void answer.then((leave) => {
+          if (leave) router.history.go(steps, { ignoreBlocker: true });
+        });
+        return true;
+      },
+      [guard, router],
+    );
+    // A blocked unload is cancelled silently in Electron and would stand in the way of quitting.
+    useBlocker({ shouldBlockFn, disabled: !enabled, enableBeforeUnload: false });
   },
   Link: ({ to, search, target, "aria-current": current, ...props }) => {
     const location = useRouterState({ select: visibleLocation });

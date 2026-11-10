@@ -34,9 +34,26 @@ export interface ViewAddress {
   readonly scopedWriteSearch: () => WriteViewSearch;
 }
 
+/** One end of a change of the address. */
+export interface LeavingAddress {
+  readonly pathname: string;
+  readonly search: ViewSearch;
+}
+
+/** Answers whether a change of the address may go ahead, asking the user first if it must. */
+export type LeaveGuard = (attempt: {
+  readonly current: LeavingAddress;
+  readonly next: LeavingAddress;
+}) => boolean | Promise<boolean>;
+
 export interface ShellRouting {
   readonly Link: FunctionComponent<ShellLinkProps>;
   readonly useAddress: () => ViewAddress;
+  /**
+   * Holds every change of the address until the guard answers, while `enabled` is true. That is
+   * also Back and Forward. Give it a stable guard, because a new one is registered anew.
+   */
+  readonly useLeaveGuard: (guard: LeaveGuard, enabled: boolean) => void;
 }
 
 export const ShellRoutingContext = createContext<ShellRouting | null>(null);

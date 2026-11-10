@@ -1,11 +1,12 @@
 import type { EditDrawerProps } from "./contributions.ts";
+import { EditDrawerTitleContext } from "./edit-drawer-title.ts";
+import { selectEditId, UnsavedChangesContext, useEditDrawerExits } from "./edit-drawer-exits.tsx";
 import { LazyContribution, lazyComponents } from "./lazy-contribution.tsx";
 import { useCloseOverlayOnPick, useViewSearch, useWriteViewSearch } from "./routing.tsx";
 import { ACTIVE_ENTRY_VARS } from "./navigation-style.ts";
 import { PrimaryAction } from "./primary-action.tsx";
 import { useLingui } from "@lingui/react/macro";
 import type { ShellContribution, ShellView } from "./contributions.ts";
-import type { ViewSearch } from "./view-search.ts";
 import {
   ActionIcon,
   AppShell,
@@ -27,6 +28,7 @@ import {
 import { useDisclosure } from "@mantine/hooks";
 import { SidePanelIcon } from "@self-engine/icons";
 import { type ColorSetId, roleColor } from "@self-engine/theme";
+import { LoadingState, NOTICE_CLEARANCE_VARIABLE } from "@self-engine/ui";
 import {
   type ComponentType,
   type CSSProperties,
@@ -70,6 +72,13 @@ const LAYOUT_STEPS = { base: "phone", xs: "narrow", md: "medium", lg: "wide" } a
 
 /** The first render already knows its Layout Step, so that no other step flashes. */
 const MEASURE_ON_FIRST_RENDER = { getInitialValueInEffect: false };
+
+function useLayoutStep() {
+  return useMatches<(typeof LAYOUT_STEPS)[keyof typeof LAYOUT_STEPS]>(
+    LAYOUT_STEPS,
+    MEASURE_ON_FIRST_RENDER,
+  );
+}
 
 const RADIUS = "var(--mantine-radius-md)";
 
@@ -145,6 +154,17 @@ const PHONE_DRAWER_WITH_STRIP_STYLES = {
   ...DRAWER_STYLES,
   content: DRAWER_BELOW_STRIP_SCROLLS_STYLE,
 };
+
+// The body fills the frame, so a module can pin its buttons to the bottom. Taller content scrolls
+// the frame, below Mantine's sticky header.
+const EDIT_DRAWER_STYLES = {
+  ...DRAWER_STYLES,
+  content: { ...NOT_WINDOW_DRAG_STYLE, display: "flex", flexDirection: "column" },
+  body: { display: "flex", flex: 1, flexDirection: "column" },
+} satisfies Record<string, CSSProperties>;
+
+const FLOATING_EDIT_DRAWER = { size: 460, offset: GAP, radius: "lg" } as const;
+const PHONE_EDIT_DRAWER = { size: "100%", offset: 0, radius: 0 } as const;
 
 const NAVIGATION_DRAWER_STYLES = {
   ...DRAWER_STYLES,
@@ -569,10 +589,7 @@ function ShellFrame({
 }: ShellFrameProps) {
   const { t } = useLingui();
   const theme = useMantineTheme();
-  const step = useMatches<(typeof LAYOUT_STEPS)[keyof typeof LAYOUT_STEPS]>(
-    LAYOUT_STEPS,
-    MEASURE_ON_FIRST_RENDER,
-  );
+  const step = useLayoutStep();
   const [drawerOpened, { close: closeDrawer, toggle: toggleDrawer }] = useDisclosure(false);
   const navigation = { entries, settingsEntry, activeEntryId };
 
@@ -615,6 +632,7 @@ function ShellFrame({
 
   return (
     <ShellRoutingContext value={routing}>
+      {isPhone && <style>{`:root{${NOTICE_CLEARANCE_VARIABLE}:${rem(BOTTOM_BAR_HEIGHT)}}`}</style>}
       <AppShell
         {...(isPhone && { footer: { height: BOTTOM_BAR_HEIGHT } })}
         mode="static"
@@ -852,17 +870,17 @@ function ModuleViews({
   );
 }
 
-const selectEditId = (search: ViewSearch) =>
-  typeof search.edit === "string" ? search.edit : undefined;
-
 interface EditTarget {
   readonly module: ShellContribution;
   readonly id: string;
 }
 
+const editTargetKey = ({ module, id }: EditTarget) => `${module.id}/${id}`;
+
 /** The frame stays mounted whatever is open, so that closing can animate and return the focus. */
 function ModuleEditDrawer({ module }: { readonly module: ShellContribution | undefined }) {
-  const { t } = useLingui();
+  const { t, i18n } = useLingui();
+  const frame = useLayoutStep() === "phone" ? PHONE_EDIT_DRAWER : FLOATING_EDIT_DRAWER;
   const id = useViewSearch(selectEditId);
   const write = useWriteViewSearch();
   const target: EditTarget | undefined =
@@ -871,27 +889,43 @@ function ModuleEditDrawer({ module }: { readonly module: ShellContribution | und
   // so the module's code still only loads when it first opens.
   const [shown, setShown] = useState(target);
   if (target && (target.module !== shown?.module || target.id !== shown.id)) setShown(target);
+  // Held here, beside the View, so that naming the entry does not re-render it.
+  const [entryTitle, setEntryTitle] = useState<string>();
+  const exits = useEditDrawerExits(target && editTargetKey(target));
+  // Only writes the address. Whether that may happen is the guard's to decide.
   const close = () =>
     write((search) => {
       const { edit: _edit, ...rest } = search;
       return rest;
     });
+  const done = () => {
+    exits.letNextExitPass();
+    close();
+  };
   return (
     <Drawer
+      {...frame}
+      // Mantine's Drawer and Modal both listen on the window, so one Esc would reach both.
+      closeOnEscape={!exits.questionOpen}
       opened={target !== undefined}
       onClose={close}
       position="right"
-      title={t`Editor`}
-      closeButtonProps={{ "aria-label": t`Close editor` }}
-      styles={DRAWER_STYLES}
+      title={entryTitle ?? (shown && i18n._(shown.module.name))}
+      closeButtonProps={{ "aria-label": t`Close editor`, ref: exits.closeButton }}
+      styles={EDIT_DRAWER_STYLES}
     >
       {shown?.module.editDrawer && (
-        <LazyContribution
-          key={`${shown.module.id}/${shown.id}`}
-          components={loadedDrawer}
-          load={shown.module.editDrawer}
-          props={{ id: shown.id, onClose: close }}
-        />
+        <EditDrawerTitleContext value={setEntryTitle}>
+          <UnsavedChangesContext value={exits.register}>
+            <LazyContribution
+              key={editTargetKey(shown)}
+              components={loadedDrawer}
+              fallback={<LoadingState />}
+              load={shown.module.editDrawer}
+              props={{ id: shown.id, onCancel: close, onDone: done }}
+            />
+          </UnsavedChangesContext>
+        </EditDrawerTitleContext>
       )}
     </Drawer>
   );
