@@ -8,6 +8,7 @@ Pro Runde werden nur 2–3 Fragen gestellt; die Nummern sind stabil.
   - ✅ Übergang: wiederholbarer Import, Wechsel am Stichtag (D12)
   - ✅ Mobile + Sync sind Pflicht vor dem Stichtag (D14)
   - ✅ Schichtenfolge als Rahmen, jede Schicht mit eigener Vertiefung (D25)
+    - ✅ Arbeitsablauf von der Schicht bis zum PR (D155–D160) → docs/agents/workflow.md
     - ✅ Schicht 0 Repo-Fundament entschieden (D28–D49) → 03-layer-0-foundation.md
     - ✅ Schicht 1 Design-System + App-Hülle entschieden (D54–D82) → 04-layer-1-shell.md
       - ✅ Optik, Hülle, Desktop-Gefühl, Styling, Farben, kleine Fenster, rechte Seite, Theming, Einstellungen, Drawer, i18n (D54–D66)

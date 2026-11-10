@@ -82,9 +82,10 @@ that is missing or broken; fill those in and commit the catalogs.
 
 Repo skills live in `.agents/skills/<name>/`, each linked from `.claude/skills/<name>`.
 
+- **Workflow:** read [`docs/agents/workflow.md`](docs/agents/workflow.md) before grilling, specifying, cutting or building an issue, and before opening or merging its pull request.
 - **Issue tracker:** GitHub issues in `GwydionBr/self-engine-next`, via `gh`. See
   [`docs/agents/issue-tracker.md`](docs/agents/issue-tracker.md).
-- **Triage labels:** the five canonical labels, unchanged, plus `layer:<n>`. See
+- **Triage labels:** the five canonical labels, unchanged, plus `layer:<n>` and `needs-grilling`. See
   [`docs/agents/triage-labels.md`](docs/agents/triage-labels.md).
 - **Domain docs:** single-context, one [`GLOSSARY.md`](GLOSSARY.md) plus `docs/adr/`. See
   [`docs/agents/domain.md`](docs/agents/domain.md).

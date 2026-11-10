@@ -812,6 +812,16 @@ Grundlage: [`research-layer-3-core.md`](research-layer-3-core.md).
   Teil-Tickets, der Titel wird ein Changelog-Eintrag. Würde ein Paket deutlich mehr als rund 4.500
   Zeilen, wird es beim Schneiden geteilt (bisher 450 bis 4.450 neue Zeilen). _Verworfen:_ ein PR pro
   Teil-Ticket (ein Changelog-Eintrag je Teil, halbfertige Funktionen auf `main`).
+- **D159 Der Ablauf steht im Repo, die Skills bleiben persönlich.** `docs/agents/workflow.md`
+  beschreibt jede Stufe mit Ergebnis und nennt den passenden Skill, die Skills bleiben vorerst in
+  `~/.agents/skills`. Sie werden erst kopiert, wenn Agenten außerhalb des eigenen Macs arbeiten.
+  _Verworfen:_ die sechs Skills sofort kopieren (Kopien veralten, Lizenz ungeklärt).
+- **D160 Ein Paket kommt nur unter drei Bedingungen ohne Grilling aus:** prüfbare
+  Abnahmekriterien, kein Muster für andere Module, keine offene Entwurfsfrage. Entschieden wird beim
+  Schneiden, sichtbar am Label. Findet ein Agent beim Bau doch eine offene Entwurfsfrage, hört er
+  auf, schreibt sie ins Issue und setzt `needs-grilling`. Teil-Tickets aus einem Spec gelten immer
+  als baubar. Layer-Specs wie #103 tragen kein Bau-Label. _Verworfen:_ immer grillen (kostet Zeit
+  für Fälle wie #25).
 
 ## Fakten
 
