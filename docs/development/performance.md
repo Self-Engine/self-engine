@@ -46,8 +46,8 @@ emitted chunk graph. Starting at every entry, it follows **static** imports and 
 shared JavaScript chunk once. Dynamic imports, CSS, fonts and other assets are outside this
 JavaScript budget. The report is `apps/web/dist/startup-bundle.json`.
 
-The current compiler-enabled baseline is **792,058 raw bytes** across 21 static chunks.
-The limit is **832 KiB (851,968 bytes)**, about 7.5% headroom. Raw emitted bytes avoid a
+The current compiler-enabled baseline is **793,601 raw bytes** across 22 static chunks.
+The limit is **832 KiB (851,968 bytes)**, about 7% headroom. Raw emitted bytes avoid a
 compression-version dependency. A deliberate budget increase must explain the measured
 cost in its PR; splitting filenames or moving code to a shared chunk does not evade it.
 
