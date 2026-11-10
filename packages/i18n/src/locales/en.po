@@ -190,6 +190,10 @@ msgstr "Resize navbar"
 msgid "Save"
 msgstr "Save"
 
+#: packages/shell/src/shell.tsx
+msgid "Search"
+msgstr "Search"
+
 #: packages/shell/src/command-palette-dialog.tsx
 msgid "Search commands and views"
 msgstr "Search commands and views"

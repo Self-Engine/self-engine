@@ -23,8 +23,7 @@ export function ShortcutHint({ shortcut }: { readonly shortcut: string }) {
   useEffect(() => {
     void loadBindings().then(
       ({ displayShortcut }) => setShown(displayShortcut(shortcut)),
-      // `Shortcuts` has reported the same failed load.
-      () => undefined,
+      (error: unknown) => console.error(error),
     );
   }, [shortcut]);
   return shown === undefined ? null : <Kbd size="xs">{shown}</Kbd>;
