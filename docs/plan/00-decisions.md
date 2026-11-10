@@ -803,6 +803,15 @@ Grundlage: [`research-layer-3-core.md`](research-layer-3-core.md).
   Werkzeug zum Veröffentlichen, sagt er das in seinem Bericht. _Verworfen:_ Änderungen von Hand am
   HTML (jeder Agent stuft selbst ein), stündlicher geplanter Lauf (der Stand ändert sich mit den
   Arbeitsschritten), GitHub Pages (macht den Planungsstand vor dem Öffentlich-Machen zugänglich).
+- **D157 Entscheidungen aus einem Grilling gehen sofort per Docs-PR auf `main`.** Der PR folgt direkt
+  dem Grilling und kommt vor dem Bau, das Spec steht sofort im Issue. ADRs gehen mit dem Bau-PR,
+  weil sie beschreiben, was im Code gilt. _Grund:_ Das Grilling von #30 belegte D133–D142 auf `main`,
+  während Schicht 3 dieselben Nummern auf einem Branch nutzte. _Verworfen:_ Entscheidungen im Bau-PR
+  (das nächste Grilling sieht sie tagelang nicht).
+- **D158 Ein Integrations-Branch und ein PR pro Paket.** Der PR schließt das Paket und seine
+  Teil-Tickets, der Titel wird ein Changelog-Eintrag. Würde ein Paket deutlich mehr als rund 4.500
+  Zeilen, wird es beim Schneiden geteilt (bisher 450 bis 4.450 neue Zeilen). _Verworfen:_ ein PR pro
+  Teil-Ticket (ein Changelog-Eintrag je Teil, halbfertige Funktionen auf `main`).
 
 ## Fakten
 
