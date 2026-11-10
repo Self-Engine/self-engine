@@ -38,7 +38,7 @@ export function saveEntry(id: string, name: string) {
   commit(
     id === NEW_ENTRY_ID
       ? [...entries, { id: `entry-${(created += 1)}`, name }]
-      : entries.map((entry) => (entry.id === id ? { id, name } : entry)),
+      : entries.map((entry) => (entry.id === id ? { ...entry, name } : entry)),
   );
 }
 
