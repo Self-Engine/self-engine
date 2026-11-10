@@ -218,7 +218,6 @@ msgstr "Studio work"
 msgid "That could not be undone."
 msgstr "That could not be undone."
 
-#: packages/shell/src/command-palette.tsx
 #: packages/shell/src/start-command.tsx
 msgid "The action could not be completed. Please try again."
 msgstr "The action could not be completed. Please try again."

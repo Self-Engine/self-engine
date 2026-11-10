@@ -11,7 +11,7 @@ const port = Number(process.env.PORT ?? 5733);
 
 export default defineConfig({
   plugins: [
-    // Baseline: 793,601 raw JS bytes; 832 KiB leaves about 7% headroom.
+    // Baseline: 799,595 raw JS bytes; 832 KiB leaves about 6% headroom.
     startupBundle(832 * 1024),
     linguiPlugin(),
     tanstackRouter({ target: "react", autoCodeSplitting: true }),
