@@ -1,8 +1,9 @@
 import { MantineThemeProvider } from "@mantine/core";
 import type { Meta } from "@storybook/react-vite";
 import { expect, screen, userEvent, waitFor } from "storybook/test";
-import { Shell, type ShellProps } from "./index.ts";
+import { defineContribution, Shell, type ShellProps } from "./index.ts";
 import {
+  ENTRIES,
   LOGO,
   LOGO_AND_WINDOW_BUTTONS,
   STRIP_HEIGHT,
@@ -311,5 +312,28 @@ export const TheCollapseToggleLabelIsTranslated: Story = {
     await waitFor(() =>
       expect(canvas.getByRole("button", { name: "Modul-Sidebar ausklappen" })).toBeVisible(),
     );
+  },
+};
+
+const unloadedCommand = {
+  id: "create",
+  label: { id: "story-Create entry", message: "Create entry" },
+  load: () => {
+    throw new Error("Command code must only load on click");
+  },
+} as const;
+const unloadedModule = defineContribution({
+  ...ENTRIES[0]!,
+  commands: [unloadedCommand],
+  primaryAction: unloadedCommand,
+  groups: () => new Promise(() => {}),
+});
+
+export const MainActionDoesNotWaitForModuleCode: Story = {
+  ...atViewport("wide"),
+  args: { activeModule: unloadedModule },
+  play: async ({ canvas }) => {
+    await expect(canvas.getByRole("button", { name: "Create entry" })).toBeVisible();
+    await expect(canvas.getByRole("link", { name: "Sidebar content" })).toBeVisible();
   },
 };

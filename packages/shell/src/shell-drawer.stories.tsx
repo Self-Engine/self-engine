@@ -1,11 +1,19 @@
 import type { Meta } from "@storybook/react-vite";
 import { expect, screen, userEvent, waitFor, within } from "storybook/test";
-import { Shell, type ShellProps } from "./index.ts";
 import {
+  Shell,
+  ShellGroup,
+  ShellGroupEntry,
+  type ShellContribution,
+  type ShellProps,
+} from "./index.ts";
+import {
+  ENTRIES,
   LOGO,
   LOGO_AND_WINDOW_BUTTONS,
   STRIP_HEIGHT,
   appRegionOf,
+  LONG_MODULE,
   atFrameWidth,
   atSmallestFontScale,
   atViewport,
@@ -17,6 +25,7 @@ import {
   drawerOverlay,
   expectActiveEntryFillsTheColumn,
   expectContentFillsTheFrame,
+  expectNavigationLinks,
   openDrawer,
   widthOf,
   type Story,
@@ -99,10 +108,10 @@ export const TheDrawerShowsTheNavbarBesideTheModuleSidebar: Story = {
     await expect(box.top).toBeCloseTo(strip.getBoundingClientRect().bottom, 0);
     await expect(box.bottom).toBeCloseTo(drawer.getBoundingClientRect().bottom, 0);
     const names = within(navbar)
-      .getAllByRole("button")
+      .getAllByRole("link")
       .map((entry) => entry.getAttribute("aria-label"));
-    await expect(names).toEqual(["Projects", "Time", "Settings"]);
-    const settings = within(navbar).getByRole("button", { name: "Settings" });
+    await expect(names).toEqual(["Projects", "Time", "Third module", "Settings"]);
+    const settings = within(navbar).getByRole("link", { name: "Settings" });
     await expect(settings.getBoundingClientRect().bottom).toBeCloseTo(box.bottom - 10, 0);
     const icon = settings.querySelector("svg")!;
     await expect(centerX(icon)).toBeCloseTo(centerX(navbar), 0);
@@ -110,9 +119,9 @@ export const TheDrawerShowsTheNavbarBesideTheModuleSidebar: Story = {
     await expect(header.left).toBeCloseTo(box.right, 0);
     await expect(header.right).toBeCloseTo(drawer.getBoundingClientRect().right, 0);
     await expect(within(drawer).getByRole("button", { name: "Close navigation" })).toBeVisible();
-    await expect(within(drawer).getByText("Sidebar content").getBoundingClientRect().left).toBe(
-      header.left + 16,
-    );
+    await expect(
+      within(drawer).getByRole("link", { name: "Sidebar content" }).getBoundingClientRect().left,
+    ).toBe(header.left + 16);
   },
 };
 
@@ -139,12 +148,70 @@ export const SelectingAnEntryLeavesTheDrawerOpen: Story = {
   play: async ({ canvas }) => {
     const drawer = await openDrawer(canvas);
     const navbar = within(drawerNavbarOf(drawer));
-    await userEvent.click(navbar.getByRole("button", { name: "Projects" }));
-    await expect(meta.args.onSelectEntry).toHaveBeenCalledWith("projects");
-    await userEvent.click(navbar.getByRole("button", { name: "Settings" }));
-    await expect(meta.args.onSelectEntry).toHaveBeenLastCalledWith("settings");
+    await userEvent.click(navbar.getByRole("link", { name: "Projects" }));
+    await expect(navbar.getByRole("link", { name: "Projects" })).toHaveAttribute(
+      "href",
+      "/projects/overview",
+    );
+    await userEvent.click(navbar.getByRole("link", { name: "Settings" }));
+    await expect(navbar.getByRole("link", { name: "Settings" })).toHaveAttribute(
+      "href",
+      "/settings/overview",
+    );
     await expect(screen.getByRole("dialog", { name: "Module Sidebar" })).toBe(drawer);
     await expect(within(drawer).getByText("Sidebar content")).toBeVisible();
+  },
+};
+
+const MODULE_WITH_GROUPS: ShellContribution = {
+  ...ENTRIES[1]!,
+  groups: async () => ({
+    default: () => (
+      <ShellGroup title="Clients">
+        <ShellGroupEntry label="Studio" search={{ client: "studio" }} />
+      </ShellGroup>
+    ),
+  }),
+};
+
+/** A View or Group entry finishes the job the overlay was opened for, unlike a module entry. */
+export const PickingAViewClosesTheDrawer: Story = {
+  ...atViewport("narrow"),
+  play: async ({ canvas }) => {
+    const drawer = await openDrawer(canvas);
+    await userEvent.click(within(drawer).getByRole("link", { name: "Sidebar content" }));
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+  },
+};
+
+export const PickingAGroupEntryClosesTheDrawer: Story = {
+  ...atViewport("narrow"),
+  args: { activeModule: MODULE_WITH_GROUPS },
+  play: async ({ canvas }) => {
+    const drawer = await openDrawer(canvas);
+    await userEvent.click(await within(drawer).findByRole("link", { name: "Studio" }));
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+  },
+};
+
+export const PickingAViewClosesThePhoneDrawer: Story = {
+  ...atViewport("phone"),
+  play: async ({ canvas }) => {
+    const drawer = await openDrawer(canvas, "Open module sidebar");
+    await userEvent.click(within(drawer).getByRole("link", { name: "Sidebar content" }));
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+  },
+};
+
+export const OpeningAViewInANewTabLeavesTheDrawerOpen: Story = {
+  ...atViewport("narrow"),
+  play: async ({ canvas }) => {
+    const drawer = await openDrawer(canvas);
+    const user = userEvent.setup();
+    await user.keyboard("{Meta>}");
+    await user.click(within(drawer).getByRole("link", { name: "Sidebar content" }));
+    await user.keyboard("{/Meta}");
+    await expect(screen.getByRole("dialog", { name: "Module Sidebar" })).toBe(drawer);
   },
 };
 
@@ -153,12 +220,13 @@ export const TheDrawerNavbarNamesItsEntriesAndMarksTheActiveOne: Story = {
   play: async ({ canvas }) => {
     const drawer = await openDrawer(canvas);
     const navbar = within(drawerNavbarOf(drawer));
-    const active = navbar.getByRole("button", { name: "Time", current: "page" });
+    await expectNavigationLinks(navbar);
+    const active = navbar.getByRole("link", { name: "Time", current: "page" });
     await expect(active).toHaveStyle({
       backgroundColor: getComputedStyle(active).getPropertyValue("--se-module-soft"),
     });
     await expectActiveEntryFillsTheColumn(active);
-    await userEvent.hover(navbar.getByRole("button", { name: "Projects" }));
+    await userEvent.hover(navbar.getByRole("link", { name: "Projects" }));
     await expect(await screen.findByRole("tooltip")).toHaveTextContent("Projects");
   },
 };
@@ -169,7 +237,7 @@ export const TheDrawerLogoStartsAtTheLeftEdgeWithoutWindowButtons: Story = {
   play: async ({ canvas }) => {
     const drawer = await openDrawer(canvas);
     const mark = within(drawer).getByTestId("mark");
-    const firstEntry = within(drawerNavbarOf(drawer)).getByRole("button", { name: "Projects" });
+    const firstEntry = within(drawerNavbarOf(drawer)).getByRole("link", { name: "Projects" });
     await expect(mark.getBoundingClientRect().left).toBeCloseTo(
       firstEntry.getBoundingClientRect().left,
       0,
@@ -200,12 +268,12 @@ export const TheDrawerHeaderStaysBelowTheStripWhenTheSidebarScrolls: Story = {
   ...atViewport("narrow"),
   args: {
     ...LOGO_AND_WINDOW_BUTTONS,
-    moduleSidebar: <p style={{ height: 3000 }}>Sidebar content</p>,
+    activeModule: LONG_MODULE,
   },
   play: async ({ canvas }) => {
     const drawer = await openDrawer(canvas);
     const header = drawerHeaderOf(drawer);
-    const firstEntry = within(drawerNavbarOf(drawer)).getByRole("button", { name: "Projects" });
+    const firstEntry = within(drawerNavbarOf(drawer)).getByRole("link", { name: "Projects" });
     const top = header.getBoundingClientRect().top;
     const entryTop = firstEntry.getBoundingClientRect().top;
     const viewport = within(drawer)
@@ -287,7 +355,7 @@ export const ThePhoneDrawerHeaderSitsBelowTheStripWithWindowButtons: Story = {
 export const ThePhoneDrawerHeaderStaysBelowTheStripWhenTheSidebarScrolls: Story = {
   ...atViewport("phone"),
   args: {
-    moduleSidebar: <p style={{ height: 3000 }}>Sidebar content</p>,
+    activeModule: LONG_MODULE,
     reserveWindowButtons: true,
   },
   play: async ({ canvas }) => {

@@ -7,27 +7,34 @@ msgstr ""
 "X-Generator: @lingui/cli\n"
 "Language: en\n"
 
-#: apps/web/src/routes/language-sample.tsx
+#: apps/web/src/language-sample.tsx
 msgid "{count, plural, one {# entry} other {# entries}}"
 msgstr "{count, plural, one {# entry} other {# entries}}"
 
-#: apps/web/src/routes/language-sample.tsx
-msgid "A link stays inside its sentence: read the <0>About page</0>."
-msgstr "A link stays inside its sentence: read the <0>About page</0>."
-
-#: apps/web/src/routes/about.tsx
-msgid "A second route, to prove navigation works."
-msgstr "A second route, to prove navigation works."
-
-#: apps/web/src/routes/__root.tsx
-#: apps/web/src/routes/about.tsx
-msgctxt "page name"
-msgid "About"
-msgstr "About"
-
-#: apps/web/src/routes/language-sample.tsx
+#: apps/web/src/language-sample.tsx
 msgid "Add an entry"
 msgstr "Add an entry"
+
+#: packages/placeholder-alpha/src/groups.tsx
+msgid "All clients"
+msgstr "All clients"
+
+#: packages/placeholder-alpha/src/index.ts
+msgctxt "View title"
+msgid "Archive"
+msgstr "Archive"
+
+#: packages/placeholder-alpha/src/groups.tsx
+msgid "Clients"
+msgstr "Clients"
+
+#: packages/shell/src/shell.tsx
+msgid "Close editor"
+msgstr "Close editor"
+
+#: packages/placeholder-alpha/src/edit-drawer.tsx
+msgid "Close entry"
+msgstr "Close entry"
 
 #: packages/shell/src/shell.tsx
 msgid "Close module sidebar"
@@ -42,20 +49,26 @@ msgid "Collapse module sidebar"
 msgstr "Collapse module sidebar"
 
 #: packages/shell/src/shell.tsx
+msgid "Editor"
+msgstr "Editor"
+
+#: packages/shell/src/shell.tsx
 msgid "Expand module sidebar"
 msgstr "Expand module sidebar"
 
-#: apps/web/src/routes/language-sample.tsx
+#: packages/placeholder-alpha/src/sample-data.ts
+msgid "Garden"
+msgstr "Garden"
+
+#: packages/placeholder-alpha/src/sample-data.ts
+msgid "Garden work"
+msgstr "Garden work"
+
+#: apps/web/src/language-sample.tsx
 msgid "Hello {name}, nice to see you."
 msgstr "Hello {name}, nice to see you."
 
-#: apps/web/src/routes/__root.tsx
-msgctxt "page name"
-msgid "Home"
-msgstr "Home"
-
-#: apps/web/src/routes/__root.tsx
-#: apps/web/src/routes/language-sample.tsx
+#: apps/web/src/modules.ts
 msgid "Language sample"
 msgstr "Language sample"
 
@@ -67,6 +80,14 @@ msgstr "Module Sidebar"
 msgid "Modules"
 msgstr "Modules"
 
+#: packages/placeholder-alpha/src/index.ts
+msgid "New entry"
+msgstr "New entry"
+
+#: apps/web/src/route-states.tsx
+msgid "Nothing was found at this address."
+msgstr "Nothing was found at this address."
+
 #: packages/shell/src/shell.tsx
 msgid "Open module sidebar"
 msgstr "Open module sidebar"
@@ -74,6 +95,19 @@ msgstr "Open module sidebar"
 #: packages/shell/src/shell.tsx
 msgid "Open navigation"
 msgstr "Open navigation"
+
+#: packages/placeholder-alpha/src/index.ts
+#: packages/placeholder-beta/src/index.ts
+msgid "Overview"
+msgstr "Overview"
+
+#: packages/placeholder-alpha/src/index.ts
+msgid "Placeholder Alpha"
+msgstr "Placeholder Alpha"
+
+#: packages/placeholder-beta/src/index.ts
+msgid "Placeholder Beta"
+msgstr "Placeholder Beta"
 
 #: packages/shell/src/shell.tsx
 msgid "Resize module sidebar"
@@ -83,26 +117,50 @@ msgstr "Resize module sidebar"
 msgid "Resize navbar"
 msgstr "Resize navbar"
 
-#: apps/web/src/routes/index.tsx
-msgid "The empty desktop shell."
-msgstr "The empty desktop shell."
+#: apps/web/src/modules.ts
+msgid "Settings"
+msgstr "Settings"
 
-#: apps/web/src/routes/language-sample.tsx
+#: packages/placeholder-alpha/src/sample-data.ts
+msgid "Studio"
+msgstr "Studio"
+
+#: packages/placeholder-alpha/src/sample-data.ts
+msgid "Studio work"
+msgstr "Studio work"
+
+#: packages/shell/src/primary-action.tsx
+msgid "The action could not be completed. Please try again."
+msgstr "The action could not be completed. Please try again."
+
+#: apps/web/src/language-sample.tsx
 msgid "The language could not be loaded. Please try again."
 msgstr "The language could not be loaded. Please try again."
 
-#: apps/web/src/routes/__root.tsx
-msgid "The views of the active module will appear here."
-msgstr "The views of the active module will appear here."
+#: packages/placeholder-beta/src/overview.tsx
+msgid "The minimal module View."
+msgstr "The minimal module View."
 
-#: apps/web/src/routes/__root.tsx
+#: apps/web/src/modules.ts
 msgid "Theme preview"
 msgstr "Theme preview"
 
-#: apps/web/src/routes/language-sample.tsx
+#: packages/shell/src/lazy-contribution.tsx
+msgid "This part could not be loaded."
+msgstr "This part could not be loaded."
+
+#: apps/web/src/language-sample.tsx
 msgid "This sentence is translated."
 msgstr "This sentence is translated."
 
-#: apps/web/src/routes/language-sample.tsx
+#: apps/web/src/route-states.tsx
+msgid "This View could not be loaded. Please try again."
+msgstr "This View could not be loaded. Please try again."
+
+#: packages/shell/src/lazy-contribution.tsx
+msgid "Try again"
+msgstr "Try again"
+
+#: apps/web/src/language-sample.tsx
 msgid "Your name"
 msgstr "Your name"

@@ -1,4 +1,4 @@
-// The appearance of the throwaway /theme-preview page. It sits above the router because Mantine
+// The appearance of the throwaway /settings/theme-preview page. It sits above the router because Mantine
 // allows one MantineProvider per document, so the page cannot wrap itself in a second provider.
 // #23 removes the page.
 

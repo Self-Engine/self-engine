@@ -15,6 +15,8 @@
     "@mantine/hooks": "catalog:",
     "@self-engine/i18n": "workspace:*",
     "@self-engine/icons": "workspace:*",
+    "@self-engine/placeholder-alpha": "workspace:*",
+    "@self-engine/placeholder-beta": "workspace:*",
     "@self-engine/settings": "workspace:*",
     "@self-engine/shell": "workspace:*",
     "@self-engine/theme": "workspace:*",
@@ -24,11 +26,13 @@
     "zod": "catalog:"
   },
   "devDependencies": {
+    "@storybook/react-vite": "catalog:",
     "@tanstack/router-plugin": "catalog:",
     "@types/node": "catalog:",
     "@types/react": "catalog:",
     "@types/react-dom": "catalog:",
     "@vitejs/plugin-react": "catalog:",
+    "storybook": "catalog:",
     "vite-plus": "catalog:"
   }
 }

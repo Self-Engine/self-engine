@@ -9,6 +9,7 @@ import {
   expectContentFillsTheFrame,
   expectShownWithoutReport,
   expectWindow,
+  expectNavigationLinks,
   inDark,
   navbarOf,
   paneOf,
@@ -29,6 +30,7 @@ export const Wide: Story = {
   ...atViewport("wide"),
   play: async ({ canvas, globals }) => {
     await expectWindow(canvas, "wide", globals);
+    await expectNavigationLinks(within(navbarOf(canvas)));
     const navbar = within(canvas.getByRole("navigation", { name: "Modules" }));
     await expect(navbar.getByText("Projects")).toBeVisible();
     await expect(navbar.getByText("Settings")).toBeVisible();
@@ -37,8 +39,11 @@ export const Wide: Story = {
     await expect(canvas.getByText("Page content")).toBeVisible();
     await expect(canvas.queryByRole("button", { name: /^Open / })).toBeNull();
     await expect(screen.queryByRole("contentinfo")).toBeNull();
-    await userEvent.click(navbar.getByRole("button", { name: "Projects" }));
-    await expect(meta.args.onSelectEntry).toHaveBeenCalledWith("projects");
+    await expect(navbar.getByRole("link", { name: "Projects" })).toHaveAttribute(
+      "href",
+      "/projects/overview",
+    );
+    await expect(navbar.getByRole("link", { name: "Time", current: "page" })).toBeVisible();
   },
 };
 
@@ -46,10 +51,11 @@ export const Medium: Story = {
   ...atViewport("medium"),
   play: async ({ canvas, globals }) => {
     await expectWindow(canvas, "medium", globals);
+    await expectNavigationLinks(within(navbarOf(canvas)));
     const navbar = navbarOf(canvas);
     await expect(widthOf(navbar)).toBe(56);
     await expect(within(navbar).queryByText("Projects")).toBeNull();
-    await expect(within(navbar).getByRole("button", { name: "Projects" })).toBeVisible();
+    await expect(within(navbar).getByRole("link", { name: "Projects" })).toBeVisible();
     await expect(canvas.getByText("Sidebar content")).toBeVisible();
     await expect(canvas.queryByRole("button", { name: /^Open / })).toBeNull();
   },
@@ -125,12 +131,16 @@ export const Phone: Story = {
     await expect(canvas.queryByText("Sidebar content")).toBeNull();
     await expect(canvas.getByText("Nightly")).toBeVisible();
     const bottomBar = within(screen.getByRole("contentinfo"));
-    const names = bottomBar.getAllByRole("button").map((entry) => entry.textContent);
-    await expect(names).toEqual(["Projects", "Time", "Settings"]);
-    await expect(bottomBar.getByRole("button", { name: "Time", current: "page" })).toBeVisible();
+    await expectNavigationLinks(bottomBar);
+    const names = bottomBar.getAllByRole("link").map((entry) => entry.textContent);
+    await expect(names).toEqual(["Projects", "Time", "Third module", "Settings"]);
+    await expect(bottomBar.getByRole("link", { name: "Time", current: "page" })).toBeVisible();
     await expect(canvas.getByRole("button", { name: "Open module sidebar" })).toBeVisible();
-    await userEvent.click(bottomBar.getByRole("button", { name: "Projects" }));
-    await expect(meta.args.onSelectEntry).toHaveBeenCalledWith("projects");
+    await userEvent.click(bottomBar.getByRole("link", { name: "Projects" }));
+    await expect(bottomBar.getByRole("link", { name: "Projects" })).toHaveAttribute(
+      "href",
+      "/projects/overview",
+    );
     await expect(
       canvas.queryAllByRole("navigation", { name: "Modules", hidden: true }),
     ).toHaveLength(1);
@@ -149,9 +159,16 @@ export const PhoneDark = inDark(Phone);
 export const BottomBarScrollsSideways: Story = {
   ...atViewport("phone"),
   args: {
-    entries: Array.from({ length: 12 }, (_, index) => ({
+    contributions: Array.from({ length: 12 }, (_, index) => ({
       id: `module-${index}`,
-      label: `Module ${index}`,
+      name: { id: `module-${index}`, message: `Module ${index}` },
+      views: [
+        {
+          id: "overview",
+          title: { id: "overview", message: "Overview" },
+          load: async () => ({ default: () => null }),
+        },
+      ] as const,
       icon: ProjectsIcon,
       color: "blue" as const,
     })),

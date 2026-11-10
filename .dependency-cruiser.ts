@@ -22,7 +22,8 @@ export type AllowedImports = Readonly<Record<string, readonly string[]>>;
  */
 export const ALLOWED_IMPORTS: AllowedImports = {
   icons: ["theme"],
-  "placeholder-module": ["placeholder-shared"],
+  "placeholder-alpha": ["shell", "icons"],
+  "placeholder-beta": ["shell", "icons"],
   shell: ["icons", "theme"],
 };
 

@@ -1,4 +1,11 @@
+import type { EditDrawerProps } from "./contributions.ts";
+import { LazyContribution, lazyComponents } from "./lazy-contribution.tsx";
+import { useCloseOverlayOnPick, useViewSearch, useWriteViewSearch } from "./routing.tsx";
+import { ACTIVE_ENTRY_VARS } from "./navigation-style.ts";
+import { PrimaryAction } from "./primary-action.tsx";
 import { useLingui } from "@lingui/react/macro";
+import type { ShellContribution, ShellView } from "./contributions.ts";
+import type { ViewSearch } from "./view-search.ts";
 import {
   ActionIcon,
   AppShell,
@@ -26,6 +33,7 @@ import {
   type MouseEvent,
   type ReactNode,
   useEffect,
+  useState,
 } from "react";
 import {
   GAP,
@@ -41,6 +49,12 @@ import {
   SHELL_STANDARD_MODULE_SIDEBAR_WIDTH,
   useModuleSidebarResize,
 } from "./use-module-sidebar-resize.ts";
+import {
+  NavigationOverlayContext,
+  ShellRoutingContext,
+  type ShellRouting,
+  useShellRouting,
+} from "./routing.tsx";
 import { useNavbarResize } from "./use-navbar-resize.ts";
 
 const CONTENT_HEADER_HEIGHT = 48;
@@ -179,15 +193,6 @@ const BOTTOM_BAR_STYLE: CSSProperties = {
   marginTop: rem(GAP),
 };
 
-const ACTIVE_ENTRY_VARS = () => ({
-  root: {
-    "--nl-bg": "var(--se-module-soft)",
-    "--nl-color": "var(--se-module-text)",
-    "--nl-hover": "var(--se-module-soft)",
-  },
-  children: {},
-});
-
 const ENTRY_ROOT_STYLE: CSSProperties = { borderRadius: "var(--mantine-radius-sm)" };
 
 /** One geometry with and without a label, so that only the label goes. */
@@ -213,8 +218,9 @@ const ENTRY_STYLES = {
   },
 } as const;
 
-export interface ShellEntry {
+interface NavigationEntry {
   readonly id: string;
+  readonly to: string;
   /** Already translated. */
   readonly label: string;
   readonly icon: ComponentType;
@@ -228,15 +234,17 @@ export interface ShellLogo {
   readonly name: string;
 }
 
-export interface ShellProps {
+interface ShellFrameProps {
   /** The modules, in Navbar order. */
-  readonly entries: readonly ShellEntry[];
+  readonly entries: readonly NavigationEntry[];
   /** Follows the modules: at the foot of the Navbar, last in the bottom bar. */
-  readonly settingsEntry: ShellEntry;
+  readonly settingsEntry: NavigationEntry;
   readonly activeEntryId: string;
-  readonly onSelectEntry: (id: string) => void;
+  readonly routing: ShellRouting;
   readonly moduleSidebar: ReactNode;
+  readonly editDrawer?: ReactNode;
   readonly pageTitle: string;
+  readonly activeColor: ColorSetId | undefined;
   /** Sits in the top strip of the navigation, in the drawer at the narrow step, and in the content header while the Navbar holds the window buttons. None at phone width. */
   readonly logo?: ShellLogo;
   /** The free end of the content header. */
@@ -283,13 +291,13 @@ function Logo({ logo, markOnly = false, style }: LogoProps) {
 }
 
 interface EntryLinkProps {
-  readonly entry: ShellEntry;
+  readonly entry: NavigationEntry;
   readonly active: boolean;
   readonly appearance: keyof typeof ENTRY_STYLES;
-  readonly onSelect: (id: string) => void;
 }
 
-function EntryLink({ entry, active, appearance, onSelect }: EntryLinkProps) {
+function EntryLink({ entry, active, appearance }: EntryLinkProps) {
+  const { Link } = useShellRouting();
   const Icon = entry.icon;
   const iconsOnly = appearance === "iconsOnly";
   return (
@@ -298,13 +306,12 @@ function EntryLink({ entry, active, appearance, onSelect }: EntryLinkProps) {
         active={active}
         aria-current={active ? "page" : undefined}
         aria-label={iconsOnly ? entry.label : undefined}
-        component="button"
+        component={Link}
         data-module-color={entry.color}
         label={iconsOnly ? undefined : entry.label}
         leftSection={<Icon />}
-        onClick={() => onSelect(entry.id)}
+        to={entry.to}
         styles={ENTRY_STYLES[appearance]}
-        type="button"
         vars={ACTIVE_ENTRY_VARS}
       />
     </Tooltip>
@@ -312,14 +319,11 @@ function EntryLink({ entry, active, appearance, onSelect }: EntryLinkProps) {
 }
 
 /** The entries and what happens to them, wherever the navigation is shown. */
-type ShellNavigation = Pick<
-  ShellProps,
-  "entries" | "settingsEntry" | "activeEntryId" | "onSelectEntry"
->;
+type ShellNavigation = Pick<ShellFrameProps, "entries" | "settingsEntry" | "activeEntryId">;
 
 function entryLink(
-  { activeEntryId, onSelectEntry }: ShellNavigation,
-  entry: ShellEntry,
+  { activeEntryId }: ShellNavigation,
+  entry: NavigationEntry,
   appearance: EntryLinkProps["appearance"],
 ) {
   return (
@@ -328,7 +332,6 @@ function entryLink(
       appearance={appearance}
       entry={entry}
       key={entry.id}
-      onSelect={onSelectEntry}
     />
   );
 }
@@ -352,8 +355,8 @@ function NavbarColumn({ navigation, appearance }: NavbarColumnProps) {
 }
 
 /** Props the Shell hands on as they came in, given or not. */
-type PassedOn<Name extends keyof ShellProps> = {
-  readonly [Key in Name]-?: ShellProps[Key] | undefined;
+type PassedOn<Name extends keyof ShellFrameProps> = {
+  readonly [Key in Name]-?: ShellFrameProps[Key] | undefined;
 };
 
 interface ContentHeaderProps extends PassedOn<
@@ -512,25 +515,27 @@ function NavigationDrawer({
     >
       <Drawer.Overlay />
       <Drawer.Content>
-        {isPhone ? (
-          phoneContent
-        ) : (
-          <>
-            {hasTopStrip && (
-              <DrawerTopStrip logo={logo} reserveWindowButtons={reserveWindowButtons} />
-            )}
-            <Group align="stretch" flex={1} gap={0} mih={0} wrap="nowrap">
-              <Box aria-label={t`Modules`} component="nav" p="xs" style={DRAWER_NAVBAR_STYLE}>
-                <Box aria-hidden style={{ ...NAVBAR_DIVIDER_STYLE, top: 0 }} />
-                <NavbarColumn appearance="iconsOnly" navigation={navigation} />
-              </Box>
-              <Stack flex={1} gap={0} miw={0}>
-                {header}
-                {scrollingBody}
-              </Stack>
-            </Group>
-          </>
-        )}
+        <NavigationOverlayContext value={onClose}>
+          {isPhone ? (
+            phoneContent
+          ) : (
+            <>
+              {hasTopStrip && (
+                <DrawerTopStrip logo={logo} reserveWindowButtons={reserveWindowButtons} />
+              )}
+              <Group align="stretch" flex={1} gap={0} mih={0} wrap="nowrap">
+                <Box aria-label={t`Modules`} component="nav" p="xs" style={DRAWER_NAVBAR_STYLE}>
+                  <Box aria-hidden style={{ ...NAVBAR_DIVIDER_STYLE, top: 0 }} />
+                  <NavbarColumn appearance="iconsOnly" navigation={navigation} />
+                </Box>
+                <Stack flex={1} gap={0} miw={0}>
+                  {header}
+                  {scrollingBody}
+                </Stack>
+              </Group>
+            </>
+          )}
+        </NavigationOverlayContext>
       </Drawer.Content>
     </Drawer.Root>
   );
@@ -541,13 +546,15 @@ function NavigationDrawer({
  * for no platform either, but it does carry the geometry of the macOS window buttons, which
  * `reserveWindowButtons` switches on.
  */
-export function Shell({
+function ShellFrame({
   entries,
   settingsEntry,
   activeEntryId,
-  onSelectEntry,
+  routing,
   moduleSidebar,
+  editDrawer,
   pageTitle,
+  activeColor,
   logo,
   headerEnd,
   channelBadge,
@@ -559,7 +566,7 @@ export function Shell({
   onModuleSidebarCollapsedCommit,
   reserveWindowButtons = false,
   children,
-}: ShellProps) {
+}: ShellFrameProps) {
   const { t } = useLingui();
   const theme = useMantineTheme();
   const step = useMatches<(typeof LAYOUT_STEPS)[keyof typeof LAYOUT_STEPS]>(
@@ -567,7 +574,7 @@ export function Shell({
     MEASURE_ON_FIRST_RENDER,
   );
   const [drawerOpened, { close: closeDrawer, toggle: toggleDrawer }] = useDisclosure(false);
-  const navigation = { entries, settingsEntry, activeEntryId, onSelectEntry };
+  const navigation = { entries, settingsEntry, activeEntryId };
 
   const isPhone = step === "phone";
   const navigationInDrawer = isPhone || step === "narrow";
@@ -607,142 +614,285 @@ export function Shell({
   }, [navigationInDrawer, closeDrawer]);
 
   return (
-    <AppShell
-      {...(isPhone && { footer: { height: BOTTOM_BAR_HEIGHT } })}
-      mode="static"
-      // `collapsed.desktop` gives the narrow step's width to the content, since the Navbar is in the
-      // drawer. `collapsed.mobile` does the same at the phone rule, which also matches at exactly
-      // `xs`, the smallest Electron window.
-      navbar={{
-        width: { base: limits.iconsOnlyWidth, lg: navbarResize.shownWidth },
-        breakpoint: "xs",
-        collapsed: { mobile: true, desktop: navigationInDrawer },
-      }}
-      padding={0}
-      ref={navbarResize.appShellRef}
-      // Mantine prefers a resized width over the responsive ones, so only the wide step gets it.
-      {...(step === "wide" && { resize: navbarResize.resize })}
-      style={ROOT_STYLE}
-      // Starts below the strip with the divider, so nothing but the drag region is up there.
-      styles={{ resizeHandle: { ...NOT_WINDOW_DRAG_STYLE, top: topStripHeight } }}
-    >
-      <Box aria-hidden style={TOP_EDGE_STYLE} />
-      {!navigationInDrawer && (
-        <AppShell.Navbar
-          aria-label={t`Modules`}
-          px={navbarHoldsWindowButtons ? iconsOnlyNavbarPadding : "xs"}
-          py="xs"
-          style={navbarStandsAlone ? NAVBAR_ALONE_STYLE : NAVBAR_STYLE}
-          withBorder={false}
-        >
-          {hasNavigationStrip && (
-            <TopStrip
-              style={
-                // The buttons float over the column, so only the padding around it can drag the window.
-                navbarHoldsWindowButtons
-                  ? {
-                      ...NAVBAR_TOP_STRIP_STYLE,
-                      marginInline: `calc(-1 * ${iconsOnlyNavbarPadding})`,
-                    }
-                  : NAVBAR_TOP_STRIP_STYLE
-              }
+    <ShellRoutingContext value={routing}>
+      <AppShell
+        {...(isPhone && { footer: { height: BOTTOM_BAR_HEIGHT } })}
+        mode="static"
+        // `collapsed.desktop` gives the narrow step's width to the content, since the Navbar is in the
+        // drawer. `collapsed.mobile` does the same at the phone rule, which also matches at exactly
+        // `xs`, the smallest Electron window.
+        navbar={{
+          width: { base: limits.iconsOnlyWidth, lg: navbarResize.shownWidth },
+          breakpoint: "xs",
+          collapsed: { mobile: true, desktop: navigationInDrawer },
+        }}
+        padding={0}
+        ref={navbarResize.appShellRef}
+        // Mantine prefers a resized width over the responsive ones, so only the wide step gets it.
+        {...(step === "wide" && { resize: navbarResize.resize })}
+        style={ROOT_STYLE}
+        // Starts below the strip with the divider, so nothing but the drag region is up there.
+        styles={{ resizeHandle: { ...NOT_WINDOW_DRAG_STYLE, top: topStripHeight } }}
+      >
+        <Box aria-hidden style={TOP_EDGE_STYLE} />
+        {!navigationInDrawer && (
+          <AppShell.Navbar
+            aria-label={t`Modules`}
+            px={navbarHoldsWindowButtons ? iconsOnlyNavbarPadding : "xs"}
+            py="xs"
+            style={navbarStandsAlone ? NAVBAR_ALONE_STYLE : NAVBAR_STYLE}
+            withBorder={false}
+          >
+            {hasNavigationStrip && (
+              <TopStrip
+                style={
+                  // The buttons float over the column, so only the padding around it can drag the window.
+                  navbarHoldsWindowButtons
+                    ? {
+                        ...NAVBAR_TOP_STRIP_STYLE,
+                        marginInline: `calc(-1 * ${iconsOnlyNavbarPadding})`,
+                      }
+                    : NAVBAR_TOP_STRIP_STYLE
+                }
+              />
+            )}
+            {moduleSidebarShown && (
+              <Box aria-hidden style={{ ...NAVBAR_DIVIDER_STYLE, top: topStripHeight }} />
+            )}
+            <NavbarColumn
+              appearance={navbarIconsOnly ? "iconsOnly" : "labelled"}
+              navigation={navigation}
             />
-          )}
-          {moduleSidebarShown && (
-            <Box aria-hidden style={{ ...NAVBAR_DIVIDER_STYLE, top: topStripHeight }} />
-          )}
-          <NavbarColumn
-            appearance={navbarIconsOnly ? "iconsOnly" : "labelled"}
-            navigation={navigation}
+          </AppShell.Navbar>
+        )}
+        {logo && !navigationInDrawer && !navbarHoldsWindowButtons && (
+          <Logo
+            logo={logo}
+            markOnly={logoMarkOnly}
+            style={{
+              ...NAVIGATION_LOGO_STYLE,
+              insetInlineStart: reserveWindowButtons
+                ? START_AFTER_WINDOW_BUTTONS
+                : rem(LOGO_START_ON_ICON_AXIS),
+            }}
           />
-        </AppShell.Navbar>
-      )}
-      {logo && !navigationInDrawer && !navbarHoldsWindowButtons && (
-        <Logo
+        )}
+        <AppShell.Main style={navbarStandsAlone ? MAIN_BESIDE_NAVBAR_ALONE_STYLE : MAIN_STYLE}>
+          <Splitter
+            {...moduleSidebarResize.splitterProps}
+            h="100%"
+            attributes={{
+              handle: {
+                "aria-label": t`Resize module sidebar`,
+                // A pointer drags by its own events, so only the keyboard needs the focus.
+                onMouseDown: (event: MouseEvent) => event.preventDefault(),
+              },
+            }}
+            handleIcon={null}
+            lineSize={GAP}
+            styles={{
+              // The gap is the handle. Its thumb stays invisible and only carries Mantine's focus ring.
+              handle: {
+                backgroundColor: "transparent",
+                display: moduleSidebarShown ? undefined : "none",
+              },
+              thumb: { backgroundColor: "transparent", border: "none", width: rem(GAP / 2) },
+            }}
+          >
+            <Splitter.Pane
+              {...moduleSidebarResize.paneProps}
+              data-module-color={activeColor}
+              style={MODULE_SIDEBAR_PANE_STYLE}
+            >
+              {moduleSidebarShown && (
+                <>
+                  {hasTopStrip && <TopStrip />}
+                  <ScrollArea flex={1} mih={0}>
+                    <Box p="xs">{moduleSidebar}</Box>
+                  </ScrollArea>
+                </>
+              )}
+            </Splitter.Pane>
+            <Splitter.Pane
+              defaultSize={100}
+              data-module-color={activeColor}
+              style={CONTENT_PANE_STYLE}
+            >
+              <ContentHeader
+                channelBadge={channelBadge}
+                drawerOpened={drawerOpened}
+                headerEnd={headerEnd}
+                isPhone={isPhone}
+                logo={navbarHoldsWindowButtons ? logo : undefined}
+                moduleSidebarCollapsed={moduleSidebarCollapsed}
+                navigationInDrawer={navigationInDrawer}
+                onModuleSidebarCollapsedCommit={onModuleSidebarCollapsedCommit}
+                onToggleDrawer={toggleDrawer}
+                pageTitle={pageTitle}
+                startsAfterWindowButtons={navigationInDrawer && reserveWindowButtons}
+              />
+              <ScrollArea flex={1} mih={0}>
+                <Box p="md">{children}</Box>
+              </ScrollArea>
+            </Splitter.Pane>
+          </Splitter>
+        </AppShell.Main>
+        {isPhone && (
+          <AppShell.Footer style={BOTTOM_BAR_STYLE} withBorder={false}>
+            <ScrollArea h="100%" scrollbars="x" type="never">
+              <Group aria-label={t`Modules`} component="nav" gap="xs" p={4} wrap="nowrap">
+                {[...entries, settingsEntry].map((entry) =>
+                  entryLink(navigation, entry, "bottomBar"),
+                )}
+              </Group>
+            </ScrollArea>
+          </AppShell.Footer>
+        )}
+        <NavigationDrawer
+          hasTopStrip={hasTopStrip}
+          isPhone={isPhone}
           logo={logo}
-          markOnly={logoMarkOnly}
-          style={{
-            ...NAVIGATION_LOGO_STYLE,
-            insetInlineStart: reserveWindowButtons
-              ? START_AFTER_WINDOW_BUTTONS
-              : rem(LOGO_START_ON_ICON_AXIS),
-          }}
+          moduleSidebar={moduleSidebar}
+          moduleSidebarWidth={moduleSidebarResize.shownWidth}
+          navigation={navigation}
+          onClose={closeDrawer}
+          opened={navigationInDrawer && drawerOpened}
+          reserveWindowButtons={reserveWindowButtons}
+        />
+        {editDrawer}
+      </AppShell>
+    </ShellRoutingContext>
+  );
+}
+
+/** Contributions are translated at display time, including after a language switch. */
+export interface ShellProps extends Omit<
+  ShellFrameProps,
+  | "entries"
+  | "settingsEntry"
+  | "activeEntryId"
+  | "moduleSidebar"
+  | "pageTitle"
+  | "activeColor"
+  | "editDrawer"
+> {
+  readonly contributions: readonly ShellContribution[];
+  readonly settings: ShellContribution;
+  readonly activeModule: ShellContribution | undefined;
+  readonly activeView: ShellView | undefined;
+}
+
+export function Shell({ contributions, settings, activeModule, activeView, ...props }: ShellProps) {
+  const { i18n } = useLingui();
+  const entryOf = (module: ShellContribution): NavigationEntry => ({
+    id: module.id,
+    to: `/${module.id}/${module.views[0].id}`,
+    label: i18n._(module.name),
+    icon: module.icon,
+    color: module.color,
+  });
+  return (
+    <ShellFrame
+      {...props}
+      entries={contributions.map(entryOf)}
+      settingsEntry={entryOf(settings)}
+      activeEntryId={activeModule?.id ?? ""}
+      activeColor={activeModule?.color}
+      pageTitle={activeView ? i18n._(activeView.title) : ""}
+      editDrawer={<ModuleEditDrawer module={activeView && activeModule} />}
+      moduleSidebar={
+        <ModuleViews module={activeModule} activeView={activeView} routing={props.routing} />
+      }
+    />
+  );
+}
+
+const loadedGroups = lazyComponents<Record<string, never>>();
+const loadedDrawer = lazyComponents<EditDrawerProps>();
+const NO_PROPS = {};
+
+function ModuleViews({
+  module,
+  activeView,
+  routing,
+}: {
+  readonly module: ShellContribution | undefined;
+  readonly activeView: ShellView | undefined;
+  readonly routing: ShellRouting;
+}) {
+  const { i18n } = useLingui();
+  const closeOverlay = useCloseOverlayOnPick();
+  if (!module) return null;
+  return (
+    <Stack gap="xs" data-module-color={module.color}>
+      {module.primaryAction && (
+        <PrimaryAction key={`${module.id}/${activeView?.id}`} action={module.primaryAction} />
+      )}
+      {module.views.map((view) => (
+        <NavLink
+          key={view.id}
+          component={routing.Link}
+          to={`/${module.id}/${view.id}`}
+          label={i18n._(view.title)}
+          active={view.id === activeView?.id}
+          aria-current={view.id === activeView?.id ? "page" : undefined}
+          onClick={closeOverlay}
+          vars={ACTIVE_ENTRY_VARS}
+        />
+      ))}
+      {module.groups && (
+        <LazyContribution
+          key={module.id}
+          components={loadedGroups}
+          load={module.groups}
+          props={NO_PROPS}
         />
       )}
-      <AppShell.Main style={navbarStandsAlone ? MAIN_BESIDE_NAVBAR_ALONE_STYLE : MAIN_STYLE}>
-        <Splitter
-          {...moduleSidebarResize.splitterProps}
-          h="100%"
-          attributes={{
-            handle: {
-              "aria-label": t`Resize module sidebar`,
-              // A pointer drags by its own events, so only the keyboard needs the focus.
-              onMouseDown: (event: MouseEvent) => event.preventDefault(),
-            },
-          }}
-          handleIcon={null}
-          lineSize={GAP}
-          styles={{
-            // The gap is the handle. Its thumb stays invisible and only carries Mantine's focus ring.
-            handle: {
-              backgroundColor: "transparent",
-              display: moduleSidebarShown ? undefined : "none",
-            },
-            thumb: { backgroundColor: "transparent", border: "none", width: rem(GAP / 2) },
-          }}
-        >
-          <Splitter.Pane {...moduleSidebarResize.paneProps} style={MODULE_SIDEBAR_PANE_STYLE}>
-            {moduleSidebarShown && (
-              <>
-                {hasTopStrip && <TopStrip />}
-                <ScrollArea flex={1} mih={0}>
-                  <Box p="xs">{moduleSidebar}</Box>
-                </ScrollArea>
-              </>
-            )}
-          </Splitter.Pane>
-          <Splitter.Pane defaultSize={100} style={CONTENT_PANE_STYLE}>
-            <ContentHeader
-              channelBadge={channelBadge}
-              drawerOpened={drawerOpened}
-              headerEnd={headerEnd}
-              isPhone={isPhone}
-              logo={navbarHoldsWindowButtons ? logo : undefined}
-              moduleSidebarCollapsed={moduleSidebarCollapsed}
-              navigationInDrawer={navigationInDrawer}
-              onModuleSidebarCollapsedCommit={onModuleSidebarCollapsedCommit}
-              onToggleDrawer={toggleDrawer}
-              pageTitle={pageTitle}
-              startsAfterWindowButtons={navigationInDrawer && reserveWindowButtons}
-            />
-            <ScrollArea flex={1} mih={0}>
-              <Box p="md">{children}</Box>
-            </ScrollArea>
-          </Splitter.Pane>
-        </Splitter>
-      </AppShell.Main>
-      {isPhone && (
-        <AppShell.Footer style={BOTTOM_BAR_STYLE} withBorder={false}>
-          <ScrollArea h="100%" scrollbars="x" type="never">
-            <Group aria-label={t`Modules`} component="nav" gap="xs" p={4} wrap="nowrap">
-              {[...entries, settingsEntry].map((entry) =>
-                entryLink(navigation, entry, "bottomBar"),
-              )}
-            </Group>
-          </ScrollArea>
-        </AppShell.Footer>
+    </Stack>
+  );
+}
+
+const selectEditId = (search: ViewSearch) =>
+  typeof search.edit === "string" ? search.edit : undefined;
+
+interface EditTarget {
+  readonly module: ShellContribution;
+  readonly id: string;
+}
+
+/** The frame stays mounted whatever is open, so that closing can animate and return the focus. */
+function ModuleEditDrawer({ module }: { readonly module: ShellContribution | undefined }) {
+  const { t } = useLingui();
+  const id = useViewSearch(selectEditId);
+  const write = useWriteViewSearch();
+  const target: EditTarget | undefined =
+    module?.editDrawer && id !== undefined ? { module, id } : undefined;
+  // The last target stays while the frame animates out. Drawer renders no children while closed,
+  // so the module's code still only loads when it first opens.
+  const [shown, setShown] = useState(target);
+  if (target && (target.module !== shown?.module || target.id !== shown.id)) setShown(target);
+  const close = () =>
+    write((search) => {
+      const { edit: _edit, ...rest } = search;
+      return rest;
+    });
+  return (
+    <Drawer
+      opened={target !== undefined}
+      onClose={close}
+      position="right"
+      title={t`Editor`}
+      closeButtonProps={{ "aria-label": t`Close editor` }}
+      styles={DRAWER_STYLES}
+    >
+      {shown?.module.editDrawer && (
+        <LazyContribution
+          key={`${shown.module.id}/${shown.id}`}
+          components={loadedDrawer}
+          load={shown.module.editDrawer}
+          props={{ id: shown.id, onClose: close }}
+        />
       )}
-      <NavigationDrawer
-        hasTopStrip={hasTopStrip}
-        isPhone={isPhone}
-        logo={logo}
-        moduleSidebar={moduleSidebar}
-        moduleSidebarWidth={moduleSidebarResize.shownWidth}
-        navigation={navigation}
-        onClose={closeDrawer}
-        opened={navigationInDrawer && drawerOpened}
-        reserveWindowButtons={reserveWindowButtons}
-      />
-    </AppShell>
+    </Drawer>
   );
 }

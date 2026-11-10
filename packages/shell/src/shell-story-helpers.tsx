@@ -10,22 +10,49 @@ import {
   Shell,
   SHELL_STANDARD_MODULE_SIDEBAR_WIDTH,
   SHELL_STANDARD_NAVBAR,
-  type ShellEntry,
+  type ShellContribution,
   type ShellProps,
+  type ShellRouting,
+  type ViewAddress,
+  type ViewSearch,
 } from "./index.ts";
 
 export type Canvas = ReturnType<typeof within>;
 
-export const ENTRIES: readonly ShellEntry[] = [
-  { id: "projects", label: "Projects", icon: ProjectsIcon, color: "blue" },
-  { id: "time", label: "Time", icon: TimeIcon, color: "teal" },
-];
-
-export const SETTINGS: ShellEntry = {
+const load = async () => ({ default: () => null });
+export const ENTRIES = [
+  {
+    id: "projects",
+    name: { id: "story-Projects", message: "Projects" },
+    icon: ProjectsIcon,
+    color: "blue",
+    views: [
+      { id: "overview", title: { id: "story-Sidebar content", message: "Sidebar content" }, load },
+    ],
+  },
+  {
+    id: "time",
+    name: { id: "story-Time", message: "Time" },
+    icon: TimeIcon,
+    color: "teal",
+    views: [
+      { id: "overview", title: { id: "story-Sidebar content", message: "Sidebar content" }, load },
+    ],
+  },
+  {
+    id: "third",
+    name: { id: "story-Third module", message: "Third module" },
+    icon: ProjectsIcon,
+    color: "orange",
+    views: [{ id: "overview", title: { id: "story-Overview", message: "Overview" }, load }],
+  },
+] satisfies readonly ShellContribution[];
+export const SETTINGS: ShellContribution = {
   id: "settings",
-  label: "Settings",
+  name: { id: "story-Settings", message: "Settings" },
   icon: SettingsIcon,
   color: "grape",
+  views: [{ id: "overview", title: { id: "story-Settings", message: "Settings" }, load }],
 };
 
 /** One real window width per Layout Step, around Mantine's own breakpoints. */
@@ -41,21 +68,62 @@ export function atViewport(value: keyof typeof VIEWPORTS) {
   return { globals: { viewport: { value, isRotated: false } } };
 }
 
+/** An address that lives in the Story and changes at once, without a router. */
+export function storyRouting(initial: ViewSearch = {}): ShellRouting & {
+  readonly address: ViewAddress;
+} {
+  let search = initial;
+  const listeners = new Set<() => void>();
+  const address: ViewAddress = {
+    subscribe: (listener) => {
+      listeners.add(listener);
+      return () => listeners.delete(listener);
+    },
+    search: () => search,
+    writeSearch: (update) => {
+      search = update(search);
+      for (const listener of listeners) listener();
+    },
+    scopedWriteSearch: () => address.writeSearch,
+  };
+  return {
+    address,
+    useAddress: () => address,
+    Link: ({ to, search: nextSearch, onClick, ...props }) => (
+      <a
+        {...props}
+        href={to}
+        onClick={(event) => {
+          onClick?.(event);
+          if (event.defaultPrevented) return;
+          event.preventDefault();
+          if (nextSearch !== undefined) {
+            address.writeSearch((previous) =>
+              typeof nextSearch === "function" ? nextSearch(previous) : nextSearch,
+            );
+          }
+        }}
+      />
+    ),
+  };
+}
+
+const routing = storyRouting();
+
 /** What every Story file of the Shell spreads into its `meta`, next to its own `title`. */
 export const shellMeta = {
   component: Shell,
   parameters: { layout: "fullscreen", viewport: { options: VIEWPORTS } },
   args: {
-    activeEntryId: "time",
+    activeModule: ENTRIES[1],
+    activeView: { id: "overview", title: { id: "story-Time", message: "Time" }, load },
     children: <p>Page content</p>,
-    entries: ENTRIES,
-    moduleSidebar: <p>Sidebar content</p>,
+    contributions: ENTRIES,
     onModuleSidebarCollapsedCommit: fn(),
     onModuleSidebarWidthCommit: fn(),
     onNavbarCommit: fn(),
-    onSelectEntry: fn(),
-    pageTitle: "Time",
-    settingsEntry: SETTINGS,
+    routing,
+    settings: SETTINGS,
   },
 } satisfies Meta<ShellProps>;
 
@@ -342,7 +410,7 @@ export const expectIconsOnlyNavbarHoldsTheWindowButtons = async (canvas: Canvas)
 /** Centered on the wider icons-only Navbar, in the geometry an entry has everywhere else. */
 export const expectEntriesCenteredOnTheIconsOnlyNavbar = async (canvas: Canvas): Promise<void> => {
   const navbar = navbarOf(canvas);
-  for (const entry of within(navbar).getAllByRole("button")) {
+  for (const entry of within(navbar).getAllByRole("link")) {
     const icon = entry.querySelector("svg")!;
     // oxlint-disable-next-line no-await-in-loop -- one assertion per entry, in order
     await expect(centerX(icon)).toBeCloseTo(centerX(navbar), 0);
@@ -378,12 +446,12 @@ export const expectContainersReachTheTop = async (canvas: Canvas): Promise<void>
 
 export const expectEntriesBelowTheStrip = async (canvas: Canvas): Promise<void> => {
   await expect(
-    canvas.getByRole("button", { name: "Projects" }).getBoundingClientRect().top,
+    canvas.getByRole("link", { name: "Projects" }).getBoundingClientRect().top,
   ).toBeCloseTo(navbarOf(canvas).getBoundingClientRect().top + STRIP_HEIGHT, 0);
 };
 
 export const expectMarkOnTheIconAxis = async (canvas: Canvas): Promise<void> => {
-  const icon = canvas.getByRole("button", { name: "Projects" }).querySelector("svg")!;
+  const icon = canvas.getByRole("link", { name: "Projects" }).querySelector("svg")!;
   await expect(centerX(canvas.getByTestId("mark"))).toBeCloseTo(centerX(icon), 0);
   await expect(centerX(canvas.getByTestId("mark"))).toBeCloseTo(centerX(navbarOf(canvas)), 0);
 };
@@ -413,3 +481,38 @@ export async function expectShownWithoutReport(
   await expect(args.onNavbarCommit).not.toHaveBeenCalled();
   await expect(args.onModuleSidebarWidthCommit).not.toHaveBeenCalled();
 }
+
+/** Every navigation surface exposes the same destinations and current page. */
+export async function expectNavigationLinks(navigation: Canvas): Promise<void> {
+  await expect(navigation.getAllByRole("link")).toHaveLength(4);
+  await expect(navigation.getByRole("link", { name: "Projects" })).toHaveAttribute(
+    "href",
+    "/projects/overview",
+  );
+  await expect(navigation.getByRole("link", { name: "Time", current: "page" })).toHaveAttribute(
+    "href",
+    "/time/overview",
+  );
+  await expect(navigation.getByRole("link", { name: "Settings" })).toHaveAttribute(
+    "href",
+    "/settings/overview",
+  );
+  await expect(navigation.getByRole("link", { name: "Projects" })).not.toHaveAttribute(
+    "aria-current",
+  );
+  await expect(navigation.getByRole("link", { name: "Settings" })).not.toHaveAttribute(
+    "aria-current",
+  );
+}
+
+export const LONG_MODULE: ShellContribution = {
+  ...ENTRIES[1]!,
+  views: [
+    ENTRIES[1]!.views[0],
+    ...Array.from({ length: 80 }, (_, index) => ({
+      id: `view-${index}`,
+      title: { id: `sample-view-${index}`, message: `View ${index}` },
+      load,
+    })),
+  ],
+};
