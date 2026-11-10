@@ -15,6 +15,10 @@ msgstr "{count, plural, one {# Eintrag} other {# Einträge}}"
 msgid "Add an entry"
 msgstr "Eintrag hinzufügen"
 
+#: packages/placeholder-alpha/src/index.ts
+msgid "Add sample entry"
+msgstr "Beispieleintrag hinzufügen"
+
 #: packages/placeholder-alpha/src/groups.tsx
 msgid "All clients"
 msgstr "Alle Kunden"
@@ -194,7 +198,7 @@ msgstr "Studioarbeit"
 msgid "That could not be undone."
 msgstr "Das konnte nicht rückgängig gemacht werden."
 
-#: packages/shell/src/primary-action.tsx
+#: packages/shell/src/start-command.tsx
 msgid "The action could not be completed. Please try again."
 msgstr "Die Aktion konnte nicht ausgeführt werden. Bitte versuche es erneut."
 
