@@ -1,10 +1,11 @@
 import { describe, expect, test } from "vite-plus/test";
+import { z } from "zod";
 import {
   defineContribution,
-  type ShellCommand,
   type ShellContribution,
   validateContributions,
 } from "./contributions.ts";
+import { definePageCommand, type ShellCommand } from "./commands.ts";
 
 const moduleWith = (id: string, views = [{ id: "overview" }]) => ({ id, views });
 
@@ -39,8 +40,15 @@ describe("contribution addresses", () => {
 
 const create = {
   id: "create",
+  kind: "page",
   label: { id: "Create" },
-  load: async () => ({ default: () => {} }),
+  load: async () => ({
+    default: definePageCommand({
+      description: "Creates a thing.",
+      schema: z.object({}),
+      run: () => undefined,
+    }),
+  }),
 } as const;
 const foreign = { ...create, id: "foreign" } as const;
 const base = {

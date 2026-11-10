@@ -1,5 +1,7 @@
-import { useCallback, useMemo, type ComponentPropsWithRef } from "react";
+import { useCallback, useEffect, useMemo, type ComponentPropsWithRef } from "react";
 import {
+  askLeaveGuards,
+  type LeaveGuard,
   retainedViewSearch,
   type ShellRouting,
   type ViewAddress,
@@ -63,6 +65,49 @@ function createAddress(router: AnyRouter): ViewAddress {
   };
 }
 
+interface SearchedLocation {
+  readonly pathname: string;
+  readonly search: ViewSearch;
+}
+
+const moduleOfPath = (pathname: string) => pathname.split("/")[1] ?? "";
+
+function keptSearch(location: SearchedLocation, destination: string) {
+  const toModule = moduleOfPath(destination);
+  return retainedViewSearch(
+    location.search,
+    moduleOfPath(location.pathname),
+    toModule,
+    findModule(toModule)?.sharedSearch,
+  );
+}
+
+const registeredGuards = new WeakMap<AnyRouter, Set<LeaveGuard>>();
+
+function leaveGuardsOf(router: AnyRouter) {
+  const known = registeredGuards.get(router);
+  if (known) return known;
+  const created = new Set<LeaveGuard>();
+  registeredGuards.set(router, created);
+  return created;
+}
+
+/**
+ * Asks the guards itself and then passes over the router's blocker, because a push the blocker
+ * refuses leaves the promise of `navigate` open until some later navigation finishes.
+ */
+async function goToView(router: AnyRouter, to: string) {
+  const search = keptSearch(visibleLocation(router.state), to);
+  const { pathname, search: currentSearch } = router.latestLocation;
+  const attempt = {
+    current: { pathname, search: currentSearch as ViewSearch },
+    next: { pathname: to, search },
+  };
+  if (!(await askLeaveGuards(leaveGuardsOf(router), attempt))) return false;
+  await router.navigate({ to, search, ignoreBlocker: true });
+  return visibleLocation(router.state).pathname === to;
+}
+
 /**
  * How far the browser's history moved from the entry the router is still on. Unknown on an entry
  * the router did not write, such as a hand-edited hash: it has no index to measure from.
@@ -78,8 +123,20 @@ export const ROUTING: ShellRouting = {
     const router = useRouter();
     return useMemo(() => createAddress(router), [router]);
   },
+  useGoToView: () => {
+    const router = useRouter();
+    return useCallback((to) => goToView(router, to), [router]);
+  },
   useLeaveGuard: (guard, enabled) => {
     const router = useRouter();
+    useEffect(() => {
+      if (!enabled) return undefined;
+      const guards = leaveGuardsOf(router);
+      guards.add(guard);
+      return () => {
+        guards.delete(guard);
+      };
+    }, [guard, enabled, router]);
     const shouldBlockFn = useCallback<ShouldBlockFn>(
       ({ action, current, next }) => {
         const answer = guard({ current, next });
@@ -103,12 +160,10 @@ export const ROUTING: ShellRouting = {
   },
   Link: ({ to, search, target, "aria-current": current, ...props }) => {
     const location = useRouterState({ select: visibleLocation });
-    const from = location.pathname.split("/")[1] ?? "";
     const destination = to === "." ? location.pathname : to;
-    const toModule = destination.split("/")[1] ?? "";
     const kept =
       (typeof search === "function" ? search(location.search) : search) ??
-      retainedViewSearch(location.search, from, toModule, findModule(toModule)?.sharedSearch);
+      keptSearch(location, destination);
     return (
       <RouterLink
         {...props}

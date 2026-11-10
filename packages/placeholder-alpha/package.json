@@ -14,7 +14,8 @@
     "@self-engine/icons": "workspace:*",
     "@self-engine/shell": "workspace:*",
     "@self-engine/ui": "workspace:*",
-    "react": "catalog:"
+    "react": "catalog:",
+    "zod": "catalog:"
   },
   "devDependencies": {
     "@types/node": "catalog:",

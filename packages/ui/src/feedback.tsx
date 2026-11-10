@@ -3,7 +3,7 @@ import "@mantine/notifications/styles.css";
 import { Trans, useLingui } from "@lingui/react/macro";
 import { Button, Group, MantineThemeProvider } from "@mantine/core";
 import { modals, ModalsProvider } from "@mantine/modals";
-import { notifications, Notifications } from "@mantine/notifications";
+import { notifications, Notifications, notificationsStore } from "@mantine/notifications";
 import { roleColor } from "@self-engine/theme";
 import type { CSSProperties, ReactNode } from "react";
 
@@ -52,6 +52,11 @@ export interface ConfirmOptions {
   readonly returnFocus?: boolean;
 }
 
+let openConfirmations = 0;
+
+/** Whether a question is waiting for its answer, right now and whoever asked it. */
+export const isConfirmationOpen = () => openConfirmations > 0;
+
 /** Asks a yes-or-no question from anywhere, also outside a component. */
 export function confirm({
   title,
@@ -62,6 +67,8 @@ export function confirm({
   returnFocus = true,
 }: ConfirmOptions) {
   return new Promise<boolean>((resolve) => {
+    // Counted here and not read from Mantine's state, which only exists once React has drawn it.
+    openConfirmations += 1;
     modals.openConfirmModal({
       title,
       returnFocus,
@@ -76,7 +83,10 @@ export function confirm({
       // comes second, and the answer is already given. Esc goes on to the other listeners on the
       // window, and the browser lets React run between them, so answering in a later task keeps
       // whatever stands behind the question from seeing it gone and acting on the same key press.
-      onClose: () => setTimeout(() => resolve(false)),
+      onClose: () => {
+        openConfirmations -= 1;
+        setTimeout(() => resolve(false));
+      },
     });
   });
 }
@@ -104,6 +114,9 @@ async function runUndo(undo: NotifyUndoableOptions["undo"]) {
   }
 }
 
+/** What each open undoable notice would do if taken back, by the id of the notice. */
+const undoOffers = new Map<string, () => void>();
+
 /** Reports something that already happened and offers to take it back. */
 export function notifyUndoable({ message, undo }: NotifyUndoableOptions) {
   let taken = false;
@@ -123,5 +136,19 @@ export function notifyUndoable({ message, undo }: NotifyUndoableOptions) {
         </Button>
       </Group>
     ),
+    onClose: () => undoOffers.delete(id),
   });
+  undoOffers.set(id, takeBack);
+}
+
+/**
+ * Takes back the most recent undoable notice on screen, and does nothing when there is none.
+ * Asks Mantine's store what is on screen: a notice leaves it the moment it is hidden, even while
+ * it still slides out, and a notice that is queued behind the limit has not been shown yet.
+ */
+export function undoLatest() {
+  const latest = notificationsStore
+    .getState()
+    .notifications.findLast(({ id }) => id !== undefined && undoOffers.has(id));
+  if (latest?.id !== undefined) undoOffers.get(latest.id)?.();
 }

@@ -15,6 +15,10 @@ msgstr "{count, plural, one {# entry} other {# entries}}"
 msgid "Add an entry"
 msgstr "Add an entry"
 
+#: packages/placeholder-alpha/src/index.ts
+msgid "Add sample entry"
+msgstr "Add sample entry"
+
 #: packages/placeholder-alpha/src/groups.tsx
 msgid "All clients"
 msgstr "All clients"
@@ -57,6 +61,10 @@ msgstr "Close notice"
 #: packages/shell/src/shell.tsx
 msgid "Collapse module sidebar"
 msgstr "Collapse module sidebar"
+
+#: packages/shell/src/command-palette-dialog.tsx
+msgid "Command palette"
+msgstr "Command palette"
 
 #: packages/placeholder-alpha/src/edit-drawer.tsx
 #: packages/placeholder-alpha/src/entries.tsx
@@ -141,6 +149,10 @@ msgstr "New entry"
 msgid "No entries here"
 msgstr "No entries here"
 
+#: packages/shell/src/command-palette-dialog.tsx
+msgid "Nothing found"
+msgstr "Nothing found"
+
 #: apps/web/src/route-states.tsx
 msgid "Nothing was found at this address."
 msgstr "Nothing was found at this address."
@@ -178,6 +190,18 @@ msgstr "Resize navbar"
 msgid "Save"
 msgstr "Save"
 
+#: packages/shell/src/shell.tsx
+msgid "Search"
+msgstr "Search"
+
+#: packages/shell/src/command-palette-dialog.tsx
+msgid "Search commands and views"
+msgstr "Search commands and views"
+
+#: packages/shell/src/command-palette-dialog.tsx
+msgid "Search…"
+msgstr "Search…"
+
 #: apps/web/src/modules.ts
 msgid "Settings"
 msgstr "Settings"
@@ -194,7 +218,7 @@ msgstr "Studio work"
 msgid "That could not be undone."
 msgstr "That could not be undone."
 
-#: packages/shell/src/primary-action.tsx
+#: packages/shell/src/start-command.tsx
 msgid "The action could not be completed. Please try again."
 msgstr "The action could not be completed. Please try again."
 
@@ -230,6 +254,7 @@ msgstr "This View could not be loaded. Please try again."
 msgid "Try again"
 msgstr "Try again"
 
+#: packages/shell/src/shell-commands.ts
 #: packages/ui/src/feedback.tsx
 msgid "Undo"
 msgstr "Undo"

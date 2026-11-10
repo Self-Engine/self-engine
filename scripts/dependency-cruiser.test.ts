@@ -452,6 +452,32 @@ describe("the settings core", () => {
   });
 });
 
+describe("the hotkey library", () => {
+  const RULE = "hotkeys-only-through-bindings";
+  const shell = (library: string, file: string): FixturePackage => ({
+    dir: "packages/shell",
+    dependencies: [library],
+    files: { [file]: `import "${library}";\n` },
+  });
+
+  describe.each(["@tanstack/react-hotkeys", "@tanstack/hotkeys"])("%s", (library) => {
+    it("passes an import in the binding file", async () => {
+      expect(await cruise([shell(library, "src/shortcut-bindings.tsx")])).toEqual([]);
+    });
+
+    it("fails an import in another file of the same package", async () => {
+      expect(ruleNames(await cruise([shell(library, "src/other.tsx")]))).toEqual([RULE]);
+    });
+
+    it("fails an import from another package", async () => {
+      const importing = withFiles(declaring(shared, library), {
+        "src/keys.ts": `import "${library}";\n`,
+      });
+      expect(ruleNames(await cruise([importing]))).toEqual([RULE]);
+    });
+  });
+});
+
 describe("icon libraries", () => {
   const RULE = "icons-only-through-catalog";
 

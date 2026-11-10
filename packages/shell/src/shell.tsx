@@ -1,10 +1,20 @@
-import type { EditDrawerProps } from "./contributions.ts";
+import { CommandPalette } from "./command-palette.tsx";
+import {
+  CommandPaletteProvider,
+  useCommandPaletteOpen,
+  useOpenCommandPalette,
+} from "./command-palette-state.tsx";
+import { viewPath, type EditDrawerProps } from "./contributions.ts";
 import { EditDrawerTitleContext } from "./edit-drawer-title.ts";
 import { selectEditId, UnsavedChangesContext, useEditDrawerExits } from "./edit-drawer-exits.tsx";
 import { LazyContribution, lazyComponents } from "./lazy-contribution.tsx";
 import { useCloseOverlayOnPick, useViewSearch, useWriteViewSearch } from "./routing.tsx";
-import { ACTIVE_ENTRY_VARS } from "./navigation-style.ts";
+import { ACTIVE_ENTRY_VARS, NOT_WINDOW_DRAG_STYLE } from "./navigation-style.ts";
+import type { CommandScope } from "./palette-entries.ts";
 import { PrimaryAction } from "./primary-action.tsx";
+import { PALETTE_SHORTCUT, shellCommands } from "./shell-commands.ts";
+import { ShortcutHint, Shortcuts } from "./shortcuts.tsx";
+import { StartOnceProvider } from "./start-command.tsx";
 import { useLingui } from "@lingui/react/macro";
 import type { ShellContribution, ShellView } from "./contributions.ts";
 import {
@@ -26,7 +36,7 @@ import {
   useMantineTheme,
 } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
-import { SidePanelIcon } from "@self-engine/icons";
+import { SearchIcon, SidePanelIcon } from "@self-engine/icons";
 import { type ColorSetId, roleColor } from "@self-engine/theme";
 import { LoadingState, NOTICE_CLEARANCE_VARIABLE } from "@self-engine/ui";
 import {
@@ -95,7 +105,6 @@ const ROOT_STYLE = {
 // Plain CSS that moves the window in Electron and means nothing in a browser, so the Shell needs
 // no platform check. Electron cuts `no-drag` out of what `drag` claims, whatever is on top.
 const WINDOW_DRAG_STYLE = { WebkitAppRegion: "drag" } as CSSProperties;
-const NOT_WINDOW_DRAG_STYLE = { WebkitAppRegion: "no-drag" } as CSSProperties;
 
 const TOP_EDGE_STYLE: CSSProperties = {
   ...WINDOW_DRAG_STYLE,
@@ -227,8 +236,9 @@ const ENTRY_ROOT_STYLE: CSSProperties = { borderRadius: "var(--mantine-radius-sm
 /** One geometry with and without a label, so that only the label goes. */
 const NAVBAR_ENTRY_STYLES = {
   root: { ...ENTRY_ROOT_STYLE, height: rem(ENTRY_HEIGHT), padding: 0 },
-  // As wide as the icons-only Navbar has room, so an icon sits on its axis at every width.
-  section: { flex: "none", marginInlineEnd: 0, width: rem(ICON_COLUMN_WIDTH) },
+  // As wide as the icons-only Navbar has room, so an icon sits on its axis at every width. A
+  // minimum, because the same style reaches the shortcut in the right section.
+  section: { flex: "none", marginInlineEnd: 0, minWidth: rem(ICON_COLUMN_WIDTH) },
 };
 
 const ENTRY_STYLES = {
@@ -272,6 +282,10 @@ interface ShellFrameProps {
   readonly routing: ShellRouting;
   readonly moduleSidebar: ReactNode;
   readonly editDrawer?: ReactNode;
+  /** In a portal. Inside the routing, because a row starts a Command or goes to a View. */
+  readonly commandPalette?: ReactNode;
+  /** Renders nothing. Inside the routing, because a shortcut starts a Command on this page. */
+  readonly shortcuts?: ReactNode;
   readonly pageTitle: string;
   readonly activeColor: ColorSetId | undefined;
   /** Sits in the top strip of the navigation, in the drawer at the narrow step, and in the content header while the Navbar holds the window buttons. None at phone width. */
@@ -347,6 +361,35 @@ function EntryLink({ entry, active, appearance }: EntryLinkProps) {
   );
 }
 
+/** Opens the Command Palette for whoever does not know the shortcut or has no keyboard at hand. */
+function CommandPaletteEntry({ appearance }: Pick<EntryLinkProps, "appearance">) {
+  const { t } = useLingui();
+  const open = useOpenCommandPalette();
+  const label = t`Search`;
+  const iconsOnly = appearance === "iconsOnly";
+  return (
+    <Tooltip disabled={!iconsOnly} label={label} position="right">
+      <NavLink
+        aria-haspopup="dialog"
+        // Also while the label is shown, so that the shortcut beside it is not part of the name.
+        aria-label={label}
+        component="button"
+        label={iconsOnly ? undefined : label}
+        leftSection={<SearchIcon />}
+        onClick={open}
+        rightSection={
+          appearance === "labelled" ? (
+            <Box me="xs">
+              <ShortcutHint shortcut={PALETTE_SHORTCUT} />
+            </Box>
+          ) : undefined
+        }
+        styles={ENTRY_STYLES[appearance]}
+      />
+    </Tooltip>
+  );
+}
+
 /** The entries and what happens to them, wherever the navigation is shown. */
 type ShellNavigation = Pick<ShellFrameProps, "entries" | "settingsEntry" | "activeEntryId">;
 
@@ -377,6 +420,7 @@ function NavbarColumn({ navigation, appearance }: NavbarColumnProps) {
         {navigation.entries.map((entry) => entryLink(navigation, entry, appearance))}
       </AppShell.Section>
       <AppShell.Section>
+        <CommandPaletteEntry appearance={appearance} />
         {entryLink(navigation, navigation.settingsEntry, appearance)}
       </AppShell.Section>
     </>
@@ -509,6 +553,7 @@ function NavigationDrawer({
   moduleSidebar,
 }: NavigationDrawerProps) {
   const { t } = useLingui();
+  const paletteOpen = useCommandPaletteOpen();
   const header = (
     <Drawer.Header>
       <Drawer.Title>{t`Module Sidebar`}</Drawer.Title>
@@ -535,6 +580,8 @@ function NavigationDrawer({
   );
   return (
     <Drawer.Root
+      // One Esc would reach both, see the Edit Drawer below.
+      closeOnEscape={!paletteOpen}
       onClose={onClose}
       opened={opened}
       size={
@@ -582,6 +629,8 @@ function ShellFrame({
   routing,
   moduleSidebar,
   editDrawer,
+  commandPalette,
+  shortcuts,
   pageTitle,
   activeColor,
   logo,
@@ -768,9 +817,9 @@ function ShellFrame({
           <AppShell.Footer style={BOTTOM_BAR_STYLE} withBorder={false}>
             <ScrollArea h="100%" scrollbars="x" type="never">
               <Group aria-label={t`Modules`} component="nav" gap="xs" p={4} wrap="nowrap">
-                {[...entries, settingsEntry].map((entry) =>
-                  entryLink(navigation, entry, "bottomBar"),
-                )}
+                {entries.map((entry) => entryLink(navigation, entry, "bottomBar"))}
+                <CommandPaletteEntry appearance="bottomBar" />
+                {entryLink(navigation, settingsEntry, "bottomBar")}
               </Group>
             </ScrollArea>
           </AppShell.Footer>
@@ -787,6 +836,8 @@ function ShellFrame({
           reserveWindowButtons={reserveWindowButtons}
         />
         {editDrawer}
+        {commandPalette}
+        {shortcuts}
       </AppShell>
     </ShellRoutingContext>
   );
@@ -802,6 +853,8 @@ export interface ShellProps extends Omit<
   | "pageTitle"
   | "activeColor"
   | "editDrawer"
+  | "commandPalette"
+  | "shortcuts"
 > {
   readonly contributions: readonly ShellContribution[];
   readonly settings: ShellContribution;
@@ -813,24 +866,34 @@ export function Shell({ contributions, settings, activeModule, activeView, ...pr
   const { i18n } = useLingui();
   const entryOf = (module: ShellContribution): NavigationEntry => ({
     id: module.id,
-    to: `/${module.id}/${module.views[0].id}`,
+    to: viewPath(module.id, module.views[0].id),
     label: i18n._(module.name),
     icon: module.icon,
     color: module.color,
   });
+  const commandScope: CommandScope = {
+    owners: [...contributions, settings, shellCommands],
+    activeModuleId: activeModule?.id,
+  };
   return (
-    <ShellFrame
-      {...props}
-      entries={contributions.map(entryOf)}
-      settingsEntry={entryOf(settings)}
-      activeEntryId={activeModule?.id ?? ""}
-      activeColor={activeModule?.color}
-      pageTitle={activeView ? i18n._(activeView.title) : ""}
-      editDrawer={<ModuleEditDrawer module={activeView && activeModule} />}
-      moduleSidebar={
-        <ModuleViews module={activeModule} activeView={activeView} routing={props.routing} />
-      }
-    />
+    <StartOnceProvider>
+      <CommandPaletteProvider>
+        <ShellFrame
+          {...props}
+          entries={contributions.map(entryOf)}
+          settingsEntry={entryOf(settings)}
+          activeEntryId={activeModule?.id ?? ""}
+          activeColor={activeModule?.color}
+          pageTitle={activeView ? i18n._(activeView.title) : ""}
+          editDrawer={<ModuleEditDrawer module={activeView && activeModule} />}
+          commandPalette={<CommandPalette {...commandScope} />}
+          shortcuts={<Shortcuts {...commandScope} />}
+          moduleSidebar={
+            <ModuleViews module={activeModule} activeView={activeView} routing={props.routing} />
+          }
+        />
+      </CommandPaletteProvider>
+    </StartOnceProvider>
   );
 }
 
@@ -853,13 +916,13 @@ function ModuleViews({
   return (
     <Stack gap="xs" data-module-color={module.color}>
       {module.primaryAction && (
-        <PrimaryAction key={`${module.id}/${activeView?.id}`} action={module.primaryAction} />
+        <PrimaryAction moduleId={module.id} command={module.primaryAction} />
       )}
       {module.views.map((view) => (
         <NavLink
           key={view.id}
           component={routing.Link}
-          to={`/${module.id}/${view.id}`}
+          to={viewPath(module.id, view.id)}
           label={i18n._(view.title)}
           active={view.id === activeView?.id}
           aria-current={view.id === activeView?.id ? "page" : undefined}
@@ -889,6 +952,7 @@ const editTargetKey = ({ module, id }: EditTarget) => `${module.id}/${id}`;
 /** The frame stays mounted whatever is open, so that closing can animate and return the focus. */
 function ModuleEditDrawer({ module }: { readonly module: ShellContribution | undefined }) {
   const { t, i18n } = useLingui();
+  const paletteOpen = useCommandPaletteOpen();
   const frame = useLayoutStep() === "phone" ? PHONE_EDIT_DRAWER : FLOATING_EDIT_DRAWER;
   const id = useViewSearch(selectEditId);
   const write = useWriteViewSearch();
@@ -915,7 +979,7 @@ function ModuleEditDrawer({ module }: { readonly module: ShellContribution | und
     <Drawer
       {...frame}
       // Mantine's Drawer and Modal both listen on the window, so one Esc would reach both.
-      closeOnEscape={!exits.questionOpen}
+      closeOnEscape={!exits.questionOpen && !paletteOpen}
       opened={target !== undefined}
       onClose={close}
       position="right"

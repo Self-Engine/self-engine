@@ -5,8 +5,9 @@ import { ProjectsIcon, SettingsIcon, TimeIcon } from "@self-engine/icons";
 import { BrandMark } from "@self-engine/icons/brand-mark";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useEffect, useState } from "react";
-import { expect, fn, screen, userEvent, waitFor, within } from "storybook/test";
+import { expect, fn, screen, spyOn, userEvent, waitFor, within } from "storybook/test";
 import {
+  askLeaveGuards,
   type LeaveGuard,
   Shell,
   SHELL_STANDARD_MODULE_SIDEBAR_WIDTH,
@@ -32,6 +33,21 @@ export async function pressEscape() {
       : userEvent;
   await keyboard.keyboard("{Escape}");
 }
+
+export { modKey, openPalette, paletteDialog, paletteGone } from "./story-interactions.ts";
+
+export function pretendPlatform(platform: string, userAgent: string) {
+  const spies = [
+    spyOn(navigator, "platform", "get").mockReturnValue(platform),
+    spyOn(navigator, "userAgent", "get").mockReturnValue(userAgent),
+  ];
+  return () => {
+    for (const spy of spies) spy.mockRestore();
+  };
+}
+
+export const onWindows = () => pretendPlatform("Win32", "Windows NT");
+export const onMac = () => pretendPlatform("MacIntel", "Macintosh");
 
 const load = async () => ({ default: () => null });
 export const ENTRIES = [
@@ -87,16 +103,19 @@ export function storyRouting(initial: ViewSearch = {}): ShellRouting & {
   readonly address: ViewAddress;
 } {
   let search = initial;
+  let pathname = "/story";
   const listeners = new Set<() => void>();
   const guards = new Set<LeaveGuard>();
-  const leave = async (next: ViewSearch) => {
-    const addressOf = (at: ViewSearch) => ({ pathname: "/story", search: at });
-    for (const guard of guards) {
-      // oxlint-disable-next-line no-await-in-loop -- like the router, one guard after the other
-      if (!(await guard({ current: addressOf(search), next: addressOf(next) }))) return;
-    }
-    search = next;
+  const leave = async (nextPathname: string, nextSearch: ViewSearch) => {
+    const allowed = await askLeaveGuards(guards, {
+      current: { pathname, search },
+      next: { pathname: nextPathname, search: nextSearch },
+    });
+    if (!allowed) return false;
+    pathname = nextPathname;
+    search = nextSearch;
     for (const listener of listeners) listener();
+    return true;
   };
   const address: ViewAddress = {
     subscribe: (listener) => {
@@ -104,12 +123,13 @@ export function storyRouting(initial: ViewSearch = {}): ShellRouting & {
       return () => listeners.delete(listener);
     },
     search: () => search,
-    writeSearch: (update) => void leave(update(search)),
+    writeSearch: (update) => void leave(pathname, update(search)),
     scopedWriteSearch: () => address.writeSearch,
   };
   return {
     address,
     useAddress: () => address,
+    useGoToView: () => (to) => leave(to, {}),
     useLeaveGuard: (guard, enabled) => {
       useEffect(() => {
         if (!enabled) return undefined;

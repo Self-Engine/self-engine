@@ -200,6 +200,9 @@ catalogs:
     '@mantine/notifications':
       specifier: 9.7.5
       version: 9.7.5
+    '@mantine/spotlight':
+      specifier: 9.7.5
+      version: 9.7.5
     '@messageformat/parser':
       specifier: 5.2.0
       version: 5.2.0
@@ -221,6 +224,9 @@ catalogs:
     '@swc/core':
       specifier: 1.16.22
       version: 1.16.22
+    '@tanstack/react-hotkeys':
+      specifier: 0.22.3
+      version: 0.22.3
     '@tanstack/react-router':
       specifier: 1.170.46
       version: 1.170.46
@@ -633,6 +639,9 @@ importers:
       react:
         specifier: 'catalog:'
         version: 19.3.1
+      zod:
+        specifier: 'catalog:'
+        version: 4.6.7
     devDependencies:
       '@types/node':
         specifier: 24.19.2
@@ -711,6 +720,9 @@ importers:
       '@mantine/hooks':
         specifier: 'catalog:'
         version: 9.7.5(react@19.3.1)
+      '@mantine/spotlight':
+        specifier: 'catalog:'
+        version: 9.7.5(@mantine/core@9.7.5(@mantine/hooks@9.7.5(react@19.3.1))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(@mantine/hooks@9.7.5(react@19.3.1))(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
       '@self-engine/icons':
         specifier: workspace:*
         version: link:../icons
@@ -720,12 +732,18 @@ importers:
       '@self-engine/ui':
         specifier: workspace:*
         version: link:../ui
+      '@tanstack/react-hotkeys':
+        specifier: 'catalog:'
+        version: 0.22.3(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
       react:
         specifier: 'catalog:'
         version: 19.3.1
       react-dom:
         specifier: 'catalog:'
         version: 19.3.1(react@19.3.1)
+      zod:
+        specifier: 'catalog:'
+        version: 4.6.7
     devDependencies:
       '@storybook/react-vite':
         specifier: 'catalog:'
@@ -1439,6 +1457,14 @@ packages:
 
   '@mantine/notifications@9.7.5':
     resolution: {integrity: sha512-S7jApMXZhXmKLlwvvp5yfQ3AqfxQN9Y+GQK82f5vNWKLZVgQ3HdicpeSh1DmsNWdB4sJr0oIhWliCUPAC8ctyA==}
+    peerDependencies:
+      '@mantine/core': 9.7.5
+      '@mantine/hooks': 9.7.5
+      react: ^19.2.0
+      react-dom: ^19.2.0
+
+  '@mantine/spotlight@9.7.5':
+    resolution: {integrity: sha512-6YKtPEfwPTkS5wdxNXtn+EicFh+wvI1V9ydpK7O/sXVRCwbOdYRvOYfE/0AJy/aL0o9akxWcjZey4pyHpT/IeA==}
     peerDependencies:
       '@mantine/core': 9.7.5
       '@mantine/hooks': 9.7.5
@@ -2330,6 +2356,17 @@ packages:
   '@tanstack/history@1.162.5':
     resolution: {integrity: sha512-w1+YvwmTkwt5n8yUqEH3IWZ9DsmorCZW/EQ3KYHnqEgIkOZpH54NvW6/Epq3Dzb8H0ifIeYX8PExvrNLIH5FIA==}
     engines: {node: '>=20.19'}
+
+  '@tanstack/hotkeys@0.26.0':
+    resolution: {integrity: sha512-1b65lc9qkIdTj+jmR2KE5VMbpl0pxja90JrYi5EuPKcsyTss05009yPisn7Ej98MQtXSsYln+EnZNjuX/MV0Hg==}
+    engines: {node: '>=20'}
+
+  '@tanstack/react-hotkeys@0.22.3':
+    resolution: {integrity: sha512-Feo/cwrByjfvAHJ04JFNopjhHQr5wSAX3wmQrpfXOTEcpztioFe6AB+iRqt6kb2LJgX1XWUSD9ujbvBcIR8LSQ==}
+    engines: {node: '>=20'}
+    peerDependencies:
+      react: '>=18.0.0'
+      react-dom: '>=18.0.0'
 
   '@tanstack/react-router@1.170.46':
     resolution: {integrity: sha512-ez1iNIhsPjGlaDHg3BXWs67EWVIYzB2tbopEHYDESdkO7owgkGb5de52+5Kv2v1fxdkggcNzo35bdk4arTVGQw==}
@@ -5543,6 +5580,14 @@ snapshots:
       react-dom: 19.3.1(react@19.3.1)
       react-transition-group: 4.4.5(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
 
+  '@mantine/spotlight@9.7.5(@mantine/core@9.7.5(@mantine/hooks@9.7.5(react@19.3.1))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(@mantine/hooks@9.7.5(react@19.3.1))(react-dom@19.3.1(react@19.3.1))(react@19.3.1)':
+    dependencies:
+      '@mantine/core': 9.7.5(@mantine/hooks@9.7.5(react@19.3.1))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
+      '@mantine/hooks': 9.7.5(react@19.3.1)
+      '@mantine/store': 9.7.5(react@19.3.1)
+      react: 19.3.1
+      react-dom: 19.3.1(react@19.3.1)
+
   '@mantine/store@9.7.5(react@19.3.1)':
     dependencies:
       react: 19.3.1
@@ -6083,6 +6128,14 @@ snapshots:
       defer-to-connect: 2.0.1
 
   '@tanstack/history@1.162.5': {}
+
+  '@tanstack/hotkeys@0.26.0': {}
+
+  '@tanstack/react-hotkeys@0.22.3(react-dom@19.3.1(react@19.3.1))(react@19.3.1)':
+    dependencies:
+      '@tanstack/hotkeys': 0.26.0
+      react: 19.3.1
+      react-dom: 19.3.1(react@19.3.1)
 
   '@tanstack/react-router@1.170.46(react-dom@19.3.1(react@19.3.1))(react@19.3.1)':
     dependencies:

@@ -15,6 +15,10 @@ msgstr "{count, plural, one {# Eintrag} other {# Einträge}}"
 msgid "Add an entry"
 msgstr "Eintrag hinzufügen"
 
+#: packages/placeholder-alpha/src/index.ts
+msgid "Add sample entry"
+msgstr "Beispieleintrag hinzufügen"
+
 #: packages/placeholder-alpha/src/groups.tsx
 msgid "All clients"
 msgstr "Alle Kunden"
@@ -57,6 +61,10 @@ msgstr "Hinweis schließen"
 #: packages/shell/src/shell.tsx
 msgid "Collapse module sidebar"
 msgstr "Modul-Sidebar einklappen"
+
+#: packages/shell/src/command-palette-dialog.tsx
+msgid "Command palette"
+msgstr "Befehlspalette"
 
 #: packages/placeholder-alpha/src/edit-drawer.tsx
 #: packages/placeholder-alpha/src/entries.tsx
@@ -141,6 +149,10 @@ msgstr "Neuer Eintrag"
 msgid "No entries here"
 msgstr "Hier gibt es keine Einträge"
 
+#: packages/shell/src/command-palette-dialog.tsx
+msgid "Nothing found"
+msgstr "Nichts gefunden"
+
 #: apps/web/src/route-states.tsx
 msgid "Nothing was found at this address."
 msgstr "Unter dieser Adresse wurde nichts gefunden."
@@ -178,6 +190,18 @@ msgstr "Breite der Navbar ändern"
 msgid "Save"
 msgstr "Speichern"
 
+#: packages/shell/src/shell.tsx
+msgid "Search"
+msgstr "Suchen"
+
+#: packages/shell/src/command-palette-dialog.tsx
+msgid "Search commands and views"
+msgstr "Befehle und Ansichten suchen"
+
+#: packages/shell/src/command-palette-dialog.tsx
+msgid "Search…"
+msgstr "Suchen…"
+
 #: apps/web/src/modules.ts
 msgid "Settings"
 msgstr "Einstellungen"
@@ -194,7 +218,7 @@ msgstr "Studioarbeit"
 msgid "That could not be undone."
 msgstr "Das konnte nicht rückgängig gemacht werden."
 
-#: packages/shell/src/primary-action.tsx
+#: packages/shell/src/start-command.tsx
 msgid "The action could not be completed. Please try again."
 msgstr "Die Aktion konnte nicht ausgeführt werden. Bitte versuche es erneut."
 
@@ -230,6 +254,7 @@ msgstr "Diese Ansicht konnte nicht geladen werden. Bitte versuche es erneut."
 msgid "Try again"
 msgstr "Erneut versuchen"
 
+#: packages/shell/src/shell-commands.ts
 #: packages/ui/src/feedback.tsx
 msgid "Undo"
 msgstr "Rückgängig"

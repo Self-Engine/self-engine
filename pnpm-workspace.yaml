@@ -35,6 +35,7 @@ catalog:
   "@mantine/hooks": 9.7.5
   "@mantine/modals": 9.7.5
   "@mantine/notifications": 9.7.5
+  "@mantine/spotlight": 9.7.5
   # The JS plugin API of the Oxlint that vite-plus ships; move it with vite-plus.
   "@oxlint/plugins": 1.91.0
   # Only packages/icons may depend on it (#18).
@@ -45,6 +46,8 @@ catalog:
   # dependency-cruiser's TypeScript parser (verify:boundaries): its tsc parser needs the
   # JS compiler API, which TypeScript 7 no longer has.
   "@swc/core": 1.16.22
+  # Still beta, so pinned exactly (D179). Only packages/shell/src/shortcut-bindings.tsx imports it.
+  "@tanstack/react-hotkeys": 0.22.3
   "@tanstack/react-router": 1.170.46
   "@tanstack/router-plugin": 1.168.48
   # Pinned to the Node version inside Electron (45.x ships Node 24), so TypeScript

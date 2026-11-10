@@ -1,10 +1,21 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { createHashHistory, RouterProvider } from "@tanstack/react-router";
+import { contribution as alpha } from "@self-engine/placeholder-alpha";
+import type { PageCommand } from "@self-engine/shell";
 import { useEffect, useState } from "react";
-import { expect, screen, userEvent, waitFor, within } from "storybook/test";
+import { expect, screen, spyOn, userEvent, waitFor, within } from "storybook/test";
 import { createAppRouter } from "./app-router.ts";
 import { settingsStore } from "./settings-store.ts";
-import { editInAddress } from "./story-app.tsx";
+import {
+  answer,
+  asked,
+  editInAddress,
+  editStudio,
+  noDrawer,
+  noQuestion,
+  pressWithMod,
+  QUESTION,
+} from "./story-app.tsx";
 
 type Canvas = ReturnType<typeof within>;
 
@@ -43,29 +54,10 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-const QUESTION = "Discard changes?";
-
 const address = () => ({
   pathname: openRouter.state.location.pathname,
   edit: editInAddress(openRouter),
 });
-
-const asked = () => screen.findByRole("dialog", { name: QUESTION });
-const answer = async (label: "Discard" | "Keep editing") =>
-  userEvent.click(within(await asked()).getByRole("button", { name: label }));
-const noQuestion = () =>
-  waitFor(() => expect(screen.queryByRole("dialog", { name: QUESTION })).toBeNull());
-const noDrawer = (name: string) =>
-  waitFor(() => expect(screen.queryByRole("dialog", { name })).toBeNull());
-
-/** Opens the entry from the list, so that there is a history entry to go back from. */
-async function editStudio(canvas: Canvas) {
-  await userEvent.click(await canvas.findByRole("button", { name: "Studio work" }));
-  const drawer = await screen.findByRole("dialog", { name: "Studio work" });
-  const name = await within(drawer).findByRole("textbox", { name: "Name" });
-  await userEvent.type(name, " changed");
-  return { drawer: within(drawer), name };
-}
 
 export const BackAsksAndDiscardGoesBack: Story = {
   play: async ({ canvas }) => {
@@ -250,6 +242,60 @@ export const ACommandThatWouldSwapTheEntryAsks: Story = {
     await expect(address().edit).toBe("studio");
     await expect(name).toHaveValue("Studio work changed");
     await userEvent.click(canvas.getByRole("button", { name: "New entry" }));
+    await answer("Discard");
+    await screen.findByRole("dialog", { name: "New entry" });
+    await waitFor(() => expect(address().edit).toBe("new"));
+  },
+};
+
+const pressNew = () => pressWithMod("n");
+const spyOnNewEntry = () => spyOn(alpha.commands![0] as { load: PageCommand["load"] }, "load");
+let newEntry: ReturnType<typeof spyOnNewEntry>;
+
+/** The bindings load after the first paint. Ends on the first press that lands, with no drawer. */
+async function shortcutsArrived() {
+  await waitFor(async () => {
+    await pressNew();
+    await expect(newEntry).toHaveBeenCalled();
+  });
+  const drawer = within(await screen.findByRole("dialog", { name: "New entry" }));
+  await userEvent.click(await drawer.findByRole("button", { name: "Cancel" }));
+  await noDrawer("New entry");
+}
+
+export const AShortcutThatWouldSwapTheEntryAsksAndKeepEditingKeepsIt: Story = {
+  beforeEach: () => {
+    newEntry = spyOnNewEntry();
+    return () => newEntry.mockRestore();
+  },
+  play: async ({ canvas }) => {
+    await shortcutsArrived();
+    const { name } = await editStudio(canvas);
+    await expect(name).toHaveFocus();
+    newEntry.mockClear();
+    await pressNew();
+    await asked();
+    await expect(newEntry).toHaveBeenCalledOnce();
+    // Pressed again over the question: it stays one question, and nothing else starts.
+    await pressNew();
+    await expect(newEntry).toHaveBeenCalledOnce();
+    await answer("Keep editing");
+    await noQuestion();
+    await expect(address().edit).toBe("studio");
+    await expect(name).toHaveValue("Studio work changed");
+    await waitFor(() => expect(name).toHaveFocus());
+  },
+};
+
+export const AShortcutThatWouldSwapTheEntryAsksAndDiscardFinishesTheCommand: Story = {
+  beforeEach: () => {
+    newEntry = spyOnNewEntry();
+    return () => newEntry.mockRestore();
+  },
+  play: async ({ canvas }) => {
+    await shortcutsArrived();
+    await editStudio(canvas);
+    await pressNew();
     await answer("Discard");
     await screen.findByRole("dialog", { name: "New entry" });
     await waitFor(() => expect(address().edit).toBe("new"));

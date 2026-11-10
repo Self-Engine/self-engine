@@ -89,10 +89,10 @@ export const OnlyTheContentBelowTheHeaderScrolls: Story = {
 
 export const HeaderShowsItsSlots: Story = {
   ...atViewport("wide"),
-  args: { channelBadge: <span>Nightly</span>, headerEnd: <button type="button">Search</button> },
+  args: { channelBadge: <span>Nightly</span>, headerEnd: <button type="button">Slot</button> },
   play: async ({ canvas }) => {
     await expect(canvas.getByText("Nightly")).toBeVisible();
-    await expect(canvas.getByRole("button", { name: "Search" })).toBeVisible();
+    await expect(canvas.getByRole("button", { name: "Slot" })).toBeVisible();
   },
 };
 

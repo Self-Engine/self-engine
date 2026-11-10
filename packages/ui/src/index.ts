@@ -1,5 +1,6 @@
 export {
   confirm,
+  isConfirmationOpen,
   type ConfirmOptions,
   FeedbackHost,
   NOTICE_CLEARANCE_VARIABLE,
@@ -7,6 +8,7 @@ export {
   type NotifyErrorOptions,
   notifyUndoable,
   type NotifyUndoableOptions,
+  undoLatest,
 } from "./feedback.tsx";
 export {
   EmptyState,

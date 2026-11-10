@@ -2,7 +2,14 @@ import { notifications } from "@mantine/notifications";
 import { roleColor } from "@self-engine/theme";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { expect, fn, screen, spyOn, userEvent, waitFor, within } from "storybook/test";
-import { confirm, type ConfirmOptions, notifyError, notifyUndoable } from "./index.ts";
+import {
+  confirm,
+  type ConfirmOptions,
+  isConfirmationOpen,
+  notifyError,
+  notifyUndoable,
+  undoLatest,
+} from "./index.ts";
 import { holdTimers } from "./story-timers.ts";
 
 const meta = {
@@ -34,6 +41,31 @@ export const ConfirmingAnswersYesFromOutsideAComponent: Story = {
     await waitFor(() => expect(dialog.getByText("This cannot be undone.")).toBeVisible());
     await userEvent.click(dialog.getByRole("button", { name: "Delete" }));
     await expect(await answer).toBe(true);
+    await gone();
+  },
+};
+
+export const AConfirmationIsKnownToBeOpenFromTheMomentItIsRaised: Story = {
+  play: async () => {
+    await expect(isConfirmationOpen()).toBe(false);
+    const answer = confirm(QUESTION);
+    // Before React has drawn it, because a key can be pressed at any moment.
+    await expect(isConfirmationOpen()).toBe(true);
+    const dialog = within(await screen.findByRole("dialog", { name: QUESTION.title }));
+    await userEvent.click(dialog.getByRole("button", { name: "Delete" }));
+    await expect(await answer).toBe(true);
+    await expect(isConfirmationOpen()).toBe(false);
+    await gone();
+  },
+};
+
+export const AConfirmationIsNoLongerOpenAfterEsc: Story = {
+  play: async () => {
+    const { answer } = await ask();
+    await expect(isConfirmationOpen()).toBe(true);
+    await userEvent.keyboard("{Escape}");
+    await expect(await answer).toBe(false);
+    await expect(isConfirmationOpen()).toBe(false);
     await gone();
   },
 };
@@ -196,6 +228,76 @@ export const TwoNoticesAreTakenBackSeparately: Story = {
     await userEvent.click(undoButton(second));
     await expect(undoSecond).toHaveBeenCalledOnce();
     await noticeGone("Second deleted");
+  },
+};
+
+export const UndoLatestTakesBackTheMostRecentNoticeFirst: Story = {
+  play: async () => {
+    const undoFirst = fn();
+    const undoSecond = fn();
+    notifyUndoable({ message: "First deleted", undo: undoFirst });
+    notifyUndoable({ message: "Second deleted", undo: undoSecond });
+    const first = await noticeWith("First deleted");
+
+    undoLatest();
+    await expect(undoSecond).toHaveBeenCalledOnce();
+    await expect(undoFirst).not.toHaveBeenCalled();
+    await noticeGone("Second deleted");
+    await expect(first).toBeVisible();
+
+    undoLatest();
+    await expect(undoFirst).toHaveBeenCalledOnce();
+    await noticeGone("First deleted");
+  },
+};
+
+export const UndoLatestSkipsANoticeThatIsStillSlidingOut: Story = {
+  play: async () => {
+    const undoFirst = fn();
+    const undoSecond = fn();
+    notifyUndoable({ message: "First deleted", undo: undoFirst });
+    notifyUndoable({ message: "Second deleted", undo: undoSecond });
+    await noticeWith("Second deleted");
+
+    undoLatest();
+    undoLatest();
+    await expect(undoSecond).toHaveBeenCalledOnce();
+    await expect(undoFirst).toHaveBeenCalledOnce();
+    await noticeGone("First deleted");
+    await noticeGone("Second deleted");
+  },
+};
+
+export const UndoLatestSkipsANoticeThatClosedByItself: Story = {
+  beforeEach: holdNoticeTimers,
+  play: async () => {
+    const undoFirst = fn();
+    const undoSecond = fn();
+    notifyUndoable({ message: "First deleted", undo: undoFirst });
+    await noticeWith("First deleted");
+    await waitFor(() => expect(heldNoticeTimers.size).toBe(1));
+    notifyUndoable({ message: "Second deleted", undo: undoSecond });
+    await noticeWith("Second deleted");
+    await waitFor(() => expect(heldNoticeTimers.size).toBe(2));
+
+    [...heldNoticeTimers.values()].at(-1)!();
+    await noticeGone("Second deleted");
+
+    undoLatest();
+    await expect(undoSecond).not.toHaveBeenCalled();
+    await expect(undoFirst).toHaveBeenCalledOnce();
+    await noticeGone("First deleted");
+  },
+};
+
+export const UndoLatestLeavesEveryOtherNoticeAlone: Story = {
+  play: async () => {
+    notifyError({ message: "The backup failed." });
+    const notice = await noticeWith("The backup failed.");
+    undoLatest();
+    await expect(notice).toBeVisible();
+    await userEvent.click(within(notice).getByRole("button", { name: "Close notice" }));
+    await noticeGone("The backup failed.");
   },
 };
 

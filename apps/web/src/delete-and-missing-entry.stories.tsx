@@ -2,7 +2,14 @@ import { holdTimers } from "@self-engine/ui/story-timers";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { expect, screen, userEvent, waitFor, within } from "storybook/test";
 import { settingsStore } from "./settings-store.ts";
-import { AppAt, editInAddress, storyRouter } from "./story-app.tsx";
+import {
+  AppAt,
+  editInAddress,
+  modKeyIsLeftToTheBrowser,
+  pressWithMod,
+  QUESTION,
+  storyRouter,
+} from "./story-app.tsx";
 
 type Canvas = ReturnType<typeof within>;
 
@@ -18,7 +25,6 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-const QUESTION = "Discard changes?";
 const openEntry = () => editInAddress(storyRouter());
 
 const noDrawer = () => waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
@@ -96,6 +102,92 @@ export const TwoQuickDeletesAreUndoneSeparately: Story = {
     await undoLast();
     await waitFor(() => expect(listed(canvas)).toEqual(["Studio work", "Garden work"]));
     await noUndoOffer();
+  },
+};
+
+const pressUndo = () => pressWithMod("z");
+
+/** The bindings load after the first paint. Ends on the press that took back a delete. */
+async function undoShortcutArrived(canvas: Canvas) {
+  await deleteFromTheList(canvas, "Studio work");
+  await waitFor(() => expect(listed(canvas)).toEqual(["Garden work"]));
+  await waitFor(async () => {
+    await pressUndo();
+    await expect(listed(canvas)).toEqual(["Studio work", "Garden work"]);
+  });
+  await noUndoOffer();
+}
+
+export const CommandZAfterADeleteTakesItBackAndHidesItsNotice: Story = {
+  beforeEach: keepNoticesOpen,
+  play: async ({ canvas }) => undoShortcutArrived(canvas),
+};
+
+export const CommandZTakesBackTheMostRecentDeleteFirst: Story = {
+  beforeEach: keepNoticesOpen,
+  play: async ({ canvas }) => {
+    await undoShortcutArrived(canvas);
+    await deleteFromTheList(canvas, "Studio work");
+    await deleteFromTheList(canvas, "Garden work");
+    await waitFor(() => expect(screen.getAllByRole("button", { name: "Undo" })).toHaveLength(2));
+    await pressUndo();
+    await expect(await canvas.findByRole("button", { name: "Garden work" })).toBeVisible();
+    await expect(canvas.queryByRole("button", { name: "Studio work" })).toBeNull();
+    await pressUndo();
+    await waitFor(() => expect(listed(canvas)).toEqual(["Studio work", "Garden work"]));
+    await noUndoOffer();
+  },
+};
+
+export const TwoQuickCommandZStepBackTwoDeletes: Story = {
+  beforeEach: keepNoticesOpen,
+  play: async ({ canvas }) => {
+    await undoShortcutArrived(canvas);
+    await deleteFromTheList(canvas, "Studio work");
+    await deleteFromTheList(canvas, "Garden work");
+    await waitFor(() => expect(screen.getAllByRole("button", { name: "Undo" })).toHaveLength(2));
+    // Without waiting: the first notice is still sliding out when the second press lands.
+    await pressUndo();
+    await pressUndo();
+    await waitFor(() => expect(listed(canvas)).toEqual(["Studio work", "Garden work"]));
+    await noUndoOffer();
+  },
+};
+
+export const CommandZInAFieldLeavesTheNoticeAndTheTextAlone: Story = {
+  beforeEach: keepNoticesOpen,
+  play: async ({ canvas }) => {
+    await undoShortcutArrived(canvas);
+    await deleteFromTheList(canvas, "Garden work");
+    await waitFor(() => expect(listed(canvas)).toEqual(["Studio work"]));
+    await userEvent.click(await canvas.findByRole("button", { name: "Studio work" }));
+    const drawer = within(await screen.findByRole("dialog", { name: "Studio work" }));
+    const name = await drawer.findByRole("textbox", { name: "Name" });
+    await userEvent.click(name);
+    await expect(name).toHaveFocus();
+
+    // Left to the browser means that it goes on to undo the typing.
+    await expect(modKeyIsLeftToTheBrowser(name, "z")).toBe(true);
+    await expect(listed(canvas)).toEqual(["Studio work"]);
+    // Under a loaded run the notice can still be sliding in.
+    await waitFor(() => expect(screen.getByRole("button", { name: "Undo" })).toBeVisible());
+
+    await userEvent.click(drawer.getByRole("button", { name: "Cancel" }));
+    await noDrawer();
+    await undoLast();
+    await waitFor(() => expect(listed(canvas)).toEqual(["Studio work", "Garden work"]));
+    await noUndoOffer();
+  },
+};
+
+export const CommandZWithNoNoticeDoesNothing: Story = {
+  beforeEach: keepNoticesOpen,
+  play: async ({ canvas }) => {
+    await undoShortcutArrived(canvas);
+    await pressUndo();
+    await expect(listed(canvas)).toEqual(["Studio work", "Garden work"]);
+    await expect(screen.queryByRole("dialog")).toBeNull();
+    await expect(screen.queryByRole("alert")).toBeNull();
   },
 };
 

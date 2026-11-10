@@ -12,14 +12,32 @@ export type {
 export {
   validateContributions,
   defineContribution,
-  type ShellCommand,
-  type CommandContext,
   type ShellContribution,
   type ShellView,
   type EditDrawerProps,
 } from "./contributions.ts";
 
-export { useViewSearch, useWriteViewSearch } from "./routing.tsx";
+export { auditCommands } from "./command-audit.ts";
+export {
+  commandRegister,
+  defineInputCommand,
+  defineOpenCommand,
+  definePageCommand,
+  type CommandBody,
+  type CommandContext,
+  type CommandKind,
+  type InputCommand,
+  type OpenCommand,
+  type PageCommand,
+  type PageCommandContext,
+  type PersonCommand,
+  type RegisteredCommand,
+  type ShellCommand,
+} from "./commands.ts";
+export { runCommand, type CommandResult } from "./run-command.ts";
+export { shellCommands } from "./shell-commands.ts";
+
+export { askLeaveGuards, useViewSearch, useWriteViewSearch } from "./routing.tsx";
 export { retainedViewSearch, type ViewSearch } from "./view-search.ts";
 export { ShellGroup, ShellGroupEntry } from "./groups.tsx";
 export { useEditDrawerTitle } from "./edit-drawer-title.ts";
