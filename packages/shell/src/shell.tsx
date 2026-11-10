@@ -5,6 +5,7 @@ import { LazyContribution, lazyComponents } from "./lazy-contribution.tsx";
 import { useCloseOverlayOnPick, useViewSearch, useWriteViewSearch } from "./routing.tsx";
 import { ACTIVE_ENTRY_VARS } from "./navigation-style.ts";
 import { PrimaryAction } from "./primary-action.tsx";
+import { CommandStarts } from "./start-command.tsx";
 import { useLingui } from "@lingui/react/macro";
 import type { ShellContribution, ShellView } from "./contributions.ts";
 import {
@@ -810,18 +811,20 @@ export function Shell({ contributions, settings, activeModule, activeView, ...pr
     color: module.color,
   });
   return (
-    <ShellFrame
-      {...props}
-      entries={contributions.map(entryOf)}
-      settingsEntry={entryOf(settings)}
-      activeEntryId={activeModule?.id ?? ""}
-      activeColor={activeModule?.color}
-      pageTitle={activeView ? i18n._(activeView.title) : ""}
-      editDrawer={<ModuleEditDrawer module={activeView && activeModule} />}
-      moduleSidebar={
-        <ModuleViews module={activeModule} activeView={activeView} routing={props.routing} />
-      }
-    />
+    <CommandStarts>
+      <ShellFrame
+        {...props}
+        entries={contributions.map(entryOf)}
+        settingsEntry={entryOf(settings)}
+        activeEntryId={activeModule?.id ?? ""}
+        activeColor={activeModule?.color}
+        pageTitle={activeView ? i18n._(activeView.title) : ""}
+        editDrawer={<ModuleEditDrawer module={activeView && activeModule} />}
+        moduleSidebar={
+          <ModuleViews module={activeModule} activeView={activeView} routing={props.routing} />
+        }
+      />
+    </CommandStarts>
   );
 }
 
@@ -843,9 +846,7 @@ function ModuleViews({
   if (!module) return null;
   return (
     <Stack gap="xs" data-module-color={module.color}>
-      {module.primaryAction && (
-        <PrimaryAction key={`${module.id}/${activeView?.id}`} action={module.primaryAction} />
-      )}
+      {module.primaryAction && <PrimaryAction moduleId={module.id} action={module.primaryAction} />}
       {module.views.map((view) => (
         <NavLink
           key={view.id}

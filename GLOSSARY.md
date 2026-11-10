@@ -84,6 +84,10 @@ _Avoid_: global setting, account setting
 
 ### Shell
 
+**Command** (de: _Befehl_):
+One action of the app that can be started by name, such as opening a new entry. Its kind decides who can start it: a person on a page, a person or a later assistant, or only a later assistant. Reading data is not a _Command_.
+_Avoid_: action (for the declared thing), operation, handler
+
 **Edit Drawer** (de: _Bearbeiten-Drawer_):
 The panel on the right in which a module edits one entry, opened through the address. Every way out asks before unsaved changes are lost, except the end of a successful save or delete.
 _Avoid_: edit modal, side panel

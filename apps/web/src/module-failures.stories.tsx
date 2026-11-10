@@ -2,13 +2,15 @@ import type { Meta, StoryObj } from "@storybook/react-vite";
 import { expect, spyOn, userEvent, waitFor, within } from "storybook/test";
 import { contribution as alpha } from "@self-engine/placeholder-alpha";
 import { contribution as beta } from "@self-engine/placeholder-beta";
-import type {
-  EditDrawerProps,
-  ShellCommand,
-  ShellContribution,
-  ShellView,
+import {
+  definePageCommand,
+  type EditDrawerProps,
+  type PageCommand,
+  type ShellContribution,
+  type ShellView,
 } from "@self-engine/shell";
 import type { ComponentType } from "react";
+import { z } from "zod";
 import { settingsStore } from "./settings-store.ts";
 import { AppAt, storyRouter } from "./story-app.tsx";
 
@@ -47,10 +49,16 @@ function expectingReportedErrors(...spies: readonly Restorable[]) {
   };
 }
 
+type HeldCommand = ReturnType<typeof held<Awaited<ReturnType<PageCommand["load"]>>>>;
+
+const pageCommand = (run: Parameters<typeof definePageCommand>[0]["run"]) => ({
+  default: definePageCommand({ description: "A stand-in.", schema: z.object({}), run }),
+});
+
 const spyOnModule = {
   groups: () => spyOn(alpha as { groups: GroupsLoad }, "groups"),
   editDrawer: () => spyOn(alpha as { editDrawer: EditDrawerLoad }, "editDrawer"),
-  command: () => spyOn(alpha.commands![0] as { load: ShellCommand["load"] }, "load"),
+  command: () => spyOn(alpha.commands![0] as { load: PageCommand["load"] }, "load"),
 };
 const page = (canvasElement: HTMLElement) => within(canvasElement.ownerDocument.body);
 const offline = new Error("offline");
@@ -125,22 +133,27 @@ export const CommandLoadFailureIsReported: Story = {
   beforeEach: () => expectingReportedErrors(spyOnModule.command().mockRejectedValueOnce(offline)),
   play: async ({ canvas, canvasElement }) => {
     await userEvent.click(await canvas.findByRole("button", { name: "New entry" }));
-    await expect(await canvas.findByRole("alert")).toHaveTextContent("could not be completed");
+    await expect(await page(canvasElement).findByRole("alert")).toHaveTextContent(
+      "could not be completed",
+    );
+    await expect(canvas.queryByRole("alert")).toBeNull();
     await expectShellIntact(canvas);
     await userEvent.click(canvas.getByRole("button", { name: "New entry" }));
     await expectEditorShows(canvasElement, "new");
-    await waitFor(() => expect(canvas.queryByRole("alert")).toBeNull());
   },
 };
 
 export const CommandRunFailureIsReported: Story = {
   beforeEach: () =>
     expectingReportedErrors(
-      spyOnModule.command().mockResolvedValueOnce({ default: () => Promise.reject(offline) }),
+      spyOnModule.command().mockResolvedValueOnce(pageCommand(() => Promise.reject(offline))),
     ),
-  play: async ({ canvas }) => {
+  play: async ({ canvas, canvasElement }) => {
     await userEvent.click(await canvas.findByRole("button", { name: "New entry" }));
-    await expect(await canvas.findByRole("alert")).toHaveTextContent("could not be completed");
+    await expect(await page(canvasElement).findByRole("alert")).toHaveTextContent(
+      "could not be completed",
+    );
+    await expect(canvas.queryByRole("alert")).toBeNull();
     await expectShellIntact(canvas);
   },
 };
@@ -177,10 +190,29 @@ export const SlowDrawerCodeShowsTheLoadingState: Story = {
   },
 };
 
-let heldCommand: ReturnType<typeof held<Awaited<ReturnType<ShellCommand["load"]>>>>;
-const openEditor = {
-  default: ({ writeSearch }: Parameters<Awaited<ReturnType<ShellCommand["load"]>>["default"]>[0]) =>
-    writeSearch((search) => ({ ...search, edit: "new" })),
+let heldCommand: HeldCommand;
+const openEditor = pageCommand((_input, { writeSearch }) =>
+  writeSearch((search) => ({ ...search, edit: "new" })),
+);
+
+let heldCommandPressedTwice: HeldCommand;
+let pressedTwiceLoad: ReturnType<typeof spyOnModule.command>;
+
+export const SecondPressIsIgnoredWhileTheActionRuns: Story = {
+  beforeEach: () => {
+    heldCommandPressedTwice = held();
+    pressedTwiceLoad = spyOnModule.command().mockReturnValue(heldCommandPressedTwice.promise);
+    return () => pressedTwiceLoad.mockRestore();
+  },
+  play: async ({ canvas, canvasElement }) => {
+    const action = await canvas.findByRole("button", { name: "New entry" });
+    await userEvent.click(action);
+    await userEvent.click(action);
+    await expect(pressedTwiceLoad).toHaveBeenCalledOnce();
+    heldCommandPressedTwice.finish(openEditor);
+    await expectEditorShows(canvasElement, "new");
+    await expect(pressedTwiceLoad).toHaveBeenCalledOnce();
+  },
 };
 
 export const SlowActionDoesNotReachTheNextView: Story = {
@@ -200,7 +232,7 @@ export const SlowActionDoesNotReachTheNextView: Story = {
   },
 };
 
-let heldCommandStaying: ReturnType<typeof held<Awaited<ReturnType<ShellCommand["load"]>>>>;
+let heldCommandStaying: HeldCommand;
 
 export const SlowActionStillOpensWhenTheViewStays: Story = {
   args: { address: "/placeholder-alpha/overview?client=studio" },
@@ -224,7 +256,7 @@ export const SlowActionStillOpensWhenTheViewStays: Story = {
 
 const spyOnBeta = () => spyOn(beta.views[0] as { load: ShellView["load"] }, "load");
 let heldBetaForCommand: ReturnType<typeof held<Awaited<ReturnType<ShellView["load"]>>>>;
-let heldCommandBeforeLeaving: ReturnType<typeof held<Awaited<ReturnType<ShellCommand["load"]>>>>;
+let heldCommandBeforeLeaving: HeldCommand;
 
 export const SlowActionDoesNotInterruptALeavingNavigation: Story = {
   beforeEach: () => {

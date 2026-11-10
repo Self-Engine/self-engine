@@ -16,7 +16,8 @@
     "@self-engine/theme": "workspace:*",
     "@self-engine/ui": "workspace:*",
     "react": "catalog:",
-    "react-dom": "catalog:"
+    "react-dom": "catalog:",
+    "zod": "catalog:"
   },
   "devDependencies": {
     "@storybook/react-vite": "catalog:",

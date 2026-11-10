@@ -317,6 +317,7 @@ export const TheCollapseToggleLabelIsTranslated: Story = {
 
 const unloadedCommand = {
   id: "create",
+  kind: "page",
   label: { id: "story-Create entry", message: "Create entry" },
   load: () => {
     throw new Error("Command code must only load on click");

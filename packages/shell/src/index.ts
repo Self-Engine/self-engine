@@ -12,12 +12,29 @@ export type {
 export {
   validateContributions,
   defineContribution,
-  type ShellCommand,
-  type CommandContext,
   type ShellContribution,
   type ShellView,
   type EditDrawerProps,
 } from "./contributions.ts";
+
+export {
+  auditCommands,
+  commandRegister,
+  defineInputCommand,
+  defineOpenCommand,
+  definePageCommand,
+  type CommandBody,
+  type CommandContext,
+  type CommandKind,
+  type InputCommand,
+  type OpenCommand,
+  type PageCommand,
+  type PageCommandContext,
+  type PersonCommand,
+  type RegisteredCommand,
+  type ShellCommand,
+} from "./commands.ts";
+export { runCommand, type CommandResult } from "./run-command.ts";
 
 export { useViewSearch, useWriteViewSearch } from "./routing.tsx";
 export { retainedViewSearch, type ViewSearch } from "./view-search.ts";

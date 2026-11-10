@@ -1,4 +1,4 @@
-import type { WriteViewSearch } from "./routing.tsx";
+import type { PersonCommand, ShellCommand } from "./commands.ts";
 import type { MessageDescriptor } from "@lingui/core";
 import type { ColorSetId } from "@self-engine/theme";
 import type { ComponentType } from "react";
@@ -18,21 +18,6 @@ export interface EditDrawerProps {
   readonly onDone: () => void;
 }
 
-/** The address capability available to loaded command code, without a router dependency. */
-export interface CommandContext {
-  /** Writes to the page the command was started on, and does nothing once the user has left it. */
-  readonly writeSearch: WriteViewSearch;
-}
-
-export interface ShellCommand {
-  readonly id: string;
-  readonly label: MessageDescriptor;
-  readonly defaultShortcut?: string;
-  readonly load: () => Promise<{
-    readonly default: (context: CommandContext) => void | Promise<void>;
-  }>;
-}
-
 interface ContributionMetadata {
   readonly id: string;
   readonly name: MessageDescriptor;
@@ -48,8 +33,8 @@ interface ContributionMetadata {
 /** Private state prevents object literals and spreads from forging checked membership. */
 class ContributionAction {
   readonly #commands: readonly ShellCommand[];
-  readonly #primaryAction: ShellCommand;
-  constructor(commands: readonly ShellCommand[], primaryAction: ShellCommand) {
+  readonly #primaryAction: PersonCommand;
+  constructor(commands: readonly ShellCommand[], primaryAction: PersonCommand) {
     if (!commands.includes(primaryAction)) {
       throw new Error("The primary action must reference one of the contribution's commands");
     }
@@ -77,7 +62,7 @@ export function defineContribution<const Commands extends readonly ShellCommand[
     readonly commands?: Commands;
     readonly primaryAction?: string extends Commands[number]["id"]
       ? never
-      : NoInfer<Commands[number]>;
+      : NoInfer<Extract<Commands[number], PersonCommand>>;
   },
 ): ShellContribution {
   const { commands, primaryAction, ...metadata } = contribution;
@@ -93,6 +78,9 @@ interface AddressContribution {
   readonly commands?: readonly { readonly id: string }[] | undefined;
 }
 
+/** The prefix of the Shell's own Commands, so that their full ids stay free for it. */
+const RESERVED_MODULE_ID = "shell";
+
 /** Checks the complete app registry, including Settings, before addresses are used. */
 export function validateContributions(contributions: readonly AddressContribution[]): void {
   const checkIds = (entries: readonly { readonly id: string }[]) => {
@@ -106,6 +94,9 @@ export function validateContributions(contributions: readonly AddressContributio
   };
   checkIds(contributions);
   for (const contribution of contributions) {
+    if (contribution.id === RESERVED_MODULE_ID) {
+      throw new Error(`The module id ${RESERVED_MODULE_ID} is reserved for the Shell`);
+    }
     if (contribution.views.length === 0) throw new Error(`Module ${contribution.id} needs a View`);
     checkIds(contribution.views);
     checkIds(contribution.commands ?? []);
