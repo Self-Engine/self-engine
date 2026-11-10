@@ -69,6 +69,15 @@ async function expectEditorShows(canvasElement: HTMLElement, id: string) {
   await within(dialog).findByText(id);
 }
 
+/** Closed again by hand, because the notice store outlives a story. */
+async function expectFailureNoticeThenClose(canvas: Canvas, canvasElement: HTMLElement) {
+  const body = page(canvasElement);
+  await expect(await body.findByRole("alert")).toHaveTextContent("could not be completed");
+  await expect(canvas.queryByRole("alert")).toBeNull();
+  await userEvent.click(body.getByRole("button", { name: "Close notice" }));
+  await waitFor(() => expect(body.queryByRole("alert")).toBeNull());
+}
+
 async function expectShellIntact(canvas: Canvas) {
   await expect(canvas.getByRole("navigation", { name: "Modules" })).toBeVisible();
   await expect(canvas.getByRole("link", { name: "Archive" })).toBeVisible();
@@ -133,10 +142,7 @@ export const CommandLoadFailureIsReported: Story = {
   beforeEach: () => expectingReportedErrors(spyOnModule.command().mockRejectedValueOnce(offline)),
   play: async ({ canvas, canvasElement }) => {
     await userEvent.click(await canvas.findByRole("button", { name: "New entry" }));
-    await expect(await page(canvasElement).findByRole("alert")).toHaveTextContent(
-      "could not be completed",
-    );
-    await expect(canvas.queryByRole("alert")).toBeNull();
+    await expectFailureNoticeThenClose(canvas, canvasElement);
     await expectShellIntact(canvas);
     await userEvent.click(canvas.getByRole("button", { name: "New entry" }));
     await expectEditorShows(canvasElement, "new");
@@ -150,10 +156,7 @@ export const CommandRunFailureIsReported: Story = {
     ),
   play: async ({ canvas, canvasElement }) => {
     await userEvent.click(await canvas.findByRole("button", { name: "New entry" }));
-    await expect(await page(canvasElement).findByRole("alert")).toHaveTextContent(
-      "could not be completed",
-    );
-    await expect(canvas.queryByRole("alert")).toBeNull();
+    await expectFailureNoticeThenClose(canvas, canvasElement);
     await expectShellIntact(canvas);
   },
 };
