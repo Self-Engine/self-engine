@@ -1,5 +1,9 @@
 import { CommandPalette } from "./command-palette.tsx";
-import { CommandPaletteProvider, useCommandPaletteOpen } from "./command-palette-state.tsx";
+import {
+  CommandPaletteProvider,
+  useCommandPaletteOpen,
+  useOpenCommandPalette,
+} from "./command-palette-state.tsx";
 import { viewPath, type EditDrawerProps } from "./contributions.ts";
 import { EditDrawerTitleContext } from "./edit-drawer-title.ts";
 import { selectEditId, UnsavedChangesContext, useEditDrawerExits } from "./edit-drawer-exits.tsx";
@@ -7,8 +11,8 @@ import { LazyContribution, lazyComponents } from "./lazy-contribution.tsx";
 import { useCloseOverlayOnPick, useViewSearch, useWriteViewSearch } from "./routing.tsx";
 import { ACTIVE_ENTRY_VARS, NOT_WINDOW_DRAG_STYLE } from "./navigation-style.ts";
 import { PrimaryAction } from "./primary-action.tsx";
-import { shellCommands } from "./shell-commands.ts";
-import { Shortcuts } from "./shortcuts.tsx";
+import { PALETTE_SHORTCUT, shellCommands } from "./shell-commands.ts";
+import { ShortcutHint, Shortcuts } from "./shortcuts.tsx";
 import { CommandStarts } from "./start-command.tsx";
 import { useLingui } from "@lingui/react/macro";
 import type { ShellContribution, ShellView } from "./contributions.ts";
@@ -31,7 +35,7 @@ import {
   useMantineTheme,
 } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
-import { SidePanelIcon } from "@self-engine/icons";
+import { SearchIcon, SidePanelIcon } from "@self-engine/icons";
 import { type ColorSetId, roleColor } from "@self-engine/theme";
 import { LoadingState, NOTICE_CLEARANCE_VARIABLE } from "@self-engine/ui";
 import {
@@ -222,8 +226,9 @@ const ENTRY_ROOT_STYLE: CSSProperties = { borderRadius: "var(--mantine-radius-sm
 /** One geometry with and without a label, so that only the label goes. */
 const NAVBAR_ENTRY_STYLES = {
   root: { ...ENTRY_ROOT_STYLE, height: rem(ENTRY_HEIGHT), padding: 0 },
-  // As wide as the icons-only Navbar has room, so an icon sits on its axis at every width.
-  section: { flex: "none", marginInlineEnd: 0, width: rem(ICON_COLUMN_WIDTH) },
+  // As wide as the icons-only Navbar has room, so an icon sits on its axis at every width. A
+  // minimum, because the same style reaches the shortcut in the right section.
+  section: { flex: "none", marginInlineEnd: 0, minWidth: rem(ICON_COLUMN_WIDTH) },
 };
 
 const ENTRY_STYLES = {
@@ -346,6 +351,35 @@ function EntryLink({ entry, active, appearance }: EntryLinkProps) {
   );
 }
 
+/** Opens the Command Palette for whoever does not know the shortcut or has no keyboard at hand. */
+function CommandPaletteEntry({ appearance }: Pick<EntryLinkProps, "appearance">) {
+  const { t } = useLingui();
+  const open = useOpenCommandPalette();
+  const label = t`Search`;
+  const iconsOnly = appearance === "iconsOnly";
+  return (
+    <Tooltip disabled={!iconsOnly} label={label} position="right">
+      <NavLink
+        aria-haspopup="dialog"
+        // Also while the label is shown, so that the shortcut beside it is not part of the name.
+        aria-label={label}
+        component="button"
+        label={iconsOnly ? undefined : label}
+        leftSection={<SearchIcon />}
+        onClick={open}
+        rightSection={
+          appearance === "labelled" ? (
+            <Box me="xs">
+              <ShortcutHint shortcut={PALETTE_SHORTCUT} />
+            </Box>
+          ) : undefined
+        }
+        styles={ENTRY_STYLES[appearance]}
+      />
+    </Tooltip>
+  );
+}
+
 /** The entries and what happens to them, wherever the navigation is shown. */
 type ShellNavigation = Pick<ShellFrameProps, "entries" | "settingsEntry" | "activeEntryId">;
 
@@ -376,6 +410,7 @@ function NavbarColumn({ navigation, appearance }: NavbarColumnProps) {
         {navigation.entries.map((entry) => entryLink(navigation, entry, appearance))}
       </AppShell.Section>
       <AppShell.Section>
+        <CommandPaletteEntry appearance={appearance} />
         {entryLink(navigation, navigation.settingsEntry, appearance)}
       </AppShell.Section>
     </>
@@ -772,9 +807,9 @@ function ShellFrame({
           <AppShell.Footer style={BOTTOM_BAR_STYLE} withBorder={false}>
             <ScrollArea h="100%" scrollbars="x" type="never">
               <Group aria-label={t`Modules`} component="nav" gap="xs" p={4} wrap="nowrap">
-                {[...entries, settingsEntry].map((entry) =>
-                  entryLink(navigation, entry, "bottomBar"),
-                )}
+                {entries.map((entry) => entryLink(navigation, entry, "bottomBar"))}
+                <CommandPaletteEntry appearance="bottomBar" />
+                {entryLink(navigation, settingsEntry, "bottomBar")}
               </Group>
             </ScrollArea>
           </AppShell.Footer>
