@@ -953,6 +953,8 @@ Grundlage: [`research-layer-3-core.md`](research-layer-3-core.md).
   Navbar schmal ist, Text mit ⌘K-Hinweis, wenn sie breit ist, am Telefon in der unteren Leiste. Der
   freie Platz rechts in der Kopfzeile bleibt frei. _Verworfen:_ der Knopf in der Kopfzeile, für den
   D132 den Platz reserviert hatte.
+- **D186 Nightlies entstehen alle sechs Stunden (ändert D163).** Der Zeitplan startet um 00:17,
+  06:17, 12:17 und 18:17 UTC. Gebaut wird weiter nur, wenn sich `main` geändert hat.
 
 ## Fakten
 
