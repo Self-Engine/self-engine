@@ -1,4 +1,5 @@
 import type { EditDrawerProps } from "./contributions.ts";
+import { EditDrawerTitleContext } from "./edit-drawer-title.ts";
 import { LazyContribution, lazyComponents } from "./lazy-contribution.tsx";
 import { useCloseOverlayOnPick, useViewSearch, useWriteViewSearch } from "./routing.tsx";
 import { ACTIVE_ENTRY_VARS } from "./navigation-style.ts";
@@ -71,6 +72,13 @@ const LAYOUT_STEPS = { base: "phone", xs: "narrow", md: "medium", lg: "wide" } a
 
 /** The first render already knows its Layout Step, so that no other step flashes. */
 const MEASURE_ON_FIRST_RENDER = { getInitialValueInEffect: false };
+
+function useLayoutStep() {
+  return useMatches<(typeof LAYOUT_STEPS)[keyof typeof LAYOUT_STEPS]>(
+    LAYOUT_STEPS,
+    MEASURE_ON_FIRST_RENDER,
+  );
+}
 
 const RADIUS = "var(--mantine-radius-md)";
 
@@ -146,6 +154,17 @@ const PHONE_DRAWER_WITH_STRIP_STYLES = {
   ...DRAWER_STYLES,
   content: DRAWER_BELOW_STRIP_SCROLLS_STYLE,
 };
+
+// The body fills the frame, so a module can pin its buttons to the bottom. Taller content scrolls
+// the frame, below Mantine's sticky header.
+const EDIT_DRAWER_STYLES = {
+  ...DRAWER_STYLES,
+  content: { ...NOT_WINDOW_DRAG_STYLE, display: "flex", flexDirection: "column" },
+  body: { display: "flex", flex: 1, flexDirection: "column" },
+} satisfies Record<string, CSSProperties>;
+
+const FLOATING_EDIT_DRAWER = { size: 460, offset: GAP, radius: "lg" } as const;
+const PHONE_EDIT_DRAWER = { size: "100%", offset: 0, radius: 0 } as const;
 
 const NAVIGATION_DRAWER_STYLES = {
   ...DRAWER_STYLES,
@@ -570,10 +589,7 @@ function ShellFrame({
 }: ShellFrameProps) {
   const { t } = useLingui();
   const theme = useMantineTheme();
-  const step = useMatches<(typeof LAYOUT_STEPS)[keyof typeof LAYOUT_STEPS]>(
-    LAYOUT_STEPS,
-    MEASURE_ON_FIRST_RENDER,
-  );
+  const step = useLayoutStep();
   const [drawerOpened, { close: closeDrawer, toggle: toggleDrawer }] = useDisclosure(false);
   const navigation = { entries, settingsEntry, activeEntryId };
 
@@ -863,7 +879,8 @@ interface EditTarget {
 
 /** The frame stays mounted whatever is open, so that closing can animate and return the focus. */
 function ModuleEditDrawer({ module }: { readonly module: ShellContribution | undefined }) {
-  const { t } = useLingui();
+  const { t, i18n } = useLingui();
+  const frame = useLayoutStep() === "phone" ? PHONE_EDIT_DRAWER : FLOATING_EDIT_DRAWER;
   const id = useViewSearch(selectEditId);
   const write = useWriteViewSearch();
   const target: EditTarget | undefined =
@@ -872,6 +889,8 @@ function ModuleEditDrawer({ module }: { readonly module: ShellContribution | und
   // so the module's code still only loads when it first opens.
   const [shown, setShown] = useState(target);
   if (target && (target.module !== shown?.module || target.id !== shown.id)) setShown(target);
+  // Held here, below the page, so that naming the entry does not reach the View.
+  const [entryTitle, setEntryTitle] = useState<string>();
   const close = () =>
     write((search) => {
       const { edit: _edit, ...rest } = search;
@@ -879,21 +898,24 @@ function ModuleEditDrawer({ module }: { readonly module: ShellContribution | und
     });
   return (
     <Drawer
+      {...frame}
       opened={target !== undefined}
       onClose={close}
       position="right"
-      title={t`Editor`}
+      title={entryTitle ?? (shown && i18n._(shown.module.name))}
       closeButtonProps={{ "aria-label": t`Close editor` }}
-      styles={DRAWER_STYLES}
+      styles={EDIT_DRAWER_STYLES}
     >
       {shown?.module.editDrawer && (
-        <LazyContribution
-          key={`${shown.module.id}/${shown.id}`}
-          components={loadedDrawer}
-          fallback={<LoadingState />}
-          load={shown.module.editDrawer}
-          props={{ id: shown.id, onClose: close }}
-        />
+        <EditDrawerTitleContext value={setEntryTitle}>
+          <LazyContribution
+            key={`${shown.module.id}/${shown.id}`}
+            components={loadedDrawer}
+            fallback={<LoadingState />}
+            load={shown.module.editDrawer}
+            props={{ id: shown.id, onClose: close }}
+          />
+        </EditDrawerTitleContext>
       )}
     </Drawer>
   );
