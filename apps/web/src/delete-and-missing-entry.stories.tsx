@@ -169,7 +169,8 @@ export const CommandZInAFieldLeavesTheNoticeAndTheTextAlone: Story = {
     // Left to the browser means that it goes on to undo the typing.
     await expect(modKeyIsLeftToTheBrowser(name, "z")).toBe(true);
     await expect(listed(canvas)).toEqual(["Studio work"]);
-    await expect(screen.getByRole("button", { name: "Undo" })).toBeVisible();
+    // Under a loaded run the notice can still be sliding in.
+    await waitFor(() => expect(screen.getByRole("button", { name: "Undo" })).toBeVisible());
 
     await userEvent.click(drawer.getByRole("button", { name: "Cancel" }));
     await noDrawer();
