@@ -33,6 +33,10 @@ msgstr "Abbrechen"
 msgid "Clients"
 msgstr "Kunden"
 
+#: packages/placeholder-alpha/src/edit-drawer.tsx
+msgid "Close"
+msgstr "Schließen"
+
 #: packages/shell/src/shell.tsx
 msgid "Close editor"
 msgstr "Editor schließen"
@@ -53,6 +57,19 @@ msgstr "Hinweis schließen"
 msgid "Collapse module sidebar"
 msgstr "Modul-Sidebar einklappen"
 
+#: packages/placeholder-alpha/src/edit-drawer.tsx
+#: packages/placeholder-alpha/src/entries.tsx
+msgid "Delete"
+msgstr "Löschen"
+
+#: packages/placeholder-alpha/src/entries.tsx
+msgid "Delete {name}"
+msgstr "{name} löschen"
+
+#: packages/placeholder-alpha/src/delete-with-undo.tsx
+msgid "Deleted"
+msgstr "Gelöscht"
+
 #: packages/shell/src/edit-drawer-exits.tsx
 msgid "Discard"
 msgstr "Verwerfen"
@@ -61,9 +78,21 @@ msgstr "Verwerfen"
 msgid "Discard changes?"
 msgstr "Änderungen verwerfen?"
 
+#: packages/placeholder-alpha/src/entries.tsx
+msgid "Entries you create appear here."
+msgstr "Einträge, die du anlegst, erscheinen hier."
+
+#: packages/placeholder-alpha/src/edit-drawer.tsx
+msgid "Entry not found"
+msgstr "Eintrag nicht gefunden"
+
 #: packages/shell/src/shell.tsx
 msgid "Expand module sidebar"
 msgstr "Modul-Sidebar ausklappen"
+
+#: packages/placeholder-alpha/src/sample-data.ts
+msgid "Flaky work"
+msgstr "Wackelige Arbeit"
 
 #: packages/placeholder-alpha/src/sample-data.ts
 msgid "Garden"
@@ -102,9 +131,14 @@ msgid "Name"
 msgstr "Name"
 
 #: packages/placeholder-alpha/src/edit-drawer.tsx
+#: packages/placeholder-alpha/src/entries.tsx
 #: packages/placeholder-alpha/src/index.ts
 msgid "New entry"
 msgstr "Neuer Eintrag"
+
+#: packages/placeholder-alpha/src/entries.tsx
+msgid "No entries here"
+msgstr "Hier gibt es keine Einträge"
 
 #: apps/web/src/route-states.tsx
 msgid "Nothing was found at this address."
@@ -174,6 +208,10 @@ msgstr "Die minimale Modulansicht."
 #: apps/web/src/modules.ts
 msgid "Theme preview"
 msgstr "Design-Vorschau"
+
+#: packages/placeholder-alpha/src/edit-drawer.tsx
+msgid "This entry could not be loaded."
+msgstr "Dieser Eintrag konnte nicht geladen werden."
 
 #: packages/shell/src/lazy-contribution.tsx
 msgid "This part could not be loaded."

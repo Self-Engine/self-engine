@@ -45,7 +45,9 @@ function keepNoticesOpen() {
 }
 
 const listed = (canvas: Canvas) =>
-  canvas.getAllByRole("button", { name: /^(Studio|Garden) work$/ }).map((row) => row.textContent);
+  canvas
+    .getAllByRole("button", { name: /^(Studio|Garden) work$/ })
+    .map((row: HTMLElement) => row.textContent);
 
 const deleteFromTheList = async (canvas: Canvas, name: string) =>
   userEvent.click(await canvas.findByRole("button", { name: `Delete ${name}` }));
@@ -104,9 +106,7 @@ export const TwoQuickDeletesAreUndoneSeparately: Story = {
   play: async ({ canvas }) => {
     await deleteFromTheList(canvas, "Studio work");
     await deleteFromTheList(canvas, "Garden work");
-    await waitFor(() =>
-      expect(screen.getAllByRole("button", { name: "Undo" })).toHaveLength(2),
-    );
+    await waitFor(() => expect(screen.getAllByRole("button", { name: "Undo" })).toHaveLength(2));
     await expect(canvas.queryByRole("button", { name: "Studio work" })).toBeNull();
     await undoLast();
     await waitFor(() => expect(screen.getAllByRole("button", { name: "Undo" })).toHaveLength(1));

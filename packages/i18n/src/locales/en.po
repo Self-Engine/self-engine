@@ -33,6 +33,10 @@ msgstr "Cancel"
 msgid "Clients"
 msgstr "Clients"
 
+#: packages/placeholder-alpha/src/edit-drawer.tsx
+msgid "Close"
+msgstr "Close"
+
 #: packages/shell/src/shell.tsx
 msgid "Close editor"
 msgstr "Close editor"
@@ -53,6 +57,19 @@ msgstr "Close notice"
 msgid "Collapse module sidebar"
 msgstr "Collapse module sidebar"
 
+#: packages/placeholder-alpha/src/edit-drawer.tsx
+#: packages/placeholder-alpha/src/entries.tsx
+msgid "Delete"
+msgstr "Delete"
+
+#: packages/placeholder-alpha/src/entries.tsx
+msgid "Delete {name}"
+msgstr "Delete {name}"
+
+#: packages/placeholder-alpha/src/delete-with-undo.tsx
+msgid "Deleted"
+msgstr "Deleted"
+
 #: packages/shell/src/edit-drawer-exits.tsx
 msgid "Discard"
 msgstr "Discard"
@@ -61,9 +78,21 @@ msgstr "Discard"
 msgid "Discard changes?"
 msgstr "Discard changes?"
 
+#: packages/placeholder-alpha/src/entries.tsx
+msgid "Entries you create appear here."
+msgstr "Entries you create appear here."
+
+#: packages/placeholder-alpha/src/edit-drawer.tsx
+msgid "Entry not found"
+msgstr "Entry not found"
+
 #: packages/shell/src/shell.tsx
 msgid "Expand module sidebar"
 msgstr "Expand module sidebar"
+
+#: packages/placeholder-alpha/src/sample-data.ts
+msgid "Flaky work"
+msgstr "Flaky work"
 
 #: packages/placeholder-alpha/src/sample-data.ts
 msgid "Garden"
@@ -102,9 +131,14 @@ msgid "Name"
 msgstr "Name"
 
 #: packages/placeholder-alpha/src/edit-drawer.tsx
+#: packages/placeholder-alpha/src/entries.tsx
 #: packages/placeholder-alpha/src/index.ts
 msgid "New entry"
 msgstr "New entry"
+
+#: packages/placeholder-alpha/src/entries.tsx
+msgid "No entries here"
+msgstr "No entries here"
 
 #: apps/web/src/route-states.tsx
 msgid "Nothing was found at this address."
@@ -174,6 +208,10 @@ msgstr "The minimal module View."
 #: apps/web/src/modules.ts
 msgid "Theme preview"
 msgstr "Theme preview"
+
+#: packages/placeholder-alpha/src/edit-drawer.tsx
+msgid "This entry could not be loaded."
+msgstr "This entry could not be loaded."
 
 #: packages/shell/src/lazy-contribution.tsx
 msgid "This part could not be loaded."
