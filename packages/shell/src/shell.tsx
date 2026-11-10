@@ -5,6 +5,7 @@ import { LazyContribution, lazyComponents } from "./lazy-contribution.tsx";
 import { useCloseOverlayOnPick, useViewSearch, useWriteViewSearch } from "./routing.tsx";
 import { ACTIVE_ENTRY_VARS } from "./navigation-style.ts";
 import { PrimaryAction } from "./primary-action.tsx";
+import { Shortcuts } from "./shortcuts.tsx";
 import { CommandStarts } from "./start-command.tsx";
 import { useLingui } from "@lingui/react/macro";
 import type { ShellContribution, ShellView } from "./contributions.ts";
@@ -264,6 +265,8 @@ interface ShellFrameProps {
   readonly routing: ShellRouting;
   readonly moduleSidebar: ReactNode;
   readonly editDrawer?: ReactNode;
+  /** Renders nothing. Inside the routing, because a shortcut starts a Command on this page. */
+  readonly shortcuts?: ReactNode;
   readonly pageTitle: string;
   readonly activeColor: ColorSetId | undefined;
   /** Sits in the top strip of the navigation, in the drawer at the narrow step, and in the content header while the Navbar holds the window buttons. None at phone width. */
@@ -574,6 +577,7 @@ function ShellFrame({
   routing,
   moduleSidebar,
   editDrawer,
+  shortcuts,
   pageTitle,
   activeColor,
   logo,
@@ -779,6 +783,7 @@ function ShellFrame({
           reserveWindowButtons={reserveWindowButtons}
         />
         {editDrawer}
+        {shortcuts}
       </AppShell>
     </ShellRoutingContext>
   );
@@ -794,6 +799,7 @@ export interface ShellProps extends Omit<
   | "pageTitle"
   | "activeColor"
   | "editDrawer"
+  | "shortcuts"
 > {
   readonly contributions: readonly ShellContribution[];
   readonly settings: ShellContribution;
@@ -820,6 +826,7 @@ export function Shell({ contributions, settings, activeModule, activeView, ...pr
         activeColor={activeModule?.color}
         pageTitle={activeView ? i18n._(activeView.title) : ""}
         editDrawer={<ModuleEditDrawer module={activeView && activeModule} />}
+        shortcuts={<Shortcuts owners={[...contributions, settings]} activeModuleId={activeModule?.id} />}
         moduleSidebar={
           <ModuleViews module={activeModule} activeView={activeView} routing={props.routing} />
         }

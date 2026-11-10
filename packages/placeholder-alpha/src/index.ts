@@ -14,6 +14,7 @@ const addSampleEntry = {
   id: "add-sample-entry",
   kind: "open",
   label: msg`Add sample entry`,
+  defaultShortcut: "Mod+Shift+E",
   load: () => import("./add-sample-entry.ts"),
 } as const satisfies ShellCommand;
 

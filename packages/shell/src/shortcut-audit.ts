@@ -1,0 +1,72 @@
+import type { RegisteredCommand } from "./commands.ts";
+
+/**
+ * Keys the app must not take: copy, paste, cut, select-all and undo, the Command Palette's ⌘K, and
+ * what Electron's default menu holds, since the app sets no menu of its own.
+ */
+const RESERVED_SHORTCUTS = [
+  "Mod+C",
+  "Mod+V",
+  "Mod+X",
+  "Mod+A",
+  "Mod+Z",
+  "Mod+K",
+  "Mod+Shift+Z",
+  "Mod+Y",
+  "Mod+W",
+  "Mod+Q",
+  "Mod+R",
+  "Mod+Shift+R",
+  "Mod+M",
+  "Mod+H",
+  "Mod+Alt+H",
+  "Mod+Shift+H",
+  "Mod+Shift+V",
+  "Mod+Alt+Shift+V",
+  "Mod+Shift+I",
+  "Mod+Alt+I",
+  "Mod+0",
+  "Mod+=",
+  "Mod+-",
+];
+
+interface ValidShortcut {
+  readonly entry: RegisteredCommand;
+  readonly canonical: string;
+}
+
+/** A `page` shortcut holds only in its own module, an `open` one everywhere. */
+const collide = (a: RegisteredCommand, b: RegisteredCommand) =>
+  a.moduleId === b.moduleId || a.command.kind === "open" || b.command.kind === "open";
+
+/** Loads the hotkey library on purpose: the check at startup stays free of it. */
+export async function auditShortcuts(register: readonly RegisteredCommand[]) {
+  const { readShortcut } = await import("./shortcut-bindings.tsx");
+  const canonical = (shortcut: string) => {
+    const read = readShortcut(shortcut);
+    return "canonical" in read ? read.canonical : shortcut;
+  };
+  const reserved = new Set(RESERVED_SHORTCUTS.map(canonical));
+  const problems: string[] = [];
+  const valid: ValidShortcut[] = [];
+  for (const entry of register) {
+    const shortcut = entry.command.defaultShortcut;
+    if (shortcut === undefined) continue;
+    const name = `${entry.fullId}: default shortcut "${shortcut}"`;
+    const read = readShortcut(shortcut);
+    if ("invalid" in read) problems.push(`${name} is invalid (${read.invalid})`);
+    else if (!read.hasMod) problems.push(`${name} needs Mod`);
+    else if (reserved.has(read.canonical)) problems.push(`${name} is reserved`);
+    else valid.push({ entry, canonical: read.canonical });
+  }
+  const collisions = valid.flatMap((one, index) =>
+    valid
+      .slice(index + 1)
+      .filter((other) => other.canonical === one.canonical && collide(one.entry, other.entry))
+      .map(
+        (other) =>
+          `Shortcut ${one.canonical} is used twice: ${one.entry.fullId} and ${other.entry.fullId}`,
+      ),
+  );
+  return [...problems, ...collisions];
+}

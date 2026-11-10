@@ -1,6 +1,7 @@
 import type { MessageDescriptor } from "@lingui/core";
 import type { input as SchemaInput, output as SchemaOutput, ZodType } from "zod";
 import type { WriteViewSearch } from "./routing.tsx";
+import { auditShortcuts } from "./shortcut-audit.ts";
 
 /** Decides who can start a Command, see ADR 0015. */
 export type CommandKind = "page" | "open" | "input";
@@ -93,7 +94,7 @@ export interface RegisteredCommand {
   readonly command: ShellCommand;
 }
 
-interface CommandOwner {
+export interface CommandOwner {
   readonly id: string;
   readonly commands?: readonly ShellCommand[] | undefined;
 }
@@ -129,5 +130,9 @@ export async function auditCommands(owners: readonly CommandOwner[]) {
   const duplicates = register
     .filter((entry) => !unique.includes(entry))
     .map(({ fullId }) => `Duplicate Command id: ${fullId}`);
-  return [...duplicates, ...(await Promise.all(unique.map(kindProblem))).flat()];
+  return [
+    ...duplicates,
+    ...(await Promise.all(unique.map(kindProblem))).flat(),
+    ...(await auditShortcuts(unique)),
+  ];
 }

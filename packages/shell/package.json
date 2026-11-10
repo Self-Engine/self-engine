@@ -15,6 +15,7 @@
     "@self-engine/icons": "workspace:*",
     "@self-engine/theme": "workspace:*",
     "@self-engine/ui": "workspace:*",
+    "@tanstack/react-hotkeys": "catalog:",
     "react": "catalog:",
     "react-dom": "catalog:",
     "zod": "catalog:"

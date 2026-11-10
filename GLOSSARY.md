@@ -116,6 +116,10 @@ _Avoid_: toast, snackbar, notification
 The frame of the app around the modules, made of the navigation and the content area.
 _Avoid_: layout, frame, chrome
 
+**Shortcut** (de: _Tastenkürzel_):
+A key combination with ⌘ on macOS or Ctrl elsewhere that starts a _Command_. One that starts a _Command_ of a module works while that module is shown, and one that needs no page works everywhere; it is quiet while a confirmation is open.
+_Avoid_: hotkey, keybinding, accelerator
+
 **Shell Contribution** (de: _Hüllen-Beitrag_):
 What a module declares about itself so that the _Shell_ can show it, such as its name, its icon and its _Views_. The _Shell_ only puts contributions together and knows nothing else about a module.
 _Avoid_: manifest, module config, plugin

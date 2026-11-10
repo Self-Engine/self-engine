@@ -1,5 +1,6 @@
 export {
   confirm,
+  isConfirmationOpen,
   type ConfirmOptions,
   FeedbackHost,
   NOTICE_CLEARANCE_VARIABLE,

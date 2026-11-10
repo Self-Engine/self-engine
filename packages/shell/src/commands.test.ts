@@ -106,6 +106,101 @@ describe("the audit over all contributions", () => {
   });
 });
 
+describe("the audit of default shortcuts", () => {
+  const pageOn = (id: string, defaultShortcut: string) => ({ ...page, id, defaultShortcut });
+  const openOn = (id: string, defaultShortcut: string) => ({ ...open, id, defaultShortcut });
+
+  test("is silent for Mod shortcuts, also when two modules share a page shortcut", async () => {
+    await expect(
+      auditCommands([
+        { id: "alpha", commands: [pageOn("new", "Mod+N"), openOn("sample", "Mod+Shift+E")] },
+        { id: "beta", commands: [pageOn("new", "Mod+N")] },
+      ]),
+    ).resolves.toEqual([]);
+  });
+
+  test.each([
+    ["Mod+Foo+N", "unknown-modifier"],
+    ["Mod+Shift", "modifier-only"],
+    ["", "empty"],
+  ])("names the invalid shortcut %j", async (shortcut, reason) => {
+    await expect(
+      auditCommands([{ id: "alpha", commands: [pageOn("new", shortcut)] }]),
+    ).resolves.toEqual([`alpha.new: default shortcut "${shortcut}" is invalid (${reason})`]);
+  });
+
+  test.each(["N", "Shift+N", "Control+N", "Meta+N", "Alt+N"])(
+    "names %j, which has no Mod",
+    async (shortcut) => {
+      await expect(
+        auditCommands([{ id: "alpha", commands: [pageOn("new", shortcut)] }]),
+      ).resolves.toEqual([`alpha.new: default shortcut "${shortcut}" needs Mod`]);
+    },
+  );
+
+  test.each([
+    "Mod+C",
+    "Mod+V",
+    "Mod+X",
+    "Mod+A",
+    "Mod+Z",
+    "Mod+K",
+    "Mod+Shift+Z",
+    "Mod+Y",
+    "Mod+W",
+    "Mod+Q",
+    "Mod+R",
+    "Mod+Shift+R",
+    "Mod+M",
+    "Mod+H",
+    "Mod+Alt+H",
+    "Mod+Shift+H",
+    "Mod+Shift+V",
+    "Mod+Alt+Shift+V",
+    "Mod+Shift+I",
+    "Mod+Alt+I",
+    "Mod+0",
+    "Mod+=",
+    "Mod+-",
+  ])("names %j, which is reserved", async (shortcut) => {
+    await expect(
+      auditCommands([{ id: "alpha", commands: [pageOn("new", shortcut)] }]),
+    ).resolves.toEqual([`alpha.new: default shortcut "${shortcut}" is reserved`]);
+  });
+
+  test("a reserved key is found however the shortcut is written", async () => {
+    await expect(
+      auditCommands([{ id: "alpha", commands: [pageOn("new", "Shift+Mod+z")] }]),
+    ).resolves.toEqual([`alpha.new: default shortcut "Shift+Mod+z" is reserved`]);
+  });
+
+  test("names two page Commands of one module on the same shortcut", async () => {
+    await expect(
+      auditCommands([
+        { id: "alpha", commands: [pageOn("new", "Mod+N"), pageOn("other", "Mod+n")] },
+      ]),
+    ).resolves.toEqual(["Shortcut Mod+N is used twice: alpha.new and alpha.other"]);
+  });
+
+  test("names an open shortcut that a page Command of any module also uses", async () => {
+    await expect(
+      auditCommands([
+        { id: "alpha", commands: [pageOn("new", "Mod+N")] },
+        { id: "beta", commands: [openOn("sample", "Mod+N")] },
+      ]),
+    ).resolves.toEqual(["Shortcut Mod+N is used twice: alpha.new and beta.sample"]);
+  });
+
+  test("names two open Commands on the same shortcut, across modules", async () => {
+    await expect(
+      auditCommands([
+        { id: "alpha", commands: [openOn("one", "Mod+Shift+E")] },
+        { id: "beta", commands: [openOn("two", "Shift+Mod+E")] },
+      ]),
+    ).resolves.toEqual(["Shortcut Mod+Shift+E is used twice: alpha.one and beta.two"]);
+  });
+});
+
 const views = [
   { id: "overview", title: label, load: async () => ({ default: () => null }) },
 ] as const;

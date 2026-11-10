@@ -2,7 +2,13 @@ import { notifications } from "@mantine/notifications";
 import { roleColor } from "@self-engine/theme";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { expect, fn, screen, spyOn, userEvent, waitFor, within } from "storybook/test";
-import { confirm, type ConfirmOptions, notifyError, notifyUndoable } from "./index.ts";
+import {
+  confirm,
+  type ConfirmOptions,
+  isConfirmationOpen,
+  notifyError,
+  notifyUndoable,
+} from "./index.ts";
 import { holdTimers } from "./story-timers.ts";
 
 const meta = {
@@ -34,6 +40,31 @@ export const ConfirmingAnswersYesFromOutsideAComponent: Story = {
     await waitFor(() => expect(dialog.getByText("This cannot be undone.")).toBeVisible());
     await userEvent.click(dialog.getByRole("button", { name: "Delete" }));
     await expect(await answer).toBe(true);
+    await gone();
+  },
+};
+
+export const AConfirmationIsKnownToBeOpenFromTheMomentItIsRaised: Story = {
+  play: async () => {
+    await expect(isConfirmationOpen()).toBe(false);
+    const answer = confirm(QUESTION);
+    // Before React has drawn it, because a key can be pressed at any moment.
+    await expect(isConfirmationOpen()).toBe(true);
+    const dialog = within(await screen.findByRole("dialog", { name: QUESTION.title }));
+    await userEvent.click(dialog.getByRole("button", { name: "Delete" }));
+    await expect(await answer).toBe(true);
+    await expect(isConfirmationOpen()).toBe(false);
+    await gone();
+  },
+};
+
+export const AConfirmationIsNoLongerOpenAfterEsc: Story = {
+  play: async () => {
+    const { answer } = await ask();
+    await expect(isConfirmationOpen()).toBe(true);
+    await userEvent.keyboard("{Escape}");
+    await expect(await answer).toBe(false);
+    await expect(isConfirmationOpen()).toBe(false);
     await gone();
   },
 };

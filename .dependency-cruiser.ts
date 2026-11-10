@@ -2,8 +2,8 @@
 // vite.config.ts). pnpm's isolation and the `exports` field are the first two mechanisms;
 // these rules are the third: the directions allowed between packages, every workspace import
 // declared in the importer's own `package.json`, no relative imports into another package, no
-// imports past another package's `exports`, no icon library outside `@self-engine/icons`, and
-// no cycles.
+// imports past another package's `exports`, no icon library outside `@self-engine/icons`, no
+// hotkey library outside the Shell's binding file, and no cycles.
 //
 // Paths are relative to the repo root, or to the fixture root in
 // scripts/dependency-cruiser.test.ts, which builds its own config with `boundaryConfig`.
@@ -173,6 +173,14 @@ export function boundaryConfig({ allowedImports, rootDir }: BoundaryOptions): IC
       // pnpm's isolation makes the usual case: the import does not resolve, and still gets
       // this hint.
       to: { path: `(^|(^|/)node_modules/)(?:${alternatives(ICON_LIBRARIES)})(/|$)` },
+    },
+    {
+      name: "hotkeys-only-through-bindings",
+      comment:
+        "The hotkey library is in beta and must stay out of the startup bundle, so only the Shell's lazily loaded binding file may import it (D179). Add a binding there.",
+      severity: "error",
+      from: { path: "^(apps|packages)/", pathNot: "^packages/shell/src/shortcut-bindings\\.tsx$" },
+      to: { path: "(^|(^|/)node_modules/)@tanstack/(?:react-)?hotkeys(/|$)" },
     },
     {
       name: "no-relative-import-across-packages",
