@@ -6,12 +6,7 @@ import {
   type ViewSearch,
   type WriteViewSearch,
 } from "@self-engine/shell";
-import {
-  type AnyRouter,
-  createLink,
-  useRouter,
-  useRouterState,
-} from "@tanstack/react-router";
+import { type AnyRouter, createLink, useRouter, useRouterState } from "@tanstack/react-router";
 import { findModule } from "./modules.ts";
 
 /** What the Shell shows: the page being left, until the next one has loaded. */
@@ -42,7 +37,8 @@ function createAddress(router: AnyRouter): ViewAddress {
   const writeSearch: WriteViewSearch = (update) => {
     const { pathname, search } = onScreen();
     // Builds on an earlier write to this page that is still on its way.
-    const base = router.latestLocation.pathname === pathname ? router.latestLocation.search : search;
+    const base =
+      router.latestLocation.pathname === pathname ? router.latestLocation.search : search;
     void router.navigate({ to: pathname, search: update(base as ViewSearch) });
   };
   return {

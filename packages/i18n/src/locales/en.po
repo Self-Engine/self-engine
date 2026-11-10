@@ -49,6 +49,10 @@ msgid "Collapse module sidebar"
 msgstr "Collapse module sidebar"
 
 #: packages/shell/src/shell.tsx
+msgid "Editor"
+msgstr "Editor"
+
+#: packages/shell/src/shell.tsx
 msgid "Expand module sidebar"
 msgstr "Expand module sidebar"
 
@@ -125,6 +129,10 @@ msgstr "Studio"
 msgid "Studio work"
 msgstr "Studio work"
 
+#: packages/shell/src/primary-action.tsx
+msgid "The action could not be completed. Please try again."
+msgstr "The action could not be completed. Please try again."
+
 #: apps/web/src/language-sample.tsx
 msgid "The language could not be loaded. Please try again."
 msgstr "The language could not be loaded. Please try again."
@@ -137,6 +145,10 @@ msgstr "The minimal module View."
 msgid "Theme preview"
 msgstr "Theme preview"
 
+#: packages/shell/src/lazy-contribution.tsx
+msgid "This part could not be loaded."
+msgstr "This part could not be loaded."
+
 #: apps/web/src/language-sample.tsx
 msgid "This sentence is translated."
 msgstr "This sentence is translated."
@@ -144,6 +156,10 @@ msgstr "This sentence is translated."
 #: apps/web/src/route-states.tsx
 msgid "This View could not be loaded. Please try again."
 msgstr "This View could not be loaded. Please try again."
+
+#: packages/shell/src/lazy-contribution.tsx
+msgid "Try again"
+msgstr "Try again"
 
 #: apps/web/src/language-sample.tsx
 msgid "Your name"

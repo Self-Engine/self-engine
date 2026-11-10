@@ -49,6 +49,10 @@ msgid "Collapse module sidebar"
 msgstr "Modul-Sidebar einklappen"
 
 #: packages/shell/src/shell.tsx
+msgid "Editor"
+msgstr "Editor"
+
+#: packages/shell/src/shell.tsx
 msgid "Expand module sidebar"
 msgstr "Modul-Sidebar ausklappen"
 
@@ -125,6 +129,10 @@ msgstr "Studio"
 msgid "Studio work"
 msgstr "Studioarbeit"
 
+#: packages/shell/src/primary-action.tsx
+msgid "The action could not be completed. Please try again."
+msgstr "Die Aktion konnte nicht ausgeführt werden. Bitte versuche es erneut."
+
 #: apps/web/src/language-sample.tsx
 msgid "The language could not be loaded. Please try again."
 msgstr "Die Sprache konnte nicht geladen werden. Bitte versuche es noch einmal."
@@ -137,6 +145,10 @@ msgstr "Die minimale Modulansicht."
 msgid "Theme preview"
 msgstr "Design-Vorschau"
 
+#: packages/shell/src/lazy-contribution.tsx
+msgid "This part could not be loaded."
+msgstr "Dieser Bereich konnte nicht geladen werden."
+
 #: apps/web/src/language-sample.tsx
 msgid "This sentence is translated."
 msgstr "Dieser Satz ist übersetzt."
@@ -144,6 +156,10 @@ msgstr "Dieser Satz ist übersetzt."
 #: apps/web/src/route-states.tsx
 msgid "This View could not be loaded. Please try again."
 msgstr "Diese Ansicht konnte nicht geladen werden. Bitte versuche es erneut."
+
+#: packages/shell/src/lazy-contribution.tsx
+msgid "Try again"
+msgstr "Erneut versuchen"
 
 #: apps/web/src/language-sample.tsx
 msgid "Your name"
