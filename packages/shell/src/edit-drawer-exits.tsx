@@ -39,8 +39,8 @@ export const selectEditId = (search: ViewSearch) =>
 const keepsTheEntry = (current: LeavingAddress, next: LeavingAddress) =>
   current.pathname === next.pathname && selectEditId(current.search) === selectEditId(next.search);
 
-/** `entry` names what the drawer has open, and leaving it is what the guard watches. */
-export function useEditDrawerExits(entry: string | undefined) {
+/** `openEntryKey` names what the drawer has open, and leaving it is what the guard watches. */
+export function useEditDrawerExits(openEntryKey: string | undefined) {
   const { useLeaveGuard } = useShellRouting();
   const [checks] = useState(() => new Set<UnsavedCheck>());
   // A ref as well as the state: the guard has to see an open question before React has drawn it.
@@ -51,7 +51,7 @@ export function useEditDrawerExits(entry: string | undefined) {
 
   useEffect(() => {
     finished.current = false;
-  }, [entry]);
+  }, [openEntryKey]);
 
   const register = useCallback(
     (check: UnsavedCheck) => {
@@ -91,12 +91,12 @@ export function useEditDrawerExits(entry: string | undefined) {
     },
     [askToDiscard, checks],
   );
-  useLeaveGuard(guard, entry !== undefined);
+  useLeaveGuard(guard, openEntryKey !== undefined);
 
   /** After a successful save or delete: nothing is left to lose. */
-  const finish = useCallback(() => {
+  const letNextExitPass = useCallback(() => {
     finished.current = true;
   }, []);
 
-  return { register, questionOpen, finish, closeButton };
+  return { register, questionOpen, letNextExitPass, closeButton };
 }

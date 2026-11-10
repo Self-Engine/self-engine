@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { expect, screen, userEvent, waitFor, within } from "storybook/test";
 import { createAppRouter } from "./app-router.ts";
 import { settingsStore } from "./settings-store.ts";
+import { editInAddress } from "./story-app.tsx";
 
 type Canvas = ReturnType<typeof within>;
 
@@ -46,7 +47,7 @@ const QUESTION = "Discard changes?";
 
 const address = () => ({
   pathname: openRouter.state.location.pathname,
-  edit: (openRouter.state.location.search as { readonly edit?: unknown }).edit,
+  edit: editInAddress(openRouter),
 });
 
 const asked = () => screen.findByRole("dialog", { name: QUESTION });
@@ -93,22 +94,121 @@ export const BackAndKeepEditingLeavesTheAddressAndTheDraft: Story = {
   },
 };
 
+/** Leaves the entry again and comes back to it, so that one history entry lies ahead of it. */
+async function editStudioWithAnEntryAhead(canvas: Canvas) {
+  await userEvent.click(await canvas.findByRole("button", { name: "Studio work" }));
+  const drawer = within(await screen.findByRole("dialog", { name: "Studio work" }));
+  await userEvent.click(await drawer.findByRole("button", { name: "Cancel" }));
+  await noDrawer("Studio work");
+  window.history.back();
+  const reopened = await screen.findByRole("dialog", { name: "Studio work" });
+  await userEvent.type(await within(reopened).findByRole("textbox", { name: "Name" }), "!");
+}
+
 export const ForwardAsksAndDiscardGoesForward: Story = {
   play: async ({ canvas }) => {
-    await userEvent.click(await canvas.findByRole("button", { name: "Studio work" }));
-    const drawer = within(await screen.findByRole("dialog", { name: "Studio work" }));
-    await userEvent.click(await drawer.findByRole("button", { name: "Cancel" }));
-    await noDrawer("Studio work");
-    // Back to the entry, then change it, so that Forward would lose the change.
-    window.history.back();
-    const reopened = await screen.findByRole("dialog", { name: "Studio work" });
-    await userEvent.type(await within(reopened).findByRole("textbox", { name: "Name" }), "!");
+    await editStudioWithAnEntryAhead(canvas);
     window.history.forward();
     await asked();
     await expect(address().edit).toBe("studio");
     await answer("Discard");
     await noDrawer("Studio work");
     await waitFor(() => expect(address().edit).toBeUndefined());
+  },
+};
+
+export const TheAddressStaysOnTheEntryWhileTheQuestionIsOpen: Story = {
+  play: async ({ canvas }) => {
+    await editStudio(canvas);
+    window.history.back();
+    await asked();
+    await waitFor(() => expect(window.location.hash).toContain("edit=studio"));
+    await expect(address().edit).toBe("studio");
+    await answer("Keep editing");
+    await noQuestion();
+  },
+};
+
+/** Waits for the browser to have moved through its history this many times. */
+const traversals = (count: number) =>
+  new Promise<void>((resolve) => {
+    let left = count;
+    const landed = () => {
+      left -= 1;
+      if (left > 0) return;
+      window.removeEventListener("popstate", landed);
+      resolve();
+    };
+    window.addEventListener("popstate", landed);
+  });
+
+/** The press itself, and the traversal that undoes it because a question is already open. */
+async function traverseWhileAsked(press: () => void) {
+  const undone = traversals(2);
+  press();
+  await undone;
+}
+
+const historyIndex = () => openRouter.history.location.state.__TSR_index;
+
+/** Filters the list first, so that two history entries lie behind the open drawer. */
+async function editStudioWithTwoEntriesBehind(canvas: Canvas) {
+  await userEvent.click(await canvas.findByRole("link", { name: "Studio" }));
+  await waitFor(() => expect(canvas.queryByRole("button", { name: "Garden work" })).toBeNull());
+  return editStudio(canvas);
+}
+
+export const BackTwiceAndDiscardGoesBackOneStep: Story = {
+  play: async ({ canvas }) => {
+    await editStudioWithTwoEntriesBehind(canvas);
+    window.history.back();
+    await asked();
+    await traverseWhileAsked(() => window.history.back());
+    await waitFor(() => expect(window.location.hash).toContain("edit=studio"));
+    await expect(address().edit).toBe("studio");
+    await answer("Discard");
+    await noDrawer("Studio work");
+    await waitFor(() => expect(address().edit).toBeUndefined());
+    await expect(window.location.hash).not.toContain("edit=studio");
+    await expect(window.location.hash).toContain("client=studio");
+  },
+};
+
+export const BackTwiceAndKeepEditingLeavesBackWorking: Story = {
+  play: async ({ canvas }) => {
+    const { name } = await editStudioWithTwoEntriesBehind(canvas);
+    window.history.back();
+    await asked();
+    await traverseWhileAsked(() => window.history.back());
+    await answer("Keep editing");
+    await noQuestion();
+    await waitFor(() => expect(window.location.hash).toContain("edit=studio"));
+    await expect(address().edit).toBe("studio");
+    await expect(name).toHaveValue("Studio work changed");
+    // The next Back is an ordinary one: it asks again and is not swallowed.
+    window.history.back();
+    await asked();
+    await answer("Discard");
+    await noDrawer("Studio work");
+    await waitFor(() => expect(address().edit).toBeUndefined());
+    await expect(window.location.hash).toContain("client=studio");
+  },
+};
+
+export const BackThenForwardAndDiscardGoesBack: Story = {
+  play: async ({ canvas }) => {
+    await editStudioWithAnEntryAhead(canvas);
+    const onTheEntry = historyIndex();
+    window.history.back();
+    await asked();
+    const landed = traversals(1);
+    window.history.forward();
+    await landed;
+    await expect(address().edit).toBe("studio");
+    await answer("Discard");
+    await noDrawer("Studio work");
+    await waitFor(() => expect(address().edit).toBeUndefined());
+    await waitFor(() => expect(historyIndex()).toBe(onTheEntry - 1));
   },
 };
 
@@ -128,7 +228,7 @@ export const ACommandThatWouldSwapTheEntryAsks: Story = {
   },
 };
 
-export const LeavingThePageAsks: Story = {
+export const LeavingTheViewAsks: Story = {
   play: async ({ canvas }) => {
     await editStudio(canvas);
     await userEvent.click(canvas.getByRole("link", { name: "Archive" }));

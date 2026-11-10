@@ -875,6 +875,8 @@ interface EditTarget {
   readonly id: string;
 }
 
+const editTargetKey = ({ module, id }: EditTarget) => `${module.id}/${id}`;
+
 /** The frame stays mounted whatever is open, so that closing can animate and return the focus. */
 function ModuleEditDrawer({ module }: { readonly module: ShellContribution | undefined }) {
   const { t, i18n } = useLingui();
@@ -887,9 +889,9 @@ function ModuleEditDrawer({ module }: { readonly module: ShellContribution | und
   // so the module's code still only loads when it first opens.
   const [shown, setShown] = useState(target);
   if (target && (target.module !== shown?.module || target.id !== shown.id)) setShown(target);
-  // Held here, below the page, so that naming the entry does not reach the View.
+  // Held here, beside the View, so that naming the entry does not re-render it.
   const [entryTitle, setEntryTitle] = useState<string>();
-  const exits = useEditDrawerExits(target && `${target.module.id}/${target.id}`);
+  const exits = useEditDrawerExits(target && editTargetKey(target));
   // Only writes the address. Whether that may happen is the guard's to decide.
   const close = () =>
     write((search) => {
@@ -897,7 +899,7 @@ function ModuleEditDrawer({ module }: { readonly module: ShellContribution | und
       return rest;
     });
   const done = () => {
-    exits.finish();
+    exits.letNextExitPass();
     close();
   };
   return (
@@ -916,7 +918,7 @@ function ModuleEditDrawer({ module }: { readonly module: ShellContribution | und
         <EditDrawerTitleContext value={setEntryTitle}>
           <UnsavedChangesContext value={exits.register}>
             <LazyContribution
-              key={`${shown.module.id}/${shown.id}`}
+              key={editTargetKey(shown)}
               components={loadedDrawer}
               fallback={<LoadingState />}
               load={shown.module.editDrawer}

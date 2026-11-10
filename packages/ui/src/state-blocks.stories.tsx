@@ -2,8 +2,9 @@ import { Button } from "@mantine/core";
 import { ProjectsIcon } from "@self-engine/icons";
 import { roleColor } from "@self-engine/theme";
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { expect, fn, spyOn, userEvent } from "storybook/test";
+import { expect, fn, userEvent } from "storybook/test";
 import { EmptyState, ErrorState, LoadingState } from "./index.ts";
+import { holdTimers } from "./story-timers.ts";
 
 const meta = {
   title: "UI/State blocks",
@@ -79,28 +80,20 @@ export const ErrorUsesTheErrorColorRole: Story = {
   },
 };
 
-/** Runs the block's wait when the story says so. Other timers stay real: the queries poll with them. */
-let finishTheWait: (() => void) | undefined;
+/** The block's wait, run when the story says so. */
+let heldWait: ReturnType<typeof holdTimers>["held"];
 
 export const LoadingShowsNothingUntilTheWaitIsOver: Story = {
   beforeEach: () => {
-    finishTheWait = undefined;
-    const realSetTimeout = window.setTimeout.bind(window);
-    const timers = spyOn(window, "setTimeout").mockImplementation(((
-      run: () => void,
-      delay?: number,
-    ) => {
-      if (delay !== 200) return realSetTimeout(run, delay);
-      finishTheWait = run;
-      return -1;
-    }) as typeof window.setTimeout);
-    return () => timers.mockRestore();
+    const timers = holdTimers(200);
+    heldWait = timers.held;
+    return timers.restore;
   },
   render: () => <LoadingState />,
   play: async ({ canvas }) => {
-    await expect(finishTheWait).toBeDefined();
+    await expect(heldWait.size).toBe(1);
     await expect(canvas.queryByRole("status")).toBeNull();
-    finishTheWait!();
+    for (const finish of heldWait.values()) finish();
     await expect(await canvas.findByRole("status", { name: "Loading" })).toBeVisible();
   },
 };

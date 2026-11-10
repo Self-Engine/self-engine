@@ -63,15 +63,34 @@ function createAddress(router: AnyRouter): ViewAddress {
   };
 }
 
+/** How far the browser's history moved from the entry the router is still on. */
+function stepsTraversed(history: AnyRouter["history"]): number {
+  const browserEntry = window.history.state as typeof history.location.state;
+  return browserEntry.__TSR_index - history.location.state.__TSR_index;
+}
+
 export const ROUTING: ShellRouting = {
   useAddress: () => {
     const router = useRouter();
     return useMemo(() => createAddress(router), [router]);
   },
   useLeaveGuard: (guard, enabled) => {
+    const router = useRouter();
     const shouldBlockFn = useCallback<ShouldBlockFn>(
-      async ({ current, next }) => !(await guard({ current, next })),
-      [guard],
+      ({ action, current, next }) => {
+        const answer = guard({ current, next });
+        if (typeof answer === "boolean") return !answer;
+        if (action === "PUSH" || action === "REPLACE") return answer.then((leave) => !leave);
+        // The browser has already moved. Left there until the answer, a second Back would be
+        // measured from the wrong entry and undo the wrong distance, so it goes back at once and
+        // the step is taken again on "yes". Read here, while the browser is still on the target.
+        const steps = stepsTraversed(router.history);
+        void answer.then((leave) => {
+          if (leave) router.history.go(steps, { ignoreBlocker: true });
+        });
+        return true;
+      },
+      [guard, router],
     );
     // A blocked unload is cancelled silently in Electron and would stand in the way of quitting.
     useBlocker({ shouldBlockFn, disabled: !enabled, enableBeforeUnload: false });

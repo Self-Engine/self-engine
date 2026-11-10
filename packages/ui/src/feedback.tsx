@@ -21,14 +21,14 @@ const CLEAR_OF_THE_BOTTOM_BAR: CSSProperties = {
 export function FeedbackHost({ children }: { readonly children: ReactNode }) {
   const { t } = useLingui();
   // A notice is created outside React and cannot translate its own close button.
-  const closeLabel = {
+  const translatedNoticeClose = {
     components: {
       Notification: { defaultProps: { closeButtonProps: { "aria-label": t`Close notice` } } },
     },
   };
   return (
     <ModalsProvider labels={{ confirm: "", cancel: t`Cancel` }}>
-      <MantineThemeProvider inherit theme={closeLabel}>
+      <MantineThemeProvider inherit theme={translatedNoticeClose}>
         <Notifications
           autoClose={NOTICE_MS}
           position="bottom-right"

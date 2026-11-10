@@ -8,24 +8,13 @@ import type {
   ShellContribution,
   ShellView,
 } from "@self-engine/shell";
-import { createMemoryHistory, RouterProvider } from "@tanstack/react-router";
-import { type ComponentType, useState } from "react";
-import { createAppRouter } from "./app-router.ts";
+import type { ComponentType } from "react";
 import { settingsStore } from "./settings-store.ts";
+import { AppAt, storyRouter } from "./story-app.tsx";
 
 type Canvas = ReturnType<typeof within>;
 type EditDrawerLoad = NonNullable<ShellContribution["editDrawer"]>;
 type GroupsLoad = NonNullable<ShellContribution["groups"]>;
-
-let openRouter: ReturnType<typeof createAppRouter>;
-
-function AppAt({ address }: { readonly address: string }) {
-  const [router] = useState(() => {
-    openRouter = createAppRouter(createMemoryHistory({ initialEntries: [address] }));
-    return openRouter;
-  });
-  return <RouterProvider router={router} />;
-}
 
 const meta = {
   title: "App/Module failures and slow work",
@@ -206,7 +195,7 @@ export const SlowActionDoesNotReachTheNextView: Story = {
     await expect(await canvas.findByRole("heading", { name: "Archive", level: 1 })).toBeVisible();
     heldCommand.finish(openEditor);
     await onceSettled();
-    await expect(openRouter.state.location.search).not.toHaveProperty("edit");
+    await expect(storyRouter().state.location.search).not.toHaveProperty("edit");
     await expect(page(canvasElement).queryByRole("dialog")).toBeNull();
   },
 };
@@ -226,7 +215,7 @@ export const SlowActionStillOpensWhenTheViewStays: Story = {
     await expect(await canvas.findByText("Garden work")).toBeVisible();
     heldCommandStaying.finish(openEditor);
     await expectEditorShows(canvasElement, "new");
-    await expect(openRouter.state.location.search).toMatchObject({
+    await expect(storyRouter().state.location.search).toMatchObject({
       client: "garden",
       edit: "new",
     });
@@ -252,12 +241,12 @@ export const SlowActionDoesNotInterruptALeavingNavigation: Story = {
     await userEvent.click(await canvas.findByRole("button", { name: "New entry" }));
     await userEvent.click(canvas.getByRole("link", { name: "Placeholder Beta" }));
     await waitFor(() =>
-      expect(openRouter.state.location.pathname).toBe("/placeholder-beta/overview"),
+      expect(storyRouter().state.location.pathname).toBe("/placeholder-beta/overview"),
     );
     heldCommandBeforeLeaving.finish(openEditor);
     await onceSettled();
-    await expect(openRouter.state.location.pathname).toBe("/placeholder-beta/overview");
-    await expect(openRouter.state.location.search).not.toHaveProperty("edit");
+    await expect(storyRouter().state.location.pathname).toBe("/placeholder-beta/overview");
+    await expect(storyRouter().state.location.search).not.toHaveProperty("edit");
     heldBetaForCommand.finish({ default: BetaStandIn });
     await expect(await canvas.findByText("Beta stand-in")).toBeVisible();
   },
@@ -277,7 +266,7 @@ export const LinksFollowTheVisiblePageDuringASlowNavigation: Story = {
     await expect(await canvas.findByRole("link", { name: "Garden" })).toBeVisible();
     await userEvent.click(canvas.getByRole("link", { name: "Placeholder Beta" }));
     await waitFor(() =>
-      expect(openRouter.state.location.pathname).toBe("/placeholder-beta/overview"),
+      expect(storyRouter().state.location.pathname).toBe("/placeholder-beta/overview"),
     );
     await expect(canvas.getByRole("heading", { name: "Overview", level: 1 })).toBeVisible();
     await expect(canvas.getByRole("link", { name: "Archive" })).toHaveAttribute(

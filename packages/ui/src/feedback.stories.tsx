@@ -3,6 +3,7 @@ import { roleColor } from "@self-engine/theme";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { expect, fn, screen, spyOn, userEvent, waitFor, within } from "storybook/test";
 import { confirm, type ConfirmOptions, notifyError, notifyUndoable } from "./index.ts";
+import { holdTimers } from "./story-timers.ts";
 
 const meta = {
   title: "UI/Feedback",
@@ -127,28 +128,13 @@ const noticeWith = async (text: string) => {
 
 const undoButton = (notice: HTMLElement) => within(notice).getByRole("button", { name: "Undo" });
 
-/** The timers a notice waits on, run when the story says so. Other timers stay real: the queries poll with them. */
-let heldNoticeTimers = new Map<number, () => void>();
+/** The timers a notice waits on, run when the story says so. */
+let heldNoticeTimers: ReturnType<typeof holdTimers>["held"];
 
 function holdNoticeTimers() {
-  heldNoticeTimers = new Map();
-  let nextId = -1000;
-  const realSet = window.setTimeout.bind(window);
-  const realClear = window.clearTimeout.bind(window);
-  const set = spyOn(window, "setTimeout").mockImplementation(((run: () => void, delay?: number) => {
-    if (delay !== 8000) return realSet(run, delay);
-    nextId -= 1;
-    heldNoticeTimers.set(nextId, run);
-    return nextId;
-  }) as typeof window.setTimeout);
-  const clear = spyOn(window, "clearTimeout").mockImplementation(((id?: number) => {
-    if (id !== undefined && heldNoticeTimers.delete(id)) return;
-    realClear(id);
-  }) as typeof window.clearTimeout);
-  return () => {
-    set.mockRestore();
-    clear.mockRestore();
-  };
+  const timers = holdTimers(8000);
+  heldNoticeTimers = timers.held;
+  return timers.restore;
 }
 
 export const AnUndoableNoticeStaysEightSecondsAndPausesOnHover: Story = {

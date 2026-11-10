@@ -1,21 +1,10 @@
+import { holdTimers } from "@self-engine/ui/story-timers";
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { createMemoryHistory, RouterProvider } from "@tanstack/react-router";
-import { useState } from "react";
-import { expect, screen, spyOn, userEvent, waitFor, within } from "storybook/test";
-import { createAppRouter } from "./app-router.ts";
+import { expect, screen, userEvent, waitFor, within } from "storybook/test";
 import { settingsStore } from "./settings-store.ts";
+import { AppAt, editInAddress, storyRouter } from "./story-app.tsx";
 
 type Canvas = ReturnType<typeof within>;
-
-let openRouter: ReturnType<typeof createAppRouter>;
-
-function AppAt({ address }: { readonly address: string }) {
-  const [router] = useState(() => {
-    openRouter = createAppRouter(createMemoryHistory({ initialEntries: [address] }));
-    return openRouter;
-  });
-  return <RouterProvider router={router} />;
-}
 
 const OVERVIEW = "/placeholder-alpha/overview";
 
@@ -30,19 +19,12 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 const QUESTION = "Discard changes?";
-const openEntry = () => (openRouter.state.location.search as { readonly edit?: unknown }).edit;
+const openEntry = () => editInAddress(storyRouter());
 
 const noDrawer = () => waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
 
-/** A notice stays until the story answers it. Other timers stay real: the queries poll with them. */
-function keepNoticesOpen() {
-  const realSetTimeout = window.setTimeout.bind(window);
-  const timers = spyOn(window, "setTimeout").mockImplementation(((
-    run: () => void,
-    delay?: number,
-  ) => (delay === 8000 ? -1 : realSetTimeout(run, delay))) as typeof window.setTimeout);
-  return () => timers.mockRestore();
-}
+/** A notice stays until the story answers it. */
+const keepNoticesOpen = () => holdTimers(8000).restore;
 
 const listed = (canvas: Canvas) =>
   canvas
@@ -153,7 +135,7 @@ export const AnOldLinkToADeletedEntrySaysItWasNotFound: Story = {
   play: async ({ canvas }) => {
     await deleteFromTheList(canvas, "Studio work");
     await waitFor(() => expect(listed(canvas)).toEqual(["Garden work"]));
-    openRouter.history.push(`${OVERVIEW}?edit=studio`);
+    storyRouter().history.push(`${OVERVIEW}?edit=studio`);
     const drawer = within(await screen.findByRole("dialog", { name: "Placeholder Alpha" }));
     await expect(await drawer.findByRole("alert")).toHaveTextContent("Entry not found");
     await userEvent.click(drawer.getByRole("button", { name: "Close" }));

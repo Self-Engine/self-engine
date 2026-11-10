@@ -46,7 +46,7 @@ export interface ErrorStateProps {
 /** "That failed". Offers another try only when the caller can make one. */
 export function ErrorState({ title, description, onRetry, action }: ErrorStateProps) {
   const { t } = useLingui();
-  const next =
+  const shownAction =
     action ??
     (onRetry && (
       <Button onClick={onRetry} variant="default">
@@ -61,7 +61,7 @@ export function ErrorState({ title, description, onRetry, action }: ErrorStatePr
       title={title}
       vars={ERROR_VARS}
     >
-      {next && <MantineEmptyState.Actions>{next}</MantineEmptyState.Actions>}
+      {shownAction && <MantineEmptyState.Actions>{shownAction}</MantineEmptyState.Actions>}
     </MantineEmptyState>
   );
 }

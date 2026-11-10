@@ -24,7 +24,7 @@ export default function EditDrawer({ id, onCancel, onDone }: EditDrawerProps) {
       <ErrorState
         action={
           <Button onClick={onDone} variant="default">
-            {t`Close`}
+            {t({ message: "Close", context: "Close the drawer" })}
           </Button>
         }
         title={t`Entry not found`}
