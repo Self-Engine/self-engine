@@ -108,10 +108,10 @@ export const ANoticeSitsAboveTheBottomBarAndTheDrawer: Story = {
     await openDialog(canvas);
     notifyUndoable({ message: "Entry deleted", undo: () => undefined });
     const notice = (await screen.findByText("Entry deleted")).closest("[role=alert]")!;
-    await waitFor(() => {
+    await waitFor(async () => {
       const { bottom, left, top, width } = notice.getBoundingClientRect();
-      expect(bottom).toBeLessThanOrEqual(bottomBar.getBoundingClientRect().top);
-      expect(notice.contains(document.elementFromPoint(left + width / 2, top + 4))).toBe(true);
+      await expect(bottom).toBeLessThanOrEqual(bottomBar.getBoundingClientRect().top);
+      await expect(notice.contains(document.elementFromPoint(left + width / 2, top + 4))).toBe(true);
     });
     await userEvent.click(within(notice as HTMLElement).getByRole("button", { name: "Undo" }));
     await waitFor(() => expect(screen.queryByText("Entry deleted")).toBeNull());

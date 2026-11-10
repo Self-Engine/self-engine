@@ -198,10 +198,10 @@ export const NoticesSitBottomRight: Story = {
   play: async () => {
     notifyError({ message: "The backup failed." });
     const notice = await noticeWith("The backup failed.");
-    await waitFor(() => {
+    await waitFor(async () => {
       const { right, bottom } = notice.getBoundingClientRect();
-      expect(window.innerWidth - right).toBeLessThan(40);
-      expect(window.innerHeight - bottom).toBeLessThan(40);
+      await expect(window.innerWidth - right).toBeLessThan(40);
+      await expect(window.innerHeight - bottom).toBeLessThan(40);
     });
   },
 };
