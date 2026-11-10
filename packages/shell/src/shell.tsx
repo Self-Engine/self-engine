@@ -91,6 +91,8 @@ function useLayoutStep() {
 }
 
 const RADIUS = "var(--mantine-radius-md)";
+const CONTAINER_EDGE_COLOR = roleColor("border");
+const CONTAINER_OUTLINE = `inset 0 0 0 1px ${CONTAINER_EDGE_COLOR}`;
 
 const ROOT_STYLE = {
   "--app-shell-border-color": roleColor("border"),
@@ -112,12 +114,17 @@ const TOP_EDGE_STYLE: CSSProperties = {
 };
 
 const NAVBAR_STYLE: CSSProperties = {
+  boxShadow: `inset 1px 0 ${CONTAINER_EDGE_COLOR}, inset 0 1px ${CONTAINER_EDGE_COLOR}, inset 0 -1px ${CONTAINER_EDGE_COLOR}`,
   backgroundColor: roleColor("navSurface"),
   borderRadius: `${RADIUS} 0 0 ${RADIUS}`,
 };
 
 /** Without the Module Sidebar beside it, the Navbar is a container of its own. */
-const NAVBAR_ALONE_STYLE: CSSProperties = { ...NAVBAR_STYLE, borderRadius: RADIUS };
+const NAVBAR_ALONE_STYLE: CSSProperties = {
+  ...NAVBAR_STYLE,
+  boxShadow: CONTAINER_OUTLINE,
+  borderRadius: RADIUS,
+};
 
 const MAIN_STYLE: CSSProperties = { minHeight: 0, minWidth: 0 };
 
@@ -193,6 +200,7 @@ const DRAWER_NAVBAR_STYLE: CSSProperties = {
 const BURGER_STYLE: CSSProperties = { ...NOT_WINDOW_DRAG_STYLE, borderRadius: RADIUS };
 
 const CONTENT_PANE_STYLE: CSSProperties = {
+  boxShadow: CONTAINER_OUTLINE,
   backgroundColor: roleColor("canvas"),
   borderRadius: RADIUS,
   display: "flex",
@@ -201,6 +209,7 @@ const CONTENT_PANE_STYLE: CSSProperties = {
 };
 
 const MODULE_SIDEBAR_PANE_STYLE: CSSProperties = {
+  boxShadow: `inset -1px 0 ${CONTAINER_EDGE_COLOR}, inset 0 1px ${CONTAINER_EDGE_COLOR}, inset 0 -1px ${CONTAINER_EDGE_COLOR}`,
   backgroundColor: roleColor("navSurface"),
   borderRadius: `0 ${RADIUS} ${RADIUS} 0`,
   display: "flex",
