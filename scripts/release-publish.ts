@@ -21,9 +21,11 @@ export interface PublishRequest {
 /** Runs `gh` with these arguments and returns its output. */
 export type Gh = (args: string[]) => string;
 
-const MANUAL_UPDATES =
-  "There is no in-app update yet: download new versions by hand. Downloading needs access to " +
-  "this repository.";
+const MANUAL_UPDATES = "There is no in-app update yet: download new versions by hand.";
+
+const DEVELOPMENT_BUILD =
+  "**This is a development build.** It changes often, can break and comes without support, " +
+  "so do not rely on it for data you need.";
 
 const OLD_APP =
   "**If you have the old Self-Engine app, rename it first** (for example to " +
@@ -33,7 +35,7 @@ const OLD_APP =
 /** The body of the release. Only stable has a changelog and shares its name with the old app. */
 export function releaseNotes(channel: ReleaseChannel, commit: string, changelog: string): string {
   if (channel === "nightly") {
-    return `Nightly build of ${commit}. It installs as "Self-Engine Nightly", next to the other channels.\n\n${MANUAL_UPDATES}\n`;
+    return `${DEVELOPMENT_BUILD}\n\nNightly build of ${commit}. It installs as "Self-Engine Nightly", next to the other channels.\n\n${MANUAL_UPDATES}\n`;
   }
   return `${OLD_APP}\n\n${MANUAL_UPDATES}\n\n${changelog}`;
 }

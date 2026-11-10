@@ -103,6 +103,11 @@ describe("releaseNotes", () => {
     expect(notes).not.toContain("rename");
   });
 
+  it("marks only the nightly as a development build", () => {
+    expect(releaseNotes("nightly", COMMIT, "")).toContain("development build");
+    expect(releaseNotes("stable", COMMIT, "")).not.toContain("development build");
+  });
+
   it.each(["nightly", "stable"] as const)("says %s updates by hand", (channel) => {
     expect(releaseNotes(channel, COMMIT, "")).toContain("download new versions by hand");
   });

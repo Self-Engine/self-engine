@@ -5,10 +5,10 @@
 name: Release
 
 on:
-  # Every second night (odd days of the month, so the 31st and the 1st are both built). Off
-  # unless the repository variable NIGHTLY_SCHEDULE_ENABLED is 'true' (see the plan job).
+  # Twice a day; a run without changes on main builds nothing. Off unless the repository variable
+  # NIGHTLY_SCHEDULE_ENABLED is 'true' (see the plan job).
   schedule:
-    - cron: "17 2 */2 * *"
+    - cron: "17 2,14 * * *"
   workflow_dispatch:
     inputs:
       channel:
@@ -35,8 +35,8 @@ concurrency:
 jobs:
   plan:
     name: Plan the release
-    # Releases come from main only: stable ships what nightly already ran (ADR 0007). macOS
-    # minutes on a private repository are limited, so the schedule is opt-in; by hand always works.
+    # Releases come from main only: stable ships what nightly already ran (ADR 0007). The
+    # variable can stop the schedule without a commit; by hand always works.
     if: github.ref == 'refs/heads/main' && (github.event_name != 'schedule' || vars.NIGHTLY_SCHEDULE_ENABLED == 'true')
     runs-on: ubuntu-latest
     timeout-minutes: 5
