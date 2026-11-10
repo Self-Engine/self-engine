@@ -16,4 +16,3 @@ export {
 export { useViewSearch, useWriteViewSearch } from "./routing.tsx";
 export { retainedViewSearch, type ViewSearch } from "./view-search.ts";
 export { ShellGroup, ShellGroupEntry } from "./groups.tsx";
-export { ContributionFailure } from "./lazy-contribution.tsx";

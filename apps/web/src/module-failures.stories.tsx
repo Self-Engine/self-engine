@@ -76,7 +76,9 @@ async function expectShellIntact(canvas: Canvas) {
 export const GroupsLoadFailureStaysInTheSidebar: Story = {
   beforeEach: () => expectingReportedErrors(spyOnModule.groups().mockRejectedValueOnce(offline)),
   play: async ({ canvas }) => {
-    await expect(await canvas.findByRole("alert")).toHaveTextContent("could not be loaded");
+    const failure = await canvas.findByRole("alert");
+    await expect(failure).toHaveTextContent("could not be loaded");
+    await expect(within(failure).getByRole("button", { name: "Try again" })).toBeVisible();
     await expectShellIntact(canvas);
     await expect(await canvas.findByText("Studio work")).toBeVisible();
     await userEvent.click(canvas.getByRole("link", { name: "Archive" }));
@@ -153,11 +155,31 @@ export const ViewLoadFailureCanBeRetried: Story = {
   beforeEach: () =>
     expectingReportedErrors(spyOn(alpha.views[0], "load").mockRejectedValueOnce(offline)),
   play: async ({ canvas }) => {
-    await expect(await canvas.findByRole("alert")).toHaveTextContent("could not be loaded");
+    const failure = await canvas.findByRole("alert");
+    await expect(failure).toHaveTextContent("could not be loaded");
     await expectShellIntact(canvas);
-    await userEvent.click(canvas.getByRole("button", { name: "Try again" }));
+    await userEvent.click(within(failure).getByRole("button", { name: "Try again" }));
     await expect(await canvas.findByText("Studio work")).toBeVisible();
     await expect(canvas.queryByRole("alert")).toBeNull();
+  },
+};
+
+const DrawerStandIn: ComponentType = () => <p>Drawer stand-in</p>;
+let heldDrawer: ReturnType<typeof held<Awaited<ReturnType<EditDrawerLoad>>>>;
+
+export const SlowDrawerCodeShowsTheLoadingState: Story = {
+  args: { address: "/placeholder-alpha/overview?edit=studio" },
+  beforeEach: () => {
+    heldDrawer = held();
+    const load = spyOnModule.editDrawer().mockReturnValue(heldDrawer.promise);
+    return () => load.mockRestore();
+  },
+  play: async ({ canvasElement }) => {
+    const dialog = within(await page(canvasElement).findByRole("dialog", { name: "Editor" }));
+    await expect(await dialog.findByRole("status", { name: "Loading" })).toBeVisible();
+    heldDrawer.finish({ default: DrawerStandIn });
+    await expect(await dialog.findByText("Drawer stand-in")).toBeVisible();
+    await expect(dialog.queryByRole("status")).toBeNull();
   },
 };
 

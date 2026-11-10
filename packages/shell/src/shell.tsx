@@ -27,6 +27,7 @@ import {
 import { useDisclosure } from "@mantine/hooks";
 import { SidePanelIcon } from "@self-engine/icons";
 import { type ColorSetId, roleColor } from "@self-engine/theme";
+import { LoadingState } from "@self-engine/ui";
 import {
   type ComponentType,
   type CSSProperties,
@@ -889,6 +890,7 @@ function ModuleEditDrawer({ module }: { readonly module: ShellContribution | und
         <LazyContribution
           key={`${shown.module.id}/${shown.id}`}
           components={loadedDrawer}
+          fallback={<LoadingState />}
           load={shown.module.editDrawer}
           props={{ id: shown.id, onClose: close }}
         />

@@ -13,6 +13,7 @@
     "@mantine/core": "catalog:",
     "@self-engine/icons": "workspace:*",
     "@self-engine/shell": "workspace:*",
+    "@self-engine/ui": "workspace:*",
     "react": "catalog:"
   },
   "devDependencies": {

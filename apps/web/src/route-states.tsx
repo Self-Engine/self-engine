@@ -1,23 +1,19 @@
-import { Trans, useLingui } from "@lingui/react/macro";
-import { Text } from "@mantine/core";
-import { ContributionFailure } from "@self-engine/shell";
+import { useLingui } from "@lingui/react/macro";
+import { ErrorState } from "@self-engine/ui";
 import { useRouter } from "@tanstack/react-router";
 
 export function NotFound() {
-  return (
-    <Text>
-      <Trans>Nothing was found at this address.</Trans>
-    </Text>
-  );
+  const { t } = useLingui();
+  return <ErrorState title={t`Nothing was found at this address.`} />;
 }
 
 export function ViewLoadError() {
   const { t } = useLingui();
   const router = useRouter();
   return (
-    <ContributionFailure
-      message={t`This View could not be loaded. Please try again.`}
+    <ErrorState
       onRetry={() => void router.invalidate()}
+      title={t`This View could not be loaded. Please try again.`}
     />
   );
 }
