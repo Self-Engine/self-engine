@@ -305,6 +305,29 @@ export const AFailingCommandReportsThroughTheSharedStart: Story = {
   },
 };
 
+/** A leave guard is a module's code and may throw. The move then fails like any other start. */
+export const AFailedMoveToAnotherModuleIsReported: Story = {
+  args: {
+    routing: {
+      ...storyRouting(),
+      useGoToView: () => () => Promise.reject(new Error("A guard threw")),
+    },
+  },
+  beforeEach: () => {
+    const reported = spyOn(console, "error").mockImplementation(() => undefined);
+    return () => reported.mockRestore();
+  },
+  play: async () => {
+    await openPalette();
+    await userEvent.keyboard("second new{Enter}");
+    await paletteGone();
+    await expect(await screen.findByRole("alert")).toHaveTextContent("could not be completed");
+    await expect(startedOtherNew).not.toHaveBeenCalled();
+    await userEvent.click(screen.getByRole("button", { name: "Close notice" }));
+    await waitFor(() => expect(screen.queryByRole("alert")).toBeNull());
+  },
+};
+
 export const ShortcutsDoNothingWhileThePaletteIsOpen: Story = {
   play: async () => {
     const palette = await openPalette();

@@ -53,10 +53,15 @@ export function useStartCommand() {
 
   return (moduleId: string, command: PersonCommand, goFirstTo?: string) =>
     startOnce(fullCommandId(moduleId, command.id), async () => {
-      if (goFirstTo !== undefined && !(await goToView(goFirstTo))) return;
-      const result = await (command.kind === "page"
-        ? runCommand(command, {}, { writeSearch: address.scopedWriteSearch() })
-        : runCommand(command, {}, {}));
-      if (!result.ok) reportFailedStart(i18n, result.error);
+      try {
+        if (goFirstTo !== undefined && !(await goToView(goFirstTo))) return;
+        const result = await (command.kind === "page"
+          ? runCommand(command, {}, { writeSearch: address.scopedWriteSearch() })
+          : runCommand(command, {}, {}));
+        if (!result.ok) reportFailedStart(i18n, result.error);
+      } catch (error) {
+        // The move asks the leave guards, which are a module's code and may throw.
+        reportFailedStart(i18n, error);
+      }
     });
 }
