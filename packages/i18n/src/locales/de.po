@@ -34,6 +34,7 @@ msgid "Clients"
 msgstr "Kunden"
 
 #: packages/placeholder-alpha/src/edit-drawer.tsx
+msgctxt "Close the drawer"
 msgid "Close"
 msgstr "Schließen"
 
