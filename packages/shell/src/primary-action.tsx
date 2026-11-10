@@ -5,12 +5,12 @@ import { useStartCommand } from "./start-command.tsx";
 
 export function PrimaryAction({
   moduleId,
-  action,
+  command,
 }: {
   readonly moduleId: string;
-  readonly action: PersonCommand;
+  readonly command: PersonCommand;
 }) {
   const { i18n } = useLingui();
   const start = useStartCommand();
-  return <Button onClick={() => void start(moduleId, action)}>{i18n._(action.label)}</Button>;
+  return <Button onClick={() => void start(moduleId, command)}>{i18n._(command.label)}</Button>;
 }

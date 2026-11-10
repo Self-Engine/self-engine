@@ -1,9 +1,15 @@
-import { type CommandOwner, commandRegister, type RegisteredCommand } from "./commands.ts";
+import {
+  type CommandOwner,
+  commandRegister,
+  isPageCommandElsewhere,
+  type RegisteredCommand,
+} from "./commands.ts";
 import { PALETTE_SHORTCUT, UNDO_COMMAND_ID, UNDO_SHORTCUT } from "./shell-commands.ts";
 
 /**
  * Keys the app must not take: copy, paste, cut, select-all and undo, the Command Palette's ⌘K, and
- * what Electron's default menu holds, since the app sets no menu of its own.
+ * what Electron's default menu holds, since the app sets no menu of its own. Fullscreen's ⌃⌘F is
+ * not listed: on a Mac it is not `Mod` alone, so the audit already refuses it for that.
  */
 const RESERVED_SHORTCUTS = [
   "Mod+C",
@@ -28,6 +34,9 @@ const RESERVED_SHORTCUTS = [
   "Mod+Alt+I",
   "Mod+0",
   "Mod+=",
+  // Zoom in is `CommandOrControl+Plus`: its own key on some layouts, Shift and `=` on others.
+  "Mod++",
+  "Mod+Shift+=",
   "Mod+-",
 ];
 
@@ -36,16 +45,16 @@ interface ValidShortcut {
   readonly canonical: string;
 }
 
-/** A `page` shortcut holds only in its own module, an `open` one everywhere. */
+/** Whether both hold at once: with the module of one on screen, the other is not elsewhere. */
 const collide = (a: RegisteredCommand, b: RegisteredCommand) =>
-  a.moduleId === b.moduleId || a.command.kind === "open" || b.command.kind === "open";
+  !isPageCommandElsewhere(b, a.moduleId) || !isPageCommandElsewhere(a, b.moduleId);
 
-/** Loads the hotkey library on purpose: the check at startup stays free of it. */
+/** A dynamic import: the package's index exports this file, and the library stays out of startup. */
 async function auditShortcuts(register: readonly RegisteredCommand[]) {
   const { readShortcut } = await import("./shortcut-bindings.tsx");
   const canonical = (shortcut: string) => {
-    const read = readShortcut(shortcut);
-    return "canonical" in read ? read.canonical : shortcut;
+    const parsed = readShortcut(shortcut);
+    return "canonical" in parsed ? parsed.canonical : shortcut;
   };
   const reserved = new Set(RESERVED_SHORTCUTS.map(canonical));
   const undoKey = canonical(UNDO_SHORTCUT);
@@ -57,12 +66,12 @@ async function auditShortcuts(register: readonly RegisteredCommand[]) {
     const shortcut = entry.command.defaultShortcut;
     if (shortcut === undefined) continue;
     const name = `${entry.fullId}: default shortcut "${shortcut}"`;
-    const read = readShortcut(shortcut);
-    if ("invalid" in read) problems.push(`${name} is invalid (${read.invalid})`);
-    else if (!read.hasMod) problems.push(`${name} needs Mod`);
-    else if (reserved.has(read.canonical) && !mayHoldReservedKey(entry.fullId, read.canonical))
+    const parsed = readShortcut(shortcut);
+    if ("invalid" in parsed) problems.push(`${name} is invalid (${parsed.invalid})`);
+    else if (!parsed.hasMod) problems.push(`${name} needs Mod`);
+    else if (reserved.has(parsed.canonical) && !mayHoldReservedKey(entry.fullId, parsed.canonical))
       problems.push(`${name} is reserved`);
-    else valid.push({ entry, canonical: read.canonical });
+    else valid.push({ entry, canonical: parsed.canonical });
   }
   const collisions = valid.flatMap((one, index) =>
     valid

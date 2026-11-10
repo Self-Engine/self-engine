@@ -34,27 +34,7 @@ export async function pressEscape() {
   await keyboard.keyboard("{Escape}");
 }
 
-/** Follows a spied platform too, because the hotkey library reads it at each press. */
-export const modKey = () =>
-  /mac/i.test(navigator.platform + navigator.userAgent) ? "Meta" : "Control";
-
-const pressPaletteKey = () => userEvent.keyboard(`{${modKey()}>}k{/${modKey()}}`);
-
-export const paletteDialog = () => screen.queryByRole("dialog", { name: "Command palette" });
-
-/** The bindings and the palette's code load late, so an early press is lost. */
-export async function openPalette(press = pressPaletteKey): Promise<HTMLElement> {
-  await waitFor(
-    async () => {
-      await press();
-      await expect(paletteDialog()).toBeVisible();
-    },
-    { timeout: 10_000 },
-  );
-  return paletteDialog()!;
-}
-
-export const paletteGone = () => waitFor(() => expect(paletteDialog()).toBeNull());
+export { modKey, openPalette, paletteDialog, paletteGone } from "./story-interactions.ts";
 
 export function pretendPlatform(platform: string, userAgent: string) {
   const spies = [

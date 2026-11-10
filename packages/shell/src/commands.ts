@@ -100,6 +100,12 @@ export interface CommandOwner {
 
 export const fullCommandId = (moduleId: string, commandId: string) => `${moduleId}.${commandId}`;
 
+/** A `page` Command needs its module on screen, so with another one showing it cannot run as is. */
+export const isPageCommandElsewhere = (
+  { moduleId, command }: Pick<RegisteredCommand, "moduleId" | "command">,
+  activeModuleId: string | undefined,
+) => command.kind === "page" && moduleId !== activeModuleId;
+
 export function commandRegister(owners: readonly CommandOwner[]): readonly RegisteredCommand[] {
   return owners.flatMap(({ id: moduleId, commands = [] }) =>
     commands.map((command) => ({

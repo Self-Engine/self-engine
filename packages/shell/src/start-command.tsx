@@ -1,9 +1,19 @@
+import type { I18n } from "@lingui/core";
+import { msg } from "@lingui/core/macro";
 import { useLingui } from "@lingui/react/macro";
 import { notifyError } from "@self-engine/ui";
 import { createContext, type ReactNode, useContext, useState } from "react";
 import { fullCommandId, type PersonCommand } from "./commands.ts";
 import { useShellRouting } from "./routing.tsx";
 import { runCommand } from "./run-command.ts";
+
+const START_FAILED = msg`The action could not be completed. Please try again.`;
+
+/** Keeps the cause for the log and tells the person. `i18n` so that an effect can depend on it. */
+export function reportFailedStart(i18n: I18n, error: unknown) {
+  console.error(error);
+  notifyError({ message: i18n._(START_FAILED) });
+}
 
 type StartOnce = (fullId: string, work: () => Promise<void>) => Promise<void>;
 
@@ -23,7 +33,7 @@ function createStartOnce(): StartOnce {
 const StartOnceContext = createContext<StartOnce | null>(null);
 
 /** Once per Shell: a Command counts as running however a person started it. */
-export function CommandStarts({ children }: { readonly children: ReactNode }) {
+export function StartOnceProvider({ children }: { readonly children: ReactNode }) {
   const [startOnce] = useState(createStartOnce);
   return <StartOnceContext value={startOnce}>{children}</StartOnceContext>;
 }
@@ -34,7 +44,7 @@ export function CommandStarts({ children }: { readonly children: ReactNode }) {
  * `goFirstTo` it moves to that View first, and runs on the page it arrived at or not at all.
  */
 export function useStartCommand() {
-  const { t } = useLingui();
+  const { i18n } = useLingui();
   const routing = useShellRouting();
   const address = routing.useAddress();
   const goToView = routing.useGoToView();
@@ -47,8 +57,6 @@ export function useStartCommand() {
       const result = await (command.kind === "page"
         ? runCommand(command, {}, { writeSearch: address.scopedWriteSearch() })
         : runCommand(command, {}, {}));
-      if (result.ok) return;
-      console.error(result.error);
-      notifyError({ message: t`The action could not be completed. Please try again.` });
+      if (!result.ok) reportFailedStart(i18n, result.error);
     });
 }

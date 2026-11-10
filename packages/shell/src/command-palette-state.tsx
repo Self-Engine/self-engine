@@ -1,10 +1,4 @@
 import { createContext, type ReactNode, useContext, useState, useSyncExternalStore } from "react";
-import type { PaletteOwner } from "./palette-entries.ts";
-
-export interface CommandPaletteProps {
-  readonly owners: readonly PaletteOwner[];
-  readonly activeModuleId: string | undefined;
-}
 
 /** What stays in the startup bundle. Spotlight itself only loads at the first opening. */
 function createCommandPalette() {
@@ -45,7 +39,7 @@ function createCommandPalette() {
      * must not see it gone and act on the same key press. Today the drawers listen first, which
      * only follows from when they mounted, so this does not rely on that.
      */
-    finished: () => setTimeout(() => setOpened(false)),
+    scheduleClose: () => setTimeout(() => setOpened(false)),
   };
 }
 

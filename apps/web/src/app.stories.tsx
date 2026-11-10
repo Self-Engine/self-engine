@@ -199,7 +199,7 @@ export const PaletteLabelsFollowTheLanguage: Story = {
   args: { address: "/settings/language-sample" },
   play: async ({ canvas }) => {
     await expect(await canvas.findByText("This sentence is translated.")).toBeVisible();
-    const english = await openPalette();
+    const english = within(await openPalette());
     await expect(await english.findByRole("link", { name: "Language sample" })).toBeVisible();
     await userEvent.keyboard("{Escape}");
     await paletteGone();
@@ -207,7 +207,7 @@ export const PaletteLabelsFollowTheLanguage: Story = {
     await expect(
       await canvas.findByRole("heading", { name: "Sprachbeispiel", level: 1 }),
     ).toBeVisible();
-    const german = await openPalette("Befehlspalette");
+    const german = within(await openPalette("Befehlspalette"));
     await expect(await german.findByRole("link", { name: "Sprachbeispiel" })).toBeVisible();
   },
 };

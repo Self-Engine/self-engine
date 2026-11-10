@@ -172,11 +172,19 @@ describe("the audit of default shortcuts", () => {
     "Mod+Alt+I",
     "Mod+0",
     "Mod+=",
+    "Mod++",
+    "Mod+Shift+=",
     "Mod+-",
   ])("names %j, which is reserved", async (shortcut) => {
     await expect(
       auditCommands([{ id: "alpha", commands: [pageOn("new", shortcut)] }]),
     ).resolves.toEqual([`alpha.new: default shortcut "${shortcut}" is reserved`]);
+  });
+
+  test("refuses macOS fullscreen, which on a Mac is not Mod alone", async () => {
+    await expect(
+      auditCommands([{ id: "alpha", commands: [pageOn("new", "Mod+Control+F")] }]),
+    ).resolves.toEqual(['alpha.new: default shortcut "Mod+Control+F" needs Mod']);
   });
 
   test("the Shell's undo may take Mod+Z, the single exception to the reserved keys", async () => {
@@ -257,7 +265,7 @@ function whatCannotBeDeclared() {
   defineOpenCommand({ ...body, schema: required });
   // @ts-expect-error An input Command has required input, or it would be an open Command.
   defineInputCommand({ ...body, schema: noInput });
-  // @ts-expect-error A handler is checked against its own schema.
+  // @ts-expect-error `run` is checked against its own schema.
   defineInputCommand({ ...body, schema: required, run: (values: { other: number }) => values });
 
   const forged = { ...body, schema: noInput };

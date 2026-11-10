@@ -22,9 +22,9 @@ Every action of the app has to be reachable from a button, a shortcut, the Comma
 
    A Command with both a page and required input does not exist, because nobody could start it. A module's main action is never `input`. The types enforce both, and only a `page` Command gets the address capability in its context.
 
-2. **The contribution holds what the palette and shortcuts need at once:** short id, kind, label, default shortcut and `load`. Schema, English description and handler live in the loaded file, as a View's code does (ADR 0013). The description is for a model, so it is not translated.
+2. **The contribution holds what the palette and shortcuts need at once:** short id, kind, label, default shortcut and `load`. Schema, English description and `run` live in the loaded file, as a View's code does (ADR 0013). The description is for a model, so it is not translated.
 
-3. **A Command's loaded file goes through `definePageCommand`, `defineOpenCommand` or `defineInputCommand`.** They check the handler against the schema and the schema against the kind, then give up the input type, so that the runner and the register can hold any Command.
+3. **A Command's loaded file goes through `definePageCommand`, `defineOpenCommand` or `defineInputCommand`.** They check `run` against the schema and the schema against the kind, then give up the input type, so that the runner and the register can hold any Command.
 
 4. **The register forms the full id `<module>.<command>`.** An id is never renamed or reused, which also holds for module ids. The prefix `shell` belongs to the Shell's own Commands, and no module may be called that.
 

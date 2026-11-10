@@ -121,7 +121,7 @@ The frame of the app around the modules, made of the navigation and the content 
 _Avoid_: layout, frame, chrome
 
 **Shortcut** (de: _Tastenkürzel_):
-A key combination with ⌘ on macOS or Ctrl elsewhere that starts a _Command_. One that starts a _Command_ of a module works while that module is shown, and one that needs no page works everywhere; it is quiet while a confirmation or the _Command Palette_ is open.
+A key combination with ⌘ on macOS or Ctrl elsewhere that starts a _Command_ or, for ⌘K, opens the _Command Palette_. One that starts a _Command_ of a module works while that module is shown, and one that needs no page works everywhere; it is quiet while a confirmation or the _Command Palette_ is open.
 _Avoid_: hotkey, keybinding, accelerator
 
 **Shell Contribution** (de: _Hüllen-Beitrag_):

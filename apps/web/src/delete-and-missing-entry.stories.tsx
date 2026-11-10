@@ -7,6 +7,7 @@ import {
   editInAddress,
   modKeyIsLeftToTheBrowser,
   pressWithMod,
+  QUESTION,
   storyRouter,
 } from "./story-app.tsx";
 
@@ -24,7 +25,6 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-const QUESTION = "Discard changes?";
 const openEntry = () => editInAddress(storyRouter());
 
 const noDrawer = () => waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());

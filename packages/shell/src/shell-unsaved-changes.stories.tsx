@@ -22,6 +22,7 @@ import {
   type Story,
   storyRouting,
 } from "./shell-story-helpers.tsx";
+import { answer, asked, noQuestion, QUESTION } from "./story-interactions.ts";
 
 const meta = {
   ...shellMeta,
@@ -56,8 +57,6 @@ function OpenEditor() {
   );
 }
 
-const QUESTION = "Discard changes?";
-
 async function openDrawer(canvas: ReturnType<typeof within>) {
   const trigger = canvas.getByRole("button", { name: "Open editor" });
   await userEvent.click(trigger);
@@ -65,14 +64,6 @@ async function openDrawer(canvas: ReturnType<typeof within>) {
   const draft = await within(drawer).findByRole("textbox", { name: "Draft" });
   return { drawer: within(drawer), draft, trigger };
 }
-
-const question = () => screen.findByRole("dialog", { name: QUESTION });
-
-const answer = async (label: "Discard" | "Keep editing") =>
-  userEvent.click(within(await question()).getByRole("button", { name: label }));
-
-const questionGone = () =>
-  waitFor(() => expect(screen.queryByRole("dialog", { name: QUESTION })).toBeNull());
 
 const drawerGone = () =>
   waitFor(() => expect(screen.queryByRole("dialog", { name: "Time" })).toBeNull());
@@ -107,10 +98,10 @@ const asksAndDiscardCloses = (exit: keyof typeof EXITS) =>
     const opened = await openDrawer(canvas);
     await userEvent.type(opened.draft, "x");
     await EXITS[exit](opened);
-    await question();
+    await asked();
     await expect(routing.address.search()).toEqual({ edit: "entry" });
     await answer("Discard");
-    await questionGone();
+    await noQuestion();
     await drawerGone();
     await expect(routing.address.search()).toEqual({});
     await waitFor(() => expect(opened.trigger).toHaveFocus());
@@ -142,10 +133,12 @@ const keepEditingKeepsEverything = (
     const opened = await openDrawer(canvas);
     await userEvent.type(opened.draft, "x");
     await EXITS[exit](opened);
-    const asked = within(await question());
-    await waitFor(() => expect(asked.getByRole("button", { name: "Keep editing" })).toHaveFocus());
+    const buttons = within(await asked());
+    await waitFor(() =>
+      expect(buttons.getByRole("button", { name: "Keep editing" })).toHaveFocus(),
+    );
     await answer("Keep editing");
-    await questionGone();
+    await noQuestion();
     await expect(routing.address.search()).toEqual({ edit: "entry" });
     await expect(opened.draft).toHaveValue("x");
     await waitFor(() => expect(focusAfterwards(opened)).toHaveFocus());
@@ -172,16 +165,16 @@ const oneEscClosesOnlyTheQuestion = (
     const opened = await openDrawer(canvas);
     await userEvent.type(opened.draft, "x");
     await EXITS[exit](opened);
-    await question();
+    await asked();
     await EXITS.esc();
-    await questionGone();
+    await noQuestion();
     await expect(screen.getByRole("dialog", { name: "Time" })).toBeVisible();
     await expect(routing.address.search()).toEqual({ edit: "entry" });
     await expect(opened.draft).toHaveValue("x");
     await waitFor(() => expect(focusAfterwards(opened)).toHaveFocus());
     // The drawer listens again once the question is gone.
     await EXITS.esc();
-    await question();
+    await asked();
     await answer("Discard");
     await drawerGone();
   });
@@ -225,7 +218,7 @@ export const OneEscInThePaletteClosesOnlyThePalette = withDraft(async (canvas, r
   // The drawer listens again once the palette is gone.
   await EXITS.esc();
   await answer("Keep editing");
-  await questionGone();
+  await noQuestion();
 });
 
 const paletteCommandAsks = withDraft(async (canvas, routing) => {
@@ -234,10 +227,10 @@ const paletteCommandAsks = withDraft(async (canvas, routing) => {
   await openPalette();
   await userEvent.keyboard("new entry{Enter}");
   await paletteGone();
-  await question();
+  await asked();
   await expect(routing.address.search()).toEqual({ edit: "entry" });
   await answer("Keep editing");
-  await questionGone();
+  await noQuestion();
   await expect(routing.address.search()).toEqual({ edit: "entry" });
   await waitFor(() => expect(opened.draft).toHaveFocus());
 }, MODULE_WITH_A_NEW_ENTRY_COMMAND);
@@ -251,12 +244,12 @@ export const ASecondAttemptDoesNotStackAnotherQuestion = withDraft(async (canvas
   const opened = await openDrawer(canvas);
   await userEvent.type(opened.draft, "x");
   await EXITS.closeButton(opened);
-  await question();
+  await asked();
   routing.address.writeSearch((search) => ({ ...search, edit: "another" }));
   await nextFrame();
   await expect(screen.getAllByRole("dialog", { name: QUESTION })).toHaveLength(1);
   await answer("Discard");
-  await questionGone();
+  await noQuestion();
   await expect(routing.address.search()).toEqual({});
 });
 
@@ -275,10 +268,10 @@ export const SwappingTheEntryAsks = withDraft(async (canvas, routing) => {
   const opened = await openDrawer(canvas);
   await userEvent.type(opened.draft, "x");
   routing.address.writeSearch((search) => ({ ...search, edit: "another" }));
-  await question();
+  await asked();
   await expect(routing.address.search()).toEqual({ edit: "entry" });
   await answer("Keep editing");
-  await questionGone();
+  await noQuestion();
   await expect(routing.address.search()).toEqual({ edit: "entry" });
   await expect(opened.draft).toHaveValue("x");
 });
@@ -293,7 +286,7 @@ export const DoneClosesWithoutAskingAndTheNextEntryIsGuardedAgain = withDraft(as
   const again = await openDrawer(canvas);
   await userEvent.type(again.draft, "y");
   await EXITS.closeButton(again);
-  await question();
+  await asked();
   await answer("Discard");
   await drawerGone();
 });
@@ -358,9 +351,9 @@ export const AnyCheckReportingChangesAsksAndAGoneCheckNoLonger = withDraft(
     await userEvent.click(opened.drawer.getByRole("button", { name: "Toggle second check" }));
     await opened.drawer.findByText("Second check");
     await EXITS.moduleCancel(opened);
-    await question();
+    await asked();
     await answer("Keep editing");
-    await questionGone();
+    await noQuestion();
     await userEvent.click(opened.drawer.getByRole("button", { name: "Toggle second check" }));
     await waitFor(() => expect(opened.drawer.queryByText("Second check")).toBeNull());
     await EXITS.moduleCancel(opened);

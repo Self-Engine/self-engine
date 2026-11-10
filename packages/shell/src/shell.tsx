@@ -10,10 +10,11 @@ import { selectEditId, UnsavedChangesContext, useEditDrawerExits } from "./edit-
 import { LazyContribution, lazyComponents } from "./lazy-contribution.tsx";
 import { useCloseOverlayOnPick, useViewSearch, useWriteViewSearch } from "./routing.tsx";
 import { ACTIVE_ENTRY_VARS, NOT_WINDOW_DRAG_STYLE } from "./navigation-style.ts";
+import type { CommandScope } from "./palette-entries.ts";
 import { PrimaryAction } from "./primary-action.tsx";
 import { PALETTE_SHORTCUT, shellCommands } from "./shell-commands.ts";
 import { ShortcutHint, Shortcuts } from "./shortcuts.tsx";
-import { CommandStarts } from "./start-command.tsx";
+import { StartOnceProvider } from "./start-command.tsx";
 import { useLingui } from "@lingui/react/macro";
 import type { ShellContribution, ShellView } from "./contributions.ts";
 import {
@@ -861,8 +862,12 @@ export function Shell({ contributions, settings, activeModule, activeView, ...pr
     icon: module.icon,
     color: module.color,
   });
+  const commandScope: CommandScope = {
+    owners: [...contributions, settings, shellCommands],
+    activeModuleId: activeModule?.id,
+  };
   return (
-    <CommandStarts>
+    <StartOnceProvider>
       <CommandPaletteProvider>
         <ShellFrame
           {...props}
@@ -872,24 +877,14 @@ export function Shell({ contributions, settings, activeModule, activeView, ...pr
           activeColor={activeModule?.color}
           pageTitle={activeView ? i18n._(activeView.title) : ""}
           editDrawer={<ModuleEditDrawer module={activeView && activeModule} />}
-          commandPalette={
-            <CommandPalette
-              owners={[...contributions, settings, shellCommands]}
-              activeModuleId={activeModule?.id}
-            />
-          }
-          shortcuts={
-            <Shortcuts
-              owners={[...contributions, settings, shellCommands]}
-              activeModuleId={activeModule?.id}
-            />
-          }
+          commandPalette={<CommandPalette {...commandScope} />}
+          shortcuts={<Shortcuts {...commandScope} />}
           moduleSidebar={
             <ModuleViews module={activeModule} activeView={activeView} routing={props.routing} />
           }
         />
       </CommandPaletteProvider>
-    </CommandStarts>
+    </StartOnceProvider>
   );
 }
 
@@ -911,7 +906,9 @@ function ModuleViews({
   if (!module) return null;
   return (
     <Stack gap="xs" data-module-color={module.color}>
-      {module.primaryAction && <PrimaryAction moduleId={module.id} action={module.primaryAction} />}
+      {module.primaryAction && (
+        <PrimaryAction moduleId={module.id} command={module.primaryAction} />
+      )}
       {module.views.map((view) => (
         <NavLink
           key={view.id}

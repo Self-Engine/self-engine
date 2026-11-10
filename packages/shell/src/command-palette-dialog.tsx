@@ -4,13 +4,10 @@ import { useLingui } from "@lingui/react/macro";
 import { Kbd } from "@mantine/core";
 import { createSpotlight, Spotlight, useSpotlight } from "@mantine/spotlight";
 import { Fragment, useEffect, useMemo, useState } from "react";
-import {
-  type CommandPaletteProps,
-  useCommandPalette,
-  useCommandPaletteOpen,
-} from "./command-palette-state.tsx";
+import { useCommandPalette, useCommandPaletteOpen } from "./command-palette-state.tsx";
 import { NOT_WINDOW_DRAG_STYLE } from "./navigation-style.ts";
 import {
+  type CommandScope,
   isViewEntry,
   type PaletteEntry,
   paletteEntries,
@@ -54,7 +51,7 @@ function PaletteResults({
   store,
   owners,
   activeModuleId,
-}: CommandPaletteProps & { readonly store: SpotlightStore }) {
+}: CommandScope & { readonly store: SpotlightStore }) {
   const { t, i18n } = useLingui();
   const palette = useCommandPalette();
   const { query } = useSpotlight(store);
@@ -94,7 +91,7 @@ function PaletteResults({
   );
 }
 
-export function CommandPaletteDialog(props: CommandPaletteProps) {
+export function CommandPaletteDialog(props: CommandScope) {
   const { t } = useLingui();
   const palette = useCommandPalette();
   const opened = useCommandPaletteOpen();
@@ -108,7 +105,7 @@ export function CommandPaletteDialog(props: CommandPaletteProps) {
       attributes={{ content: { "aria-label": t`Command palette` } }}
       onSpotlightClose={() => {
         palette.returnFocus();
-        palette.finished();
+        palette.scheduleClose();
       }}
       // Off, because Mantine returns it a moment later and would take it from a question.
       returnFocus={false}

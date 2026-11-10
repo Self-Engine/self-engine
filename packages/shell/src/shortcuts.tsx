@@ -1,30 +1,28 @@
 import { Kbd } from "@mantine/core";
-import { type ComponentType, useEffect, useState } from "react";
-import type { ShortcutBindingsProps } from "./shortcut-bindings.tsx";
+import { useEffect, useState } from "react";
+import type { CommandScope } from "./palette-entries.ts";
 
 /** Keeps the hotkey library out of the startup bundle: it loads once the first paint is done. */
 const loadBindings = () => import("./shortcut-bindings.tsx");
 
-export function Shortcuts(props: ShortcutBindingsProps) {
-  const [Bindings, setBindings] = useState<ComponentType<ShortcutBindingsProps>>();
+type Bindings = Awaited<ReturnType<typeof loadBindings>>;
+
+/** Undefined until it has loaded. Without it the app goes on, as every action has its button. */
+function useBindings() {
+  const [bindings, setBindings] = useState<Bindings>();
   useEffect(() => {
-    void loadBindings().then(
-      ({ ShortcutBindings }) => setBindings(() => ShortcutBindings),
-      // The app goes on without its shortcuts, and every action still has its button.
-      (error: unknown) => console.error(error),
-    );
+    void loadBindings().then(setBindings, (error: unknown) => console.error(error));
   }, []);
+  return bindings;
+}
+
+export function Shortcuts(props: CommandScope) {
+  const Bindings = useBindings()?.ShortcutBindings;
   return Bindings ? <Bindings {...props} /> : null;
 }
 
 /** Appears with the library, because the notation is the library's. Nothing depends on the hint. */
 export function ShortcutHint({ shortcut }: { readonly shortcut: string }) {
-  const [shown, setShown] = useState<string>();
-  useEffect(() => {
-    void loadBindings().then(
-      ({ displayShortcut }) => setShown(displayShortcut(shortcut)),
-      (error: unknown) => console.error(error),
-    );
-  }, [shortcut]);
-  return shown === undefined ? null : <Kbd size="xs">{shown}</Kbd>;
+  const bindings = useBindings();
+  return bindings ? <Kbd size="xs">{bindings.displayShortcut(shortcut)}</Kbd> : null;
 }

@@ -1,5 +1,5 @@
 import type { MessageDescriptor } from "@lingui/core";
-import type { CommandOwner, PersonCommand } from "./commands.ts";
+import { type CommandOwner, isPageCommandElsewhere, type PersonCommand } from "./commands.ts";
 import { viewPath } from "./contributions.ts";
 
 const MOST_ROWS = 8;
@@ -37,6 +37,12 @@ export interface PaletteOwner extends CommandOwner {
   readonly views?: readonly { readonly id: string; readonly title: MessageDescriptor }[];
 }
 
+/** What the palette and the shortcuts both go by. */
+export interface CommandScope {
+  readonly owners: readonly PaletteOwner[];
+  readonly activeModuleId: string | undefined;
+}
+
 export interface EntryTools {
   readonly translate: (descriptor: MessageDescriptor) => string;
   readonly formatShortcut: (shortcut: string) => string;
@@ -65,7 +71,7 @@ export function paletteEntries(
     const home = defaultView && viewPath(owner.id, defaultView.id);
     const commands = (owner.commands ?? []).flatMap((command): CommandEntry[] => {
       if (command.kind === "input") return [];
-      const elsewhere = command.kind === "page" && owner.id !== activeModuleId;
+      const elsewhere = isPageCommandElsewhere({ moduleId: owner.id, command }, activeModuleId);
       if (elsewhere && home === undefined) return [];
       const { defaultShortcut } = command;
       return [

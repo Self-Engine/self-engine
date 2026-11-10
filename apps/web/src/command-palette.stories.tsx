@@ -8,7 +8,7 @@ import {
   type ShellContribution,
   type ShellView,
 } from "@self-engine/shell";
-import { expect, fn, screen, spyOn, userEvent, waitFor } from "storybook/test";
+import { expect, fn, screen, spyOn, userEvent, waitFor, within } from "storybook/test";
 import { z } from "zod";
 import { settingsStore } from "./settings-store.ts";
 import {
@@ -18,10 +18,12 @@ import {
   editInAddress,
   editStudio,
   held,
+  modKeyIsLeftToTheBrowser,
   noDrawer,
   noQuestion,
   openPalette,
   paletteGone,
+  pressWithMod,
   QUESTION,
   storyRouter,
 } from "./story-app.tsx";
@@ -86,6 +88,31 @@ export const AnotherModulesCommandMovesThereFirstAndRunsThere: Story = {
     await expect(newEntry).toHaveBeenCalledOnce();
     await expect(storyRouter().state.location.pathname).toBe(OVERVIEW);
     await waitFor(() => expect(editInAddress(storyRouter())).toBe("new"));
+  },
+};
+
+export const APageShortcutIsInertInAnotherModuleAndWorksInItsOwn: Story = {
+  args: { address: BETA },
+  beforeEach: spiedNewEntry,
+  play: async ({ canvas }) => {
+    await canvas.findByText("The minimal module View.");
+    // ⌘K is bound beside it, so from here on a press could land.
+    await openPalette();
+    await userEvent.keyboard("{Escape}");
+    await paletteGone();
+    await pressWithMod("n");
+    await expect(newEntry).not.toHaveBeenCalled();
+    await expect(screen.queryByRole("dialog")).toBeNull();
+    await expect(storyRouter().state.location.pathname).toBe(BETA);
+    await expect(modKeyIsLeftToTheBrowser(document.body, "n")).toBe(true);
+
+    await userEvent.click(canvas.getByRole("link", { name: "Placeholder Alpha" }));
+    await canvas.findByRole("button", { name: "New entry" });
+    await waitFor(async () => {
+      await pressWithMod("n");
+      await expect(newEntry).toHaveBeenCalled();
+    });
+    await screen.findByRole("dialog", { name: "New entry" });
   },
 };
 
@@ -236,7 +263,7 @@ export const AQuestionAlreadyOpenAlsoStopsTheCommand: Story = {
   beforeEach: betaHasANote,
   play: async ({ canvas }) => {
     await editStudio(canvas);
-    const palette = await openPalette();
+    const palette = within(await openPalette());
     await userEvent.keyboard("beta note");
     const row = await palette.findByRole("button", { name: "Beta note" });
     void storyRouter().navigate({

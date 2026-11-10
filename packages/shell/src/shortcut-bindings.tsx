@@ -10,7 +10,8 @@ import {
   validateHotkey,
 } from "@tanstack/react-hotkeys";
 import { useCommandPalette } from "./command-palette-state.tsx";
-import { commandRegister, type CommandOwner, type RegisteredCommand } from "./commands.ts";
+import { commandRegister, isPageCommandElsewhere } from "./commands.ts";
+import type { CommandScope } from "./palette-entries.ts";
 import { PALETTE_SHORTCUT, UNDO_COMMAND_ID } from "./shell-commands.ts";
 import { useStartCommand } from "./start-command.tsx";
 
@@ -20,31 +21,23 @@ export type ReadShortcut =
 
 /** For the audit of the default shortcuts, which runs in the tests and never in the app. */
 export function readShortcut(shortcut: string): ReadShortcut {
-  const hotkey = shortcut as HotkeyChord;
-  const { errors, warnings } = validateHotkey(hotkey);
+  const chord = shortcut as HotkeyChord;
+  const { errors, warnings } = validateHotkey(chord);
   const [issue] = [...errors, ...warnings];
   if (issue !== undefined) return { invalid: issue.reason };
-  const onMac = normalizeHotkey(hotkey, "mac");
+  const onMac = normalizeHotkey(chord, "mac");
   // `Meta` is `Mod` only on a Mac and `Control` only elsewhere, so `Mod` has to hold on both.
-  return { canonical: onMac, hasMod: [onMac, normalizeHotkey(hotkey, "windows")].every(startsMod) };
+  return { canonical: onMac, hasMod: [onMac, normalizeHotkey(chord, "windows")].every(startsMod) };
 }
 
-const startsMod = (hotkey: string) => hotkey.startsWith("Mod+");
+const startsMod = (chord: string) => chord.startsWith("Mod+");
 
 /** ⌘K on macOS, Ctrl+K elsewhere. */
 export const displayShortcut = (shortcut: string) =>
   // The library's macOS notation puts a space between the symbols.
   formatForDisplay(shortcut as HotkeyChord).replaceAll(" ", "");
 
-/** The one place that says which key starts a Command. Later rebinding looks it up here by id. */
-const shortcutOf = ({ command }: RegisteredCommand) => command.defaultShortcut;
-
-export interface ShortcutBindingsProps {
-  readonly owners: readonly CommandOwner[];
-  readonly activeModuleId: string | undefined;
-}
-
-export function ShortcutBindings({ owners, activeModuleId }: ShortcutBindingsProps) {
+export function ShortcutBindings({ owners, activeModuleId }: CommandScope) {
   const start = useStartCommand();
   const palette = useCommandPalette();
   const quiet = () => isConfirmationOpen() || palette.isOpen();
@@ -58,11 +51,10 @@ export function ShortcutBindings({ owners, activeModuleId }: ShortcutBindingsPro
       },
       ...commandRegister(owners).flatMap((entry) => {
         const { moduleId, command } = entry;
-        const shortcut = shortcutOf(entry);
-        if (shortcut === undefined || command.kind === "input") return [];
-        if (command.kind === "page" && moduleId !== activeModuleId) return [];
+        if (command.kind === "input" || command.defaultShortcut === undefined) return [];
+        if (isPageCommandElsewhere(entry, activeModuleId)) return [];
         return {
-          hotkey: shortcut as HotkeyChord,
+          hotkey: command.defaultShortcut as HotkeyChord,
           callback: () => {
             if (!quiet()) void start(moduleId, command);
           },
