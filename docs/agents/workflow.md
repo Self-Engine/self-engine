@@ -1,6 +1,6 @@
 # Workflow
 
-Every piece of work takes one path: layer, work package, slice, pull request. A **work package** is an issue without a `## Parent` section. A **slice** is an issue with one. Named skills are the tools for a step; where a skill is missing, the step and its completion criterion still apply.
+Every piece of work takes one path: layer, work package, slice, pull request. A **work package** is an issue that is grilled and built as a whole. A **slice** is a sub-issue of a work package, with a `## Parent` section naming it. A **layer spec** holds a layer's work packages as sub-issues and carries neither build label; those packages name it as their parent. Named skills are the tools for a step; where a skill is missing, the step and its completion criterion still apply.
 
 Finish every step below by [refreshing the overview](#the-overview).
 
@@ -45,6 +45,6 @@ A ticket's status is read from GitHub, first match wins:
 
 ## The overview
 
-The [overview page](https://claude.ai/artifact/W1AwNvTBPy7Se9Bc2bNA4q) (artifact `eadf2537-2bc0-463a-8042-be244bd96fea`) shows this status for the whole plan. Regenerate it completely from GitHub and publish the result, so that a step someone forgot corrects itself. Merging a pull request counts as a step.
+The [overview page](https://claude.ai/artifact/W1AwNvTBPy7Se9Bc2bNA4q) (artifact `eadf2537-2bc0-463a-8042-be244bd96fea`) shows this status for the whole plan. Run `pnpm plan:overview`, then publish `.temp/plan-overview.html` to that artifact, so that a step someone forgot corrects itself. Merging a pull request counts as a step. Layers without issues come from `docs/plan/roadmap.json`; update it when a layer gets its name or decisions.
 
-The generator script is not built yet (D156). Until it is, and whenever you cannot publish, state in your report that the overview is behind.
+When you cannot publish, state in your report that the overview is behind.

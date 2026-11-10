@@ -1,0 +1,43 @@
+{
+  "layers": [
+    { "id": "0", "name": "Repo-Fundament", "decisions": "D28–D49" },
+    { "id": "1", "name": "Design-System und App-Hülle", "decisions": "D54–D82" },
+    { "id": "2", "name": "Datenschicht", "decisions": "D86–D98" },
+    { "id": "3", "name": "Gemeinsamer Kern", "decisions": "D143–D154" },
+    {
+      "id": "4",
+      "name": "Projekte und Zeit",
+      "planned": [
+        {
+          "title": "Erster Fachmeilenstein",
+          "note": "Offen ist auch der Name des Zeitmoduls."
+        }
+      ]
+    },
+    {
+      "id": "5",
+      "name": "Import",
+      "planned": [
+        {
+          "title": "Wiederholbarer Import aus der alten App",
+          "note": "Grundsatz steht (D12, D84), Format und Umfang sind offen."
+        }
+      ]
+    },
+    {
+      "id": "later",
+      "name": "Danach bis zum Stichtag",
+      "planned": [
+        {
+          "title": "Weitere Module (Finanzen, Kalender, Gewohnheiten)",
+          "note": "Erste Brücke kommt mit Finanzen oder Kalender (D152)."
+        },
+        {
+          "title": "Sync",
+          "note": "Pflicht vor dem Stichtag (D14). Engine, Konflikte und Q21 sind offen."
+        },
+        { "title": "Mobile", "note": "Pflicht vor dem Stichtag (D14)." }
+      ]
+    }
+  ]
+}
