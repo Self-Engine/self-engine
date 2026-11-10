@@ -72,6 +72,10 @@ msgstr "Hello {name}, nice to see you."
 msgid "Language sample"
 msgstr "Language sample"
 
+#: packages/ui/src/state-blocks.tsx
+msgid "Loading"
+msgstr "Loading"
+
 #: packages/shell/src/shell.tsx
 msgid "Module Sidebar"
 msgstr "Module Sidebar"
@@ -157,7 +161,7 @@ msgstr "This sentence is translated."
 msgid "This View could not be loaded. Please try again."
 msgstr "This View could not be loaded. Please try again."
 
-#: packages/shell/src/lazy-contribution.tsx
+#: packages/ui/src/state-blocks.tsx
 msgid "Try again"
 msgstr "Try again"
 
