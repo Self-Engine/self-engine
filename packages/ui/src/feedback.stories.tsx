@@ -8,6 +8,7 @@ import {
   isConfirmationOpen,
   notifyError,
   notifyUndoable,
+  undoLatest,
 } from "./index.ts";
 import { holdTimers } from "./story-timers.ts";
 
@@ -227,6 +228,76 @@ export const TwoNoticesAreTakenBackSeparately: Story = {
     await userEvent.click(undoButton(second));
     await expect(undoSecond).toHaveBeenCalledOnce();
     await noticeGone("Second deleted");
+  },
+};
+
+export const UndoLatestTakesBackTheMostRecentNoticeFirst: Story = {
+  play: async () => {
+    const undoFirst = fn();
+    const undoSecond = fn();
+    notifyUndoable({ message: "First deleted", undo: undoFirst });
+    notifyUndoable({ message: "Second deleted", undo: undoSecond });
+    const first = await noticeWith("First deleted");
+
+    undoLatest();
+    await expect(undoSecond).toHaveBeenCalledOnce();
+    await expect(undoFirst).not.toHaveBeenCalled();
+    await noticeGone("Second deleted");
+    await expect(first).toBeVisible();
+
+    undoLatest();
+    await expect(undoFirst).toHaveBeenCalledOnce();
+    await noticeGone("First deleted");
+  },
+};
+
+export const UndoLatestSkipsANoticeThatIsStillSlidingOut: Story = {
+  play: async () => {
+    const undoFirst = fn();
+    const undoSecond = fn();
+    notifyUndoable({ message: "First deleted", undo: undoFirst });
+    notifyUndoable({ message: "Second deleted", undo: undoSecond });
+    await noticeWith("Second deleted");
+
+    undoLatest();
+    undoLatest();
+    await expect(undoSecond).toHaveBeenCalledOnce();
+    await expect(undoFirst).toHaveBeenCalledOnce();
+    await noticeGone("First deleted");
+    await noticeGone("Second deleted");
+  },
+};
+
+export const UndoLatestSkipsANoticeThatClosedByItself: Story = {
+  beforeEach: holdNoticeTimers,
+  play: async () => {
+    const undoFirst = fn();
+    const undoSecond = fn();
+    notifyUndoable({ message: "First deleted", undo: undoFirst });
+    await noticeWith("First deleted");
+    await waitFor(() => expect(heldNoticeTimers.size).toBe(1));
+    notifyUndoable({ message: "Second deleted", undo: undoSecond });
+    await noticeWith("Second deleted");
+    await waitFor(() => expect(heldNoticeTimers.size).toBe(2));
+
+    [...heldNoticeTimers.values()].at(-1)!();
+    await noticeGone("Second deleted");
+
+    undoLatest();
+    await expect(undoSecond).not.toHaveBeenCalled();
+    await expect(undoFirst).toHaveBeenCalledOnce();
+    await noticeGone("First deleted");
+  },
+};
+
+export const UndoLatestLeavesEveryOtherNoticeAlone: Story = {
+  play: async () => {
+    notifyError({ message: "The backup failed." });
+    const notice = await noticeWith("The backup failed.");
+    undoLatest();
+    await expect(notice).toBeVisible();
+    await userEvent.click(within(notice).getByRole("button", { name: "Close notice" }));
+    await noticeGone("The backup failed.");
   },
 };
 

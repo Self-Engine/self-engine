@@ -12,6 +12,7 @@ import {
   type ShellCommand,
 } from "./commands.ts";
 import { defineContribution, validateContributions } from "./contributions.ts";
+import { shellCommands } from "./shell-commands.ts";
 
 const label = { id: "Label" };
 const noInput = z.object({});
@@ -49,6 +50,16 @@ describe("the register", () => {
       ["alpha.input-thing", "alpha"],
       ["beta.page-thing", "beta"],
     ]);
+  });
+
+  test("holds the Shell's undo as an open Command, which the palette will list", () => {
+    expect(
+      commandRegister([shellCommands]).map(({ fullId, command }) => [
+        fullId,
+        command.kind,
+        command.defaultShortcut,
+      ]),
+    ).toEqual([["shell.undo", "open", "Mod+Z"]]);
   });
 
   test("no module may be called shell, the prefix of the Shell's own Commands", () => {
@@ -166,6 +177,21 @@ describe("the audit of default shortcuts", () => {
     await expect(
       auditCommands([{ id: "alpha", commands: [pageOn("new", shortcut)] }]),
     ).resolves.toEqual([`alpha.new: default shortcut "${shortcut}" is reserved`]);
+  });
+
+  test("the Shell's undo may take Mod+Z, the single exception to the reserved keys", async () => {
+    await expect(auditCommands([shellCommands])).resolves.toEqual([]);
+  });
+
+  test("the exception holds for that Command on that key only", async () => {
+    await expect(
+      auditCommands([
+        { id: "shell", commands: [openOn("undo", "Mod+Y"), openOn("other", "Mod+Z")] },
+      ]),
+    ).resolves.toEqual([
+      'shell.undo: default shortcut "Mod+Y" is reserved',
+      'shell.other: default shortcut "Mod+Z" is reserved',
+    ]);
   });
 
   test("a reserved key is found however the shortcut is written", async () => {

@@ -3,7 +3,7 @@ import "@mantine/spotlight/styles.css";
 import { useLingui } from "@lingui/react/macro";
 import { Kbd } from "@mantine/core";
 import { createSpotlight, Spotlight, useSpotlight } from "@mantine/spotlight";
-import { useEffect, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import {
   type CommandPaletteProps,
   useCommandPalette,
@@ -71,19 +71,24 @@ function PaletteResults({
   const groups = paletteGroups(entries, activeModuleId, query);
   return (
     <Spotlight.ActionsList>
-      {groups.map(({ moduleId, moduleName, entries: rows }) => (
-        <Spotlight.ActionsGroup
-          aria-label={moduleName}
-          key={moduleId}
-          label={moduleName}
-          role="group"
-        >
-          {rows.map((entry) => (
-            // Back first: the guard of a Command that was started here asks where the focus is.
-            <PaletteRow entry={entry} key={entry.key} onPick={palette.returnFocus} />
-          ))}
-        </Spotlight.ActionsGroup>
-      ))}
+      {groups.map(({ moduleId, moduleName, entries: rows }) => {
+        // Back first: the guard of a Command that was started here asks where the focus is.
+        const list = rows.map((entry) => (
+          <PaletteRow entry={entry} key={entry.key} onPick={palette.returnFocus} />
+        ));
+        return moduleName === undefined ? (
+          <Fragment key={moduleId}>{list}</Fragment>
+        ) : (
+          <Spotlight.ActionsGroup
+            aria-label={moduleName}
+            key={moduleId}
+            label={moduleName}
+            role="group"
+          >
+            {list}
+          </Spotlight.ActionsGroup>
+        );
+      })}
       {groups.length === 0 && <Spotlight.Empty>{t`Nothing found`}</Spotlight.Empty>}
     </Spotlight.ActionsList>
   );

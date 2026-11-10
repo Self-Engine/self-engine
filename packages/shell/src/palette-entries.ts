@@ -7,8 +7,8 @@ const MOST_ROWS = 8;
 interface EntryBase {
   readonly key: string;
   readonly moduleId: string;
-  /** Translated. */
-  readonly moduleName: string;
+  /** Translated. The Shell's own Commands have none. */
+  readonly moduleName: string | undefined;
   /** Translated. */
   readonly label: string;
   /** The label as it is compared, worked out once per opening and not per key press. */
@@ -29,9 +29,10 @@ export type PaletteEntry = CommandEntry | ViewEntry;
 
 export const isViewEntry = (entry: PaletteEntry): entry is ViewEntry => "to" in entry;
 
+/** A module, or the Shell itself, which has Commands but no name and no Views. */
 export interface PaletteOwner extends CommandOwner {
-  readonly name: MessageDescriptor;
-  readonly views: readonly { readonly id: string; readonly title: MessageDescriptor }[];
+  readonly name?: MessageDescriptor;
+  readonly views?: readonly { readonly id: string; readonly title: MessageDescriptor }[];
 }
 
 export interface EntryTools {
@@ -49,7 +50,7 @@ export function paletteEntries(
   { translate, formatShortcut }: EntryTools,
 ): readonly PaletteEntry[] {
   return owners.flatMap((owner) => {
-    const moduleName = translate(owner.name);
+    const moduleName = owner.name && translate(owner.name);
     const base = (key: string, label: string): EntryBase => ({
       key: `${owner.id}.${key}`,
       moduleId: owner.id,
@@ -69,7 +70,7 @@ export function paletteEntries(
         },
       ];
     });
-    const views = owner.views.map((view): ViewEntry => ({
+    const views = (owner.views ?? []).map((view): ViewEntry => ({
       ...base(`view.${view.id}`, translate(view.title)),
       to: viewPath(owner.id, view.id),
     }));
@@ -117,7 +118,7 @@ function whenSearching(
 
 export interface PaletteGroup {
   readonly moduleId: string;
-  readonly moduleName: string;
+  readonly moduleName: string | undefined;
   readonly entries: readonly PaletteEntry[];
 }
 

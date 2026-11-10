@@ -35,6 +35,7 @@ export {
   type ShellCommand,
 } from "./commands.ts";
 export { runCommand, type CommandResult } from "./run-command.ts";
+export { shellCommands } from "./shell-commands.ts";
 
 export { useViewSearch, useWriteViewSearch } from "./routing.tsx";
 export { retainedViewSearch, type ViewSearch } from "./view-search.ts";

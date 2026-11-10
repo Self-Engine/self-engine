@@ -150,6 +150,7 @@ export const AnEmptySearchListsTheActiveModuleThenTheOpenCommands: Story = {
       "Overview",
       "Archive",
       "RefreshCtrl+Shift+E",
+      "UndoCtrl+Z",
     ]);
     await expect(groupsOf(palette)).toEqual(["Module first", "Module second"]);
   },

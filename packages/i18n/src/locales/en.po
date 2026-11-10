@@ -234,6 +234,7 @@ msgstr "This View could not be loaded. Please try again."
 msgid "Try again"
 msgstr "Try again"
 
+#: packages/shell/src/shell-commands.ts
 #: packages/ui/src/feedback.tsx
 msgid "Undo"
 msgstr "Undo"

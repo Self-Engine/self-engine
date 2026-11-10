@@ -8,6 +8,7 @@ export {
   type NotifyErrorOptions,
   notifyUndoable,
   type NotifyUndoableOptions,
+  undoLatest,
 } from "./feedback.tsx";
 export {
   EmptyState,

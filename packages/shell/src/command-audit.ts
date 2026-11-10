@@ -1,4 +1,5 @@
 import { type CommandOwner, commandRegister, type RegisteredCommand } from "./commands.ts";
+import { UNDO_COMMAND_ID, UNDO_SHORTCUT } from "./shell-commands.ts";
 
 /**
  * Keys the app must not take: copy, paste, cut, select-all and undo, the Command Palette's ⌘K, and
@@ -47,6 +48,9 @@ async function auditShortcuts(register: readonly RegisteredCommand[]) {
     return "canonical" in read ? read.canonical : shortcut;
   };
   const reserved = new Set(RESERVED_SHORTCUTS.map(canonical));
+  const undoKey = canonical(UNDO_SHORTCUT);
+  const mayHoldReservedKey = (fullId: string, key: string) =>
+    fullId === UNDO_COMMAND_ID && key === undoKey;
   const problems: string[] = [];
   const valid: ValidShortcut[] = [];
   for (const entry of register) {
@@ -56,7 +60,8 @@ async function auditShortcuts(register: readonly RegisteredCommand[]) {
     const read = readShortcut(shortcut);
     if ("invalid" in read) problems.push(`${name} is invalid (${read.invalid})`);
     else if (!read.hasMod) problems.push(`${name} needs Mod`);
-    else if (reserved.has(read.canonical)) problems.push(`${name} is reserved`);
+    else if (reserved.has(read.canonical) && !mayHoldReservedKey(entry.fullId, read.canonical))
+      problems.push(`${name} is reserved`);
     else valid.push({ entry, canonical: read.canonical });
   }
   const collisions = valid.flatMap((one, index) =>

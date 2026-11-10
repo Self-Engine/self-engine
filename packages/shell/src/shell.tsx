@@ -10,6 +10,7 @@ import { LazyContribution, lazyComponents } from "./lazy-contribution.tsx";
 import { useCloseOverlayOnPick, useViewSearch, useWriteViewSearch } from "./routing.tsx";
 import { ACTIVE_ENTRY_VARS, NOT_WINDOW_DRAG_STYLE } from "./navigation-style.ts";
 import { PrimaryAction } from "./primary-action.tsx";
+import { shellCommands } from "./shell-commands.ts";
 import { Shortcuts } from "./shortcuts.tsx";
 import { CommandStarts } from "./start-command.tsx";
 import { useLingui } from "@lingui/react/macro";
@@ -841,12 +842,15 @@ export function Shell({ contributions, settings, activeModule, activeView, ...pr
           editDrawer={<ModuleEditDrawer module={activeView && activeModule} />}
           commandPalette={
             <CommandPalette
-              owners={[...contributions, settings]}
+              owners={[...contributions, settings, shellCommands]}
               activeModuleId={activeModule?.id}
             />
           }
           shortcuts={
-            <Shortcuts owners={[...contributions, settings]} activeModuleId={activeModule?.id} />
+            <Shortcuts
+              owners={[...contributions, settings, shellCommands]}
+              activeModuleId={activeModule?.id}
+            />
           }
           moduleSidebar={
             <ModuleViews module={activeModule} activeView={activeView} routing={props.routing} />

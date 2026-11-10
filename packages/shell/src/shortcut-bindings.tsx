@@ -11,6 +11,7 @@ import {
 } from "@tanstack/react-hotkeys";
 import { useCommandPalette } from "./command-palette.tsx";
 import { commandRegister, type CommandOwner, type RegisteredCommand } from "./commands.ts";
+import { UNDO_COMMAND_ID } from "./shell-commands.ts";
 import { useStartCommand } from "./start-command.tsx";
 
 export type ReadShortcut =
@@ -65,6 +66,8 @@ export function ShortcutBindings({ owners, activeModuleId }: ShortcutBindingsPro
           callback: () => {
             if (!quiet()) void start(moduleId, command);
           },
+          // In a field ⌘Z stays with the text. It is the one shortcut that does not work there.
+          ...(entry.fullId === UNDO_COMMAND_ID && { options: { ignoreInputs: true } }),
         };
       }),
     ],
