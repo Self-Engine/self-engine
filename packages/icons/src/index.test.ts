@@ -37,6 +37,7 @@ describe.each(ICON_NAMES)("%s", (name) => {
     ["sm", "1rem"],
     ["md", "1.125rem"],
     ["lg", "1.25rem"],
+    ["xl", "1.5rem"],
   ] as const)("is %s = %s, grown by the font scale", (size, rem) => {
     const sized = renderToStaticMarkup(createElement(catalog[name], { size }));
     const scaled = `calc(${rem} * var(--mantine-scale))`;
@@ -88,8 +89,8 @@ describe("the props of an icon", () => {
     expect([alt, mirrored]).toHaveLength(2);
   });
 
-  it("takes only the four named sizes", () => {
-    expectTypeOf<NonNullable<Props["size"]>>().toEqualTypeOf<"xs" | "sm" | "md" | "lg">();
+  it("takes only the five named sizes", () => {
+    expectTypeOf<NonNullable<Props["size"]>>().toEqualTypeOf<"xs" | "sm" | "md" | "lg" | "xl">();
 
     // @ts-expect-error There are no free numbers.
     const number: Props = { size: 18 };

@@ -30,3 +30,5 @@ export const SendIcon = catalogIcon(PaperPlaneRightIcon);
 export const AssistantIcon = catalogIcon(SparkleIcon);
 export const SidePanelIcon = catalogIcon(SidebarSimpleIcon);
 export const ErrorIcon = catalogIcon(WarningCircleIcon);
+
+export type { IconProps } from "./catalog-icon.ts";

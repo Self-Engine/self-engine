@@ -29,14 +29,7 @@ import { useDisclosure } from "@mantine/hooks";
 import { SidePanelIcon } from "@self-engine/icons";
 import { type ColorSetId, roleColor } from "@self-engine/theme";
 import { LoadingState, NOTICE_CLEARANCE_VARIABLE } from "@self-engine/ui";
-import {
-  type ComponentType,
-  type CSSProperties,
-  type MouseEvent,
-  type ReactNode,
-  useEffect,
-  useState,
-} from "react";
+import { type CSSProperties, type MouseEvent, type ReactNode, useEffect, useState } from "react";
 import {
   GAP,
   ICON_COLUMN_WIDTH,
@@ -252,7 +245,7 @@ interface NavigationEntry {
   readonly to: string;
   /** Already translated. */
   readonly label: string;
-  readonly icon: ComponentType;
+  readonly icon: ShellContribution["icon"];
   readonly color: ColorSetId;
 }
 
@@ -338,7 +331,7 @@ function EntryLink({ entry, active, appearance }: EntryLinkProps) {
         component={Link}
         data-module-color={entry.color}
         label={iconsOnly ? undefined : entry.label}
-        leftSection={<Icon />}
+        leftSection={<Icon size={iconsOnly ? "xl" : appearance === "labelled" ? "lg" : "md"} />}
         to={entry.to}
         styles={ENTRY_STYLES[appearance]}
         vars={ACTIVE_ENTRY_VARS}

@@ -1,5 +1,6 @@
 import type { WriteViewSearch } from "./routing.tsx";
 import type { MessageDescriptor } from "@lingui/core";
+import type { IconProps } from "@self-engine/icons";
 import type { ColorSetId } from "@self-engine/theme";
 import type { ComponentType } from "react";
 
@@ -36,7 +37,7 @@ export interface ShellCommand {
 interface ContributionMetadata {
   readonly id: string;
   readonly name: MessageDescriptor;
-  readonly icon: ComponentType;
+  readonly icon: ComponentType<Pick<IconProps, "size">>;
   readonly color: ColorSetId;
   /** The first View is the module's default. */
   readonly views: readonly [ShellView, ...ShellView[]];

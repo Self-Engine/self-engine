@@ -7,11 +7,11 @@ type PhosphorIcon = typeof PlusIcon;
 
 // Multiplied by Mantine's scale, so an icon follows the font scale like text does. Density does
 // not change it.
-const SIZES = { xs: "0.875rem", sm: "1rem", md: "1.125rem", lg: "1.25rem" };
+const SIZES = { xs: "0.875rem", sm: "1rem", md: "1.125rem", lg: "1.25rem", xl: "1.5rem" };
 
 // Phosphor passes unknown props on to the <svg>, so `fill` and `stroke` have to be ruled out here
 // as well. `alt` and `mirrored` are Phosphor's own API, which callers must not come to rely on.
-type IconProps = Omit<
+export type IconProps = Omit<
   ComponentProps<PhosphorIcon>,
   "alt" | "color" | "fill" | "mirrored" | "size" | "stroke" | "weight"
 > & {

@@ -4,7 +4,7 @@ import type { Meta, StoryObj } from "@storybook/react-vite";
 import { expect } from "storybook/test";
 import * as icons from "./index.ts";
 
-const SIZES = ["xs", "sm", "md", "lg"] as const;
+const SIZES = ["xs", "sm", "md", "lg", "xl"] as const;
 const BUTTON_VARIANTS = ["filled", "light", "outline", "subtle"] as const;
 const TEXT_ROLES = ["text", "textMuted"] as const;
 
