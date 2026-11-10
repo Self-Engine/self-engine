@@ -5,7 +5,7 @@
 import { execFileSync } from "node:child_process";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 
-const REPO = "GwydionBr/self-engine-next";
+const REPO = "Self-Engine/self-engine";
 const OUTPUT = ".temp/plan-overview.html";
 const ROADMAP = "docs/plan/roadmap.json";
 const BUILD_LABELS = ["ready-for-agent", "ready-for-human", "needs-grilling"];
