@@ -212,6 +212,34 @@ export const BackThenForwardAndDiscardGoesBack: Story = {
   },
 };
 
+/** Types a hash by hand first: the browser adds that entry, and nothing gives it a history index. */
+async function editStudioWithAHandTypedEntryBehind(canvas: Canvas) {
+  await canvas.findByRole("button", { name: "Studio work" });
+  window.location.hash = `${OVERVIEW}?client=studio`;
+  await waitFor(() => expect(canvas.queryByRole("button", { name: "Garden work" })).toBeNull());
+  await expect(window.history.state).toBeNull();
+  return editStudio(canvas);
+}
+
+export const BackOntoAnEntryWithoutAnIndexStillAsks: Story = {
+  play: async ({ canvas }) => {
+    const { name } = await editStudioWithAHandTypedEntryBehind(canvas);
+    window.history.back();
+    await asked();
+    await answer("Keep editing");
+    await noQuestion();
+    await waitFor(() => expect(window.location.hash).toContain("edit=studio"));
+    await expect(name).toHaveValue("Studio work changed");
+    window.history.back();
+    await asked();
+    await answer("Discard");
+    await noDrawer("Studio work");
+    await waitFor(() => expect(address().edit).toBeUndefined());
+    await expect(window.location.hash).not.toContain("edit=studio");
+    await expect(window.location.hash).toContain("client=studio");
+  },
+};
+
 export const ACommandThatWouldSwapTheEntryAsks: Story = {
   play: async ({ canvas }) => {
     const { name } = await editStudio(canvas);
