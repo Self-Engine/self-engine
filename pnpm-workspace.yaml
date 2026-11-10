@@ -35,6 +35,7 @@ catalog:
   "@mantine/hooks": 9.7.5
   "@mantine/modals": 9.7.5
   "@mantine/notifications": 9.7.5
+  "@mantine/spotlight": 9.7.5
   # The JS plugin API of the Oxlint that vite-plus ships; move it with vite-plus.
   "@oxlint/plugins": 1.91.0
   # Only packages/icons may depend on it (#18).

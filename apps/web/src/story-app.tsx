@@ -2,6 +2,7 @@
 
 import { createMemoryHistory, RouterProvider } from "@tanstack/react-router";
 import { useState } from "react";
+import { expect, screen, userEvent, waitFor, within } from "storybook/test";
 import { createAppRouter } from "./app-router.ts";
 
 type AppRouter = ReturnType<typeof createAppRouter>;
@@ -19,6 +20,26 @@ export function AppAt({ address }: { readonly address: string }) {
   });
   return <RouterProvider router={router} />;
 }
+
+const pressPaletteKey = () => {
+  const mod = /mac/i.test(navigator.platform + navigator.userAgent) ? "Meta" : "Control";
+  return userEvent.keyboard(`{${mod}>}k{/${mod}}`);
+};
+
+/** The bindings and the palette's code load late, so an early press is lost. */
+export async function openPalette(): Promise<ReturnType<typeof within>> {
+  await waitFor(
+    async () => {
+      await pressPaletteKey();
+      await expect(screen.getByRole("dialog", { name: "Command palette" })).toBeVisible();
+    },
+    { timeout: 10_000 },
+  );
+  return within(screen.getByRole("dialog", { name: "Command palette" }));
+}
+
+export const paletteGone = () =>
+  waitFor(() => expect(screen.queryByRole("dialog", { name: "Command palette" })).toBeNull());
 
 /** The entry that the address opens in the edit drawer. */
 export const editInAddress = (router: AppRouter) =>

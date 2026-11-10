@@ -5,7 +5,7 @@ import { ProjectsIcon, SettingsIcon, TimeIcon } from "@self-engine/icons";
 import { BrandMark } from "@self-engine/icons/brand-mark";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useEffect, useState } from "react";
-import { expect, fn, screen, userEvent, waitFor, within } from "storybook/test";
+import { expect, fn, screen, spyOn, userEvent, waitFor, within } from "storybook/test";
 import {
   type LeaveGuard,
   Shell,
@@ -32,6 +32,41 @@ export async function pressEscape() {
       : userEvent;
   await keyboard.keyboard("{Escape}");
 }
+
+/** Follows a spied platform too, because the hotkey library reads it at each press. */
+export const modKey = () =>
+  /mac/i.test(navigator.platform + navigator.userAgent) ? "Meta" : "Control";
+
+const pressPaletteKey = () => userEvent.keyboard(`{${modKey()}>}k{/${modKey()}}`);
+
+export const paletteDialog = () => screen.queryByRole("dialog", { name: "Command palette" });
+
+/** The bindings and the palette's code load late, so an early press is lost. */
+export async function openPalette(press = pressPaletteKey): Promise<HTMLElement> {
+  await waitFor(
+    async () => {
+      await press();
+      await expect(paletteDialog()).toBeVisible();
+    },
+    { timeout: 10_000 },
+  );
+  return paletteDialog()!;
+}
+
+export const paletteGone = () => waitFor(() => expect(paletteDialog()).toBeNull());
+
+export function pretendPlatform(platform: string, userAgent: string) {
+  const spies = [
+    spyOn(navigator, "platform", "get").mockReturnValue(platform),
+    spyOn(navigator, "userAgent", "get").mockReturnValue(userAgent),
+  ];
+  return () => {
+    for (const spy of spies) spy.mockRestore();
+  };
+}
+
+export const onWindows = () => pretendPlatform("Win32", "Windows NT");
+export const onMac = () => pretendPlatform("MacIntel", "Macintosh");
 
 const load = async () => ({ default: () => null });
 export const ENTRIES = [

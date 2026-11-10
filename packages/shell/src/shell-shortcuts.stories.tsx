@@ -1,7 +1,7 @@
 import { ProjectsIcon } from "@self-engine/icons";
 import { confirm } from "@self-engine/ui";
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { expect, fn, screen, spyOn, userEvent, waitFor, within } from "storybook/test";
+import { expect, fn, screen, userEvent, waitFor, within } from "storybook/test";
 import { z } from "zod";
 import {
   defineOpenCommand,
@@ -9,7 +9,7 @@ import {
   type ShellContribution,
   type ShellProps,
 } from "./index.ts";
-import { SETTINGS, shellMeta, storyRouting } from "./shell-story-helpers.tsx";
+import { onMac, onWindows, SETTINGS, shellMeta, storyRouting } from "./shell-story-helpers.tsx";
 
 const body = { description: "A stand-in.", schema: z.object({}), run: () => undefined };
 const page = { id: "new", kind: "page", label: { id: "story-New", message: "New" } } as const;
@@ -50,19 +50,6 @@ const SECOND: ShellContribution = {
 };
 const WITHOUT_COMMANDS: ShellContribution = moduleNamed("without-commands");
 const MODULES = [FIRST, SECOND, WITHOUT_COMMANDS];
-
-function pretendPlatform(platform: string, userAgent: string) {
-  const spies = [
-    spyOn(navigator, "platform", "get").mockReturnValue(platform),
-    spyOn(navigator, "userAgent", "get").mockReturnValue(userAgent),
-  ];
-  return () => {
-    for (const spy of spies) spy.mockRestore();
-  };
-}
-
-const onWindows = () => pretendPlatform("Win32", "Windows NT");
-const onMac = () => pretendPlatform("MacIntel", "Macintosh");
 
 const meta = {
   ...shellMeta,

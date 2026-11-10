@@ -11,6 +11,7 @@ import { expect, userEvent, waitFor, within } from "storybook/test";
 import { createAppRouter } from "./app-router.ts";
 import { PreviewLanguage } from "./preview-language.tsx";
 import { settingsStore } from "./settings-store.ts";
+import { openPalette, paletteGone } from "./story-app.tsx";
 
 const i18n = createI18n();
 
@@ -191,6 +192,23 @@ export const NamesFollowLanguage: Story = {
     await userEvent.click(await canvas.findByRole("radio", { name: "English" }));
     await userEvent.click(canvas.getByRole("link", { name: "Placeholder Alpha" }));
     await expect(await canvas.findByRole("button", { name: "New entry" })).toBeVisible();
+  },
+};
+
+export const PaletteLabelsFollowTheLanguage: Story = {
+  args: { address: "/settings/language-sample" },
+  play: async ({ canvas }) => {
+    await expect(await canvas.findByText("This sentence is translated.")).toBeVisible();
+    const english = await openPalette();
+    await expect(await english.findByRole("link", { name: "Language sample" })).toBeVisible();
+    await userEvent.keyboard("{Escape}");
+    await paletteGone();
+    await userEvent.click(canvas.getByRole("radio", { name: "Deutsch" }));
+    await expect(
+      await canvas.findByRole("heading", { name: "Sprachbeispiel", level: 1 }),
+    ).toBeVisible();
+    const german = await openPalette();
+    await expect(await german.findByRole("link", { name: "Sprachbeispiel" })).toBeVisible();
   },
 };
 

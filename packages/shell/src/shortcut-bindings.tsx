@@ -3,11 +3,13 @@
 
 import { isConfirmationOpen } from "@self-engine/ui";
 import {
+  formatForDisplay,
   type HotkeyChord,
   normalizeHotkey,
   useHotkeys,
   validateHotkey,
 } from "@tanstack/react-hotkeys";
+import { useCommandPalette } from "./command-palette.tsx";
 import { commandRegister, type CommandOwner, type RegisteredCommand } from "./commands.ts";
 import { useStartCommand } from "./start-command.tsx";
 
@@ -28,6 +30,11 @@ export function readShortcut(shortcut: string): ReadShortcut {
 
 const startsMod = (hotkey: string) => hotkey.startsWith("Mod+");
 
+/** ⌘K on macOS, Ctrl+K elsewhere. */
+export const displayShortcut = (shortcut: string) =>
+  // The library's macOS notation puts a space between the symbols.
+  formatForDisplay(shortcut as HotkeyChord).replaceAll(" ", "");
+
 /** The one place that says which key starts a Command. Later rebinding looks it up here by id. */
 const shortcutOf = ({ command }: RegisteredCommand) => command.defaultShortcut;
 
@@ -38,19 +45,29 @@ export interface ShortcutBindingsProps {
 
 export function ShortcutBindings({ owners, activeModuleId }: ShortcutBindingsProps) {
   const start = useStartCommand();
+  const palette = useCommandPalette();
+  const quiet = () => isConfirmationOpen() || palette.isOpen();
   useHotkeys(
-    commandRegister(owners).flatMap((entry) => {
-      const { moduleId, command } = entry;
-      const shortcut = shortcutOf(entry);
-      if (shortcut === undefined || command.kind === "input") return [];
-      if (command.kind === "page" && moduleId !== activeModuleId) return [];
-      return {
-        hotkey: shortcut as HotkeyChord,
+    [
+      {
+        hotkey: "Mod+K",
         callback: () => {
-          if (!isConfirmationOpen()) void start(moduleId, command);
+          if (!quiet()) palette.open();
         },
-      };
-    }),
+      },
+      ...commandRegister(owners).flatMap((entry) => {
+        const { moduleId, command } = entry;
+        const shortcut = shortcutOf(entry);
+        if (shortcut === undefined || command.kind === "input") return [];
+        if (command.kind === "page" && moduleId !== activeModuleId) return [];
+        return {
+          hotkey: shortcut as HotkeyChord,
+          callback: () => {
+            if (!quiet()) void start(moduleId, command);
+          },
+        };
+      }),
+    ],
     // Every default shortcut has `Mod`, so typing cannot reach one, and it also works in a field.
     { ignoreInputs: false, requireReset: true },
   );

@@ -72,6 +72,9 @@ export function defineContribution<const Commands extends readonly ShellCommand[
   return commands ? { ...metadata, commands } : metadata;
 }
 
+/** The address a View is shown at. */
+export const viewPath = (moduleId: string, viewId: string) => `/${moduleId}/${viewId}`;
+
 interface AddressContribution {
   readonly id: string;
   readonly views: readonly { readonly id: string }[];

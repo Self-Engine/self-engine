@@ -1,7 +1,9 @@
 import { Component, type ReactNode, useState } from "react";
 import type { Meta } from "@storybook/react-vite";
 import { expect, screen, spyOn, userEvent, waitFor, within } from "storybook/test";
+import { z } from "zod";
 import {
+  definePageCommand,
   type EditDrawerProps,
   Shell,
   type ShellContribution,
@@ -13,6 +15,8 @@ import {
   drawerOverlay,
   ENTRIES,
   nextFrame,
+  openPalette,
+  paletteGone,
   pressEscape,
   shellMeta,
   type Story,
@@ -187,6 +191,61 @@ export const OneEscClosesOnlyTheQuestionAfterTheCloseButton = oneEscClosesOnlyTh
   "closeButton",
   closeButtonOf,
 );
+
+const MODULE_WITH_A_NEW_ENTRY_COMMAND: ShellContribution = {
+  ...ENTRIES[1]!,
+  editDrawer: async () => ({ default: DraftEditor }),
+  commands: [
+    {
+      id: "new-entry",
+      kind: "page",
+      label: { id: "story-New entry", message: "New entry" },
+      load: async () => ({
+        default: definePageCommand({
+          description: "A stand-in.",
+          schema: z.object({}),
+          run: (_input, { writeSearch }) =>
+            writeSearch((search) => ({ ...search, edit: "another" })),
+        }),
+      }),
+    },
+  ],
+};
+
+export const OneEscInThePaletteClosesOnlyThePalette = withDraft(async (canvas, routing) => {
+  const opened = await openDrawer(canvas);
+  await userEvent.type(opened.draft, "x");
+  await openPalette();
+  await pressEscape();
+  await paletteGone();
+  await expect(screen.queryByRole("dialog", { name: QUESTION })).toBeNull();
+  await expect(screen.getByRole("dialog", { name: "Time" })).toBeVisible();
+  await expect(routing.address.search()).toEqual({ edit: "entry" });
+  await waitFor(() => expect(opened.draft).toHaveFocus());
+  // The drawer listens again once the palette is gone.
+  await EXITS.esc();
+  await answer("Keep editing");
+  await questionGone();
+});
+
+const paletteCommandAsks = withDraft(async (canvas, routing) => {
+  const opened = await openDrawer(canvas);
+  await userEvent.type(opened.draft, "x");
+  await openPalette();
+  await userEvent.keyboard("new entry{Enter}");
+  await paletteGone();
+  await question();
+  await expect(routing.address.search()).toEqual({ edit: "entry" });
+  await answer("Keep editing");
+  await questionGone();
+  await expect(routing.address.search()).toEqual({ edit: "entry" });
+  await waitFor(() => expect(opened.draft).toHaveFocus());
+}, MODULE_WITH_A_NEW_ENTRY_COMMAND);
+
+export const KeepEditingAfterAPaletteCommandReturnsToTheDraft: Story = {
+  ...paletteCommandAsks,
+  args: { ...paletteCommandAsks.args, contributions: [MODULE_WITH_A_NEW_ENTRY_COMMAND] },
+};
 
 export const ASecondAttemptDoesNotStackAnotherQuestion = withDraft(async (canvas, routing) => {
   const opened = await openDrawer(canvas);

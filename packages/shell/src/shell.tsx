@@ -1,9 +1,14 @@
-import type { EditDrawerProps } from "./contributions.ts";
+import {
+  CommandPalette,
+  CommandPaletteProvider,
+  useCommandPaletteOpen,
+} from "./command-palette.tsx";
+import { viewPath, type EditDrawerProps } from "./contributions.ts";
 import { EditDrawerTitleContext } from "./edit-drawer-title.ts";
 import { selectEditId, UnsavedChangesContext, useEditDrawerExits } from "./edit-drawer-exits.tsx";
 import { LazyContribution, lazyComponents } from "./lazy-contribution.tsx";
 import { useCloseOverlayOnPick, useViewSearch, useWriteViewSearch } from "./routing.tsx";
-import { ACTIVE_ENTRY_VARS } from "./navigation-style.ts";
+import { ACTIVE_ENTRY_VARS, NOT_WINDOW_DRAG_STYLE } from "./navigation-style.ts";
 import { PrimaryAction } from "./primary-action.tsx";
 import { Shortcuts } from "./shortcuts.tsx";
 import { CommandStarts } from "./start-command.tsx";
@@ -95,7 +100,6 @@ const ROOT_STYLE = {
 // Plain CSS that moves the window in Electron and means nothing in a browser, so the Shell needs
 // no platform check. Electron cuts `no-drag` out of what `drag` claims, whatever is on top.
 const WINDOW_DRAG_STYLE = { WebkitAppRegion: "drag" } as CSSProperties;
-const NOT_WINDOW_DRAG_STYLE = { WebkitAppRegion: "no-drag" } as CSSProperties;
 
 const TOP_EDGE_STYLE: CSSProperties = {
   ...WINDOW_DRAG_STYLE,
@@ -265,6 +269,8 @@ interface ShellFrameProps {
   readonly routing: ShellRouting;
   readonly moduleSidebar: ReactNode;
   readonly editDrawer?: ReactNode;
+  /** In a portal. Inside the routing, because a row starts a Command or goes to a View. */
+  readonly commandPalette?: ReactNode;
   /** Renders nothing. Inside the routing, because a shortcut starts a Command on this page. */
   readonly shortcuts?: ReactNode;
   readonly pageTitle: string;
@@ -504,6 +510,7 @@ function NavigationDrawer({
   moduleSidebar,
 }: NavigationDrawerProps) {
   const { t } = useLingui();
+  const paletteOpen = useCommandPaletteOpen();
   const header = (
     <Drawer.Header>
       <Drawer.Title>{t`Module Sidebar`}</Drawer.Title>
@@ -530,6 +537,8 @@ function NavigationDrawer({
   );
   return (
     <Drawer.Root
+      // One Esc would reach both, see the Edit Drawer below.
+      closeOnEscape={!paletteOpen}
       onClose={onClose}
       opened={opened}
       size={
@@ -577,6 +586,7 @@ function ShellFrame({
   routing,
   moduleSidebar,
   editDrawer,
+  commandPalette,
   shortcuts,
   pageTitle,
   activeColor,
@@ -783,6 +793,7 @@ function ShellFrame({
           reserveWindowButtons={reserveWindowButtons}
         />
         {editDrawer}
+        {commandPalette}
         {shortcuts}
       </AppShell>
     </ShellRoutingContext>
@@ -799,6 +810,7 @@ export interface ShellProps extends Omit<
   | "pageTitle"
   | "activeColor"
   | "editDrawer"
+  | "commandPalette"
   | "shortcuts"
 > {
   readonly contributions: readonly ShellContribution[];
@@ -811,28 +823,36 @@ export function Shell({ contributions, settings, activeModule, activeView, ...pr
   const { i18n } = useLingui();
   const entryOf = (module: ShellContribution): NavigationEntry => ({
     id: module.id,
-    to: `/${module.id}/${module.views[0].id}`,
+    to: viewPath(module.id, module.views[0].id),
     label: i18n._(module.name),
     icon: module.icon,
     color: module.color,
   });
   return (
     <CommandStarts>
-      <ShellFrame
-        {...props}
-        entries={contributions.map(entryOf)}
-        settingsEntry={entryOf(settings)}
-        activeEntryId={activeModule?.id ?? ""}
-        activeColor={activeModule?.color}
-        pageTitle={activeView ? i18n._(activeView.title) : ""}
-        editDrawer={<ModuleEditDrawer module={activeView && activeModule} />}
-        shortcuts={
-          <Shortcuts owners={[...contributions, settings]} activeModuleId={activeModule?.id} />
-        }
-        moduleSidebar={
-          <ModuleViews module={activeModule} activeView={activeView} routing={props.routing} />
-        }
-      />
+      <CommandPaletteProvider>
+        <ShellFrame
+          {...props}
+          entries={contributions.map(entryOf)}
+          settingsEntry={entryOf(settings)}
+          activeEntryId={activeModule?.id ?? ""}
+          activeColor={activeModule?.color}
+          pageTitle={activeView ? i18n._(activeView.title) : ""}
+          editDrawer={<ModuleEditDrawer module={activeView && activeModule} />}
+          commandPalette={
+            <CommandPalette
+              owners={[...contributions, settings]}
+              activeModuleId={activeModule?.id}
+            />
+          }
+          shortcuts={
+            <Shortcuts owners={[...contributions, settings]} activeModuleId={activeModule?.id} />
+          }
+          moduleSidebar={
+            <ModuleViews module={activeModule} activeView={activeView} routing={props.routing} />
+          }
+        />
+      </CommandPaletteProvider>
     </CommandStarts>
   );
 }
@@ -860,7 +880,7 @@ function ModuleViews({
         <NavLink
           key={view.id}
           component={routing.Link}
-          to={`/${module.id}/${view.id}`}
+          to={viewPath(module.id, view.id)}
           label={i18n._(view.title)}
           active={view.id === activeView?.id}
           aria-current={view.id === activeView?.id ? "page" : undefined}
@@ -890,6 +910,7 @@ const editTargetKey = ({ module, id }: EditTarget) => `${module.id}/${id}`;
 /** The frame stays mounted whatever is open, so that closing can animate and return the focus. */
 function ModuleEditDrawer({ module }: { readonly module: ShellContribution | undefined }) {
   const { t, i18n } = useLingui();
+  const paletteOpen = useCommandPaletteOpen();
   const frame = useLayoutStep() === "phone" ? PHONE_EDIT_DRAWER : FLOATING_EDIT_DRAWER;
   const id = useViewSearch(selectEditId);
   const write = useWriteViewSearch();
@@ -916,7 +937,7 @@ function ModuleEditDrawer({ module }: { readonly module: ShellContribution | und
     <Drawer
       {...frame}
       // Mantine's Drawer and Modal both listen on the window, so one Esc would reach both.
-      closeOnEscape={!exits.questionOpen}
+      closeOnEscape={!exits.questionOpen && !paletteOpen}
       opened={target !== undefined}
       onClose={close}
       position="right"

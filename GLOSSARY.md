@@ -88,6 +88,10 @@ _Avoid_: global setting, account setting
 One action of the app that can be started by name, such as opening a new entry. Its kind decides who can start it: a person on a page, a person or a later assistant, or only a later assistant. Reading data is not a _Command_.
 _Avoid_: action (for the declared thing), operation, handler
 
+**Command Palette** (de: _Befehlspalette_):
+The search dialog that opens over everything with a _Shortcut_ and lists _Commands_ and _Views_ to start or go to. It searches names only, never the user's data.
+_Avoid_: spotlight, launcher, quick open
+
 **Edit Drawer** (de: _Bearbeiten-Drawer_):
 The panel on the right in which a module edits one entry, opened through the address. Every way out asks before unsaved changes are lost, except the end of a successful save or delete.
 _Avoid_: edit modal, side panel
@@ -117,7 +121,7 @@ The frame of the app around the modules, made of the navigation and the content 
 _Avoid_: layout, frame, chrome
 
 **Shortcut** (de: _Tastenkürzel_):
-A key combination with ⌘ on macOS or Ctrl elsewhere that starts a _Command_. One that starts a _Command_ of a module works while that module is shown, and one that needs no page works everywhere; it is quiet while a confirmation is open.
+A key combination with ⌘ on macOS or Ctrl elsewhere that starts a _Command_. One that starts a _Command_ of a module works while that module is shown, and one that needs no page works everywhere; it is quiet while a confirmation or the _Command Palette_ is open.
 _Avoid_: hotkey, keybinding, accelerator
 
 **Shell Contribution** (de: _Hüllen-Beitrag_):
