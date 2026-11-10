@@ -13,6 +13,7 @@ import {
   drawerOverlay,
   ENTRIES,
   nextFrame,
+  pressEscape,
   shellMeta,
   type Story,
   storyRouting,
@@ -91,7 +92,7 @@ function withDraft(
 const EXITS = {
   closeButton: ({ drawer }: Opened) =>
     userEvent.click(drawer.getByRole("button", { name: "Close editor" })),
-  esc: () => userEvent.keyboard("{Escape}"),
+  esc: pressEscape,
   overlay: () => userEvent.click(drawerOverlay()),
   moduleCancel: ({ drawer }: Opened) =>
     userEvent.click(drawer.getByRole("button", { name: "Cancel draft" })),
@@ -159,23 +160,33 @@ export const KeepEditingAfterTheOverlayReturnsToTheDrawer = keepEditingKeepsEver
   closeButtonOf,
 );
 
-export const OneEscClosesOnlyTheQuestion = withDraft(async (canvas, routing) => {
-  const opened = await openDrawer(canvas);
-  await userEvent.type(opened.draft, "x");
-  await EXITS.esc();
-  await question();
-  await EXITS.esc();
-  await questionGone();
-  await expect(screen.getByRole("dialog", { name: "Time" })).toBeVisible();
-  await expect(routing.address.search()).toEqual({ edit: "entry" });
-  await expect(opened.draft).toHaveValue("x");
-  await waitFor(() => expect(opened.draft).toHaveFocus());
-  // The drawer listens again once the question is gone.
-  await EXITS.esc();
-  await question();
-  await answer("Discard");
-  await drawerGone();
-});
+const oneEscClosesOnlyTheQuestion = (
+  exit: keyof typeof EXITS,
+  focusAfterwards: (opened: Opened) => HTMLElement,
+) =>
+  withDraft(async (canvas, routing) => {
+    const opened = await openDrawer(canvas);
+    await userEvent.type(opened.draft, "x");
+    await EXITS[exit](opened);
+    await question();
+    await EXITS.esc();
+    await questionGone();
+    await expect(screen.getByRole("dialog", { name: "Time" })).toBeVisible();
+    await expect(routing.address.search()).toEqual({ edit: "entry" });
+    await expect(opened.draft).toHaveValue("x");
+    await waitFor(() => expect(focusAfterwards(opened)).toHaveFocus());
+    // The drawer listens again once the question is gone.
+    await EXITS.esc();
+    await question();
+    await answer("Discard");
+    await drawerGone();
+  });
+
+export const OneEscClosesOnlyTheQuestion = oneEscClosesOnlyTheQuestion("esc", ({ draft }) => draft);
+export const OneEscClosesOnlyTheQuestionAfterTheCloseButton = oneEscClosesOnlyTheQuestion(
+  "closeButton",
+  closeButtonOf,
+);
 
 export const ASecondAttemptDoesNotStackAnotherQuestion = withDraft(async (canvas, routing) => {
   const opened = await openDrawer(canvas);

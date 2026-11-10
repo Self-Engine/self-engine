@@ -73,8 +73,10 @@ export function confirm({
       cancelProps: { "data-autofocus": true, ...(cancelLabel && { children: cancelLabel }) },
       onConfirm: () => resolve(true),
       // Mantine reports Esc and a click beside the dialog only here. After a confirmation it
-      // comes second, and the answer is already given.
-      onClose: () => resolve(false),
+      // comes second, and the answer is already given. Esc goes on to the other listeners on the
+      // window, and the browser lets React run between them, so answering in a later task keeps
+      // whatever stands behind the question from seeing it gone and acting on the same key press.
+      onClose: () => setTimeout(() => resolve(false)),
     });
   });
 }

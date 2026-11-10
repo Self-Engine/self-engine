@@ -20,6 +20,19 @@ import {
 
 export type Canvas = ReturnType<typeof within>;
 
+/**
+ * Esc as the browser delivers it. Between the listeners of a real key press the browser runs
+ * microtasks, and with them React, which a scripted event does not allow. Only the story runner
+ * can press a key, so in the Catalog's own page this stays scripted.
+ */
+export async function pressEscape() {
+  const keyboard =
+    import.meta.env.MODE === "test"
+      ? (await import("vite-plus/test/browser")).userEvent
+      : userEvent;
+  await keyboard.keyboard("{Escape}");
+}
+
 const load = async () => ({ default: () => null });
 export const ENTRIES = [
   {

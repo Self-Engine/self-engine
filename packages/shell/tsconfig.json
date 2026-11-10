@@ -4,7 +4,8 @@
     "module": "Preserve",
     "moduleResolution": "Bundler",
     "jsx": "react-jsx",
-    "lib": ["ESNext", "DOM", "DOM.Iterable"]
+    "lib": ["ESNext", "DOM", "DOM.Iterable"],
+    "types": ["node", "vite-plus/client"]
   },
   "include": ["src"]
 }
