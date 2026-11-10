@@ -134,7 +134,11 @@ export function buildOverview(
 ): Overview {
   // A superseded or rejected issue was never built, so it counts nowhere.
   const sorted = issues
-    .filter((issue) => issue.state === "OPEN" || issue.stateReason !== "NOT_PLANNED" && issue.stateReason !== "DUPLICATE")
+    .filter(
+      (issue) =>
+        issue.state === "OPEN" ||
+        (issue.stateReason !== "NOT_PLANNED" && issue.stateReason !== "DUPLICATE"),
+    )
     .sort((a, b) => a.number - b.number);
   const byNumber = new Map(sorted.map((issue) => [issue.number, issue]));
   const childrenOf = new Map<number, Issue[]>();
@@ -182,9 +186,7 @@ export function buildOverview(
     ...(unassigned.length > 0 ? [{ id: "none", name: "Noch nicht eingestuft" }] : []),
   ].map((layer): LayerView => {
     const members =
-      layer.id === "none"
-        ? unassigned
-        : packages.filter((issue) => layerIdOf(issue) === layer.id);
+      layer.id === "none" ? unassigned : packages.filter((issue) => layerIdOf(issue) === layer.id);
     const rows: Row[] =
       members.length > 0
         ? members.map(rowOf)
@@ -225,16 +227,15 @@ export function buildOverview(
   const openBlockers = (issue: Issue): boolean =>
     blockersOf(issue.body).some((n) => byNumber.get(n)?.state === "OPEN");
   const lowest = (wanted: Status, needsFree: boolean): Issue | undefined =>
-    packages.find(
-      (issue) => status(issue) === wanted && !(needsFree && openBlockers(issue)),
-    );
+    packages.find((issue) => status(issue) === wanted && !(needsFree && openBlockers(issue)));
   const pullRequests = [...new Set(closedByOpenPullRequests.values())].sort((a, b) => a - b);
   const toSlice = lowest("specified", false);
   const toGrill = lowest("grill", false);
   const toBuild = lowest("buildable", true);
   const nextSteps = [
     ...pullRequests.map(
-      (n) => `<a class="num" href="https://github.com/${REPO}/pull/${n}">PR #${n}</a> prüfen und mergen.`,
+      (n) =>
+        `<a class="num" href="https://github.com/${REPO}/pull/${n}">PR #${n}</a> prüfen und mergen.`,
     ),
     ...(toSlice === undefined ? [] : [`Teil-Tickets schneiden: ${describe(toSlice)}.`]),
     ...(toGrill === undefined ? [] : [`Nächstes Grilling: ${describe(toGrill)}.`]),
@@ -254,7 +255,12 @@ function issueLink(number: number): string {
 
 export function escapeHtml(text: string): string {
   return text.replace(/[&<>"]/gu, (character) => {
-    const entities: Record<string, string> = { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" };
+    const entities: Record<string, string> = {
+      "&": "&amp;",
+      "<": "&lt;",
+      ">": "&gt;",
+      '"': "&quot;",
+    };
     return entities[character] ?? character;
   });
 }
@@ -290,11 +296,8 @@ const FILTERS: readonly (readonly [string, string])[] = [
 ];
 
 function renderRow(row: Row): string {
-  const id =
-    row.number === undefined ? '<span class="num">–</span>' : issueLink(row.number);
-  const steps = row.steps
-    .map((step) => `<span class="n ${step}"></span>`)
-    .join("");
+  const id = row.number === undefined ? '<span class="num">–</span>' : issueLink(row.number);
+  const steps = row.steps.map((step) => `<span class="n ${step}"></span>`).join("");
   const label = row.steps
     .map((step, index) => `${STEP_NAMES[index] ?? ""}: ${STEP_STATES[step]}`)
     .join(", ");
@@ -346,11 +349,20 @@ function renderStop(layer: LayerView): string {
           ? "s-build"
           : "s-plan";
   const percent = layer.total === 0 ? 0 : Math.round((layer.built / layer.total) * 100);
-  const detail = layer.total === 0 ? "Noch keine Issues" : `${layer.built} von ${layer.total} gebaut`;
+  const detail =
+    layer.total === 0 ? "Noch keine Issues" : `${layer.built} von ${layer.total} gebaut`;
   return `<div class="stop ${state}" style="--pct:${percent}%"><b>${inline(layer.name)}</b><span>${detail}</span></div>`;
 }
 
-const SHOWN_COUNTS: readonly Status[] = ["built", "review", "cut", "specified", "buildable", "grill", "triage"];
+const SHOWN_COUNTS: readonly Status[] = [
+  "built",
+  "review",
+  "cut",
+  "specified",
+  "buildable",
+  "grill",
+  "triage",
+];
 
 export function renderPage(overview: Overview, generatedAt: string): string {
   const bar = SHOWN_COUNTS.filter((status) => overview.counts[status] > 0)
@@ -387,7 +399,10 @@ export function renderPage(overview: Overview, generatedAt: string): string {
     <div class="tiles">${tiles}<div class="tile"><span class="muted">von ${overview.total} Issues. Spätere Schichten haben noch keine.</span></div></div>
   </div>
   <div class="next"><h2>Als Nächstes</h2><ol>${next}</ol></div>
-  <div><h2 class="gap">Der Weg bis zum Stichtag</h2><div class="route">${overview.layers.filter((layer) => layer.id !== "none").map(renderStop).join("")}</div></div>
+  <div><h2 class="gap">Der Weg bis zum Stichtag</h2><div class="route">${overview.layers
+    .filter((layer) => layer.id !== "none")
+    .map(renderStop)
+    .join("")}</div></div>
   <div class="filters" role="group" aria-label="Zeilen filtern">${filters}</div>
   <div class="layers">${overview.layers.map(renderLayer).join("\n")}</div>
 </div>
@@ -504,11 +519,36 @@ function gh(args: readonly string[]): string {
 
 function main(): void {
   const raw = JSON.parse(
-    gh(["issue", "list", "--repo", REPO, "--state", "all", "--limit", "2000", "--json", "number,title,state,stateReason,labels,body"]),
+    gh([
+      "issue",
+      "list",
+      "--repo",
+      REPO,
+      "--state",
+      "all",
+      "--limit",
+      "2000",
+      "--json",
+      "number,title,state,stateReason,labels,body",
+    ]),
   ) as readonly (Omit<Issue, "labels"> & { labels: readonly { name: string }[] })[];
-  const issues = raw.map((issue) => ({ ...issue, labels: issue.labels.map((label) => label.name) }));
+  const issues = raw.map((issue) => ({
+    ...issue,
+    labels: issue.labels.map((label) => label.name),
+  }));
   const pullRequests = JSON.parse(
-    gh(["pr", "list", "--repo", REPO, "--state", "open", "--limit", "200", "--json", "number,closingIssuesReferences"]),
+    gh([
+      "pr",
+      "list",
+      "--repo",
+      REPO,
+      "--state",
+      "open",
+      "--limit",
+      "200",
+      "--json",
+      "number,closingIssuesReferences",
+    ]),
   ) as readonly { number: number; closingIssuesReferences: readonly { number: number }[] }[];
   const closedBy = new Map(
     pullRequests.flatMap((pr) =>

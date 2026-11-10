@@ -52,7 +52,9 @@ describe("statusOf", () => {
 
   it("checks in the documented order", () => {
     const labelled = issue(1, { labels: ["needs-grilling", "ready-for-agent"], body: specified });
-    expect(statusOf({ ...labelled, state: "CLOSED" }, { hasOpenPullRequest: true, hasChildren: true })).toBe("built");
+    expect(
+      statusOf({ ...labelled, state: "CLOSED" }, { hasOpenPullRequest: true, hasChildren: true }),
+    ).toBe("built");
     expect(statusOf(labelled, { hasOpenPullRequest: true, hasChildren: true })).toBe("review");
     expect(statusOf(labelled, { hasOpenPullRequest: false, hasChildren: true })).toBe("cut");
     expect(statusOf(labelled, free)).toBe("specified");
@@ -64,7 +66,11 @@ describe("statusOf", () => {
 
 describe("buildOverview", () => {
   const issues = [
-    issue(1, { labels: ["layer:1", "ready-for-agent"], body: "## Problem Statement", state: "CLOSED" }),
+    issue(1, {
+      labels: ["layer:1", "ready-for-agent"],
+      body: "## Problem Statement",
+      state: "CLOSED",
+    }),
     issue(2, { labels: ["layer:1"], body: "## Parent\n\n#1", state: "CLOSED" }),
     issue(3, { labels: ["layer:1", "needs-grilling"], body: "Blocked by: #1, #4" }),
     issue(4, { labels: ["layer:1", "ready-for-agent"] }),
@@ -113,7 +119,11 @@ describe("buildOverview", () => {
   });
 
   it("leaves out an issue closed as superseded", () => {
-    const superseded = issue(6, { labels: ["layer:1"], state: "CLOSED", stateReason: "NOT_PLANNED" });
+    const superseded = issue(6, {
+      labels: ["layer:1"],
+      state: "CLOSED",
+      stateReason: "NOT_PLANNED",
+    });
     const { total, layers } = buildOverview([...issues, superseded], new Map(), ROADMAP);
     expect(total).toBe(5);
     expect(layers[0]?.rows.map((row) => row.number)).not.toContain(6);
@@ -122,7 +132,9 @@ describe("buildOverview", () => {
   it("names the next steps", () => {
     const { nextSteps } = buildOverview(issues, new Map([[4, 9]]), ROADMAP);
     expect(nextSteps[0]).toContain("PR #9");
-    expect(nextSteps.some((step) => step.startsWith("Nächstes Grilling") && step.includes("#3"))).toBe(true);
+    expect(
+      nextSteps.some((step) => step.startsWith("Nächstes Grilling") && step.includes("#3")),
+    ).toBe(true);
   });
 
   it("offers only an unblocked ticket for building", () => {
@@ -130,7 +142,9 @@ describe("buildOverview", () => {
       issue(1, { labels: ["ready-for-agent", "layer:1"], body: "Blocked by: #2" }),
       issue(2, { labels: ["ready-for-agent", "layer:1"] }),
     ];
-    const step = buildOverview(blocked, new Map(), ROADMAP).nextSteps.find((text) => text.startsWith("Baubar"));
+    const step = buildOverview(blocked, new Map(), ROADMAP).nextSteps.find((text) =>
+      text.startsWith("Baubar"),
+    );
     expect(step).toContain("#2");
     expect(step).not.toContain("#1<");
   });
@@ -150,7 +164,11 @@ describe("renderPage", () => {
   });
 
   it("marks inline code in titles", () => {
-    const overview = buildOverview([issue(1, { title: "`time` package", labels: ["layer:1"] })], new Map(), ROADMAP);
+    const overview = buildOverview(
+      [issue(1, { title: "`time` package", labels: ["layer:1"] })],
+      new Map(),
+      ROADMAP,
+    );
     expect(renderPage(overview, "now")).toContain('<span class="num">time</span> package');
   });
 });
