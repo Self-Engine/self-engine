@@ -2,12 +2,7 @@
 // first paint, so a key pressed in the first moments is lost.
 
 import { isConfirmationOpen } from "@self-engine/ui";
-import {
-  type Hotkey,
-  normalizeHotkey,
-  useHotkeys,
-  validateHotkey,
-} from "@tanstack/react-hotkeys";
+import { type Hotkey, normalizeHotkey, useHotkeys, validateHotkey } from "@tanstack/react-hotkeys";
 import { commandRegister, type CommandOwner, type RegisteredCommand } from "./commands.ts";
 import { useStartCommand } from "./start-command.tsx";
 
@@ -17,7 +12,7 @@ export type ReadShortcut =
 
 /** For the audit of the default shortcuts, which runs in the tests and never in the app. */
 export function readShortcut(shortcut: string): ReadShortcut {
-  const hotkey = shortcut as Hotkey;
+  const hotkey = shortcut as HotkeyChord;
   const { errors, warnings } = validateHotkey(hotkey);
   const [issue] = [...errors, ...warnings];
   if (issue !== undefined) return { invalid: issue.reason };
@@ -45,7 +40,7 @@ export function ShortcutBindings({ owners, activeModuleId }: ShortcutBindingsPro
       if (shortcut === undefined || command.kind === "input") return [];
       if (command.kind === "page" && moduleId !== activeModuleId) return [];
       return {
-        hotkey: shortcut as Hotkey,
+        hotkey: shortcut as HotkeyChord,
         callback: () => {
           if (!isConfirmationOpen()) void start(moduleId, command);
         },

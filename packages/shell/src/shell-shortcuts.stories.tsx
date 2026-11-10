@@ -19,7 +19,9 @@ const startedInSecond = fn(async () => ({ default: definePageCommand(body) }));
 const startedOpen = fn(async () => ({ default: defineOpenCommand(body) }));
 
 const load = async () => ({ default: () => null });
-const views = [{ id: "overview", title: { id: "story-Overview", message: "Overview" }, load }] as const;
+const views = [
+  { id: "overview", title: { id: "story-Overview", message: "Overview" }, load },
+] as const;
 const moduleNamed = (id: string) =>
   ({
     id,

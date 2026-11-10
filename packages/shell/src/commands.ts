@@ -1,7 +1,6 @@
 import type { MessageDescriptor } from "@lingui/core";
 import type { input as SchemaInput, output as SchemaOutput, ZodType } from "zod";
 import type { WriteViewSearch } from "./routing.tsx";
-import { auditShortcuts } from "./shortcut-audit.ts";
 
 /** Decides who can start a Command, see ADR 0015. */
 export type CommandKind = "page" | "open" | "input";
@@ -109,30 +108,4 @@ export function commandRegister(owners: readonly CommandOwner[]): readonly Regis
       command,
     })),
   );
-}
-
-async function kindProblem({ fullId, command }: RegisteredCommand) {
-  const { default: body } = await command.load();
-  const { success: acceptsEmpty } = await body.schema.safeParseAsync({});
-  if (acceptsEmpty === (command.kind !== "input")) return [];
-  const needed = acceptsEmpty ? "refuses" : "accepts";
-  return [`${fullId}: kind ${command.kind} needs a schema that ${needed} an empty object`];
-}
-
-/**
- * For the test over all real contributions. It loads every Command, so the app never runs it.
- * Returns each problem found, and none when the register is sound.
- */
-export async function auditCommands(owners: readonly CommandOwner[]) {
-  const register = commandRegister(owners);
-  const seen = new Set<string>();
-  const unique = register.filter(({ fullId }) => !seen.has(fullId) && seen.add(fullId));
-  const duplicates = register
-    .filter((entry) => !unique.includes(entry))
-    .map(({ fullId }) => `Duplicate Command id: ${fullId}`);
-  return [
-    ...duplicates,
-    ...(await Promise.all(unique.map(kindProblem))).flat(),
-    ...(await auditShortcuts(unique)),
-  ];
 }

@@ -1,7 +1,7 @@
 import { describe, expect, test } from "vite-plus/test";
 import { z } from "zod";
+import { auditCommands } from "./command-audit.ts";
 import {
-  auditCommands,
   commandRegister,
   defineInputCommand,
   defineOpenCommand,

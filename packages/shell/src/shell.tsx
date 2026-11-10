@@ -826,7 +826,9 @@ export function Shell({ contributions, settings, activeModule, activeView, ...pr
         activeColor={activeModule?.color}
         pageTitle={activeView ? i18n._(activeView.title) : ""}
         editDrawer={<ModuleEditDrawer module={activeView && activeModule} />}
-        shortcuts={<Shortcuts owners={[...contributions, settings]} activeModuleId={activeModule?.id} />}
+        shortcuts={
+          <Shortcuts owners={[...contributions, settings]} activeModuleId={activeModule?.id} />
+        }
         moduleSidebar={
           <ModuleViews module={activeModule} activeView={activeView} routing={props.routing} />
         }

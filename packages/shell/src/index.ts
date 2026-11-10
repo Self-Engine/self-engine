@@ -17,8 +17,8 @@ export {
   type EditDrawerProps,
 } from "./contributions.ts";
 
+export { auditCommands } from "./command-audit.ts";
 export {
-  auditCommands,
   commandRegister,
   defineInputCommand,
   defineOpenCommand,

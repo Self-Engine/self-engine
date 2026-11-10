@@ -1,4 +1,4 @@
-import type { RegisteredCommand } from "./commands.ts";
+import { type CommandOwner, commandRegister, type RegisteredCommand } from "./commands.ts";
 
 /**
  * Keys the app must not take: copy, paste, cut, select-all and undo, the Command Palette's ⌘K, and
@@ -40,7 +40,7 @@ const collide = (a: RegisteredCommand, b: RegisteredCommand) =>
   a.moduleId === b.moduleId || a.command.kind === "open" || b.command.kind === "open";
 
 /** Loads the hotkey library on purpose: the check at startup stays free of it. */
-export async function auditShortcuts(register: readonly RegisteredCommand[]) {
+async function auditShortcuts(register: readonly RegisteredCommand[]) {
   const { readShortcut } = await import("./shortcut-bindings.tsx");
   const canonical = (shortcut: string) => {
     const read = readShortcut(shortcut);
@@ -69,4 +69,30 @@ export async function auditShortcuts(register: readonly RegisteredCommand[]) {
       ),
   );
   return [...problems, ...collisions];
+}
+
+async function kindProblem({ fullId, command }: RegisteredCommand) {
+  const { default: body } = await command.load();
+  const { success: acceptsEmpty } = await body.schema.safeParseAsync({});
+  if (acceptsEmpty === (command.kind !== "input")) return [];
+  const needed = acceptsEmpty ? "refuses" : "accepts";
+  return [`${fullId}: kind ${command.kind} needs a schema that ${needed} an empty object`];
+}
+
+/**
+ * For the test over all real contributions. It loads every Command, so the app never runs it.
+ * Returns each problem found, and none when the register is sound.
+ */
+export async function auditCommands(owners: readonly CommandOwner[]) {
+  const register = commandRegister(owners);
+  const seen = new Set<string>();
+  const unique = register.filter(({ fullId }) => !seen.has(fullId) && seen.add(fullId));
+  const duplicates = register
+    .filter((entry) => !unique.includes(entry))
+    .map(({ fullId }) => `Duplicate Command id: ${fullId}`);
+  return [
+    ...duplicates,
+    ...(await Promise.all(unique.map(kindProblem))).flat(),
+    ...(await auditShortcuts(unique)),
+  ];
 }
