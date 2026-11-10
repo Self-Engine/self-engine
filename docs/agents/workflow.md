@@ -33,15 +33,15 @@ If you find an open design question while building, stop, write the question as 
 
 A ticket's status is read from GitHub, first match wins:
 
-| Check                        | Status          |
-| ---------------------------- | --------------- |
-| Issue is closed              | Built           |
-| An open pull request closes it | In review     |
-| Has slices                   | Cut             |
-| Body has a `Problem Statement` | Specified     |
-| Label `needs-grilling`       | Needs grilling  |
-| Label `ready-for-agent`      | Buildable       |
-| None of these                | Needs triage    |
+| Check                          | Status         |
+| ------------------------------ | -------------- |
+| Issue is closed                | Built          |
+| An open pull request closes it | In review      |
+| Has slices                     | Cut            |
+| Body has a `Problem Statement` | Specified      |
+| Label `needs-grilling`         | Needs grilling |
+| Label `ready-for-agent`        | Buildable      |
+| None of these                  | Needs triage   |
 
 ## The overview
 
