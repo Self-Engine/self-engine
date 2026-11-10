@@ -14,6 +14,7 @@ export interface RenderCounts {
   components: Record<string, number>;
 }
 
+/** Count committed function-component work, excluding reused bailout subtrees. */
 export function countCommit(
   root: Fiber,
   counts: RenderCounts,
@@ -37,6 +38,7 @@ export function countCommit(
   visit(root);
 }
 
+/** Isolate work committed between two cumulative snapshots. */
 export function difference(after: RenderCounts, before: RenderCounts): RenderCounts {
   const components: Record<string, number> = {};
   for (const [name, count] of Object.entries(after.components)) {
@@ -52,6 +54,7 @@ export interface RenderReport {
   readonly scenarios: Record<string, RenderCounts>;
 }
 
+/** Format scenario totals and per-component deltas without applying a pass/fail budget. */
 export function compareReports(current: RenderReport, baseline?: RenderReport): string {
   if (
     baseline &&

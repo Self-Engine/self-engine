@@ -14,6 +14,7 @@ import {
   type RenderReport,
 } from "./render-counts.ts";
 
+/** Parse the diagnostic command; reject misspelled options before launching anything. */
 export function options(args: string[]) {
   return parseArgs({
     args,
@@ -25,6 +26,47 @@ export function options(args: string[]) {
   }).values;
 }
 
+/** Read a compatible baseline before allocating a port or starting the app. */
+export function readBaseline(path: string): RenderReport {
+  const parsed: unknown = JSON.parse(readFileSync(path, "utf8"));
+  const record = (value: unknown): value is Record<string, unknown> =>
+    typeof value === "object" && value !== null && !Array.isArray(value);
+  const count = (value: unknown): value is number =>
+    typeof value === "number" && Number.isSafeInteger(value) && value >= 0;
+  if (
+    !record(parsed) ||
+    parsed.version !== 1 ||
+    typeof parsed.revision !== "string" ||
+    !record(parsed.scenarios)
+  ) {
+    throw new Error(`Not a render report: ${path}`);
+  }
+  const scenarios: Record<string, RenderCounts> = {};
+  for (const [name, scenario] of Object.entries(parsed.scenarios)) {
+    if (
+      !record(scenario) ||
+      !count(scenario.commits) ||
+      !record(scenario.components) ||
+      !Object.values(scenario.components).every(count)
+    ) {
+      throw new Error(`Not a render report: invalid counts in ${path}`);
+    }
+    const components: Record<string, number> = {};
+    for (const [component, value] of Object.entries(scenario.components)) {
+      if (count(value)) Object.defineProperty(components, component, { value, enumerable: true });
+    }
+    Object.defineProperty(scenarios, name, {
+      value: { commits: scenario.commits, components },
+      enumerable: true,
+    });
+  }
+  if (Object.keys(scenarios).sort().join() !== ["change-view", "open-edit-drawer"].sort().join()) {
+    throw new Error(`Incompatible render report scenarios: ${path}`);
+  }
+  return { version: 1, revision: parsed.revision, scenarios };
+}
+
+/** Reserve an available loopback port briefly; Vite's strictPort detects a subsequent race. */
 async function freePort(): Promise<number> {
   const server = createServer();
   await new Promise<void>((resolvePromise, reject) => {
@@ -37,9 +79,11 @@ async function freePort(): Promise<number> {
   return address.port;
 }
 
+/** Measure the real app and always release its browser and dev server. */
 async function main(): Promise<void> {
   const args = options(process.argv.slice(2));
   const root = resolve(import.meta.dirname, "..");
+  const baseline = args.compare ? readBaseline(resolve(root, args.compare)) : undefined;
   const port = await freePort();
   let log = "";
   const server = spawn("pnpm", ["--filter", "@self-engine/web", "dev"], {
@@ -155,9 +199,6 @@ async function main(): Promise<void> {
       revision: `${revision}${dirty ? " (dirty)" : ""} tree:${workingTreeHash(root)}`,
       scenarios,
     };
-    const baseline: RenderReport | undefined = args.compare
-      ? JSON.parse(readFileSync(resolve(root, args.compare), "utf8"))
-      : undefined;
     const output = resolve(root, args.output);
     mkdirSync(dirname(output), { recursive: true });
     writeFileSync(output, `${JSON.stringify(report, null, 2)}\n`);
