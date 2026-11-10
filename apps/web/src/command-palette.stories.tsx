@@ -8,7 +8,7 @@ import {
   type ShellContribution,
   type ShellView,
 } from "@self-engine/shell";
-import { expect, fn, screen, spyOn, userEvent, waitFor, within } from "storybook/test";
+import { expect, fn, screen, spyOn, userEvent, waitFor } from "storybook/test";
 import { z } from "zod";
 import { settingsStore } from "./settings-store.ts";
 import {
@@ -239,7 +239,10 @@ export const AQuestionAlreadyOpenAlsoStopsTheCommand: Story = {
     const palette = await openPalette();
     await userEvent.keyboard("beta note");
     const row = await palette.findByRole("button", { name: "Beta note" });
-    void storyRouter().navigate({ to: "/placeholder-alpha/archive" });
+    void storyRouter().navigate({
+      to: "/$module/$view",
+      params: { module: "placeholder-alpha", view: "archive" },
+    });
     await asked();
     row.click();
     await paletteGone();
