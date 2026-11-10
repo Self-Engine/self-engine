@@ -24,6 +24,7 @@ msgctxt "View title"
 msgid "Archive"
 msgstr "Archive"
 
+#: packages/placeholder-alpha/src/edit-drawer.tsx
 #: packages/ui/src/feedback.tsx
 msgid "Cancel"
 msgstr "Cancel"
@@ -35,10 +36,6 @@ msgstr "Clients"
 #: packages/shell/src/shell.tsx
 msgid "Close editor"
 msgstr "Close editor"
-
-#: packages/placeholder-alpha/src/edit-drawer.tsx
-msgid "Close entry"
-msgstr "Close entry"
 
 #: packages/shell/src/shell.tsx
 msgid "Close module sidebar"
@@ -56,6 +53,14 @@ msgstr "Close notice"
 msgid "Collapse module sidebar"
 msgstr "Collapse module sidebar"
 
+#: packages/shell/src/edit-drawer-exits.tsx
+msgid "Discard"
+msgstr "Discard"
+
+#: packages/shell/src/edit-drawer-exits.tsx
+msgid "Discard changes?"
+msgstr "Discard changes?"
+
 #: packages/shell/src/shell.tsx
 msgid "Expand module sidebar"
 msgstr "Expand module sidebar"
@@ -72,6 +77,10 @@ msgstr "Garden work"
 msgid "Hello {name}, nice to see you."
 msgstr "Hello {name}, nice to see you."
 
+#: packages/shell/src/edit-drawer-exits.tsx
+msgid "Keep editing"
+msgstr "Keep editing"
+
 #: apps/web/src/modules.ts
 msgid "Language sample"
 msgstr "Language sample"
@@ -87,6 +96,10 @@ msgstr "Module Sidebar"
 #: packages/shell/src/shell.tsx
 msgid "Modules"
 msgstr "Modules"
+
+#: packages/placeholder-alpha/src/edit-drawer.tsx
+msgid "Name"
+msgstr "Name"
 
 #: packages/placeholder-alpha/src/edit-drawer.tsx
 #: packages/placeholder-alpha/src/index.ts
@@ -125,6 +138,10 @@ msgstr "Resize module sidebar"
 #: packages/shell/src/shell.tsx
 msgid "Resize navbar"
 msgstr "Resize navbar"
+
+#: packages/placeholder-alpha/src/edit-drawer.tsx
+msgid "Save"
+msgstr "Save"
 
 #: apps/web/src/modules.ts
 msgid "Settings"
@@ -177,6 +194,10 @@ msgstr "Try again"
 #: packages/ui/src/feedback.tsx
 msgid "Undo"
 msgstr "Undo"
+
+#: packages/shell/src/edit-drawer-exits.tsx
+msgid "What you changed here will be lost."
+msgstr "What you changed here will be lost."
 
 #: apps/web/src/language-sample.tsx
 msgid "Your name"

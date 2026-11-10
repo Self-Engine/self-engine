@@ -1,10 +1,6 @@
 import type { EditDrawerProps } from "./contributions.ts";
 import { EditDrawerTitleContext } from "./edit-drawer-title.ts";
-import {
-  selectEditId,
-  UnsavedChangesContext,
-  useEditDrawerExits,
-} from "./edit-drawer-exits.tsx";
+import { selectEditId, UnsavedChangesContext, useEditDrawerExits } from "./edit-drawer-exits.tsx";
 import { LazyContribution, lazyComponents } from "./lazy-contribution.tsx";
 import { useCloseOverlayOnPick, useViewSearch, useWriteViewSearch } from "./routing.tsx";
 import { ACTIVE_ENTRY_VARS } from "./navigation-style.ts";

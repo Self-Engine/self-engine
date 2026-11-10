@@ -1,10 +1,6 @@
 import { useLingui } from "@lingui/react/macro";
 import { Button, Group, Stack, Text, TextInput } from "@mantine/core";
-import {
-  type EditDrawerProps,
-  useEditDrawerTitle,
-  useUnsavedChanges,
-} from "@self-engine/shell";
+import { type EditDrawerProps, useEditDrawerTitle, useUnsavedChanges } from "@self-engine/shell";
 import { useState } from "react";
 import { nameOf, saveEntry, useEntries } from "./entry-store.ts";
 import { NEW_ENTRY_ID } from "./sample-data.ts";

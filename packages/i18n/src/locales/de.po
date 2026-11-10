@@ -24,6 +24,7 @@ msgctxt "View title"
 msgid "Archive"
 msgstr "Archiv"
 
+#: packages/placeholder-alpha/src/edit-drawer.tsx
 #: packages/ui/src/feedback.tsx
 msgid "Cancel"
 msgstr "Abbrechen"
@@ -35,10 +36,6 @@ msgstr "Kunden"
 #: packages/shell/src/shell.tsx
 msgid "Close editor"
 msgstr "Editor schließen"
-
-#: packages/placeholder-alpha/src/edit-drawer.tsx
-msgid "Close entry"
-msgstr "Eintrag schließen"
 
 #: packages/shell/src/shell.tsx
 msgid "Close module sidebar"
@@ -56,6 +53,14 @@ msgstr "Hinweis schließen"
 msgid "Collapse module sidebar"
 msgstr "Modul-Sidebar einklappen"
 
+#: packages/shell/src/edit-drawer-exits.tsx
+msgid "Discard"
+msgstr "Verwerfen"
+
+#: packages/shell/src/edit-drawer-exits.tsx
+msgid "Discard changes?"
+msgstr "Änderungen verwerfen?"
+
 #: packages/shell/src/shell.tsx
 msgid "Expand module sidebar"
 msgstr "Modul-Sidebar ausklappen"
@@ -72,6 +77,10 @@ msgstr "Gartenarbeit"
 msgid "Hello {name}, nice to see you."
 msgstr "Hallo {name}, schön, dich zu sehen."
 
+#: packages/shell/src/edit-drawer-exits.tsx
+msgid "Keep editing"
+msgstr "Weiter bearbeiten"
+
 #: apps/web/src/modules.ts
 msgid "Language sample"
 msgstr "Sprachbeispiel"
@@ -87,6 +96,10 @@ msgstr "Modul-Sidebar"
 #: packages/shell/src/shell.tsx
 msgid "Modules"
 msgstr "Module"
+
+#: packages/placeholder-alpha/src/edit-drawer.tsx
+msgid "Name"
+msgstr "Name"
 
 #: packages/placeholder-alpha/src/edit-drawer.tsx
 #: packages/placeholder-alpha/src/index.ts
@@ -125,6 +138,10 @@ msgstr "Breite der Modul-Sidebar ändern"
 #: packages/shell/src/shell.tsx
 msgid "Resize navbar"
 msgstr "Breite der Navbar ändern"
+
+#: packages/placeholder-alpha/src/edit-drawer.tsx
+msgid "Save"
+msgstr "Speichern"
 
 #: apps/web/src/modules.ts
 msgid "Settings"
@@ -177,6 +194,10 @@ msgstr "Erneut versuchen"
 #: packages/ui/src/feedback.tsx
 msgid "Undo"
 msgstr "Rückgängig"
+
+#: packages/shell/src/edit-drawer-exits.tsx
+msgid "What you changed here will be lost."
+msgstr "Was du hier geändert hast, geht verloren."
 
 #: apps/web/src/language-sample.tsx
 msgid "Your name"

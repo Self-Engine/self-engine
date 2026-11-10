@@ -152,10 +152,7 @@ export const KeepEditingReturnsToTheCloseButton = keepEditingKeepsEverything(
   "closeButton",
   closeButtonOf,
 );
-export const KeepEditingReturnsToTheField = keepEditingKeepsEverything(
-  "esc",
-  ({ draft }) => draft,
-);
+export const KeepEditingReturnsToTheField = keepEditingKeepsEverything("esc", ({ draft }) => draft);
 /** Clicking the overlay leaves the focus nowhere, so it goes where the drawer starts. */
 export const KeepEditingAfterTheOverlayReturnsToTheDrawer = keepEditingKeepsEverything(
   "overlay",

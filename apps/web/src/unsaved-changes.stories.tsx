@@ -175,7 +175,10 @@ export const SavingClosesWithoutAskingAndTheListShowsIt: Story = {
   args: { address: `${OVERVIEW}?edit=new` },
   play: async ({ canvas }) => {
     const drawer = within(await screen.findByRole("dialog", { name: "New entry" }));
-    await userEvent.type(await drawer.findByRole("textbox", { name: "Name" }), "Saved from a story");
+    await userEvent.type(
+      await drawer.findByRole("textbox", { name: "Name" }),
+      "Saved from a story",
+    );
     await userEvent.click(drawer.getByRole("button", { name: "Save" }));
     await noDrawer("New entry");
     await expect(address().edit).toBeUndefined();
