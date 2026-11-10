@@ -1,13 +1,19 @@
 import { linguiPlugin } from "@self-engine/i18n/vite";
 import { tanstackRouter } from "@tanstack/router-plugin/vite";
-import react from "@vitejs/plugin-react";
+import babel from "@rolldown/plugin-babel";
+import react, { reactCompilerPreset } from "@vitejs/plugin-react";
 import { defineConfig } from "vite-plus";
 
 const host = "127.0.0.1";
 const port = Number(process.env.PORT ?? 5733);
 
 export default defineConfig({
-  plugins: [linguiPlugin(), tanstackRouter({ target: "react", autoCodeSplitting: true }), react()],
+  plugins: [
+    linguiPlugin(),
+    tanstackRouter({ target: "react", autoCodeSplitting: true }),
+    react(),
+    babel({ presets: [reactCompilerPreset()] }),
+  ],
   server: {
     host,
     port,
