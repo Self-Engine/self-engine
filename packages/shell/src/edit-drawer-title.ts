@@ -1,8 +1,8 @@
 import { createContext, useContext, useLayoutEffect } from "react";
 
-export const EditDrawerTitleContext = createContext<
-  ((title: string | undefined) => void) | null
->(null);
+export const EditDrawerTitleContext = createContext<((title: string | undefined) => void) | null>(
+  null,
+);
 
 /**
  * Names the entry in the drawer's header and for assistive technology. Give it the saved name, not

@@ -49,10 +49,6 @@ msgid "Collapse module sidebar"
 msgstr "Collapse module sidebar"
 
 #: packages/shell/src/shell.tsx
-msgid "Editor"
-msgstr "Editor"
-
-#: packages/shell/src/shell.tsx
 msgid "Expand module sidebar"
 msgstr "Expand module sidebar"
 
@@ -80,6 +76,7 @@ msgstr "Module Sidebar"
 msgid "Modules"
 msgstr "Modules"
 
+#: packages/placeholder-alpha/src/edit-drawer.tsx
 #: packages/placeholder-alpha/src/index.ts
 msgid "New entry"
 msgstr "New entry"

@@ -179,7 +179,9 @@ const MODULE_PINNING_ITS_BUTTONS: ShellContribution = {
   ...ENTRIES[1]!,
   editDrawer: async () => ({
     default: () => (
-      <div style={{ display: "flex", flex: 1, flexDirection: "column", justifyContent: "flex-end" }}>
+      <div
+        style={{ display: "flex", flex: 1, flexDirection: "column", justifyContent: "flex-end" }}
+      >
         <button>Save</button>
       </div>
     ),
