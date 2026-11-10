@@ -40,7 +40,8 @@ Icon-Verzeichnis und reine Einstiege ohne React (D151).
 ## Issues
 
 Spec: [#103](https://github.com/GwydionBr/self-engine-next/issues/103). Jedes Paket außer #107 wird
-vor dem Bau gegrillt und danach in Teil-Tickets geschnitten. Gebaut wird in Nummernreihenfolge.
+vor dem Bau gegrillt und trägt bis dahin `needs-grilling` (D155), danach wird es in Teil-Tickets
+geschnitten. Gebaut wird in Nummernreihenfolge.
 
 | Issue | Paket | Entscheidungen | Blocked by |
 |---|---|---|---|

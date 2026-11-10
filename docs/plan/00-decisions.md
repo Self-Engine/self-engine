@@ -788,6 +788,22 @@ Grundlage: [`research-layer-3-core.md`](research-layer-3-core.md).
   kleine Teile), `needs-triage` statt `ready-for-agent` (nach jedem Grilling Umstellung von Hand),
   #34 behalten (bräche die Reihenfolge).
 
+### Runde 23 (2026-11-10): Arbeitsablauf
+
+- **D155 Der Stand eines Tickets wird abgelesen, nicht gepflegt.** Geprüft wird der Reihe nach:
+  geschlossen (gebaut), offener PR schließt es (im Review), hat Teil-Tickets (geschnitten), Body
+  enthält ein Spec (spezifiziert), Label `needs-grilling` (Grilling nötig), Label `ready-for-agent`
+  (baubar), sonst Triage offen. `ready-for-agent` heißt nur noch, dass ein Agent bauen darf; die
+  Pakete vor ihrem Grilling tragen `needs-grilling`. Das revidiert den Label-Teil von D154.
+  _Verworfen:_ ein Label pro Stufe (ein vergessener Schritt macht die Übersicht falsch).
+- **D156 Die Agenten halten die Übersichtsseite aktuell.** Der Ablauf steht in `docs/agents/`, der
+  letzte Schritt jeder Stufe ist das Aktualisieren. Ein Skript in `scripts/` erzeugt die ganze Seite
+  aus GitHub und einer kurzen Liste für Schichten ohne Issues, der Agent veröffentlicht das Ergebnis.
+  So holt der nächste Agent einen vergessenen Schritt von selbst nach. Fehlt einem Agenten das
+  Werkzeug zum Veröffentlichen, sagt er das in seinem Bericht. _Verworfen:_ Änderungen von Hand am
+  HTML (jeder Agent stuft selbst ein), stündlicher geplanter Lauf (der Stand ändert sich mit den
+  Arbeitsschritten), GitHub Pages (macht den Planungsstand vor dem Öffentlich-Machen zugänglich).
+
 ## Fakten
 
 - Self-Engine hat Abo-Infrastruktur über Clerk Billing (`apps/web/src/features/billing`),

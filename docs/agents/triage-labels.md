@@ -15,5 +15,6 @@ When a skill mentions a role (e.g. "apply the AFK-ready triage label"), use the 
 ## Adjacent labels
 
 - `layer:<n>`: the build layer the issue belongs to (`layer:0` = repo foundation). Create the label for a new layer when its issues are filed.
+- `needs-grilling`: the issue is a work package that needs a grilling and a spec before an agent may build it. It replaces `ready-for-agent` until the spec exists. `ready-for-agent` means only that an agent may build the issue now.
 
 There are no `agent:*`, `area:*`, `size:*` or `risk:*` labels yet. An agent marks work in progress with an issue comment instead of a label. Add such labels only when the issue volume calls for them, and record them here.
