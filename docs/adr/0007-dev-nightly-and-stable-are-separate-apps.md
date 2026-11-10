@@ -1,7 +1,7 @@
 ---
 status: accepted
 date: 2026-11-08
-decisions: D38, D39, D40, D41, D43, D47, D50, D51, D108, D109, D110
+decisions: D38, D39, D40, D41, D43, D47, D50, D51, D108, D109, D110, D162, D163
 ---
 
 # Dev, nightly and stable are separate apps
@@ -18,8 +18,9 @@ the stable app.
   installable side by side, each with its own name, icon, app ID (`app.selfengine.desktop`,
   `.nightly`, `.dev`), protocol scheme and data folder. A "copy data from stable" action seeds
   the other channels.
-- **Nightly builds automatically every second night**, only when `main` changed since the last
-  nightly; it can also be started by hand.
+- **Nightly builds automatically twice a day**, only when `main` changed since the last
+  nightly; it can also be started by hand. Nightlies are public development builds without
+  support, and their release notes say so.
 - **Stable only builds a commit that was already published as a nightly.**
 - **No release-please.** PR titles are Conventional Commits (checked in CI) and become the
   squash commits on `main`. A stable release is started by hand with a version number; its
@@ -47,11 +48,10 @@ the stable app.
   version a stable proposes is a patch bump of the last stable tag
   (`apps/desktop/package.json` seeds the first one), and a nightly is
   `<base>-nightly.<YYYYMMDD>.<run>`. Packaging stamps the version into the app.
-- **Releases live in this private repository** (D108): the release workflow creates the tag
-  and the GitHub release with the built-in token only. Downloading a build needs access to the
-  repository; the owner can hand a build to the second user directly.
-- **Updates are downloaded by hand.** The in-app updater comes with the switch to public
-  (D107): an app cannot ship a token to read a private repository.
+- **Releases live in this public repository** (D108, D162): the release workflow creates the tag
+  and the GitHub release with the built-in token only, and anyone can download a build.
+- **Updates are downloaded by hand.** The in-app updater is still to come; the public repository
+  removes what blocked it, since an app cannot ship a token to read a private one.
 - **macOS releases are signed with the Developer ID, hardened and notarized** (D109), and the
   packaging checks the result, because electron-builder only warns when it cannot sign. In CI
   a missing secret fails the run. Local packaging without the inputs stays ad hoc and needs no
@@ -59,9 +59,8 @@ the stable app.
   the designated requirement of the running app, and for an ad-hoc signature that requirement
   is the hash of that exact build. The only entitlement is `allow-jit`, which V8 needs under
   the hardened runtime; library validation stays on.
-- The nightly schedule stays off until the repository variable `NIGHTLY_SCHEDULE_ENABLED` is
-  `true`, because macOS minutes on a private repository are limited. It can always be started
-  by hand.
+- The repository variable `NIGHTLY_SCHEDULE_ENABLED` switches the nightly schedule, so it can
+  be stopped without a commit. A nightly can always be started by hand.
 
 ## Considered Options
 
