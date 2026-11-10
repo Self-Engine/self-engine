@@ -2,7 +2,12 @@
 // first paint, so a key pressed in the first moments is lost.
 
 import { isConfirmationOpen } from "@self-engine/ui";
-import { type HotkeyChord, normalizeHotkey, useHotkeys, validateHotkey } from "@tanstack/react-hotkeys";
+import {
+  type HotkeyChord,
+  normalizeHotkey,
+  useHotkeys,
+  validateHotkey,
+} from "@tanstack/react-hotkeys";
 import { commandRegister, type CommandOwner, type RegisteredCommand } from "./commands.ts";
 import { useStartCommand } from "./start-command.tsx";
 
