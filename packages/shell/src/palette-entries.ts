@@ -19,6 +19,8 @@ export interface CommandEntry extends EntryBase {
   readonly command: PersonCommand;
   /** In the notation of the platform. */
   readonly shortcut: string | undefined;
+  /** Where another module's `page` Command has to go before it runs. */
+  readonly goFirstTo: string | undefined;
 }
 
 export interface ViewEntry extends EntryBase {
@@ -42,7 +44,8 @@ export interface EntryTools {
 
 /**
  * Every entry the palette can show, in the order of the contributions and with a module's Commands
- * before its Views. A `page` Command needs its module on screen, so another module's stays out.
+ * before its Views. A `page` Command needs its module on screen, so another module's goes to that
+ * module's default View first, and without such a View it stays out.
  */
 export function paletteEntries(
   owners: readonly PaletteOwner[],
@@ -58,15 +61,19 @@ export function paletteEntries(
       label,
       searched: label.toLowerCase(),
     });
+    const defaultView = owner.views?.[0];
+    const home = defaultView && viewPath(owner.id, defaultView.id);
     const commands = (owner.commands ?? []).flatMap((command): CommandEntry[] => {
       if (command.kind === "input") return [];
-      if (command.kind === "page" && owner.id !== activeModuleId) return [];
+      const elsewhere = command.kind === "page" && owner.id !== activeModuleId;
+      if (elsewhere && home === undefined) return [];
       const { defaultShortcut } = command;
       return [
         {
           ...base(command.id, translate(command.label)),
           command,
           shortcut: defaultShortcut === undefined ? undefined : formatShortcut(defaultShortcut),
+          goFirstTo: elsewhere ? home : undefined,
         },
       ];
     });
@@ -97,7 +104,9 @@ function whenEmpty(entries: readonly PaletteEntry[], activeModuleId: string | un
   return [
     ...entries.filter((entry) => active(entry) && !isViewEntry(entry)),
     ...entries.filter((entry) => active(entry) && isViewEntry(entry)),
-    ...entries.filter((entry) => !active(entry) && !isViewEntry(entry)),
+    ...entries.filter(
+      (entry) => !active(entry) && !isViewEntry(entry) && entry.command.kind === "open",
+    ),
   ];
 }
 

@@ -42,7 +42,7 @@ function PaletteRow({ entry, onPick }: { entry: PaletteEntry; onPick: () => void
       label={entry.label}
       onClick={() => {
         onPick();
-        void start(entry.moduleId, entry.command);
+        void start(entry.moduleId, entry.command, entry.goFirstTo);
       }}
       rightSection={rightSection}
     />

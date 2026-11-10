@@ -40,15 +40,34 @@ export interface LeavingAddress {
   readonly search: ViewSearch;
 }
 
-/** Answers whether a change of the address may go ahead, asking the user first if it must. */
-export type LeaveGuard = (attempt: {
+interface LeaveAttempt {
   readonly current: LeavingAddress;
   readonly next: LeavingAddress;
-}) => boolean | Promise<boolean>;
+}
+
+/** Answers whether a change of the address may go ahead, asking the user first if it must. */
+export type LeaveGuard = (attempt: LeaveAttempt) => boolean | Promise<boolean>;
+
+/** One guard after the other, like the router, and the first "no" ends it. */
+export async function askLeaveGuards(
+  guards: Iterable<LeaveGuard>,
+  attempt: LeaveAttempt,
+): Promise<boolean> {
+  for (const guard of guards) {
+    // oxlint-disable-next-line no-await-in-loop -- a second question only after the first answer
+    if (!(await guard(attempt))) return false;
+  }
+  return true;
+}
 
 export interface ShellRouting {
   readonly Link: FunctionComponent<ShellLinkProps>;
   readonly useAddress: () => ViewAddress;
+  /**
+   * Goes to a View and answers whether it became the page on screen, which for a slow View is once
+   * it has loaded. `false` when a guard refused or another navigation overtook this one.
+   */
+  readonly useGoToView: () => (to: string) => Promise<boolean>;
   /**
    * Holds every change of the address until the guard answers, while `enabled` is true. That is
    * also Back and Forward. Give it a stable guard, because a new one is registered anew.

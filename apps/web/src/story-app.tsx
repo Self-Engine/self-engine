@@ -62,3 +62,31 @@ export const paletteGone = () =>
 /** The entry that the address opens in the edit drawer. */
 export const editInAddress = (router: AppRouter) =>
   (router.state.location.search as { readonly edit?: unknown }).edit;
+
+/** Work the story finishes by hand, so a slow load is deterministic. */
+export function held<T>() {
+  let finish!: (value: T) => void;
+  const promise = new Promise<T>((resolve) => {
+    finish = resolve;
+  });
+  return { promise, finish };
+}
+
+export const QUESTION = "Discard changes?";
+
+export const asked = () => screen.findByRole("dialog", { name: QUESTION });
+export const answer = async (label: "Discard" | "Keep editing") =>
+  userEvent.click(within(await asked()).getByRole("button", { name: label }));
+export const noQuestion = () =>
+  waitFor(() => expect(screen.queryByRole("dialog", { name: QUESTION })).toBeNull());
+export const noDrawer = (name: string) =>
+  waitFor(() => expect(screen.queryByRole("dialog", { name })).toBeNull());
+
+/** Opens the entry from the list, so that there is a history entry to go back from. */
+export async function editStudio(canvas: ReturnType<typeof within>) {
+  await userEvent.click(await canvas.findByRole("button", { name: "Studio work" }));
+  const drawer = await screen.findByRole("dialog", { name: "Studio work" });
+  const name = await within(drawer).findByRole("textbox", { name: "Name" });
+  await userEvent.type(name, " changed");
+  return { drawer: within(drawer), name };
+}

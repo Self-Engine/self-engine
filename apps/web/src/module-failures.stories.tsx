@@ -12,7 +12,7 @@ import {
 import type { ComponentType } from "react";
 import { z } from "zod";
 import { settingsStore } from "./settings-store.ts";
-import { AppAt, storyRouter } from "./story-app.tsx";
+import { AppAt, held, storyRouter } from "./story-app.tsx";
 
 type Canvas = ReturnType<typeof within>;
 type EditDrawerLoad = NonNullable<ShellContribution["editDrawer"]>;
@@ -27,15 +27,6 @@ const meta = {
 } satisfies Meta<typeof AppAt>;
 export default meta;
 type Story = StoryObj<typeof meta>;
-
-/** Work the story finishes by hand, so a slow load is deterministic. */
-function held<T>() {
-  let finish!: (value: T) => void;
-  const promise = new Promise<T>((resolve) => {
-    finish = resolve;
-  });
-  return { promise, finish };
-}
 
 interface Restorable {
   readonly mockRestore: () => void;

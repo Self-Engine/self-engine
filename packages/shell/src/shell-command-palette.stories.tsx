@@ -216,12 +216,15 @@ export const AWordStartBeatsTheInsideOfAWordThenTheActiveModuleThenTheOrder: Sto
   },
 };
 
-export const AnEntryOfThePageCommandsOfAnotherModuleAndInputCommandsNeverAppear: Story = {
+export const ThePageCommandsOfOtherModulesAreFoundAndInputCommandsNeverAppear: Story = {
   play: async () => {
     const palette = await openPalette();
     await userEvent.keyboard("se");
     await waitFor(() => expect(rowsOf(palette)).toContain("Second board"));
-    await expect(rowsOf(palette)).not.toContain("Second new");
+    await expect(rowsOf(palette)).toContain("Second new");
+    await expect(
+      within(within(palette).getByRole("group", { name: "Module second" })).getByText("Second new"),
+    ).toBeVisible();
     await userEvent.clear(searchIn(palette));
     await userEvent.keyboard("secret");
     await within(palette).findByText("Nothing found");
@@ -267,6 +270,15 @@ export const TypingAndEnterStartAnOpenCommandOfAnotherModule: Story = {
     await userEvent.keyboard("refresh{Enter}");
     await paletteGone();
     await expect(startedOpen).toHaveBeenCalledOnce();
+  },
+};
+
+export const APageCommandOfAnotherModuleStarts: Story = {
+  play: async () => {
+    await openPalette();
+    await userEvent.keyboard("second new{Enter}");
+    await paletteGone();
+    await waitFor(() => expect(startedOtherNew).toHaveBeenCalledOnce());
   },
 };
 

@@ -30,16 +30,20 @@ export function CommandStarts({ children }: { readonly children: ReactNode }) {
 
 /**
  * The one way a person starts a Command. It captures the page at the moment of the press, ignores
- * a second start of the same Command while the first is running, and reports a failure.
+ * a second start of the same Command while the first is running, and reports a failure. With
+ * `goFirstTo` it moves to that View first, and runs on the page it arrived at or not at all.
  */
 export function useStartCommand() {
   const { t } = useLingui();
-  const address = useShellRouting().useAddress();
+  const routing = useShellRouting();
+  const address = routing.useAddress();
+  const goToView = routing.useGoToView();
   const startOnce = useContext(StartOnceContext);
   if (startOnce === null) throw new Error("Starting a Command needs the Shell");
 
-  return (moduleId: string, command: PersonCommand) =>
+  return (moduleId: string, command: PersonCommand, goFirstTo?: string) =>
     startOnce(fullCommandId(moduleId, command.id), async () => {
+      if (goFirstTo !== undefined && !(await goToView(goFirstTo))) return;
       const result = await (command.kind === "page"
         ? runCommand(command, {}, { writeSearch: address.scopedWriteSearch() })
         : runCommand(command, {}, {}));

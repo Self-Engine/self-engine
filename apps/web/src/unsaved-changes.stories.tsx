@@ -6,7 +6,16 @@ import { useEffect, useState } from "react";
 import { expect, screen, spyOn, userEvent, waitFor, within } from "storybook/test";
 import { createAppRouter } from "./app-router.ts";
 import { settingsStore } from "./settings-store.ts";
-import { editInAddress, pressWithMod } from "./story-app.tsx";
+import {
+  answer,
+  asked,
+  editInAddress,
+  editStudio,
+  noDrawer,
+  noQuestion,
+  pressWithMod,
+  QUESTION,
+} from "./story-app.tsx";
 
 type Canvas = ReturnType<typeof within>;
 
@@ -45,29 +54,10 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-const QUESTION = "Discard changes?";
-
 const address = () => ({
   pathname: openRouter.state.location.pathname,
   edit: editInAddress(openRouter),
 });
-
-const asked = () => screen.findByRole("dialog", { name: QUESTION });
-const answer = async (label: "Discard" | "Keep editing") =>
-  userEvent.click(within(await asked()).getByRole("button", { name: label }));
-const noQuestion = () =>
-  waitFor(() => expect(screen.queryByRole("dialog", { name: QUESTION })).toBeNull());
-const noDrawer = (name: string) =>
-  waitFor(() => expect(screen.queryByRole("dialog", { name })).toBeNull());
-
-/** Opens the entry from the list, so that there is a history entry to go back from. */
-async function editStudio(canvas: Canvas) {
-  await userEvent.click(await canvas.findByRole("button", { name: "Studio work" }));
-  const drawer = await screen.findByRole("dialog", { name: "Studio work" });
-  const name = await within(drawer).findByRole("textbox", { name: "Name" });
-  await userEvent.type(name, " changed");
-  return { drawer: within(drawer), name };
-}
 
 export const BackAsksAndDiscardGoesBack: Story = {
   play: async ({ canvas }) => {
