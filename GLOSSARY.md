@@ -100,6 +100,10 @@ _Avoid_: secondary sidebar, sub navigation
 The outermost bar with one entry per module, either narrow with icons only or wide with labels.
 _Avoid_: main menu, sidebar
 
+**Notice** (de: _Hinweis_):
+A short message bottom right that says something happened or failed, stays for eight seconds and can offer to undo. It asks nothing; a question that needs an answer is a confirmation dialog.
+_Avoid_: toast, snackbar, notification
+
 **Shell** (de: _Hülle_):
 The frame of the app around the modules, made of the navigation and the content area.
 _Avoid_: layout, frame, chrome

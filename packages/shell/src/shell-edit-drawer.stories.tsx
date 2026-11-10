@@ -1,3 +1,4 @@
+import { notifyUndoable } from "@self-engine/ui";
 import type { Meta } from "@storybook/react-vite";
 import { useState } from "react";
 import { expect, screen, userEvent, waitFor, within } from "storybook/test";
@@ -94,6 +95,26 @@ export const MovingToAModuleWithoutADrawerStillPlaysTheExit: Story = {
     await nextFrame();
     await expect(dialog.isConnected).toBe(true);
     await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+  },
+};
+
+const noticeRouting = storyRouting();
+
+export const ANoticeSitsAboveTheBottomBarAndTheDrawer: Story = {
+  ...atViewport("phone"),
+  args: { activeModule: MODULE_WITH_DRAWER, children: <OpenEditor />, routing: noticeRouting },
+  play: async ({ canvas }) => {
+    const bottomBar = screen.getByRole("contentinfo");
+    await openDialog(canvas);
+    notifyUndoable({ message: "Entry deleted", undo: () => undefined });
+    const notice = (await screen.findByText("Entry deleted")).closest("[role=alert]")!;
+    await waitFor(() => {
+      const { bottom, left, top, width } = notice.getBoundingClientRect();
+      expect(bottom).toBeLessThanOrEqual(bottomBar.getBoundingClientRect().top);
+      expect(notice.contains(document.elementFromPoint(left + width / 2, top + 4))).toBe(true);
+    });
+    await userEvent.click(within(notice as HTMLElement).getByRole("button", { name: "Undo" }));
+    await waitFor(() => expect(screen.queryByText("Entry deleted")).toBeNull());
   },
 };
 

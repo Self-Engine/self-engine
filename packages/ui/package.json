@@ -12,6 +12,8 @@
     "@lingui/react": "catalog:",
     "@mantine/core": "catalog:",
     "@mantine/hooks": "catalog:",
+    "@mantine/modals": "catalog:",
+    "@mantine/notifications": "catalog:",
     "@self-engine/icons": "workspace:*",
     "@self-engine/theme": "workspace:*",
     "react": "catalog:",

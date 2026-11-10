@@ -28,7 +28,7 @@ import {
 import { useDisclosure } from "@mantine/hooks";
 import { SidePanelIcon } from "@self-engine/icons";
 import { type ColorSetId, roleColor } from "@self-engine/theme";
-import { LoadingState } from "@self-engine/ui";
+import { LoadingState, NOTICE_CLEARANCE_VARIABLE } from "@self-engine/ui";
 import {
   type ComponentType,
   type CSSProperties,
@@ -632,6 +632,7 @@ function ShellFrame({
 
   return (
     <ShellRoutingContext value={routing}>
+      {isPhone && <style>{`:root{${NOTICE_CLEARANCE_VARIABLE}:${rem(BOTTOM_BAR_HEIGHT)}}`}</style>}
       <AppShell
         {...(isPhone && { footer: { height: BOTTOM_BAR_HEIGHT } })}
         mode="static"

@@ -2,6 +2,7 @@ import "@mantine/core/styles.css";
 import "@self-engine/theme/fonts.css";
 
 import { activateLanguage, createI18n, resolveAppLanguage } from "@self-engine/i18n";
+import { FeedbackHost } from "@self-engine/ui";
 import { RouterProvider } from "@tanstack/react-router";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
@@ -26,7 +27,9 @@ createRoot(container).render(
   <StrictMode>
     <PreviewLanguage i18n={i18n} initialLanguage={language}>
       <PreviewAppearance>
-        <RouterProvider router={router} />
+        <FeedbackHost>
+          <RouterProvider router={router} />
+        </FeedbackHost>
       </PreviewAppearance>
     </PreviewLanguage>
   </StrictMode>,

@@ -24,6 +24,10 @@ msgctxt "View title"
 msgid "Archive"
 msgstr "Archive"
 
+#: packages/ui/src/feedback.tsx
+msgid "Cancel"
+msgstr "Cancel"
+
 #: packages/placeholder-alpha/src/groups.tsx
 msgid "Clients"
 msgstr "Clients"
@@ -43,6 +47,10 @@ msgstr "Close module sidebar"
 #: packages/shell/src/shell.tsx
 msgid "Close navigation"
 msgstr "Close navigation"
+
+#: packages/ui/src/feedback.tsx
+msgid "Close notice"
+msgstr "Close notice"
 
 #: packages/shell/src/shell.tsx
 msgid "Collapse module sidebar"
@@ -130,6 +138,10 @@ msgstr "Studio"
 msgid "Studio work"
 msgstr "Studio work"
 
+#: packages/ui/src/feedback.tsx
+msgid "That could not be undone."
+msgstr "That could not be undone."
+
 #: packages/shell/src/primary-action.tsx
 msgid "The action could not be completed. Please try again."
 msgstr "The action could not be completed. Please try again."
@@ -161,6 +173,10 @@ msgstr "This View could not be loaded. Please try again."
 #: packages/ui/src/state-blocks.tsx
 msgid "Try again"
 msgstr "Try again"
+
+#: packages/ui/src/feedback.tsx
+msgid "Undo"
+msgstr "Undo"
 
 #: apps/web/src/language-sample.tsx
 msgid "Your name"
