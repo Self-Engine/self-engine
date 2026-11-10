@@ -289,7 +289,13 @@ export const BetaWithoutDrawer: Story = {
   args: { address: "/placeholder-beta/overview?edit=ignored" },
   play: async ({ canvas, canvasElement }) => {
     await expectBeta(canvas);
-    await expect(within(canvasElement.ownerDocument.body).queryByRole("dialog")).toBeNull();
+    const page = within(canvasElement.ownerDocument.body);
+    await expect(page.queryByRole("dialog")).toBeNull();
+    await userEvent.click(canvas.getByRole("link", { name: "Settings" }));
+    await expect(
+      await canvas.findByRole("heading", { name: "Theme preview", level: 1 }),
+    ).toBeVisible();
+    await expect(page.queryByRole("dialog")).toBeNull();
   },
 };
 

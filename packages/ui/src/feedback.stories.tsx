@@ -76,6 +76,33 @@ export const FocusStartsOnCancelSoAReflexiveEnterDoesNotConfirm: Story = {
   },
 };
 
+export const TheCancelButtonCanSayWhatItKeeps: Story = {
+  play: async () => {
+    const answer = confirm({ ...QUESTION, cancelLabel: "Keep editing" });
+    const dialog = within(await screen.findByRole("dialog", { name: QUESTION.title }));
+    await waitFor(() => expect(dialog.getByRole("button", { name: "Keep editing" })).toHaveFocus());
+    await expect(dialog.queryByRole("button", { name: "Cancel" })).toBeNull();
+    await userEvent.click(dialog.getByRole("button", { name: "Keep editing" }));
+    await expect(await answer).toBe(false);
+    await gone();
+  },
+};
+
+export const TheCallerCanTakeOverWhereTheFocusGoes: Story = {
+  render: () => <button>Before the question</button>,
+  play: async ({ canvas }) => {
+    const before = canvas.getByRole("button", { name: "Before the question" });
+    before.focus();
+    const answer = confirm({ ...QUESTION, returnFocus: false });
+    await screen.findByRole("dialog", { name: QUESTION.title });
+    await waitFor(() => expect(before).not.toHaveFocus());
+    await userEvent.keyboard("{Escape}");
+    await expect(await answer).toBe(false);
+    await gone();
+    await expect(before).not.toHaveFocus();
+  },
+};
+
 export const DangerUsesTheErrorColorRole: Story = {
   render: () => <span data-testid="error-role" style={{ backgroundColor: roleColor("error") }} />,
   play: async ({ canvas }) => {

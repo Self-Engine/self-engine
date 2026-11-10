@@ -1,12 +1,16 @@
 import type { EditDrawerProps } from "./contributions.ts";
 import { EditDrawerTitleContext } from "./edit-drawer-title.ts";
+import {
+  selectEditId,
+  UnsavedChangesContext,
+  useEditDrawerExits,
+} from "./edit-drawer-exits.tsx";
 import { LazyContribution, lazyComponents } from "./lazy-contribution.tsx";
 import { useCloseOverlayOnPick, useViewSearch, useWriteViewSearch } from "./routing.tsx";
 import { ACTIVE_ENTRY_VARS } from "./navigation-style.ts";
 import { PrimaryAction } from "./primary-action.tsx";
 import { useLingui } from "@lingui/react/macro";
 import type { ShellContribution, ShellView } from "./contributions.ts";
-import type { ViewSearch } from "./view-search.ts";
 import {
   ActionIcon,
   AppShell,
@@ -870,9 +874,6 @@ function ModuleViews({
   );
 }
 
-const selectEditId = (search: ViewSearch) =>
-  typeof search.edit === "string" ? search.edit : undefined;
-
 interface EditTarget {
   readonly module: ShellContribution;
   readonly id: string;
@@ -892,30 +893,40 @@ function ModuleEditDrawer({ module }: { readonly module: ShellContribution | und
   if (target && (target.module !== shown?.module || target.id !== shown.id)) setShown(target);
   // Held here, below the page, so that naming the entry does not reach the View.
   const [entryTitle, setEntryTitle] = useState<string>();
+  const exits = useEditDrawerExits(target && `${target.module.id}/${target.id}`);
+  // Only writes the address. Whether that may happen is the guard's to decide.
   const close = () =>
     write((search) => {
       const { edit: _edit, ...rest } = search;
       return rest;
     });
+  const done = () => {
+    exits.finish();
+    close();
+  };
   return (
     <Drawer
       {...frame}
+      // Mantine's Drawer and Modal both listen on the window, so one Esc would reach both.
+      closeOnEscape={!exits.questionOpen}
       opened={target !== undefined}
       onClose={close}
       position="right"
       title={entryTitle ?? (shown && i18n._(shown.module.name))}
-      closeButtonProps={{ "aria-label": t`Close editor` }}
+      closeButtonProps={{ "aria-label": t`Close editor`, ref: exits.closeButton }}
       styles={EDIT_DRAWER_STYLES}
     >
       {shown?.module.editDrawer && (
         <EditDrawerTitleContext value={setEntryTitle}>
-          <LazyContribution
-            key={`${shown.module.id}/${shown.id}`}
-            components={loadedDrawer}
-            fallback={<LoadingState />}
-            load={shown.module.editDrawer}
-            props={{ id: shown.id, onClose: close }}
-          />
+          <UnsavedChangesContext value={exits.register}>
+            <LazyContribution
+              key={`${shown.module.id}/${shown.id}`}
+              components={loadedDrawer}
+              fallback={<LoadingState />}
+              load={shown.module.editDrawer}
+              props={{ id: shown.id, onCancel: close, onDone: done }}
+            />
+          </UnsavedChangesContext>
         </EditDrawerTitleContext>
       )}
     </Drawer>

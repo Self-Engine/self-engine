@@ -44,21 +44,33 @@ export interface ConfirmOptions {
   readonly title: ReactNode;
   readonly message: ReactNode;
   readonly confirmLabel: ReactNode;
+  /** Says what the safe answer keeps. "Cancel" where left out. */
+  readonly cancelLabel?: ReactNode;
   /** For an action that cannot be taken back. */
   readonly danger?: boolean;
+  /** False when the caller decides where the focus goes after the answer. */
+  readonly returnFocus?: boolean;
 }
 
 /** Asks a yes-or-no question from anywhere, also outside a component. */
-export function confirm({ title, message, confirmLabel, danger }: ConfirmOptions) {
+export function confirm({
+  title,
+  message,
+  confirmLabel,
+  cancelLabel,
+  danger,
+  returnFocus = true,
+}: ConfirmOptions) {
   return new Promise<boolean>((resolve) => {
     modals.openConfirmModal({
       title,
+      returnFocus,
       children: message,
       confirmProps: {
         children: confirmLabel,
         ...(danger && { color: roleColor("error"), c: roleColor("onError") }),
       },
-      cancelProps: { "data-autofocus": true },
+      cancelProps: { "data-autofocus": true, ...(cancelLabel && { children: cancelLabel }) },
       onConfirm: () => resolve(true),
       // Mantine reports Esc and a click beside the dialog only here. After a confirmation it
       // comes second, and the answer is already given.

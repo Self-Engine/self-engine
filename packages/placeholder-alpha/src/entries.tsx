@@ -1,23 +1,25 @@
 import { useLingui } from "@lingui/react/macro";
 import { Stack, Button } from "@mantine/core";
 import { useWriteViewSearch } from "@self-engine/shell";
-import { clients, useClientFilter } from "./sample-data.ts";
+import { nameOf, useEntries } from "./entry-store.ts";
+import { useClientFilter } from "./sample-data.ts";
 
 export default function Entries() {
   const { i18n } = useLingui();
   const write = useWriteViewSearch();
   const client = useClientFilter();
+  const entries = useEntries();
   return (
     <Stack>
-      {clients
+      {entries
         .filter(({ id }) => !client || client === id)
-        .map(({ id, entry }) => (
+        .map((entry) => (
           <Button
             variant="subtle"
-            key={id}
-            onClick={() => write((search) => ({ ...search, edit: id }))}
+            key={entry.id}
+            onClick={() => write((search) => ({ ...search, edit: entry.id }))}
           >
-            {i18n._(entry)}
+            {nameOf(entry, i18n)}
           </Button>
         ))}
     </Stack>

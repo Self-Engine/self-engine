@@ -121,7 +121,7 @@ export const DrawerLoadFailureStaysInItsFrame: Story = {
     await expect(await dialog.findByRole("alert")).toHaveTextContent("could not be loaded");
     await expectShellIntact(canvas);
     await userEvent.click(dialog.getByRole("button", { name: "Try again" }));
-    await expect(await dialog.findByRole("button", { name: "Close entry" })).toBeVisible();
+    await expect(await dialog.findByRole("button", { name: "Cancel" })).toBeVisible();
     await expect(dialog.getByText("studio")).toBeVisible();
     await expect(dialog.queryByRole("alert")).toBeNull();
   },

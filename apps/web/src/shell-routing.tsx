@@ -1,4 +1,4 @@
-import { useMemo, type ComponentPropsWithRef } from "react";
+import { useCallback, useMemo, type ComponentPropsWithRef } from "react";
 import {
   retainedViewSearch,
   type ShellRouting,
@@ -6,7 +6,14 @@ import {
   type ViewSearch,
   type WriteViewSearch,
 } from "@self-engine/shell";
-import { type AnyRouter, createLink, useRouter, useRouterState } from "@tanstack/react-router";
+import {
+  type AnyRouter,
+  createLink,
+  type ShouldBlockFn,
+  useBlocker,
+  useRouter,
+  useRouterState,
+} from "@tanstack/react-router";
 import { findModule } from "./modules.ts";
 
 /** What the Shell shows: the page being left, until the next one has loaded. */
@@ -60,6 +67,14 @@ export const ROUTING: ShellRouting = {
   useAddress: () => {
     const router = useRouter();
     return useMemo(() => createAddress(router), [router]);
+  },
+  useLeaveGuard: (guard, enabled) => {
+    const shouldBlockFn = useCallback<ShouldBlockFn>(
+      async ({ current, next }) => !(await guard({ current, next })),
+      [guard],
+    );
+    // A blocked unload is cancelled silently in Electron and would stand in the way of quitting.
+    useBlocker({ shouldBlockFn, disabled: !enabled, enableBeforeUnload: false });
   },
   Link: ({ to, search, target, "aria-current": current, ...props }) => {
     const location = useRouterState({ select: visibleLocation });
