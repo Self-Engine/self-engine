@@ -115,7 +115,7 @@ export const DrawerLoadFailureStaysInItsFrame: Story = {
     expectingReportedErrors(spyOnModule.editDrawer().mockRejectedValueOnce(offline)),
   play: async ({ canvas, canvasElement }) => {
     const body = page(canvasElement);
-    const dialog = within(await body.findByRole("dialog", { name: "Editor" }));
+    const dialog = within(await body.findByRole("dialog", { name: "Placeholder Alpha" }));
     await expect(await dialog.findByRole("alert")).toHaveTextContent("could not be loaded");
     await expectShellIntact(canvas);
     await userEvent.click(dialog.getByRole("button", { name: "Try again" }));
@@ -280,7 +280,7 @@ export const ClosingTheEditorReturnsFocus: Story = {
     const body = page(canvasElement);
     const entry = await canvas.findByRole("button", { name: "Studio work" });
     await userEvent.click(entry);
-    await body.findByRole("dialog", { name: "Editor" });
+    await body.findByRole("dialog", { name: "Studio work" });
     await userEvent.click(body.getByRole("button", { name: "Close editor" }));
     await waitFor(() => expect(body.queryByRole("dialog")).toBeNull());
     await waitFor(() => expect(entry).toHaveFocus());

@@ -245,7 +245,9 @@ export const EditDrawer: Story = {
   play: async ({ canvas, canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     await userEvent.click(await canvas.findByRole("button", { name: "Studio work" }));
-    await expect(await page.findByRole("dialog")).toHaveTextContent("studio");
+    await expect(await page.findByRole("dialog", { name: "Studio work" })).toHaveTextContent(
+      "studio",
+    );
     await userEvent.click(page.getByRole("button", { name: "Close editor" }));
     await waitFor(() => expect(page.queryByRole("dialog")).toBeNull());
     await userEvent.click(canvas.getByRole("button", { name: "Reload router" }));
@@ -266,7 +268,9 @@ export const EditDeepLink: Story = {
   args: { address: "/placeholder-alpha/archive?edit=linked-entry" },
   play: async ({ canvas, canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
-    await expect(await page.findByRole("dialog")).toHaveTextContent("linked-entry");
+    await expect(await page.findByRole("dialog", { name: "Placeholder Alpha" })).toHaveTextContent(
+      "linked-entry",
+    );
     await userEvent.click(canvas.getByRole("button", { name: "Reload router" }));
     await expect(await page.findByRole("dialog")).toHaveTextContent("linked-entry");
     await userEvent.click(canvas.getByRole("link", { name: "Placeholder Beta" }));
@@ -294,7 +298,7 @@ export const PrimaryAction: Story = {
   play: async ({ canvas, canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     await userEvent.click(await canvas.findByRole("button", { name: "New entry" }));
-    await expect(await page.findByRole("dialog")).toHaveTextContent("new");
+    await expect(await page.findByRole("dialog", { name: "New entry" })).toHaveTextContent("new");
     await userEvent.click(page.getByRole("button", { name: "Close editor" }));
     await waitFor(() => expect(page.queryByRole("dialog")).toBeNull());
     await expect(canvas.getByText("Studio work")).toBeVisible();

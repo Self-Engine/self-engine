@@ -6,7 +6,13 @@ import {
   createRouter,
   RouterProvider,
 } from "@tanstack/react-router";
-import { Shell, useViewSearch, useWriteViewSearch } from "@self-engine/shell";
+import {
+  type EditDrawerProps,
+  Shell,
+  useEditDrawerTitle,
+  useViewSearch,
+  useWriteViewSearch,
+} from "@self-engine/shell";
 import { memo, type ReactNode, useState } from "react";
 import { contribution as alpha } from "@self-engine/placeholder-alpha";
 import { modules, settings } from "./modules.ts";
@@ -114,11 +120,17 @@ export const SelectorReturningAFreshObject: Story = {
 };
 
 const viewRendered = fn();
-const loadDrawer = fn(async () => ({
-  default: ({ id, onClose }: { id: string; onClose: () => void }) => (
-    <button onClick={onClose}>Close {id}</button>
-  ),
-}));
+function TitledDrawer({ id, onClose }: EditDrawerProps) {
+  const [name, setName] = useState("First name");
+  useEditDrawerTitle(name);
+  return (
+    <>
+      <button onClick={() => setName("Second name")}>Rename {id}</button>
+      <button onClick={onClose}>Close {id}</button>
+    </>
+  );
+}
+const loadDrawer = fn(async () => ({ default: TitledDrawer }));
 function ObservedView() {
   const client = useViewSearch((search) => search.client);
   viewRendered(client);
@@ -157,7 +169,10 @@ export const DrawerIsolation: Story = {
     await expect(loadDrawer).not.toHaveBeenCalled();
     viewRendered.mockClear();
     await userEvent.click(canvas.getByRole("button", { name: "Edit sample" }));
-    await userEvent.click(await page.findByRole("button", { name: "Close sample" }));
+    await page.findByRole("dialog", { name: "First name" });
+    await userEvent.click(await page.findByRole("button", { name: "Rename sample" }));
+    await page.findByRole("dialog", { name: "Second name" });
+    await userEvent.click(page.getByRole("button", { name: "Close sample" }));
     await waitFor(() => expect(page.queryByRole("dialog")).toBeNull());
     await expect(loadDrawer).toHaveBeenCalledTimes(1);
     await expect(viewRendered).not.toHaveBeenCalled();
