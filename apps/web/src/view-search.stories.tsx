@@ -7,7 +7,7 @@ import {
   RouterProvider,
 } from "@tanstack/react-router";
 import { Shell, useViewSearch, useWriteViewSearch } from "@self-engine/shell";
-import { memo, useState } from "react";
+import { memo, type ReactNode, useState } from "react";
 import { contribution as alpha } from "@self-engine/placeholder-alpha";
 import { modules, settings } from "./modules.ts";
 import { settingsStore } from "./settings-store.ts";
@@ -36,7 +36,7 @@ function SearchControls() {
     </>
   );
 }
-function SearchStory() {
+function SearchStory({ children = <SearchControls /> }: { readonly children?: ReactNode }) {
   const [router] = useState(() => {
     const root = createRootRoute({
       component: () => (
@@ -47,7 +47,7 @@ function SearchStory() {
           activeView={undefined}
           routing={ROUTING}
         >
-          <SearchControls />
+          {children}
         </Shell>
       ),
     });
@@ -79,6 +79,37 @@ export const SelectiveUpdates: Story = {
       expect(canvas.getByLabelText("Selected client")).toHaveTextContent("garden"),
     );
     await expect(rendered).toHaveBeenCalledWith("garden");
+  },
+};
+
+const objectRendered = fn();
+function ObjectSelection() {
+  const { client } = useViewSearch((search) => ({ client: search.client }));
+  objectRendered(client);
+  const write = useWriteViewSearch();
+  return (
+    <>
+      <output aria-label="Selected client">{String(client)}</output>
+      <button onClick={() => write((search) => ({ ...search, client: "garden" }))}>Change</button>
+    </>
+  );
+}
+
+/** Without a snapshot per search, a fresh object would never settle and React would give up. */
+export const SelectorReturningAFreshObject: Story = {
+  render: () => (
+    <SearchStory>
+      <ObjectSelection />
+    </SearchStory>
+  ),
+  beforeEach: () => objectRendered.mockClear(),
+  play: async ({ canvas }) => {
+    await expect(await canvas.findByLabelText("Selected client")).toHaveTextContent("studio");
+    await userEvent.click(canvas.getByRole("button", { name: "Change" }));
+    await waitFor(() =>
+      expect(canvas.getByLabelText("Selected client")).toHaveTextContent("garden"),
+    );
+    await expect(objectRendered.mock.calls.length).toBeLessThan(6);
   },
 };
 

@@ -1,4 +1,4 @@
-import { ROUTING } from "../shell-routing.tsx";
+import { ROUTING, visibleLocation } from "../shell-routing.tsx";
 import { Badge } from "@mantine/core";
 import { BrandMark } from "@self-engine/icons/brand-mark";
 import { useSetting } from "@self-engine/settings/react";
@@ -20,9 +20,7 @@ export const Route = createRootRoute({
 });
 
 function RootLayout() {
-  const pathname = useRouterState({
-    select: (state) => state.resolvedLocation?.pathname ?? state.location.pathname,
-  });
+  const { pathname } = useRouterState({ select: visibleLocation });
   const badge = channelBadge(window);
   const [, moduleId, viewId] = pathname.split("/");
   const activeModule = findModule(moduleId ?? "");

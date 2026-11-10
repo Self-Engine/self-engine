@@ -23,6 +23,7 @@ This narrows D37: file-based routing stays for the app's own pages, but module V
 - A new module is a new package plus one line in the app's module list.
 - Link targets are not checked at compile time, so `/projects/actve` compiles. A test over all contributions requires unique, URL-safe ids, and an unknown address ends in the not-found path.
 - The router validates no search parameters of a View. Filters live in the address as search parameters whose meaning the module defines and checks in its own loaded code. Views and Groups reach them through a hook from `@self-engine/shell` that takes a selector, so a change to another parameter, such as opening the edit drawer, does not redraw them.
+- `edit` is the exception: the app reads and writes it as exact text, because the Shell hands it to a module as an opaque id, and `?edit=1e5` must not arrive as a number.
 - A deeper address than two parts would need a splat on the generic route. The contract would not change.
 
 ## Considered Options

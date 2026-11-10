@@ -22,6 +22,19 @@ describe("contribution addresses", () => {
     ])
       expect(() => validateContributions(contributions)).toThrow();
   });
+  test("accepts the same command id in two modules", () => {
+    const commands = [{ id: "create-entry" }];
+    expect(() =>
+      validateContributions([
+        { ...moduleWith("alpha"), commands },
+        { ...moduleWith("beta"), commands },
+      ]),
+    ).not.toThrow();
+  });
+  test("rejects duplicate and unsafe command ids", () => {
+    for (const commands of [[{ id: "create" }, { id: "create" }], [{ id: "not/safe" }]])
+      expect(() => validateContributions([{ ...moduleWith("beta"), commands }])).toThrow();
+  });
 });
 
 const create = {
@@ -44,6 +57,7 @@ test("keeps the declared command reference and rejects a lookalike action", () =
   const contribution = defineContribution({ ...base, commands: [create], primaryAction: create });
   expect(contribution.primaryAction).toBe(create);
   expect(contribution.commands).toEqual([create]);
+  expect(() => validateContributions([contribution])).not.toThrow();
   // Structural typing cannot distinguish two objects with identical fields.
   expect(() =>
     defineContribution({ ...base, commands: [create], primaryAction: { ...create } }),

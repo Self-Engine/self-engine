@@ -1,4 +1,4 @@
-import type { ViewSearch } from "./view-search.ts";
+import type { WriteViewSearch } from "./routing.tsx";
 import type { MessageDescriptor } from "@lingui/core";
 import type { ColorSetId } from "@self-engine/theme";
 import type { ComponentType } from "react";
@@ -17,7 +17,8 @@ export interface EditDrawerProps {
 
 /** The address capability available to loaded command code, without a router dependency. */
 export interface CommandContext {
-  readonly writeSearch: (update: (search: ViewSearch) => ViewSearch) => void;
+  /** Writes to the page the command was started on, and does nothing once the user has left it. */
+  readonly writeSearch: WriteViewSearch;
 }
 
 export interface ShellCommand {
@@ -86,6 +87,7 @@ export function defineContribution<const Commands extends readonly ShellCommand[
 interface AddressContribution {
   readonly id: string;
   readonly views: readonly { readonly id: string }[];
+  readonly commands?: readonly { readonly id: string }[] | undefined;
 }
 
 /** Checks the complete app registry, including Settings, before addresses are used. */
@@ -103,5 +105,6 @@ export function validateContributions(contributions: readonly AddressContributio
   for (const contribution of contributions) {
     if (contribution.views.length === 0) throw new Error(`Module ${contribution.id} needs a View`);
     checkIds(contribution.views);
+    checkIds(contribution.commands ?? []);
   }
 }

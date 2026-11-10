@@ -1,7 +1,7 @@
 import { ACTIVE_ENTRY_VARS } from "./navigation-style.ts";
 import { NavLink, Stack, Text } from "@mantine/core";
 import type { ReactNode } from "react";
-import { useShellRouting } from "./routing.tsx";
+import { useCloseOverlayOnPick, useShellRouting } from "./routing.tsx";
 import type { ViewSearch } from "./view-search.ts";
 
 export function ShellGroup({
@@ -31,6 +31,7 @@ export function ShellGroupEntry({
   readonly active?: boolean;
 }) {
   const { Link } = useShellRouting();
+  const closeOverlay = useCloseOverlayOnPick();
   return (
     <NavLink
       component={Link}
@@ -40,6 +41,7 @@ export function ShellGroupEntry({
       vars={ACTIVE_ENTRY_VARS}
       active={active}
       aria-current={active ? "true" : undefined}
+      onClick={closeOverlay}
     />
   );
 }

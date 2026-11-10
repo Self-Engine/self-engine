@@ -1,13 +1,15 @@
 import type { EditDrawerProps } from "./contributions.ts";
-import { useViewSearch, useWriteViewSearch } from "./routing.tsx";
+import { LazyContribution, lazyComponents } from "./lazy-contribution.tsx";
+import { useCloseOverlayOnPick, useViewSearch, useWriteViewSearch } from "./routing.tsx";
 import { ACTIVE_ENTRY_VARS } from "./navigation-style.ts";
+import { PrimaryAction } from "./primary-action.tsx";
 import { useLingui } from "@lingui/react/macro";
 import type { ShellContribution, ShellView } from "./contributions.ts";
+import type { ViewSearch } from "./view-search.ts";
 import {
   ActionIcon,
   AppShell,
   Box,
-  Button,
   Burger,
   Drawer,
   Group,
@@ -31,8 +33,7 @@ import {
   type MouseEvent,
   type ReactNode,
   useEffect,
-  lazy,
-  Suspense,
+  useState,
 } from "react";
 import {
   GAP,
@@ -48,7 +49,12 @@ import {
   SHELL_STANDARD_MODULE_SIDEBAR_WIDTH,
   useModuleSidebarResize,
 } from "./use-module-sidebar-resize.ts";
-import { ShellRoutingContext, type ShellRouting, useShellRouting } from "./routing.tsx";
+import {
+  NavigationOverlayContext,
+  ShellRoutingContext,
+  type ShellRouting,
+  useShellRouting,
+} from "./routing.tsx";
 import { useNavbarResize } from "./use-navbar-resize.ts";
 
 const CONTENT_HEADER_HEIGHT = 48;
@@ -509,25 +515,27 @@ function NavigationDrawer({
     >
       <Drawer.Overlay />
       <Drawer.Content>
-        {isPhone ? (
-          phoneContent
-        ) : (
-          <>
-            {hasTopStrip && (
-              <DrawerTopStrip logo={logo} reserveWindowButtons={reserveWindowButtons} />
-            )}
-            <Group align="stretch" flex={1} gap={0} mih={0} wrap="nowrap">
-              <Box aria-label={t`Modules`} component="nav" p="xs" style={DRAWER_NAVBAR_STYLE}>
-                <Box aria-hidden style={{ ...NAVBAR_DIVIDER_STYLE, top: 0 }} />
-                <NavbarColumn appearance="iconsOnly" navigation={navigation} />
-              </Box>
-              <Stack flex={1} gap={0} miw={0}>
-                {header}
-                {scrollingBody}
-              </Stack>
-            </Group>
-          </>
-        )}
+        <NavigationOverlayContext value={onClose}>
+          {isPhone ? (
+            phoneContent
+          ) : (
+            <>
+              {hasTopStrip && (
+                <DrawerTopStrip logo={logo} reserveWindowButtons={reserveWindowButtons} />
+              )}
+              <Group align="stretch" flex={1} gap={0} mih={0} wrap="nowrap">
+                <Box aria-label={t`Modules`} component="nav" p="xs" style={DRAWER_NAVBAR_STYLE}>
+                  <Box aria-hidden style={{ ...NAVBAR_DIVIDER_STYLE, top: 0 }} />
+                  <NavbarColumn appearance="iconsOnly" navigation={navigation} />
+                </Box>
+                <Stack flex={1} gap={0} miw={0}>
+                  {header}
+                  {scrollingBody}
+                </Stack>
+              </Group>
+            </>
+          )}
+        </NavigationOverlayContext>
       </Drawer.Content>
     </Drawer.Root>
   );
@@ -791,7 +799,7 @@ export function Shell({ contributions, settings, activeModule, activeView, ...pr
       activeEntryId={activeModule?.id ?? ""}
       activeColor={activeModule?.color}
       pageTitle={activeView ? i18n._(activeView.title) : ""}
-      editDrawer={activeView && <ModuleEditDrawer module={activeModule} />}
+      editDrawer={<ModuleEditDrawer module={activeView && activeModule} />}
       moduleSidebar={
         <ModuleViews module={activeModule} activeView={activeView} routing={props.routing} />
       }
@@ -799,21 +807,9 @@ export function Shell({ contributions, settings, activeModule, activeView, ...pr
   );
 }
 
-/** Keep lazy component identity stable across search and Shell updates. */
-function lazyComponentCache<Props extends object>() {
-  type Load = () => Promise<{ readonly default: ComponentType<Props> }>;
-  const components = new WeakMap<Load, ComponentType<Props>>();
-  return (load: Load): ComponentType<Props> => {
-    let component = components.get(load);
-    if (!component) {
-      component = lazy(load);
-      components.set(load, component);
-    }
-    return component;
-  };
-}
-const loadedGroups = lazyComponentCache<Record<string, never>>();
-const loadedDrawer = lazyComponentCache<EditDrawerProps>();
+const loadedGroups = lazyComponents<Record<string, never>>();
+const loadedDrawer = lazyComponents<EditDrawerProps>();
+const NO_PROPS = {};
 
 function ModuleViews({
   module,
@@ -825,20 +821,12 @@ function ModuleViews({
   readonly routing: ShellRouting;
 }) {
   const { i18n } = useLingui();
-  const writeSearch = useWriteViewSearch();
+  const closeOverlay = useCloseOverlayOnPick();
   if (!module) return null;
-  const Groups = module.groups && loadedGroups(module.groups);
   return (
     <Stack gap="xs" data-module-color={module.color}>
       {module.primaryAction && (
-        <Button
-          onClick={async () => {
-            const command = await module.primaryAction!.load();
-            await command.default({ writeSearch });
-          }}
-        >
-          {i18n._(module.primaryAction.label)}
-        </Button>
+        <PrimaryAction key={`${module.id}/${activeView?.id}`} action={module.primaryAction} />
       )}
       {module.views.map((view) => (
         <NavLink
@@ -848,41 +836,63 @@ function ModuleViews({
           label={i18n._(view.title)}
           active={view.id === activeView?.id}
           aria-current={view.id === activeView?.id ? "page" : undefined}
+          onClick={closeOverlay}
           vars={ACTIVE_ENTRY_VARS}
         />
       ))}
-      {Groups && (
-        <Suspense fallback={null}>
-          <Groups />
-        </Suspense>
+      {module.groups && (
+        <LazyContribution
+          key={module.id}
+          components={loadedGroups}
+          load={module.groups}
+          props={NO_PROPS}
+        />
       )}
     </Stack>
   );
 }
 
+const selectEditId = (search: ViewSearch) =>
+  typeof search.edit === "string" ? search.edit : undefined;
+
+interface EditTarget {
+  readonly module: ShellContribution;
+  readonly id: string;
+}
+
+/** The frame stays mounted whatever is open, so that closing can animate and return the focus. */
 function ModuleEditDrawer({ module }: { readonly module: ShellContribution | undefined }) {
   const { t } = useLingui();
-  const id = useViewSearch((search) => (typeof search.edit === "string" ? search.edit : undefined));
+  const id = useViewSearch(selectEditId);
   const write = useWriteViewSearch();
+  const target: EditTarget | undefined =
+    module?.editDrawer && id !== undefined ? { module, id } : undefined;
+  // The last target stays while the frame animates out. Drawer renders no children while closed,
+  // so the module's code still only loads when it first opens.
+  const [shown, setShown] = useState(target);
+  if (target && (target.module !== shown?.module || target.id !== shown.id)) setShown(target);
   const close = () =>
     write((search) => {
       const { edit: _edit, ...rest } = search;
       return rest;
     });
-  const load = module?.editDrawer;
-  if (!load || id === undefined) return null;
-  const Content = loadedDrawer(load);
   return (
     <Drawer
-      opened
+      opened={target !== undefined}
       onClose={close}
       position="right"
+      title={t`Editor`}
       closeButtonProps={{ "aria-label": t`Close editor` }}
       styles={DRAWER_STYLES}
     >
-      <Suspense fallback={null}>
-        <Content id={id} onClose={close} />
-      </Suspense>
+      {shown?.module.editDrawer && (
+        <LazyContribution
+          key={`${shown.module.id}/${shown.id}`}
+          components={loadedDrawer}
+          load={shown.module.editDrawer}
+          props={{ id: shown.id, onClose: close }}
+        />
+      )}
     </Drawer>
   );
 }

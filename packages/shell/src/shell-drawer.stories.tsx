@@ -1,7 +1,14 @@
 import type { Meta } from "@storybook/react-vite";
 import { expect, screen, userEvent, waitFor, within } from "storybook/test";
-import { Shell, type ShellProps } from "./index.ts";
 import {
+  Shell,
+  ShellGroup,
+  ShellGroupEntry,
+  type ShellContribution,
+  type ShellProps,
+} from "./index.ts";
+import {
+  ENTRIES,
   LOGO,
   LOGO_AND_WINDOW_BUTTONS,
   STRIP_HEIGHT,
@@ -153,6 +160,58 @@ export const SelectingAnEntryLeavesTheDrawerOpen: Story = {
     );
     await expect(screen.getByRole("dialog", { name: "Module Sidebar" })).toBe(drawer);
     await expect(within(drawer).getByText("Sidebar content")).toBeVisible();
+  },
+};
+
+const MODULE_WITH_GROUPS: ShellContribution = {
+  ...ENTRIES[1]!,
+  groups: async () => ({
+    default: () => (
+      <ShellGroup title="Clients">
+        <ShellGroupEntry label="Studio" search={{ client: "studio" }} />
+      </ShellGroup>
+    ),
+  }),
+};
+
+/** A View or Group entry finishes the job the overlay was opened for, unlike a module entry. */
+export const PickingAViewClosesTheDrawer: Story = {
+  ...atViewport("narrow"),
+  play: async ({ canvas }) => {
+    const drawer = await openDrawer(canvas);
+    await userEvent.click(within(drawer).getByRole("link", { name: "Sidebar content" }));
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+  },
+};
+
+export const PickingAGroupEntryClosesTheDrawer: Story = {
+  ...atViewport("narrow"),
+  args: { activeModule: MODULE_WITH_GROUPS },
+  play: async ({ canvas }) => {
+    const drawer = await openDrawer(canvas);
+    await userEvent.click(await within(drawer).findByRole("link", { name: "Studio" }));
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+  },
+};
+
+export const PickingAViewClosesThePhoneDrawer: Story = {
+  ...atViewport("phone"),
+  play: async ({ canvas }) => {
+    const drawer = await openDrawer(canvas, "Open module sidebar");
+    await userEvent.click(within(drawer).getByRole("link", { name: "Sidebar content" }));
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+  },
+};
+
+export const OpeningAViewInANewTabLeavesTheDrawerOpen: Story = {
+  ...atViewport("narrow"),
+  play: async ({ canvas }) => {
+    const drawer = await openDrawer(canvas);
+    const user = userEvent.setup();
+    await user.keyboard("{Meta>}");
+    await user.click(within(drawer).getByRole("link", { name: "Sidebar content" }));
+    await user.keyboard("{/Meta}");
+    await expect(screen.getByRole("dialog", { name: "Module Sidebar" })).toBe(drawer);
   },
 };
 

@@ -13,6 +13,8 @@ import {
   type ShellContribution,
   type ShellProps,
   type ShellRouting,
+  type ViewAddress,
+  type ViewSearch,
 } from "./index.ts";
 
 export type Canvas = ReturnType<typeof within>;
@@ -66,13 +68,41 @@ export function atViewport(value: keyof typeof VIEWPORTS) {
   return { globals: { viewport: { value, isRotated: false } } };
 }
 
-const routing: ShellRouting = {
-  useSearch: (selector) => selector({}),
-  useWriteSearch: () => () => {},
-  Link: ({ to, ...props }) => (
-    <a {...props} href={to} onClick={(event) => event.preventDefault()} />
-  ),
-};
+/** An address that lives in the Story and changes at once, without a router. */
+export function storyRouting(initial: ViewSearch = {}): ShellRouting & {
+  readonly address: ViewAddress;
+} {
+  let search = initial;
+  const listeners = new Set<() => void>();
+  const address: ViewAddress = {
+    subscribe: (listener) => {
+      listeners.add(listener);
+      return () => listeners.delete(listener);
+    },
+    search: () => search,
+    writeSearch: (update) => {
+      search = update(search);
+      for (const listener of listeners) listener();
+    },
+    scopedWriteSearch: () => address.writeSearch,
+  };
+  return {
+    address,
+    useAddress: () => address,
+    Link: ({ to, search: _search, onClick, ...props }) => (
+      <a
+        {...props}
+        href={to}
+        onClick={(event) => {
+          event.preventDefault();
+          onClick?.(event);
+        }}
+      />
+    ),
+  };
+}
+
+const routing = storyRouting();
 
 /** What every Story file of the Shell spreads into its `meta`, next to its own `title`. */
 export const shellMeta = {
