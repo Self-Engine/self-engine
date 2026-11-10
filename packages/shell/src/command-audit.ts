@@ -1,5 +1,5 @@
 import { type CommandOwner, commandRegister, type RegisteredCommand } from "./commands.ts";
-import { UNDO_COMMAND_ID, UNDO_SHORTCUT } from "./shell-commands.ts";
+import { PALETTE_SHORTCUT, UNDO_COMMAND_ID, UNDO_SHORTCUT } from "./shell-commands.ts";
 
 /**
  * Keys the app must not take: copy, paste, cut, select-all and undo, the Command Palette's ⌘K, and
@@ -11,7 +11,7 @@ const RESERVED_SHORTCUTS = [
   "Mod+X",
   "Mod+A",
   "Mod+Z",
-  "Mod+K",
+  PALETTE_SHORTCUT,
   "Mod+Shift+Z",
   "Mod+Y",
   "Mod+W",

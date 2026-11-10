@@ -11,7 +11,7 @@ import {
 } from "@tanstack/react-hotkeys";
 import { useCommandPalette } from "./command-palette-state.tsx";
 import { commandRegister, type CommandOwner, type RegisteredCommand } from "./commands.ts";
-import { UNDO_COMMAND_ID } from "./shell-commands.ts";
+import { PALETTE_SHORTCUT, UNDO_COMMAND_ID } from "./shell-commands.ts";
 import { useStartCommand } from "./start-command.tsx";
 
 export type ReadShortcut =
@@ -51,7 +51,7 @@ export function ShortcutBindings({ owners, activeModuleId }: ShortcutBindingsPro
   useHotkeys(
     [
       {
-        hotkey: "Mod+K",
+        hotkey: PALETTE_SHORTCUT,
         callback: () => {
           if (!quiet()) palette.open();
         },
