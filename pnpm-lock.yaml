@@ -321,6 +321,9 @@ importers:
       dependency-cruiser:
         specifier: 'catalog:'
         version: 18.7.2
+      playwright:
+        specifier: 'catalog:'
+        version: 1.65.0
       typescript:
         specifier: 'catalog:'
         version: 7.0.2

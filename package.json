@@ -16,7 +16,8 @@
     "plan:overview": "node scripts/plan-overview.ts",
     "storybook": "pnpm --filter @self-engine/component-catalog storybook",
     "test": "vp test run",
-    "verify": "node scripts/verify.ts"
+    "verify": "node scripts/verify.ts",
+    "renders": "node scripts/measure-renders.ts"
   },
   "devDependencies": {
     "@lingui/cli": "catalog:",
@@ -29,6 +30,7 @@
     "@swc/core": "catalog:",
     "@types/node": "catalog:",
     "dependency-cruiser": "catalog:",
+    "playwright": "catalog:",
     "typescript": "catalog:",
     "vite-plus": "catalog:"
   },
