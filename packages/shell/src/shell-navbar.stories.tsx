@@ -374,7 +374,7 @@ export const EscapeCancelsANavbarDrag: Story = {
   },
 };
 
-export const EntriesKeepTheirGeometryWhenTheLabelGoes: Story = {
+export const EntriesKeepTheirHeightAndIconAxisWhenTheLabelGoes: Story = {
   ...atViewport("wide"),
   ...resizable,
   play: async ({ canvas }) => {
@@ -382,7 +382,10 @@ export const EntriesKeepTheirGeometryWhenTheLabelGoes: Story = {
     const entry = () => within(navbar).getByRole("link", { name: "Projects" });
     const geometry = () => {
       const icon = entry().querySelector("svg")!.getBoundingClientRect();
-      return { height: entry().getBoundingClientRect().height, iconLeft: icon.left };
+      return {
+        height: entry().getBoundingClientRect().height,
+        iconCenter: icon.left + icon.width / 2,
+      };
     };
     const labelled = geometry();
     await userEvent.dblClick(navbarHandle(canvas));
