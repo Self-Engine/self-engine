@@ -207,7 +207,7 @@ export const PaletteLabelsFollowTheLanguage: Story = {
     await expect(
       await canvas.findByRole("heading", { name: "Sprachbeispiel", level: 1 }),
     ).toBeVisible();
-    const german = await openPalette();
+    const german = await openPalette("Befehlspalette");
     await expect(await german.findByRole("link", { name: "Sprachbeispiel" })).toBeVisible();
   },
 };

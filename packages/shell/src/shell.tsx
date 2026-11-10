@@ -1,8 +1,5 @@
-import {
-  CommandPalette,
-  CommandPaletteProvider,
-  useCommandPaletteOpen,
-} from "./command-palette.tsx";
+import { CommandPalette } from "./command-palette.tsx";
+import { CommandPaletteProvider, useCommandPaletteOpen } from "./command-palette-state.tsx";
 import { viewPath, type EditDrawerProps } from "./contributions.ts";
 import { EditDrawerTitleContext } from "./edit-drawer-title.ts";
 import { selectEditId, UnsavedChangesContext, useEditDrawerExits } from "./edit-drawer-exits.tsx";

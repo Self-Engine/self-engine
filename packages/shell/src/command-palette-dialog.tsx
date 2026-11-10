@@ -8,7 +8,7 @@ import {
   type CommandPaletteProps,
   useCommandPalette,
   useCommandPaletteOpen,
-} from "./command-palette.tsx";
+} from "./command-palette-state.tsx";
 import { NOT_WINDOW_DRAG_STYLE } from "./navigation-style.ts";
 import {
   isViewEntry,

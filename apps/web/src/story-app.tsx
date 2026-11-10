@@ -45,15 +45,15 @@ export function modKeyIsLeftToTheBrowser(target: Element, key: string) {
 }
 
 /** The bindings and the palette's code load late, so an early press is lost. */
-export async function openPalette(): Promise<ReturnType<typeof within>> {
+export async function openPalette(name = "Command palette"): Promise<ReturnType<typeof within>> {
   await waitFor(
     async () => {
       await pressWithMod("k");
-      await expect(screen.getByRole("dialog", { name: "Command palette" })).toBeVisible();
+      await expect(screen.getByRole("dialog", { name })).toBeVisible();
     },
     { timeout: 10_000 },
   );
-  return within(screen.getByRole("dialog", { name: "Command palette" }));
+  return within(screen.getByRole("dialog", { name }));
 }
 
 export const paletteGone = () =>

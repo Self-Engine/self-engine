@@ -9,7 +9,7 @@ import {
   useHotkeys,
   validateHotkey,
 } from "@tanstack/react-hotkeys";
-import { useCommandPalette } from "./command-palette.tsx";
+import { useCommandPalette } from "./command-palette-state.tsx";
 import { commandRegister, type CommandOwner, type RegisteredCommand } from "./commands.ts";
 import { UNDO_COMMAND_ID } from "./shell-commands.ts";
 import { useStartCommand } from "./start-command.tsx";
