@@ -39,7 +39,7 @@ Icon-Verzeichnis und reine Einstiege ohne React (D151).
 
 ## Issues
 
-Spec: [#103](https://github.com/Self-Engine/self-engine-next/issues/103). Jedes Paket außer #107 wird
+Spec: [#103](https://github.com/Self-Engine/self-engine/issues/103). Jedes Paket außer #107 wird
 vor dem Bau gegrillt und trägt bis dahin `needs-grilling` (D155), danach wird es in Teil-Tickets
 geschnitten. Gebaut wird in Nummernreihenfolge.
 

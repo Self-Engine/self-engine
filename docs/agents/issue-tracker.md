@@ -1,6 +1,6 @@
 # Issue tracker: GitHub
 
-Issues and specs for this repo live as GitHub issues in **`Self-Engine/self-engine-next`**. Use the `gh` CLI for all operations.
+Issues and specs for this repo live as GitHub issues in **`Self-Engine/self-engine`**. Use the `gh` CLI for all operations.
 
 ## Conventions
 

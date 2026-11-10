@@ -823,6 +823,13 @@ Grundlage: [`research-layer-3-core.md`](research-layer-3-core.md).
   als baubar. Layer-Specs wie #103 tragen kein Bau-Label. _Verworfen:_ immer grillen (kostet Zeit
   für Fälle wie #25).
 
+### Runde 24 (2026-11-10): Umzug in die Organisation
+
+- **D161 Das Repo heißt `Self-Engine/self-engine`, schon vor dem Stichtag (ändert D52).** Mit dem
+  Umzug in die Organisation (D107) ist der Name dort frei. Die alte App bleibt unverändert unter
+  `GwydionBr/self-engine`, ihre Desktop-Updates, CI und Vercel hängen also weiter am alten Namen.
+  Die Umbenennung der alten App in `self-engine-legacy` entfällt damit.
+
 ## Fakten
 
 - Self-Engine hat Abo-Infrastruktur über Clerk Billing (`apps/web/src/features/billing`),

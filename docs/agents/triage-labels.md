@@ -1,6 +1,6 @@
 # Triage Labels
 
-The skills speak in terms of five canonical triage roles. This repo uses the canonical label strings unchanged: the role name _is_ the label. All five exist in `Self-Engine/self-engine-next`; apply them, never create variants.
+The skills speak in terms of five canonical triage roles. This repo uses the canonical label strings unchanged: the role name _is_ the label. All five exist in `Self-Engine/self-engine`; apply them, never create variants.
 
 | Label in mattpocock/skills | Label in our tracker | Meaning                                  |
 | -------------------------- | -------------------- | ---------------------------------------- |

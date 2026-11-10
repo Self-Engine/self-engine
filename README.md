@@ -1,4 +1,4 @@
-# self-engine-next (working title)
+# Self-Engine
 
 A local-first, open-source app for organizing life and work — the planned successor of
 Self-Engine.
