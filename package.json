@@ -13,6 +13,7 @@
     "ensure:electron": "node scripts/ensure-electron.ts",
     "nightly:local": "node apps/desktop/src/nightly-local.ts",
     "package:desktop": "node apps/desktop/src/package-channel.ts",
+    "plan:overview": "node scripts/plan-overview.ts",
     "storybook": "pnpm --filter @self-engine/component-catalog storybook",
     "test": "vp test run",
     "verify": "node scripts/verify.ts"
