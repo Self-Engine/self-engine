@@ -89,13 +89,19 @@ export function storyRouting(initial: ViewSearch = {}): ShellRouting & {
   return {
     address,
     useAddress: () => address,
-    Link: ({ to, search: _search, onClick, ...props }) => (
+    Link: ({ to, search: nextSearch, onClick, ...props }) => (
       <a
         {...props}
         href={to}
         onClick={(event) => {
-          event.preventDefault();
           onClick?.(event);
+          if (event.defaultPrevented) return;
+          event.preventDefault();
+          if (nextSearch !== undefined) {
+            address.writeSearch((previous) =>
+              typeof nextSearch === "function" ? nextSearch(previous) : nextSearch,
+            );
+          }
         }}
       />
     ),

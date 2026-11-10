@@ -161,7 +161,7 @@ export const ViewLoadFailureCanBeRetried: Story = {
   },
 };
 
-const heldCommand = held<Awaited<ReturnType<ShellCommand["load"]>>>();
+let heldCommand: ReturnType<typeof held<Awaited<ReturnType<ShellCommand["load"]>>>>;
 const openEditor = {
   default: ({ writeSearch }: Parameters<Awaited<ReturnType<ShellCommand["load"]>>["default"]>[0]) =>
     writeSearch((search) => ({ ...search, edit: "new" })),
@@ -169,6 +169,7 @@ const openEditor = {
 
 export const SlowActionDoesNotReachTheNextView: Story = {
   beforeEach: () => {
+    heldCommand = held();
     const command = spyOnModule.command().mockReturnValue(heldCommand.promise);
     return () => command.mockRestore();
   },
@@ -183,11 +184,12 @@ export const SlowActionDoesNotReachTheNextView: Story = {
   },
 };
 
-const heldCommandStaying = held<Awaited<ReturnType<ShellCommand["load"]>>>();
+let heldCommandStaying: ReturnType<typeof held<Awaited<ReturnType<ShellCommand["load"]>>>>;
 
 export const SlowActionStillOpensWhenTheViewStays: Story = {
   args: { address: "/placeholder-alpha/overview?client=studio" },
   beforeEach: () => {
+    heldCommandStaying = held();
     const command = spyOnModule.command().mockReturnValue(heldCommandStaying.promise);
     return () => command.mockRestore();
   },
@@ -205,11 +207,13 @@ export const SlowActionStillOpensWhenTheViewStays: Story = {
 };
 
 const spyOnBeta = () => spyOn(beta.views[0] as { load: ShellView["load"] }, "load");
-const heldBetaForCommand = held<Awaited<ReturnType<ShellView["load"]>>>();
-const heldCommandBeforeLeaving = held<Awaited<ReturnType<ShellCommand["load"]>>>();
+let heldBetaForCommand: ReturnType<typeof held<Awaited<ReturnType<ShellView["load"]>>>>;
+let heldCommandBeforeLeaving: ReturnType<typeof held<Awaited<ReturnType<ShellCommand["load"]>>>>;
 
 export const SlowActionDoesNotInterruptALeavingNavigation: Story = {
   beforeEach: () => {
+    heldBetaForCommand = held();
+    heldCommandBeforeLeaving = held();
     const view = spyOnBeta().mockReturnValue(heldBetaForCommand.promise);
     const command = spyOnModule.command().mockReturnValue(heldCommandBeforeLeaving.promise);
     return () => {
@@ -233,11 +237,12 @@ export const SlowActionDoesNotInterruptALeavingNavigation: Story = {
 };
 
 const BetaStandIn: ComponentType = () => <p>Beta stand-in</p>;
-const heldBeta = held<Awaited<ReturnType<ShellView["load"]>>>();
+let heldBeta: ReturnType<typeof held<Awaited<ReturnType<ShellView["load"]>>>>;
 
 export const LinksFollowTheVisiblePageDuringASlowNavigation: Story = {
   args: { address: "/placeholder-alpha/overview?client=studio" },
   beforeEach: () => {
+    heldBeta = held();
     const view = spyOnBeta().mockReturnValue(heldBeta.promise);
     return () => view.mockRestore();
   },
