@@ -8,6 +8,7 @@ Pro Runde werden nur 2–3 Fragen gestellt; die Nummern sind stabil.
   - ✅ Übergang: wiederholbarer Import, Wechsel am Stichtag (D12)
   - ✅ Mobile + Sync sind Pflicht vor dem Stichtag (D14)
   - ✅ Schichtenfolge als Rahmen, jede Schicht mit eigener Vertiefung (D25)
+    - ✅ Arbeitsablauf von der Schicht bis zum PR (D155–D160) → docs/agents/workflow.md
     - ✅ Schicht 0 Repo-Fundament entschieden (D28–D49) → 03-layer-0-foundation.md
     - ✅ Schicht 1 Design-System + App-Hülle entschieden (D54–D82) → 04-layer-1-shell.md
       - ✅ Optik, Hülle, Desktop-Gefühl, Styling, Farben, kleine Fenster, rechte Seite, Theming, Einstellungen, Drawer, i18n (D54–D66)
@@ -24,7 +25,19 @@ Pro Runde werden nur 2–3 Fragen gestellt; die Nummern sind stabil.
       - ✅ utilityProcess, Kysely + SQL-Migrationen, TanStack Query + tablesChanged (D90–D92)
       - ✅ oRPC über MessagePort, Sicherung, Tests gegen echtes SQLite (D93–D95)
       - ✅ Keine eigene Verschlüsselung, nur Desktop, Issues (D96–D98)
-    - ⏳ Schicht 3 Gemeinsamer Kern
+    - ✅ Schicht 3 Gemeinsamer Kern entschieden (D143–D154) → 06-layer-3-core.md, Spec #103, Issues #104–#111
+      - ✅ Zuschnitt: `time`, `money`, `spaces`, `tags`, kein `core` (D143)
+      - ✅ Spaces: ein persönlicher Space, `space_id` als Port-Kontext (D144)
+      - ✅ Geldbeträge und Stundensätze (D145)
+      - ✅ Geld: Eingabe, Formatierung, Benennung, Zod-Schemas (D146)
+      - ✅ Zeit: eine Zeitzone ohne Server (D147)
+      - ✅ Zeit: Übernahme von `packages/time`, Uhr, Lint-Regeln (D148)
+      - ✅ Zeit: Ergänzungen aus unabhängiger Prüfung (D149)
+      - ✅ Tags (D150)
+      - ✅ Icon und Farbe an Entitäten (D151)
+      - ✅ Abläufe über mehrere Module, Brücken (D152)
+      - ✅ Einstellungen des Kerns: Standardwährung, Region (D153) → 06-layer-3-core.md
+      - ✅ Zerlegung in acht Arbeitspakete, jedes wird einzeln gegrillt (D154)
     - ⏳ Schicht 4 Projekte + Zeit
     - ⏳ Schicht 5 Import
   - ⏳ Reihenfolge nach Schicht 5 bis zum Stichtag (weitere Module, Sync, Mobile)
