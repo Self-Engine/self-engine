@@ -2,20 +2,24 @@ import { notifications } from "@mantine/notifications";
 import { roleColor } from "@self-engine/theme";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { expect, fn, screen, spyOn, userEvent, waitFor, within } from "storybook/test";
-import { confirm, notifyError, notifyUndoable } from "./index.ts";
+import { confirm, type ConfirmOptions, notifyError, notifyUndoable } from "./index.ts";
 
 const meta = {
   title: "UI/Feedback",
-  render: () => null,
+  render: () => <></>,
   // The notices live in Mantine's store, which outlives a story.
   beforeEach: () => notifications.clean(),
 } satisfies Meta;
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-const QUESTION = { title: "Delete for good?", message: "This cannot be undone.", confirmLabel: "Delete" };
+const QUESTION = {
+  title: "Delete for good?",
+  message: "This cannot be undone.",
+  confirmLabel: "Delete",
+};
 
-async function ask(options = QUESTION) {
+async function ask(options: typeof QUESTION & Pick<ConfirmOptions, "danger"> = QUESTION) {
   const answer = confirm(options);
   const dialog = await screen.findByRole("dialog", { name: options.title });
   return { answer, dialog: within(dialog) };
@@ -86,8 +90,7 @@ export const DangerUsesTheErrorColorRole: Story = {
   },
 };
 
-const noticeGone = (text: string) =>
-  waitFor(() => expect(screen.queryByText(text)).toBeNull());
+const noticeGone = (text: string) => waitFor(() => expect(screen.queryByText(text)).toBeNull());
 
 const noticeWith = async (text: string) => {
   const notice = (await screen.findByText(text)).closest<HTMLElement>('[role="alert"]');
@@ -95,8 +98,7 @@ const noticeWith = async (text: string) => {
   return notice;
 };
 
-const undoButton = (notice: HTMLElement) =>
-  within(notice).getByRole("button", { name: "Undo" });
+const undoButton = (notice: HTMLElement) => within(notice).getByRole("button", { name: "Undo" });
 
 /** The timers a notice waits on, run when the story says so. Other timers stay real: the queries poll with them. */
 let heldNoticeTimers = new Map<number, () => void>();
@@ -106,10 +108,7 @@ function holdNoticeTimers() {
   let nextId = -1000;
   const realSet = window.setTimeout.bind(window);
   const realClear = window.clearTimeout.bind(window);
-  const set = spyOn(window, "setTimeout").mockImplementation(((
-    run: () => void,
-    delay?: number,
-  ) => {
+  const set = spyOn(window, "setTimeout").mockImplementation(((run: () => void, delay?: number) => {
     if (delay !== 8000) return realSet(run, delay);
     nextId -= 1;
     heldNoticeTimers.set(nextId, run);

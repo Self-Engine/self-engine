@@ -29,7 +29,11 @@ export function FeedbackHost({ children }: { readonly children: ReactNode }) {
   return (
     <ModalsProvider labels={{ confirm: "", cancel: t`Cancel` }}>
       <MantineThemeProvider inherit theme={closeLabel}>
-        <Notifications autoClose={NOTICE_MS} position="bottom-right" style={CLEAR_OF_THE_BOTTOM_BAR} />
+        <Notifications
+          autoClose={NOTICE_MS}
+          position="bottom-right"
+          style={CLEAR_OF_THE_BOTTOM_BAR}
+        />
       </MantineThemeProvider>
       {children}
     </ModalsProvider>
@@ -81,6 +85,7 @@ async function runUndo(undo: NotifyUndoableOptions["undo"]) {
   try {
     await undo();
   } catch {
+    // The user is told. Why it failed is the module's to log, since only the module knows.
     notifyError({ message: <Trans>That could not be undone.</Trans> });
   }
 }
