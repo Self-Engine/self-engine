@@ -39,11 +39,20 @@ export interface ErrorStateProps {
   readonly title: ReactNode;
   readonly description?: ReactNode;
   readonly onRetry?: () => void;
+  /** Takes the place of the retry, for a failure that another try cannot mend. */
+  readonly action?: ReactNode;
 }
 
 /** "That failed". Offers another try only when the caller can make one. */
-export function ErrorState({ title, description, onRetry }: ErrorStateProps) {
+export function ErrorState({ title, description, onRetry, action }: ErrorStateProps) {
   const { t } = useLingui();
+  const next =
+    action ??
+    (onRetry && (
+      <Button onClick={onRetry} variant="default">
+        {t`Try again`}
+      </Button>
+    ));
   return (
     <MantineEmptyState
       description={description}
@@ -52,13 +61,7 @@ export function ErrorState({ title, description, onRetry }: ErrorStateProps) {
       title={title}
       vars={ERROR_VARS}
     >
-      {onRetry && (
-        <MantineEmptyState.Actions>
-          <Button onClick={onRetry} variant="default">
-            {t`Try again`}
-          </Button>
-        </MantineEmptyState.Actions>
-      )}
+      {next && <MantineEmptyState.Actions>{next}</MantineEmptyState.Actions>}
     </MantineEmptyState>
   );
 }

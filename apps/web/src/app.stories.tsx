@@ -74,6 +74,8 @@ const meta = {
   ],
   beforeEach: () => {
     const original = window.location.href;
+    // The test runner's query, which the hash parser would add to the last parameter after Back.
+    window.history.replaceState(null, "", window.location.pathname);
     return () => window.history.replaceState(null, "", original);
   },
   args: { address: "/" },
@@ -265,19 +267,19 @@ export const EditDrawer: Story = {
 export const HashEditDrawer: Story = { ...EditDrawer, args: { ...EditDrawer.args, hash: true } };
 
 export const EditDeepLink: Story = {
-  args: { address: "/placeholder-alpha/archive?edit=linked-entry" },
+  args: { address: "/placeholder-alpha/archive?edit=studio" },
   play: async ({ canvas, canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
-    await expect(await page.findByRole("dialog", { name: "Placeholder Alpha" })).toHaveTextContent(
-      "linked-entry",
+    await expect(await page.findByRole("dialog", { name: "Studio work" })).toHaveTextContent(
+      "studio",
     );
     await userEvent.click(canvas.getByRole("button", { name: "Reload router" }));
-    await expect(await page.findByRole("dialog")).toHaveTextContent("linked-entry");
+    await expect(await page.findByRole("dialog")).toHaveTextContent("studio");
     await userEvent.click(canvas.getByRole("link", { name: "Placeholder Beta" }));
     await expectBeta(canvas);
     await waitFor(() => expect(page.queryByRole("dialog")).toBeNull());
     await userEvent.click(canvas.getByRole("button", { name: "Back in history" }));
-    await expect(await page.findByRole("dialog")).toHaveTextContent("linked-entry");
+    await expect(await page.findByRole("dialog")).toHaveTextContent("studio");
   },
 };
 export const HashEditDeepLink: Story = {

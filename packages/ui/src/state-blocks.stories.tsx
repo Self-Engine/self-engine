@@ -51,6 +51,18 @@ export const ErrorWithoutARetryOffersNone: Story = {
   },
 };
 
+const close = fn();
+
+export const ErrorCanOfferItsOwnActionInsteadOfARetry: Story = {
+  render: () => <ErrorState action={<Button onClick={close}>Close</Button>} title="Not found." />,
+  play: async ({ canvas }) => {
+    await expect(canvas.getByRole("alert")).toHaveTextContent("Not found.");
+    await expect(canvas.getAllByRole("button")).toHaveLength(1);
+    await userEvent.click(canvas.getByRole("button", { name: "Close" }));
+    await expect(close).toHaveBeenCalledOnce();
+  },
+};
+
 export const ErrorUsesTheErrorColorRole: Story = {
   render: () => (
     <>

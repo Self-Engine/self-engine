@@ -2,7 +2,12 @@ import type { Meta, StoryObj } from "@storybook/react-vite";
 import { expect, spyOn, userEvent, waitFor, within } from "storybook/test";
 import { contribution as alpha } from "@self-engine/placeholder-alpha";
 import { contribution as beta } from "@self-engine/placeholder-beta";
-import type { ShellCommand, ShellContribution, ShellView } from "@self-engine/shell";
+import type {
+  EditDrawerProps,
+  ShellCommand,
+  ShellContribution,
+  ShellView,
+} from "@self-engine/shell";
 import { createMemoryHistory, RouterProvider } from "@tanstack/react-router";
 import { type ComponentType, useState } from "react";
 import { createAppRouter } from "./app-router.ts";
@@ -338,15 +343,25 @@ export const AllClientsIsCurrentWithoutAFilter: Story = {
   },
 };
 
+const ShowsItsId: ComponentType<EditDrawerProps> = ({ id }) => <p>{id}</p>;
+/** These ids exist nowhere: what matters is that the drawer receives them as written. */
+function drawerShowsItsId() {
+  const load = spyOnModule.editDrawer().mockResolvedValue({ default: ShowsItsId });
+  return () => load.mockRestore();
+}
+
 export const EditIdThatLooksLikeANumber: Story = {
   args: { address: "/placeholder-alpha/overview?edit=42" },
+  beforeEach: drawerShowsItsId,
   play: ({ canvasElement }) => expectEditorShows(canvasElement, "42"),
 };
 export const EditIdInExponentNotation: Story = {
   args: { address: "/placeholder-alpha/overview?edit=1e5" },
+  beforeEach: drawerShowsItsId,
   play: ({ canvasElement }) => expectEditorShows(canvasElement, "1e5"),
 };
 export const EditIdThatLooksLikeABoolean: Story = {
   args: { address: "/placeholder-alpha/overview?edit=true" },
+  beforeEach: drawerShowsItsId,
   play: ({ canvasElement }) => expectEditorShows(canvasElement, "true"),
 };
