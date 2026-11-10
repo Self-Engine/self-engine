@@ -1,6 +1,6 @@
 # Schicht 2: Datenschicht
 
-Stand: 2026-11-08 · Status: **entschieden** (D86–D98) · Recherche:
+Stand: 2026-11-10 · Status: **entschieden** (D86–D98, D133–D142, D187–D196) · Recherche:
 [`research-layer-2-data.md`](research-layer-2-data.md)
 
 ## Entschieden
@@ -20,6 +20,16 @@ Stand: 2026-11-08 · Status: **entschieden** (D86–D98) · Recherche:
 | L2.10 | Verschlüsselung | Keine eigene, OS-Festplattenverschlüsselung; E2E bleibt Q21 (D96) |
 | L2.11 | Plattformen | Nur Desktop, Code plattformneutral (D97) |
 | L2.12 | Issues | Jetzt zerlegen, `layer:2` (D98) |
+| L2.13 | Verträge | Schemas im Modul unter `./contracts`, `contracts` setzt nur zusammen (D187) |
+| L2.14 | Prüfen | Eingaben immer im Datenprozess, Ausgaben nur in Tests und im Dev-Build, der Renderer nie (D188) |
+| L2.15 | Port | Port, Vertrag, Speicher; ein Vertrag pro Modul, der Speicher in zwei Lagen (D189) |
+| L2.16 | Fehler | „Nicht gefunden“ und „Konflikt“ mit Grund, alles andere unerwartet; kein Effect (D190) |
+| L2.17 | Migrationen | D139 bleibt, der Build sammelt die SQL-Dateien ein (D191) |
+| L2.18 | Start | Grenze einmal anheben, Zeitgrenze im Smoke-Test (D192) |
+| L2.19 | Abfragen | Fenster, Seiten, kleine Menge; gerechnet wird im Datenprozess; eine Meldung pro Transaktion (D193) |
+| L2.20 | Zeichnen | Seiten-Listen zeichnen nur Sichtbares, eine Zeile pro Änderung, Warten als Standard (D194) |
+| L2.21 | Kontext | Uhr, Id-Erzeuger und Space als ein Kontext aus dem Datenprozess (D195) |
+| L2.22 | Stories | Feste Antworten statt nachgebautem Speicher (D196) |
 
 ## Aufbau
 
@@ -28,7 +38,7 @@ Renderer (React)
   └─ Modul-Hooks (TanStack Query) ──oRPC über MessagePort──┐
                                                            ▼
 Datenprozess (utilityProcess)
-  ├─ Ports pro Modul: benannte Operationen + Abfragen (Kysely, Zod-Eingaben)
+  ├─ Ports pro Modul: Vertrag im Modul, Speicher in zwei Lagen (D187, D189)
   ├─ nach jedem Commit: tablesChanged([...]) → Renderer invalidiert
   ├─ Migrationen (SQL, nur vorwärts) + Sicherung
   └─ better-sqlite3 (WAL, foreign_keys=ON, …)
@@ -40,7 +50,10 @@ löst dasselbe `tablesChanged` aus (D89).
 
 ## Offen
 
-- oRPC-Server im `utilityProcess` (erste Aufgabe im Datenprozess-Issue)
+- Ob oRPC die Ausgabeprüfung je Build abschalten kann (erste Aufgabe in #32, D188)
+- Warum im Durchstich jede Zeile neu gezeichnet wurde (erste Aufgabe in #33, D194)
+- Effect für Sync und Import (Sync-Phase, D190); Prüfung fremder Zeilen (Sync-Phase, D188)
+- Migrationen im Build von Mobile (D191)
 - Web- und Mobile-Treiber (mit diesen Plattformen)
 - Wahl der Sync-Engine (Sync-Phase, Kriterien in D89), Operations-Protokoll (mit Sync)
 
