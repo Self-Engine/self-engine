@@ -1,6 +1,6 @@
 # Schicht 3: Gemeinsamer Kern
 
-Stand: 2026-11-10 · Status: **entschieden** (D143–D153), Zuschnitt in Issues folgt · Recherche:
+Stand: 2026-11-10 · Status: **entschieden** (D143–D154), Spec #103, Issues #104–#111 · Recherche:
 [`research-layer-3-core.md`](research-layer-3-core.md)
 
 ## Entschieden
@@ -18,6 +18,7 @@ Stand: 2026-11-10 · Status: **entschieden** (D143–D153), Zuschnitt in Issues 
 | L3.9 | Icon, Farbe | Name oder Emoji, Farbsatz-Name, vier neue Farbsätze, kein neues Paket (D151) |
 | L3.10 | Abläufe | Brücken-Pakete über den Modulen, gemeinsame Transaktion, Schutzregeln (D152) |
 | L3.11 | Einstellungen | Region aus der Sprache, Wochenstart, Standardwährung, Deklaration in `contracts` (D153) |
+| L3.12 | Zuschnitt in Issues | Acht Arbeitspakete, jedes wird einzeln gegrillt (D154) |
 
 ## Aufbau
 
@@ -35,6 +36,22 @@ time, money               reine Werte, importieren kein Paket des Repos
 
 Daneben erweitert Schicht 3 die vorhandenen Pakete `theme` und `icons` um Farbsätze, das
 Icon-Verzeichnis und reine Einstiege ohne React (D151).
+
+## Issues
+
+Spec: [#103](https://github.com/GwydionBr/self-engine-next/issues/103). Jedes Paket außer #107 wird
+vor dem Bau gegrillt und danach in Teil-Tickets geschnitten. Gebaut wird in Nummernreihenfolge.
+
+| Issue | Paket | Entscheidungen | Blocked by |
+|---|---|---|---|
+| #104 | `time` mit Uhr und Lint-Regeln | D148, D149 | – |
+| #105 | `money` | D145, D146, D153 | – |
+| #106 | Icon und Farbe an Entitäten | D151 | – |
+| #107 | ADR und Glossar für Brücken | D152 | – |
+| #108 | `spaces` | D144 | #29, #32 |
+| #109 | Einstellungen in der Datenbank (ersetzt #34) | D62, D113 ff. | #33, #108 |
+| #110 | Eine Zeitzone und die Kern-Einstellungen | D147, D153 | #21, #23, #104, #105, #109 |
+| #111 | `tags` mit Brücken der Module | D150 | #33, #108 |
 
 ## Offen
 

@@ -24,7 +24,7 @@ Pro Runde werden nur 2–3 Fragen gestellt; die Nummern sind stabil.
       - ✅ utilityProcess, Kysely + SQL-Migrationen, TanStack Query + tablesChanged (D90–D92)
       - ✅ oRPC über MessagePort, Sicherung, Tests gegen echtes SQLite (D93–D95)
       - ✅ Keine eigene Verschlüsselung, nur Desktop, Issues (D96–D98)
-    - ❓ Schicht 3 Gemeinsamer Kern → research-layer-3-core.md
+    - ✅ Schicht 3 Gemeinsamer Kern entschieden (D143–D154) → 06-layer-3-core.md, Spec #103, Issues #104–#111
       - ✅ Zuschnitt: `time`, `money`, `spaces`, `tags`, kein `core` (D143)
       - ✅ Spaces: ein persönlicher Space, `space_id` als Port-Kontext (D144)
       - ✅ Geldbeträge und Stundensätze (D145)
@@ -36,7 +36,7 @@ Pro Runde werden nur 2–3 Fragen gestellt; die Nummern sind stabil.
       - ✅ Icon und Farbe an Entitäten (D151)
       - ✅ Abläufe über mehrere Module, Brücken (D152)
       - ✅ Einstellungen des Kerns: Standardwährung, Region (D153) → 06-layer-3-core.md
-      - ⏳ Zerlegung in Issues (`layer:3`)
+      - ✅ Zerlegung in acht Arbeitspakete, jedes wird einzeln gegrillt (D154)
     - ⏳ Schicht 4 Projekte + Zeit
     - ⏳ Schicht 5 Import
   - ⏳ Reihenfolge nach Schicht 5 bis zum Stichtag (weitere Module, Sync, Mobile)

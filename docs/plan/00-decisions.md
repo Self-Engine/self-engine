@@ -779,6 +779,14 @@ Grundlage: [`research-layer-3-core.md`](research-layer-3-core.md).
   bleiben in `apps/web`. `formatMoney` hält `Intl.NumberFormat`-Objekte pro Gebietsschema und
   Währung vor. Standard-Stundensatz und Rundung gehören in Schicht 4. _Verworfen:_ eigene
   Regionen-Einstellung sofort, Standardwährung fest auf `USD`, doppelte Deklaration.
+- **D154 (L3.12) Schicht 3 wird in acht Arbeitspakete geschnitten, jedes wird einzeln gegrillt.**
+  Spec #103 mit den Unter-Issues #104 bis #111; aus jedem entstehen nach seinem Grilling Spec und
+  Teil-Tickets, wie bei #14 bis #20 und #30. Nur #107 (ADR und Glossar) braucht kein Grilling. Alle
+  tragen `ready-for-agent` und `layer:3`, die erste Zeile verlangt das Grilling vor dem Bau. #34
+  wird durch #109 ersetzt, weil es eine echte Space-Zeile aus #108 braucht und jedes Issue nur von
+  kleineren Nummern abhängen darf. _Verworfen:_ 13 feine Tickets (dreizehn Grillings, teils für sehr
+  kleine Teile), `needs-triage` statt `ready-for-agent` (nach jedem Grilling Umstellung von Hand),
+  #34 behalten (bräche die Reihenfolge).
 
 ## Fakten
 
