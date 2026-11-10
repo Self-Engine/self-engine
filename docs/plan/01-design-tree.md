@@ -25,6 +25,9 @@ Pro Runde werden nur 2–3 Fragen gestellt; die Nummern sind stabil.
       - ✅ utilityProcess, Kysely + SQL-Migrationen, TanStack Query + tablesChanged (D90–D92)
       - ✅ oRPC über MessagePort, Sicherung, Tests gegen echtes SQLite (D93–D95)
       - ✅ Keine eigene Verschlüsselung, nur Desktop, Issues (D96–D98)
+      - ✅ SQLite, Konventionen und Migrationen (D133–D142, #30)
+      - ✅ Verträge im Modul, Port in zwei Lagen, Fehler, Kontext (D187–D191, D195)
+      - ✅ Begrenzte Abfragen, Zeichnen, Startup-Budget, Stories (D192–D194, D196)
     - ✅ Schicht 3 Gemeinsamer Kern entschieden (D143–D154) → 06-layer-3-core.md, Spec #103, Issues #104–#111
       - ✅ Zuschnitt: `time`, `money`, `spaces`, `tags`, kein `core` (D143)
       - ✅ Spaces: ein persönlicher Space, `space_id` als Port-Kontext (D144)

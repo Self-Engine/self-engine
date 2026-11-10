@@ -5,10 +5,10 @@
 name: Release
 
 on:
-  # Twice a day; a run without changes on main builds nothing. Off unless the repository variable
-  # NIGHTLY_SCHEDULE_ENABLED is 'true' (see the plan job).
+  # Every six hours; a run without changes on main builds nothing. Off unless the repository
+  # variable NIGHTLY_SCHEDULE_ENABLED is 'true' (see the plan job).
   schedule:
-    - cron: "17 2,14 * * *"
+    - cron: "17 */6 * * *"
   workflow_dispatch:
     inputs:
       channel:

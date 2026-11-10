@@ -18,7 +18,7 @@ the stable app.
   installable side by side, each with its own name, icon, app ID (`app.selfengine.desktop`,
   `.nightly`, `.dev`), protocol scheme and data folder. A "copy data from stable" action seeds
   the other channels.
-- **Nightly builds automatically twice a day**, only when `main` changed since the last
+- **Nightly builds automatically every six hours**, only when `main` changed since the last
   nightly; it can also be started by hand. Nightlies are public development builds without
   support, and their release notes say so.
 - **Stable only builds a commit that was already published as a nightly.**
