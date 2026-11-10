@@ -234,6 +234,7 @@ msgstr "Diese Ansicht konnte nicht geladen werden. Bitte versuche es erneut."
 msgid "Try again"
 msgstr "Erneut versuchen"
 
+#: packages/shell/src/shell-commands.ts
 #: packages/ui/src/feedback.tsx
 msgid "Undo"
 msgstr "Rückgängig"
