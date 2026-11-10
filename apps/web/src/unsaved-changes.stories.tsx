@@ -6,7 +6,7 @@ import { useEffect, useState } from "react";
 import { expect, screen, spyOn, userEvent, waitFor, within } from "storybook/test";
 import { createAppRouter } from "./app-router.ts";
 import { settingsStore } from "./settings-store.ts";
-import { editInAddress } from "./story-app.tsx";
+import { editInAddress, pressWithMod } from "./story-app.tsx";
 
 type Canvas = ReturnType<typeof within>;
 
@@ -258,8 +258,7 @@ export const ACommandThatWouldSwapTheEntryAsks: Story = {
   },
 };
 
-const MOD = /mac/i.test(navigator.platform + navigator.userAgent) ? "Meta" : "Control";
-const pressNew = () => userEvent.keyboard(`{${MOD}>}n{/${MOD}}`);
+const pressNew = () => pressWithMod("n");
 const spyOnNewEntry = () => spyOn(alpha.commands![0] as { load: PageCommand["load"] }, "load");
 let newEntry: ReturnType<typeof spyOnNewEntry>;
 

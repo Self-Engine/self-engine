@@ -2,6 +2,7 @@
 
 import { createMemoryHistory, RouterProvider } from "@tanstack/react-router";
 import { useState } from "react";
+import { userEvent } from "storybook/test";
 import { createAppRouter } from "./app-router.ts";
 
 type AppRouter = ReturnType<typeof createAppRouter>;
@@ -18,6 +19,29 @@ export function AppAt({ address }: { readonly address: string }) {
     return lastRouter;
   });
   return <RouterProvider router={router} />;
+}
+
+const ON_MAC = /mac/i.test(navigator.platform + navigator.userAgent);
+const MOD = ON_MAC ? "Meta" : "Control";
+
+/** Presses a shortcut the way this platform spells `Mod`. */
+export const pressWithMod = (key: string) => userEvent.keyboard(`{${MOD}>}${key}{/${MOD}}`);
+
+/**
+ * The key's own events on `target`, because a scripted press with Meta would type the letter into
+ * a field. Says whether the browser may still give the key its usual meaning.
+ */
+export function modKeyIsLeftToTheBrowser(target: Element, key: string) {
+  const init = {
+    key,
+    code: `Key${key.toUpperCase()}`,
+    bubbles: true,
+    cancelable: true,
+    ...(ON_MAC ? { metaKey: true } : { ctrlKey: true }),
+  };
+  const notPrevented = target.dispatchEvent(new KeyboardEvent("keydown", init));
+  target.dispatchEvent(new KeyboardEvent("keyup", init));
+  return notPrevented;
 }
 
 /** The entry that the address opens in the edit drawer. */

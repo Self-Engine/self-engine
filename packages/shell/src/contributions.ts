@@ -79,7 +79,7 @@ interface AddressContribution {
 }
 
 /** The prefix of the Shell's own Commands, so that their full ids stay free for it. */
-const RESERVED_MODULE_ID = "shell";
+export const RESERVED_MODULE_ID = "shell";
 
 /** Checks the complete app registry, including Settings, before addresses are used. */
 export function validateContributions(contributions: readonly AddressContribution[]): void {

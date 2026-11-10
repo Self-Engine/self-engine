@@ -3,7 +3,7 @@ import "@mantine/notifications/styles.css";
 import { Trans, useLingui } from "@lingui/react/macro";
 import { Button, Group, MantineThemeProvider } from "@mantine/core";
 import { modals, ModalsProvider } from "@mantine/modals";
-import { notifications, Notifications } from "@mantine/notifications";
+import { notifications, Notifications, notificationsStore } from "@mantine/notifications";
 import { roleColor } from "@self-engine/theme";
 import type { CSSProperties, ReactNode } from "react";
 
@@ -114,6 +114,9 @@ async function runUndo(undo: NotifyUndoableOptions["undo"]) {
   }
 }
 
+/** What each open undoable notice would do if taken back, by the id of the notice. */
+const undoOffers = new Map<string, () => void>();
+
 /** Reports something that already happened and offers to take it back. */
 export function notifyUndoable({ message, undo }: NotifyUndoableOptions) {
   let taken = false;
@@ -133,5 +136,19 @@ export function notifyUndoable({ message, undo }: NotifyUndoableOptions) {
         </Button>
       </Group>
     ),
+    onClose: () => undoOffers.delete(id),
   });
+  undoOffers.set(id, takeBack);
+}
+
+/**
+ * Takes back the most recent undoable notice on screen, and does nothing when there is none.
+ * Asks Mantine's store what is on screen: a notice leaves it the moment it is hidden, even while
+ * it still slides out, and a notice that is queued behind the limit has not been shown yet.
+ */
+export function undoLatest() {
+  const latest = notificationsStore
+    .getState()
+    .notifications.findLast(({ id }) => id !== undefined && undoOffers.has(id));
+  if (latest?.id !== undefined) undoOffers.get(latest.id)?.();
 }
