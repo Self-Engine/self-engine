@@ -830,8 +830,9 @@ Grundlage: [`research-layer-3-core.md`](research-layer-3-core.md).
   `GwydionBr/self-engine`, ihre Desktop-Updates, CI und Vercel hängen also weiter am alten Namen.
   Die Umbenennung der alten App in `self-engine-legacy` entfällt damit.
 - **D162 Das Repo wird öffentlich, nimmt aber vorerst keine fremden Beiträge an.** Issues und PRs
-  anlegen dürfen nur Collaborators, ein befristetes Interaction Limit sperrt zusätzlich Kommentare.
+  anlegen dürfen nur Collaborators. Kommentare auf bestehenden Issues und PRs bleiben möglich.
   Ob es ein CLA oder DCO braucht, wird erst entschieden, bevor fremde Beiträge erlaubt werden.
+  _Verworfen:_ ein Interaction Limit „Collaborators only“, weil CodeRabbit damit nicht mehr antwortet.
 - **D163 Nightlies sind öffentliche Entwicklungs-Builds und entstehen zweimal am Tag (ändert D110).**
   Gebaut wird weiter nur, wenn sich `main` geändert hat. Release-Notizen und README sagen, dass es
   keine Unterstützung gibt. Sie gelten nicht als öffentliche Version im Sinne von D100; das ist erst
