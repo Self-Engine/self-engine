@@ -36,7 +36,11 @@
           "title": "Sync",
           "note": "Pflicht vor dem Stichtag (D14). Engine, Konflikte und Q21 sind offen."
         },
-        { "title": "Mobile", "note": "Pflicht vor dem Stichtag (D14)." }
+        { "title": "Mobile", "note": "Pflicht vor dem Stichtag (D14)." },
+        {
+          "title": "Papierkorb und endgültiges Löschen",
+          "note": "Fristen pro Datenart sind offen. Bis dahin löscht die App nie von selbst (D172)."
+        }
       ]
     }
   ]
