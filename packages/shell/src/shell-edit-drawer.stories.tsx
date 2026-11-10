@@ -111,7 +111,9 @@ export const ANoticeSitsAboveTheBottomBarAndTheDrawer: Story = {
     await waitFor(async () => {
       const { bottom, left, top, width } = notice.getBoundingClientRect();
       await expect(bottom).toBeLessThanOrEqual(bottomBar.getBoundingClientRect().top);
-      await expect(notice.contains(document.elementFromPoint(left + width / 2, top + 4))).toBe(true);
+      await expect(notice.contains(document.elementFromPoint(left + width / 2, top + 4))).toBe(
+        true,
+      );
     });
     await userEvent.click(within(notice as HTMLElement).getByRole("button", { name: "Undo" }));
     await waitFor(() => expect(screen.queryByText("Entry deleted")).toBeNull());
