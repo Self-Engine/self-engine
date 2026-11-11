@@ -1,18 +1,22 @@
 import { msg } from "@lingui/core/macro";
-import { SettingsIcon } from "@self-engine/icons";
 import { contribution as alpha } from "@self-engine/placeholder-alpha";
 import { contribution as beta } from "@self-engine/placeholder-beta";
+import { createSettingsArea } from "@self-engine/settings-area";
 import { type ShellContribution, validateContributions } from "@self-engine/shell";
+import { settingsStore } from "./settings-store.ts";
 
 export const modules: readonly ShellContribution[] = [beta, alpha];
 
-// #23 replaces these two temporary sections.
-export const settings = {
-  id: "settings",
-  name: msg`Settings`,
-  icon: SettingsIcon,
-  color: "grape",
+const settingsArea = createSettingsArea({ store: settingsStore });
+
+/**
+ * The settings area, plus two throwaway Views of the app that stay reachable until the slices
+ * that replace them remove them: #160 the theme preview, #161 the language sample.
+ */
+export const settings: ShellContribution = {
+  ...settingsArea,
   views: [
+    ...settingsArea.views,
     { id: "theme-preview", title: msg`Theme preview`, load: () => import("./theme-preview.tsx") },
     {
       id: "language-sample",
@@ -20,7 +24,7 @@ export const settings = {
       load: () => import("./language-sample.tsx"),
     },
   ],
-} satisfies ShellContribution;
+};
 
 export const contributions = [...modules, settings];
 validateContributions(contributions);

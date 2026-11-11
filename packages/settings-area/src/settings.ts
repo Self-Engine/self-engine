@@ -1,5 +1,5 @@
-// The seven appearance Settings. They live in the app, the only place that knows both the
-// settings package and the theme package.
+// The declarations of the Settings this area owns (D202). An entry of its own without interface
+// code, because the app reads these Settings before the first render.
 
 import {
   defineSetting,

@@ -23,10 +23,18 @@ msgstr "Beispieleintrag hinzufügen"
 msgid "All clients"
 msgstr "Alle Kunden"
 
+#: packages/settings-area/src/index.ts
+msgid "Appearance"
+msgstr "Darstellung"
+
 #: packages/placeholder-alpha/src/index.ts
 msgctxt "View title"
 msgid "Archive"
 msgstr "Archiv"
+
+#: packages/settings-area/src/rows.tsx
+msgid "Background Tint"
+msgstr "Hintergrundtönung"
 
 #: packages/placeholder-alpha/src/edit-drawer.tsx
 #: packages/ui/src/feedback.tsx
@@ -62,9 +70,36 @@ msgstr "Hinweis schließen"
 msgid "Collapse module sidebar"
 msgstr "Modul-Sidebar einklappen"
 
+#: packages/settings-area/src/rows.tsx
+msgid "Color Mode"
+msgstr "Farbmodus"
+
+#: packages/settings-area/src/rows.tsx
+msgid "Color the app's outermost background slightly with the Accent."
+msgstr "Färbt den äußersten Hintergrund der App leicht mit der Akzentfarbe."
+
+#: packages/settings-area/src/rows.tsx
+msgctxt "Density"
+msgid "Comfortable"
+msgstr "Komfortabel"
+
 #: packages/shell/src/command-palette-dialog.tsx
 msgid "Command palette"
 msgstr "Befehlspalette"
+
+#: packages/settings-area/src/rows.tsx
+msgctxt "Density"
+msgid "Compact"
+msgstr "Kompakt"
+
+#: packages/settings-area/src/rows.tsx
+msgctxt "Color Mode"
+msgid "Dark"
+msgstr "Dunkel"
+
+#: packages/settings-area/src/rows.tsx
+msgid "Dark mode"
+msgstr "Dunkelmodus"
 
 #: packages/placeholder-alpha/src/edit-drawer.tsx
 #: packages/placeholder-alpha/src/entries.tsx
@@ -78,6 +113,10 @@ msgstr "{name} löschen"
 #: packages/placeholder-alpha/src/delete-with-undo.tsx
 msgid "Deleted"
 msgstr "Gelöscht"
+
+#: packages/settings-area/src/rows.tsx
+msgid "Density"
+msgstr "Dichte"
 
 #: packages/shell/src/edit-drawer-exits.tsx
 msgid "Discard"
@@ -103,6 +142,14 @@ msgstr "Modul-Sidebar ausklappen"
 msgid "Flaky work"
 msgstr "Wackelige Arbeit"
 
+#: packages/settings-area/src/rows.tsx
+msgid "Font scale"
+msgstr "Schriftgröße"
+
+#: packages/settings-area/src/rows.tsx
+msgid "Font size"
+msgstr "Schriftgrad"
+
 #: packages/placeholder-alpha/src/sample-data.ts
 msgid "Garden"
 msgstr "Garten"
@@ -115,6 +162,10 @@ msgstr "Gartenarbeit"
 msgid "Hello {name}, nice to see you."
 msgstr "Hallo {name}, schön, dich zu sehen."
 
+#: packages/settings-area/src/rows.tsx
+msgid "How tightly lists and controls are laid out. The size of the text stays the same."
+msgstr "Wie eng Listen und Bedienelemente angeordnet sind. Die Textgröße bleibt gleich."
+
 #: packages/shell/src/edit-drawer-exits.tsx
 msgid "Keep editing"
 msgstr "Weiter bearbeiten"
@@ -122,6 +173,15 @@ msgstr "Weiter bearbeiten"
 #: apps/web/src/modules.ts
 msgid "Language sample"
 msgstr "Sprachbeispiel"
+
+#: packages/settings-area/src/rows.tsx
+msgctxt "Color Mode"
+msgid "Light"
+msgstr "Hell"
+
+#: packages/settings-area/src/rows.tsx
+msgid "Light mode"
+msgstr "Hellmodus"
 
 #: packages/ui/src/state-blocks.tsx
 msgid "Loading"
@@ -139,11 +199,19 @@ msgstr "Module"
 msgid "Name"
 msgstr "Name"
 
+#: packages/settings-area/src/rows.tsx
+msgid "Neutral background"
+msgstr "Neutraler Hintergrund"
+
 #: packages/placeholder-alpha/src/edit-drawer.tsx
 #: packages/placeholder-alpha/src/entries.tsx
 #: packages/placeholder-alpha/src/index.ts
 msgid "New entry"
 msgstr "Neuer Eintrag"
+
+#: packages/settings-area/src/rows.tsx
+msgid "Night"
+msgstr "Nacht"
 
 #: packages/placeholder-alpha/src/entries.tsx
 msgid "No entries here"
@@ -186,6 +254,10 @@ msgstr "Breite der Modul-Sidebar ändern"
 msgid "Resize navbar"
 msgstr "Breite der Navbar ändern"
 
+#: packages/settings-area/src/rows.tsx
+msgid "Row height"
+msgstr "Zeilenhöhe"
+
 #: packages/placeholder-alpha/src/edit-drawer.tsx
 msgid "Save"
 msgstr "Speichern"
@@ -202,9 +274,17 @@ msgstr "Befehle und Ansichten suchen"
 msgid "Search…"
 msgstr "Suchen…"
 
-#: apps/web/src/modules.ts
+#: packages/settings-area/src/index.ts
 msgid "Settings"
 msgstr "Einstellungen"
+
+#: packages/settings-area/src/rows.tsx
+msgid "Show the app light or dark, or follow the system."
+msgstr "Zeigt die App hell oder dunkel oder folgt dem System."
+
+#: packages/settings-area/src/rows.tsx
+msgid "Spacing"
+msgstr "Abstände"
 
 #: packages/placeholder-alpha/src/sample-data.ts
 msgid "Studio"
@@ -213,6 +293,15 @@ msgstr "Studio"
 #: packages/placeholder-alpha/src/sample-data.ts
 msgid "Studio work"
 msgstr "Studioarbeit"
+
+#: packages/settings-area/src/rows.tsx
+msgctxt "Color Mode"
+msgid "System"
+msgstr "System"
+
+#: packages/settings-area/src/rows.tsx
+msgid "Text size"
+msgstr "Textgröße"
 
 #: packages/ui/src/feedback.tsx
 msgid "That could not be undone."
@@ -229,6 +318,10 @@ msgstr "Die Sprache konnte nicht geladen werden. Bitte versuche es noch einmal."
 #: packages/placeholder-beta/src/overview.tsx
 msgid "The minimal module View."
 msgstr "Die minimale Modulansicht."
+
+#: packages/settings-area/src/rows.tsx
+msgid "The size of the text in the whole app."
+msgstr "Wie groß der Text in der ganzen App ist."
 
 #: apps/web/src/modules.ts
 msgid "Theme preview"
@@ -266,3 +359,7 @@ msgstr "Was du hier geändert hast, geht verloren."
 #: apps/web/src/language-sample.tsx
 msgid "Your name"
 msgstr "Dein Name"
+
+#: packages/settings-area/src/rows.tsx
+msgid "Zoom"
+msgstr "Zoom"

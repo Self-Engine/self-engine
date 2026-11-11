@@ -6,7 +6,7 @@ import { FeedbackHost } from "@self-engine/ui";
 import { RouterProvider } from "@tanstack/react-router";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
-import { PreviewAppearance } from "./preview-appearance.tsx";
+import { AppearanceProvider } from "./appearance.tsx";
 import { PreviewLanguage } from "./preview-language.tsx";
 import { router } from "./router.ts";
 import { settingsStore } from "./settings-store.ts";
@@ -26,11 +26,11 @@ await activateLanguage(i18n, language);
 createRoot(container).render(
   <StrictMode>
     <PreviewLanguage i18n={i18n} initialLanguage={language}>
-      <PreviewAppearance>
+      <AppearanceProvider>
         <FeedbackHost>
           <RouterProvider router={router} />
         </FeedbackHost>
-      </PreviewAppearance>
+      </AppearanceProvider>
     </PreviewLanguage>
   </StrictMode>,
 );

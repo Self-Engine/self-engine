@@ -37,6 +37,13 @@ function collectConsoleErrors(): void {
   };
 }
 
+/**
+ * The value of the story parameter `appearance` for a whole-app story that brings the app's own
+ * theme provider and feedback host. A document may hold only one `MantineProvider`, so the
+ * Component Catalog leaves its own out, and the toolbar's appearance switches do nothing there.
+ */
+const APP_APPEARANCE = "app";
+
 const preview: Preview = {
   globalTypes,
   initialGlobals,
@@ -49,13 +56,17 @@ const preview: Preview = {
     },
   ],
   decorators: [
-    (Story, { globals }) => (
+    (Story, { globals, parameters }) => (
       <LanguageProvider i18n={i18n} language={languageOf(globals)}>
-        <ThemeProvider appearance={appearanceOf(globals)} catalog={BUILT_IN_THEMES}>
-          <FeedbackHost>
-            <Story />
-          </FeedbackHost>
-        </ThemeProvider>
+        {parameters["appearance"] === APP_APPEARANCE ? (
+          <Story />
+        ) : (
+          <ThemeProvider appearance={appearanceOf(globals)} catalog={BUILT_IN_THEMES}>
+            <FeedbackHost>
+              <Story />
+            </FeedbackHost>
+          </ThemeProvider>
+        )}
       </LanguageProvider>
     ),
   ],

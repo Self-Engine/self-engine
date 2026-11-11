@@ -13,7 +13,7 @@ import {
   resolveColorMode,
 } from "@self-engine/theme";
 import { describe, expect, it } from "vite-plus/test";
-import { APPEARANCE_SETTINGS, appearanceChanges } from "./appearance-settings.ts";
+import { APPEARANCE_SETTINGS, appearanceChanges } from "./settings.ts";
 
 type Stored = Readonly<Partial<Record<keyof Appearance, JsonValue>>>;
 

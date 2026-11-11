@@ -1,25 +1,12 @@
-// Throwaway page with the switches that change the appearance of the real app. Everything to look
-// at lives in the Component Catalog. #23 removes the page.
+// Throwaway page with the Theme and Accent switches, which have no Settings Row yet. #160 replaces
+// it with the rows and removes the page.
 
-import { SegmentedControl, Stack, Switch, Title } from "@mantine/core";
-import {
-  ACCENT_IDS,
-  BUILT_IN_THEMES,
-  type ColorMode,
-  DENSITIES,
-  type Density,
-  FONT_SCALES,
-  type FontScale,
-  FROM_THEME,
-} from "@self-engine/theme";
+import { SegmentedControl, Stack, Title } from "@mantine/core";
+import { appearanceChanges } from "@self-engine/settings-area/settings";
+import { ACCENT_IDS, type Appearance, BUILT_IN_THEMES, FROM_THEME } from "@self-engine/theme";
 import type { ReactNode } from "react";
-import { usePreviewAppearance } from "./preview-appearance.tsx";
-
-const COLOR_MODE_OPTIONS: { label: string; value: ColorMode }[] = [
-  { label: "Light", value: "light" },
-  { label: "Dark", value: "dark" },
-  { label: "System", value: "system" },
-];
+import { useAppearance } from "./appearance.tsx";
+import { settingsStore } from "./settings-store.ts";
 
 const ACCENT_OPTIONS = [
   { label: "From Theme", value: FROM_THEME },
@@ -31,10 +18,9 @@ const THEME_OPTIONS = Object.values(BUILT_IN_THEMES).map(({ id, name }) => ({
   value: id,
 }));
 
-const FONT_SCALE_OPTIONS = FONT_SCALES.map((step) => ({
-  label: `${step} %`,
-  value: String(step),
-}));
+function changeAppearance(changed: Partial<Appearance>): void {
+  settingsStore.writeAll(appearanceChanges(changed));
+}
 
 function Section({ title, children }: { readonly title: string; readonly children: ReactNode }) {
   return (
@@ -48,34 +34,9 @@ function Section({ title, children }: { readonly title: string; readonly childre
 }
 
 export default function ThemePreviewPage() {
-  const [appearance, changeAppearance] = usePreviewAppearance();
+  const appearance = useAppearance();
   return (
     <Stack>
-      <Section title="Color Mode">
-        <SegmentedControl
-          data={COLOR_MODE_OPTIONS}
-          onChange={(value) => {
-            changeAppearance({ colorMode: value as ColorMode });
-          }}
-          value={appearance.colorMode}
-        />
-      </Section>
-      <Section title="Density and font scale">
-        <SegmentedControl
-          data={[...DENSITIES]}
-          onChange={(value) => {
-            changeAppearance({ density: value as Density });
-          }}
-          value={appearance.density}
-        />
-        <SegmentedControl
-          data={FONT_SCALE_OPTIONS}
-          onChange={(value) => {
-            changeAppearance({ fontScale: Number(value) as FontScale });
-          }}
-          value={String(appearance.fontScale)}
-        />
-      </Section>
       <Section title="Light Theme">
         <SegmentedControl
           data={THEME_OPTIONS}
@@ -92,15 +53,6 @@ export default function ThemePreviewPage() {
             changeAppearance({ darkTheme });
           }}
           value={appearance.darkTheme}
-        />
-      </Section>
-      <Section title="Background Tint">
-        <Switch
-          checked={appearance.backgroundTint}
-          label="Background Tint"
-          onChange={(event) => {
-            changeAppearance({ backgroundTint: event.currentTarget.checked });
-          }}
         />
       </Section>
       <Section title="Accent">

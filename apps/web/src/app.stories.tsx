@@ -98,7 +98,7 @@ export const StartAndNavigate: Story = {
     await expectBeta(canvas);
     await userEvent.click(canvas.getByRole("link", { name: "Settings" }));
     await expect(
-      await canvas.findByRole("heading", { name: "Theme preview", level: 1 }),
+      await canvas.findByRole("heading", { name: "Appearance", level: 1 }),
     ).toBeVisible();
     await userEvent.click(canvas.getByRole("link", { name: "Language sample" }));
     await expect(await canvas.findByText("This sentence is translated.")).toBeVisible();
@@ -126,7 +126,7 @@ export const SettingsRedirect: Story = {
   args: { address: "/settings" },
   play: async ({ canvas }) => {
     await expect(
-      await canvas.findByRole("heading", { name: "Theme preview", level: 1 }),
+      await canvas.findByRole("heading", { name: "Appearance", level: 1 }),
     ).toBeVisible();
     await expect(canvas.getByRole("link", { name: "Settings" })).toHaveAttribute(
       "aria-current",
@@ -313,7 +313,7 @@ export const BetaWithoutDrawer: Story = {
     await expect(page.queryByRole("dialog")).toBeNull();
     await userEvent.click(canvas.getByRole("link", { name: "Settings" }));
     await expect(
-      await canvas.findByRole("heading", { name: "Theme preview", level: 1 }),
+      await canvas.findByRole("heading", { name: "Appearance", level: 1 }),
     ).toBeVisible();
     await expect(page.queryByRole("dialog")).toBeNull();
   },

@@ -448,6 +448,9 @@ importers:
       '@self-engine/settings':
         specifier: workspace:*
         version: link:../../packages/settings
+      '@self-engine/settings-area':
+        specifier: workspace:*
+        version: link:../../packages/settings-area
       '@self-engine/shell':
         specifier: workspace:*
         version: link:../../packages/shell
@@ -705,6 +708,61 @@ importers:
       '@types/react':
         specifier: 'catalog:'
         version: 19.3.0
+
+  packages/settings-area:
+    dependencies:
+      '@lingui/core':
+        specifier: 'catalog:'
+        version: 6.12.0(@babel/core@7.29.13(supports-color@7.2.0))
+      '@lingui/react':
+        specifier: 'catalog:'
+        version: 6.12.0(@babel/core@7.29.13(supports-color@7.2.0))(react@19.3.1)
+      '@mantine/core':
+        specifier: 'catalog:'
+        version: 9.7.5(@mantine/hooks@9.7.5(react@19.3.1))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
+      '@self-engine/i18n':
+        specifier: workspace:*
+        version: link:../i18n
+      '@self-engine/icons':
+        specifier: workspace:*
+        version: link:../icons
+      '@self-engine/settings':
+        specifier: workspace:*
+        version: link:../settings
+      '@self-engine/shell':
+        specifier: workspace:*
+        version: link:../shell
+      '@self-engine/theme':
+        specifier: workspace:*
+        version: link:../theme
+      '@self-engine/ui':
+        specifier: workspace:*
+        version: link:../ui
+      react:
+        specifier: 'catalog:'
+        version: 19.3.1
+      zod:
+        specifier: 'catalog:'
+        version: 4.6.7
+    devDependencies:
+      '@storybook/react-vite':
+        specifier: 'catalog:'
+        version: 10.6.6(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(@voidzero-dev/vite-plus-core@1.5.0(@types/node@24.19.2)(esbuild@0.28.2)(jiti@2.7.0)(typescript@7.0.2))(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(storybook@10.6.6(@types/react@19.3.0)(prettier@3.9.10)(react@19.3.1)(vite-plus@1.5.0(@types/node@24.19.2)(@vitest/browser-playwright@5.1.0)(@vitest/ui@5.1.0)(esbuild@0.28.2)(jiti@2.7.0)(playwright@1.65.0)(typescript@7.0.2)))(supports-color@7.2.0)(typescript@7.0.2)
+      '@types/node':
+        specifier: 24.19.2
+        version: 24.19.2
+      '@types/react':
+        specifier: 'catalog:'
+        version: 19.3.0
+      '@types/react-dom':
+        specifier: 'catalog:'
+        version: 19.3.0(@types/react@19.3.0)
+      storybook:
+        specifier: 'catalog:'
+        version: 10.6.6(@types/react@19.3.0)(prettier@3.9.10)(react@19.3.1)(vite-plus@1.5.0(@types/node@24.19.2)(@vitest/browser-playwright@5.1.0)(@vitest/ui@5.1.0)(esbuild@0.28.2)(jiti@2.7.0)(playwright@1.65.0)(typescript@7.0.2))
+      vite-plus:
+        specifier: 1.5.0
+        version: 1.5.0(@types/node@24.19.2)(@vitest/browser-playwright@5.1.0)(@vitest/ui@5.1.0)(esbuild@0.28.2)(jiti@2.7.0)(playwright@1.65.0)(typescript@7.0.2)
 
   packages/shell:
     dependencies:
