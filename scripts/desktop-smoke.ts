@@ -1,8 +1,8 @@
 // The `smoke` stage of `pnpm verify` (spec #29, testing seam 3): starts the built desktop app with
 // a throwaway data folder and checks what a broken start would break. The window appears, the
 // data connection gets ready (the data process only answers when its `health` is ready), the
-// first answer comes within FIRST_ANSWER_LIMIT_MS, and after the data process is killed the
-// page is ready again without a reload.
+// first answer comes within FIRST_ANSWER_LIMIT_MS, the page shows the app, and after the data
+// process is killed the page is ready again without a reload and still shows the app.
 //
 // The checks run against `SmokeApp`, so the packaged app (#146) runs the same ones through
 // desktop-app.ts with another executable: `node scripts/desktop-smoke.ts --executable <path>`.
@@ -43,6 +43,11 @@ export interface PageMarks {
 export interface SmokeApp {
   /** Waits until a window of the app is visible. */
   waitForWindow(): Promise<void>;
+  /**
+   * Waits until the page shows the app: the Shell's main landmark, which a render error replaces
+   * with an error page. Fails naming what the page shows instead.
+   */
+  waitForApp(): Promise<void>;
   /** Waits until the page's connection has settled `count` times, then reads its marks. */
   waitForSettled(count: number): Promise<PageMarks>;
   /** Kills the data process the way a crash would. */
@@ -73,6 +78,7 @@ export async function smokeTest(app: SmokeApp): Promise<SmokeResult> {
       `The first answer from the data process came after ${Math.round(first.at)} ms; the limit is ${FIRST_ANSWER_LIMIT_MS} ms.`,
     );
   }
+  await app.waitForApp();
 
   await app.killDataProcess();
   const after = await app.waitForSettled(2);
@@ -91,6 +97,7 @@ export async function smokeTest(app: SmokeApp): Promise<SmokeResult> {
       `After the data process was killed, the data connection settled as "${again?.status}" instead of "ready".`,
     );
   }
+  await app.waitForApp();
   return { firstAnswerMs: first.at };
 }
 
@@ -133,6 +140,26 @@ export function smokeDriver(app: ElectronApplication): SmokeApp {
           }),
         WAIT_TIMEOUT_MS,
       );
+    },
+    async waitForApp() {
+      const target = await page;
+      await target
+        .locator("main")
+        .first()
+        .waitFor({ state: "visible", timeout: WAIT_TIMEOUT_MS })
+        .catch(async (error: unknown) => {
+          const shown = await target
+            .locator("body")
+            .innerText()
+            .catch(() => {
+              // Only a hint for the message: the error below reports the failure either way.
+              return "";
+            });
+          throw new Error(
+            `The page did not show the app within ${WAIT_TIMEOUT_MS} ms. It shows: ${shown.trim().slice(0, 300) || "nothing"}`,
+            { cause: error },
+          );
+        });
     },
     async waitForSettled(count) {
       const target = await page;

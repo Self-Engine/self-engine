@@ -13,6 +13,8 @@ interface Script {
   readonly afterKill: readonly ConnectionMark[];
   /** The page reloaded when the data process was killed. */
   readonly reloads?: boolean;
+  /** What the page shows instead of the app, before and after the kill. */
+  readonly failsToRender?: { readonly beforeKill?: string; readonly afterKill?: string };
 }
 
 const START: readonly ConnectionMark[] = [
@@ -32,6 +34,11 @@ function fakeApp(script: Script): SmokeApp & { readonly calls: string[] } {
     async waitForWindow() {
       calls.push("window");
     },
+    async waitForApp() {
+      calls.push("app");
+      const shown = killed ? script.failsToRender?.afterKill : script.failsToRender?.beforeKill;
+      if (shown !== undefined) throw new Error(`The page did not show the app. It shows: ${shown}`);
+    },
     async waitForSettled(count) {
       calls.push(`settled ${count}`);
       if (!killed) return { document: 1, marks: script.beforeKill };
@@ -47,10 +54,29 @@ function fakeApp(script: Script): SmokeApp & { readonly calls: string[] } {
 }
 
 describe("smokeTest", () => {
-  it("waits for the window, the first answer, then kills the data process and waits again", async () => {
+  it("waits for the window, the first answer and the app, then kills the data process and waits again", async () => {
     const app = fakeApp({ beforeKill: START, afterKill: RECONNECT });
     expect(await smokeTest(app)).toEqual({ firstAnswerMs: 180 });
-    expect(app.calls).toEqual(["window", "settled 1", "kill", "settled 2"]);
+    expect(app.calls).toEqual(["window", "settled 1", "app", "kill", "settled 2", "app"]);
+  });
+
+  it("fails a start whose page shows an error instead of the app, even with a ready connection", async () => {
+    const app = fakeApp({
+      beforeKill: START,
+      afterKill: RECONNECT,
+      failsToRender: { beforeKill: "Something went wrong!" },
+    });
+    await expect(smokeTest(app)).rejects.toThrow("It shows: Something went wrong!");
+    expect(app.calls).not.toContain("kill");
+  });
+
+  it("fails when the page no longer shows the app after reconnecting", async () => {
+    const app = fakeApp({
+      beforeKill: START,
+      afterKill: RECONNECT,
+      failsToRender: { afterKill: "Something went wrong!" },
+    });
+    await expect(smokeTest(app)).rejects.toThrow("It shows: Something went wrong!");
   });
 
   it("fails a first answer after the limit, naming the limit and the measured time", async () => {

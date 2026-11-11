@@ -18,6 +18,9 @@ allowBuilds:
   esbuild: false
 
 catalog:
+  # Also a dev dependency of the root, so that every package resolves the peers of @lingui/react
+  # and @lingui/core against this one version: with two, each package gets its own copy, and a
+  # component reads a Lingui context that no provider fills (the start crashed on nightly).
   "@babel/core": 8.1.0
   "@rolldown/plugin-babel": 0.3.1
   babel-plugin-react-compiler: 1.0.0
