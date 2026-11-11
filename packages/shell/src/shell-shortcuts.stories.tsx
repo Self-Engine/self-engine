@@ -1,7 +1,6 @@
 import { ProjectsIcon } from "@self-engine/icons";
 import { confirm } from "@self-engine/ui";
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { getHotkeyManager } from "@tanstack/react-hotkeys";
 import { useState } from "react";
 import { expect, fn, screen, userEvent, waitFor, within } from "storybook/test";
 import { z } from "zod";
@@ -13,6 +12,7 @@ import {
   type ShellProps,
 } from "./index.ts";
 import { onMac, onWindows, SETTINGS, shellMeta, storyRouting } from "./shell-story-helpers.tsx";
+import { registeredBindingIds } from "./shortcut-bindings.tsx";
 
 const body = { description: "A stand-in.", schema: z.object({}), run: () => undefined };
 const page = { id: "new", kind: "page", label: { id: "story-New", message: "New" } } as const;
@@ -211,20 +211,18 @@ function SwitchingShell(props: ShellProps) {
   );
 }
 
-const registrationIds = () => [...getHotkeyManager().registrations.state.keys()];
-
 export const SwitchingModulesKeepsEveryBinding: Story = {
   render: (args) => <SwitchingShell {...args} />,
   play: async ({ canvas }) => {
     await bindingsArrived();
-    const before = registrationIds();
+    const before = registeredBindingIds();
     const switchModule = canvas.getByRole("button", { name: "Switch module" });
     await userEvent.click(switchModule);
-    await expect(registrationIds()).toEqual(before);
+    await expect(registeredBindingIds()).toEqual(before);
     await pressNew();
     await expect(startedInSecond).toHaveBeenCalledOnce();
     await userEvent.click(switchModule);
-    await expect(registrationIds()).toEqual(before);
+    await expect(registeredBindingIds()).toEqual(before);
     await pressNew();
     await expect(startedInFirst).toHaveBeenCalledOnce();
     await expect(startedInSecond).toHaveBeenCalledOnce();

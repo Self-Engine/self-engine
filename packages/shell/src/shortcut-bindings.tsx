@@ -4,6 +4,7 @@
 import { isConfirmationOpen } from "@self-engine/ui";
 import {
   formatForDisplay,
+  getHotkeyManager,
   type HotkeyChord,
   normalizeHotkey,
   useHotkeys,
@@ -39,6 +40,9 @@ const startsMod = (chord: string) => chord.startsWith("Mod+");
 export const displayShortcut = (shortcut: string) =>
   // The library's macOS notation puts a space between the symbols.
   formatForDisplay(shortcut as HotkeyChord).replaceAll(" ", "");
+
+/** For the stories: which bindings are registered now, so they can tell when one is replaced. */
+export const registeredBindingIds = () => [...getHotkeyManager().registrations.state.keys()];
 
 export function ShortcutBindings({ owners, activeModuleId }: CommandScope) {
   const start = useStartCommand();
