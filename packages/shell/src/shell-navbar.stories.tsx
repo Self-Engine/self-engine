@@ -29,6 +29,9 @@ export const NavbarIsWideAtTheWideStep: Story = {
   ...atViewport("wide"),
   play: async ({ canvas }) => {
     await expect(widthOf(navbarOf(canvas))).toBe(220);
+    for (const icon of navbarOf(canvas).querySelectorAll("a svg")) {
+      await expect(widthOf(icon)).toBe(20);
+    }
     await expect(
       widthOf(canvas.getByText("Sidebar content").closest(".mantine-Splitter-pane")!),
     ).toBe(240);
@@ -39,6 +42,9 @@ export const TheActiveEntryOfTheIconsOnlyNavbarIs36By40: Story = {
   ...atViewport("medium"),
   play: async ({ canvas }) => {
     await expect(widthOf(navbarOf(canvas))).toBe(56);
+    for (const icon of navbarOf(canvas).querySelectorAll("a svg")) {
+      await expect(widthOf(icon)).toBe(24);
+    }
     await expectActiveEntryFillsTheColumn(
       canvas.getByRole("link", { name: "Time", current: "page" }),
     );
@@ -50,6 +56,9 @@ export const TheActiveEntryIs36By40WhenTheUserCollapsedTheNavbarToo: Story = {
   args: { navbar: { collapsed: true, expandedWidth: 260 } },
   play: async ({ canvas }) => {
     await expect(widthOf(navbarOf(canvas))).toBe(56);
+    for (const icon of navbarOf(canvas).querySelectorAll("a svg")) {
+      await expect(widthOf(icon)).toBe(24);
+    }
     await expectActiveEntryFillsTheColumn(
       canvas.getByRole("link", { name: "Time", current: "page" }),
     );
@@ -365,7 +374,7 @@ export const EscapeCancelsANavbarDrag: Story = {
   },
 };
 
-export const EntriesKeepTheirGeometryWhenTheLabelGoes: Story = {
+export const EntriesKeepTheirHeightAndIconAxisWhenTheLabelGoes: Story = {
   ...atViewport("wide"),
   ...resizable,
   play: async ({ canvas }) => {
@@ -373,7 +382,10 @@ export const EntriesKeepTheirGeometryWhenTheLabelGoes: Story = {
     const entry = () => within(navbar).getByRole("link", { name: "Projects" });
     const geometry = () => {
       const icon = entry().querySelector("svg")!.getBoundingClientRect();
-      return { height: entry().getBoundingClientRect().height, iconLeft: icon.left };
+      return {
+        height: entry().getBoundingClientRect().height,
+        iconCenter: icon.left + icon.width / 2,
+      };
     };
     const labelled = geometry();
     await userEvent.dblClick(navbarHandle(canvas));
