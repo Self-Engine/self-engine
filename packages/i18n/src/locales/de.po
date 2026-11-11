@@ -227,6 +227,11 @@ msgstr "Garten"
 msgid "Garden work"
 msgstr "Gartenarbeit"
 
+#: packages/settings-area/src/shortcut-rows.tsx
+msgctxt "Shortcuts that belong to no module"
+msgid "General"
+msgstr "Allgemein"
+
 #: packages/settings-area/src/rows.tsx
 msgid "German"
 msgstr "Deutsch"
@@ -252,6 +257,14 @@ msgstr "Indigo"
 #: packages/shell/src/edit-drawer-exits.tsx
 msgid "Keep editing"
 msgstr "Weiter bearbeiten"
+
+#: packages/settings-area/src/shortcut-rows.tsx
+msgid "Key combination"
+msgstr "Tastenkombination"
+
+#: packages/settings-area/src/shortcut-rows.tsx
+msgid "Keyboard"
+msgstr "Tastatur"
 
 #: packages/settings-area/src/index.ts
 msgid "Language"
@@ -342,6 +355,10 @@ msgstr "Navigation öffnen"
 msgid "Open source"
 msgstr "Open Source"
 
+#: packages/settings-area/src/shortcut-rows.tsx
+msgid "Open the Command Palette"
+msgstr "Befehlspalette öffnen"
+
 #: packages/settings-area/src/about-rows.tsx
 msgid "Operating system"
 msgstr "Betriebssystem"
@@ -419,6 +436,14 @@ msgstr "Self-Engine ist freie Software unter der GNU Affero General Public Licen
 #: packages/settings-area/src/index.ts
 msgid "Settings"
 msgstr "Einstellungen"
+
+#: packages/settings-area/src/shortcut-rows.tsx
+msgid "Shortcut"
+msgstr "Tastenkürzel"
+
+#: packages/settings-area/src/index.ts
+msgid "Shortcuts"
+msgstr "Tastenkürzel"
 
 #: packages/settings-area/src/rows.tsx
 msgid "Show the app light or dark, or follow the system."

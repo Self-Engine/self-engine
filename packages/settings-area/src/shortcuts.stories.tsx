@@ -69,7 +69,7 @@ type Canvas = ReturnType<typeof within>;
 
 const groupOf = (canvas: Canvas, name: string) => within(canvas.getByRole("region", { name }));
 const headings = (canvas: Canvas) =>
-  canvas.getAllByRole("heading").map((heading) => heading.textContent);
+  canvas.getAllByRole("heading").map((heading: HTMLElement) => heading.textContent);
 
 export const GroupedByModuleWithTheGeneralOnesFirst: Story = {
   play: async ({ canvas }) => {
