@@ -1,3 +1,4 @@
+export type { ConnectionState, ConnectionStatus } from "./connection-state.ts";
 export {
   createDataConnection,
   type DataClient,
