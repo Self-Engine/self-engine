@@ -1,7 +1,7 @@
 // The core over Node's MessageChannel (no Electron) when its migrations cannot run: it keeps
 // answering `health` with the reason instead of dying (spec #29).
 
-import { createORPCClient } from "@orpc/client";
+import { createORPCClient, ORPCError } from "@orpc/client";
 import { RPCLink } from "@orpc/client/message-port";
 import type { ContractRouterClient } from "@orpc/contract";
 import type { AppContract } from "@self-engine/contracts";
@@ -70,5 +70,22 @@ test("a database that ran a migration this app does not know surfaces as databas
   await expect(client.health()).resolves.toEqual({
     state: "databaseNewer",
     migration: "time/0002",
+  });
+});
+
+test("in a failure state the tablesChanged stream is refused with SERVICE_UNAVAILABLE carrying the health", async () => {
+  const client = await start({
+    migrations: [{ name: "time/0001", sql: "THIS IS NOT SQL;" }],
+  });
+
+  const refusal = (async () => {
+    const events = await client.tablesChanged();
+    await events.next();
+  })();
+
+  await expect(refusal).rejects.toBeInstanceOf(ORPCError);
+  await expect(refusal).rejects.toMatchObject({
+    code: "SERVICE_UNAVAILABLE",
+    data: { state: "migrationFailed", migration: "time/0001" },
   });
 });
