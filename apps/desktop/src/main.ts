@@ -25,6 +25,7 @@ import { titleBarOptions } from "./title-bar.ts";
 import {
   MINIMUM_WIDTH,
   type WindowSnapshot,
+  applyWindowOpening,
   openWindowState,
   recordWindowState,
 } from "./window-state.ts";
@@ -152,11 +153,7 @@ async function openWindow(): Promise<void> {
     },
   });
   window.once("ready-to-show", () => {
-    if (opening.maximize) window.maximize();
-    window.show();
-    // On macOS full screen is a Space of its own, which a hidden window cannot enter.
-    if (opening.fullScreen) window.setFullScreen(true);
-    rememberWindowState(window);
+    applyWindowOpening(window, opening, () => rememberWindowState(window));
   });
   window.webContents.setWindowOpenHandler(() => ({ action: "deny" }));
   window.webContents.on("will-navigate", (event, url) => {
