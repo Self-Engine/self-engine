@@ -1,4 +1,8 @@
 import { existsSync, mkdirSync, mkdtempSync, realpathSync, rmSync, writeFileSync } from "node:fs";
+import * as fs from "node:fs";
+import { IncomingMessage, ServerResponse } from "node:http";
+import type * as NodeHttp from "node:http";
+import { Socket } from "node:net";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vite-plus/test";
@@ -7,8 +11,31 @@ import {
   type DesktopLaunch,
   builtDesktopApp,
   rendererFile,
+  serveRenderer,
   withDesktopApp,
 } from "./desktop-app.ts";
+
+const http = vi.hoisted(() => ({
+  request: vi.fn<(request: IncomingMessage, response: ServerResponse) => void>(),
+}));
+
+vi.mock("node:fs", async (importOriginal) => {
+  const original = await importOriginal<typeof fs>();
+  return { ...original, createReadStream: vi.fn(original.createReadStream) };
+});
+
+vi.mock("node:http", async (importOriginal) => ({
+  ...(await importOriginal<typeof NodeHttp>()),
+  createServer: (handler: (request: IncomingMessage, response: ServerResponse) => void) => {
+    http.request.mockImplementation(handler);
+    return {
+      listen: (_port: number, _host: string, ready: () => void) => ready(),
+      address: () => ({ port: 4321 }),
+      closeAllConnections: () => {},
+      close: (closed: () => void) => closed(),
+    };
+  },
+}));
 
 const LAUNCH: DesktopLaunch = {
   executablePath: "/apps/Self-Engine Nightly.app/Contents/MacOS/Self-Engine Nightly",
@@ -123,6 +150,41 @@ describe("withDesktopApp", () => {
   });
 });
 
+describe("serveRenderer", () => {
+  it.each([false, true])(
+    "handles a stream failure when headers sent is %s",
+    async (headersSent) => {
+      const root = realpathSync(mkdtempSync(join(tmpdir(), "desktop-app-")));
+      const file = join(root, "index.html");
+      writeFileSync(file, "<html></html>");
+      const original = await vi.importActual<typeof fs>("node:fs");
+      const stream = original.createReadStream(file);
+      const read = vi.mocked(fs.createReadStream).mockReturnValue(stream);
+      const server = await serveRenderer(root);
+      const request = new IncomingMessage(new Socket());
+      request.url = "/";
+      const response = new ServerResponse(request);
+      try {
+        http.request(request, response);
+        if (headersSent) response.write("partial page");
+        expect(() => stream.emit("error", new Error("file disappeared"))).not.toThrow();
+        if (headersSent) {
+          expect(response.destroyed).toBe(true);
+        } else {
+          expect(response.statusCode).toBe(500);
+          expect(response.writableEnded).toBe(true);
+        }
+      } finally {
+        await new Promise<void>((closed) => stream.close(() => closed()));
+        response.destroy();
+        read.mockReset();
+        await server.close();
+        rmSync(root, { recursive: true, force: true });
+      }
+    },
+  );
+});
+
 describe("builtDesktopApp", () => {
   it("starts the desktop app's build with Electron and loads the renderer from a URL", () => {
     const launch = builtDesktopApp(
@@ -170,5 +232,17 @@ describe("rendererFile", () => {
     expect(rendererFile(root, "/assets/missing.js")).toBeUndefined();
     expect(rendererFile(root, "/../package.json")).toBeUndefined();
     expect(rendererFile(root, "/%2e%2e/package.json")).toBeUndefined();
+  });
+
+  it("finds no file for a decoded path containing NUL", () => {
+    expect(rendererFile(renderer(), "/%00")).toBeUndefined();
+  });
+
+  it("finds no page when the fallback is missing or is a directory", () => {
+    const root = renderer();
+    rmSync(join(root, "index.html"));
+    expect(rendererFile(root, "/projects")).toBeUndefined();
+    mkdirSync(join(root, "index.html"));
+    expect(rendererFile(root, "/projects")).toBeUndefined();
   });
 });
