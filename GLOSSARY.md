@@ -132,6 +132,10 @@ _Avoid_: manifest, module config, plugin
 One page of a module with its own address, such as the active projects or the week in the time module. A module's _Views_ are fixed by the module and do not depend on the user's data.
 _Avoid_: page, route, screen, tab
 
+**Window State** (de: _Fensterzustand_):
+A record of where the desktop window was and how big, and whether it was maximized or in full screen, kept per channel so the next start opens the same way. Not a _Setting_.
+_Avoid_: window settings, window preferences, window bounds (for the whole record)
+
 ### Translation
 
 **App Language** (de: _App-Sprache_):
