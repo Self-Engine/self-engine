@@ -13,6 +13,8 @@ export const settings: ShellContribution = createSettingsArea({
   store: settingsStore,
   // The build inserts the web app's version; the desktop app's comes over the bridge.
   version: () => versionInfo(window, navigator, version),
+  // Every contribution, so that a new module's Shortcuts are listed by themselves.
+  commandOwners: () => contributions,
 });
 
 export const contributions = [...modules, settings];

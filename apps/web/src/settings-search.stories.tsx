@@ -50,6 +50,7 @@ export const EveryViewHasTheFieldAboveItsRows: Story = {
   play: async ({ canvas }) => {
     await expectFieldAboveTheRows(canvas, "Appearance", "Color Mode");
     await expectFieldAboveTheRows(canvas, "Language", "App Language");
+    await expectFieldAboveTheRows(canvas, "Shortcuts", "Undo");
     await expectFieldAboveTheRows(canvas, "About", "Version");
   },
 };

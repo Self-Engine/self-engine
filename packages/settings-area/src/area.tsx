@@ -96,7 +96,54 @@ interface RowGroupProps {
   readonly title: string | undefined;
 }
 
+/** The rows that share a heading within their View, in the order of the list. */
+function subgroupsOf(rows: readonly SettingsRow[]) {
+  const subgroups = new Map<string, { heading?: MessageDescriptor; rows: SettingsRow[] }>();
+  // Rows without a heading come first, whatever the order of the hits.
+  subgroups.set("", { rows: [] });
+  for (const row of rows) {
+    const key = row.group?.id ?? "";
+    const known = subgroups.get(key);
+    if (known) known.rows.push(row);
+    else subgroups.set(key, { ...(row.group && { heading: row.group }), rows: [row] });
+  }
+  return [...subgroups].flatMap(([key, subgroup]) =>
+    subgroup.rows.length > 0 ? [{ key, ...subgroup }] : [],
+  );
+}
+
+interface RowListProps {
+  readonly rows: readonly SettingsRow[];
+  readonly store: SettingsStore;
+}
+
+function RowList({ rows, store }: RowListProps) {
+  return rows.map((row, index) => (
+    <Fragment key={row.id}>
+      {index > 0 && <Divider />}
+      <Row row={row} store={store} />
+    </Fragment>
+  ));
+}
+
+function Subgroup({
+  heading,
+  order,
+  ...rows
+}: RowListProps & { readonly heading: string; readonly order: 2 | 3 }) {
+  const headingId = useId();
+  return (
+    <Stack aria-labelledby={headingId} component="section" gap={0}>
+      <Title c="dimmed" id={headingId} order={order} pt="md" size="h6">
+        {heading}
+      </Title>
+      <RowList {...rows} />
+    </Stack>
+  );
+}
+
 function RowGroup({ rows, store, title }: RowGroupProps) {
+  const { i18n } = useLingui();
   const titleId = useId();
   return (
     <Stack aria-labelledby={title === undefined ? undefined : titleId} component="section" gap={0}>
@@ -105,12 +152,20 @@ function RowGroup({ rows, store, title }: RowGroupProps) {
           {title}
         </Title>
       )}
-      {rows.map((row, index) => (
-        <Fragment key={row.id}>
-          {index > 0 && <Divider />}
-          <Row row={row} store={store} />
-        </Fragment>
-      ))}
+      {subgroupsOf(rows).map(({ key, heading, rows: together }) =>
+        heading ? (
+          <Subgroup
+            heading={i18n._(heading)}
+            key={key}
+            // Below the View's title: the content header's on its page, the one above its hits.
+            order={title === undefined ? 2 : 3}
+            rows={together}
+            store={store}
+          />
+        ) : (
+          <RowList key={key} rows={together} store={store} />
+        ),
+      )}
     </Stack>
   );
 }

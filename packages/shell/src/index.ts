@@ -35,7 +35,8 @@ export {
   type ShellCommand,
 } from "./commands.ts";
 export { runCommand, type CommandResult } from "./run-command.ts";
-export { shellCommands } from "./shell-commands.ts";
+export { PALETTE_SHORTCUT, shellCommands } from "./shell-commands.ts";
+export { ShortcutHint } from "./shortcuts.tsx";
 export { wordMatch } from "./word-match.ts";
 
 export { askLeaveGuards, useViewSearch, useWriteViewSearch } from "./routing.tsx";

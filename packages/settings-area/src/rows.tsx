@@ -7,6 +7,7 @@ import { BUILT_IN_THEMES, FONT_SCALES } from "@self-engine/theme";
 import { aboutRows } from "./about-rows.tsx";
 import type { SettingsRow } from "./row.ts";
 import { APP_LANGUAGE_SETTING, APPEARANCE_SETTINGS, SYSTEM_LANGUAGE } from "./settings.ts";
+import { type ShortcutOwner, shortcutRows } from "./shortcut-rows.tsx";
 import type { VersionInfo } from "./version.ts";
 import { choiceRow, stopsRow, switchRow } from "./standard-rows.tsx";
 import { accentRow, themeRow } from "./theme-rows.tsx";
@@ -85,9 +86,19 @@ const LANGUAGE_ROWS: readonly SettingsRow[] = [
 /** What the rows that are produced from other data are produced from. */
 export interface SettingsRowSources {
   readonly version: VersionInfo;
+  /** The modules whose Commands the View Shortcuts lists. */
+  readonly commandOwners: readonly ShortcutOwner[];
 }
 
 /** The one list: the rows that are always the same, then those produced from what the app gave. */
-export function settingsRows({ version }: SettingsRowSources): readonly SettingsRow[] {
-  return [...APPEARANCE_ROWS, ...LANGUAGE_ROWS, ...aboutRows(version)];
+export function settingsRows({
+  version,
+  commandOwners,
+}: SettingsRowSources): readonly SettingsRow[] {
+  return [
+    ...APPEARANCE_ROWS,
+    ...LANGUAGE_ROWS,
+    ...shortcutRows(commandOwners),
+    ...aboutRows(version),
+  ];
 }

@@ -18,6 +18,11 @@ export interface SettingsRow {
   readonly id: string;
   /** The id of the View whose page shows the row. */
   readonly view: string;
+  /**
+   * The heading the row stands under within its View, shared by the rows that belong together,
+   * such as the Shortcuts of one module. Rows without one stand first, under no heading.
+   */
+  readonly group?: MessageDescriptor;
   readonly title: MessageDescriptor;
   readonly description?: MessageDescriptor;
   /** What else finds the row, besides its title, description and values. */

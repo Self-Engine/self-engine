@@ -59,6 +59,8 @@ const newStore = () =>
     onError: () => {},
   });
 
+const inputs = () => ({ store: newStore(), version: () => WEB, commandOwners: () => [] });
+
 test("a Setting that has to be served and that no row serves is reported", () => {
   const rows = [
     row("color-mode", "appearance", ["appearance.colorMode"]),
@@ -73,9 +75,9 @@ test.each([
   ["in the desktop app", DESKTOP],
   ["on the web", WEB],
 ])("the real list of Settings Rows fits the Views of the settings area %s", (_where, version) => {
-  const area = createSettingsArea({ store: newStore(), version: () => version });
+  const area = createSettingsArea({ ...inputs(), version: () => version });
   expect(
-    auditSettingsRows(settingsRows({ version }), area.views, [
+    auditSettingsRows(settingsRows({ version, commandOwners: [] }), area.views, [
       ...Object.values(APPEARANCE_SETTINGS).map((setting) => setting.key),
       APP_LANGUAGE_SETTING.key,
     ]),
@@ -83,13 +85,22 @@ test.each([
 });
 
 test("the settings area is the contribution `settings` and opens on Appearance", () => {
-  const area = createSettingsArea({ store: newStore(), version: () => WEB });
+  const area = createSettingsArea(inputs());
   expect(area.id).toBe("settings");
   expect(area.views[0].id).toBe("appearance");
 });
 
+test("the settings area has the Views Appearance, Language, Shortcuts and About", () => {
+  expect(createSettingsArea(inputs()).views.map((view) => view.id)).toEqual([
+    "appearance",
+    "language",
+    "shortcuts",
+    "about",
+  ]);
+});
+
 const aboutRowIds = (version: VersionInfo) =>
-  settingsRows({ version })
+  settingsRows({ version, commandOwners: [] })
     .filter((row) => row.view === "about")
     .map((row) => row.id);
 
