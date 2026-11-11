@@ -53,7 +53,10 @@ const meta = {
     async (): Promise<Loaded> => {
       const storage = memoryStorage();
       const store = await loadedStoreOn(storage);
-      const [appearance] = createSettingsArea({ store }).views;
+      const [appearance] = createSettingsArea({
+        store,
+        version: () => ({ version: "0.0.1", operatingSystem: "macOS" }),
+      }).views;
       return { storage, store, Page: (await appearance.load()).default };
     },
   ],

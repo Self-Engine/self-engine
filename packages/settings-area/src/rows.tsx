@@ -3,8 +3,10 @@
 
 import { msg } from "@lingui/core/macro";
 import { FONT_SCALES } from "@self-engine/theme";
+import { aboutRows } from "./about-rows.tsx";
 import type { SettingsRow } from "./row.ts";
 import { APPEARANCE_SETTINGS } from "./settings.ts";
+import type { VersionInfo } from "./version.ts";
 import { choiceRow, stopsRow, switchRow } from "./standard-rows.tsx";
 import { VIEW_IDS } from "./views.ts";
 
@@ -54,4 +56,12 @@ const APPEARANCE_ROWS: readonly SettingsRow[] = [
   }),
 ];
 
-export const SETTINGS_ROWS: readonly SettingsRow[] = APPEARANCE_ROWS;
+/** What the rows that are produced from other data are produced from. */
+export interface SettingsRowSources {
+  readonly version: VersionInfo;
+}
+
+/** The one list: the rows that are always the same, then those produced from what the app gave. */
+export function settingsRows({ version }: SettingsRowSources): readonly SettingsRow[] {
+  return [...APPEARANCE_ROWS, ...aboutRows(version)];
+}
