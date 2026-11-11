@@ -1,6 +1,6 @@
 import { sql } from "kysely";
 import { afterEach, beforeEach, describe, expect, test } from "vite-plus/test";
-import { createMigrationRunner } from "../core/index.ts";
+import { createMigrationRunner, MigrationRunError } from "../core/index.ts";
 import type { Database, Migration } from "../core/index.ts";
 import { openDatabase } from "./index.ts";
 
@@ -46,7 +46,10 @@ describe("a migration run", () => {
       { name: "time/0002", sql: "CREATE TABLE half (id TEXT) STRICT; THIS IS NOT SQL;" },
     ]);
 
-    await expect(runner.run()).rejects.toThrow(/time\/0002/);
+    const run = runner.run();
+
+    await expect(run).rejects.toBeInstanceOf(MigrationRunError);
+    await expect(run).rejects.toMatchObject({ reason: "failed", migration: "time/0002" });
     await expect(tables()).resolves.toEqual([]);
   });
 
@@ -66,7 +69,11 @@ describe("a migration run", () => {
 
     const olderApp = createMigrationRunner(database, [createTable("time/0001", "time_entries")]);
 
-    await expect(olderApp.run()).rejects.toThrow(/time\/0002/);
+    const run = olderApp.run();
+
+    await expect(run).rejects.toBeInstanceOf(MigrationRunError);
+    await expect(run).rejects.toMatchObject({ reason: "unknown", migration: "time/0002" });
+    await expect(run).rejects.toThrow(/time\/0002/);
   });
 
   test("runs a new module whose name sorts before the migrations that already ran", async () => {

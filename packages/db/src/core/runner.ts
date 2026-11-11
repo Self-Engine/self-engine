@@ -1,12 +1,17 @@
-import { Migrator } from "kysely/migration";
+import { sql } from "kysely";
+import { DEFAULT_MIGRATION_TABLE, Migrator } from "kysely/migration";
 import type { Migration as KyselyMigration, MigrationProvider } from "kysely/migration";
 import type { Database } from "./database.ts";
 import type { Migration } from "./migration.ts";
+import { MigrationRunError } from "./migration-run-error.ts";
 
 export interface MigrationRunner {
   /** Whether a run would apply anything, so a backup can be taken only when one is needed. */
   hasPending(): Promise<boolean>;
-  /** Runs all pending migrations as one transaction and returns their names. */
+  /**
+   * Runs all pending migrations as one transaction and returns their names. Rejects with a
+   * `MigrationRunError` when a migration fails or the database ran one this app does not know.
+   */
   run(): Promise<string[]>;
 }
 
@@ -16,6 +21,21 @@ function providerOf(database: Database, migrations: readonly Migration[]): Migra
     { up: () => database.executeScript(sql) },
   ]);
   return { getMigrations: () => Promise.resolve(Object.fromEntries(entries)) };
+}
+
+/**
+ * The first migration the database recorded that is not in the list. Kysely only says so in the
+ * text of its error, so this reads its bookkeeping table instead of parsing that text.
+ */
+async function firstUnknownMigration(
+  database: Database,
+  migrations: readonly Migration[],
+): Promise<string | undefined> {
+  const known = new Set(migrations.map(({ name }) => name));
+  const { rows } = await sql<{ name: string }>`
+    SELECT name FROM ${sql.table(DEFAULT_MIGRATION_TABLE)} ORDER BY timestamp, name
+  `.execute(database.kysely);
+  return rows.find(({ name }) => !known.has(name))?.name;
 }
 
 const MIGRATION_NAME = /^[a-z][a-z0-9-]*\/\d{4}$/;
@@ -50,9 +70,11 @@ export function createMigrationRunner(
       const { error, results } = await migrator.migrateToLatest();
       if (error !== undefined) {
         const failed = results?.find((result) => result.status === "Error");
-        throw failed
-          ? new Error(`Migration ${failed.migrationName} failed`, { cause: error })
-          : error;
+        if (failed) throw new MigrationRunError("failed", failed.migrationName, { cause: error });
+        const unknown = await firstUnknownMigration(database, migrations);
+        if (unknown !== undefined)
+          throw new MigrationRunError("unknown", unknown, { cause: error });
+        throw error;
       }
       return (results ?? []).map((result) => result.migrationName);
     },
