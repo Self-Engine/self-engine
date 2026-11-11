@@ -3,5 +3,7 @@ export { newId, newTimestamp } from "./id-and-timestamp.ts";
 export type { Clock, IdSources } from "./id-and-timestamp.ts";
 export { defineMigrations } from "./migration.ts";
 export type { Migration } from "./migration.ts";
+export { MigrationRunError } from "./migration-run-error.ts";
+export type { MigrationRunFailure } from "./migration-run-error.ts";
 export { createMigrationRunner } from "./runner.ts";
 export type { MigrationRunner } from "./runner.ts";
