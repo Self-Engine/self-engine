@@ -1,6 +1,6 @@
 import { TextInput } from "@mantine/core";
 import { type ConnectionState, createConnectionStateStore } from "@self-engine/data-client";
-import { LOADER_DELAY_MS } from "@self-engine/ui";
+import { LOADER_DELAY_MS, notifyError } from "@self-engine/ui";
 import { holdTimers } from "@self-engine/ui/story-timers";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { expect, fn, userEvent, waitFor, within } from "storybook/test";
@@ -176,5 +176,36 @@ export const TheWebAppShowsNoConnectionState: Story = {
   play: async ({ canvas }) => {
     await expect(await canvas.findByRole("navigation")).toBeVisible();
     await expect(canvas.queryByRole("alert")).toBeNull();
+  },
+};
+
+export const ReconnectAndErrorNoticesStackTogether: Story = {
+  beforeEach: startingAt({ status: "reconnecting" }),
+  play: async ({ canvasElement }) => {
+    runTheWait();
+    const reconnect = await page(canvasElement).findByText("Reconnecting to your data…");
+    notifyError({ message: "The backup failed." });
+    const error = await page(canvasElement).findByText("The backup failed.");
+    const container = reconnect.closest(".mantine-Notifications-root");
+    await expect(container).not.toBeNull();
+    await expect(error.closest(".mantine-Notifications-root")).toBe(container);
+    await waitFor(() => {
+      const first = reconnect.closest('[role="status"]')!.getBoundingClientRect();
+      const second = error.closest('[role="alert"]')!.getBoundingClientRect();
+      expect(first.bottom <= second.top || second.bottom <= first.top).toBe(true);
+    });
+  },
+};
+
+export const FullWindowStatesHideTheReconnectNotice: Story = {
+  beforeEach: startingAt({ status: "ready" }),
+  play: async ({ canvasElement }) => {
+    for (const state of [MIGRATION_FAILED, DATABASE_NEWER, { status: "stopped" } as const]) {
+      await startReconnecting();
+      runTheWait();
+      await page(canvasElement).findByRole("status");
+      connection.set(state);
+      await waitFor(() => expect(page(canvasElement).queryByRole("status")).toBeNull());
+    }
   },
 };

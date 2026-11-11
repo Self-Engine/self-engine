@@ -7,6 +7,7 @@ import {
   type ConfirmOptions,
   isConfirmationOpen,
   notifyError,
+  notifyProgress,
   notifyUndoable,
   undoLatest,
 } from "./index.ts";
@@ -373,5 +374,19 @@ export const ReducedMotionStillsTheDialogAndTheNotices: Story = {
     await userEvent.keyboard("{Escape}");
     await answer;
     await gone();
+  },
+};
+
+export const ProgressStaysUntilTheCallerHidesIt: Story = {
+  beforeEach: holdNoticeTimers,
+  play: async () => {
+    const hide = notifyProgress({ message: "Saving your data…" });
+    const notice = await screen.findByRole("status");
+    await expect(notice).toHaveTextContent("Saving your data…");
+    await expect(notice.querySelector(".mantine-Loader-root")).not.toBeNull();
+    await expect(within(notice).queryByRole("button")).toBeNull();
+    await expect(heldNoticeTimers.size).toBe(0);
+    hide();
+    await noticeGone("Saving your data…");
   },
 };
