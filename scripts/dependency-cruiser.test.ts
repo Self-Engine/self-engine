@@ -562,6 +562,125 @@ describe("icon libraries", () => {
   });
 });
 
+describe("the app contract", () => {
+  const contracts = (dependencies: string[], files: Record<string, string>): FixturePackage => ({
+    dir: "packages/contracts",
+    dependencies: ["zod", "@orpc/contract", ...dependencies],
+    files: {
+      "src/index.ts": 'import "zod";\nimport "@orpc/contract";\nexport const appContract = {};\n',
+      ...files,
+    },
+  });
+
+  it("passes Zod and the oRPC contract library", async () => {
+    expect(await cruise([contracts([], {})])).toEqual([]);
+  });
+
+  it.each(["kysely", "better-sqlite3", "electron"])("fails an import of %s", async (name) => {
+    const found = await cruise([contracts([name], { "src/extra.ts": `import "${name}";\n` })]);
+    expect(ruleNames(found)).toEqual(["contracts-is-pure"]);
+  });
+
+  it("fails an import of a Node built-in", async () => {
+    const found = await cruise([contracts([], { "src/extra.ts": 'import "node:fs";\n' })]);
+    expect(ruleNames(found)).toEqual(["contracts-is-pure"]);
+  });
+
+  it("fails an import of the database package", async () => {
+    const db = extraPackage("packages/db");
+    const found = await cruise([
+      db,
+      contracts(["@self-engine/db"], { "src/extra.ts": 'import "@self-engine/db";\n' }),
+    ]);
+    expect(ruleNames(found)).toEqual(["package-direction:unlisted"]);
+  });
+});
+
+describe("the renderer", () => {
+  const contracts: FixturePackage = {
+    dir: "packages/contracts",
+    files: { "src/index.ts": "export const appContract = {};\nexport type AppContract = {};\n" },
+  };
+  const dataProcess: FixturePackage = {
+    dir: "packages/data-process",
+    exports: { ".": "./src/core/index.ts", "./testing": "./src/testing/index.ts" },
+    files: {
+      "src/core/index.ts": "export const startDataProcess = 1;\n",
+      "src/testing/index.ts": "export const startTestDataProcess = 1;\n",
+    },
+  };
+  const db: FixturePackage = {
+    dir: "packages/db",
+    exports: { ".": "./src/core/index.ts", "./better-sqlite3": "./src/better-sqlite3/index.ts" },
+    files: {
+      "src/core/index.ts": "export const core = 1;\n",
+      "src/better-sqlite3/index.ts": "export const openDatabase = 1;\n",
+    },
+  };
+  const time: FixturePackage = {
+    dir: "packages/time",
+    exports: { ".": "./src/index.ts", "./data": "./src/data/index.ts" },
+    files: {
+      "src/index.ts": "export const views = 1;\n",
+      "src/data/index.ts": "export const storage = 1;\n",
+    },
+  };
+  const renderers = [
+    (files: Record<string, string>) => app("web", files),
+    (files: Record<string, string>) => app("component-catalog", files),
+    (files: Record<string, string>) => extraPackage("packages/data-client", files),
+  ];
+  const ALLOW = { "data-client": ["contracts", "data-process", "db", "time"] };
+
+  it.each(renderers.map((make) => [make({}).dir, make] as const))(
+    "%s imports the app contract as a type",
+    async (_, make) => {
+      const renderer = declaring(
+        make({ "src/client.ts": 'import type { AppContract } from "@self-engine/contracts";\n' }),
+        "@self-engine/contracts",
+      );
+      expect(await cruise([contracts, renderer], { allowedImports: ALLOW })).toEqual([]);
+    },
+  );
+
+  it.each(renderers.map((make) => [make({}).dir, make] as const))(
+    "%s fails a value import of the app contract",
+    async (_, make) => {
+      const renderer = declaring(
+        make({ "src/client.ts": 'import { appContract } from "@self-engine/contracts";\n' }),
+        "@self-engine/contracts",
+      );
+      expect(ruleNames(await cruise([contracts, renderer], { allowedImports: ALLOW }))).toEqual([
+        "renderer-imports-the-contract-as-a-type",
+      ]);
+    },
+  );
+
+  it.each([
+    ["the data process core", "@self-engine/data-process"],
+    ["the data process test harness", "@self-engine/data-process/testing"],
+    ["the database connection", "@self-engine/db/better-sqlite3"],
+    ["a module's ./data entry", "@self-engine/time/data"],
+  ])("fails an import of %s", async (_, specifier) => {
+    const packageName = specifier.split("/").slice(0, 2).join("/");
+    for (const make of renderers) {
+      const renderer = declaring(make({ "src/data.ts": `import "${specifier}";\n` }), packageName);
+      const found = await cruise([dataProcess, db, time, renderer], { allowedImports: ALLOW });
+      expect(ruleNames(found), renderer.dir).toEqual(["renderer-stays-off-the-database"]);
+    }
+  });
+
+  it("passes the data process test harness in the data client's tests", async () => {
+    const client = {
+      ...extraPackage("packages/data-client", {
+        "src/client.test.ts": 'import "@self-engine/data-process/testing";\n',
+      }),
+      devDependencies: ["@self-engine/data-process"],
+    };
+    expect(await cruise([dataProcess, client], { allowedImports: ALLOW })).toEqual([]);
+  });
+});
+
 describe("the repo's workspace", () => {
   const packages = workspacePackages(resolve(import.meta.dirname, ".."));
   const folders = packages
