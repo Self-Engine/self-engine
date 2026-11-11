@@ -1,4 +1,5 @@
 import { activateLanguage, createI18n } from "@self-engine/i18n";
+import { APP_LANGUAGE_SETTING } from "@self-engine/settings-area/settings";
 import {
   createHashHistory,
   createMemoryHistory,
@@ -9,11 +10,13 @@ import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useEffect, useState } from "react";
 import { expect, userEvent, waitFor, within } from "storybook/test";
 import { createAppRouter } from "./app-router.ts";
-import { PreviewLanguage } from "./preview-language.tsx";
+import { AppLanguage } from "./app-language.tsx";
 import { settingsStore } from "./settings-store.ts";
 import { openPalette, paletteGone } from "./story-app.tsx";
 
 const i18n = createI18n();
+const ENGLISH_SYSTEM = () => ["en"];
+const resetLanguage = () => settingsStore.write(APP_LANGUAGE_SETTING, APP_LANGUAGE_SETTING.default);
 
 interface AppStoryProps {
   readonly address: string;
@@ -68,16 +71,20 @@ const meta = {
   ],
   decorators: [
     (Story) => (
-      <PreviewLanguage i18n={i18n} initialLanguage="en">
+      <AppLanguage i18n={i18n} initialLanguage="en" systemLanguages={ENGLISH_SYSTEM}>
         <Story />
-      </PreviewLanguage>
+      </AppLanguage>
     ),
   ],
   beforeEach: () => {
     const original = window.location.href;
     // The test runner's query, which the hash parser would add to the last parameter after Back.
     window.history.replaceState(null, "", window.location.pathname);
-    return () => window.history.replaceState(null, "", original);
+    return () => {
+      window.history.replaceState(null, "", original);
+      // The store is the app's one, on the browser's storage, which the next story shares.
+      resetLanguage();
+    };
   },
   args: { address: "/" },
 } satisfies Meta<typeof AppStory>;
@@ -100,11 +107,11 @@ export const StartAndNavigate: Story = {
     await expect(
       await canvas.findByRole("heading", { name: "Appearance", level: 1 }),
     ).toBeVisible();
-    await userEvent.click(canvas.getByRole("link", { name: "Language sample" }));
-    await expect(await canvas.findByText("This sentence is translated.")).toBeVisible();
-    await expect(canvas.getByRole("heading", { name: "Language sample", level: 1 })).toBeVisible();
+    await userEvent.click(canvas.getByRole("link", { name: "Language" }));
+    await expect(await canvas.findByRole("radiogroup", { name: "App Language" })).toBeVisible();
+    await expect(canvas.getByRole("heading", { name: "Language", level: 1 })).toBeVisible();
     await userEvent.click(canvas.getByRole("button", { name: "Reload router" }));
-    await expect(await canvas.findByText("This sentence is translated.")).toBeVisible();
+    await expect(await canvas.findByRole("radiogroup", { name: "App Language" })).toBeVisible();
     await userEvent.click(canvas.getByRole("link", { name: "Placeholder Beta" }));
     await expectBeta(canvas);
   },
@@ -171,24 +178,23 @@ export const HashUnknownView: Story = {
   args: { address: "/placeholder-beta/missing", hash: true },
 };
 export const NamesFollowLanguage: Story = {
-  args: { address: "/settings/language-sample" },
+  args: { address: "/settings/language" },
   play: async ({ canvas }) => {
-    await expect(await canvas.findByText("This sentence is translated.")).toBeVisible();
-    await userEvent.click(canvas.getByRole("radio", { name: "Deutsch" }));
+    await userEvent.click(await canvas.findByRole("radio", { name: "Deutsch" }));
     await waitFor(async () => {
       await expect(canvas.getByRole("link", { name: "Einstellungen" })).toHaveAttribute(
         "aria-current",
         "page",
       );
     });
-    await expect(canvas.getByRole("heading", { name: "Sprachbeispiel", level: 1 })).toBeVisible();
+    await expect(canvas.getByRole("heading", { name: "Sprache", level: 1 })).toBeVisible();
     await expect(canvas.getByRole("link", { name: "Darstellung" })).toBeVisible();
     await userEvent.click(canvas.getByRole("link", { name: "Platzhalter Beta" }));
     await expect(await canvas.findByRole("heading", { name: "Übersicht", level: 1 })).toBeVisible();
     await userEvent.click(canvas.getByRole("link", { name: "Platzhalter Alpha" }));
     await expect(await canvas.findByRole("button", { name: "Neuer Eintrag" })).toBeVisible();
     await userEvent.click(canvas.getByRole("link", { name: "Einstellungen" }));
-    await userEvent.click(await canvas.findByRole("link", { name: "Sprachbeispiel" }));
+    await userEvent.click(await canvas.findByRole("link", { name: "Sprache" }));
     await userEvent.click(await canvas.findByRole("radio", { name: "English" }));
     await userEvent.click(canvas.getByRole("link", { name: "Placeholder Alpha" }));
     await expect(await canvas.findByRole("button", { name: "New entry" })).toBeVisible();
@@ -196,19 +202,17 @@ export const NamesFollowLanguage: Story = {
 };
 
 export const PaletteLabelsFollowTheLanguage: Story = {
-  args: { address: "/settings/language-sample" },
+  args: { address: "/settings/language" },
   play: async ({ canvas }) => {
-    await expect(await canvas.findByText("This sentence is translated.")).toBeVisible();
+    await expect(await canvas.findByRole("radiogroup", { name: "App Language" })).toBeVisible();
     const english = within(await openPalette());
-    await expect(await english.findByRole("link", { name: "Language sample" })).toBeVisible();
+    await expect(await english.findByRole("link", { name: "Language" })).toBeVisible();
     await userEvent.keyboard("{Escape}");
     await paletteGone();
     await userEvent.click(canvas.getByRole("radio", { name: "Deutsch" }));
-    await expect(
-      await canvas.findByRole("heading", { name: "Sprachbeispiel", level: 1 }),
-    ).toBeVisible();
+    await expect(await canvas.findByRole("heading", { name: "Sprache", level: 1 })).toBeVisible();
     const german = within(await openPalette("Befehlspalette"));
-    await expect(await german.findByRole("link", { name: "Sprachbeispiel" })).toBeVisible();
+    await expect(await german.findByRole("link", { name: "Sprache" })).toBeVisible();
   },
 };
 

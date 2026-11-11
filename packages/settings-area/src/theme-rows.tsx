@@ -263,8 +263,9 @@ export function themeRow(catalog: ThemeCatalog): SettingsRow {
     title: msg`Theme`,
     description: msg`The colors of the app. When the app follows the system, light and dark each have their own Theme.`,
     searchWords: [msg`Colors`, msg`Color scheme`, msg`Light Theme`, msg`Dark Theme`],
-    values: all.flatMap((theme) => builtInName(theme) ?? []),
-    settings: [APPEARANCE_SETTINGS.lightTheme, APPEARANCE_SETTINGS.darkTheme],
+    // A Theme that does not ship with the app has its one name in every language.
+    values: all.map((theme) => builtInName(theme) ?? theme.name),
+    settings: [APPEARANCE_SETTINGS.lightTheme.key, APPEARANCE_SETTINGS.darkTheme.key],
     control: ThemeControl,
   };
 }
@@ -356,7 +357,7 @@ export function accentRow(catalog: ThemeCatalog): SettingsRow {
     description: msg`The highlight color for buttons, active items and links. "From Theme" uses the color a Theme brings, if it brings one.`,
     searchWords: [msg`Highlight color`, msg`Color`],
     values: ACCENT_CHOICES.flatMap((accent) => ACCENT_NAMES[accent] ?? []),
-    settings: [APPEARANCE_SETTINGS.accent],
+    settings: [APPEARANCE_SETTINGS.accent.key],
     control: AccentControl,
   };
 }

@@ -1,45 +1,10 @@
-import {
-  createLocalSettingsAdapter,
-  createSettingsStore,
-  type LocalSettingsStorage,
-  type SettingsStore,
-} from "@self-engine/settings";
+import type { LocalSettingsStorage, SettingsStore } from "@self-engine/settings";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import type { ComponentType } from "react";
 import { expect, userEvent, waitFor, within } from "storybook/test";
 import { createSettingsArea } from "./index.ts";
 import { APPEARANCE_SETTINGS } from "./settings.ts";
-
-/** A storage in memory that outlives a store, as the browser's outlives a restart. */
-function memoryStorage(): LocalSettingsStorage {
-  const items = new Map<string, string>();
-  return {
-    get length() {
-      return items.size;
-    },
-    key: (index) => [...items.keys()][index] ?? null,
-    getItem: (item) => items.get(item) ?? null,
-    setItem: (item, text) => void items.set(item, text),
-    removeItem: (item) => void items.delete(item),
-  };
-}
-
-const NO_OTHER_TABS = { addEventListener: () => {}, removeEventListener: () => {} };
-
-async function loadedStoreOn(storage: LocalSettingsStorage): Promise<SettingsStore> {
-  const environment = { getStorage: () => storage, getEvents: () => NO_OTHER_TABS };
-  const store = createSettingsStore({
-    adapters: {
-      synced: createLocalSettingsAdapter(environment, "synced"),
-      device: createLocalSettingsAdapter(environment, "device"),
-    },
-    onError: ({ error }) => {
-      throw error;
-    },
-  });
-  await store.load();
-  return store;
-}
+import { loadedStoreOn, memoryStorage } from "./story-store.ts";
 
 interface Loaded {
   readonly storage: LocalSettingsStorage;
@@ -53,7 +18,10 @@ const meta = {
     async (): Promise<Loaded> => {
       const storage = memoryStorage();
       const store = await loadedStoreOn(storage);
-      const [appearance] = createSettingsArea({ store }).views;
+      const [appearance] = createSettingsArea({
+        store,
+        version: () => ({ version: "0.0.1", operatingSystem: "macOS" }),
+      }).views;
       return { storage, store, Page: (await appearance.load()).default };
     },
   ],

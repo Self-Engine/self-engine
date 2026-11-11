@@ -12,10 +12,17 @@ type RowText = Pick<SettingsRow, "id" | "view" | "title" | "description" | "sear
 
 interface Choice<Value extends string> {
   readonly value: Value;
-  readonly label: MessageDescriptor;
+  /** A plain text is shown as it is, in every language. */
+  readonly label: MessageDescriptor | string;
 }
 
-/** A Setting with a few named values, all visible at once. */
+const nameOf = (label: MessageDescriptor | string, i18n: I18n) =>
+  typeof label === "string" ? label : i18n._(label);
+
+/**
+ * A Setting with a few named values, all visible at once. A stored value that is none of the
+ * choices shows as the default, which is how it behaves, and stays stored until one is chosen.
+ */
 export function choiceRow<Value extends string>({
   setting,
   choices,
@@ -26,11 +33,12 @@ export function choiceRow<Value extends string>({
 }): SettingsRow {
   function ChoiceControl({ store, labelledBy }: SettingsRowControlProps) {
     const { i18n } = useLingui();
-    const value = useSetting(store, setting);
+    const stored = useSetting(store, setting);
+    const value = choices.some((choice) => choice.value === stored) ? stored : setting.default;
     return (
       <SegmentedControl
         aria-labelledby={labelledBy}
-        data={choices.map((choice) => ({ value: choice.value, label: i18n._(choice.label) }))}
+        data={choices.map((choice) => ({ value: choice.value, label: nameOf(choice.label, i18n) }))}
         onChange={(next) => {
           const choice = choices.find((candidate) => candidate.value === next);
           if (choice) store.write(setting, choice.value);
@@ -42,7 +50,7 @@ export function choiceRow<Value extends string>({
   return {
     ...text,
     values: choices.map((choice) => choice.label),
-    settings: [setting],
+    settings: [setting.key],
     control: ChoiceControl,
   };
 }
@@ -64,7 +72,7 @@ export function switchRow({
       />
     );
   }
-  return { ...text, values: [], settings: [setting], control: SwitchControl };
+  return { ...text, values: [], settings: [setting.key], control: SwitchControl };
 }
 
 /** A Setting with a few numbers in order, as a slider that rests only on those. */
@@ -104,5 +112,5 @@ export function stopsRow<Stop extends number>({
       />
     );
   }
-  return { ...text, values: [], settings: [setting], control: StopsControl };
+  return { ...text, values: [], settings: [setting.key], control: StopsControl };
 }

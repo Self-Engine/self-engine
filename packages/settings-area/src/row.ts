@@ -1,5 +1,5 @@
 import type { MessageDescriptor } from "@lingui/core";
-import type { JsonValue, SettingDeclaration, SettingsStore } from "@self-engine/settings";
+import type { SettingsStore } from "@self-engine/settings";
 import type { ComponentType } from "react";
 
 export interface SettingsRowControlProps {
@@ -22,13 +22,13 @@ export interface SettingsRow {
   readonly description?: MessageDescriptor;
   /** What else finds the row, besides its title, description and values. */
   readonly searchWords: readonly MessageDescriptor[];
-  /** The names of the values the row offers or shows, so that a value finds its row. */
-  readonly values: readonly MessageDescriptor[];
   /**
-   * The Settings the row writes, so that a test can tell when a Setting has no row. Left out by a
-   * row that only shows something.
+   * The names of the values the row offers or shows, so that a value finds its row. A plain text
+   * is a name that is the same in every language, such as a language's own name.
    */
-  readonly settings?: readonly SettingDeclaration<JsonValue>[];
+  readonly values: readonly (MessageDescriptor | string)[];
+  /** The keys of the Settings the row reads or writes; absent for a row that only shows something. */
+  readonly settings?: readonly string[];
   /** The right-hand part: a control, or a value that is only shown. */
   readonly control: ComponentType<SettingsRowControlProps>;
 }

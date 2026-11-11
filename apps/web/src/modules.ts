@@ -1,29 +1,19 @@
-import { msg } from "@lingui/core/macro";
 import { contribution as alpha } from "@self-engine/placeholder-alpha";
 import { contribution as beta } from "@self-engine/placeholder-beta";
 import { createSettingsArea } from "@self-engine/settings-area";
 import { type ShellContribution, validateContributions } from "@self-engine/shell";
+import { version } from "../package.json";
+import { versionInfo } from "./env.ts";
 import { settingsStore } from "./settings-store.ts";
 
 export const modules: readonly ShellContribution[] = [beta, alpha];
 
-const settingsArea = createSettingsArea({ store: settingsStore });
-
-/**
- * The settings area, plus a throwaway View of the app that stays reachable until the slice that
- * replaces it removes it: #161 the language sample.
- */
-export const settings: ShellContribution = {
-  ...settingsArea,
-  views: [
-    ...settingsArea.views,
-    {
-      id: "language-sample",
-      title: msg`Language sample`,
-      load: () => import("./language-sample.tsx"),
-    },
-  ],
-};
+/** The settings area, which the Shell gets beside the modules. */
+export const settings: ShellContribution = createSettingsArea({
+  store: settingsStore,
+  // The build inserts the web app's version; the desktop app's comes over the bridge.
+  version: () => versionInfo(window, navigator, version),
+});
 
 export const contributions = [...modules, settings];
 validateContributions(contributions);
