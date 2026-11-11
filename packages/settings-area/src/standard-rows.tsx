@@ -39,7 +39,12 @@ export function choiceRow<Value extends string>({
       />
     );
   }
-  return { ...text, values: choices.map((choice) => choice.label), control: ChoiceControl };
+  return {
+    ...text,
+    values: choices.map((choice) => choice.label),
+    settings: [setting],
+    control: ChoiceControl,
+  };
 }
 
 /** A Setting that is on or off. */
@@ -59,7 +64,7 @@ export function switchRow({
       />
     );
   }
-  return { ...text, values: [], control: SwitchControl };
+  return { ...text, values: [], settings: [setting], control: SwitchControl };
 }
 
 /** A Setting with a few numbers in order, as a slider that rests only on those. */
@@ -99,5 +104,5 @@ export function stopsRow<Stop extends number>({
       />
     );
   }
-  return { ...text, values: [], control: StopsControl };
+  return { ...text, values: [], settings: [setting], control: StopsControl };
 }

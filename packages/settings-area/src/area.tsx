@@ -14,7 +14,8 @@ interface RowProps {
   readonly store: SettingsStore;
 }
 
-function Row({ row, store }: RowProps) {
+/** One Settings Row as every page shows it: its title and description, then its control. */
+export function Row({ row, store }: RowProps) {
   const { i18n } = useLingui();
   const titleId = useId();
   const Control = row.control;

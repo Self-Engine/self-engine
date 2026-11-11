@@ -2,10 +2,11 @@
 // the startup bundle.
 
 import { msg } from "@lingui/core/macro";
-import { FONT_SCALES } from "@self-engine/theme";
+import { BUILT_IN_THEMES, FONT_SCALES } from "@self-engine/theme";
 import type { SettingsRow } from "./row.ts";
 import { APPEARANCE_SETTINGS } from "./settings.ts";
 import { choiceRow, stopsRow, switchRow } from "./standard-rows.tsx";
+import { accentRow, themeRow } from "./theme-rows.tsx";
 import { VIEW_IDS } from "./views.ts";
 
 const APPEARANCE_ROWS: readonly SettingsRow[] = [
@@ -22,6 +23,8 @@ const APPEARANCE_ROWS: readonly SettingsRow[] = [
       { value: "system", label: msg({ message: "System", context: "Color Mode" }) },
     ],
   }),
+  themeRow(BUILT_IN_THEMES),
+  accentRow(BUILT_IN_THEMES),
   choiceRow({
     id: "density",
     view: VIEW_IDS.appearance,
