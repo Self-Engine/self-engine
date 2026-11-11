@@ -126,7 +126,14 @@ export function builderConfig(
       "package.json",
       { from: bundleDirectory(channel), to: "dist-electron" },
       { from: "../web/dist", to: "dist-renderer" },
+      // The SQLite driver needs only its JavaScript and the binary for this Mac; its C sources
+      // and the binaries of other platforms would only grow the app.
+      "!**/node_modules/better-sqlite3/{deps,src}/**",
+      "!**/node_modules/better-sqlite3/binding.gyp",
+      "!**/node_modules/better-sqlite3/prebuilds/!(darwin-*).node",
     ],
+    // A process loads a native module from a real file, never from inside app.asar.
+    asarUnpack: ["**/*.node"],
     mac: {
       target: releaseVersion === undefined ? "dir" : "dmg",
       // Ad hoc is trusted by nobody, but a valid signature for the whole bundle, unlike a
