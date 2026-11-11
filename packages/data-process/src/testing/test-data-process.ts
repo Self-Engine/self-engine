@@ -1,4 +1,5 @@
 import { MessageChannel, type MessagePort } from "node:worker_threads";
+import type { TablesChanged } from "@self-engine/contracts";
 import type { Database, Migration } from "@self-engine/db";
 import { openDatabase } from "@self-engine/db/better-sqlite3";
 import { startDataProcess } from "../core/index.ts";
@@ -21,6 +22,8 @@ export interface TestDataProcess {
    * like the main process hands a port to a window.
    */
   openPort(): MessagePort;
+  /** Announces a commit that changed these tables, as the storage layer will (D193). */
+  announceTablesChanged(tables: TablesChanged): void;
   /** Closes every port this opened, then the database. */
   close(): Promise<void>;
 }
@@ -43,6 +46,7 @@ export async function startTestDataProcess(
       core.serve(port1);
       return port2;
     },
+    announceTablesChanged: (tables) => core.announceTablesChanged(tables),
     async close() {
       for (const port of ports) port.close();
       await database.close();
