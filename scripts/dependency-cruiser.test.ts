@@ -562,6 +562,118 @@ describe("icon libraries", () => {
   });
 });
 
+describe("contracts", () => {
+  const contracts = (dependencies: string[], file: string): FixturePackage => ({
+    dir: "packages/contracts",
+    dependencies,
+    files: { "src/index.ts": file },
+  });
+
+  it("pass Zod and oRPC's contract package", async () => {
+    const found = await cruise([
+      contracts(["zod", "@orpc/contract"], 'import "zod";\nimport "@orpc/contract";\n'),
+    ]);
+    expect(found).toEqual([]);
+  });
+
+  it.each(["kysely", "electron", "@orpc/server"])("fail an import of %s", async (name) => {
+    const found = await cruise([contracts([name], `import "${name}";\n`)]);
+    expect(ruleNames(found)).toEqual(["contracts-are-pure"]);
+  });
+
+  it("fail an import of a Node module", async () => {
+    const found = await cruise([contracts([], 'import "node:fs";\n')]);
+    expect(ruleNames(found)).toEqual(["contracts-are-pure:node"]);
+  });
+
+  it("hold a module's contracts entry to the same rule", async () => {
+    const found = await cruise([
+      {
+        dir: "packages/module",
+        dependencies: ["kysely"],
+        exports: { "./contracts": "./src/contracts/index.ts" },
+        files: { "src/contracts/index.ts": 'import "kysely";\n' },
+      },
+    ]);
+    expect(ruleNames(found)).toEqual(["contracts-are-pure"]);
+  });
+
+  describe("outside the data process", () => {
+    const allowed = { "data-client": ["contracts"], "data-process": ["contracts"] };
+    const contract = contracts(
+      [],
+      "export const appContract = {};\nexport type AppContract = 1;\n",
+    );
+    const importer = (dir: string, file: string): FixturePackage => ({
+      dir,
+      dependencies: ["@self-engine/contracts"],
+      files: { "src/index.ts": file },
+    });
+
+    it("pass a type-only import", async () => {
+      const client = importer(
+        "packages/data-client",
+        'import type { AppContract } from "@self-engine/contracts";\nexport type T = AppContract;\n',
+      );
+      expect(await cruise([contract, client], { allowedImports: allowed })).toEqual([]);
+    });
+
+    it("fail a value import", async () => {
+      const client = importer(
+        "packages/data-client",
+        'import { appContract } from "@self-engine/contracts";\nexport const c = appContract;\n',
+      );
+      expect(ruleNames(await cruise([contract, client], { allowedImports: allowed }))).toEqual([
+        "renderer-imports-contracts-as-types",
+      ]);
+    });
+
+    it("pass a value import in the data process", async () => {
+      const core = importer(
+        "packages/data-process",
+        'import { appContract } from "@self-engine/contracts";\nexport const c = appContract;\n',
+      );
+      expect(await cruise([contract, core], { allowedImports: allowed })).toEqual([]);
+    });
+  });
+});
+
+describe("the renderer", () => {
+  const db: FixturePackage = {
+    dir: "packages/db",
+    exports: { ".": "./src/core/index.ts", "./better-sqlite3": "./src/better-sqlite3/index.ts" },
+    files: {
+      "src/core/index.ts": "export const core = 1;\n",
+      "src/better-sqlite3/index.ts": "export const open = 1;\n",
+    },
+  };
+  const core = extraPackage("packages/data-process");
+  const module_: FixturePackage = {
+    dir: "packages/module",
+    exports: { ".": "./src/index.ts", "./data": "./src/data/index.ts" },
+    files: {
+      "src/index.ts": "export const view = 1;\n",
+      "src/data/index.ts": "export const storage = 1;\n",
+    },
+  };
+  const web = (dependency: string, specifier: string) =>
+    declaring(app("web", { "src/index.ts": `import "${specifier}";\n` }), dependency);
+
+  it.each([
+    ["the data process core", "@self-engine/data-process", "@self-engine/data-process"],
+    ["the database connection", "@self-engine/db", "@self-engine/db/better-sqlite3"],
+    ["a module's data entry", "@self-engine/module", "@self-engine/module/data"],
+    ["the SQLite driver", "better-sqlite3", "better-sqlite3"],
+  ])("fails an import of %s", async (_, dependency, specifier) => {
+    const found = await cruise([db, core, module_, web(dependency, specifier)]);
+    expect(ruleNames(found)).toEqual(["renderer-never-reaches-the-database"]);
+  });
+
+  it("passes a module's renderer entry", async () => {
+    expect(await cruise([module_, web("@self-engine/module", "@self-engine/module")])).toEqual([]);
+  });
+});
+
 describe("the repo's workspace", () => {
   const packages = workspacePackages(resolve(import.meta.dirname, ".."));
   const folders = packages

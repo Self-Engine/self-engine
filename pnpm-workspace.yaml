@@ -36,6 +36,11 @@ catalog:
   "@mantine/modals": 9.7.5
   "@mantine/notifications": 9.7.5
   "@mantine/spotlight": 9.7.5
+  # The typed calls between the renderer and the data process (D93). Every oRPC package moves
+  # together; its message-port adapter carries them.
+  "@orpc/client": 1.16.2
+  "@orpc/contract": 1.16.2
+  "@orpc/server": 1.16.2
   # The JS plugin API of the Oxlint that vite-plus ships; move it with vite-plus.
   "@oxlint/plugins": 1.91.0
   # Only packages/icons may depend on it (#18).

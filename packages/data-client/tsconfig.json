@@ -1,0 +1,11 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "module": "Preserve",
+    "moduleResolution": "Bundler",
+    // Runs in the renderer, so the DOM's `MessagePort` and no Node.
+    "lib": ["ESNext", "DOM"],
+    "types": []
+  },
+  "include": ["src"]
+}

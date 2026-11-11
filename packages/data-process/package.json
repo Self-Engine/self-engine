@@ -1,0 +1,23 @@
+{
+  "name": "@self-engine/data-process",
+  "version": "0.0.0",
+  "private": true,
+  "license": "AGPL-3.0-only",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@orpc/contract": "catalog:",
+    "@orpc/server": "catalog:",
+    "@self-engine/contracts": "workspace:*",
+    "@self-engine/db": "workspace:*",
+    "kysely": "catalog:"
+  },
+  "devDependencies": {
+    "@self-engine/data-client": "workspace:*",
+    "@types/node": "catalog:",
+    "vite-plus": "catalog:",
+    "zod": "catalog:"
+  }
+}

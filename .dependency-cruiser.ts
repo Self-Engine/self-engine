@@ -21,6 +21,9 @@ export type AllowedImports = Readonly<Record<string, readonly string[]>>;
  * the two lists match.
  */
 export const ALLOWED_IMPORTS: AllowedImports = {
+  "data-client": ["contracts"],
+  // `data-client` for its tests only, which drive the real client against the core.
+  "data-process": ["contracts", "data-client", "db"],
   icons: ["theme"],
   "placeholder-alpha": ["shell", "icons", "ui"],
   "placeholder-beta": ["shell", "icons"],
@@ -36,6 +39,22 @@ const ICON_LIBRARIES = [
   "lucide-react",
   "react-icons",
 ];
+
+/**
+ * The app contract and each module's `./contracts` entry, which by convention lives in
+ * `src/contracts/` (D187).
+ */
+const CONTRACT_SOURCE = "^packages/(?:contracts/|[^/]+/src/contracts/)";
+
+/** The only npm packages a contract may import (D187). */
+const CONTRACT_LIBRARIES = "zod|@orpc/contract";
+
+/**
+ * Code that runs in the renderer and has no business near the database: the apps that render
+ * the UI and the client that talks to the data process. Packages are held off by
+ * ALLOWED_IMPORTS already.
+ */
+const RENDERER_SOURCE = "^(?:apps/(?:web|component-catalog)|packages/data-client)/";
 
 /** Test and story files may also import what `devDependencies` declares. */
 const DEV_ONLY_FILE = String.raw`\.(?:test|stories)\.[cm]?[jt]sx?$`;
@@ -163,6 +182,45 @@ export function boundaryConfig({ allowedImports, rootDir }: BoundaryOptions): IC
       comment:
         "The database core (`@self-engine/db`) is what modules import, so it stays free of the native driver and the web build keeps compiling. The driver belongs in `@self-engine/db/better-sqlite3`.",
     }),
+    {
+      name: "contracts-are-pure",
+      comment:
+        "A contract (`@self-engine/contracts`, a module's `./contracts`) is read by the data process and the renderer alike, so it holds only Zod schemas and oRPC contracts (D187). Database code, Electron and Node belong in the data process.",
+      severity: "error",
+      from: { path: CONTRACT_SOURCE, pathNot: DEV_ONLY_FILE },
+      to: { path: "(^|/)node_modules/", pathNot: `(^|/)node_modules/(?:${CONTRACT_LIBRARIES})/` },
+    },
+    {
+      name: "contracts-are-pure:node",
+      comment:
+        "A contract is read by the renderer too, where Node's modules do not exist (D187). Keep it to Zod schemas and oRPC contracts.",
+      severity: "error",
+      from: { path: CONTRACT_SOURCE, pathNot: DEV_ONLY_FILE },
+      to: { dependencyTypes: ["core"] },
+    },
+    {
+      name: "renderer-imports-contracts-as-types",
+      comment:
+        "Outside the data process the app contract is a type: `import type { AppContract }`. A value import would load every schema at startup (D187, D188); the data process checks the input.",
+      severity: "error",
+      from: { path: "^(apps|packages)/", pathNot: "^packages/(?:contracts|data-process)/" },
+      to: { path: "^packages/contracts/", dependencyTypesNot: ["type-only"] },
+    },
+    {
+      name: "renderer-never-reaches-the-database",
+      comment:
+        "Only the data process opens the database. The renderer reaches it through `@self-engine/data-client`, never through the data process core, the SQLite driver or a module's `./data` entry.",
+      severity: "error",
+      from: { path: RENDERER_SOURCE },
+      to: {
+        path: [
+          "^packages/data-process/",
+          "^packages/db/src/better-sqlite3/",
+          "^packages/[^/]+/src/data/",
+          "(^|/)node_modules/better-sqlite3/",
+        ],
+      },
+    },
     {
       name: "icons-only-through-catalog",
       comment:
