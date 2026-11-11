@@ -28,7 +28,7 @@ The settings area has to show every Setting on the page of a View and let a sear
 
 ## Consequences
 
-- Adding a Setting to the area is one entry in the list. It is then on its View's page and, once the search exists, findable.
+- Adding a Setting to the area is one entry in the list. It is then on its View's page and findable: the search compares a row's title, description, search words and value names in the language shown, by the Command Palette's rule, which the Shell exports as `wordMatch` so that the area shares it without loading the palette.
 - Every row has to fit "title, description, control". What does not fit that shape is not a row.
 - The row's type is exported from a package that modules may import. Modules cannot contribute rows yet; the extension point is added with the first module that needs it.
 - The controls receive the store as a prop instead of importing one, so the area can be rendered on any store, which is how its stories test it.
