@@ -87,10 +87,10 @@ export const AValueFindsItsRowAndTheControlWorks: Story = {
 
 export const AboutValuesFindTheirRows: Story = {
   play: async ({ canvas }) => {
-    for (const [value, title] of [
-      ["macOS", "Operating system"],
-      ["AGPL-3.0-only", "License"],
-      ["0.0.1", "Version"],
+    for (const { value, title } of [
+      { value: "macOS", title: "Operating system" },
+      { value: "AGPL-3.0-only", title: "License" },
+      { value: "0.0.1", title: "Version" },
     ]) {
       await userEvent.clear(field(canvas));
       await userEvent.type(field(canvas), value);
