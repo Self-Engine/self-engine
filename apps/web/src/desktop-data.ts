@@ -52,6 +52,24 @@ export function connectDesktopData(
 }
 
 /**
+ * The name of the performance mark set for each state of the connection, with the status as its
+ * `detail`. The desktop smoke test (scripts/desktop-smoke.ts) reads these marks: the first
+ * `ready` is the first answer, timed from the window's start, and a later `ready` in the same
+ * document proves a reconnect without a reload.
+ */
+export const CONNECTION_MARK = "self-engine:data-connection";
+
+/** Marks the state the connection is in, then every change of it. */
+export function markConnectionStates(
+  connection: Pick<DataConnection, "getState" | "subscribe">,
+  mark: (name: string, options: { detail: string }) => void,
+): void {
+  const markState = () => mark(CONNECTION_MARK, { detail: connection.getState().status });
+  markState();
+  connection.subscribe(markState);
+}
+
+/**
  * The retry of a stopped data process: the connection waits for a port again, and the desktop
  * app starts the data process with its crash count reset, then sends the port.
  */

@@ -1,5 +1,6 @@
 # The same gate as local (ADR 0008): `pnpm verify` on every PR and every push to main. Under
-# CI the format and i18n stages only check (scripts/verify.ts). Branch protection on main requires
+# CI the format and i18n stages only check (scripts/verify.ts), and the gate runs on a virtual
+# display for its desktop smoke stage. Branch protection on main requires
 # this job (AGENTS.md, "Pull Requests").
 name: CI
 
@@ -36,4 +37,12 @@ jobs:
       - run: pnpm install --frozen-lockfile
       # With Ubuntu's system libraries, which the `stories` stage's own call does not ask for.
       - run: node scripts/ensure-chromium.ts --with-deps
-      - run: pnpm verify
+      # The smoke stage starts the desktop app. Ubuntu 24.04's AppArmor forbids the user
+      # namespaces of Chromium's sandbox, and Electron's setuid fallback is not set up, so
+      # Electron would refuse to start; this lifts the restriction instead of turning the
+      # app's sandbox off.
+      - run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+      # The runner has no display: xvfb-run gives Electron a virtual one. Installed only if the
+      # runner image lacks it. The stage itself downloads the Electron binary.
+      - run: command -v xvfb-run || (sudo apt-get update && sudo apt-get install -y xvfb)
+      - run: xvfb-run --auto-servernum pnpm verify

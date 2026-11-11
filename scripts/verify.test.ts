@@ -32,10 +32,21 @@ describe("runStages", () => {
     expect(summaryLine(results, "log")).toBe("VERIFY: FAIL test (full log: log)");
   });
 
-  it("runs the stories last, and names them when they fail", async () => {
+  it("runs the stories after the tests, and skips the smoke test when they fail", async () => {
     const results = await runStages(async (stage) => stage !== "stories");
     expect(results.map((result) => result.stage)).toEqual([...STATIC_STAGES, "test", "stories"]);
     expect(summaryLine(results, "log")).toBe("VERIFY: FAIL stories (full log: log)");
+  });
+
+  it("runs the desktop smoke test last, and names it when it fails", async () => {
+    const results = await runStages(async (stage) => stage !== "smoke");
+    expect(results.map((result) => result.stage)).toEqual([
+      ...STATIC_STAGES,
+      "test",
+      "stories",
+      "smoke",
+    ]);
+    expect(summaryLine(results, "log")).toBe("VERIFY: FAIL smoke (full log: log)");
   });
 
   it("passes when every stage passes", async () => {
@@ -134,6 +145,34 @@ describe("the verify tasks", () => {
     expect(config.run?.tasks?.["ensure-chromium"]).toEqual({
       command: "node scripts/ensure-chromium.ts",
       cache: false,
+    });
+  });
+
+  it("ensure Electron before the smoke test, on every run even when the smoke test replays", () => {
+    expect(config.run?.tasks?.["verify:smoke"]).toMatchObject({
+      command: "node scripts/desktop-smoke.ts",
+      dependsOn: ["ensure-electron"],
+    });
+    expect(config.run?.tasks?.["ensure-electron"]).toEqual({
+      command: "node scripts/ensure-electron.ts",
+      cache: false,
+    });
+  });
+
+  it("replay the smoke test only while the built app and the launcher stay the same", () => {
+    // Electron's own reads are invisible to the cache's tracking, so the inputs are named.
+    expect(config.run?.tasks?.["verify:smoke"]).toMatchObject({
+      cache: {
+        input: expect.arrayContaining([
+          "apps/desktop/dist-electron/**",
+          "apps/desktop/package.json",
+          "apps/web/dist/**",
+          "scripts/desktop-app.ts",
+          "scripts/desktop-smoke.ts",
+          "pnpm-lock.yaml",
+        ]),
+        output: [],
+      },
     });
   });
 });

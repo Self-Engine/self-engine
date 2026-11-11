@@ -1,12 +1,15 @@
 import { MessageChannel, type MessagePort } from "node:worker_threads";
+import { createDataConnection } from "@self-engine/data-client";
 import { afterEach, describe, expect, it } from "vite-plus/test";
 import {
+  CONNECTION_MARK,
   type DesktopDataWindow,
   PAGE_GONE_MESSAGE,
   PAGE_PORT_MESSAGE,
   PAGE_STOPPED_MESSAGE,
   type PortMessage,
   connectDesktopData,
+  markConnectionStates,
   retryDesktopData,
 } from "./desktop-data.ts";
 
@@ -131,5 +134,19 @@ describe("retryDesktopData", () => {
     );
 
     expect(calls).toEqual(["disconnect", "retry"]);
+  });
+});
+
+describe("markConnectionStates", () => {
+  it("marks the state it starts in and every change, for the desktop smoke test", () => {
+    const connection = createDataConnection();
+    const marks: [string, unknown][] = [];
+    markConnectionStates(connection, (name, options) => marks.push([name, options.detail]));
+    connection.disconnect();
+    connection.stop();
+    expect(marks).toEqual([
+      [CONNECTION_MARK, "connecting"],
+      [CONNECTION_MARK, "stopped"],
+    ]);
   });
 });

@@ -2,9 +2,9 @@
 // `verify:*` tasks from vite.config.ts through `vp run`, which caches them: format, lint
 // (warnings fail), typecheck, the module boundaries (.dependency-cruiser.ts), the ADR check,
 // the guard against changed migrations, the theme CSS check, the translations and the workspace
-// build, then the tests and the stories in Chromium. Every stage's output goes to
-// `.cache/verify.log`; the console gets
-// one line per stage, the tail of each failing stage, and a last line `VERIFY: PASS` or
+// build, then the tests, the stories in Chromium and the smoke test of the built desktop app
+// (desktop-smoke.ts). Every stage's output goes to `.cache/verify.log`; the console gets one
+// line per stage, the tail of each failing stage, and a last line `VERIFY: PASS` or
 // `VERIFY: FAIL <stages>`.
 //
 // Under CI (`CI` set, as GitHub Actions does) the format and i18n stages only check: they fail
@@ -13,9 +13,9 @@
 // check run and a write run never replay each other.
 //
 // The static stages all run even after one fails, so one run reports lint and type errors
-// together; the tests run only once they pass, and the stories only once the tests pass. A pass
-// records the verified tree (verify-stamp.ts), which the push guard (verify-guard.ts) requires
-// before `git push`.
+// together; the tests run only once they pass, the stories only once the tests pass, and the
+// smoke test only once the stories pass. A pass records the verified tree (verify-stamp.ts),
+// which the push guard (verify-guard.ts) requires before `git push`.
 
 import { spawn } from "node:child_process";
 import { appendFileSync, mkdirSync, writeFileSync } from "node:fs";
@@ -38,7 +38,7 @@ export const STATIC_STAGES = [
   "i18n",
   "build",
 ] as const;
-export const TEST_STAGES = ["test", "stories"] as const;
+export const TEST_STAGES = ["test", "stories", "smoke"] as const;
 export const LOG_FILE = ".cache/verify.log";
 const FAILURE_TAIL_LINES = 80;
 
