@@ -1,7 +1,7 @@
 ---
 status: accepted
 date: 2026-11-12
-decisions: D197, D202, D204
+decisions: D197, D202, D203, D204
 ---
 
 # Settings Rows are data, and pages and search are drawn from one list
@@ -18,7 +18,7 @@ The settings area has to show every Setting on the page of a View and let a sear
 
 3. **A row is not a Setting.** It may serve one Setting, several or none, and a Setting may have no row. The row follows what the user sees, not how a value is stored.
 
-4. **The control is a component of the row.** Standard shapes (a few named values, on or off, a few numbers in order) are built by helpers that also fill in the names of the values. A row that fits none of them draws its control itself and is still one row with a title and search words. A row may also be produced from other data.
+4. **The control is a component of the row.** Standard shapes (a few named values, on or off, a few numbers in order) are built by helpers that also fill in the names of the values. A row that fits none of them draws its control itself and is still one row with a title and search words. A row may also be produced from other data: the rows of the View Shortcuts are built from the Command register over what the app hands in, so a new module's Shortcuts need no entry. Rows that belong together within a View, such as the Shortcuts of one module, name a shared heading, and the page and the hit list draw them under it.
 
 5. **The settings area is the package `@self-engine/settings-area`.** Its main entry exports a function that takes what the app owns, at first the settings store, and returns the Shell Contribution `settings`; the app keeps handing it to the Shell beside the modules. Only the id, name, icon and View titles are in the startup bundle. The list of rows and every control load as one chunk when the settings are first opened, not one per View.
 
