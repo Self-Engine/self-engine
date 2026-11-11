@@ -355,8 +355,13 @@ describe("packageChannel", () => {
   }
 
   function runPackaging(options: PackagingRun = {}) {
-    const { channel = "nightly", releaseVersion, seed, smokeFails, env = { PATH: "/bin" } } =
-      options;
+    const {
+      channel = "nightly",
+      releaseVersion,
+      seed,
+      smokeFails,
+      env = { PATH: "/bin" },
+    } = options;
     const compiledFor = options.compiledFor === undefined ? channel : options.compiledFor;
     const calls = options.calls ?? [];
     const inspected: string[][] = [];
@@ -438,7 +443,9 @@ describe("packageChannel", () => {
   });
 
   it("smoke-tests the packaged app before anything can ship it", () => {
-    const { calls, desktopDir, root } = runPackaging({ releaseVersion: "0.0.1-nightly.20261108.7" });
+    const { calls, desktopDir, root } = runPackaging({
+      releaseVersion: "0.0.1-nightly.20261108.7",
+    });
     expect(calls).toHaveLength(4);
     expect(calls[3]).toEqual([
       process.execPath,

@@ -282,7 +282,11 @@ export function packageChannel(request: PackageRequest, options: PackageOptions)
     { cwd: desktopDir, env },
   );
   if (signing === "developer-id") {
-    assertDeveloperIdRelease(packagedAppPath(desktopDir, channel), env.APPLE_TEAM_ID ?? "", inspect);
+    assertDeveloperIdRelease(
+      packagedAppPath(desktopDir, channel),
+      env.APPLE_TEAM_ID ?? "",
+      inspect,
+    );
   }
   // The gate's smoke test (scripts/desktop-smoke.ts) against what was packaged, run as a command
   // because the app may not import a repo script (ADR 0006). A file the package lacks, such as
