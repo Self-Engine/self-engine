@@ -2,9 +2,12 @@ import { MessageChannel, type MessagePort } from "node:worker_threads";
 import { afterEach, describe, expect, it } from "vite-plus/test";
 import {
   type DesktopDataWindow,
+  PAGE_GONE_MESSAGE,
   PAGE_PORT_MESSAGE,
+  PAGE_STOPPED_MESSAGE,
   type PortMessage,
   connectDesktopData,
+  retryDesktopData,
 } from "./desktop-data.ts";
 
 const ORIGIN = "self-engine-dev://app";
@@ -42,10 +45,18 @@ afterEach(() => {
 function connectFake() {
   const win = new FakeWindow();
   const connected: unknown[] = [];
+  const calls: string[] = [];
   const listenersAtRequest: number[] = [];
   const bridge = { requestDataPort: () => listenersAtRequest.push(win.listeners.length) };
-  connectDesktopData(win, bridge, { connect: (received) => connected.push(received) });
-  return { win, connected, listenersAtRequest };
+  connectDesktopData(win, bridge, {
+    connect: (received) => {
+      calls.push("connect");
+      connected.push(received);
+    },
+    disconnect: () => calls.push("disconnect"),
+    stop: () => calls.push("stop"),
+  });
+  return { win, connected, calls, listenersAtRequest };
 }
 
 describe("connectDesktopData", () => {
@@ -78,5 +89,47 @@ describe("connectDesktopData", () => {
     win.receive(PAGE_PORT_MESSAGE, ORIGIN, []);
 
     expect(connected).toEqual([]);
+  });
+});
+
+describe("the data process's news", () => {
+  it("drops the port when the data process is gone, and connects the fresh one", () => {
+    const { win, calls } = connectFake();
+    win.receive(PAGE_PORT_MESSAGE, ORIGIN, [port()]);
+
+    win.receive(PAGE_GONE_MESSAGE, ORIGIN, []);
+    win.receive(PAGE_PORT_MESSAGE, ORIGIN, [port()]);
+
+    expect(calls).toEqual(["connect", "disconnect", "connect"]);
+  });
+
+  it("reports a stopped data process", () => {
+    const { win, calls } = connectFake();
+
+    win.receive(PAGE_STOPPED_MESSAGE, ORIGIN, []);
+
+    expect(calls).toEqual(["stop"]);
+  });
+
+  it("refuses the news from another origin", () => {
+    const { win, calls } = connectFake();
+
+    win.receive(PAGE_GONE_MESSAGE, "https://example.com", []);
+    win.receive(PAGE_STOPPED_MESSAGE, "https://example.com", []);
+
+    expect(calls).toEqual([]);
+  });
+});
+
+describe("retryDesktopData", () => {
+  it("waits for a port again, then asks the desktop app to start the data process", () => {
+    const calls: string[] = [];
+
+    retryDesktopData(
+      { retryDataProcess: () => calls.push("retry") },
+      { disconnect: () => calls.push("disconnect") },
+    );
+
+    expect(calls).toEqual(["disconnect", "retry"]);
   });
 });

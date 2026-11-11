@@ -8,7 +8,7 @@ import {
 } from "./env.ts";
 
 function bridge(platform: string, channel: DesktopChannel): DesktopBridge {
-  return { platform, channel, requestDataPort: () => {} };
+  return { platform, channel, requestDataPort: () => {}, retryDataProcess: () => {} };
 }
 
 describe("historyKind", () => {

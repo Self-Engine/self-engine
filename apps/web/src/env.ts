@@ -7,6 +7,8 @@ export interface DesktopBridge {
   readonly channel: DesktopChannel;
   /** Asks for a port to the data process; it arrives as a window message (desktop-data.ts). */
   requestDataPort(): void;
+  /** Starts the data process again after repeated crashes stopped it (desktop-data.ts). */
+  retryDataProcess(): void;
 }
 
 declare global {

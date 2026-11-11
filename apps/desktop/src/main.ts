@@ -10,7 +10,8 @@ import {
 } from "electron";
 import { buildIdentity } from "./build-channel.ts";
 import { resolveDevServer, userDataPath } from "./channel.ts";
-import { databaseFile, servePortRequests, startDataProcessHost } from "./data-process-host.ts";
+import { databaseFile, serveDataProcessRequests } from "./data-process-host.ts";
+import { superviseDataProcess } from "./data-process-supervisor.ts";
 import {
   contentSecurityPolicy,
   desktopUrl,
@@ -61,17 +62,20 @@ function registerProtocol(devServer: URL | undefined): void {
 }
 
 // Starts beside the window, so the database opens while the page loads. The page asks for its
-// port, and gets it once the data process is serving.
+// port, and gets it once the data process is serving; after a crash it gets a fresh one.
 function startDataProcess(): void {
-  const host = startDataProcessHost({
+  const supervisor = superviseDataProcess({
     databasePath: databaseFile(app.getPath("userData")),
     startProcess: (args) =>
       utilityProcess.fork(path.join(__dirname, "data-process.cjs"), args, {
         serviceName: `${productName} Data`,
       }),
     createChannel: () => new MessageChannelMain(),
+    now: () => performance.now(),
   });
-  servePortRequests(ipcMain, host, scheme);
+  serveDataProcessRequests(ipcMain, supervisor, scheme);
+  // Quitting ends the data process on purpose: no crash, no restart.
+  app.on("will-quit", () => supervisor.stop());
 }
 
 async function openWindow(): Promise<void> {
