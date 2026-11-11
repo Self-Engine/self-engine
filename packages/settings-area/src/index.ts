@@ -7,7 +7,7 @@ import { SettingsIcon } from "@self-engine/icons";
 import type { SettingsStore } from "@self-engine/settings";
 import type { ShellContribution, ShellView } from "@self-engine/shell";
 import type { VersionInfo } from "./version.ts";
-import { type SettingsViewId, VIEW_IDS } from "./views.ts";
+import { SEARCH_PARAMETER, type SettingsViewId, VIEW_IDS } from "./views.ts";
 
 export type { SettingsRow, SettingsRowControlProps } from "./row.ts";
 export type { VersionInfo } from "./version.ts";
@@ -37,7 +37,7 @@ export function createSettingsArea({ store, version }: SettingsAreaInputs) {
       title,
       load: () =>
         (page ??= import("./area.tsx").then(
-          (area) => ({ default: area.viewPage(id, { store, version: version() }) }),
+          (area) => ({ default: area.viewPage(id, { store, version: version(), views }) }),
           (error: unknown) => {
             // Forgotten, so that the next visit tries the load again.
             page = undefined;
@@ -57,5 +57,6 @@ export function createSettingsArea({ store, version }: SettingsAreaInputs) {
     icon: SettingsIcon,
     color: "grape",
     views,
+    sharedSearch: [SEARCH_PARAMETER],
   } as const satisfies ShellContribution;
 }

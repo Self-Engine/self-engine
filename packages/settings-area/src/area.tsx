@@ -1,20 +1,35 @@
 // Everything of the settings area that loads when the settings are first opened: one chunk for all
 // Views, because the search needs the controls of every View (D202).
 
-import { useLingui } from "@lingui/react";
-import { Divider, Group, Stack, Text } from "@mantine/core";
+import type { I18n, MessageDescriptor } from "@lingui/core";
+import { useLingui } from "@lingui/react/macro";
+import { CloseButton, Divider, Group, Stack, Text, TextInput, Title } from "@mantine/core";
+import { SearchIcon } from "@self-engine/icons";
 import type { SettingsStore } from "@self-engine/settings";
-import { type ComponentType, Fragment, useId } from "react";
+import { useViewSearch, useWriteViewSearch, type ViewSearch } from "@self-engine/shell";
+import { EmptyState } from "@self-engine/ui";
+import {
+  type ComponentType,
+  Fragment,
+  memo,
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import type { SettingsRow } from "./row.ts";
 import { type SettingsRowSources, settingsRows } from "./rows.tsx";
-import type { SettingsViewId } from "./views.ts";
+import { type HitGroup, searchedRows, searchHits } from "./search.ts";
+import { SEARCH_PARAMETER } from "./views.ts";
 
 interface RowProps {
   readonly row: SettingsRow;
   readonly store: SettingsStore;
 }
 
-function Row({ row, store }: RowProps) {
+/** Remembered, so that typing in the search draws only the rows that appear. */
+const Row = memo(function Row({ row, store }: RowProps) {
   const { i18n } = useLingui();
   const titleId = useId();
   const Control = row.control;
@@ -33,24 +48,191 @@ function Row({ row, store }: RowProps) {
       <Control labelledBy={titleId} store={store} />
     </Group>
   );
+});
+
+interface SearchFieldProps {
+  readonly value: string;
+  readonly onChange: (text: string) => void;
 }
 
-/** The page of one View: its rows from the list, in order. */
+function SearchField({ value, onChange }: SearchFieldProps) {
+  const { t } = useLingui();
+  const field = useRef<HTMLInputElement>(null);
+  const name = t`Search settings`;
+  return (
+    <TextInput
+      aria-label={name}
+      leftSection={<SearchIcon size="sm" />}
+      onChange={(event) => {
+        onChange(event.currentTarget.value);
+      }}
+      placeholder={name}
+      ref={field}
+      rightSection={
+        value !== "" && (
+          <CloseButton
+            aria-label={t`Clear search`}
+            onClick={() => {
+              onChange("");
+              field.current?.focus();
+            }}
+            size="sm"
+          />
+        )
+      }
+      role="searchbox"
+      value={value}
+    />
+  );
+}
+
+interface RowGroupProps {
+  readonly rows: readonly SettingsRow[];
+  readonly store: SettingsStore;
+  /** The View's title above its hits; the page of a View has it in the content header. */
+  readonly title: string | undefined;
+}
+
+function RowGroup({ rows, store, title }: RowGroupProps) {
+  const titleId = useId();
+  return (
+    <Stack aria-labelledby={title === undefined ? undefined : titleId} component="section" gap={0}>
+      {title !== undefined && (
+        <Title id={titleId} order={2} pt="md" size="h5">
+          {title}
+        </Title>
+      )}
+      {rows.map((row, index) => (
+        <Fragment key={row.id}>
+          {index > 0 && <Divider />}
+          <Row row={row} store={store} />
+        </Fragment>
+      ))}
+    </Stack>
+  );
+}
+
+interface TitledView {
+  readonly id: string;
+  readonly title: MessageDescriptor;
+}
+
+export interface SettingsPageProps {
+  /** The id of the View of the address, shown while nothing is searched for. */
+  readonly view: string;
+  /** The area's Views, whose titles stand above their hits. */
+  readonly views: readonly TitledView[];
+  readonly rows: readonly SettingsRow[];
+  readonly store: SettingsStore;
+  readonly search: string;
+  readonly onSearch: (text: string) => void;
+}
+
+/**
+ * The page of every View (D199): the search field, and below it the View's rows or, with a search
+ * text, the matching rows of all Views with their working controls.
+ */
+export function SettingsPage({ view, views, rows, store, search, onSearch }: SettingsPageProps) {
+  const { t, i18n } = useLingui();
+  // The texts are translated once per language and not per key press. `i18n` may stay the same
+  // object when the language changes, so its language is named too.
+  const searched = useMemo(
+    () => searchedRows(rows, (descriptor) => i18n._(descriptor)),
+    [rows, i18n, i18n.locale],
+  );
+  const ofView = useMemo<readonly HitGroup<SettingsRow>[]>(
+    () => [{ view, rows: rows.filter((row) => row.view === view) }],
+    [rows, view],
+  );
+  const hits = useMemo(() => searchHits(searched, search), [searched, search]);
+  return (
+    <Stack gap="xs" maw="48rem">
+      <SearchField onChange={onSearch} value={search} />
+      {hits?.length === 0 ? (
+        <EmptyState
+          description={t`Try another word, or clear the search.`}
+          icon={SearchIcon}
+          title={t`No settings found`}
+        />
+      ) : (
+        // A View's rows and its hits are one group with the same key, so a row that stays when
+        // the search starts is not drawn again.
+        (hits ?? ofView).map((group) => (
+          <RowGroup
+            key={group.view}
+            rows={group.rows}
+            store={store}
+            title={hits && titleOf(views, group.view, i18n)}
+          />
+        ))
+      )}
+    </Stack>
+  );
+}
+
+function titleOf(views: readonly TitledView[], id: string, i18n: I18n) {
+  const view = views.find((candidate) => candidate.id === id);
+  // A row's View is one of the area's, which the test over the real list checks.
+  return view ? i18n._(view.title) : id;
+}
+
+/** The search text of the address. The router reads `?q=100` as a number, which is still a text. */
+function searchInAddress(search: ViewSearch): string {
+  const text = search[SEARCH_PARAMETER];
+  if (typeof text === "string") return text;
+  return typeof text === "number" || typeof text === "boolean" ? String(text) : "";
+}
+
+/**
+ * The search text, kept in the address so that it survives reload, Back and a change of View. The
+ * field shows what was typed at once and does not wait for the address, which follows a moment
+ * later; a text the address gets from elsewhere, such as Back, replaces what the field shows.
+ */
+function useSearchInAddress(): readonly [string, (text: string) => void] {
+  const inAddress = useViewSearch(searchInAddress);
+  const write = useWriteViewSearch();
+  const [text, setText] = useState(inAddress);
+  /** What was typed and has not arrived in the address yet, oldest first. */
+  const onTheWay = useRef<readonly string[]>([]);
+  useEffect(() => {
+    const arrived = onTheWay.current.indexOf(inAddress);
+    onTheWay.current = arrived === -1 ? [] : onTheWay.current.slice(arrived + 1);
+    if (arrived === -1) setText(inAddress);
+  }, [inAddress]);
+  const search = (next: string) => {
+    setText(next);
+    onTheWay.current = [...onTheWay.current, next];
+    write(({ [SEARCH_PARAMETER]: _previous, ...others }) =>
+      next === "" ? others : { ...others, [SEARCH_PARAMETER]: next },
+    );
+  };
+  return [text, search];
+}
+
+/** The page of one View at its address. */
 export function viewPage(
-  view: SettingsViewId,
-  { store, ...sources }: SettingsRowSources & { readonly store: SettingsStore },
+  view: string,
+  {
+    store,
+    views,
+    ...sources
+  }: SettingsRowSources & {
+    readonly store: SettingsStore;
+    readonly views: readonly TitledView[];
+  },
 ): ComponentType {
-  const rows = settingsRows(sources).filter((row) => row.view === view);
+  const rows = settingsRows(sources);
   return function SettingsViewPage() {
+    const [search, onSearch] = useSearchInAddress();
     return (
-      <Stack gap={0} maw="48rem">
-        {rows.map((row, index) => (
-          <Fragment key={row.id}>
-            {index > 0 && <Divider />}
-            <Row row={row} store={store} />
-          </Fragment>
-        ))}
-      </Stack>
+      <SettingsPage
+        onSearch={onSearch}
+        rows={rows}
+        search={search}
+        store={store}
+        view={view}
+        views={views}
+      />
     );
   };
 }

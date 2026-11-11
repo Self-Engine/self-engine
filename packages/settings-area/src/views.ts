@@ -2,3 +2,9 @@
 export const VIEW_IDS = { appearance: "appearance", language: "language", about: "about" } as const;
 
 export type SettingsViewId = (typeof VIEW_IDS)[keyof typeof VIEW_IDS];
+
+/**
+ * The search parameter that holds the text of the settings search. The Views share it, so it
+ * stays in the address when the View changes.
+ */
+export const SEARCH_PARAMETER = "q";

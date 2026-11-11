@@ -2,8 +2,8 @@ import type { LocalSettingsStorage, SettingsStore } from "@self-engine/settings"
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import type { ComponentType } from "react";
 import { expect, userEvent, waitFor } from "storybook/test";
-import { createSettingsArea } from "./index.ts";
 import { APPEARANCE_SETTINGS } from "./settings.ts";
+import { storyViewPage } from "./story-page.tsx";
 import { loadedStoreOn, memoryStorage } from "./story-store.ts";
 
 interface Loaded {
@@ -18,11 +18,7 @@ const meta = {
     async (): Promise<Loaded> => {
       const storage = memoryStorage();
       const store = await loadedStoreOn(storage);
-      const [appearance] = createSettingsArea({
-        store,
-        version: () => ({ version: "0.0.1", operatingSystem: "macOS" }),
-      }).views;
-      return { storage, store, Page: (await appearance.load()).default };
+      return { storage, store, Page: storyViewPage("appearance", { store }) };
     },
   ],
   render: (_args, { loaded }) => {
@@ -92,6 +88,7 @@ export const KeyboardAndRestart: Story = {
   play: async ({ canvas, loaded }) => {
     const { storage, store } = loaded as Loaded;
 
+    await tabTo(canvas.getByRole("searchbox", { name: "Search settings" }));
     await tabTo(canvas.getByRole("radio", { name: "System" }));
     await userEvent.keyboard("{ArrowLeft}");
     await expect(canvas.getByRole("radio", { name: "Dark" })).toBeChecked();

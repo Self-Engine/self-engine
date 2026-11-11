@@ -36,6 +36,7 @@ export {
 } from "./commands.ts";
 export { runCommand, type CommandResult } from "./run-command.ts";
 export { shellCommands } from "./shell-commands.ts";
+export { wordMatch } from "./word-match.ts";
 
 export { askLeaveGuards, useViewSearch, useWriteViewSearch } from "./routing.tsx";
 export { retainedViewSearch, type ViewSearch } from "./view-search.ts";

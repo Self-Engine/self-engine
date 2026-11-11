@@ -3,7 +3,8 @@ import { createTestAdapter } from "@self-engine/settings/testing";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import type { ComponentType } from "react";
 import { expect, spyOn, userEvent } from "storybook/test";
-import { createSettingsArea, type VersionInfo } from "./index.ts";
+import type { VersionInfo } from "./index.ts";
+import { storyViewPage } from "./story-page.tsx";
 
 const NIGHTLY: VersionInfo = {
   version: "0.4.0-nightly.20261112.3",
@@ -20,11 +21,7 @@ const aboutOf = (version: VersionInfo) => async (): Promise<{ readonly Page: Com
       throw error;
     },
   });
-  const about = createSettingsArea({ store, version: () => version }).views.find(
-    (view) => view.id === "about",
-  );
-  if (!about) throw new Error("The settings area has no View About.");
-  return { Page: (await about.load()).default };
+  return { Page: storyViewPage("about", { store, version }) };
 };
 
 const meta = {

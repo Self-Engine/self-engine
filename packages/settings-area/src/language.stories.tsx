@@ -2,8 +2,8 @@ import type { LocalSettingsStorage, SettingsStore } from "@self-engine/settings"
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import type { ComponentType } from "react";
 import { expect, userEvent, waitFor } from "storybook/test";
-import { createSettingsArea } from "./index.ts";
 import { APP_LANGUAGE_SETTING } from "./settings.ts";
+import { storyViewPage } from "./story-page.tsx";
 import { loadedStoreOn, memoryStorage } from "./story-store.ts";
 
 interface Loaded {
@@ -24,12 +24,7 @@ const meta = {
       const store = await loadedStoreOn(storage);
       const stored = parameters["storedLanguage"] as string | undefined;
       if (stored !== undefined) store.write(APP_LANGUAGE_SETTING, stored);
-      const language = createSettingsArea({
-        store,
-        version: () => ({ version: "0.0.1", operatingSystem: "macOS" }),
-      }).views.find((view) => view.id === "language");
-      if (language === undefined) throw new Error("The settings area has no View Language");
-      return { storage, store, Page: (await language.load()).default };
+      return { storage, store, Page: storyViewPage("language", { store }) };
     },
   ],
   render: (_args, { loaded }) => {
@@ -73,6 +68,8 @@ export const KeyboardAndRestart: Story = {
     const { storage, store } = loaded as Loaded;
     const system = canvas.getByRole("radio", { name: "System" });
 
+    // The search field stands above the rows.
+    await userEvent.tab();
     await userEvent.tab();
     await expect(system).toHaveFocus();
     await expect(system.matches(":focus-visible")).toBe(true);
