@@ -104,7 +104,9 @@ jobs:
           node-version-file: package.json
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - name: Package
+      # Packaging ends with the gate's smoke test against the packaged app (spec #29), so an app
+      # that cannot start, or whose data process never answers, fails here and publishes nothing.
+      - name: Package and smoke-test
         env:
           CHANNEL: ${{ needs.plan.outputs.channel }}
           RELEASE_VERSION: ${{ needs.plan.outputs.version }}

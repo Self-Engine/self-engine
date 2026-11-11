@@ -123,6 +123,12 @@ describe("electronDistPath", () => {
   });
 });
 
+/** The part of an electron-builder configuration that sets fuses. */
+interface FuseConfig {
+  readonly appId: string;
+  readonly electronFuses?: { readonly enableNodeCliInspectArguments?: boolean };
+}
+
 describe("builderConfig", () => {
   it.each([
     ["nightly", "Self-Engine Nightly", "app.selfengine.desktop.nightly"],
@@ -180,6 +186,18 @@ describe("builderConfig", () => {
     });
   });
 
+  // The packaged smoke test starts the signed app through Playwright, which connects over
+  // `--inspect`. Flipping that fuse off would leave a release untestable: the smoke test has to
+  // change first (see builderConfig).
+  it.each(["ad-hoc", "developer-id"] as const)(
+    "leaves on the inspector fuse the packaged smoke test needs (%s)",
+    (signing) => {
+      // Typed as electron-builder reads it, so a fuse config that is added later is seen here.
+      const config: FuseConfig = builderConfig("nightly", ELECTRON_DIST, "1.0.0", signing);
+      expect(config.electronFuses?.enableNodeCliInspectArguments).not.toBe(false);
+    },
+  );
+
   it("never sends an ad-hoc build to Apple for notarization", () => {
     expect(builderConfig("nightly", ELECTRON_DIST, "1.0.0", "ad-hoc").mac).toMatchObject({
       notarize: false,
@@ -189,6 +207,20 @@ describe("builderConfig", () => {
   it("keeps the channels' output apart", () => {
     expect(builderConfig("nightly", ELECTRON_DIST).directories.output).not.toBe(
       builderConfig("stable", ELECTRON_DIST).directories.output,
+    );
+  });
+
+  it("ships native modules outside the archive, where the process can load them", () => {
+    expect(builderConfig("nightly", ELECTRON_DIST).asarUnpack).toEqual(["**/*.node"]);
+  });
+
+  it("leaves the SQLite driver's sources and other platforms' binaries out", () => {
+    expect(builderConfig("stable", ELECTRON_DIST).files).toEqual(
+      expect.arrayContaining([
+        "!**/node_modules/better-sqlite3/{deps,src}/**",
+        "!**/node_modules/better-sqlite3/binding.gyp",
+        "!**/node_modules/better-sqlite3/prebuilds/!(darwin-*).node",
+      ]),
     );
   });
 
@@ -332,6 +364,8 @@ describe("packageChannel", () => {
     readonly seed?: (desktopDir: string) => void;
     /** Receives every call the packaging makes, also when it throws. */
     readonly calls?: Call[];
+    /** The smoke test of the packaged app fails. */
+    readonly smokeFails?: boolean;
   }
 
   function isWorkspaceBuild([command]: Call): boolean {
@@ -339,7 +373,13 @@ describe("packageChannel", () => {
   }
 
   function runPackaging(options: PackagingRun = {}) {
-    const { channel = "nightly", releaseVersion, seed, env = { PATH: "/bin" } } = options;
+    const {
+      channel = "nightly",
+      releaseVersion,
+      seed,
+      smokeFails,
+      env = { PATH: "/bin" },
+    } = options;
     const compiledFor = options.compiledFor === undefined ? channel : options.compiledFor;
     const calls = options.calls ?? [];
     const inspected: string[][] = [];
@@ -361,6 +401,9 @@ describe("packageChannel", () => {
         },
         run: (...call) => {
           calls.push(call);
+          if (smokeFails === true && call[1][0]?.endsWith("desktop-smoke.ts")) {
+            throw new Error("The smoke test failed.");
+          }
           if (isWorkspaceBuild(call) && compiledFor !== null) {
             writeBundles(join(desktopDir, bundleDirectory(channel)), compiledFor);
           }
@@ -417,6 +460,29 @@ describe("packageChannel", () => {
     });
   });
 
+  it("smoke-tests the packaged app before anything can ship it", () => {
+    const { calls, desktopDir, root } = runPackaging({
+      releaseVersion: "0.0.1-nightly.20261108.7",
+    });
+    expect(calls).toHaveLength(4);
+    expect(calls[3]).toEqual([
+      process.execPath,
+      [
+        join(root, "scripts/desktop-smoke.ts"),
+        "--executable",
+        join(
+          desktopDir,
+          "release/nightly/mac-arm64/Self-Engine Nightly.app/Contents/MacOS/Self-Engine Nightly",
+        ),
+      ],
+      { cwd: root, env: { PATH: "/bin" } },
+    ]);
+  });
+
+  it("fails the packaging when the packaged app fails its smoke test", () => {
+    expect(() => runPackaging({ smokeFails: true })).toThrow(/smoke test failed/);
+  });
+
   describe("with the signing inputs", () => {
     const env = { PATH: "/bin", ...SIGNING_ENV, APPLE_TEAM_ID: "link" };
     const releaseVersion = "1.0.0";
@@ -426,6 +492,7 @@ describe("packageChannel", () => {
       expect(calls[0]?.[2].env).toEqual({ PATH: "/bin" });
       expect(calls[1]?.[2].env).toEqual({ PATH: "/bin", SELF_ENGINE_CHANNEL: "nightly" });
       expect(calls[2]?.[2].env).toBe(env);
+      expect(calls[3]?.[2].env).toEqual({ PATH: "/bin" });
     });
 
     it("checks the signed app of the channel", () => {
@@ -461,8 +528,11 @@ describe("packageChannel", () => {
   });
 
   it("packages stable", () => {
-    const { calls } = runPackaging({ channel: "stable" });
-    expect(calls).toHaveLength(3);
+    const { calls, desktopDir } = runPackaging({ channel: "stable" });
+    expect(calls).toHaveLength(4);
+    expect(calls[3]?.[1].at(-1)).toBe(
+      join(desktopDir, "release/stable/mac-arm64/Self-Engine.app/Contents/MacOS/Self-Engine"),
+    );
   });
 
   it("does not package a bundle compiled for another channel", () => {

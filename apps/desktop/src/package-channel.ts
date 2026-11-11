@@ -2,7 +2,8 @@
 // for one release channel, into that channel's own bundle folder, and packages it into
 // `apps/desktop/release/<channel>`. Without a version it makes an unpacked app for inspection;
 // with one, the dmg a release ships, signed with the Developer ID when the signing inputs are
-// in the environment and ad hoc when none are. It installs and uploads nothing. It lives in the
+// in the environment and ad hoc when none are. Either way it then runs the gate's smoke test
+// against the packaged app and fails when that does. It installs and uploads nothing. It lives in the
 // app because repo scripts may not import apps (ADR 0006) and the identity is the app's own.
 
 import { execFileSync, spawnSync } from "node:child_process";
@@ -100,6 +101,17 @@ export function packagedDmgPath(
   return join(desktopDir, "release", channel, artifactName(productName, version, "arm64", "dmg"));
 }
 
+/** The executable inside the app electron-builder leaves in `release/<channel>/mac-arm64`. */
+function packagedExecutablePath(desktopDir: string, channel: ReleaseChannel): string {
+  const { productName } = channelIdentity(channel);
+  return join(packagedAppPath(desktopDir, channel), "Contents/MacOS", productName);
+}
+
+function packagedAppPath(desktopDir: string, channel: ReleaseChannel): string {
+  const { productName } = channelIdentity(channel);
+  return join(desktopDir, "release", channel, "mac-arm64", `${productName}.app`);
+}
+
 /** The electron-builder configuration of `channel`. */
 export function builderConfig(
   channel: ReleaseChannel,
@@ -126,7 +138,14 @@ export function builderConfig(
       "package.json",
       { from: bundleDirectory(channel), to: "dist-electron" },
       { from: "../web/dist", to: "dist-renderer" },
+      // The SQLite driver needs only its JavaScript and the binary for this Mac; its C sources
+      // and the binaries of other platforms would only grow the app.
+      "!**/node_modules/better-sqlite3/{deps,src}/**",
+      "!**/node_modules/better-sqlite3/binding.gyp",
+      "!**/node_modules/better-sqlite3/prebuilds/!(darwin-*).node",
     ],
+    // A process loads a native module from a real file, never from inside app.asar.
+    asarUnpack: ["**/*.node"],
     mac: {
       target: releaseVersion === undefined ? "dir" : "dmg",
       // Ad hoc is trusted by nobody, but a valid signature for the whole bundle, unlike a
@@ -143,6 +162,11 @@ export function builderConfig(
         : { identity: "-", hardenedRuntime: false, notarize: false }),
       icon,
     },
+    // No `electronFuses`: the fuses stay at Electron's defaults. The packaged smoke test (run at
+    // the end of packageChannel) starts the signed app through Playwright, which needs the
+    // `EnableNodeCliInspectArguments` fuse on for `--inspect` and Chromium's
+    // `--remote-debugging-port`. A fuse config that turns that off must replace the smoke
+    // test's launch first; package-channel.test.ts fails until it does.
     // Updates are downloaded by hand (ADR 0007), so the dmg needs no block map.
     dmg: { writeUpdateInfo: false },
     npmRebuild: false,
@@ -263,10 +287,24 @@ export function packageChannel(request: PackageRequest, options: PackageOptions)
     { cwd: desktopDir, env },
   );
   if (signing === "developer-id") {
-    const { productName } = channelIdentity(channel);
-    const appPath = join(outputDir, "mac-arm64", `${productName}.app`);
-    assertDeveloperIdRelease(appPath, env.APPLE_TEAM_ID ?? "", inspect);
+    assertDeveloperIdRelease(
+      packagedAppPath(desktopDir, channel),
+      env.APPLE_TEAM_ID ?? "",
+      inspect,
+    );
   }
+  // The gate's smoke test (scripts/desktop-smoke.ts) against what was packaged, run as a command
+  // because the app may not import a repo script (ADR 0006). A file the package lacks, such as
+  // the SQLite binary or the data process bundle, fails here, before a release can ship it.
+  run(
+    process.execPath,
+    [
+      join(rootDir, "scripts/desktop-smoke.ts"),
+      "--executable",
+      packagedExecutablePath(desktopDir, channel),
+    ],
+    { cwd: rootDir, env: buildEnv },
+  );
 }
 
 if (import.meta.main) {

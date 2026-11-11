@@ -1,0 +1,11 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "module": "Preserve",
+    "moduleResolution": "Bundler",
+    // No DOM library and no Node types: the preload and the page both load this.
+    "lib": ["ESNext"],
+    "types": []
+  },
+  "include": ["src"]
+}

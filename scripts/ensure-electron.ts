@@ -1,7 +1,7 @@
 // Electron 45 has no install script, so `pnpm install` leaves the npm package without its
-// binary. `pnpm dev` calls this before launching; `install.js` returns at once when the
-// binary is already there. Deliberately not a postinstall: CI never launches Electron and
-// must not download a binary for it.
+// binary. `pnpm dev` and the `smoke` stage of `pnpm verify` call this before launching;
+// `install.js` returns at once when the binary is already there. Deliberately not a
+// postinstall: `pnpm test` and everyone who never starts the app must not download it.
 
 import { execFileSync } from "node:child_process";
 import { createRequire } from "node:module";

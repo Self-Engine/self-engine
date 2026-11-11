@@ -102,6 +102,30 @@ export default defineConfig({
       },
       // Uncached: a replay would report a browser as there after it was removed.
       "ensure-chromium": { command: "node scripts/ensure-chromium.ts", cache: false },
+      // Starts the built desktop app with a throwaway data folder (scripts/desktop-smoke.ts).
+      // The inputs are named: the cache cannot follow the reads of Electron and its processes,
+      // and the run writes only to a temporary folder it removes. The bundles, the web build,
+      // the launcher with the page's mark name it reads, and the lockfile for the Electron,
+      // Playwright and SQLite versions.
+      "verify:smoke": {
+        command: "node scripts/desktop-smoke.ts",
+        dependsOn: ["ensure-electron"],
+        cache: {
+          input: [
+            "apps/desktop/dist-electron/**",
+            "apps/desktop/package.json",
+            "apps/web/dist/**",
+            "packages/desktop-bridge/src/**",
+            "scripts/desktop-app.ts",
+            "scripts/desktop-smoke.ts",
+            "scripts/ensure-electron.ts",
+            "pnpm-lock.yaml",
+          ],
+          output: [],
+        },
+      },
+      // Uncached, like ensure-chromium.
+      "ensure-electron": { command: "node scripts/ensure-electron.ts", cache: false },
     },
   },
 });

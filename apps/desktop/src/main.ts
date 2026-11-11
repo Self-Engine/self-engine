@@ -1,7 +1,18 @@
 import path from "node:path";
-import { BrowserWindow, app, net, protocol, screen } from "electron";
+import {
+  BrowserWindow,
+  MessageChannelMain,
+  app,
+  ipcMain,
+  net,
+  protocol,
+  screen,
+  utilityProcess,
+} from "electron";
 import { buildIdentity } from "./build-channel.ts";
 import { resolveDevServer, userDataPath, versionArgument } from "./channel.ts";
+import { databaseFile, isOwnPage, serveDataProcessRequests } from "./data-process-host.ts";
+import { superviseDataProcess } from "./data-process-supervisor.ts";
 import {
   contentSecurityPolicy,
   desktopUrl,
@@ -55,6 +66,24 @@ function registerProtocol(devServer: URL | undefined): void {
       : await serveAsset(request, assetDirectory);
     return withContentSecurityPolicy(response, policy);
   });
+}
+
+// Starts beside the window, so the database opens while the page loads. The page asks for its
+// port, and gets it once the data process is serving; after a crash it gets a fresh one.
+function startDataProcess(): void {
+  const supervisor = superviseDataProcess({
+    databasePath: databaseFile(app.getPath("userData")),
+    startProcess: (args) =>
+      utilityProcess.fork(path.join(__dirname, "data-process.cjs"), args, {
+        serviceName: `${productName} Data`,
+      }),
+    createChannel: () => new MessageChannelMain(),
+    now: () => performance.now(),
+    isOwnPage: (frame) => isOwnPage(frame, scheme),
+  });
+  serveDataProcessRequests(ipcMain, supervisor, scheme);
+  // Quitting ends the data process on purpose: no crash, no restart.
+  app.on("will-quit", () => supervisor.stop());
 }
 
 // The Window State's file; per channel, because each channel has its own data folder.
@@ -143,6 +172,7 @@ async function start(): Promise<void> {
   // `electron .` runs under Electron's own bundle, so the Dock needs telling.
   if (channel === "dev") app.dock?.setIcon(path.join(app.getAppPath(), icon));
   registerProtocol(devServer);
+  startDataProcess();
   await openWindow();
 }
 
