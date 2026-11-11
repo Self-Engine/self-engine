@@ -5,6 +5,8 @@ export {
   FeedbackHost,
   NOTICE_CLEARANCE_VARIABLE,
   notifyError,
+  notifyProgress,
+  type NotifyProgressOptions,
   type NotifyErrorOptions,
   notifyUndoable,
   type NotifyUndoableOptions,

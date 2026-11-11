@@ -1,22 +1,14 @@
 import { useLingui } from "@lingui/react/macro";
-import { Affix, Box, Center, Notification, rem } from "@mantine/core";
+import { Box, Center } from "@mantine/core";
 import type { DataConnection } from "@self-engine/data-client";
 import {
   ErrorState,
   NOT_WINDOW_DRAG_STYLE,
-  NOTICE_CLEARANCE_VARIABLE,
+  notifyProgress,
   useWaitIsSlow,
   WINDOW_DRAG_STYLE,
 } from "@self-engine/ui";
-import { type CSSProperties, type ReactNode, useSyncExternalStore } from "react";
-
-// At the foot, like every other notice: the top holds the page title and the window's drag area.
-// The clearance lifts it above the phone's bottom bar.
-const NOTICE_POSITION = { bottom: rem(16), left: "50%" };
-const NOTICE_STYLE: CSSProperties = {
-  transform: "translateX(-50%)",
-  marginBottom: `var(${NOTICE_CLEARANCE_VARIABLE}, 0rem)`,
-};
+import { type ReactNode, useEffect, useSyncExternalStore } from "react";
 
 export interface DataConnectionStatesProps {
   readonly connection: Pick<DataConnection, "getState" | "subscribe">;
@@ -90,12 +82,10 @@ function WholeWindow({ children }: { readonly children: ReactNode }) {
 function ReconnectingNotice() {
   const { t } = useLingui();
   const slow = useWaitIsSlow();
-  if (!slow) return null;
-  return (
-    <Affix position={NOTICE_POSITION} style={NOTICE_STYLE}>
-      <Notification loading role="status" withCloseButton={false}>
-        {t`Reconnecting to your data…`}
-      </Notification>
-    </Affix>
-  );
+  const message = t`Reconnecting to your data…`;
+  useEffect(() => {
+    if (slow) return notifyProgress({ message });
+    return undefined;
+  }, [slow, message]);
+  return null;
 }
