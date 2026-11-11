@@ -29,7 +29,7 @@ Stand: 2026-11-08 · Status: **entschieden** (D54–D82); Zuschnitt in Issues fo
 | L1.17 | Kürzel | TanStack Hotkeys (Beta) + eigenes Befehls-Register (D75) |
 | L1.18 | App-Check | Skill `verify-desktop` (D76) |
 | L1.19 | Routen | `/<modul>/<ansicht>`, `?edit=<id>`, `/settings/<bereich>` (D77) |
-| L1.20 | Fenster | Mac `hiddenInset`, Win/Linux `titleBarOverlay`, pro Kanal gemerkt (D78) |
+| L1.20 | Fenster | Mac `hiddenInset`; Win/Linux `titleBarOverlay` zurückgestellt (#167); Fensterzustand pro Kanal gemerkt (D78, D205–D209) |
 | L1.21 | Rückmeldung | Notifications, Rückgängig statt Nachfrage, Zustands-Bausteine (D79) |
 | L1.22 | Einstellungen | Eigener Bereich mit Views und Suche über Einstellungszeilen (D80, D197–D204) |
 | L1.23 | Barrierefreiheit | Tastatur, Fokus, Kontrast-Test AA, reduzierte Bewegung (D81) |
@@ -54,6 +54,7 @@ Stand: 2026-11-08 · Status: **entschieden** (D54–D82); Zuschnitt in Issues fo
 
 #14 Tokens + Theme → #15 Einstellungs-Schnittstelle, #16 i18n → #17 Storybook, #18 Icons →
 #19 Hülle → #20 Modul-Beitrag + Routen → #21 Drawer + Rückmeldung, #22 Kürzel + ⌘K →
-#23 Einstellungen; #24 Fenster (nach #7), #25 `verify-desktop` (nach #2); #37 lokales
+#23 Einstellungen; #24 Fensterzustand (nach #7), #167 Windows/Linux-Titelleiste (wartet auf einen
+Windows- oder Linux-Build), #168 Vollbild-Lücke auf dem Mac, #25 `verify-desktop` (nach #2); #37 lokales
 Fehlerprotokoll + Diagnose (nach #6, #21, #23, D99–D101). Abhängigkeiten
 stehen jeweils als „Blocked by“ im Issue.

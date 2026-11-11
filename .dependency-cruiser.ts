@@ -31,6 +31,7 @@ export const ALLOWED_IMPORTS: AllowedImports = {
   icons: ["theme"],
   "placeholder-alpha": ["shell", "icons", "ui"],
   "placeholder-beta": ["shell", "icons"],
+  "settings-area": ["i18n", "icons", "settings", "shell", "theme", "ui"],
   shell: ["icons", "theme", "ui"],
   ui: ["icons", "theme"],
 };

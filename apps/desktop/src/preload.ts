@@ -10,6 +10,7 @@ import {
   RETRY_CHANNEL,
   STOPPED_CHANNEL,
 } from "./data-process-channels.ts";
+import { versionFromArguments } from "./channel.ts";
 
 // The preload runs in the page's frame, but this app is typed for Node, without the DOM.
 declare const window: {
@@ -31,10 +32,13 @@ ipcRenderer.on(FAILED_CHANNEL, (_event, failure: HealthFailure) =>
   toPage({ kind: "failed", failure }),
 );
 
-// The renderer's marker for "running in Electron", and which channel (apps/web/src/env.ts).
+// The renderer's marker for "running in Electron", and which channel and version
+// (apps/web/src/env.ts).
 const desktopBridge: DesktopBridge = {
   platform: process.platform,
   channel: buildIdentity.channel,
+  // Absent when the main process added none; About then says that the version is unknown.
+  version: versionFromArguments(process.argv),
   // The page asks once its listener is in place, and again after every reload.
   requestDataPort: () => ipcRenderer.send(PORT_REQUEST_CHANNEL),
   // Starts the data process again after it stopped; a fresh port follows.

@@ -1,0 +1,33 @@
+{
+  "name": "@self-engine/settings-area",
+  "version": "0.0.0",
+  "private": true,
+  "license": "AGPL-3.0-only",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./audit": "./src/audit.ts",
+    "./settings": "./src/settings.ts"
+  },
+  "dependencies": {
+    "@lingui/core": "catalog:",
+    "@lingui/react": "catalog:",
+    "@mantine/core": "catalog:",
+    "@self-engine/i18n": "workspace:*",
+    "@self-engine/icons": "workspace:*",
+    "@self-engine/settings": "workspace:*",
+    "@self-engine/shell": "workspace:*",
+    "@self-engine/theme": "workspace:*",
+    "@self-engine/ui": "workspace:*",
+    "react": "catalog:",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@storybook/react-vite": "catalog:",
+    "@types/node": "catalog:",
+    "@types/react": "catalog:",
+    "@types/react-dom": "catalog:",
+    "storybook": "catalog:",
+    "vite-plus": "catalog:"
+  }
+}

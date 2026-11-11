@@ -4,11 +4,21 @@ import type { IconProps } from "@self-engine/icons";
 import type { ColorSetId } from "@self-engine/theme";
 import type { ComponentType } from "react";
 
+/** What the page of a View is told. A page that belongs to one View needs none of it. */
+export interface ViewPageProps {
+  /** The id of the View on screen, for a page that several Views of a module share. */
+  readonly viewId: string;
+}
+
 /** Router-independent, eagerly available metadata; View code only enters through load. */
 export interface ShellView {
   readonly id: string;
   readonly title: MessageDescriptor;
-  readonly load: () => Promise<{ readonly default: ComponentType }>;
+  /**
+   * The page of the View. Views that load the same component share one page: a change between
+   * them keeps its state and only changes `viewId`.
+   */
+  readonly load: () => Promise<{ readonly default: ComponentType<ViewPageProps> }>;
 }
 
 export interface EditDrawerProps {

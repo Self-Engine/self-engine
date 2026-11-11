@@ -6,10 +6,11 @@ import {
   ipcMain,
   net,
   protocol,
+  screen,
   utilityProcess,
 } from "electron";
 import { buildIdentity } from "./build-channel.ts";
-import { resolveDevServer, userDataPath } from "./channel.ts";
+import { resolveDevServer, userDataPath, versionArgument } from "./channel.ts";
 import { databaseFile, isOwnPage, serveDataProcessRequests } from "./data-process-host.ts";
 import { superviseDataProcess } from "./data-process-supervisor.ts";
 import {
@@ -21,6 +22,12 @@ import {
   withContentSecurityPolicy,
 } from "./protocol.ts";
 import { titleBarOptions } from "./title-bar.ts";
+import {
+  MINIMUM_WIDTH,
+  type WindowSnapshot,
+  openWindowState,
+  recordWindowState,
+} from "./window-state.ts";
 
 const { channel, productName, dataFolder, icon, scheme } = buildIdentity;
 
@@ -79,13 +86,59 @@ function startDataProcess(): void {
   app.on("will-quit", () => supervisor.stop());
 }
 
+// The Window State's file; per channel, because each channel has its own data folder.
+function windowStateFile(): string {
+  return path.join(app.getPath("userData"), "window-state.json");
+}
+
+// The normal bounds hold the window's position and the page's size (`useContentSize`). Electron
+// keeps the normal bounds of the frame while maximized or in full screen; the frame's border
+// stays the same, so the page's size follows from it.
+function windowSnapshot(window: BrowserWindow): WindowSnapshot {
+  const normal = window.getNormalBounds();
+  const frame = window.getBounds();
+  const content = window.getContentBounds();
+  return {
+    bounds: {
+      x: normal.x,
+      y: normal.y,
+      width: normal.width - (frame.width - content.width),
+      height: normal.height - (frame.height - content.height),
+    },
+    maximized: window.isMaximized(),
+    fullScreen: window.isFullScreen(),
+  };
+}
+
+// Records every change of the window, so that a crash or a force-quit loses at most the last
+// half second (D206).
+function rememberWindowState(window: BrowserWindow): void {
+  const recorder = recordWindowState(windowStateFile(), globalThis);
+  const change = () => recorder.change(windowSnapshot(window));
+  window.on("move", change);
+  window.on("resize", change);
+  window.on("maximize", change);
+  window.on("unmaximize", change);
+  window.on("enter-full-screen", change);
+  window.on("leave-full-screen", change);
+  window.on("close", () => recorder.close(windowSnapshot(window)));
+}
+
 async function openWindow(): Promise<void> {
+  const primary = screen.getPrimaryDisplay();
+  const opening = openWindowState(
+    windowStateFile(),
+    screen.getAllDisplays().map((display) => ({
+      workArea: display.workArea,
+      main: display.id === primary.id,
+    })),
+  );
   const window = new BrowserWindow({
-    // Large enough for the wide Layout Step. The minimum width is the page's width, not the
-    // frame's, so that a Windows frame cannot let the phone Layout Step appear.
-    width: 1280,
-    height: 800,
-    minWidth: 576,
+    // The Window State's bounds, 1280 × 800 centered on a first start: large enough for the wide
+    // Layout Step. The minimum width is the page's width, not the frame's, so that a Windows
+    // frame cannot let the phone Layout Step appear.
+    ...opening.bounds,
+    minWidth: MINIMUM_WIDTH,
     useContentSize: true,
     ...titleBarOptions(process.platform),
     // The native window is white until the page paints, which the Start Cache cannot reach.
@@ -94,9 +147,17 @@ async function openWindow(): Promise<void> {
       preload: path.join(__dirname, "preload.cjs"),
       contextIsolation: true,
       sandbox: true,
+      // Read by the preload, which hands the version on to the page.
+      additionalArguments: [versionArgument(app.getVersion())],
     },
   });
-  window.once("ready-to-show", () => window.show());
+  window.once("ready-to-show", () => {
+    if (opening.maximize) window.maximize();
+    window.show();
+    // On macOS full screen is a Space of its own, which a hidden window cannot enter.
+    if (opening.fullScreen) window.setFullScreen(true);
+    rememberWindowState(window);
+  });
   window.webContents.setWindowOpenHandler(() => ({ action: "deny" }));
   window.webContents.on("will-navigate", (event, url) => {
     if (!isRendererUrl(url, scheme)) event.preventDefault();

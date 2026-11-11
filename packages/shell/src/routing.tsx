@@ -17,7 +17,18 @@ export type ShellLinkProps = Omit<ComponentPropsWithRef<"a">, "href"> & {
   readonly search?: ViewSearch | ((previous: ViewSearch) => ViewSearch);
 };
 
-export type WriteViewSearch = (update: (search: ViewSearch) => ViewSearch) => void;
+export interface WriteViewSearchOptions {
+  /**
+   * Rewrites the entry of the page in the history instead of adding one, for a parameter that
+   * follows typing: Back then leaves the page as it was entered and does not undo key by key.
+   */
+  readonly replace?: boolean;
+}
+
+export type WriteViewSearch = (
+  update: (search: ViewSearch) => ViewSearch,
+  options?: WriteViewSearchOptions,
+) => void;
 
 /**
  * The address of the page on screen. During a slow navigation that is still the page being left,

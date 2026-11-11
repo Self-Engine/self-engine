@@ -12,6 +12,11 @@ export type DesktopChannel = "dev" | "nightly" | "stable";
 export interface DesktopBridge {
   readonly platform: string;
   readonly channel: DesktopChannel;
+  /**
+   * The version of the main process: a release only gets its version at packaging. Absent
+   * when the preload was handed none, which leaves the rest of the bridge as it is.
+   */
+  readonly version: string | undefined;
   /** Asks for a port to the data process; it arrives as a window message (`PageMessage`). */
   requestDataPort(): void;
   /** Starts the data process again after repeated crashes stopped it. */

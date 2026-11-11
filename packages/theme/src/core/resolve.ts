@@ -84,19 +84,22 @@ const BACKGROUND_TINT_STRENGTH = 0.15;
 /** The fixed palette key of the Accent. Mantine's `primaryColor` has to name a palette. */
 export const ACCENT_PALETTE = "accent";
 
-/** The Theme that serves a Color Mode: the chosen one if it can, else the default Theme. */
-function servingTheme(
-  appearance: Appearance,
+/**
+ * The Theme that serves a Color Mode, with its colors for it: the stored one if the catalog has it
+ * with that mode, else the default Theme. The one rule for a stored Theme id, which the engine and
+ * every picker go by.
+ */
+export function servingTheme(
+  id: string,
   catalog: ThemeCatalog,
   mode: ResolvedColorMode,
-): { readonly colors: ThemeColors; readonly accent: Theme["accent"] } {
-  const id = mode === "light" ? appearance.lightTheme : appearance.darkTheme;
+): { readonly theme: Theme; readonly colors: ThemeColors } {
   // A stored id is open text, so a name like "constructor" must not find an inherited property.
   const theme = Object.hasOwn(catalog, id) ? catalog[id] : undefined;
   const colors = theme?.colors[mode];
-  return colors === undefined
-    ? { colors: DEFAULT_THEME.colors[mode], accent: undefined }
-    : { colors, accent: theme?.accent };
+  return theme && colors
+    ? { theme, colors }
+    : { theme: DEFAULT_THEME, colors: DEFAULT_THEME.colors[mode] };
 }
 
 /** An id that is no selectable Accent, also a stored one from a newer app, means "From Theme". */
@@ -152,8 +155,9 @@ function colorModeValues(
   catalog: ThemeCatalog,
   mode: ResolvedColorMode,
 ): ColorModeValues {
-  const { colors: table, accent } = servingTheme(appearance, catalog, mode);
-  const accentSet = accentColors(appearance.accent, accent, mode);
+  const id = mode === "light" ? appearance.lightTheme : appearance.darkTheme;
+  const { theme, colors: table } = servingTheme(id, catalog, mode);
+  const accentSet = accentColors(appearance.accent, theme.accent, mode);
   const chrome = appearance.backgroundTint
     ? mixOklab(table.chrome, accentSet.accent, BACKGROUND_TINT_STRENGTH)
     : table.chrome;

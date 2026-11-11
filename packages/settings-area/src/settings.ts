@@ -1,11 +1,13 @@
-// The seven appearance Settings. They live in the app, the only place that knows both the
-// settings package and the theme package.
+// The declarations of the Settings this area owns (D202). An entry of its own without interface
+// code, because the app reads these Settings before the first render.
 
+import { type Language, resolveAppLanguage } from "@self-engine/i18n";
 import {
   defineSetting,
   type SettingChange,
   settingChange,
   type SettingDeclaration,
+  type SettingsStore,
 } from "@self-engine/settings";
 import {
   type Appearance,
@@ -83,4 +85,23 @@ export function appearanceChanges(changed: Partial<Appearance>): SettingChange[]
     const value = changed[field];
     return value === undefined ? [] : [changeOf(field, value)];
   });
+}
+
+/** The stored value that means "use the first system language the app offers". */
+export const SYSTEM_LANGUAGE = "system";
+
+/**
+ * The choice behind the App Language (D200): `system` or the tag of a language. Open, so that a
+ * language of a newer app version stays stored; this version then follows the system.
+ */
+export const APP_LANGUAGE_SETTING = defineSetting({
+  key: "i18n.language",
+  scope: "synced",
+  default: SYSTEM_LANGUAGE,
+  schema: z.string(),
+});
+
+/** The App Language that the stored choice and the system's languages give. Never writes. */
+export function appLanguageOf(store: SettingsStore, systemLanguages: readonly string[]): Language {
+  return resolveAppLanguage(store.read(APP_LANGUAGE_SETTING), systemLanguages);
 }

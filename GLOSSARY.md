@@ -78,6 +78,10 @@ _Avoid_: local setting, device-local setting
 One decision of the user about how the app behaves or looks. Two values that only make sense together are one _Setting_.
 _Avoid_: preference, option, config
 
+**Settings Row** (de: _Einstellungszeile_):
+One line of the settings area with a title, an optional description and a control or a value, and the thing the settings search finds. It is not a _Setting_: a row may serve one _Setting_, several or none, and a _Setting_ may have no row.
+_Avoid_: setting (for the line), settings item, settings section
+
 **Synced Setting** (de: _synchronisierte Einstellung_):
 A _Setting_ that belongs to the user and follows them to every device once sync exists, such as the _Theme_ or the _Accent_.
 _Avoid_: global setting, account setting
@@ -131,6 +135,10 @@ _Avoid_: manifest, module config, plugin
 **View** (de: _Ansicht_):
 One page of a module with its own address, such as the active projects or the week in the time module. A module's _Views_ are fixed by the module and do not depend on the user's data.
 _Avoid_: page, route, screen, tab
+
+**Window State** (de: _Fensterzustand_):
+A record of where the desktop window was and how big, and whether it was maximized or in full screen, kept per channel so the next start opens the same way. Not a _Setting_.
+_Avoid_: window settings, window preferences, window bounds (for the whole record)
 
 ### Translation
 

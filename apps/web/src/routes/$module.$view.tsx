@@ -14,5 +14,6 @@ export const Route = createFileRoute("/$module/$view")({
 
 function ModuleView() {
   const { Component } = Route.useLoaderData();
-  return <Component />;
+  const { view } = Route.useParams();
+  return <Component viewId={view} />;
 }
