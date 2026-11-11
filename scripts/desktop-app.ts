@@ -129,10 +129,12 @@ export function rendererFile(root: string, pathname: string): string | undefined
     if (error instanceof URIError) return undefined;
     throw error;
   }
+  if (decoded.includes("\0")) return undefined;
   const candidate = resolve(root, `.${decoded}`);
   if (candidate !== root && !candidate.startsWith(root + sep)) return undefined;
   if (isFile(candidate)) return candidate;
-  return extname(candidate) === "" ? join(root, "index.html") : undefined;
+  const page = join(root, "index.html");
+  return extname(candidate) === "" && isFile(page) ? page : undefined;
 }
 
 const CONTENT_TYPES: Readonly<Record<string, string>> = {
@@ -158,10 +160,13 @@ export async function serveRenderer(root: string): Promise<RendererServer> {
       response.writeHead(404).end();
       return;
     }
-    response.writeHead(200, {
-      "content-type": CONTENT_TYPES[extname(file)] ?? "application/octet-stream",
-    });
-    createReadStream(file).pipe(response);
+    response.setHeader("content-type", CONTENT_TYPES[extname(file)] ?? "application/octet-stream");
+    createReadStream(file)
+      .on("error", () => {
+        if (response.headersSent) response.destroy();
+        else response.writeHead(500).end();
+      })
+      .pipe(response);
   });
   await new Promise<void>((settle) => server.listen(0, "127.0.0.1", settle));
   const { port } = server.address() as AddressInfo;
