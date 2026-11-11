@@ -151,7 +151,10 @@ export function smokeDriver(app: ElectronApplication): SmokeApp {
           const shown = await target
             .locator("body")
             .innerText()
-            .catch(() => "");
+            .catch(() => {
+              // Only a hint for the message: the error below reports the failure either way.
+              return "";
+            });
           throw new Error(
             `The page did not show the app within ${WAIT_TIMEOUT_MS} ms. It shows: ${shown.trim().slice(0, 300) || "nothing"}`,
             { cause: error },
