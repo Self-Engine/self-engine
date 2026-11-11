@@ -1,4 +1,4 @@
-import type { TablesChanged } from "@self-engine/contracts";
+import type { Health, TablesChanged } from "@self-engine/contracts";
 import type { Database, Migration } from "@self-engine/db";
 import { createRouter } from "./router.ts";
 import { createPortServer, type DataPort } from "./serve.ts";
@@ -15,6 +15,8 @@ export interface DataProcessOptions {
 }
 
 export interface DataProcess {
+  /** The outcome of the start, as `health` answers it: ready, or one of the failure states. */
+  readonly health: Health;
   /** Answers the app contract on this port. Call it again for every new port. */
   serve(port: DataPort): void;
   /**
@@ -37,6 +39,7 @@ export async function startDataProcess({
   const health = await migrate(database, migrations, beforeMigrations);
   const tablesChanged = createTablesChangedPublisher();
   return {
+    health,
     serve: createPortServer(createRouter({ health, tablesChanged })),
     announceTablesChanged: (tables) => tablesChanged.announce(tables),
   };

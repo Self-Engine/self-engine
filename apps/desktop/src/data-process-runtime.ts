@@ -1,12 +1,15 @@
 import type { Database, Migration } from "@self-engine/db";
 import { type DataPort, startDataProcess } from "@self-engine/data-process";
-import { PORT_HANDOFF, SERVING } from "./data-process-messages.ts";
+import { handoffPage, servingMessage } from "./data-process-messages.ts";
 
 /** A message from the main process, as Electron's `process.parentPort` delivers it. */
 export interface ParentMessage {
   readonly data: unknown;
-  readonly ports: readonly DataPort[];
+  readonly ports: readonly HandedPort[];
 }
+
+/** A port the main process hands over: Electron's `MessagePortMain`, or Node's in tests. */
+export type HandedPort = DataPort & { close(): void };
 
 /** The part of Electron's `process.parentPort` the data process uses. */
 export interface ParentPort {
@@ -25,6 +28,7 @@ export interface DataProcessRuntime {
 /**
  * Starts the core and serves each port the main process hands over. Only then does it tell
  * the main process that it is serving: a port that arrived earlier would have no listener.
+ * A page's new port closes the one it had: after a reload nothing uses the old one.
  */
 export async function runDataProcess({
   parentPort,
@@ -32,9 +36,14 @@ export async function runDataProcess({
   migrations,
 }: DataProcessRuntime): Promise<void> {
   const dataProcess = await startDataProcess({ database, migrations });
+  const pagePorts = new Map<number, HandedPort>();
   parentPort.on("message", ({ data, ports }) => {
-    if (data !== PORT_HANDOFF) return;
-    for (const port of ports) dataProcess.serve(port);
+    const page = handoffPage(data);
+    const [port] = ports;
+    if (page === undefined || port === undefined) return;
+    pagePorts.get(page)?.close();
+    pagePorts.set(page, port);
+    dataProcess.serve(port);
   });
-  parentPort.postMessage(SERVING);
+  parentPort.postMessage(servingMessage(dataProcess.health.state));
 }
