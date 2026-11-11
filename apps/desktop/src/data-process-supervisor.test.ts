@@ -2,15 +2,14 @@
 
 import { EventEmitter } from "node:events";
 import { describe, expect, it } from "vite-plus/test";
+import type { Health } from "@self-engine/contracts";
 import {
+  FAILED_CHANNEL,
   GONE_CHANNEL,
-  type HealthState,
   PORT_CHANNEL,
   STOPPED_CHANNEL,
-  databasePathFromArgs,
-  handoffPage,
-  servingMessage,
-} from "./data-process-messages.ts";
+} from "./data-process-channels.ts";
+import { databasePathFromArgs, handoffPage, servingMessage } from "./data-process-messages.ts";
 import {
   type DataProcessChild,
   type PortFrame,
@@ -36,7 +35,7 @@ class FakeChild extends EventEmitter implements DataProcessChild<FakePort> {
     return true;
   }
 
-  serve(health: HealthState = "ready"): void {
+  serve(health: Health = READY): void {
     this.emit("message", servingMessage(health));
   }
 
@@ -45,17 +44,21 @@ class FakeChild extends EventEmitter implements DataProcessChild<FakePort> {
   }
 }
 
+const READY: Health = { state: "ready", sqliteVersion: "3.50.0", migrations: [] };
+const OWN_PAGE = "self-engine-dev://app/";
+
 class FakeFrame implements PortFrame<FakePort> {
-  readonly received: { channel: string; ports: FakePort[] }[] = [];
+  readonly received: { channel: string; message: unknown; ports: FakePort[] }[] = [];
   destroyed = false;
-  readonly url = "self-engine-dev://app/";
+  url = OWN_PAGE;
+  readonly parent = null;
 
   isDestroyed(): boolean {
     return this.destroyed;
   }
 
-  postMessage(channel: string, _message: unknown, transfer: FakePort[]): void {
-    this.received.push({ channel, ports: transfer });
+  postMessage(channel: string, message: unknown, transfer: FakePort[]): void {
+    this.received.push({ channel, message, ports: transfer });
   }
 
   channels(): string[] {
@@ -83,6 +86,7 @@ function supervise() {
       return { port1: { name: `data-${channels}` }, port2: { name: `page-${channels}` } };
     },
     now: () => time,
+    isOwnPage: (frame) => frame.url === OWN_PAGE,
   });
   const latest = (): FakeChild => {
     const child = children.at(-1);
@@ -113,7 +117,9 @@ describe("superviseDataProcess", () => {
     expect(latest().received).toEqual([]);
 
     latest().serve();
-    expect(frame.received).toEqual([{ channel: PORT_CHANNEL, ports: [{ name: "page-1" }] }]);
+    expect(frame.received).toEqual([
+      { channel: PORT_CHANNEL, message: null, ports: [{ name: "page-1" }] },
+    ]);
     expect(latest().received).toEqual([{ page: 1, ports: [{ name: "data-1" }] }]);
   });
 
@@ -161,7 +167,11 @@ describe("superviseDataProcess", () => {
     expect(frame.channels()).toEqual([PORT_CHANNEL, GONE_CHANNEL]);
 
     latest().serve();
-    expect(frame.received.at(-1)).toEqual({ channel: PORT_CHANNEL, ports: [{ name: "page-2" }] });
+    expect(frame.received.at(-1)).toEqual({
+      channel: PORT_CHANNEL,
+      message: null,
+      ports: [{ name: "page-2" }],
+    });
     expect(latest().received).toEqual([{ page: 1, ports: [{ name: "data-2" }] }]);
   });
 
@@ -237,7 +247,11 @@ describe("superviseDataProcess", () => {
     supervisor.retry();
     expect(children).toHaveLength(4);
     latest().serve();
-    expect(frame.received.at(-1)).toEqual({ channel: PORT_CHANNEL, ports: [{ name: "page-1" }] });
+    expect(frame.received.at(-1)).toEqual({
+      channel: PORT_CHANNEL,
+      message: null,
+      ports: [{ name: "page-1" }],
+    });
 
     latest().crash();
     latest().crash();
@@ -253,19 +267,55 @@ describe("superviseDataProcess", () => {
     expect(children).toHaveLength(1);
   });
 
-  it("does not restart a data process in a failure state, and reports it stopped", () => {
-    for (const health of ["migrationFailed", "databaseNewer"] as const) {
+  it("does not restart a data process in a failure state, and keeps reporting the failure", () => {
+    const failures: Health[] = [
+      { state: "migrationFailed", migration: "time/0002" },
+      { state: "databaseNewer", migration: "finance/0007" },
+    ];
+    for (const failure of failures) {
       const { supervisor, children, latest } = supervise();
       const frame = new FakeFrame();
       supervisor.handPort(frame);
-      latest().serve(health);
+      latest().serve(failure);
       expect(frame.channels()).toEqual([PORT_CHANNEL]);
 
       latest().crash();
 
       expect(children).toHaveLength(1);
-      expect(frame.channels()).toEqual([PORT_CHANNEL, GONE_CHANNEL, STOPPED_CHANNEL]);
+      expect(frame.received.at(-1)).toEqual({
+        channel: FAILED_CHANNEL,
+        message: failure,
+        ports: [],
+      });
+      expect(frame.channels()).toEqual([PORT_CHANNEL, FAILED_CHANNEL]);
+
+      const reloaded = new FakeFrame();
+      supervisor.handPort(reloaded);
+      expect(reloaded.received).toEqual([{ channel: FAILED_CHANNEL, message: failure, ports: [] }]);
+
+      supervisor.retry();
+      expect(children).toHaveLength(1);
     }
+  });
+
+  it("hands a restarted data process's port only to a frame that still shows our page", () => {
+    const { supervisor, latest } = supervise();
+    const frame = new FakeFrame();
+    latest().serve();
+    supervisor.handPort(frame);
+    frame.url = "https://example.com/";
+
+    latest().crash();
+    latest().serve();
+
+    expect(frame.channels()).toEqual([PORT_CHANNEL]);
+    expect(latest().received).toEqual([]);
+
+    // Back on our page, it asks again and gets a port for the same page number.
+    frame.url = OWN_PAGE;
+    supervisor.handPort(frame);
+    expect(frame.channels()).toEqual([PORT_CHANNEL, PORT_CHANNEL]);
+    expect(latest().received).toEqual([{ page: 1, ports: [{ name: "data-2" }] }]);
   });
 
   it("treats a wanted stop, such as quitting the app, as no crash and starts nothing", () => {

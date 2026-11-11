@@ -3,7 +3,7 @@
 // data process itself is watched by the supervisor (data-process-supervisor.ts).
 
 import path from "node:path";
-import { PORT_REQUEST_CHANNEL, RETRY_CHANNEL } from "./data-process-messages.ts";
+import { PORT_REQUEST_CHANNEL, RETRY_CHANNEL } from "./data-process-channels.ts";
 import type { DataProcessSupervisor, PortFrame } from "./data-process-supervisor.ts";
 import { isRendererUrl } from "./protocol.ts";
 
@@ -23,6 +23,11 @@ export interface PageRequests<Port> {
   on(channel: string, listener: (request: PageRequest<Port>) => void): unknown;
 }
 
+/** Whether `frame` shows our own page in the main frame of its window (#141). */
+export function isOwnPage<Port>(frame: PortFrame<Port>, scheme: string): boolean {
+  return frame.parent === null && isRendererUrl(frame.url, scheme);
+}
+
 /**
  * Answers the port requests and retries of our page; a request from anywhere else is ignored.
  */
@@ -33,9 +38,7 @@ export function serveDataProcessRequests<Port>(
 ): void {
   // Our own page, and only in the main frame of its window.
   const ownPage = ({ senderFrame, sender }: PageRequest<Port>): PortFrame<Port> | undefined =>
-    senderFrame !== null &&
-    senderFrame === sender.mainFrame &&
-    isRendererUrl(senderFrame.url, scheme)
+    senderFrame !== null && senderFrame === sender.mainFrame && isOwnPage(senderFrame, scheme)
       ? senderFrame
       : undefined;
   ipc.on(PORT_REQUEST_CHANNEL, (request) => {

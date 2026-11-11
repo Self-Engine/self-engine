@@ -1,11 +1,6 @@
+import type { DesktopBridge, DesktopChannel } from "@self-engine/desktop-bridge";
 import { describe, expect, it } from "vite-plus/test";
-import {
-  type DesktopBridge,
-  type DesktopChannel,
-  channelBadge,
-  historyKind,
-  reservesWindowButtons,
-} from "./env.ts";
+import { channelBadge, historyKind, reservesWindowButtons } from "./env.ts";
 
 function bridge(platform: string, channel: DesktopChannel): DesktopBridge {
   return { platform, channel, requestDataPort: () => {}, retryDataProcess: () => {} };

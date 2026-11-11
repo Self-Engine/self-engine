@@ -1,12 +1,9 @@
 import { MessageChannel, type MessagePort } from "node:worker_threads";
 import { createDataConnection } from "@self-engine/data-client";
+import { CONNECTION_MARK, pageMessageData } from "@self-engine/desktop-bridge";
 import { afterEach, describe, expect, it } from "vite-plus/test";
 import {
-  CONNECTION_MARK,
   type DesktopDataWindow,
-  PAGE_GONE_MESSAGE,
-  PAGE_PORT_MESSAGE,
-  PAGE_STOPPED_MESSAGE,
   type PortMessage,
   connectDesktopData,
   markConnectionStates,
@@ -14,6 +11,9 @@ import {
 } from "./desktop-data.ts";
 
 const ORIGIN = "self-engine-dev://app";
+const PAGE_PORT_MESSAGE = pageMessageData({ kind: "port" });
+const PAGE_GONE_MESSAGE = pageMessageData({ kind: "gone" });
+const PAGE_STOPPED_MESSAGE = pageMessageData({ kind: "stopped" });
 
 class FakeWindow implements DesktopDataWindow {
   readonly location = { origin: ORIGIN };
@@ -58,6 +58,7 @@ function connectFake() {
     },
     disconnect: () => calls.push("disconnect"),
     stop: () => calls.push("stop"),
+    fail: (failure) => calls.push(`fail ${failure.state} ${failure.migration}`),
   });
   return { win, connected, calls, listenersAtRequest };
 }
@@ -112,6 +113,15 @@ describe("the data process's news", () => {
     win.receive(PAGE_STOPPED_MESSAGE, ORIGIN, []);
 
     expect(calls).toEqual(["stop"]);
+  });
+
+  it("reports the failure state a data process exited in", () => {
+    const { win, calls } = connectFake();
+    const failure = { state: "migrationFailed", migration: "time/0002" } as const;
+
+    win.receive(pageMessageData({ kind: "failed", failure }), ORIGIN, []);
+
+    expect(calls).toEqual(["fail migrationFailed time/0002"]);
   });
 
   it("refuses the news from another origin", () => {

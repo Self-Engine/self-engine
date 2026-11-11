@@ -203,3 +203,30 @@ test("reports databaseNewer naming the migration this app does not know", async 
 
   expect(connection.getState()).toEqual({ status: "databaseNewer", migration: "time/0002" });
 });
+
+test("keeps a failure state when the data process exits in it and the main process names it", async () => {
+  dataProcess = await startTestDataProcess({
+    migrations: [{ name: "time/0001", sql: "THIS IS NOT SQL;" }],
+  });
+  const connection = newConnection();
+  const port = dataProcess.openPort();
+  connection.connect(port);
+  await untilStatus(connection, "migrationFailed");
+  const statuses = recordStatuses(connection);
+
+  // The data process exits; the main process does not restart it and names its failure.
+  port.close();
+  connection.fail({ state: "migrationFailed", migration: "time/0001" });
+  await new Promise((resolve) => setImmediate(resolve));
+
+  expect(connection.getState()).toEqual({ status: "migrationFailed", migration: "time/0001" });
+  expect(statuses).toEqual([]);
+});
+
+test("a page that loads after the data process exited in a failure state shows that failure", () => {
+  const connection = newConnection();
+
+  connection.fail({ state: "databaseNewer", migration: "time/0002" });
+
+  expect(connection.getState()).toEqual({ status: "databaseNewer", migration: "time/0002" });
+});

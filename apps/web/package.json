@@ -14,6 +14,7 @@
     "@mantine/core": "catalog:",
     "@mantine/hooks": "catalog:",
     "@self-engine/data-client": "workspace:*",
+    "@self-engine/desktop-bridge": "workspace:*",
     "@self-engine/i18n": "workspace:*",
     "@self-engine/icons": "workspace:*",
     "@self-engine/placeholder-alpha": "workspace:*",

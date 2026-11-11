@@ -1,15 +1,4 @@
-/** The release channels; `Channel` in apps/desktop/src/channel.ts is the source. */
-export type DesktopChannel = "dev" | "nightly" | "stable";
-
-/** What the Electron preload (apps/desktop/src/preload.ts) installs on the page's window. */
-export interface DesktopBridge {
-  readonly platform: string;
-  readonly channel: DesktopChannel;
-  /** Asks for a port to the data process; it arrives as a window message (desktop-data.ts). */
-  requestDataPort(): void;
-  /** Starts the data process again after repeated crashes stopped it (desktop-data.ts). */
-  retryDataProcess(): void;
-}
+import type { DesktopBridge, DesktopChannel } from "@self-engine/desktop-bridge";
 
 declare global {
   interface Window {

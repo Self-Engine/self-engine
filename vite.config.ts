@@ -105,7 +105,8 @@ export default defineConfig({
       // Starts the built desktop app with a throwaway data folder (scripts/desktop-smoke.ts).
       // The inputs are named: the cache cannot follow the reads of Electron and its processes,
       // and the run writes only to a temporary folder it removes. The bundles, the web build,
-      // the launcher, and the lockfile for the Electron, Playwright and SQLite versions.
+      // the launcher with the page's mark name it reads, and the lockfile for the Electron,
+      // Playwright and SQLite versions.
       "verify:smoke": {
         command: "node scripts/desktop-smoke.ts",
         dependsOn: ["ensure-electron"],
@@ -114,8 +115,10 @@ export default defineConfig({
             "apps/desktop/dist-electron/**",
             "apps/desktop/package.json",
             "apps/web/dist/**",
+            "packages/desktop-bridge/src/**",
             "scripts/desktop-app.ts",
             "scripts/desktop-smoke.ts",
+            "scripts/ensure-electron.ts",
             "pnpm-lock.yaml",
           ],
           output: [],

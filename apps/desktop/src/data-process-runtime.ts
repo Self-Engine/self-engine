@@ -45,5 +45,5 @@ export async function runDataProcess({
     pagePorts.set(page, port);
     dataProcess.serve(port);
   });
-  parentPort.postMessage(servingMessage(dataProcess.health.state));
+  parentPort.postMessage(servingMessage(dataProcess.health));
 }

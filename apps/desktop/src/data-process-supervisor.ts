@@ -1,16 +1,16 @@
 // The main process's watch over the data process (spec #29, Supervision): starts it, hands each
 // page a port once it serves, restarts it after an unexpected exit and gives up after repeated
 // crashes until a retry. Free of `electron`, so it can be tested in Node: main.ts passes in
-// `utilityProcess.fork`, `MessageChannelMain` and the clock.
+// `utilityProcess.fork`, `MessageChannelMain`, the clock and the check of our own page.
 
+import type { HealthFailure } from "@self-engine/contracts";
 import {
+  FAILED_CHANNEL,
   GONE_CHANNEL,
   PORT_CHANNEL,
   STOPPED_CHANNEL,
-  dataProcessArgs,
-  portHandoff,
-  servingHealth,
-} from "./data-process-messages.ts";
+} from "./data-process-channels.ts";
+import { dataProcessArgs, portHandoff, servingHealth } from "./data-process-messages.ts";
 
 /** The part of Electron's `UtilityProcess` the supervisor uses. */
 export interface DataProcessChild<Port> {
@@ -23,6 +23,8 @@ export interface DataProcessChild<Port> {
 /** The part of Electron's `WebFrameMain` a port and the data process's news are sent to. */
 export interface PortFrame<Port> {
   readonly url: string;
+  /** The frame this one is embedded in; `null` for the main frame of a window. */
+  readonly parent: unknown;
   isDestroyed(): boolean;
   postMessage(channel: string, message: unknown, transfer: Port[]): void;
 }
@@ -35,6 +37,12 @@ export interface SupervisorOptions<Port> {
   readonly createChannel: () => { readonly port1: Port; readonly port2: Port };
   /** Milliseconds of a clock that only moves forward: `performance.now` in the app. */
   readonly now: () => number;
+  /**
+   * Whether `frame` still shows our own page in the main frame of its window. A frame passed
+   * this check when it asked, but may have navigated since: it is asked again before every
+   * port (#141).
+   */
+  readonly isOwnPage: (frame: PortFrame<Port>) => boolean;
 }
 
 export interface DataProcessSupervisor<Port> {
@@ -43,7 +51,10 @@ export interface DataProcessSupervisor<Port> {
    * gets a fresh port after every restart, until it is destroyed.
    */
   handPort(frame: PortFrame<Port>): void;
-  /** Starts a stopped data process again and counts its crashes from zero. */
+  /**
+   * Starts a data process that stopped after repeated crashes again and counts its crashes from
+   * zero. One that exited in a failure state stays down: it would fail the same way.
+   */
   retry(): void;
   /** A wanted stop, such as quitting the app: ends the data process and restarts nothing. */
   stop(): void;
@@ -61,6 +72,7 @@ export function superviseDataProcess<Port>({
   startProcess,
   createChannel,
   now,
+  isOwnPage,
 }: SupervisorOptions<Port>): DataProcessSupervisor<Port> {
   // Every page that asked, numbered so the data process can drop a page's earlier port.
   const pages = new Map<PortFrame<Port>, number>();
@@ -68,6 +80,8 @@ export function superviseDataProcess<Port>({
   const waiting = new Set<PortFrame<Port>>();
   let crashes: number[] = [];
   let phase: Phase = "starting";
+  // The failure state the data process reported; it outlives the process, which exits in it.
+  let failure: HealthFailure | undefined;
   let child = start();
 
   function start(): DataProcessChild<Port> {
@@ -77,7 +91,8 @@ export function superviseDataProcess<Port>({
       const health = servingHealth(message);
       if (started !== child || health === undefined) return;
       // A data process in a failure state still answers `health`, so pages get their port.
-      phase = health === "ready" ? "serving" : "failed";
+      failure = health.state === "ready" ? undefined : health;
+      phase = failure === undefined ? "serving" : "failed";
       for (const frame of waiting) connect(frame);
       waiting.clear();
     });
@@ -88,33 +103,45 @@ export function superviseDataProcess<Port>({
   }
 
   function crashed(): void {
-    const at = now();
-    crashes = [...crashes.filter((time) => at - time < CRASH_WINDOW_MS), at];
-    const livePages = forgetDestroyed();
-    for (const frame of livePages) frame.postMessage(GONE_CHANNEL, null, []);
-    // A failure state comes back on every start, so restarting it would only loop.
-    if (phase === "failed" || crashes.length >= CRASH_LIMIT) {
+    const live = livePages();
+    // A failure state comes back on every start, so restarting it would only loop. The pages
+    // keep showing it; no fresh port follows.
+    if (phase === "failed") {
       phase = "stopped";
       waiting.clear();
-      for (const frame of livePages) frame.postMessage(STOPPED_CHANNEL, null, []);
+      for (const frame of live) frame.postMessage(FAILED_CHANNEL, failure, []);
       return;
     }
-    restart(livePages);
+    const at = now();
+    crashes = [...crashes.filter((time) => at - time < CRASH_WINDOW_MS), at];
+    for (const frame of live) frame.postMessage(GONE_CHANNEL, null, []);
+    if (crashes.length >= CRASH_LIMIT) {
+      phase = "stopped";
+      waiting.clear();
+      for (const frame of live) frame.postMessage(STOPPED_CHANNEL, null, []);
+      return;
+    }
+    restart(live);
   }
 
-  function restart(livePages: readonly PortFrame<Port>[]): void {
-    for (const frame of livePages) waiting.add(frame);
+  function restart(frames: readonly PortFrame<Port>[]): void {
+    for (const frame of frames) waiting.add(frame);
     child = start();
   }
 
-  function forgetDestroyed(): PortFrame<Port>[] {
+  /**
+   * The pages that still show our page, after forgetting the closed ones. One that navigated
+   * away is skipped but keeps its number: if it comes back it asks again, and its new port
+   * replaces the one the data process still holds for it.
+   */
+  function livePages(): PortFrame<Port>[] {
     for (const frame of pages.keys()) {
       if (frame.isDestroyed()) {
         pages.delete(frame);
         waiting.delete(frame);
       }
     }
-    return [...pages.keys()];
+    return [...pages.keys()].filter(isOwnPage);
   }
 
   function connect(frame: PortFrame<Port>): void {
@@ -123,6 +150,8 @@ export function superviseDataProcess<Port>({
       pages.delete(frame);
       return;
     }
+    // Navigated away since it asked: no port (see livePages).
+    if (!isOwnPage(frame)) return;
     const { port1, port2 } = createChannel();
     frame.postMessage(PORT_CHANNEL, null, [port2]);
     child.postMessage(portHandoff(page), [port1]);
@@ -132,14 +161,16 @@ export function superviseDataProcess<Port>({
     handPort(frame) {
       if (phase === "ended" || frame.isDestroyed()) return;
       if (!pages.has(frame)) pages.set(frame, ++lastPage);
-      if (phase === "stopped") frame.postMessage(STOPPED_CHANNEL, null, []);
-      else if (phase === "starting") waiting.add(frame);
+      if (phase === "stopped") {
+        if (failure === undefined) frame.postMessage(STOPPED_CHANNEL, null, []);
+        else frame.postMessage(FAILED_CHANNEL, failure, []);
+      } else if (phase === "starting") waiting.add(frame);
       else connect(frame);
     },
     retry() {
-      if (phase !== "stopped") return;
+      if (phase !== "stopped" || failure !== undefined) return;
       crashes = [];
-      restart(forgetDestroyed());
+      restart(livePages());
     },
     stop() {
       if (phase === "ended") return;

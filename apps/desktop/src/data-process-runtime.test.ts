@@ -50,7 +50,7 @@ describe("runDataProcess", () => {
     const parentPort = new FakeParentPort();
     const { channel, running } = start(parentPort);
     await running;
-    expect(parentPort.sent.map(servingHealth)).toEqual(["ready"]);
+    expect(parentPort.sent.map((message) => servingHealth(message)?.state)).toEqual(["ready"]);
 
     const { port1, port2 } = channel();
     parentPort.send(portHandoff(1), [port1]);
@@ -132,7 +132,9 @@ describe("runDataProcess", () => {
     const { running } = start(parentPort, [{ name: "fixture/0001", sql: "NOT SQL;" }]);
     await running;
 
-    expect(parentPort.sent.map(servingHealth)).toEqual(["migrationFailed"]);
+    expect(parentPort.sent.map(servingHealth)).toEqual([
+      { state: "migrationFailed", migration: "fixture/0001" },
+    ]);
   });
 
   it("ignores a message that hands over no port", async () => {

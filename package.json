@@ -24,6 +24,7 @@
     "@lingui/conf": "catalog:",
     "@lingui/format-po": "catalog:",
     "@messageformat/parser": "catalog:",
+    "@self-engine/desktop-bridge": "workspace:*",
     "@self-engine/i18n": "workspace:*",
     "@self-engine/oxlint-plugin": "workspace:*",
     "@self-engine/theme": "workspace:*",

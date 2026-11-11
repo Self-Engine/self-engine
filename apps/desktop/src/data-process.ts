@@ -1,5 +1,5 @@
-// The data process: an Electron `utilityProcess` that owns the database (D90). The main process
-// starts it (data-process-host.ts) with the database file as an argument.
+// The data process: an Electron `utilityProcess` that owns the database (D90). The main process's
+// supervisor (data-process-supervisor.ts) starts it with the database file as an argument.
 
 import type { Migration } from "@self-engine/db";
 import { openDatabase } from "@self-engine/db/better-sqlite3";

@@ -9,16 +9,17 @@
 // Run alone, the default needs `vp run -r build` first; `pnpm verify` builds before this stage.
 
 import { parseArgs } from "node:util";
+import { CONNECTION_MARK } from "@self-engine/desktop-bridge";
 import type { ElectronApplication } from "playwright";
 import {
   builtDesktopApp,
-  DESKTOP_DIR,
   type DesktopLaunch,
   launchElectron,
   RENDERER_DIR,
   serveRenderer,
   withDesktopApp,
 } from "./desktop-app.ts";
+import { DESKTOP_DIR } from "./ensure-electron.ts";
 
 /** Loose on purpose (spec #29): measured 253 ms, so only a regression by a multiple fails. */
 export const FIRST_ANSWER_LIMIT_MS = 2000;
@@ -103,8 +104,6 @@ export function smokeOptions(args: readonly string[]): { executable: string | un
   return { executable: values.executable };
 }
 
-/** The page's mark for each connection state; apps/web/src/desktop-data.ts is its source. */
-const CONNECTION_MARK = "self-engine:data-connection";
 const WAIT_TIMEOUT_MS = 30_000;
 
 /**

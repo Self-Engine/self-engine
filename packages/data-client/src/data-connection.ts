@@ -1,11 +1,12 @@
 import { createORPCClient, DynamicLink } from "@orpc/client";
 import { RPCLink, type SupportedMessagePort } from "@orpc/client/message-port";
 import type { ContractRouterClient } from "@orpc/contract";
-import type { AppContract, TablesChanged } from "@self-engine/contracts";
+import type { AppContract, HealthFailure, TablesChanged } from "@self-engine/contracts";
 import {
   type ConnectionState,
   type ConnectionStateStore,
   createConnectionStateStore,
+  failureState,
 } from "./connection-state.ts";
 import { type PortSession, watchPort } from "./port-session.ts";
 
@@ -35,6 +36,12 @@ export interface DataConnection extends Pick<ConnectionStateStore, "getState" | 
    * arrives ends the state too.
    */
   stop(): void;
+  /**
+   * The data process exited in this failure state and is not restarted (spec #29): the main
+   * process names it, so a page keeps showing it, and one that loads afterwards shows it too.
+   * Calls wait; a port that arrives ends the state.
+   */
+  fail(failure: HealthFailure): void;
   /**
    * Calls `listener` with the tables of each commit, over whichever port is connected. It does
    * not hear the opening empty event; returns the function that stops it.
@@ -100,7 +107,7 @@ export function createDataConnection(): DataConnection {
           if (session === own) loseSession();
         },
         refused(health) {
-          if (session === own) state.set({ status: health.state, migration: health.migration });
+          if (session === own) state.set(failureState(health));
         },
       });
       session = own;
@@ -111,6 +118,12 @@ export function createDataConnection(): DataConnection {
     stop() {
       dropSession();
       state.set(STOPPED);
+    },
+    fail(failure) {
+      dropSession();
+      const current = state.getState();
+      const known = "migration" in current && current.status === failure.state;
+      if (!known || current.migration !== failure.migration) state.set(failureState(failure));
     },
     onTablesChanged(listener) {
       const entry = (tables: TablesChanged) => listener(tables);

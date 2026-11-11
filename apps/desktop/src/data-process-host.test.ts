@@ -1,8 +1,13 @@
 import { EventEmitter } from "node:events";
 import { describe, expect, it } from "vite-plus/test";
 import { userDataPath } from "./channel.ts";
-import { type PageRequest, databaseFile, serveDataProcessRequests } from "./data-process-host.ts";
-import { PORT_REQUEST_CHANNEL, RETRY_CHANNEL } from "./data-process-messages.ts";
+import {
+  type PageRequest,
+  databaseFile,
+  isOwnPage,
+  serveDataProcessRequests,
+} from "./data-process-host.ts";
+import { PORT_REQUEST_CHANNEL, RETRY_CHANNEL } from "./data-process-channels.ts";
 import type { PortFrame } from "./data-process-supervisor.ts";
 import { desktopUrl } from "./protocol.ts";
 
@@ -12,9 +17,11 @@ type FakePort = never;
 
 class FakeFrame implements PortFrame<FakePort> {
   readonly url: string;
+  readonly parent: unknown;
 
-  constructor(url: string) {
+  constructor(url: string, parent: unknown = null) {
     this.url = url;
+    this.parent = parent;
   }
 
   isDestroyed(): boolean {
@@ -31,6 +38,24 @@ describe("databaseFile", () => {
     );
     const moved = userDataPath("/appData", "Self-Engine Dev", "/tmp/smoke");
     expect(databaseFile(moved)).toBe("/tmp/smoke/self-engine.sqlite");
+  });
+});
+
+describe("isOwnPage", () => {
+  it("accepts our page in the main frame", () => {
+    expect(isOwnPage(new FakeFrame(`${desktopUrl(SCHEME)}#/projects`), SCHEME)).toBe(true);
+  });
+
+  it("refuses our page in a subframe", () => {
+    const main = new FakeFrame(desktopUrl(SCHEME));
+    expect(isOwnPage(new FakeFrame(desktopUrl(SCHEME), main), SCHEME)).toBe(false);
+  });
+
+  it.each([
+    ["another site", "https://example.com/"],
+    ["another channel's scheme", desktopUrl("self-engine")],
+  ])("refuses %s", (_name, url) => {
+    expect(isOwnPage(new FakeFrame(url), SCHEME)).toBe(false);
   });
 });
 

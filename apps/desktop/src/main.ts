@@ -10,7 +10,7 @@ import {
 } from "electron";
 import { buildIdentity } from "./build-channel.ts";
 import { resolveDevServer, userDataPath } from "./channel.ts";
-import { databaseFile, serveDataProcessRequests } from "./data-process-host.ts";
+import { databaseFile, isOwnPage, serveDataProcessRequests } from "./data-process-host.ts";
 import { superviseDataProcess } from "./data-process-supervisor.ts";
 import {
   contentSecurityPolicy,
@@ -72,6 +72,7 @@ function startDataProcess(): void {
       }),
     createChannel: () => new MessageChannelMain(),
     now: () => performance.now(),
+    isOwnPage: (frame) => isOwnPage(frame, scheme),
   });
   serveDataProcessRequests(ipcMain, supervisor, scheme);
   // Quitting ends the data process on purpose: no crash, no restart.

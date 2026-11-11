@@ -1,34 +1,30 @@
-// What the main process, the data process and the preload say to each other about the data
-// process. Free of `electron`, so every bundle and its tests can import it.
+// What the main process and the data process say to each other. Free of `electron`, so both
+// bundles and their tests can import it. The preload's channels are in data-process-channels.ts,
+// apart, so that the preload bundles no schema.
 //
 // The handoff has an order (spike on #29): the data process tells the main process that it is
 // serving only once its handler is installed; the main process creates a channel only after
 // that, per request of a page, and gives one end to the data process and the other to the page.
 
-import type { DataProcess } from "@self-engine/data-process";
-
-/** The outcome of the data process's start: `ready`, or a failure state it stays alive in. */
-export type HealthState = DataProcess["health"]["state"];
+import { type Health, healthSchema } from "@self-engine/contracts";
 
 const SERVING = "data-process:serving";
 const PORT_HANDOFF = "data-process:port";
 
 /**
  * Data process → main process: the database is open, the migrations have run, and ports are
- * answered. It carries the outcome, as the main process does not restart a data process in a
- * failure state (spec #29).
+ * answered. It carries the outcome, its `health`: the main process does not restart a data
+ * process in a failure state, and keeps telling pages about it after it exits (spec #29).
  */
-export function servingMessage(health: HealthState): unknown {
+export function servingMessage(health: Health): unknown {
   return { type: SERVING, health };
 }
 
 /** The outcome a serving message carries; `undefined` for any other message. */
-export function servingHealth(message: unknown): HealthState | undefined {
+export function servingHealth(message: unknown): Health | undefined {
   if (!isMessage(message, SERVING) || !("health" in message)) return undefined;
-  const { health } = message;
-  return health === "ready" || health === "migrationFailed" || health === "databaseNewer"
-    ? health
-    : undefined;
+  const parsed = healthSchema.safeParse(message.health);
+  return parsed.success ? parsed.data : undefined;
 }
 
 /**
@@ -50,34 +46,6 @@ function isMessage(message: unknown, type: string): message is { readonly type: 
     typeof message === "object" && message !== null && "type" in message && message.type === type
   );
 }
-
-/** Page (through the preload) → main process: asks for a port to the data process. */
-export const PORT_REQUEST_CHANNEL = "data-process:request-port";
-
-/** Main process → preload: the port in this message's `ports` reaches the data process. */
-export const PORT_CHANNEL = "data-process:port";
-
-/** Main process → preload: the data process exited unexpectedly; a fresh port follows. */
-export const GONE_CHANNEL = "data-process:gone";
-
-/** Main process → preload: the data process kept crashing and stays down until a retry. */
-export const STOPPED_CHANNEL = "data-process:stopped";
-
-/** Page (through the preload) → main process: start the stopped data process again. */
-export const RETRY_CHANNEL = "data-process:retry";
-
-/**
- * Preload → page, by `window.postMessage`: the `data` of the message that carries the port.
- * apps/web/src/desktop-data.ts repeats the three page messages, as the web app cannot import
- * the desktop app. All three travel the same way, so the page sees them in the order sent.
- */
-export const PAGE_PORT_MESSAGE = "self-engine:data-port";
-
-/** Preload → page: the `data` of the window message that says the data process is gone. */
-export const PAGE_GONE_MESSAGE = "self-engine:data-gone";
-
-/** Preload → page: the `data` of the window message that says the data process stopped. */
-export const PAGE_STOPPED_MESSAGE = "self-engine:data-stopped";
 
 const DATABASE_FLAG = "--database=";
 

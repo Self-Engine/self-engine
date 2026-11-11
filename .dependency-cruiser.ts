@@ -26,6 +26,8 @@ export const ALLOWED_IMPORTS: AllowedImports = {
   // The data process test harness only in the client's tests (a devDependency).
   "data-client": ["contracts", "data-process"],
   "data-process": ["contracts", "db"],
+  // The preload and the page share it; the failure states come from the contract.
+  "desktop-bridge": ["contracts"],
   icons: ["theme"],
   "placeholder-alpha": ["shell", "icons", "ui"],
   "placeholder-beta": ["shell", "icons"],
@@ -46,11 +48,11 @@ const ICON_LIBRARIES = [
 const CONTRACT_LIBRARIES = ["zod", "@orpc/contract"];
 
 /**
- * Code that runs in the renderer: the web app, the Component Catalog and the data client.
- * The data client's tests are exempt: they start the real data process core.
+ * Code that runs in the renderer: the web app, the Component Catalog, the data client and the
+ * desktop bridge. The data client's tests are exempt: they start the real data process core.
  */
 const RENDERER = {
-  path: "^(?:apps/(?:web|component-catalog)|packages/data-client)/",
+  path: "^(?:apps/(?:web|component-catalog)|packages/(?:data-client|desktop-bridge))/",
   pathNot: String.raw`^packages/data-client/.*\.test\.ts$`,
 };
 
