@@ -1,7 +1,7 @@
 import { existsSync, mkdirSync, mkdtempSync, realpathSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterEach, describe, expect, it } from "vite-plus/test";
+import { afterEach, describe, expect, it, vi } from "vite-plus/test";
 import {
   type DesktopApp,
   type DesktopLaunch,
@@ -68,6 +68,19 @@ describe("withDesktopApp", () => {
     expect(started.args).toEqual(["--some-flag", `--user-data-dir=${profileDuringRun}`]);
     expect(started.env.SOME_VARIABLE).toBe("value");
     expect(profileOf(started).startsWith(realpathSync(tmpdir()))).toBe(true);
+  });
+
+  it("starts Electron as an app even when the caller runs as Node inside Electron", async () => {
+    vi.stubEnv("ELECTRON_RUN_AS_NODE", "1");
+    try {
+      const launcher = fakeLauncher();
+      await withDesktopApp(LAUNCH, async () => {}, launcher.launch);
+      const [started] = launcher.started;
+      if (started === undefined) throw new Error("not started");
+      expect(started.env).not.toHaveProperty("ELECTRON_RUN_AS_NODE");
+    } finally {
+      vi.unstubAllEnvs();
+    }
   });
 
   it("closes the app and removes the data folder afterwards", async () => {

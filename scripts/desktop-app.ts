@@ -43,10 +43,13 @@ export async function withDesktopApp<App extends DesktopApp, T>(
 ): Promise<T> {
   const profile = mkdtempSync(join(realpathSync(tmpdir()), "self-engine-desktop-"));
   try {
+    // A caller that itself runs as Node inside Electron (an editor, an agent host) passes this
+    // on, and Electron would then start as Node instead of the app.
+    const { ELECTRON_RUN_AS_NODE: _runAsNode, ...inherited } = process.env;
     const app = await start({
       executablePath: launch.executablePath,
       args: [...launch.args, `--user-data-dir=${profile}`],
-      env: { ...process.env, ...launch.env },
+      env: { ...inherited, ...launch.env },
     });
     try {
       return await use(app, profile);
