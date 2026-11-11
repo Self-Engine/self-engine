@@ -15,6 +15,7 @@ import {
   type ColorModeValues,
   resolveAppearance,
   resolveColorMode,
+  servingTheme,
   type Theme,
   type ThemeCatalog,
   type ThemeColors,
@@ -539,5 +540,38 @@ describe("resolveColorMode", () => {
     ["system", false, "light"],
   ] as const)("%s with system dark=%s gives %s", (setting, systemDark, expected) => {
     expect(resolveColorMode(setting, systemDark)).toBe(expected);
+  });
+});
+
+describe("the Theme that serves a Color Mode", () => {
+  const night: Theme = {
+    version: 1,
+    id: "night",
+    name: "Night",
+    colors: { dark: neutralDark },
+  };
+  const catalog: ThemeCatalog = { ...BUILT_IN_THEMES, night };
+
+  it("is the stored Theme when the catalog has it with that Color Mode", () => {
+    expect(servingTheme("warm", catalog, "light").theme.id).toBe("warm");
+    expect(servingTheme("night", catalog, "dark")).toEqual({ theme: night, colors: neutralDark });
+  });
+
+  it("is the default Theme for an id the catalog lacks", () => {
+    expect(servingTheme("from-a-newer-app", catalog, "dark")).toEqual({
+      theme: DEFAULT_THEME,
+      colors: DEFAULT_THEME.colors.dark,
+    });
+  });
+
+  it("is the default Theme for an id that names an inherited property", () => {
+    expect(servingTheme("constructor", catalog, "light").theme).toBe(DEFAULT_THEME);
+  });
+
+  it("is the default Theme when the stored one lacks the Color Mode", () => {
+    expect(servingTheme("night", catalog, "light")).toEqual({
+      theme: DEFAULT_THEME,
+      colors: DEFAULT_THEME.colors.light,
+    });
   });
 });

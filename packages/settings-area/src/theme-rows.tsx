@@ -22,13 +22,13 @@ import {
   ACCENT_IDS,
   COLOR_MODES,
   DEFAULT_APPEARANCE,
-  DEFAULT_THEME,
   type FinalColors,
   FROM_THEME,
   type ResolvedAppearance,
   type ResolvedColorMode,
   resolveAppearance,
   roleColor,
+  servingTheme,
   type Theme,
   type ThemeCatalog,
 } from "@self-engine/theme";
@@ -132,6 +132,7 @@ function ThemePreview({ colors }: { readonly colors: FinalColors }) {
 interface ThemePickerProps {
   readonly store: SettingsRowControlProps["store"];
   readonly mode: ResolvedColorMode;
+  readonly catalog: ThemeCatalog;
   /** Only the Themes that have `mode`. */
   readonly themes: readonly Theme[];
   readonly previews: ReadonlyMap<string, ResolvedAppearance>;
@@ -141,12 +142,20 @@ interface ThemePickerProps {
   readonly labelledBy: string | undefined;
 }
 
-function ThemePicker({ store, mode, themes, previews, label, labelledBy }: ThemePickerProps) {
+function ThemePicker({
+  store,
+  mode,
+  catalog,
+  themes,
+  previews,
+  label,
+  labelledBy,
+}: ThemePickerProps) {
   const { i18n } = useLingui();
   const setting = THEME_SETTINGS[mode];
   const stored = useSetting(store, setting);
-  // What the engine shows for a stored Theme that is unknown or lacks this Color Mode.
-  const chosen = themes.some((theme) => theme.id === stored) ? stored : DEFAULT_THEME.id;
+  // The Theme the engine shows, also for a stored one that is unknown or lacks this Color Mode.
+  const chosen = servingTheme(stored, catalog, mode).theme.id;
   const tabStop = tabStopOf(
     themes.map((theme) => ({ value: theme.id })),
     chosen,
@@ -244,6 +253,7 @@ export function themeRow(catalog: ThemeCatalog): SettingsRow {
       <Stack flex="0 1 auto" gap="sm">
         {modes.map((mode) => (
           <ThemePicker
+            catalog={catalog}
             key={mode}
             label={followsSystem ? i18n._(PICKER_LABELS[mode]) : undefined}
             labelledBy={followsSystem ? undefined : labelledBy}
@@ -283,10 +293,10 @@ export function accentRow(catalog: ThemeCatalog): SettingsRow {
     const darkTheme = useSetting(store, APPEARANCE_SETTINGS.darkTheme);
     const groupName = useId();
 
-    const themeId = mode === "light" ? lightTheme : darkTheme;
-    const theme = Object.hasOwn(catalog, themeId) ? catalog[themeId] : undefined;
-    // Only read for a Color Mode the Theme has, as the engine does.
-    const themeHasAccent = theme?.colors[mode] !== undefined && theme.accent?.[mode] !== undefined;
+    // The Theme the engine shows in this Color Mode, which for a stored one that is unknown or
+    // lacks the mode is the default Theme.
+    const { theme } = servingTheme(mode === "light" ? lightTheme : darkTheme, catalog, mode);
+    const themeHasAccent = theme.accent?.[mode] !== undefined;
     // An unknown stored Accent means "From Theme" to the engine.
     const chosen = ACCENT_CHOICES.includes(stored) ? stored : FROM_THEME;
     // Each choice as the engine would resolve it, so that "From Theme" shows what it would give.

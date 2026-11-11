@@ -227,6 +227,41 @@ export const AThemeCardAndAnAccentChangeTheAppAtOnce: Story = {
   },
 };
 
+/**
+ * No Theme the app ships brings an Accent of its own, and a stored Theme this version lacks is
+ * served by the default Theme, as the engine draws it.
+ */
+export const FromThemeIsDisabledForAThemeWithoutAnAccent: Story = {
+  play: async ({ canvas }) => {
+    await expectAppearanceView(canvas);
+    await userEvent.click(canvas.getByRole("radio", { name: "Light" }));
+    const theme = within(await canvas.findByRole("radiogroup", { name: "Theme" }));
+    const accent = within(canvas.getByRole("radiogroup", { name: "Accent" }));
+    const fromTheme = accent.getByRole("radio", { name: "From Theme" });
+    await expect(fromTheme).toBeChecked();
+
+    for (const name of ["Neutral", "Warm", "Cool"]) {
+      // oxlint-disable-next-line no-await-in-loop -- one Theme after the other, as a user picks
+      await userEvent.click(theme.getByRole("radio", { name }));
+      // oxlint-disable-next-line no-await-in-loop
+      await waitFor(() => expect(theme.getByRole("radio", { name })).toBeChecked());
+      // oxlint-disable-next-line no-await-in-loop
+      await expect(fromTheme).toBeDisabled();
+    }
+
+    settingsStore.write(APPEARANCE_SETTINGS.lightTheme, "from-a-newer-app");
+    await waitFor(() => expect(theme.getByRole("radio", { name: "Neutral" })).toBeChecked());
+    await expect(rootVariable(roleVariable("canvas"))).toBe("#ffffff");
+    await expect(fromTheme).toBeDisabled();
+
+    // A choice that cannot be made changes nothing.
+    await userEvent.click(accent.getByRole("radio", { name: "Violet" }));
+    await userEvent.click(fromTheme, { pointerEventsCheck: 0 });
+    await expect(settingsStore.read(APPEARANCE_SETTINGS.accent)).toBe("violet");
+    await expect(settingsStore.read(APPEARANCE_SETTINGS.lightTheme)).toBe("from-a-newer-app");
+  },
+};
+
 async function expectGermanAppearance(canvas: ReturnType<typeof within>) {
   await expect(await canvas.findByRole("heading", { name: "Darstellung", level: 1 })).toBeVisible();
   await expect(await canvas.findByRole("radiogroup", { name: "Farbmodus" })).toBeVisible();
