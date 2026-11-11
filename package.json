@@ -20,6 +20,7 @@
     "renders": "node scripts/measure-renders.ts"
   },
   "devDependencies": {
+    "@babel/core": "catalog:",
     "@lingui/cli": "catalog:",
     "@lingui/conf": "catalog:",
     "@lingui/format-po": "catalog:",
