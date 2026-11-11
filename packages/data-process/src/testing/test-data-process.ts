@@ -38,11 +38,17 @@ export async function startTestDataProcess(
   options: TestDataProcessOptions = {},
 ): Promise<TestDataProcess> {
   const database = options.database ?? openDatabase(":memory:");
-  const core = await startDataProcess({
-    database,
-    migrations: options.migrations ?? [],
-    ...(options.beforeMigrations && { beforeMigrations: options.beforeMigrations }),
-  });
+  let core;
+  try {
+    core = await startDataProcess({
+      database,
+      migrations: options.migrations ?? [],
+      ...(options.beforeMigrations && { beforeMigrations: options.beforeMigrations }),
+    });
+  } catch (error) {
+    if (options.database === undefined) await database.close();
+    throw error;
+  }
   const ports: MessagePort[] = [];
   return {
     database,
