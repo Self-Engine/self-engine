@@ -159,12 +159,22 @@ describe("recordWindowState", () => {
     expect(readdirSync(folder)).toEqual(["window-state.json"]);
   });
 
-  it("keeps the normal bounds while the window is maximized or in full screen", () => {
+  it("records the normal bounds the window reports after it is maximized or in full screen", () => {
     const recorder = recordWindowState(file, globalThis);
     recorder.change(snapshot(first));
-    recorder.change(snapshot(LAPTOP.workArea, { maximized: true }));
-    recorder.change(snapshot({ x: 0, y: 0, width: 1512, height: 982 }, { fullScreen: true }));
-    recorder.close(snapshot({ x: 0, y: 0, width: 1512, height: 982 }, { fullScreen: true }));
+    // The macOS zoom animation reports its frames before the window counts as maximized; the
+    // window still keeps the bounds from before as its normal bounds.
+    recorder.change(snapshot({ x: 60, y: 70, width: 1200, height: 800 }));
+    recorder.change(snapshot({ x: 10, y: 35, width: 1500, height: 943 }));
+    recorder.change(snapshot(first, { maximized: true }));
+    vi.advanceTimersByTime(WRITE_DELAY_MS);
+    expect(openWindowState(file, BOTH)).toEqual({
+      bounds: first,
+      maximize: true,
+      fullScreen: false,
+    });
+
+    recorder.close(snapshot(first, { fullScreen: true }));
     expect(openWindowState(file, BOTH)).toEqual({
       bounds: first,
       maximize: false,

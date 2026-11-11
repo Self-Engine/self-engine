@@ -22,7 +22,10 @@ export interface Display {
 
 /** The window as the main process reports it. */
 export interface WindowSnapshot {
-  /** The bounds the window has when it is neither maximized nor in full screen. */
+  /**
+   * The bounds the window has when it is neither maximized nor in full screen, as the window keeps
+   * them (`getNormalBounds`), also while it is maximized or in full screen.
+   */
   readonly bounds: Bounds;
   readonly maximized: boolean;
   readonly fullScreen: boolean;
@@ -183,22 +186,20 @@ function writeState(file: string, state: StoredState): void {
 
 /**
  * Record: a recorder the main process reports every change of the window to. It writes about half
- * a second after the last change of a burst and at once when the window closes. The normal bounds
- * are kept while the window is maximized or in full screen, so that restoring and leaving full
- * screen return to them (D206).
+ * a second after the last change of a burst and at once when the window closes. The latest report
+ * wins: its bounds are the normal bounds the window itself keeps while maximized or in full screen,
+ * so that restoring and leaving full screen return to them (D206). They are not frozen here: during
+ * the macOS zoom animation the window reports resizes before it counts as maximized, and only the
+ * report that follows the animation has the normal bounds right.
  */
 export function recordWindowState(file: string, scheduler: Scheduler): WindowStateRecorder {
-  let normalBounds: Bounds | undefined;
   let pending: ReturnType<Scheduler["setTimeout"]> | undefined;
   let latest: StoredState | undefined;
 
   function remember(snapshot: WindowSnapshot): StoredState {
-    if (normalBounds === undefined || (!snapshot.maximized && !snapshot.fullScreen)) {
-      normalBounds = snapshot.bounds;
-    }
     latest = {
       version: FORMAT_VERSION,
-      bounds: normalBounds,
+      bounds: snapshot.bounds,
       maximized: snapshot.maximized,
       fullScreen: snapshot.fullScreen,
     };
