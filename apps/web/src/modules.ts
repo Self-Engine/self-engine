@@ -1,4 +1,3 @@
-import { msg } from "@lingui/core/macro";
 import { contribution as alpha } from "@self-engine/placeholder-alpha";
 import { contribution as beta } from "@self-engine/placeholder-beta";
 import { createSettingsArea } from "@self-engine/settings-area";
@@ -9,23 +8,12 @@ import { settingsStore } from "./settings-store.ts";
 
 export const modules: readonly ShellContribution[] = [beta, alpha];
 
-const settingsArea = createSettingsArea({
+/** The settings area, which the Shell gets beside the modules. */
+export const settings: ShellContribution = createSettingsArea({
   store: settingsStore,
   // The build inserts the web app's version; the desktop app's comes over the bridge.
   version: () => versionInfo(window, navigator, version),
 });
-
-/**
- * The settings area, plus a throwaway View of the app that stays reachable until the slice that
- * replaces it removes it: #160 the theme preview.
- */
-export const settings: ShellContribution = {
-  ...settingsArea,
-  views: [
-    ...settingsArea.views,
-    { id: "theme-preview", title: msg`Theme preview`, load: () => import("./theme-preview.tsx") },
-  ],
-};
 
 export const contributions = [...modules, settings];
 validateContributions(contributions);

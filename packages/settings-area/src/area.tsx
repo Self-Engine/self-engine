@@ -28,8 +28,11 @@ interface RowProps {
   readonly store: SettingsStore;
 }
 
-/** Remembered, so that typing in the search draws only the rows that appear. */
-const Row = memo(function Row({ row, store }: RowProps) {
+/**
+ * One Settings Row as every page shows it: its title and description, then its control.
+ * Remembered, so that typing in the search draws only the rows that appear.
+ */
+export const Row = memo(function Row({ row, store }: RowProps) {
   const { i18n } = useLingui();
   const titleId = useId();
   const Control = row.control;

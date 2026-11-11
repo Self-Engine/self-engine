@@ -3,12 +3,13 @@
 
 import { msg } from "@lingui/core/macro";
 import { LANGUAGE_TAGS, LANGUAGES } from "@self-engine/i18n";
-import { FONT_SCALES } from "@self-engine/theme";
+import { BUILT_IN_THEMES, FONT_SCALES } from "@self-engine/theme";
 import { aboutRows } from "./about-rows.tsx";
 import type { SettingsRow } from "./row.ts";
 import { APP_LANGUAGE_SETTING, APPEARANCE_SETTINGS, SYSTEM_LANGUAGE } from "./settings.ts";
 import type { VersionInfo } from "./version.ts";
 import { choiceRow, stopsRow, switchRow } from "./standard-rows.tsx";
+import { accentRow, themeRow } from "./theme-rows.tsx";
 import { VIEW_IDS } from "./views.ts";
 
 const APPEARANCE_ROWS: readonly SettingsRow[] = [
@@ -25,6 +26,8 @@ const APPEARANCE_ROWS: readonly SettingsRow[] = [
       { value: "system", label: msg({ message: "System", context: "Color Mode" }) },
     ],
   }),
+  themeRow(BUILT_IN_THEMES),
+  accentRow(BUILT_IN_THEMES),
   choiceRow({
     id: "density",
     view: VIEW_IDS.appearance,

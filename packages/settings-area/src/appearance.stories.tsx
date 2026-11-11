@@ -1,7 +1,7 @@
 import type { LocalSettingsStorage, SettingsStore } from "@self-engine/settings";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import type { ComponentType } from "react";
-import { expect, userEvent, waitFor } from "storybook/test";
+import { expect, userEvent, waitFor, within } from "storybook/test";
 import { APPEARANCE_SETTINGS } from "./settings.ts";
 import { storyViewPage } from "./story-page.tsx";
 import { loadedStoreOn, memoryStorage } from "./story-store.ts";
@@ -32,11 +32,20 @@ type Story = StoryObj<typeof meta>;
 const stopNames = (canvasElement: HTMLElement) =>
   [...canvasElement.querySelectorAll(".mantine-Slider-markLabel")].map((mark) => mark.textContent);
 
-export const FourRows: Story = {
+export const SixRows: Story = {
   play: async ({ canvas, canvasElement }) => {
     const colorMode = canvas.getByRole("radiogroup", { name: "Color Mode" });
     await expect(colorMode).toBeVisible();
     await expect(canvas.getByRole("radio", { name: "System" })).toBeChecked();
+    for (const picker of ["Theme for light", "Theme for dark"]) {
+      const cards = within(canvas.getByRole("radiogroup", { name: picker }));
+      await expect(cards.getByRole("radio", { name: "Neutral" })).toBeChecked();
+      await expect(cards.getByRole("radio", { name: "Warm" })).toBeVisible();
+      await expect(cards.getByRole("radio", { name: "Cool" })).toBeVisible();
+    }
+    const accent = within(canvas.getByRole("radiogroup", { name: "Accent" }));
+    await expect(accent.getAllByRole("radio")).toHaveLength(7);
+    await expect(accent.getByRole("radio", { name: "From Theme" })).toBeChecked();
     await expect(canvas.getByRole("radiogroup", { name: "Density" })).toBeVisible();
     await expect(canvas.getByRole("radio", { name: "Comfortable" })).toBeChecked();
     await expect(canvas.getByRole("switch", { name: "Background Tint" })).toBeChecked();
@@ -61,6 +70,12 @@ export const InGerman: Story = {
       // The radio itself is hidden behind its label.
       await expect(canvas.getByRole("radio", { name })).toBeInTheDocument();
     }
+    const light = within(canvas.getByRole("radiogroup", { name: "Theme für Hell" }));
+    await expect(light.getByRole("radio", { name: "Kühl" })).toBeVisible();
+    await expect(canvas.getByRole("radiogroup", { name: "Theme für Dunkel" })).toBeVisible();
+    const accent = within(canvas.getByRole("radiogroup", { name: "Akzentfarbe" }));
+    await expect(accent.getByRole("radio", { name: "Vom Theme" })).toBeChecked();
+    await expect(accent.getByRole("radio", { name: "Violett" })).toBeVisible();
     await expect(canvas.getByRole("radiogroup", { name: "Dichte" })).toBeVisible();
     await expect(canvas.getByRole("switch", { name: "Hintergrundtönung" })).toBeChecked();
     await expect(canvas.getByRole("slider", { name: "Schriftgröße" })).toBeVisible();
@@ -93,6 +108,18 @@ export const KeyboardAndRestart: Story = {
     await userEvent.keyboard("{ArrowLeft}");
     await expect(canvas.getByRole("radio", { name: "Dark" })).toBeChecked();
 
+    // Dark is a fixed Color Mode, so there is one picker, and it writes the dark Theme.
+    const theme = within(await canvas.findByRole("radiogroup", { name: "Theme" }));
+    await tabTo(theme.getByRole("radio", { name: "Neutral" }));
+    await userEvent.keyboard("{ArrowRight}");
+    await expect(theme.getByRole("radio", { name: "Warm" })).toBeChecked();
+
+    // No built-in Theme brings an Accent, so the Tab key stops on the first one that can be chosen.
+    const accent = within(canvas.getByRole("radiogroup", { name: "Accent" }));
+    await tabTo(accent.getByRole("radio", { name: "Blue" }));
+    await userEvent.keyboard("{ArrowRight}");
+    await expect(accent.getByRole("radio", { name: "Indigo" })).toBeChecked();
+
     await tabTo(canvas.getByRole("radio", { name: "Comfortable" }));
     await userEvent.keyboard("{ArrowRight}");
     await expect(canvas.getByRole("radio", { name: "Compact" })).toBeChecked();
@@ -115,6 +142,9 @@ export const KeyboardAndRestart: Story = {
     await waitFor(async () => {
       const restarted = await loadedStoreOn(storage);
       await expect(restarted.read(APPEARANCE_SETTINGS.colorMode)).toBe("dark");
+      await expect(restarted.read(APPEARANCE_SETTINGS.darkTheme)).toBe("warm");
+      await expect(restarted.read(APPEARANCE_SETTINGS.lightTheme)).toBe("neutral");
+      await expect(restarted.read(APPEARANCE_SETTINGS.accent)).toBe("indigo");
       await expect(restarted.read(APPEARANCE_SETTINGS.density)).toBe("compact");
       await expect(restarted.read(APPEARANCE_SETTINGS.backgroundTint)).toBe(false);
       await expect(restarted.read(APPEARANCE_SETTINGS.fontScale)).toBe(87.5);

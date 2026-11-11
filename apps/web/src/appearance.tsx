@@ -10,7 +10,7 @@ import type { ReactNode } from "react";
 import { settingsStore } from "./settings-store.ts";
 
 /** The stored appearance; rerenders when one of its Settings changes. */
-export function useAppearance(): Appearance {
+function useAppearance(): Appearance {
   return {
     lightTheme: useSetting(settingsStore, APPEARANCE_SETTINGS.lightTheme),
     darkTheme: useSetting(settingsStore, APPEARANCE_SETTINGS.darkTheme),

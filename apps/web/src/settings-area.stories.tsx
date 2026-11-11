@@ -11,10 +11,15 @@ import {
   appearanceChanges,
   appLanguageOf,
 } from "@self-engine/settings-area/settings";
-import { settingChange } from "@self-engine/settings";
+import {
+  createLocalSettingsAdapter,
+  createSettingsStore,
+  settingChange,
+} from "@self-engine/settings";
 import {
   type Appearance,
   BUILT_IN_THEMES,
+  COLOR_SETS,
   DEFAULT_APPEARANCE,
   resolveAppearance,
   roleVariable,
@@ -154,6 +159,71 @@ export const EveryRowChangesTheAppearanceAtOnce: Story = {
     canvas.getByRole("slider", { name: "Font scale" }).focus();
     await userEvent.keyboard("{End}");
     await waitFor(() => expect(rootVariable("--mantine-scale")).toBe("1.125"));
+  },
+};
+
+export const TheThemePickersFollowTheColorMode: Story = {
+  play: async ({ canvas }) => {
+    await expectAppearanceView(canvas);
+    const pickers = () =>
+      canvas
+        .getAllByRole("radiogroup", { name: /^Theme/ })
+        .map((picker) => picker.getAttribute("aria-labelledby"))
+        .map((id) => document.getElementById(id ?? "")?.textContent);
+
+    // The default follows the system.
+    await expect(pickers()).toEqual(["Theme for light", "Theme for dark"]);
+    await userEvent.click(canvas.getByRole("radio", { name: "Light" }));
+    await expect(pickers()).toEqual(["Theme"]);
+    await userEvent.click(canvas.getByRole("radio", { name: "Dark" }));
+    await expect(pickers()).toEqual(["Theme"]);
+    await userEvent.click(canvas.getByRole("radio", { name: "System" }));
+    await expect(pickers()).toEqual(["Theme for light", "Theme for dark"]);
+  },
+};
+
+/** A second store on the browser's storage, as the next start of the app has one. */
+async function restartedStore() {
+  const browser = { getStorage: () => localStorage, getEvents: () => window };
+  const store = createSettingsStore({
+    adapters: {
+      synced: createLocalSettingsAdapter(browser, "synced"),
+      device: createLocalSettingsAdapter(browser, "device"),
+    },
+    onError: ({ error }) => {
+      throw error;
+    },
+  });
+  await store.load();
+  return store;
+}
+
+export const AThemeCardAndAnAccentChangeTheAppAtOnce: Story = {
+  play: async ({ canvas }) => {
+    await expectAppearanceView(canvas);
+    await userEvent.click(canvas.getByRole("radio", { name: "Dark" }));
+    await waitFor(() => expect(root()).toHaveAttribute("data-mantine-color-scheme", "dark"));
+    await expect(rootVariable(roleVariable("canvas"))).toBe("#141416");
+
+    // The one picker of a fixed Color Mode writes the Theme of that mode.
+    const theme = within(canvas.getByRole("radiogroup", { name: "Theme" }));
+    await userEvent.click(theme.getByRole("radio", { name: "Warm" }));
+    await waitFor(() => expect(rootVariable(roleVariable("canvas"))).toBe("#171412"));
+    await expect(settingsStore.read(APPEARANCE_SETTINGS.lightTheme)).toBe("neutral");
+
+    const accent = within(canvas.getByRole("radiogroup", { name: "Accent" }));
+    // No built-in Theme brings an Accent of its own.
+    await expect(accent.getByRole("radio", { name: "From Theme" })).toBeDisabled();
+    await userEvent.click(accent.getByRole("radio", { name: "Violet" }));
+    await waitFor(() =>
+      expect(rootVariable(roleVariable("accent"))).toBe(COLOR_SETS.violet.dark.accent),
+    );
+
+    await waitFor(async () => {
+      const restarted = await restartedStore();
+      await expect(restarted.read(APPEARANCE_SETTINGS.darkTheme)).toBe("warm");
+      await expect(restarted.read(APPEARANCE_SETTINGS.accent)).toBe("violet");
+    });
   },
 };
 

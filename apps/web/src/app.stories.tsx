@@ -188,7 +188,7 @@ export const NamesFollowLanguage: Story = {
       );
     });
     await expect(canvas.getByRole("heading", { name: "Sprache", level: 1 })).toBeVisible();
-    await expect(canvas.getByRole("link", { name: "Design-Vorschau" })).toBeVisible();
+    await expect(canvas.getByRole("link", { name: "Darstellung" })).toBeVisible();
     await userEvent.click(canvas.getByRole("link", { name: "Platzhalter Beta" }));
     await expect(await canvas.findByRole("heading", { name: "Übersicht", level: 1 })).toBeVisible();
     await userEvent.click(canvas.getByRole("link", { name: "Platzhalter Alpha" }));

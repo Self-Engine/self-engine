@@ -1,10 +1,12 @@
 import { createSettingsStore } from "@self-engine/settings";
 import { createTestAdapter } from "@self-engine/settings/testing";
+import { ACCENT_IDS, BUILT_IN_THEMES } from "@self-engine/theme";
 import { expect, test } from "vite-plus/test";
 import { auditSettingsRows } from "./audit-rows.ts";
 import { createSettingsArea } from "./index.ts";
 import { settingsRows } from "./rows.tsx";
-import { APP_LANGUAGE_SETTING } from "./settings.ts";
+import { APP_LANGUAGE_SETTING, APPEARANCE_SETTINGS } from "./settings.ts";
+import { accentRow } from "./theme-rows.tsx";
 import { type VersionInfo, versionLine } from "./version.ts";
 
 const DESKTOP: VersionInfo = {
@@ -73,7 +75,10 @@ test.each([
 ])("the real list of Settings Rows fits the Views of the settings area %s", (_where, version) => {
   const area = createSettingsArea({ store: newStore(), version: () => version });
   expect(
-    auditSettingsRows(settingsRows({ version }), area.views, [APP_LANGUAGE_SETTING.key]),
+    auditSettingsRows(settingsRows({ version }), area.views, [
+      ...Object.values(APPEARANCE_SETTINGS).map((setting) => setting.key),
+      APP_LANGUAGE_SETTING.key,
+    ]),
   ).toEqual([]);
 });
 
@@ -103,4 +108,8 @@ test("the line for a bug report names version, channel and operating system", ()
 
 test("the line for a bug report from the web leaves the channel out", () => {
   expect(versionLine(WEB)).toBe("Self-Engine 0.4.0, Windows");
+});
+
+test('every Accent a user may pick has a name, and so does "From Theme"', () => {
+  expect(accentRow(BUILT_IN_THEMES).values).toHaveLength(ACCENT_IDS.length + 1);
 });
