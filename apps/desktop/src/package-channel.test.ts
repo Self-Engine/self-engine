@@ -192,6 +192,20 @@ describe("builderConfig", () => {
     );
   });
 
+  it("ships native modules outside the archive, where the process can load them", () => {
+    expect(builderConfig("nightly", ELECTRON_DIST).asarUnpack).toEqual(["**/*.node"]);
+  });
+
+  it("leaves the SQLite driver's sources and other platforms' binaries out", () => {
+    expect(builderConfig("stable", ELECTRON_DIST).files).toEqual(
+      expect.arrayContaining([
+        "!**/node_modules/better-sqlite3/{deps,src}/**",
+        "!**/node_modules/better-sqlite3/binding.gyp",
+        "!**/node_modules/better-sqlite3/prebuilds/!(darwin-*).node",
+      ]),
+    );
+  });
+
   it.each(["nightly", "stable"] as const)(
     "packages the bundle of %s where main expects it",
     (channel) => {

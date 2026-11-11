@@ -1,5 +1,6 @@
 import { defineConfig } from "vite-plus";
 import { type Channel, bundleDirectory, parseChannel } from "./src/channel.ts";
+import { rawText } from "./src/raw-text-plugin.ts";
 
 function isElectron(id: string): boolean {
   return id === "electron" || id.startsWith("electron/");
@@ -31,6 +32,8 @@ function bundle(entry: string, clean: boolean, channel: Channel) {
     // `electron` is a devDependency, which tsdown would bundle: without this the npm launcher
     // package (child_process, install.js) ends up in the preload and breaks it at run time.
     deps: { neverBundle: isExternal },
+    // A module's SQL migrations reach the data process as text (D139).
+    plugins: [rawText()],
   };
 }
 
