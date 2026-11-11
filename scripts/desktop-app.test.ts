@@ -1,6 +1,7 @@
 import { existsSync, mkdirSync, mkdtempSync, realpathSync, rmSync, writeFileSync } from "node:fs";
 import * as fs from "node:fs";
 import { IncomingMessage, ServerResponse } from "node:http";
+import type * as NodeHttp from "node:http";
 import { Socket } from "node:net";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -19,12 +20,12 @@ const http = vi.hoisted(() => ({
 }));
 
 vi.mock("node:fs", async (importOriginal) => {
-  const original = await importOriginal<typeof import("node:fs")>();
+  const original = await importOriginal<typeof fs>();
   return { ...original, createReadStream: vi.fn(original.createReadStream) };
 });
 
 vi.mock("node:http", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("node:http")>()),
+  ...(await importOriginal<typeof NodeHttp>()),
   createServer: (handler: (request: IncomingMessage, response: ServerResponse) => void) => {
     http.request.mockImplementation(handler);
     return {
@@ -150,34 +151,38 @@ describe("withDesktopApp", () => {
 });
 
 describe("serveRenderer", () => {
-  it.each([false, true])("handles a stream failure when headers sent is %s", async (headersSent) => {
-    const root = realpathSync(mkdtempSync(join(tmpdir(), "desktop-app-")));
-    const file = join(root, "index.html");
-    writeFileSync(file, "<html></html>");
-    const stream = new fs.ReadStream(file);
-    const read = vi.mocked(fs.createReadStream).mockReturnValue(stream);
-    const server = await serveRenderer(root);
-    const request = new IncomingMessage(new Socket());
-    request.url = "/";
-    const response = new ServerResponse(request);
-    try {
-      http.request(request, response);
-      if (headersSent) response.write("partial page");
-      expect(() => stream.emit("error", new Error("file disappeared"))).not.toThrow();
-      if (headersSent) {
-        expect(response.destroyed).toBe(true);
-      } else {
-        expect(response.statusCode).toBe(500);
-        expect(response.writableEnded).toBe(true);
+  it.each([false, true])(
+    "handles a stream failure when headers sent is %s",
+    async (headersSent) => {
+      const root = realpathSync(mkdtempSync(join(tmpdir(), "desktop-app-")));
+      const file = join(root, "index.html");
+      writeFileSync(file, "<html></html>");
+      const original = await vi.importActual<typeof fs>("node:fs");
+      const stream = original.createReadStream(file);
+      const read = vi.mocked(fs.createReadStream).mockReturnValue(stream);
+      const server = await serveRenderer(root);
+      const request = new IncomingMessage(new Socket());
+      request.url = "/";
+      const response = new ServerResponse(request);
+      try {
+        http.request(request, response);
+        if (headersSent) response.write("partial page");
+        expect(() => stream.emit("error", new Error("file disappeared"))).not.toThrow();
+        if (headersSent) {
+          expect(response.destroyed).toBe(true);
+        } else {
+          expect(response.statusCode).toBe(500);
+          expect(response.writableEnded).toBe(true);
+        }
+      } finally {
+        await new Promise<void>((closed) => stream.close(() => closed()));
+        response.destroy();
+        read.mockReset();
+        await server.close();
+        rmSync(root, { recursive: true, force: true });
       }
-    } finally {
-      await new Promise<void>((closed) => stream.close(() => closed()));
-      response.destroy();
-      read.mockReset();
-      await server.close();
-      rmSync(root, { recursive: true, force: true });
-    }
-  });
+    },
+  );
 });
 
 describe("builtDesktopApp", () => {
