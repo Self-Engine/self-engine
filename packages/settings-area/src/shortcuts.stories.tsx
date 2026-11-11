@@ -1,11 +1,10 @@
 import type { MessageDescriptor } from "@lingui/core";
-import { createSettingsStore } from "@self-engine/settings";
-import { createTestAdapter } from "@self-engine/settings/testing";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import type { ComponentType } from "react";
 import { expect, spyOn, userEvent, within } from "storybook/test";
 import type { ShortcutOwner } from "./index.ts";
 import { storyViewPage } from "./story-page.tsx";
+import { loadedStoreOn, memoryStorage } from "./story-store.ts";
 
 const text = (message: string): MessageDescriptor => ({ id: `story-${message}`, message });
 const load = () => Promise.reject(new Error("The list never loads a Command"));
@@ -47,12 +46,8 @@ const meta = {
   title: "Settings area/Shortcuts",
   loaders: [
     async (): Promise<{ readonly Page: ComponentType }> => {
-      const store = createSettingsStore({
-        adapters: { synced: createTestAdapter(), device: createTestAdapter() },
-        onError: ({ error }) => {
-          throw error;
-        },
-      });
+      // Loaded, because a search also draws the controls of the other Views.
+      const store = await loadedStoreOn(memoryStorage());
       return { Page: storyViewPage("shortcuts", { store, commandOwners: OWNERS }) };
     },
   ],
