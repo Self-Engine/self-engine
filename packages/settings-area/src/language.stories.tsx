@@ -24,7 +24,10 @@ const meta = {
       const store = await loadedStoreOn(storage);
       const stored = parameters["storedLanguage"] as string | undefined;
       if (stored !== undefined) store.write(APP_LANGUAGE_SETTING, stored);
-      const language = createSettingsArea({ store }).views.find((view) => view.id === "language");
+      const language = createSettingsArea({
+        store,
+        version: () => ({ version: "0.0.1", operatingSystem: "macOS" }),
+      }).views.find((view) => view.id === "language");
       if (language === undefined) throw new Error("The settings area has no View Language");
       return { storage, store, Page: (await language.load()).default };
     },

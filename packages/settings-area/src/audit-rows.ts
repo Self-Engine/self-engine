@@ -1,7 +1,7 @@
 interface AuditedRow {
   readonly id: string;
   readonly view: string;
-  readonly settings: readonly string[];
+  readonly settings?: readonly string[];
 }
 
 /** What is wrong with a list of Settings Rows for these Views; empty when it is sound. */
@@ -15,7 +15,7 @@ export function auditSettingsRows(
   const ids = new Set<string>();
   const viewIds = new Set(views.map((view) => view.id));
   const viewsWithRows = new Set<string>();
-  const served = new Set(rows.flatMap((row) => row.settings));
+  const served = new Set(rows.flatMap((row) => row.settings ?? []));
   for (const { id, view } of rows) {
     if (ids.has(id)) problems.push(`Duplicate Settings Row id: ${id}`);
     ids.add(id);

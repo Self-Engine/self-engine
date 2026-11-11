@@ -27,8 +27,8 @@ export interface SettingsRow {
    * is a name that is the same in every language, such as a language's own name.
    */
   readonly values: readonly (MessageDescriptor | string)[];
-  /** The keys of the Settings the row reads or writes; empty for a row that only shows something. */
-  readonly settings: readonly string[];
+  /** The keys of the Settings the row reads or writes; absent for a row that only shows something. */
+  readonly settings?: readonly string[];
   /** The right-hand part: a control, or a value that is only shown. */
   readonly control: ComponentType<SettingsRowControlProps>;
 }

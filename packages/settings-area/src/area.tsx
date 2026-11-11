@@ -6,7 +6,7 @@ import { Divider, Group, Stack, Text } from "@mantine/core";
 import type { SettingsStore } from "@self-engine/settings";
 import { type ComponentType, Fragment, useId } from "react";
 import type { SettingsRow } from "./row.ts";
-import { SETTINGS_ROWS } from "./rows.tsx";
+import { type SettingsRowSources, settingsRows } from "./rows.tsx";
 import type { SettingsViewId } from "./views.ts";
 
 interface RowProps {
@@ -36,8 +36,11 @@ function Row({ row, store }: RowProps) {
 }
 
 /** The page of one View: its rows from the list, in order. */
-export function viewPage(view: SettingsViewId, store: SettingsStore): ComponentType {
-  const rows = SETTINGS_ROWS.filter((row) => row.view === view);
+export function viewPage(
+  view: SettingsViewId,
+  { store, ...sources }: SettingsRowSources & { readonly store: SettingsStore },
+): ComponentType {
+  const rows = settingsRows(sources).filter((row) => row.view === view);
   return function SettingsViewPage() {
     return (
       <Stack gap={0} maw="48rem">

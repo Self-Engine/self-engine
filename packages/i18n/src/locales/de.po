@@ -7,6 +7,10 @@ msgstr ""
 "X-Generator: @lingui/cli\n"
 "Language: de\n"
 
+#: packages/settings-area/src/index.ts
+msgid "About"
+msgstr "Über"
+
 #: packages/placeholder-alpha/src/index.ts
 msgid "Add sample entry"
 msgstr "Beispieleintrag hinzufügen"
@@ -32,14 +36,26 @@ msgstr "Archiv"
 msgid "Background Tint"
 msgstr "Hintergrundtönung"
 
+#: packages/settings-area/src/about-rows.tsx
+msgid "Build"
+msgstr "Build"
+
 #: packages/placeholder-alpha/src/edit-drawer.tsx
 #: packages/ui/src/feedback.tsx
 msgid "Cancel"
 msgstr "Abbrechen"
 
+#: packages/settings-area/src/about-rows.tsx
+msgid "Channel"
+msgstr "Kanal"
+
 #: packages/placeholder-alpha/src/groups.tsx
 msgid "Clients"
 msgstr "Kunden"
+
+#: packages/settings-area/src/about-rows.tsx
+msgid "Clipboard"
+msgstr "Zwischenablage"
 
 #: packages/placeholder-alpha/src/edit-drawer.tsx
 msgctxt "Close the drawer"
@@ -88,6 +104,16 @@ msgctxt "Density"
 msgid "Compact"
 msgstr "Kompakt"
 
+#: packages/settings-area/src/about-rows.tsx
+msgctxt "Confirms that the version information is on the clipboard"
+msgid "Copied"
+msgstr "Kopiert"
+
+#: packages/settings-area/src/about-rows.tsx
+msgctxt "Button that copies the version information"
+msgid "Copy"
+msgstr "Kopieren"
+
 #: packages/settings-area/src/rows.tsx
 msgctxt "Color Mode"
 msgid "Dark"
@@ -113,6 +139,11 @@ msgstr "Gelöscht"
 #: packages/settings-area/src/rows.tsx
 msgid "Density"
 msgstr "Dichte"
+
+#: packages/settings-area/src/about-rows.tsx
+msgctxt "Channel"
+msgid "Dev"
+msgstr "Dev"
 
 #: packages/shell/src/edit-drawer-exits.tsx
 msgid "Discard"
@@ -174,6 +205,10 @@ msgstr "Weiter bearbeiten"
 msgid "Language"
 msgstr "Sprache"
 
+#: packages/settings-area/src/about-rows.tsx
+msgid "License"
+msgstr "Lizenz"
+
 #: packages/settings-area/src/rows.tsx
 msgctxt "Color Mode"
 msgid "Light"
@@ -213,6 +248,11 @@ msgstr "Neuer Eintrag"
 msgid "Night"
 msgstr "Nacht"
 
+#: packages/settings-area/src/about-rows.tsx
+msgctxt "Channel"
+msgid "Nightly"
+msgstr "Nightly"
+
 #: packages/placeholder-alpha/src/entries.tsx
 msgid "No entries here"
 msgstr "Hier gibt es keine Einträge"
@@ -233,6 +273,14 @@ msgstr "Modul-Sidebar öffnen"
 msgid "Open navigation"
 msgstr "Navigation öffnen"
 
+#: packages/settings-area/src/about-rows.tsx
+msgid "Open source"
+msgstr "Open Source"
+
+#: packages/settings-area/src/about-rows.tsx
+msgid "Operating system"
+msgstr "Betriebssystem"
+
 #: packages/placeholder-alpha/src/index.ts
 #: packages/placeholder-beta/src/index.ts
 msgid "Overview"
@@ -246,6 +294,18 @@ msgstr "Platzhalter Alpha"
 msgid "Placeholder Beta"
 msgstr "Platzhalter Beta"
 
+#: packages/settings-area/src/about-rows.tsx
+msgid "Platform"
+msgstr "Plattform"
+
+#: packages/settings-area/src/about-rows.tsx
+msgid "Release"
+msgstr "Release"
+
+#: packages/settings-area/src/about-rows.tsx
+msgid "Report a problem"
+msgstr "Problem melden"
+
 #: packages/shell/src/shell.tsx
 msgid "Resize module sidebar"
 msgstr "Breite der Modul-Sidebar ändern"
@@ -253,6 +313,10 @@ msgstr "Breite der Modul-Sidebar ändern"
 #: packages/shell/src/shell.tsx
 msgid "Resize navbar"
 msgstr "Breite der Navbar ändern"
+
+#: packages/settings-area/src/about-rows.tsx
+msgid "Rights"
+msgstr "Rechte"
 
 #: packages/settings-area/src/rows.tsx
 msgid "Row height"
@@ -274,6 +338,10 @@ msgstr "Befehle und Ansichten suchen"
 msgid "Search…"
 msgstr "Suchen…"
 
+#: packages/settings-area/src/about-rows.tsx
+msgid "Self-Engine is free software under the GNU Affero General Public License, version 3."
+msgstr "Self-Engine ist freie Software unter der GNU Affero General Public License, Version 3."
+
 #: packages/settings-area/src/index.ts
 msgid "Settings"
 msgstr "Einstellungen"
@@ -285,6 +353,11 @@ msgstr "Zeigt die App hell oder dunkel oder folgt dem System."
 #: packages/settings-area/src/rows.tsx
 msgid "Spacing"
 msgstr "Abstände"
+
+#: packages/settings-area/src/about-rows.tsx
+msgctxt "Channel"
+msgid "Stable"
+msgstr "Stable"
 
 #: packages/placeholder-alpha/src/sample-data.ts
 msgid "Studio"
@@ -328,6 +401,10 @@ msgstr "Die Sprache, in der die App angezeigt wird. „System“ folgt der Sprac
 msgid "The minimal module View."
 msgstr "Die minimale Modulansicht."
 
+#: packages/settings-area/src/about-rows.tsx
+msgid "The release line this app belongs to."
+msgstr "Die Veröffentlichungslinie, zu der diese App gehört."
+
 #: packages/settings-area/src/rows.tsx
 msgid "The size of the text in the whole app."
 msgstr "Wie groß der Text in der ganzen App ist."
@@ -360,6 +437,22 @@ msgstr "Erneut versuchen"
 #: packages/ui/src/feedback.tsx
 msgid "Undo"
 msgstr "Rückgängig"
+
+#: packages/settings-area/src/about-rows.tsx
+msgid "Version"
+msgstr "Version"
+
+#: packages/settings-area/src/about-rows.tsx
+msgid "Version and operating system as one line, for a bug report."
+msgstr "Version und Betriebssystem als eine Zeile, für einen Fehlerbericht."
+
+#: packages/settings-area/src/about-rows.tsx
+msgid "Version information"
+msgstr "Versionsangaben"
+
+#: packages/settings-area/src/about-rows.tsx
+msgid "Version, channel and operating system as one line, for a bug report."
+msgstr "Version, Kanal und Betriebssystem als eine Zeile, für einen Fehlerbericht."
 
 #: packages/shell/src/edit-drawer-exits.tsx
 msgid "What you changed here will be lost."

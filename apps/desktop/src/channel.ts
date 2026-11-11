@@ -125,3 +125,26 @@ export function resolveDevServer(channel: Channel, url: string | undefined): URL
   }
   return new URL(trimmed);
 }
+
+// A sandboxed preload cannot ask the main process anything before the page runs, but it does see
+// the arguments the main process adds to the renderer (`webPreferences.additionalArguments`).
+const VERSION_SWITCH = "--self-engine-version=";
+
+/**
+ * The argument that carries the app's version from the main process to the preload. Only the main
+ * process knows it: a release gets its version at packaging, after the bundle is built.
+ */
+export function versionArgument(version: string): string {
+  return `${VERSION_SWITCH}${version}`;
+}
+
+/** The version the main process added to the renderer's arguments. */
+export function versionFromArguments(argv: readonly string[]): string {
+  const argument = argv.find((candidate) => candidate.startsWith(VERSION_SWITCH));
+  if (argument === undefined) {
+    throw new Error(
+      `The renderer was started without ${VERSION_SWITCH}<version>, which the main process adds.`,
+    );
+  }
+  return argument.slice(VERSION_SWITCH.length);
+}
