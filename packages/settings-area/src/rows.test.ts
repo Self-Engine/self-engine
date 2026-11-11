@@ -174,7 +174,8 @@ test.each([
 test("About's unknown version is found in the language shown", () => {
   const german: Translator = {
     locale: "de",
-    _: (descriptor) => (descriptor.message === "Unknown" ? "Unbekannt" : descriptor.message ?? ""),
+    _: (descriptor) =>
+      descriptor.message === "Unknown" ? "Unbekannt" : (descriptor.message ?? ""),
   };
   const rows = settingsRows({ version: { operatingSystem: "macOS" }, commandOwners: [] });
   expect(
