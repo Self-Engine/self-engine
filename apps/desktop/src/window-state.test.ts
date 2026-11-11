@@ -69,6 +69,19 @@ describe("openWindowState", () => {
     expect(openWindowState(file, BOTH)).toEqual(DEFAULT_ON_LAPTOP);
   });
 
+  it("opens the default window when the remembered size is not whole pixels", () => {
+    writeFileSync(
+      file,
+      JSON.stringify({
+        version: 1,
+        bounds: { x: 10, y: 40, width: 900, height: 0.1 },
+        maximized: false,
+        fullScreen: false,
+      }),
+    );
+    expect(openWindowState(file, BOTH)).toEqual(DEFAULT_ON_LAPTOP);
+  });
+
   it("opens where the window was when a display still shows it", () => {
     const onMonitor = { x: 1800, y: 200, width: 1600, height: 1000 };
     remember(snapshot(onMonitor));

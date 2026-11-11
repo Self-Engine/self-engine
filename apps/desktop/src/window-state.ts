@@ -70,7 +70,8 @@ function isBounds(value: unknown): value is Bounds {
   if (!isRecord(value)) return false;
   const { x, y, width, height } = value;
   return (
-    [x, y, width, height].every((n) => typeof n === "number" && Number.isFinite(n)) &&
+    // Electron reports whole pixels; anything else is a damaged file, not a window to round.
+    [x, y, width, height].every((n) => Number.isSafeInteger(n)) &&
     (width as number) > 0 &&
     (height as number) > 0
   );
