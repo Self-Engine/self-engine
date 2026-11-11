@@ -10,7 +10,7 @@ import {
   validateHotkey,
 } from "@tanstack/react-hotkeys";
 import { useCommandPalette } from "./command-palette-state.tsx";
-import { commandRegister, isPageCommandElsewhere } from "./commands.ts";
+import { commandForKey, commandRegister, shortcutKeys } from "./commands.ts";
 import type { CommandScope } from "./palette-entries.ts";
 import { PALETTE_SHORTCUT, UNDO_COMMAND_ID } from "./shell-commands.ts";
 import { useStartCommand } from "./start-command.tsx";
@@ -29,6 +29,9 @@ export function readShortcut(shortcut: string): ReadShortcut {
   // `Meta` is `Mod` only on a Mac and `Control` only elsewhere, so `Mod` has to hold on both.
   return { canonical: onMac, hasMod: [onMac, normalizeHotkey(chord, "windows")].every(startsMod) };
 }
+
+/** Two spellings of one key on this platform give the same string. */
+const sameKeyAs = (shortcut: string) => normalizeHotkey(shortcut as HotkeyChord);
 
 const startsMod = (chord: string) => chord.startsWith("Mod+");
 
@@ -49,19 +52,19 @@ export function ShortcutBindings({ owners, activeModuleId }: CommandScope) {
           if (!quiet()) palette.open();
         },
       },
-      ...commandRegister(owners).flatMap((entry) => {
-        const { moduleId, command } = entry;
-        if (command.kind === "input" || command.defaultShortcut === undefined) return [];
-        if (isPageCommandElsewhere(entry, activeModuleId)) return [];
-        return {
-          hotkey: command.defaultShortcut as HotkeyChord,
-          callback: () => {
-            if (!quiet()) void start(moduleId, command);
-          },
-          // In a field ⌘Z stays with the text. It is the one shortcut that does not work there.
-          ...(entry.fullId === UNDO_COMMAND_ID && { options: { ignoreInputs: true } }),
-        };
-      }),
+      // One binding per key, whose press picks the Command of the module on screen. Navigating
+      // keeps the list as it is, and the library then only swaps the callbacks in place.
+      ...shortcutKeys(commandRegister(owners), sameKeyAs).map((key) => ({
+        hotkey: key.shortcut as HotkeyChord,
+        callback: () => {
+          const entry = commandForKey(key, activeModuleId);
+          if (entry !== undefined && !quiet()) void start(entry.moduleId, entry.command);
+        },
+        // In a field ⌘Z stays with the text. It is the one shortcut that does not work there.
+        ...(key.entries.some(({ fullId }) => fullId === UNDO_COMMAND_ID) && {
+          options: { ignoreInputs: true },
+        }),
+      })),
     ],
     // Every default shortcut has `Mod`, so typing cannot reach one, and it also works in a field.
     { ignoreInputs: false, requireReset: true },
