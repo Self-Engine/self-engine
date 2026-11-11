@@ -189,10 +189,10 @@ export const ReconnectAndErrorNoticesStackTogether: Story = {
     const container = reconnect.closest(".mantine-Notifications-root");
     await expect(container).not.toBeNull();
     await expect(error.closest(".mantine-Notifications-root")).toBe(container);
-    await waitFor(() => {
+    await waitFor(async () => {
       const first = reconnect.closest('[role="status"]')!.getBoundingClientRect();
       const second = error.closest('[role="alert"]')!.getBoundingClientRect();
-      expect(first.bottom <= second.top || second.bottom <= first.top).toBe(true);
+      await expect(first.bottom <= second.top || second.bottom <= first.top).toBe(true);
     });
   },
 };

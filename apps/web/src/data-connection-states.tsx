@@ -85,6 +85,7 @@ function ReconnectingNotice() {
   const message = t`Reconnecting to your data…`;
   useEffect(() => {
     if (slow) return notifyProgress({ message });
+    return undefined;
   }, [slow, message]);
   return null;
 }
