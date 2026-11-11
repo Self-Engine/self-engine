@@ -4,6 +4,8 @@ import { BrandMark } from "@self-engine/icons/brand-mark";
 import { useSetting } from "@self-engine/settings/react";
 import { Shell } from "@self-engine/shell";
 import { Outlet, createRootRoute, useRouterState } from "@tanstack/react-router";
+import { DataConnectionStates } from "../data-connection-states.tsx";
+import { dataConnection, retryDesktopData } from "../desktop-data.ts";
 import { channelBadge, reservesWindowButtons } from "../env.ts";
 import { settingsStore } from "../settings-store.ts";
 import { modules, settings, findModule } from "../modules.ts";
@@ -29,7 +31,7 @@ function RootLayout() {
   const moduleSidebarWidth = useSetting(settingsStore, SHELL_SETTINGS.moduleSidebarWidth);
   const moduleSidebarCollapsed = useSetting(settingsStore, SHELL_SETTINGS.moduleSidebarCollapsed);
 
-  return (
+  const shell = (
     <Shell
       activeModule={activeModule}
       activeView={activeView}
@@ -52,5 +54,16 @@ function RootLayout() {
     >
       <Outlet />
     </Shell>
+  );
+  // Only the desktop app has a data process; the web app shows nothing new until it has one (D196).
+  const bridge = window.desktopBridge;
+  if (bridge === undefined) return shell;
+  return (
+    <DataConnectionStates
+      connection={dataConnection}
+      onRetry={() => retryDesktopData(bridge, dataConnection)}
+    >
+      {shell}
+    </DataConnectionStates>
   );
 }
