@@ -72,8 +72,10 @@ export function createMigrationRunner(
         const failed = results?.find((result) => result.status === "Error");
         if (failed)
           throw new MigrationRunError("migrationFailed", failed.migrationName, { cause: error });
-        // Bookkeeping may not exist when migration setup itself failed.
-        const unknown = await firstUnknownMigration(database, migrations).catch(() => undefined);
+        const unknown = await firstUnknownMigration(database, migrations).catch(() => {
+          // Bookkeeping may not exist when setup failed; preserve that original failure.
+          throw error;
+        });
         if (unknown !== undefined)
           throw new MigrationRunError("databaseNewer", unknown, { cause: error });
         throw error;

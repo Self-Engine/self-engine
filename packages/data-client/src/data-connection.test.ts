@@ -65,24 +65,27 @@ describe("a typed call over a message port", () => {
   });
 });
 
- test.each(["initial", "disconnected", "stopped"])("a waiting call can be aborted while %s", async (phase) => {
-  dataProcess = await startTestDataProcess();
-  const connection = createDataConnection();
-  if (phase !== "initial") {
-    connection.connect(dataProcess.openPort());
-    await connection.client.health();
-    if (phase === "disconnected") connection.disconnect();
-    else connection.stop();
-  }
-  vi.useFakeTimers();
-  const controller = new AbortController();
-  const reason = new Error("cancelled while waiting");
-  const answer = connection.client.health(undefined, { signal: controller.signal });
-  const outcome = answer.catch((error: unknown) => error);
-  controller.abort(reason);
-  await vi.runAllTimersAsync();
-  expect(await Promise.race([outcome, Promise.resolve("still waiting")])).toBe(reason);
-});
+test.each(["initial", "disconnected", "stopped"])(
+  "a waiting call can be aborted while %s",
+  async (phase) => {
+    dataProcess = await startTestDataProcess();
+    const connection = createDataConnection();
+    if (phase !== "initial") {
+      connection.connect(dataProcess.openPort());
+      await connection.client.health();
+      if (phase === "disconnected") connection.disconnect();
+      else connection.stop();
+    }
+    vi.useFakeTimers();
+    const controller = new AbortController();
+    const reason = new Error("cancelled while waiting");
+    const answer = connection.client.health(undefined, { signal: controller.signal });
+    const outcome = answer.catch((error: unknown) => error);
+    controller.abort(reason);
+    await vi.runAllTimersAsync();
+    expect(await Promise.race([outcome, Promise.resolve("still waiting")])).toBe(reason);
+  },
+);
 
 test("a waiting call removes its abort listener when a port arrives", async () => {
   dataProcess = await startTestDataProcess();
@@ -101,5 +104,7 @@ test("a waiting call removes its abort listener when a port arrives", async () =
 test("a call with an already aborted signal rejects before a port arrives", async () => {
   const connection = createDataConnection();
   const reason = new Error("already cancelled");
-  await expect(connection.client.health(undefined, { signal: AbortSignal.abort(reason) })).rejects.toBe(reason);
+  await expect(
+    connection.client.health(undefined, { signal: AbortSignal.abort(reason) }),
+  ).rejects.toBe(reason);
 });

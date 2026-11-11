@@ -41,9 +41,9 @@ export async function startTestDataProcess(
   let core;
   try {
     core = await startDataProcess({
-    database,
-    migrations: options.migrations ?? [],
-    ...(options.beforeMigrations && { beforeMigrations: options.beforeMigrations }),
+      database,
+      migrations: options.migrations ?? [],
+      ...(options.beforeMigrations && { beforeMigrations: options.beforeMigrations }),
     });
   } catch (error) {
     if (options.database === undefined) await database.close();
