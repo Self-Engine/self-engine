@@ -66,7 +66,10 @@ export function aboutRows(version: VersionInfo): readonly SettingsRow[] {
       title: msg`Version`,
       searchWords: [msg`Release`, msg`Build`],
       values: [],
-      control: shownValue(version.version),
+      control:
+        version.version === undefined
+          ? shownMessage(msg({ message: "Unknown", context: "Version of the app" }))
+          : shownValue(version.version),
     },
     ...(channel
       ? [

@@ -80,6 +80,17 @@ describe("versionInfo", () => {
     ).toBe(operatingSystem);
   });
 
+  it("leaves the version out when the bridge has none, and keeps channel and system", () => {
+    // The web build's version is another app's and must not stand in for it.
+    expect(
+      versionInfo(
+        { desktopBridge: { platform: "darwin", channel: "nightly", version: undefined } },
+        { userAgent: MAC_BROWSER },
+        "0.0.1",
+      ),
+    ).toEqual({ channel: "nightly", operatingSystem: "macOS" });
+  });
+
   it("shows the version the build inserted on the web, without a channel", () => {
     expect(versionInfo({}, { userAgent: MAC_BROWSER }, "0.0.1")).toEqual({
       version: "0.0.1",

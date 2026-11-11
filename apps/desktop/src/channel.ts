@@ -138,13 +138,12 @@ export function versionArgument(version: string): string {
   return `${VERSION_SWITCH}${version}`;
 }
 
-/** The version the main process added to the renderer's arguments. */
-export function versionFromArguments(argv: readonly string[]): string {
+/**
+ * The version the main process added to the renderer's arguments, or nothing when it added none.
+ * It does not throw: the preload reads it while it builds the bridge, and without the bridge the
+ * desktop app would take itself for the web app.
+ */
+export function versionFromArguments(argv: readonly string[]): string | undefined {
   const argument = argv.find((candidate) => candidate.startsWith(VERSION_SWITCH));
-  if (argument === undefined) {
-    throw new Error(
-      `The renderer was started without ${VERSION_SWITCH}<version>, which the main process adds.`,
-    );
-  }
-  return argument.slice(VERSION_SWITCH.length);
+  return argument?.slice(VERSION_SWITCH.length) || undefined;
 }

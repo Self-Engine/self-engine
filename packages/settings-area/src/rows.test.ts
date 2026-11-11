@@ -125,6 +125,22 @@ test("the line for a bug report from the web leaves the channel out", () => {
   expect(versionLine(WEB)).toBe("Self-Engine 0.4.0, Windows");
 });
 
+test("the line for a bug report says so when the app does not know its version", () => {
+  expect(versionLine({ channel: "nightly", operatingSystem: "macOS" })).toBe(
+    "Self-Engine unknown version (nightly), macOS",
+  );
+});
+
+test("About keeps its row for the version when the app does not know it", () => {
+  expect(aboutRowIds({ channel: "nightly", operatingSystem: "macOS" })).toEqual([
+    "version",
+    "channel",
+    "operating-system",
+    "copy-version-information",
+    "license",
+  ]);
+});
+
 test('every Accent a user may pick has a name, and so does "From Theme"', () => {
   expect(accentRow(BUILT_IN_THEMES).values).toHaveLength(ACCENT_IDS.length + 1);
 });

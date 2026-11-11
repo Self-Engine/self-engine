@@ -58,6 +58,25 @@ export const OnTheWebThereIsNoChannel: Story = {
   },
 };
 
+/** A desktop app whose bridge carried no version says so and invents no number. */
+export const WithoutAKnownVersion: Story = {
+  loaders: [aboutOf({ channel: "nightly", operatingSystem: "macOS" })],
+  play: async ({ canvas }) => {
+    await expect(canvas.getByText("Version")).toBeVisible();
+    await expect(canvas.getByText("Unknown")).toBeVisible();
+    await expect(canvas.getByText("Nightly")).toBeVisible();
+    await expect(canvas.getByText("macOS")).toBeVisible();
+
+    const written = spyOn(navigator.clipboard, "writeText").mockResolvedValue();
+    try {
+      await userEvent.click(canvas.getByRole("button", { name: "Copy" }));
+      await expect(written).toHaveBeenCalledWith("Self-Engine unknown version (nightly), macOS");
+    } finally {
+      written.mockRestore();
+    }
+  },
+};
+
 export const CopiesOneLineAndConfirmsIt: Story = {
   play: async ({ canvas }) => {
     // The clipboard of the test browser is not the user's, so the story takes its place.

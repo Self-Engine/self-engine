@@ -7,5 +7,6 @@ import { versionFromArguments } from "./channel.ts";
 contextBridge.exposeInMainWorld("desktopBridge", {
   platform: process.platform,
   channel: buildIdentity.channel,
+  // Absent when the main process added none; About then says that the version is unknown.
   version: versionFromArguments(process.argv),
 });

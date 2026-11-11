@@ -150,9 +150,11 @@ describe("the app's version on the way to the preload", () => {
     expect(versionFromArguments([versionArgument(nightly)])).toBe(nightly);
   });
 
-  it("fails when the main process added none, instead of showing a made-up version", () => {
-    expect(() => versionFromArguments(["/app/electron", "--type=renderer"])).toThrow(
-      /--self-engine-version/,
-    );
+  it("is absent when the main process added none, so the rest of the bridge still arrives", () => {
+    expect(versionFromArguments(["/app/electron", "--type=renderer"])).toBeUndefined();
+  });
+
+  it("is absent when the main process had no version to add, not an empty text", () => {
+    expect(versionFromArguments([versionArgument("")])).toBeUndefined();
   });
 });

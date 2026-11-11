@@ -9,8 +9,11 @@ declare global {
     readonly desktopBridge?: {
       readonly platform: string;
       readonly channel: DesktopChannel;
-      /** The version of the main process: a release only gets its version at packaging. */
-      readonly version: string;
+      /**
+       * The version of the main process: a release only gets its version at packaging. Absent
+       * when the preload was handed none, which leaves the rest of the bridge as it is.
+       */
+      readonly version: string | undefined;
     };
   }
 }
@@ -57,7 +60,8 @@ const BROWSER_SYSTEMS: readonly (readonly [RegExp, string])[] = [
 
 /**
  * Which app is running, for the settings' View About. The desktop app takes version and channel
- * from the bridge; on the web the build inserted the version and there is no channel.
+ * from the bridge, and has no version when the bridge has none; on the web the build inserted the
+ * version and there is no channel.
  */
 export function versionInfo(
   win: Pick<Window, "desktopBridge">,
@@ -67,7 +71,8 @@ export function versionInfo(
   const bridge = win.desktopBridge;
   if (bridge) {
     return {
-      version: bridge.version,
+      // Never the web build's version, which is another app's.
+      ...(bridge.version !== undefined && { version: bridge.version }),
       channel: bridge.channel,
       operatingSystem: DESKTOP_SYSTEMS[bridge.platform] ?? bridge.platform,
     };
