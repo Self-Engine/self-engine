@@ -162,6 +162,11 @@ export function builderConfig(
         : { identity: "-", hardenedRuntime: false, notarize: false }),
       icon,
     },
+    // No `electronFuses`: the fuses stay at Electron's defaults. The packaged smoke test (run at
+    // the end of packageChannel) starts the signed app through Playwright, which needs the
+    // `EnableNodeCliInspectArguments` fuse on for `--inspect` and Chromium's
+    // `--remote-debugging-port`. A fuse config that turns that off must replace the smoke
+    // test's launch first; package-channel.test.ts fails until it does.
     // Updates are downloaded by hand (ADR 0007), so the dmg needs no block map.
     dmg: { writeUpdateInfo: false },
     npmRebuild: false,

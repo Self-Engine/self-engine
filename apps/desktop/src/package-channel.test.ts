@@ -123,6 +123,12 @@ describe("electronDistPath", () => {
   });
 });
 
+/** The part of an electron-builder configuration that sets fuses. */
+interface FuseConfig {
+  readonly appId: string;
+  readonly electronFuses?: { readonly enableNodeCliInspectArguments?: boolean };
+}
+
 describe("builderConfig", () => {
   it.each([
     ["nightly", "Self-Engine Nightly", "app.selfengine.desktop.nightly"],
@@ -179,6 +185,18 @@ describe("builderConfig", () => {
       hardenedRuntime: false,
     });
   });
+
+  // The packaged smoke test starts the signed app through Playwright, which connects over
+  // `--inspect`. Flipping that fuse off would leave a release untestable: the smoke test has to
+  // change first (see builderConfig).
+  it.each(["ad-hoc", "developer-id"] as const)(
+    "leaves on the inspector fuse the packaged smoke test needs (%s)",
+    (signing) => {
+      // Typed as electron-builder reads it, so a fuse config that is added later is seen here.
+      const config: FuseConfig = builderConfig("nightly", ELECTRON_DIST, "1.0.0", signing);
+      expect(config.electronFuses?.enableNodeCliInspectArguments).not.toBe(false);
+    },
+  );
 
   it("never sends an ad-hoc build to Apple for notarization", () => {
     expect(builderConfig("nightly", ELECTRON_DIST, "1.0.0", "ad-hoc").mac).toMatchObject({
