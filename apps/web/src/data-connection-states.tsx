@@ -4,13 +4,19 @@ import type { DataConnection } from "@self-engine/data-client";
 import {
   ErrorState,
   NOT_WINDOW_DRAG_STYLE,
+  NOTICE_CLEARANCE_VARIABLE,
   useWaitIsSlow,
   WINDOW_DRAG_STYLE,
 } from "@self-engine/ui";
 import { type CSSProperties, type ReactNode, useSyncExternalStore } from "react";
 
-const NOTICE_POSITION = { top: rem(12), left: "50%" };
-const NOTICE_STYLE: CSSProperties = { transform: "translateX(-50%)" };
+// At the foot, like every other notice: the top holds the page title and the window's drag area.
+// The clearance lifts it above the phone's bottom bar.
+const NOTICE_POSITION = { bottom: rem(16), left: "50%" };
+const NOTICE_STYLE: CSSProperties = {
+  transform: "translateX(-50%)",
+  marginBottom: `var(${NOTICE_CLEARANCE_VARIABLE}, 0rem)`,
+};
 
 export interface DataConnectionStatesProps {
   readonly connection: Pick<DataConnection, "getState" | "subscribe">;
