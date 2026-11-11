@@ -10,19 +10,14 @@ export const modules: readonly ShellContribution[] = [beta, alpha];
 const settingsArea = createSettingsArea({ store: settingsStore });
 
 /**
- * The settings area, plus two throwaway Views of the app that stay reachable until the slices
- * that replace them remove them: #160 the theme preview, #161 the language sample.
+ * The settings area, plus a throwaway View of the app that stays reachable until the slice that
+ * replaces it removes it: #160 the theme preview.
  */
 export const settings: ShellContribution = {
   ...settingsArea,
   views: [
     ...settingsArea.views,
     { id: "theme-preview", title: msg`Theme preview`, load: () => import("./theme-preview.tsx") },
-    {
-      id: "language-sample",
-      title: msg`Language sample`,
-      load: () => import("./language-sample.tsx"),
-    },
   ],
 };
 

@@ -39,7 +39,10 @@ export function createSettingsArea({ store }: SettingsAreaInputs) {
         )),
     };
   };
-  const views: readonly [ShellView, ...ShellView[]] = [view(VIEW_IDS.appearance, msg`Appearance`)];
+  const views: readonly [ShellView, ...ShellView[]] = [
+    view(VIEW_IDS.appearance, msg`Appearance`),
+    view(VIEW_IDS.language, msg`Language`),
+  ];
   return {
     id: "settings",
     name: msg`Settings`,

@@ -4,9 +4,14 @@ import { expect, test } from "vite-plus/test";
 import { auditSettingsRows } from "./audit-rows.ts";
 import { createSettingsArea } from "./index.ts";
 import { SETTINGS_ROWS } from "./rows.tsx";
+import { APP_LANGUAGE_SETTING } from "./settings.ts";
 
 const views = [{ id: "appearance" }, { id: "language" }];
-const row = (id: string, view: string) => ({ id, view });
+const row = (id: string, view: string, settings: readonly string[] = []) => ({
+  id,
+  view,
+  settings,
+});
 
 test("a list in which every row has its own id and every View has a row is sound", () => {
   expect(
@@ -38,12 +43,26 @@ test("a View without a row is reported", () => {
   ]);
 });
 
+test("a Setting that has to be served and that no row serves is reported", () => {
+  const rows = [
+    row("color-mode", "appearance", ["appearance.colorMode"]),
+    row("version", "language"),
+  ];
+  expect(auditSettingsRows(rows, views, ["appearance.colorMode", "i18n.language"])).toEqual([
+    "Setting i18n.language is served by no Settings Row",
+  ]);
+});
+
 test("the real list of Settings Rows fits the Views of the settings area", () => {
   const store = createSettingsStore({
     adapters: { synced: createTestAdapter(), device: createTestAdapter() },
     onError: () => {},
   });
-  expect(auditSettingsRows(SETTINGS_ROWS, createSettingsArea({ store }).views)).toEqual([]);
+  expect(
+    auditSettingsRows(SETTINGS_ROWS, createSettingsArea({ store }).views, [
+      APP_LANGUAGE_SETTING.key,
+    ]),
+  ).toEqual([]);
 });
 
 test("the settings area is the contribution `settings` and opens on Appearance", () => {

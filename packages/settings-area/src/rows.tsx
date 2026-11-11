@@ -2,9 +2,10 @@
 // the startup bundle.
 
 import { msg } from "@lingui/core/macro";
+import { LANGUAGE_TAGS, LANGUAGES } from "@self-engine/i18n";
 import { FONT_SCALES } from "@self-engine/theme";
 import type { SettingsRow } from "./row.ts";
-import { APPEARANCE_SETTINGS } from "./settings.ts";
+import { APP_LANGUAGE_SETTING, APPEARANCE_SETTINGS, SYSTEM_LANGUAGE } from "./settings.ts";
 import { choiceRow, stopsRow, switchRow } from "./standard-rows.tsx";
 import { VIEW_IDS } from "./views.ts";
 
@@ -54,4 +55,26 @@ const APPEARANCE_ROWS: readonly SettingsRow[] = [
   }),
 ];
 
-export const SETTINGS_ROWS: readonly SettingsRow[] = APPEARANCE_ROWS;
+/** Each language under its own name, which no catalog translates, in the order of those names. */
+const LANGUAGE_CHOICES = LANGUAGE_TAGS.map((tag) => ({ value: tag, label: LANGUAGES[tag].name }))
+  // Compared by code unit, so that the order is the same on every device.
+  .sort((a, b) => (a.label < b.label ? -1 : 1));
+
+const LANGUAGE_ROWS: readonly SettingsRow[] = [
+  // The row only writes the Setting. The app's watcher above the router loads the catalog and
+  // switches (D200).
+  choiceRow<string>({
+    id: "app-language",
+    view: VIEW_IDS.language,
+    title: msg`App Language`,
+    description: msg`The language the app is shown in. "System" follows the language of this device.`,
+    searchWords: [msg`Translation`, msg`German`, msg`English`],
+    setting: APP_LANGUAGE_SETTING,
+    choices: [
+      { value: SYSTEM_LANGUAGE, label: msg({ message: "System", context: "App Language" }) },
+      ...LANGUAGE_CHOICES,
+    ],
+  }),
+];
+
+export const SETTINGS_ROWS: readonly SettingsRow[] = [...APPEARANCE_ROWS, ...LANGUAGE_ROWS];

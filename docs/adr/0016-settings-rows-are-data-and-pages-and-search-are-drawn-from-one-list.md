@@ -24,7 +24,7 @@ The settings area has to show every Setting on the page of a View and let a sear
 
 6. **The declarations of the Settings the area owns live in a second entry without interface code,** `@self-engine/settings-area/settings`, because the app reads them before the first render. Every other owner keeps declaring its own Settings (ADR 0010).
 
-7. **A unit test audits the real list against the contribution's Views:** every row id is unique, every row belongs to a View the contribution has, and every View has at least one row. A View therefore arrives with its first row.
+7. **A unit test audits the real list against the contribution's Views:** every row id is unique, every row belongs to a View the contribution has, and every View has at least one row. A View therefore arrives with its first row. A row also names the keys of the Settings it serves, and the test fails when a Setting the area has to show is served by no row.
 
 ## Consequences
 

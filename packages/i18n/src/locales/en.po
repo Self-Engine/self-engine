@@ -7,14 +7,6 @@ msgstr ""
 "X-Generator: @lingui/cli\n"
 "Language: en\n"
 
-#: apps/web/src/language-sample.tsx
-msgid "{count, plural, one {# entry} other {# entries}}"
-msgstr "{count, plural, one {# entry} other {# entries}}"
-
-#: apps/web/src/language-sample.tsx
-msgid "Add an entry"
-msgstr "Add an entry"
-
 #: packages/placeholder-alpha/src/index.ts
 msgid "Add sample entry"
 msgstr "Add sample entry"
@@ -22,6 +14,10 @@ msgstr "Add sample entry"
 #: packages/placeholder-alpha/src/groups.tsx
 msgid "All clients"
 msgstr "All clients"
+
+#: packages/settings-area/src/rows.tsx
+msgid "App Language"
+msgstr "App Language"
 
 #: packages/settings-area/src/index.ts
 msgid "Appearance"
@@ -126,6 +122,10 @@ msgstr "Discard"
 msgid "Discard changes?"
 msgstr "Discard changes?"
 
+#: packages/settings-area/src/rows.tsx
+msgid "English"
+msgstr "English"
+
 #: packages/placeholder-alpha/src/entries.tsx
 msgid "Entries you create appear here."
 msgstr "Entries you create appear here."
@@ -158,9 +158,9 @@ msgstr "Garden"
 msgid "Garden work"
 msgstr "Garden work"
 
-#: apps/web/src/language-sample.tsx
-msgid "Hello {name}, nice to see you."
-msgstr "Hello {name}, nice to see you."
+#: packages/settings-area/src/rows.tsx
+msgid "German"
+msgstr "German"
 
 #: packages/settings-area/src/rows.tsx
 msgid "How tightly lists and controls are laid out. The size of the text stays the same."
@@ -170,9 +170,9 @@ msgstr "How tightly lists and controls are laid out. The size of the text stays 
 msgid "Keep editing"
 msgstr "Keep editing"
 
-#: apps/web/src/modules.ts
-msgid "Language sample"
-msgstr "Language sample"
+#: packages/settings-area/src/index.ts
+msgid "Language"
+msgstr "Language"
 
 #: packages/settings-area/src/rows.tsx
 msgctxt "Color Mode"
@@ -295,6 +295,11 @@ msgid "Studio work"
 msgstr "Studio work"
 
 #: packages/settings-area/src/rows.tsx
+msgctxt "App Language"
+msgid "System"
+msgstr "System"
+
+#: packages/settings-area/src/rows.tsx
 msgctxt "Color Mode"
 msgid "System"
 msgstr "System"
@@ -311,9 +316,13 @@ msgstr "That could not be undone."
 msgid "The action could not be completed. Please try again."
 msgstr "The action could not be completed. Please try again."
 
-#: apps/web/src/language-sample.tsx
-msgid "The language could not be loaded. Please try again."
-msgstr "The language could not be loaded. Please try again."
+#: apps/web/src/app-language.tsx
+msgid "The language could not be loaded. Your choice is kept for the next start."
+msgstr "The language could not be loaded. Your choice is kept for the next start."
+
+#: packages/settings-area/src/rows.tsx
+msgid "The language the app is shown in. \"System\" follows the language of this device."
+msgstr "The language the app is shown in. \"System\" follows the language of this device."
 
 #: packages/placeholder-beta/src/overview.tsx
 msgid "The minimal module View."
@@ -335,13 +344,13 @@ msgstr "This entry could not be loaded."
 msgid "This part could not be loaded."
 msgstr "This part could not be loaded."
 
-#: apps/web/src/language-sample.tsx
-msgid "This sentence is translated."
-msgstr "This sentence is translated."
-
 #: apps/web/src/route-states.tsx
 msgid "This View could not be loaded. Please try again."
 msgstr "This View could not be loaded. Please try again."
+
+#: packages/settings-area/src/rows.tsx
+msgid "Translation"
+msgstr "Translation"
 
 #: packages/ui/src/state-blocks.tsx
 msgid "Try again"
@@ -355,10 +364,6 @@ msgstr "Undo"
 #: packages/shell/src/edit-drawer-exits.tsx
 msgid "What you changed here will be lost."
 msgstr "What you changed here will be lost."
-
-#: apps/web/src/language-sample.tsx
-msgid "Your name"
-msgstr "Your name"
 
 #: packages/settings-area/src/rows.tsx
 msgid "Zoom"
