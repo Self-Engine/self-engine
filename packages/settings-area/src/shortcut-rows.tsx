@@ -4,20 +4,18 @@
 import type { MessageDescriptor } from "@lingui/core";
 import { msg } from "@lingui/core/macro";
 import {
+  type CommandOwner,
   commandRegister,
   PALETTE_SHORTCUT,
-  type ShellCommand,
   shellCommands,
   ShortcutHint,
 } from "@self-engine/shell";
 import type { SettingsRow } from "./row.ts";
 import { VIEW_IDS } from "./views.ts";
 
-/** A module as the list names it: what of a Shell Contribution the Shortcuts are read from. */
-export interface ShortcutOwner {
-  readonly id: string;
+/** A Command owner the list can name: its Shortcuts stand under that name. */
+export interface NamedCommandOwner extends CommandOwner {
   readonly name: MessageDescriptor;
-  readonly commands?: readonly ShellCommand[] | undefined;
 }
 
 /** What finds every Shortcut, besides the name of its Command. */
@@ -47,18 +45,18 @@ const shortcutRow = (
 
 /**
  * One row per Shortcut: ⌘K, which is not a Command, then every Command with a default shortcut,
- * the Shell's own as "General" before those of the modules. A Command without one is left out
+ * the Shell's own as "General" before those of the named owners. A Command without one is left out
  * until Shortcuts can be rebound (D75).
  */
-export function shortcutRows(modules: readonly ShortcutOwner[]): readonly SettingsRow[] {
+export function shortcutRows(commandOwners: readonly NamedCommandOwner[]): readonly SettingsRow[] {
   const general = msg({ message: "General", context: "Shortcuts that belong to no module" });
   const groups = new Map<string, MessageDescriptor>([
     [shellCommands.id, general],
-    ...modules.map(({ id, name }) => [id, name] as const),
+    ...commandOwners.map(({ id, name }) => [id, name] as const),
   ]);
   return [
     shortcutRow("command-palette", general, msg`Open the Command Palette`, PALETTE_SHORTCUT),
-    ...commandRegister([shellCommands, ...modules]).flatMap(({ fullId, moduleId, command }) => {
+    ...commandRegister([shellCommands, ...commandOwners]).flatMap(({ fullId, moduleId, command }) => {
       const group = groups.get(moduleId);
       if (command.kind === "input" || command.defaultShortcut === undefined || !group) return [];
       return [shortcutRow(fullId, group, command.label, command.defaultShortcut)];

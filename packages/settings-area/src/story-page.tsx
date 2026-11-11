@@ -6,7 +6,7 @@ import { SettingsPage } from "./area.tsx";
 import {
   createSettingsArea,
   type SettingsRow,
-  type ShortcutOwner,
+  type NamedCommandOwner,
   type VersionInfo,
 } from "./index.ts";
 import { settingsRows } from "./rows.tsx";
@@ -16,8 +16,8 @@ const STORY_VERSION: VersionInfo = { version: "0.0.1", operatingSystem: "macOS" 
 interface StoryPageOptions {
   readonly store: SettingsStore;
   readonly version?: VersionInfo;
-  /** The modules whose Shortcuts are listed; none unless the story brings some. */
-  readonly commandOwners?: readonly ShortcutOwner[];
+  /** The Command owners whose Shortcuts are listed; none unless the story brings some. */
+  readonly commandOwners?: readonly NamedCommandOwner[];
   /** Other rows than the real list. */
   readonly rows?: readonly SettingsRow[];
 }

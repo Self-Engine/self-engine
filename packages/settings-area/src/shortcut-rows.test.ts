@@ -1,13 +1,13 @@
 import type { MessageDescriptor } from "@lingui/core";
 import { expect, test } from "vite-plus/test";
 import { searchedRows, searchHits } from "./search.ts";
-import { type ShortcutOwner, shortcutRows } from "./shortcut-rows.tsx";
+import { type NamedCommandOwner, shortcutRows } from "./shortcut-rows.tsx";
 
 const text = (message: string): MessageDescriptor => ({ id: message, message });
 const english = (descriptor: MessageDescriptor) => descriptor.message!;
 const load = () => Promise.reject(new Error("The rows never load a Command"));
 
-const PROJECTS: ShortcutOwner = {
+const PROJECTS: NamedCommandOwner = {
   id: "projects",
   name: text("Projects"),
   commands: [
@@ -16,9 +16,9 @@ const PROJECTS: ShortcutOwner = {
     { id: "import", kind: "input", load },
   ],
 };
-const HABITS: ShortcutOwner = { id: "habits", name: text("Habits") };
+const HABITS: NamedCommandOwner = { id: "habits", name: text("Habits") };
 
-const shown = (owners: readonly ShortcutOwner[]) =>
+const shown = (owners: readonly NamedCommandOwner[]) =>
   shortcutRows(owners).map((row) => [english(row.group!), english(row.title)]);
 
 test("the general Shortcuts come first: the Command Palette's, then the Shell's Commands", () => {

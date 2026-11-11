@@ -28,6 +28,7 @@ export {
   type CommandBody,
   type CommandContext,
   type CommandKind,
+  type CommandOwner,
   type InputCommand,
   type OpenCommand,
   type PageCommand,

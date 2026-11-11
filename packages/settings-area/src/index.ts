@@ -6,12 +6,12 @@ import { msg } from "@lingui/core/macro";
 import { SettingsIcon } from "@self-engine/icons";
 import type { SettingsStore } from "@self-engine/settings";
 import type { ShellContribution, ShellView } from "@self-engine/shell";
-import type { ShortcutOwner } from "./shortcut-rows.tsx";
+import type { NamedCommandOwner } from "./shortcut-rows.tsx";
 import type { VersionInfo } from "./version.ts";
 import { SEARCH_PARAMETER, type SettingsViewId, VIEW_IDS } from "./views.ts";
 
 export type { SettingsRow, SettingsRowControlProps } from "./row.ts";
-export type { ShortcutOwner } from "./shortcut-rows.tsx";
+export type { NamedCommandOwner } from "./shortcut-rows.tsx";
 export type { VersionInfo } from "./version.ts";
 
 /** What the app hands to the settings area. A later View that needs more adds a field here. */
@@ -28,7 +28,7 @@ export interface SettingsAreaInputs {
    * lists; the Shell's own Commands are added by the area. Read when the settings are first
    * opened, so the list may hold the settings area itself.
    */
-  readonly commandOwners: () => readonly ShortcutOwner[];
+  readonly commandOwners: () => readonly NamedCommandOwner[];
 }
 
 /**
