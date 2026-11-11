@@ -259,13 +259,24 @@ describe("declared dependencies", () => {
 
   it("fail a devDependency imported by a source file", async () => {
     const tool = extraPackage("packages/tool");
+    const web = {
+      ...app("web", { "src/main.ts": 'import "@self-engine/tool";\n' }),
+      devDependencies: ["@self-engine/tool"],
+    };
+    expect(ruleNames(await cruise([tool, web]))).toEqual([
+      "declared-workspace-dependency:apps/web",
+    ]);
+  });
+
+  it("pass a devDependency imported by a source file of the desktop app, which bundles it", async () => {
+    // electron-builder ships `dependencies` as node_modules beside the bundles, so the desktop
+    // app declares there only what its bundles leave out, like the native SQLite module.
+    const tool = extraPackage("packages/tool");
     const desktop = {
       ...app("desktop", { "src/main.ts": 'import "@self-engine/tool";\n' }),
       devDependencies: ["@self-engine/tool"],
     };
-    expect(ruleNames(await cruise([tool, desktop]))).toEqual([
-      "declared-workspace-dependency:apps/desktop",
-    ]);
+    expect(await cruise([tool, desktop])).toEqual([]);
   });
 
   it("fail an npm package that only the workspace root provides", async () => {

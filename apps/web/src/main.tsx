@@ -6,6 +6,7 @@ import { FeedbackHost } from "@self-engine/ui";
 import { RouterProvider } from "@tanstack/react-router";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
+import { connectDesktopData, dataConnection } from "./desktop-data.ts";
 import { PreviewAppearance } from "./preview-appearance.tsx";
 import { PreviewLanguage } from "./preview-language.tsx";
 import { router } from "./router.ts";
@@ -13,6 +14,9 @@ import { settingsStore } from "./settings-store.ts";
 
 const container = document.getElementById("root");
 if (container === null) throw new Error("index.html has no #root element");
+
+// First, so the data process's port is on its way while the rest starts.
+if (window.desktopBridge) connectDesktopData(window, window.desktopBridge, dataConnection);
 
 // The first render needs the stored appearance; the Start Cache covers this wait.
 await settingsStore.load();

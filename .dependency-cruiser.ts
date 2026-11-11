@@ -54,6 +54,14 @@ const RENDERER = {
   pathNot: String.raw`^packages/data-client/.*\.test\.ts$`,
 };
 
+/**
+ * Apps whose source bundles the workspace packages it imports. electron-builder ships the
+ * desktop app's `dependencies` as node_modules beside its bundles, so it declares there only
+ * what the bundles leave out (the native SQLite module), and its workspace packages, like
+ * `electron` itself, as `devDependencies`.
+ */
+const BUNDLING_APPS = ["apps/desktop"];
+
 /** Test and story files may also import what `devDependencies` declares. */
 const DEV_ONLY_FILE = String.raw`\.(?:test|stories)\.[cm]?[jt]sx?$`;
 
@@ -105,7 +113,7 @@ function declaredWorkspaceRules(rootDir: string): IForbiddenRuleType[] {
     });
     const prefix = `^${alternatives([dir])}/`;
     return [
-      rule("", { path: prefix, pathNot: DEV_ONLY_FILE }, false),
+      rule("", { path: prefix, pathNot: DEV_ONLY_FILE }, BUNDLING_APPS.includes(dir)),
       rule(":dev-only", { path: `${prefix}.*${DEV_ONLY_FILE}` }, true),
     ];
   });

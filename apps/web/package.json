@@ -13,6 +13,7 @@
     "@lingui/react": "catalog:",
     "@mantine/core": "catalog:",
     "@mantine/hooks": "catalog:",
+    "@self-engine/data-client": "workspace:*",
     "@self-engine/i18n": "workspace:*",
     "@self-engine/icons": "workspace:*",
     "@self-engine/placeholder-alpha": "workspace:*",

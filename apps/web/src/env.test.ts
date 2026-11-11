@@ -1,9 +1,19 @@
 import { describe, expect, it } from "vite-plus/test";
-import { channelBadge, historyKind, reservesWindowButtons } from "./env.ts";
+import {
+  type DesktopBridge,
+  type DesktopChannel,
+  channelBadge,
+  historyKind,
+  reservesWindowButtons,
+} from "./env.ts";
+
+function bridge(platform: string, channel: DesktopChannel): DesktopBridge {
+  return { platform, channel, requestDataPort: () => {} };
+}
 
 describe("historyKind", () => {
   it("uses hash history in Electron, where the preload installs the bridge", () => {
-    expect(historyKind({ desktopBridge: { platform: "darwin", channel: "stable" } })).toBe("hash");
+    expect(historyKind({ desktopBridge: bridge("darwin", "stable") })).toBe("hash");
   });
 
   it("uses browser history on the web", () => {
@@ -17,7 +27,7 @@ describe("channelBadge", () => {
     ["nightly", "Nightly"],
     ["stable", undefined],
   ] as const)("marks %s as %s", (channel, badge) => {
-    expect(channelBadge({ desktopBridge: { platform: "darwin", channel } })).toBe(badge);
+    expect(channelBadge({ desktopBridge: bridge("darwin", channel) })).toBe(badge);
   });
 
   it("shows nothing on the web", () => {
@@ -27,15 +37,11 @@ describe("channelBadge", () => {
 
 describe("reservesWindowButtons", () => {
   it("keeps the strip free in the macOS desktop app", () => {
-    expect(
-      reservesWindowButtons({ desktopBridge: { platform: "darwin", channel: "stable" } }),
-    ).toBe(true);
+    expect(reservesWindowButtons({ desktopBridge: bridge("darwin", "stable") })).toBe(true);
   });
 
   it("wastes no room on the Windows desktop app", () => {
-    expect(reservesWindowButtons({ desktopBridge: { platform: "win32", channel: "stable" } })).toBe(
-      false,
-    );
+    expect(reservesWindowButtons({ desktopBridge: bridge("win32", "stable") })).toBe(false);
   });
 
   it("wastes no room on the web", () => {

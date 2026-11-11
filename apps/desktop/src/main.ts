@@ -1,7 +1,16 @@
 import path from "node:path";
-import { BrowserWindow, app, net, protocol } from "electron";
+import {
+  BrowserWindow,
+  MessageChannelMain,
+  app,
+  ipcMain,
+  net,
+  protocol,
+  utilityProcess,
+} from "electron";
 import { buildIdentity } from "./build-channel.ts";
 import { resolveDevServer, userDataPath } from "./channel.ts";
+import { databaseFile, servePortRequests, startDataProcessHost } from "./data-process-host.ts";
 import {
   contentSecurityPolicy,
   desktopUrl,
@@ -51,6 +60,20 @@ function registerProtocol(devServer: URL | undefined): void {
   });
 }
 
+// Starts beside the window, so the database opens while the page loads. The page asks for its
+// port, and gets it once the data process is serving.
+function startDataProcess(): void {
+  const host = startDataProcessHost({
+    databasePath: databaseFile(app.getPath("userData")),
+    startProcess: (args) =>
+      utilityProcess.fork(path.join(__dirname, "data-process.cjs"), args, {
+        serviceName: `${productName} Data`,
+      }),
+    createChannel: () => new MessageChannelMain(),
+  });
+  servePortRequests(ipcMain, host, scheme);
+}
+
 async function openWindow(): Promise<void> {
   const window = new BrowserWindow({
     // Large enough for the wide Layout Step. The minimum width is the page's width, not the
@@ -83,6 +106,7 @@ async function start(): Promise<void> {
   // `electron .` runs under Electron's own bundle, so the Dock needs telling.
   if (channel === "dev") app.dock?.setIcon(path.join(app.getAppPath(), icon));
   registerProtocol(devServer);
+  startDataProcess();
   await openWindow();
 }
 

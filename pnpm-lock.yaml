@@ -414,7 +414,20 @@ importers:
         version: 1.5.0(@types/node@24.19.2)(@vitest/browser-playwright@5.1.0)(@vitest/ui@5.1.0)(esbuild@0.28.2)(jiti@2.7.0)(playwright@1.65.0)(typescript@7.0.2)
 
   apps/desktop:
+    dependencies:
+      better-sqlite3:
+        specifier: 'catalog:'
+        version: 13.0.3
     devDependencies:
+      '@self-engine/data-client':
+        specifier: workspace:*
+        version: link:../../packages/data-client
+      '@self-engine/data-process':
+        specifier: workspace:*
+        version: link:../../packages/data-process
+      '@self-engine/db':
+        specifier: workspace:*
+        version: link:../../packages/db
       '@types/node':
         specifier: 24.19.2
         version: 24.19.2
@@ -442,6 +455,9 @@ importers:
       '@mantine/hooks':
         specifier: 'catalog:'
         version: 9.7.5(react@19.3.1)
+      '@self-engine/data-client':
+        specifier: workspace:*
+        version: link:../../packages/data-client
       '@self-engine/i18n':
         specifier: workspace:*
         version: link:../../packages/i18n

@@ -1,10 +1,18 @@
 /** The release channels; `Channel` in apps/desktop/src/channel.ts is the source. */
 export type DesktopChannel = "dev" | "nightly" | "stable";
 
+/** What the Electron preload (apps/desktop/src/preload.ts) installs on the page's window. */
+export interface DesktopBridge {
+  readonly platform: string;
+  readonly channel: DesktopChannel;
+  /** Asks for a port to the data process; it arrives as a window message (desktop-data.ts). */
+  requestDataPort(): void;
+}
+
 declare global {
   interface Window {
     /** Installed by the Electron preload (apps/desktop/src/preload.ts); absent on the web. */
-    readonly desktopBridge?: { readonly platform: string; readonly channel: DesktopChannel };
+    readonly desktopBridge?: DesktopBridge;
   }
 }
 

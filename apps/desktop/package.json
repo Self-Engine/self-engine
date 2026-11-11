@@ -10,7 +10,13 @@
   "scripts": {
     "build": "vp pack"
   },
+  "dependencies": {
+    "better-sqlite3": "catalog:"
+  },
   "devDependencies": {
+    "@self-engine/data-client": "workspace:*",
+    "@self-engine/data-process": "workspace:*",
+    "@self-engine/db": "workspace:*",
     "@types/node": "catalog:",
     "electron": "catalog:",
     "electron-builder": "catalog:",
