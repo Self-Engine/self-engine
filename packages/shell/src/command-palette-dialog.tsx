@@ -96,9 +96,13 @@ export function CommandPaletteDialog(props: CommandScope) {
   const palette = useCommandPalette();
   const opened = useCommandPaletteOpen();
   const [[store, actions]] = useState(createSpotlight);
-  // Mounted closed first and opened from here, so that the first opening also animates.
+  // Mounted closed first and opened a frame later, so that the first opening also animates:
+  // Mantine's portal attaches only after its own first render, and a Transition that first
+  // appears already opened skips straight to the end.
   useEffect(() => {
-    if (opened) actions.open();
+    if (!opened) return;
+    const frame = requestAnimationFrame(() => actions.open());
+    return () => cancelAnimationFrame(frame);
   }, [opened, actions]);
   return (
     <Spotlight.Root

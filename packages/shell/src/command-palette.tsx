@@ -3,6 +3,7 @@ import { type ComponentType, useEffect, useState } from "react";
 import { useCommandPalette, useCommandPaletteOpen } from "./command-palette-state.tsx";
 import type { CommandScope } from "./palette-entries.ts";
 import { reportFailedStart } from "./start-command.tsx";
+import { WarmUp } from "./warm-up.tsx";
 
 /** Loads the dialog at the first opening, and from then on it stays mounted and closed. */
 export function CommandPalette(props: CommandScope) {
@@ -20,5 +21,12 @@ export function CommandPalette(props: CommandScope) {
       },
     );
   }, [opened, Dialog, i18n, palette]);
-  return Dialog ? <Dialog {...props} /> : null;
+  return (
+    <>
+      <WarmUp preload={PRELOAD} />
+      {Dialog ? <Dialog {...props} /> : null}
+    </>
+  );
 }
+
+const PRELOAD = [() => import("./command-palette-dialog.tsx")];
