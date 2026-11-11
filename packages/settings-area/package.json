@@ -6,6 +6,7 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
+    "./audit": "./src/audit.ts",
     "./settings": "./src/settings.ts"
   },
   "dependencies": {

@@ -3,9 +3,9 @@ import { createTestAdapter } from "@self-engine/settings/testing";
 import { ACCENT_IDS, BUILT_IN_THEMES } from "@self-engine/theme";
 import { expect, test } from "vite-plus/test";
 import { auditSettingsRows } from "./audit-rows.ts";
+import { auditSettingsArea } from "./audit.ts";
 import { createSettingsArea } from "./index.ts";
 import { settingsRows } from "./rows.tsx";
-import { APP_LANGUAGE_SETTING, APPEARANCE_SETTINGS } from "./settings.ts";
 import { accentRow } from "./theme-rows.tsx";
 import { type VersionInfo, versionLine } from "./version.ts";
 
@@ -76,12 +76,16 @@ test.each([
   ["on the web", WEB],
 ])("the real list of Settings Rows fits the Views of the settings area %s", (_where, version) => {
   const area = createSettingsArea({ ...inputs(), version: () => version });
-  expect(
-    auditSettingsRows(settingsRows({ version, commandOwners: [] }), area.views, [
-      ...Object.values(APPEARANCE_SETTINGS).map((setting) => setting.key),
-      APP_LANGUAGE_SETTING.key,
+  expect(auditSettingsArea(area.views, { version, commandOwners: [] })).toEqual([]);
+});
+
+test("the audit of the area reports a Setting the area has to show and that no View can serve", () => {
+  expect(auditSettingsArea([{ id: "about" }], { version: WEB, commandOwners: [] })).toEqual(
+    expect.arrayContaining([
+      "Settings Row color-mode belongs to the unknown View appearance",
+      "Settings Row app-language belongs to the unknown View language",
     ]),
-  ).toEqual([]);
+  );
 });
 
 test("the settings area is the contribution `settings` and opens on Appearance", () => {
