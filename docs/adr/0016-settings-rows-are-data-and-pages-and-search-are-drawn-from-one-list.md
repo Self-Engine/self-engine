@@ -14,7 +14,7 @@ The settings area has to show every Setting on the page of a View and let a sear
 
 1. **Every visible line of the settings area is one Settings Row in one list.** A row has an id, the View it belongs to, a title, an optional description, search words, the names of its values, and a control. Titles, descriptions, search words and value names are message descriptors, translated when shown, so they follow a change of the App Language.
 
-2. **The page of a View draws its rows from that list, in order, and the search filters the same list.** Nothing about a row is declared a second time.
+2. **The page of a View draws its rows from that list, in order, and the search filters the same list.** Nothing about a row is declared a second time. The Views share one page, which is told the View on screen and builds the list once, so a change of View during a search leaves the hits where they are.
 
 3. **A row is not a Setting.** It may serve one Setting, several or none, and a Setting may have no row. The row follows what the user sees, not how a value is stored.
 

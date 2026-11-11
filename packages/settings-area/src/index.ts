@@ -36,31 +36,26 @@ export interface SettingsAreaInputs {
  * no Commands and no main action, and its type says so.
  */
 export function createSettingsArea({ store, version, commandOwners }: SettingsAreaInputs) {
-  const view = (id: SettingsViewId, title: MessageDescriptor): ShellView => {
-    // Remembered, because the router loads a View again on every visit and a new component
-    // would throw away the state of the page.
-    let page: ReturnType<ShellView["load"]> | undefined;
-    return {
-      id,
-      title,
-      load: () =>
-        (page ??= import("./area.tsx").then(
-          (area) => ({
-            default: area.viewPage(id, {
-              store,
-              version: version(),
-              commandOwners: commandOwners(),
-              views,
-            }),
-          }),
-          (error: unknown) => {
-            // Forgotten, so that the next visit tries the load again.
-            page = undefined;
-            throw error;
-          },
-        )),
-    };
-  };
+  // One page for every View (ADR 0016), remembered: the router loads a View again on every visit,
+  // and a new component would throw away the state of the page and draw every row anew.
+  let page: ReturnType<ShellView["load"]> | undefined;
+  const load: ShellView["load"] = () =>
+    (page ??= import("./area.tsx").then(
+      (area) => ({
+        default: area.settingsPage({
+          store,
+          version: version(),
+          commandOwners: commandOwners(),
+          views,
+        }),
+      }),
+      (error: unknown) => {
+        // Forgotten, so that the next visit tries the load again.
+        page = undefined;
+        throw error;
+      },
+    ));
+  const view = (id: SettingsViewId, title: MessageDescriptor): ShellView => ({ id, title, load });
   const views: readonly [ShellView, ...ShellView[]] = [
     view(VIEW_IDS.appearance, msg`Appearance`),
     view(VIEW_IDS.language, msg`Language`),

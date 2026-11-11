@@ -14,6 +14,7 @@ export {
   defineContribution,
   type ShellContribution,
   type ShellView,
+  type ViewPageProps,
   type EditDrawerProps,
 } from "./contributions.ts";
 

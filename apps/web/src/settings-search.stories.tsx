@@ -108,6 +108,22 @@ export const TheSearchTextStaysWhenTheViewChanges: Story = {
   },
 };
 
+/** The Views share one page, so a hit is the same element after the change and keeps its state. */
+export const ChangingTheViewDuringASearchKeepsTheHits: Story = {
+  play: async ({ canvas }) => {
+    await userEvent.type(await field(canvas), "compact");
+    await addressHas("compact");
+    const density = (await hitsOf(canvas, "Appearance")).getByRole("radiogroup", {
+      name: "Density",
+    });
+
+    await userEvent.click(canvas.getByRole("link", { name: "Language" }));
+    await expectViewOfTheAddress(canvas, "Language");
+    await expect(location().pathname).toBe(LANGUAGE);
+    await expect(density).toBeVisible();
+  },
+};
+
 export const ClearingTheFieldShowsTheViewOfTheAddress: Story = {
   args: { address: `${LANGUAGE}?q=compact` },
   play: async ({ canvas }) => {

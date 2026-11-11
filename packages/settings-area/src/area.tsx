@@ -6,7 +6,12 @@ import { useLingui } from "@lingui/react/macro";
 import { CloseButton, Divider, Group, Stack, Text, TextInput, Title } from "@mantine/core";
 import { SearchIcon } from "@self-engine/icons";
 import type { SettingsStore } from "@self-engine/settings";
-import { useViewSearch, useWriteViewSearch, type ViewSearch } from "@self-engine/shell";
+import {
+  useViewSearch,
+  useWriteViewSearch,
+  type ViewPageProps,
+  type ViewSearch,
+} from "@self-engine/shell";
 import { EmptyState } from "@self-engine/ui";
 import {
   type ComponentType,
@@ -267,20 +272,20 @@ function useSearchInAddress(): readonly [string, (text: string) => void] {
   return [text, search];
 }
 
-/** The page of one View at its address. */
-export function viewPage(
-  view: string,
-  {
-    store,
-    views,
-    ...sources
-  }: SettingsRowSources & {
-    readonly store: SettingsStore;
-    readonly views: readonly TitledView[];
-  },
-): ComponentType {
+/**
+ * The one page of the area, which every View shows at its address: the list of rows is built once,
+ * and a change of View during a search leaves the hits as they are.
+ */
+export function settingsPage({
+  store,
+  views,
+  ...sources
+}: SettingsRowSources & {
+  readonly store: SettingsStore;
+  readonly views: readonly TitledView[];
+}): ComponentType<ViewPageProps> {
   const rows = settingsRows(sources);
-  return function SettingsViewPage() {
+  return function SettingsViewPage({ viewId }) {
     const [search, onSearch] = useSearchInAddress();
     return (
       <SettingsPage
@@ -288,7 +293,7 @@ export function viewPage(
         rows={rows}
         search={search}
         store={store}
-        view={view}
+        view={viewId}
         views={views}
       />
     );
