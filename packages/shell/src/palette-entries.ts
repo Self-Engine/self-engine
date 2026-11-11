@@ -1,6 +1,7 @@
 import type { MessageDescriptor } from "@lingui/core";
 import { type CommandOwner, isPageCommandElsewhere, type PersonCommand } from "./commands.ts";
 import { viewPath } from "./contributions.ts";
+import { wordMatch } from "./word-match.ts";
 
 const MOST_ROWS = 8;
 
@@ -91,20 +92,6 @@ export function paletteEntries(
   });
 }
 
-const WORD_CHARACTER = /[\p{L}\p{N}]/u;
-
-const WORD_START = 0;
-const INSIDE_A_WORD = 1;
-
-function matchOf(searched: string, query: string) {
-  let at = searched.indexOf(query);
-  if (at === -1) return undefined;
-  for (; at !== -1; at = searched.indexOf(query, at + 1)) {
-    if (at === 0 || !WORD_CHARACTER.test(searched[at - 1]!)) return WORD_START;
-  }
-  return INSIDE_A_WORD;
-}
-
 function whenEmpty(entries: readonly PaletteEntry[], activeModuleId: string | undefined) {
   const active = (entry: PaletteEntry) => entry.moduleId === activeModuleId;
   return [
@@ -124,7 +111,7 @@ function whenSearching(
   const inOtherModule = (entry: PaletteEntry) => (entry.moduleId === activeModuleId ? 0 : 1);
   return entries
     .flatMap((entry) => {
-      const match = matchOf(entry.searched, query);
+      const match = wordMatch(entry.searched, query);
       return match === undefined ? [] : [{ entry, match }];
     })
     .toSorted((a, b) => a.match - b.match || inOtherModule(a.entry) - inOtherModule(b.entry))

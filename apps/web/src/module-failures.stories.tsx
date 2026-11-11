@@ -278,7 +278,7 @@ export const SlowActionDoesNotInterruptALeavingNavigation: Story = {
   },
 };
 
-const BetaStandIn: ComponentType = () => <p>Beta stand-in</p>;
+const BetaStandIn = () => <p>Beta stand-in</p>;
 let heldBeta: ReturnType<typeof held<Awaited<ReturnType<ShellView["load"]>>>>;
 
 export const LinksFollowTheVisiblePageDuringASlowNavigation: Story = {

@@ -8,6 +8,8 @@ import {
   parseChannel,
   resolveDevServer,
   userDataPath,
+  versionArgument,
+  versionFromArguments,
 } from "./channel.ts";
 
 describe("channelIdentity", () => {
@@ -134,5 +136,25 @@ describe("resolveDevServer", () => {
   it.each(["nightly", "stable"] as const)("makes %s ignore the variable", (channel) => {
     expect(resolveDevServer(channel, "http://127.0.0.1:5733/")).toBeUndefined();
     expect(resolveDevServer(channel, undefined)).toBeUndefined();
+  });
+});
+
+describe("the app's version on the way to the preload", () => {
+  it("reaches the preload among the arguments the main process adds", () => {
+    const argv = ["/app/electron", "--type=renderer", versionArgument("0.4.0"), "--enable-sandbox"];
+    expect(versionFromArguments(argv)).toBe("0.4.0");
+  });
+
+  it("carries a nightly's exact version unchanged", () => {
+    const nightly = "0.4.0-nightly.20261112.3+e9fbf50";
+    expect(versionFromArguments([versionArgument(nightly)])).toBe(nightly);
+  });
+
+  it("is absent when the main process added none, so the rest of the bridge still arrives", () => {
+    expect(versionFromArguments(["/app/electron", "--type=renderer"])).toBeUndefined();
+  });
+
+  it("is absent when the main process had no version to add, not an empty text", () => {
+    expect(versionFromArguments([versionArgument("")])).toBeUndefined();
   });
 });

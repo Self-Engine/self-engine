@@ -8,6 +8,7 @@ import { FoldersIcon } from "@phosphor-icons/react/dist/csr/Folders";
 import { GearIcon } from "@phosphor-icons/react/dist/csr/Gear";
 import { ListChecksIcon } from "@phosphor-icons/react/dist/csr/ListChecks";
 import { MagnifyingGlassIcon } from "@phosphor-icons/react/dist/csr/MagnifyingGlass";
+import { PaletteIcon } from "@phosphor-icons/react/dist/csr/Palette";
 import { PaperPlaneRightIcon } from "@phosphor-icons/react/dist/csr/PaperPlaneRight";
 import { PlusIcon } from "@phosphor-icons/react/dist/csr/Plus";
 import { SidebarSimpleIcon } from "@phosphor-icons/react/dist/csr/SidebarSimple";
@@ -30,5 +31,6 @@ export const SendIcon = catalogIcon(PaperPlaneRightIcon);
 export const AssistantIcon = catalogIcon(SparkleIcon);
 export const SidePanelIcon = catalogIcon(SidebarSimpleIcon);
 export const ErrorIcon = catalogIcon(WarningCircleIcon);
+export const ThemeColorsIcon = catalogIcon(PaletteIcon);
 
 export type { IconProps } from "./catalog-icon.ts";

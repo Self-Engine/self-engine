@@ -7,13 +7,13 @@ msgstr ""
 "X-Generator: @lingui/cli\n"
 "Language: en\n"
 
-#: apps/web/src/language-sample.tsx
-msgid "{count, plural, one {# entry} other {# entries}}"
-msgstr "{count, plural, one {# entry} other {# entries}}"
+#: packages/settings-area/src/index.ts
+msgid "About"
+msgstr "About"
 
-#: apps/web/src/language-sample.tsx
-msgid "Add an entry"
-msgstr "Add an entry"
+#: packages/settings-area/src/theme-rows.tsx
+msgid "Accent"
+msgstr "Accent"
 
 #: packages/placeholder-alpha/src/index.ts
 msgid "Add sample entry"
@@ -23,19 +23,52 @@ msgstr "Add sample entry"
 msgid "All clients"
 msgstr "All clients"
 
+#: packages/settings-area/src/rows.tsx
+msgid "App Language"
+msgstr "App Language"
+
+#: packages/settings-area/src/index.ts
+msgid "Appearance"
+msgstr "Appearance"
+
 #: packages/placeholder-alpha/src/index.ts
 msgctxt "View title"
 msgid "Archive"
 msgstr "Archive"
+
+#: packages/settings-area/src/rows.tsx
+msgid "Background Tint"
+msgstr "Background Tint"
+
+#: packages/settings-area/src/theme-rows.tsx
+msgctxt "Accent"
+msgid "Blue"
+msgstr "Blue"
+
+#: packages/settings-area/src/about-rows.tsx
+msgid "Build"
+msgstr "Build"
 
 #: packages/placeholder-alpha/src/edit-drawer.tsx
 #: packages/ui/src/feedback.tsx
 msgid "Cancel"
 msgstr "Cancel"
 
+#: packages/settings-area/src/about-rows.tsx
+msgid "Channel"
+msgstr "Channel"
+
+#: packages/settings-area/src/area.tsx
+msgid "Clear search"
+msgstr "Clear search"
+
 #: packages/placeholder-alpha/src/groups.tsx
 msgid "Clients"
 msgstr "Clients"
+
+#: packages/settings-area/src/about-rows.tsx
+msgid "Clipboard"
+msgstr "Clipboard"
 
 #: packages/placeholder-alpha/src/edit-drawer.tsx
 msgctxt "Close the drawer"
@@ -62,9 +95,67 @@ msgstr "Close notice"
 msgid "Collapse module sidebar"
 msgstr "Collapse module sidebar"
 
+#: packages/settings-area/src/theme-rows.tsx
+msgid "Color"
+msgstr "Color"
+
+#: packages/settings-area/src/rows.tsx
+msgid "Color Mode"
+msgstr "Color Mode"
+
+#: packages/settings-area/src/theme-rows.tsx
+msgid "Color scheme"
+msgstr "Color scheme"
+
+#: packages/settings-area/src/rows.tsx
+msgid "Color the app's outermost background slightly with the Accent."
+msgstr "Color the app's outermost background slightly with the Accent."
+
+#: packages/settings-area/src/theme-rows.tsx
+msgid "Colors"
+msgstr "Colors"
+
+#: packages/settings-area/src/rows.tsx
+msgctxt "Density"
+msgid "Comfortable"
+msgstr "Comfortable"
+
 #: packages/shell/src/command-palette-dialog.tsx
 msgid "Command palette"
 msgstr "Command palette"
+
+#: packages/settings-area/src/rows.tsx
+msgctxt "Density"
+msgid "Compact"
+msgstr "Compact"
+
+#: packages/settings-area/src/theme-rows.tsx
+msgctxt "Theme"
+msgid "Cool"
+msgstr "Cool"
+
+#: packages/settings-area/src/about-rows.tsx
+msgctxt "Confirms that the version information is on the clipboard"
+msgid "Copied"
+msgstr "Copied"
+
+#: packages/settings-area/src/about-rows.tsx
+msgctxt "Button that copies the version information"
+msgid "Copy"
+msgstr "Copy"
+
+#: packages/settings-area/src/rows.tsx
+msgctxt "Color Mode"
+msgid "Dark"
+msgstr "Dark"
+
+#: packages/settings-area/src/rows.tsx
+msgid "Dark mode"
+msgstr "Dark mode"
+
+#: packages/settings-area/src/theme-rows.tsx
+msgid "Dark Theme"
+msgstr "Dark Theme"
 
 #: packages/placeholder-alpha/src/edit-drawer.tsx
 #: packages/placeholder-alpha/src/entries.tsx
@@ -78,6 +169,15 @@ msgstr "Delete {name}"
 #: packages/placeholder-alpha/src/delete-with-undo.tsx
 msgid "Deleted"
 msgstr "Deleted"
+
+#: packages/settings-area/src/rows.tsx
+msgid "Density"
+msgstr "Density"
+
+#: packages/settings-area/src/about-rows.tsx
+msgctxt "Channel"
+msgid "Dev"
+msgstr "Dev"
 
 #: packages/shell/src/edit-drawer-exits.tsx
 msgid "Discard"
@@ -103,6 +203,18 @@ msgstr "Expand module sidebar"
 msgid "Flaky work"
 msgstr "Flaky work"
 
+#: packages/settings-area/src/rows.tsx
+msgid "Font scale"
+msgstr "Font scale"
+
+#: packages/settings-area/src/rows.tsx
+msgid "Font size"
+msgstr "Font size"
+
+#: packages/settings-area/src/theme-rows.tsx
+msgid "From Theme"
+msgstr "From Theme"
+
 #: packages/placeholder-alpha/src/sample-data.ts
 msgid "Garden"
 msgstr "Garden"
@@ -111,17 +223,61 @@ msgstr "Garden"
 msgid "Garden work"
 msgstr "Garden work"
 
-#: apps/web/src/language-sample.tsx
-msgid "Hello {name}, nice to see you."
-msgstr "Hello {name}, nice to see you."
+#: packages/settings-area/src/shortcut-rows.tsx
+msgctxt "Shortcuts that belong to no module"
+msgid "General"
+msgstr "General"
+
+#: packages/settings-area/src/theme-rows.tsx
+msgctxt "Accent"
+msgid "Grape"
+msgstr "Grape"
+
+#: packages/settings-area/src/theme-rows.tsx
+msgid "Highlight color"
+msgstr "Highlight color"
+
+#: packages/settings-area/src/rows.tsx
+msgid "How tightly lists and controls are laid out. The size of the text stays the same."
+msgstr "How tightly lists and controls are laid out. The size of the text stays the same."
+
+#: packages/settings-area/src/theme-rows.tsx
+msgctxt "Accent"
+msgid "Indigo"
+msgstr "Indigo"
 
 #: packages/shell/src/edit-drawer-exits.tsx
 msgid "Keep editing"
 msgstr "Keep editing"
 
-#: apps/web/src/modules.ts
-msgid "Language sample"
-msgstr "Language sample"
+#: packages/settings-area/src/shortcut-rows.tsx
+msgid "Key combination"
+msgstr "Key combination"
+
+#: packages/settings-area/src/shortcut-rows.tsx
+msgid "Keyboard"
+msgstr "Keyboard"
+
+#: packages/settings-area/src/index.ts
+msgid "Language"
+msgstr "Language"
+
+#: packages/settings-area/src/about-rows.tsx
+msgid "License"
+msgstr "License"
+
+#: packages/settings-area/src/rows.tsx
+msgctxt "Color Mode"
+msgid "Light"
+msgstr "Light"
+
+#: packages/settings-area/src/rows.tsx
+msgid "Light mode"
+msgstr "Light mode"
+
+#: packages/settings-area/src/theme-rows.tsx
+msgid "Light Theme"
+msgstr "Light Theme"
 
 #: packages/ui/src/state-blocks.tsx
 msgid "Loading"
@@ -139,15 +295,37 @@ msgstr "Modules"
 msgid "Name"
 msgstr "Name"
 
+#: packages/settings-area/src/theme-rows.tsx
+msgctxt "Theme"
+msgid "Neutral"
+msgstr "Neutral"
+
+#: packages/settings-area/src/rows.tsx
+msgid "Neutral background"
+msgstr "Neutral background"
+
 #: packages/placeholder-alpha/src/edit-drawer.tsx
 #: packages/placeholder-alpha/src/entries.tsx
 #: packages/placeholder-alpha/src/index.ts
 msgid "New entry"
 msgstr "New entry"
 
+#: packages/settings-area/src/rows.tsx
+msgid "Night"
+msgstr "Night"
+
+#: packages/settings-area/src/about-rows.tsx
+msgctxt "Channel"
+msgid "Nightly"
+msgstr "Nightly"
+
 #: packages/placeholder-alpha/src/entries.tsx
 msgid "No entries here"
 msgstr "No entries here"
+
+#: packages/settings-area/src/area.tsx
+msgid "No settings found"
+msgstr "No settings found"
 
 #: packages/shell/src/command-palette-dialog.tsx
 msgid "Nothing found"
@@ -165,6 +343,23 @@ msgstr "Open module sidebar"
 msgid "Open navigation"
 msgstr "Open navigation"
 
+#: packages/settings-area/src/about-rows.tsx
+msgid "Open source"
+msgstr "Open source"
+
+#: packages/settings-area/src/shortcut-rows.tsx
+msgid "Open the Command Palette"
+msgstr "Open the Command Palette"
+
+#: packages/settings-area/src/about-rows.tsx
+msgid "Operating system"
+msgstr "Operating system"
+
+#: packages/settings-area/src/theme-rows.tsx
+msgctxt "Accent"
+msgid "Orange"
+msgstr "Orange"
+
 #: packages/placeholder-alpha/src/index.ts
 #: packages/placeholder-beta/src/index.ts
 msgid "Overview"
@@ -178,6 +373,18 @@ msgstr "Placeholder Alpha"
 msgid "Placeholder Beta"
 msgstr "Placeholder Beta"
 
+#: packages/settings-area/src/about-rows.tsx
+msgid "Platform"
+msgstr "Platform"
+
+#: packages/settings-area/src/about-rows.tsx
+msgid "Release"
+msgstr "Release"
+
+#: packages/settings-area/src/about-rows.tsx
+msgid "Report a problem"
+msgstr "Report a problem"
+
 #: packages/shell/src/shell.tsx
 msgid "Resize module sidebar"
 msgstr "Resize module sidebar"
@@ -185,6 +392,14 @@ msgstr "Resize module sidebar"
 #: packages/shell/src/shell.tsx
 msgid "Resize navbar"
 msgstr "Resize navbar"
+
+#: packages/settings-area/src/about-rows.tsx
+msgid "Rights"
+msgstr "Rights"
+
+#: packages/settings-area/src/rows.tsx
+msgid "Row height"
+msgstr "Row height"
 
 #: packages/placeholder-alpha/src/edit-drawer.tsx
 msgid "Save"
@@ -198,13 +413,42 @@ msgstr "Search"
 msgid "Search commands and views"
 msgstr "Search commands and views"
 
+#: packages/settings-area/src/area.tsx
+msgid "Search settings"
+msgstr "Search settings"
+
 #: packages/shell/src/command-palette-dialog.tsx
 msgid "Search…"
 msgstr "Search…"
 
-#: apps/web/src/modules.ts
+#: packages/settings-area/src/about-rows.tsx
+msgid "Self-Engine is free software under the GNU Affero General Public License, version 3."
+msgstr "Self-Engine is free software under the GNU Affero General Public License, version 3."
+
+#: packages/settings-area/src/index.ts
 msgid "Settings"
 msgstr "Settings"
+
+#: packages/settings-area/src/shortcut-rows.tsx
+msgid "Shortcut"
+msgstr "Shortcut"
+
+#: packages/settings-area/src/index.ts
+msgid "Shortcuts"
+msgstr "Shortcuts"
+
+#: packages/settings-area/src/rows.tsx
+msgid "Show the app light or dark, or follow the system."
+msgstr "Show the app light or dark, or follow the system."
+
+#: packages/settings-area/src/rows.tsx
+msgid "Spacing"
+msgstr "Spacing"
+
+#: packages/settings-area/src/about-rows.tsx
+msgctxt "Channel"
+msgid "Stable"
+msgstr "Stable"
 
 #: packages/placeholder-alpha/src/sample-data.ts
 msgid "Studio"
@@ -214,6 +458,25 @@ msgstr "Studio"
 msgid "Studio work"
 msgstr "Studio work"
 
+#: packages/settings-area/src/rows.tsx
+msgctxt "App Language"
+msgid "System"
+msgstr "System"
+
+#: packages/settings-area/src/rows.tsx
+msgctxt "Color Mode"
+msgid "System"
+msgstr "System"
+
+#: packages/settings-area/src/theme-rows.tsx
+msgctxt "Accent"
+msgid "Teal"
+msgstr "Teal"
+
+#: packages/settings-area/src/rows.tsx
+msgid "Text size"
+msgstr "Text size"
+
 #: packages/ui/src/feedback.tsx
 msgid "That could not be undone."
 msgstr "That could not be undone."
@@ -222,17 +485,45 @@ msgstr "That could not be undone."
 msgid "The action could not be completed. Please try again."
 msgstr "The action could not be completed. Please try again."
 
-#: apps/web/src/language-sample.tsx
-msgid "The language could not be loaded. Please try again."
-msgstr "The language could not be loaded. Please try again."
+#: packages/settings-area/src/theme-rows.tsx
+msgid "The colors of the app. When the app follows the system, light and dark each have their own Theme."
+msgstr "The colors of the app. When the app follows the system, light and dark each have their own Theme."
+
+#: packages/settings-area/src/theme-rows.tsx
+msgid "The highlight color for buttons, active items and links. \"From Theme\" uses the color a Theme brings, if it brings one."
+msgstr "The highlight color for buttons, active items and links. \"From Theme\" uses the color a Theme brings, if it brings one."
+
+#: apps/web/src/app-language.tsx
+msgid "The language could not be loaded. Your choice is kept for the next start."
+msgstr "The language could not be loaded. Your choice is kept for the next start."
+
+#: packages/settings-area/src/rows.tsx
+msgid "The language the app is shown in. \"System\" follows the language of this device."
+msgstr "The language the app is shown in. \"System\" follows the language of this device."
 
 #: packages/placeholder-beta/src/overview.tsx
 msgid "The minimal module View."
 msgstr "The minimal module View."
 
-#: apps/web/src/modules.ts
-msgid "Theme preview"
-msgstr "Theme preview"
+#: packages/settings-area/src/about-rows.tsx
+msgid "The release line this app belongs to."
+msgstr "The release line this app belongs to."
+
+#: packages/settings-area/src/rows.tsx
+msgid "The size of the text in the whole app."
+msgstr "The size of the text in the whole app."
+
+#: packages/settings-area/src/theme-rows.tsx
+msgid "Theme"
+msgstr "Theme"
+
+#: packages/settings-area/src/theme-rows.tsx
+msgid "Theme for dark"
+msgstr "Theme for dark"
+
+#: packages/settings-area/src/theme-rows.tsx
+msgid "Theme for light"
+msgstr "Theme for light"
 
 #: packages/placeholder-alpha/src/edit-drawer.tsx
 msgid "This entry could not be loaded."
@@ -242,27 +533,62 @@ msgstr "This entry could not be loaded."
 msgid "This part could not be loaded."
 msgstr "This part could not be loaded."
 
-#: apps/web/src/language-sample.tsx
-msgid "This sentence is translated."
-msgstr "This sentence is translated."
-
 #: apps/web/src/route-states.tsx
 msgid "This View could not be loaded. Please try again."
 msgstr "This View could not be loaded. Please try again."
 
+#: packages/settings-area/src/rows.tsx
+msgid "Translation"
+msgstr "Translation"
+
 #: packages/ui/src/state-blocks.tsx
 msgid "Try again"
 msgstr "Try again"
+
+#: packages/settings-area/src/area.tsx
+msgid "Try another word, or clear the search."
+msgstr "Try another word, or clear the search."
 
 #: packages/shell/src/shell-commands.ts
 #: packages/ui/src/feedback.tsx
 msgid "Undo"
 msgstr "Undo"
 
+#: packages/settings-area/src/about-rows.tsx
+msgctxt "Version of the app"
+msgid "Unknown"
+msgstr "Unknown"
+
+#: packages/settings-area/src/about-rows.tsx
+msgid "Version"
+msgstr "Version"
+
+#: packages/settings-area/src/about-rows.tsx
+msgid "Version and operating system as one line, for a bug report."
+msgstr "Version and operating system as one line, for a bug report."
+
+#: packages/settings-area/src/about-rows.tsx
+msgid "Version information"
+msgstr "Version information"
+
+#: packages/settings-area/src/about-rows.tsx
+msgid "Version, channel and operating system as one line, for a bug report."
+msgstr "Version, channel and operating system as one line, for a bug report."
+
+#: packages/settings-area/src/theme-rows.tsx
+msgctxt "Accent"
+msgid "Violet"
+msgstr "Violet"
+
+#: packages/settings-area/src/theme-rows.tsx
+msgctxt "Theme"
+msgid "Warm"
+msgstr "Warm"
+
 #: packages/shell/src/edit-drawer-exits.tsx
 msgid "What you changed here will be lost."
 msgstr "What you changed here will be lost."
 
-#: apps/web/src/language-sample.tsx
-msgid "Your name"
-msgstr "Your name"
+#: packages/settings-area/src/rows.tsx
+msgid "Zoom"
+msgstr "Zoom"

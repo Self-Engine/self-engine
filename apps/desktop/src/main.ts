@@ -1,7 +1,7 @@
 import path from "node:path";
 import { BrowserWindow, app, net, protocol, screen } from "electron";
 import { buildIdentity } from "./build-channel.ts";
-import { resolveDevServer, userDataPath } from "./channel.ts";
+import { resolveDevServer, userDataPath, versionArgument } from "./channel.ts";
 import {
   contentSecurityPolicy,
   desktopUrl,
@@ -118,6 +118,8 @@ async function openWindow(): Promise<void> {
       preload: path.join(__dirname, "preload.cjs"),
       contextIsolation: true,
       sandbox: true,
+      // Read by the preload, which hands the version on to the page.
+      additionalArguments: [versionArgument(app.getVersion())],
     },
   });
   window.once("ready-to-show", () => {

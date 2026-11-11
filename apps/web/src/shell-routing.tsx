@@ -43,12 +43,16 @@ const RouterLink = createLink(function Anchor({
 
 function createAddress(router: AnyRouter): ViewAddress {
   const onScreen = () => visibleLocation(router.state);
-  const writeSearch: WriteViewSearch = (update) => {
+  const writeSearch: WriteViewSearch = (update, options) => {
     const { pathname, search } = onScreen();
     // Builds on an earlier write to this page that is still on its way.
     const base =
       router.latestLocation.pathname === pathname ? router.latestLocation.search : search;
-    void router.navigate({ to: pathname, search: update(base as ViewSearch) });
+    void router.navigate({
+      to: pathname,
+      search: update(base as ViewSearch),
+      replace: options?.replace ?? false,
+    });
   };
   return {
     subscribe: (listener) => router.subscribe("onResolved", listener),
@@ -56,9 +60,9 @@ function createAddress(router: AnyRouter): ViewAddress {
     writeSearch,
     scopedWriteSearch: () => {
       const origin = onScreen().pathname;
-      return (update) => {
+      return (update, options) => {
         if (onScreen().pathname === origin && router.latestLocation.pathname === origin) {
-          writeSearch(update);
+          writeSearch(update, options);
         }
       };
     },

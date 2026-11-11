@@ -41,6 +41,7 @@ export {
   type ResolvedAppearance,
   resolveAppearance,
   resolveColorMode,
+  servingTheme,
 } from "./resolve.ts";
 export {
   type ColorSetColors,
