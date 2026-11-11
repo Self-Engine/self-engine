@@ -36,5 +36,8 @@ export const healthSchema = z.discriminatedUnion("state", [
 
 export type Health = z.infer<typeof healthSchema>;
 
+/** One of the two failure states: the data process answers only `health` and says which migration. */
+export type HealthFailure = Exclude<Health, { state: "ready" }>;
+
 /** Answers in every state of the data process, so the renderer can always ask how it is. */
 export const healthContract = oc.output(healthSchema);

@@ -49,7 +49,7 @@ describe("a migration run", () => {
     const run = runner.run();
 
     await expect(run).rejects.toBeInstanceOf(MigrationRunError);
-    await expect(run).rejects.toMatchObject({ reason: "failed", migration: "time/0002" });
+    await expect(run).rejects.toMatchObject({ reason: "migrationFailed", migration: "time/0002" });
     await expect(tables()).resolves.toEqual([]);
   });
 
@@ -72,7 +72,7 @@ describe("a migration run", () => {
     const run = olderApp.run();
 
     await expect(run).rejects.toBeInstanceOf(MigrationRunError);
-    await expect(run).rejects.toMatchObject({ reason: "unknown", migration: "time/0002" });
+    await expect(run).rejects.toMatchObject({ reason: "databaseNewer", migration: "time/0002" });
     await expect(run).rejects.toThrow(/time\/0002/);
   });
 

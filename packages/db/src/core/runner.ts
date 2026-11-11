@@ -70,10 +70,11 @@ export function createMigrationRunner(
       const { error, results } = await migrator.migrateToLatest();
       if (error !== undefined) {
         const failed = results?.find((result) => result.status === "Error");
-        if (failed) throw new MigrationRunError("failed", failed.migrationName, { cause: error });
+        if (failed)
+          throw new MigrationRunError("migrationFailed", failed.migrationName, { cause: error });
         const unknown = await firstUnknownMigration(database, migrations);
         if (unknown !== undefined)
-          throw new MigrationRunError("unknown", unknown, { cause: error });
+          throw new MigrationRunError("databaseNewer", unknown, { cause: error });
         throw error;
       }
       return (results ?? []).map((result) => result.migrationName);

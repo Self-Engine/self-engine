@@ -1,9 +1,9 @@
 /**
- * Why a migration run stopped: `failed` when a migration of this app threw (the run rolled back,
- * D137), `unknown` when the database ran a migration this app does not know, so it was written
- * by a newer app (D138).
+ * Why a migration run stopped: `migrationFailed` when a migration of this app threw (the run
+ * rolled back, D137), `databaseNewer` when the database ran a migration this app does not know,
+ * so it was written by a newer app (D138). The names are the app contract's failure states.
  */
-export type MigrationRunFailure = "failed" | "unknown";
+export type MigrationRunFailure = "migrationFailed" | "databaseNewer";
 
 /** A migration run that stopped, naming the migration, so the app can say which one. */
 export class MigrationRunError extends Error {
@@ -12,7 +12,7 @@ export class MigrationRunError extends Error {
 
   constructor(reason: MigrationRunFailure, migration: string, options?: ErrorOptions) {
     super(
-      reason === "failed"
+      reason === "migrationFailed"
         ? `Migration ${migration} failed`
         : `The database ran migration ${migration}, which this app does not know`,
       options,

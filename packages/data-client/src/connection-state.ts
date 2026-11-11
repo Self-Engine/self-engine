@@ -1,3 +1,5 @@
+import type { HealthFailure } from "@self-engine/contracts";
+
 /**
  * Where the renderer's connection to the data process stands. A crashed data process is a state
  * of the connection, never an error of a call (D190). Each state is one variant, so a later
@@ -16,15 +18,24 @@ export type ConnectionState =
    */
   | { readonly status: "stopped" }
   /**
-   * The data process could not run this app's migration `migration`; it rolled back and answers
-   * only `health`. Not restarted: a restart would fail the same way.
+   * The data process started in a failure state of the contract's `Health`: a migration failed
+   * (`migrationFailed`) or the database is newer than this app (`databaseNewer`). It answers only
+   * `health`, and it is not restarted, as a restart would fail the same way.
    */
-  | { readonly status: "migrationFailed"; readonly migration: string }
-  /**
-   * The database ran `migration`, which this app does not know: a newer app used it. The data
-   * process answers only `health`.
-   */
-  | { readonly status: "databaseNewer"; readonly migration: string };
+  | FailureState;
+
+/** The connection's side of a failure state: the same names and the migration it names. */
+export type FailureState = {
+  readonly [State in HealthFailure["state"]]: {
+    readonly status: State;
+    readonly migration: Extract<HealthFailure, { state: State }>["migration"];
+  };
+}[HealthFailure["state"]];
+
+/** The connection state for a failure the data process reported. */
+export function failureState({ state, migration }: HealthFailure): FailureState {
+  return { status: state, migration };
+}
 
 export type ConnectionStatus = ConnectionState["status"];
 

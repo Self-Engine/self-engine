@@ -28,8 +28,7 @@ export async function migrate(
     applied = await runner.run();
   } catch (error) {
     if (!(error instanceof MigrationRunError)) throw error;
-    const state = error.reason === "failed" ? "migrationFailed" : "databaseNewer";
-    return { state, migration: error.migration };
+    return { state: error.reason, migration: error.migration };
   }
   const { rows } = await sql<{ version: string }>`select sqlite_version() as version`.execute(
     database.kysely,

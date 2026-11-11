@@ -1,7 +1,7 @@
 import { createORPCClient, ORPCError } from "@orpc/client";
 import type { RPCLink } from "@orpc/client/message-port";
 import type { ContractRouterClient } from "@orpc/contract";
-import type { AppContract, Health, TablesChanged } from "@self-engine/contracts";
+import type { AppContract, HealthFailure, TablesChanged } from "@self-engine/contracts";
 
 export interface PortSessionEvents {
   /** The stream's first, empty event arrived: the port answers. */
@@ -11,7 +11,7 @@ export interface PortSessionEvents {
   /** The stream ended on its own: the port closed or the data process is gone. */
   lost(): void;
   /** The data process answers, but only `health`: its start failed in this state. */
-  refused(health: Exclude<Health, { state: "ready" }>): void;
+  refused(health: HealthFailure): void;
 }
 
 export interface PortSession {
