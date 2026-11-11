@@ -346,6 +346,8 @@ describe("packageChannel", () => {
     readonly seed?: (desktopDir: string) => void;
     /** Receives every call the packaging makes, also when it throws. */
     readonly calls?: Call[];
+    /** The smoke test of the packaged app fails. */
+    readonly smokeFails?: boolean;
   }
 
   function isWorkspaceBuild([command]: Call): boolean {
@@ -353,7 +355,8 @@ describe("packageChannel", () => {
   }
 
   function runPackaging(options: PackagingRun = {}) {
-    const { channel = "nightly", releaseVersion, seed, env = { PATH: "/bin" } } = options;
+    const { channel = "nightly", releaseVersion, seed, smokeFails, env = { PATH: "/bin" } } =
+      options;
     const compiledFor = options.compiledFor === undefined ? channel : options.compiledFor;
     const calls = options.calls ?? [];
     const inspected: string[][] = [];
@@ -375,6 +378,9 @@ describe("packageChannel", () => {
         },
         run: (...call) => {
           calls.push(call);
+          if (smokeFails === true && call[1][0]?.endsWith("desktop-smoke.ts")) {
+            throw new Error("The smoke test failed.");
+          }
           if (isWorkspaceBuild(call) && compiledFor !== null) {
             writeBundles(join(desktopDir, bundleDirectory(channel)), compiledFor);
           }
@@ -431,6 +437,27 @@ describe("packageChannel", () => {
     });
   });
 
+  it("smoke-tests the packaged app before anything can ship it", () => {
+    const { calls, desktopDir, root } = runPackaging({ releaseVersion: "0.0.1-nightly.20261108.7" });
+    expect(calls).toHaveLength(4);
+    expect(calls[3]).toEqual([
+      process.execPath,
+      [
+        join(root, "scripts/desktop-smoke.ts"),
+        "--executable",
+        join(
+          desktopDir,
+          "release/nightly/mac-arm64/Self-Engine Nightly.app/Contents/MacOS/Self-Engine Nightly",
+        ),
+      ],
+      { cwd: root, env: { PATH: "/bin" } },
+    ]);
+  });
+
+  it("fails the packaging when the packaged app fails its smoke test", () => {
+    expect(() => runPackaging({ smokeFails: true })).toThrow(/smoke test failed/);
+  });
+
   describe("with the signing inputs", () => {
     const env = { PATH: "/bin", ...SIGNING_ENV, APPLE_TEAM_ID: "link" };
     const releaseVersion = "1.0.0";
@@ -440,6 +467,7 @@ describe("packageChannel", () => {
       expect(calls[0]?.[2].env).toEqual({ PATH: "/bin" });
       expect(calls[1]?.[2].env).toEqual({ PATH: "/bin", SELF_ENGINE_CHANNEL: "nightly" });
       expect(calls[2]?.[2].env).toBe(env);
+      expect(calls[3]?.[2].env).toEqual({ PATH: "/bin" });
     });
 
     it("checks the signed app of the channel", () => {
@@ -475,8 +503,11 @@ describe("packageChannel", () => {
   });
 
   it("packages stable", () => {
-    const { calls } = runPackaging({ channel: "stable" });
-    expect(calls).toHaveLength(3);
+    const { calls, desktopDir } = runPackaging({ channel: "stable" });
+    expect(calls).toHaveLength(4);
+    expect(calls[3]?.[1].at(-1)).toBe(
+      join(desktopDir, "release/stable/mac-arm64/Self-Engine.app/Contents/MacOS/Self-Engine"),
+    );
   });
 
   it("does not package a bundle compiled for another channel", () => {
