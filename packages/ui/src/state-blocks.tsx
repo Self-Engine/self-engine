@@ -5,8 +5,11 @@ import { ErrorIcon } from "@self-engine/icons";
 import { roleColor } from "@self-engine/theme";
 import { type ComponentType, type CSSProperties, type ReactNode, useState } from "react";
 
-/** Local reads usually finish within milliseconds, and a spinner for those would only flicker. */
-const LOADER_DELAY_MS = 200;
+/**
+ * How long a wait lasts before a sign of it appears (`useWaitIsSlow`). Local reads usually finish
+ * within milliseconds, and a spinner for those would only flicker.
+ */
+export const LOADER_DELAY_MS = 200;
 
 /** A catalog icon sizes itself for a line of text, and here it fills Mantine's indicator instead. */
 const FILL_INDICATOR: CSSProperties = { width: "1em", height: "1em" };

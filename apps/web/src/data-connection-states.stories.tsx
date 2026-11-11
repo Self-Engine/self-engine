@@ -1,5 +1,6 @@
 import { TextInput } from "@mantine/core";
-import type { ConnectionState } from "@self-engine/data-client";
+import { type ConnectionState, createConnectionStateStore } from "@self-engine/data-client";
+import { LOADER_DELAY_MS } from "@self-engine/ui";
 import { holdTimers } from "@self-engine/ui/story-timers";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { expect, fn, userEvent, waitFor, within } from "storybook/test";
@@ -9,23 +10,7 @@ import { settingsStore } from "./settings-store.ts";
 import { AppAt } from "./story-app.tsx";
 
 /** A connection whose state the story sets by hand, like the data process would. */
-function storyConnection(initial: ConnectionState) {
-  let state = initial;
-  const listeners = new Set<() => void>();
-  return {
-    getState: () => state,
-    subscribe(listener: () => void) {
-      listeners.add(listener);
-      return () => void listeners.delete(listener);
-    },
-    set(next: ConnectionState) {
-      state = next;
-      for (const listener of listeners) listener();
-    },
-  };
-}
-
-let connection = storyConnection({ status: "ready" });
+let connection = createConnectionStateStore({ status: "ready" });
 const retry = fn();
 
 /** The notice's wait, run when the story says so. */
@@ -43,8 +28,8 @@ async function startReconnecting() {
 
 function startingAt(state: ConnectionState) {
   return () => {
-    connection = storyConnection(state);
-    const timers = holdTimers(200);
+    connection = createConnectionStateStore(state);
+    const timers = holdTimers(LOADER_DELAY_MS);
     heldWait = timers.held;
     return timers.restore;
   };
@@ -155,7 +140,7 @@ export const NoNoticeWhenTheConnectionIsBackWithinTheWait: Story = {
     await startReconnecting();
     await expect(page(canvasElement).queryByRole("status")).toBeNull();
     connection.set({ status: "ready" });
-    // Whatever wait is still held fires now, as if 200 ms had passed.
+    // Whatever wait is still held fires now, as if the whole wait had passed.
     runTheWait();
     await expect(page(canvasElement).queryByRole("status")).toBeNull();
   },

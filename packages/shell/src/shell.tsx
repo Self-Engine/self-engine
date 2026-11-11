@@ -9,7 +9,7 @@ import { EditDrawerTitleContext } from "./edit-drawer-title.ts";
 import { selectEditId, UnsavedChangesContext, useEditDrawerExits } from "./edit-drawer-exits.tsx";
 import { LazyContribution, lazyComponents } from "./lazy-contribution.tsx";
 import { useCloseOverlayOnPick, useViewSearch, useWriteViewSearch } from "./routing.tsx";
-import { ACTIVE_ENTRY_VARS, NOT_WINDOW_DRAG_STYLE } from "./navigation-style.ts";
+import { ACTIVE_ENTRY_VARS } from "./navigation-style.ts";
 import type { CommandScope } from "./palette-entries.ts";
 import { PrimaryAction } from "./primary-action.tsx";
 import { PALETTE_SHORTCUT, shellCommands } from "./shell-commands.ts";
@@ -38,7 +38,12 @@ import {
 import { useDisclosure } from "@mantine/hooks";
 import { SearchIcon, SidePanelIcon } from "@self-engine/icons";
 import { type ColorSetId, roleColor } from "@self-engine/theme";
-import { LoadingState, NOTICE_CLEARANCE_VARIABLE } from "@self-engine/ui";
+import {
+  LoadingState,
+  NOT_WINDOW_DRAG_STYLE,
+  NOTICE_CLEARANCE_VARIABLE,
+  WINDOW_DRAG_STYLE,
+} from "@self-engine/ui";
 import { type CSSProperties, type MouseEvent, type ReactNode, useEffect, useState } from "react";
 import {
   GAP,
@@ -94,10 +99,6 @@ const ROOT_STYLE = {
   overflow: "hidden",
   padding: rem(GAP),
 } as CSSProperties;
-
-// Plain CSS that moves the window in Electron and means nothing in a browser, so the Shell needs
-// no platform check. Electron cuts `no-drag` out of what `drag` claims, whatever is on top.
-const WINDOW_DRAG_STYLE = { WebkitAppRegion: "drag" } as CSSProperties;
 
 const TOP_EDGE_STYLE: CSSProperties = {
   ...WINDOW_DRAG_STYLE,

@@ -10,7 +10,6 @@ import { tmpdir } from "node:os";
 import { extname, join, resolve, sep } from "node:path";
 import { _electron, type ElectronApplication } from "playwright";
 
-export const DESKTOP_DIR = resolve(import.meta.dirname, "../apps/desktop");
 export const RENDERER_DIR = resolve(import.meta.dirname, "../apps/web/dist");
 
 /** What to start: an Electron binary with the app's folder, or a packaged app's executable. */

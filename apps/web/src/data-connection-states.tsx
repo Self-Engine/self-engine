@@ -1,12 +1,13 @@
 import { useLingui } from "@lingui/react/macro";
 import { Affix, Box, Center, Notification, rem } from "@mantine/core";
 import type { DataConnection } from "@self-engine/data-client";
-import { ErrorState, useWaitIsSlow } from "@self-engine/ui";
+import {
+  ErrorState,
+  NOT_WINDOW_DRAG_STYLE,
+  useWaitIsSlow,
+  WINDOW_DRAG_STYLE,
+} from "@self-engine/ui";
 import { type CSSProperties, type ReactNode, useSyncExternalStore } from "react";
-
-// The window has no title bar of its own on macOS: without the Shell, the background moves it.
-const WINDOW_DRAG_STYLE = { WebkitAppRegion: "drag" } as CSSProperties;
-const NOT_WINDOW_DRAG_STYLE = { WebkitAppRegion: "no-drag" } as CSSProperties;
 
 const NOTICE_POSITION = { top: rem(12), left: "50%" };
 const NOTICE_STYLE: CSSProperties = { transform: "translateX(-50%)" };
@@ -70,6 +71,7 @@ export function DataConnectionStates({ connection, onRetry, children }: DataConn
   }
 }
 
+/** The window has no title bar of its own on macOS: without the Shell, the background moves it. */
 function WholeWindow({ children }: { readonly children: ReactNode }) {
   return (
     <Center h="100dvh" style={WINDOW_DRAG_STYLE}>
