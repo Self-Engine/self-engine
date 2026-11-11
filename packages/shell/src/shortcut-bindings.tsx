@@ -56,19 +56,25 @@ export function ShortcutBindings({ owners, activeModuleId }: CommandScope) {
           if (!quiet()) palette.open();
         },
       },
-      // One binding per key, whose press picks the Command of the module on screen. Navigating
-      // keeps the list as it is, and the library then only swaps the callbacks in place.
-      ...shortcutKeys(commandRegister(owners), sameKeyAs).map((key) => ({
-        hotkey: key.shortcut as HotkeyChord,
-        callback: () => {
-          const entry = commandForKey(key, activeModuleId);
-          if (entry !== undefined && !quiet()) void start(entry.moduleId, entry.command);
-        },
-        // In a field ⌘Z stays with the text. It is the one shortcut that does not work there.
-        ...(key.entries.some(({ fullId }) => fullId === UNDO_COMMAND_ID) && {
-          options: { ignoreInputs: true },
-        }),
-      })),
+      // One binding per key. Navigating keeps the list as it is, so the library only swaps the
+      // callbacks and options in place and registers nothing anew.
+      ...shortcutKeys(commandRegister(owners), sameKeyAs).map((key) => {
+        const entry = commandForKey(key, activeModuleId);
+        return {
+          hotkey: key.shortcut as HotkeyChord,
+          callback: () => {
+            if (entry !== undefined && !quiet()) void start(entry.moduleId, entry.command);
+          },
+          options: {
+            // Without a Command for it on screen, the key is left to the browser.
+            enabled: entry !== undefined,
+            // In a field ⌘Z stays with the text. It is the one shortcut that does not work there.
+            ...(key.entries.some(({ fullId }) => fullId === UNDO_COMMAND_ID) && {
+              ignoreInputs: true,
+            }),
+          },
+        };
+      }),
     ],
     // Every default shortcut has `Mod`, so typing cannot reach one, and it also works in a field.
     { ignoreInputs: false, requireReset: true },
