@@ -5,8 +5,8 @@ import type { PageCommand } from "@self-engine/shell";
 import { useEffect, useState } from "react";
 import { expect, screen, spyOn, userEvent, waitFor, within } from "storybook/test";
 import { createAppRouter } from "./app-router.ts";
-import { settingsStore } from "./settings-store.ts";
 import {
+  loadStoryApp,
   answer,
   asked,
   editInAddress,
@@ -42,7 +42,7 @@ const meta = {
   title: "App/Unsaved changes",
   component: AppAt,
   parameters: { layout: "fullscreen" },
-  loaders: [() => settingsStore.load()],
+  loaders: [loadStoryApp],
   beforeEach: () => {
     const original = window.location.href;
     // The test runner's query, which the hash parser would add to the last parameter after Back.

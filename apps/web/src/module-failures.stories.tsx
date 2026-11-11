@@ -11,8 +11,7 @@ import {
 } from "@self-engine/shell";
 import type { ComponentType } from "react";
 import { z } from "zod";
-import { settingsStore } from "./settings-store.ts";
-import { AppAt, held, storyRouter } from "./story-app.tsx";
+import { loadStoryApp, AppAt, held, storyRouter } from "./story-app.tsx";
 
 type Canvas = ReturnType<typeof within>;
 type EditDrawerLoad = NonNullable<ShellContribution["editDrawer"]>;
@@ -22,7 +21,7 @@ const meta = {
   title: "App/Module failures and slow work",
   component: AppAt,
   parameters: { layout: "fullscreen" },
-  loaders: [() => settingsStore.load()],
+  loaders: [loadStoryApp],
   args: { address: "/placeholder-alpha/overview" },
 } satisfies Meta<typeof AppAt>;
 export default meta;

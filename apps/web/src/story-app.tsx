@@ -5,6 +5,25 @@ import { createMemoryHistory, RouterProvider } from "@tanstack/react-router";
 import { useState } from "react";
 import { expect, screen, userEvent, waitFor, within } from "storybook/test";
 import { createAppRouter } from "./app-router.ts";
+import { contributions } from "./modules.ts";
+import { settingsStore } from "./settings-store.ts";
+
+/**
+ * Finish fetching the app's lazy code before a Story starts interacting. On a cold dev server,
+ * compiling a View or drawer can outlast a DOM query's deadline under load. Storybook awaits
+ * loaders before `beforeEach`, so stories can still replace a load with slow or failing work.
+ */
+export async function loadStoryApp() {
+  await Promise.all([
+    settingsStore.load(),
+    ...contributions.flatMap((module) => [
+      ...module.views.map((view) => view.load()),
+      module.groups?.(),
+      module.editDrawer?.(),
+      ...(module.commands ?? []).map((command) => command.load()),
+    ]),
+  ]);
+}
 
 type AppRouter = ReturnType<typeof createAppRouter>;
 

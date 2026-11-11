@@ -1,8 +1,8 @@
 import { holdTimers } from "@self-engine/ui/story-timers";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { expect, screen, userEvent, waitFor, within } from "storybook/test";
-import { settingsStore } from "./settings-store.ts";
 import {
+  loadStoryApp,
   AppAt,
   editInAddress,
   modKeyIsLeftToTheBrowser,
@@ -19,7 +19,7 @@ const meta = {
   title: "App/Delete and missing entries",
   component: AppAt,
   parameters: { layout: "fullscreen" },
-  loaders: [() => settingsStore.load()],
+  loaders: [loadStoryApp],
   args: { address: OVERVIEW },
 } satisfies Meta<typeof AppAt>;
 export default meta;
