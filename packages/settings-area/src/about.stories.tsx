@@ -69,9 +69,9 @@ export const CopiesOneLineAndConfirmsIt: Story = {
       const copy = canvas.getByRole("button", { name: "Copy" });
       await expect(copy).toHaveAccessibleDescription("Version information");
       await userEvent.click(copy);
-      await expect(written).toHaveBeenCalledExactlyOnceWith(
-        "Self-Engine 0.4.0-nightly.20261112.3 (nightly), macOS",
-      );
+      await expect(written.mock.calls).toEqual([
+        ["Self-Engine 0.4.0-nightly.20261112.3 (nightly), macOS"],
+      ]);
       await expect(await canvas.findByRole("button", { name: "Copied" })).toBeVisible();
     } finally {
       written.mockRestore();

@@ -3,7 +3,9 @@ import { channelBadge, historyKind, reservesWindowButtons, versionInfo } from ".
 
 describe("historyKind", () => {
   it("uses hash history in Electron, where the preload installs the bridge", () => {
-    expect(historyKind({ desktopBridge: { platform: "darwin", channel: "stable", version: "1.0.0" } })).toBe("hash");
+    expect(
+      historyKind({ desktopBridge: { platform: "darwin", channel: "stable", version: "1.0.0" } }),
+    ).toBe("hash");
   });
 
   it("uses browser history on the web", () => {
@@ -17,7 +19,9 @@ describe("channelBadge", () => {
     ["nightly", "Nightly"],
     ["stable", undefined],
   ] as const)("marks %s as %s", (channel, badge) => {
-    expect(channelBadge({ desktopBridge: { platform: "darwin", channel, version: "1.0.0" } })).toBe(badge);
+    expect(channelBadge({ desktopBridge: { platform: "darwin", channel, version: "1.0.0" } })).toBe(
+      badge,
+    );
   });
 
   it("shows nothing on the web", () => {
@@ -28,14 +32,18 @@ describe("channelBadge", () => {
 describe("reservesWindowButtons", () => {
   it("keeps the strip free in the macOS desktop app", () => {
     expect(
-      reservesWindowButtons({ desktopBridge: { platform: "darwin", channel: "stable", version: "1.0.0" } }),
+      reservesWindowButtons({
+        desktopBridge: { platform: "darwin", channel: "stable", version: "1.0.0" },
+      }),
     ).toBe(true);
   });
 
   it("wastes no room on the Windows desktop app", () => {
-    expect(reservesWindowButtons({ desktopBridge: { platform: "win32", channel: "stable", version: "1.0.0" } })).toBe(
-      false,
-    );
+    expect(
+      reservesWindowButtons({
+        desktopBridge: { platform: "win32", channel: "stable", version: "1.0.0" },
+      }),
+    ).toBe(false);
   });
 
   it("wastes no room on the web", () => {
@@ -82,8 +90,14 @@ describe("versionInfo", () => {
   it.each([
     ["Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/141.0.0.0", "Windows"],
     ["Mozilla/5.0 (X11; Linux x86_64; rv:140.0) Gecko/20100101 Firefox/140.0", "Linux"],
-    ["Mozilla/5.0 (Linux; Android 15; Pixel 9) AppleWebKit/537.36 Chrome/141.0.0.0 Mobile", "Android"],
-    ["Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 Mobile/15E148", "iOS"],
+    [
+      "Mozilla/5.0 (Linux; Android 15; Pixel 9) AppleWebKit/537.36 Chrome/141.0.0.0 Mobile",
+      "Android",
+    ],
+    [
+      "Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 Mobile/15E148",
+      "iOS",
+    ],
     ["Mozilla/5.0 (iPad; CPU OS 18_5 like Mac OS X) AppleWebKit/605.1.15 Mobile/15E148", "iOS"],
     ["Mozilla/5.0 (X11; CrOS x86_64 14541.0.0) AppleWebKit/537.36 Chrome/141.0.0.0", "ChromeOS"],
   ])("reads the operating system of a browser from %j", (userAgent, operatingSystem) => {
