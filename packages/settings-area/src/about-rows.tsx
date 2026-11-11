@@ -58,17 +58,17 @@ function copyLine(line: string) {
 export function aboutRows(version: VersionInfo): readonly SettingsRow[] {
   const view = VIEW_IDS.about;
   const channel = version.channel && CHANNEL_NAMES[version.channel];
+  const versionValue =
+    version.version ?? msg({ message: "Unknown", context: "Version of the app" });
   return [
     {
       id: "version",
       view,
       title: msg`Version`,
       searchWords: [msg`Release`, msg`Build`],
-      values: [],
+      values: [versionValue],
       control:
-        version.version === undefined
-          ? shownMessage(msg({ message: "Unknown", context: "Version of the app" }))
-          : shownValue(version.version),
+        typeof versionValue === "string" ? shownValue(versionValue) : shownMessage(versionValue),
     },
     ...(channel
       ? [
@@ -88,7 +88,7 @@ export function aboutRows(version: VersionInfo): readonly SettingsRow[] {
       view,
       title: msg`Operating system`,
       searchWords: [msg`Platform`],
-      values: [],
+      values: [version.operatingSystem],
       control: shownValue(version.operatingSystem),
     },
     {
@@ -108,7 +108,7 @@ export function aboutRows(version: VersionInfo): readonly SettingsRow[] {
       title: msg`License`,
       description: msg`Self-Engine is free software under the GNU Affero General Public License, version 3.`,
       searchWords: [msg`Open source`, msg`Rights`],
-      values: [],
+      values: [LICENSE],
       control: shownValue(LICENSE),
     },
   ];

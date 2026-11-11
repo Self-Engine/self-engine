@@ -154,6 +154,37 @@ const foundBy = (search: string, i18n: Translator) =>
     search,
   )?.flatMap((group) => group.rows.map((found) => found.id));
 
+test.each([
+  ["macOS", "operating-system", DESKTOP],
+  ["Windows", "operating-system", WEB],
+  ["AGPL-3.0-only", "license", DESKTOP],
+  ["0.4.0-nightly.20261112.3", "version", DESKTOP],
+  ["0.4.0", "version", WEB],
+  ["Unknown", "version", { operatingSystem: "macOS" }],
+])("About's shown value %s finds its row", (query, id, version) => {
+  const english: Translator = { locale: "en", _: (descriptor) => descriptor.message ?? "" };
+  const rows = settingsRows({ version, commandOwners: [] });
+  expect(
+    searchHits(searchedRows(rows, english), query)?.flatMap((group) =>
+      group.rows.map((found) => found.id),
+    ),
+  ).toEqual([id]);
+});
+
+test("About's unknown version is found in the language shown", () => {
+  const german: Translator = {
+    locale: "de",
+    _: (descriptor) => (descriptor.message === "Unknown" ? "Unbekannt" : descriptor.message ?? ""),
+  };
+  const rows = settingsRows({ version: { operatingSystem: "macOS" }, commandOwners: [] });
+  expect(
+    searchHits(searchedRows(rows, german), "Unbekannt")?.flatMap((group) =>
+      group.rows.map((found) => found.id),
+    ),
+  ).toEqual(["version"]);
+  expect(searchHits(searchedRows(rows, german), "Unknown")).toEqual([]);
+});
+
 test.each(LANGUAGE_TAGS)(
   "the App Language is found by the name of %s in the language shown",
   (tag) => {

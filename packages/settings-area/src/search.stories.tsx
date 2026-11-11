@@ -85,6 +85,23 @@ export const AValueFindsItsRowAndTheControlWorks: Story = {
   },
 };
 
+export const AboutValuesFindTheirRows: Story = {
+  play: async ({ canvas }) => {
+    for (const [value, title] of [
+      ["macOS", "Operating system"],
+      ["AGPL-3.0-only", "License"],
+      ["0.0.1", "Version"],
+    ]) {
+      await userEvent.clear(field(canvas));
+      await userEvent.type(field(canvas), value);
+      const about = hitsOf(canvas, "About");
+      await expect(about.getByText(title, { exact: true })).toBeVisible();
+      await expect(about.getByText(value, { exact: true })).toBeVisible();
+      await expect(canvas.getAllByRole("region")).toHaveLength(1);
+    }
+  },
+};
+
 export const AWordStartStandsBeforeAMatchInsideAWord: Story = {
   play: async ({ canvas }) => {
     // "te" starts "text" in the description of Density and stands inside "system" in that of the
