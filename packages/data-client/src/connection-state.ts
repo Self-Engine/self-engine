@@ -9,7 +9,12 @@ export type ConnectionState =
   /** The port answers and its `tablesChanged` stream stands. */
   | { readonly status: "ready" }
   /** The port was lost after it had been ready; calls wait for the next port. */
-  | { readonly status: "reconnecting" };
+  | { readonly status: "reconnecting" }
+  /**
+   * The data process kept crashing and is not restarted until a retry. Calls wait; a retry is
+   * `disconnect()` (back to waiting for a port) and a new port.
+   */
+  | { readonly status: "stopped" };
 
 export type ConnectionStatus = ConnectionState["status"];
 

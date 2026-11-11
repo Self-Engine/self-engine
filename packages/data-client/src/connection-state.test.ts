@@ -144,3 +144,34 @@ test("tables changed reach a listener over every port, without the opening empty
 
   expect(heard).toEqual([["projects"], ["tasks"]]);
 });
+
+test("reports stopped when told the data process stopped, and comes back on a retry", async () => {
+  dataProcess = await startTestDataProcess();
+  const connection = newConnection();
+  connection.connect(dataProcess.openPort());
+  await untilStatus(connection, "ready");
+  const statuses = recordStatuses(connection);
+
+  connection.disconnect();
+  connection.stop();
+  const waiting = connection.client.health();
+  // A retry: the renderer waits for a port again, and one arrives.
+  connection.disconnect();
+  connection.connect(dataProcess.openPort());
+  await untilStatus(connection, "ready");
+
+  expect(statuses).toEqual(["reconnecting", "stopped", "reconnecting", "ready"]);
+  await expect(waiting).resolves.toMatchObject({ state: "ready" });
+});
+
+test("a port that arrives while stopped reconnects, as after a retry from another page", async () => {
+  dataProcess = await startTestDataProcess();
+  const connection = newConnection();
+  connection.stop();
+  const statuses = recordStatuses(connection);
+
+  connection.connect(dataProcess.openPort());
+  await untilStatus(connection, "ready");
+
+  expect(statuses).toEqual(["connecting", "ready"]);
+});

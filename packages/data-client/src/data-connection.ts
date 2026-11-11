@@ -30,6 +30,12 @@ export interface DataConnection extends Pick<ConnectionStateStore, "getState" | 
    */
   disconnect(): void;
   /**
+   * The data process is gone and will not come back by itself: it kept crashing (spec #29,
+   * Supervision). Calls wait. `disconnect()` waits for a port again, as on a retry; a port that
+   * arrives ends the state too.
+   */
+  stop(): void;
+  /**
    * Calls `listener` with the tables of each commit, over whichever port is connected. It does
    * not hear the opening empty event; returns the function that stops it.
    */
@@ -39,6 +45,7 @@ export interface DataConnection extends Pick<ConnectionStateStore, "getState" | 
 const CONNECTING: ConnectionState = { status: "connecting" };
 const READY: ConnectionState = { status: "ready" };
 const RECONNECTING: ConnectionState = { status: "reconnecting" };
+const STOPPED: ConnectionState = { status: "stopped" };
 
 /** The renderer's connection to the data process, platform-neutral: it only needs a port. */
 export function createDataConnection(): DataConnection {
@@ -49,12 +56,23 @@ export function createDataConnection(): DataConnection {
   let session: PortSession | undefined;
   let wasReady = false;
 
-  function loseSession(): void {
-    session?.stop();
+  function waiting(): ConnectionState {
+    return wasReady ? RECONNECTING : CONNECTING;
+  }
+
+  /** Drops the current port: calls wait for the next one. */
+  function dropSession(): void {
+    // Without a port, calls already wait on the pending link; a new one would strand them.
+    if (session === undefined) return;
+    session.stop();
     session = undefined;
     nextLink = pendingLink();
     currentLink = nextLink.promise;
-    state.set(wasReady ? RECONNECTING : CONNECTING);
+  }
+
+  function loseSession(): void {
+    dropSession();
+    state.set(waiting());
   }
 
   return {
@@ -63,7 +81,8 @@ export function createDataConnection(): DataConnection {
     subscribe: (listener) => state.subscribe(listener),
     connect(port) {
       session?.stop();
-      if (state.getState() === READY) state.set(RECONNECTING);
+      const current = state.getState();
+      if (current === READY || current === STOPPED) state.set(waiting());
       const link = new RPCLink({ port });
       if ("start" in port && typeof port.start === "function") port.start();
       nextLink.resolve(link);
@@ -83,7 +102,11 @@ export function createDataConnection(): DataConnection {
       session = own;
     },
     disconnect() {
-      if (session !== undefined) loseSession();
+      if (session !== undefined || state.getState() === STOPPED) loseSession();
+    },
+    stop() {
+      dropSession();
+      state.set(STOPPED);
     },
     onTablesChanged(listener) {
       const entry = (tables: TablesChanged) => listener(tables);
