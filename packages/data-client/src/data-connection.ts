@@ -83,7 +83,7 @@ export function createDataConnection(): DataConnection {
   }
 
   return {
-    client: createORPCClient(new DynamicLink(() => currentLink)),
+    client: createORPCClient(new DynamicLink(({ signal }) => waitForLink(currentLink, signal))),
     getState: () => state.getState(),
     subscribe: (listener) => state.subscribe(listener),
     connect(port) {
@@ -144,4 +144,23 @@ function pendingLink(): PendingLink {
     resolve = settle;
   });
   return { promise, resolve };
+}
+
+/** Cancellation belongs to one caller, never to the shared pending port. */
+async function waitForLink(
+  link: Promise<RPCLink<object>>,
+  signal: AbortSignal | undefined,
+): Promise<RPCLink<object>> {
+  if (!signal) return link;
+  signal.throwIfAborted();
+  let abort = () => {};
+  const cancelled = new Promise<never>((_, reject) => {
+    abort = () => reject(signal.reason);
+    signal.addEventListener("abort", abort, { once: true });
+  });
+  try {
+    return await Promise.race([link, cancelled]);
+  } finally {
+    signal.removeEventListener("abort", abort);
+  }
 }

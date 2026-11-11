@@ -130,3 +130,8 @@ describe("a migration run", () => {
     await expect(runner.hasPending()).resolves.toBe(false);
   });
 });
+
+test("preserves a migration setup error when its bookkeeping table cannot be read", async () => {
+  await database.executeScript("PRAGMA query_only = ON;");
+  await expect(createMigrationRunner(database, []).run()).rejects.toThrow(/readonly database/);
+});

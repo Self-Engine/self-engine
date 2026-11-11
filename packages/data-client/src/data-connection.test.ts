@@ -2,12 +2,13 @@
 // Node's MessageChannel and an in-memory SQLite database, without Electron.
 
 import { startTestDataProcess, type TestDataProcess } from "@self-engine/data-process/testing";
-import { afterEach, describe, expect, test } from "vite-plus/test";
+import { afterEach, describe, expect, test, vi } from "vite-plus/test";
 import { createDataConnection } from "./index.ts";
 
 let dataProcess: TestDataProcess | undefined;
 
 afterEach(async () => {
+  vi.useRealTimers();
   await dataProcess?.close();
   dataProcess = undefined;
 });
@@ -62,4 +63,43 @@ describe("a typed call over a message port", () => {
 
     await expect(connection.client.health()).resolves.toMatchObject({ state: "ready" });
   });
+});
+
+ test.each(["initial", "disconnected", "stopped"])("a waiting call can be aborted while %s", async (phase) => {
+  dataProcess = await startTestDataProcess();
+  const connection = createDataConnection();
+  if (phase !== "initial") {
+    connection.connect(dataProcess.openPort());
+    await connection.client.health();
+    if (phase === "disconnected") connection.disconnect();
+    else connection.stop();
+  }
+  vi.useFakeTimers();
+  const controller = new AbortController();
+  const reason = new Error("cancelled while waiting");
+  const answer = connection.client.health(undefined, { signal: controller.signal });
+  const outcome = answer.catch((error: unknown) => error);
+  controller.abort(reason);
+  await vi.runAllTimersAsync();
+  expect(await Promise.race([outcome, Promise.resolve("still waiting")])).toBe(reason);
+});
+
+test("a waiting call removes its abort listener when a port arrives", async () => {
+  dataProcess = await startTestDataProcess();
+  const connection = createDataConnection();
+  const controller = new AbortController();
+  const add = vi.spyOn(controller.signal, "addEventListener");
+  const remove = vi.spyOn(controller.signal, "removeEventListener");
+  const answer = connection.client.health(undefined, { signal: controller.signal });
+  const waitingListener = add.mock.calls.find(([event]) => event === "abort")?.[1];
+  expect(waitingListener).toBeDefined();
+  connection.connect(dataProcess.openPort());
+  await expect(answer).resolves.toMatchObject({ state: "ready" });
+  expect(remove).toHaveBeenCalledWith("abort", waitingListener);
+});
+
+test("a call with an already aborted signal rejects before a port arrives", async () => {
+  const connection = createDataConnection();
+  const reason = new Error("already cancelled");
+  await expect(connection.client.health(undefined, { signal: AbortSignal.abort(reason) })).rejects.toBe(reason);
 });
