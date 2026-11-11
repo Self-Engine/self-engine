@@ -1,6 +1,6 @@
 import type { MessageDescriptor } from "@lingui/core";
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import type { ComponentType } from "react";
+import { type ComponentType, type ReactNode, useLayoutEffect, useRef } from "react";
 import { expect, spyOn, userEvent, within } from "storybook/test";
 import type { NamedCommandOwner } from "./index.ts";
 import { storyViewPage } from "./story-page.tsx";
@@ -73,7 +73,7 @@ export const GroupedByModuleWithTheGeneralOnesFirst: Story = {
     await expect(headings(canvas)).toEqual(["General", "Projects", "Time"]);
     const general = groupOf(canvas, "General");
     await expect(general.getByText("Open the Command Palette")).toBeVisible();
-    // The notation appears once the hotkey library has loaded.
+    // The notation is present with the row.
     await expect(await general.findByText("Ctrl+K")).toBeVisible();
     await expect(general.getByText("Undo")).toBeVisible();
     await expect(general.getByText("Ctrl+Z")).toBeVisible();
@@ -166,5 +166,46 @@ export const TwoOwnersWithTheSameNameKeepTheirOwnHeading: Story = {
     await expect(within(tools[0]!).getByText("Sharpen")).toBeVisible();
     await expect(within(tools[0]!).queryByText("Polish")).toBeNull();
     await expect(within(tools[1]!).getByText("Polish")).toBeVisible();
+  },
+};
+
+/** Inspect the committed DOM before effects can load or insert a missing hint. */
+function CompleteRows({ children }: { readonly children: ReactNode }) {
+  const root = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => {
+    const checkRows = () => {
+      for (const label of root.current!.querySelectorAll("p[id]")) {
+        if (!label.parentElement?.parentElement?.querySelector("kbd")) {
+          throw new Error(`Shortcut row rendered without its hint: ${label.textContent}`);
+        }
+      }
+    };
+    checkRows();
+    const observer = new MutationObserver(checkRows);
+    observer.observe(root.current!, { childList: true, subtree: true });
+    return () => observer.disconnect();
+  }, []);
+  return <div ref={root}>{children}</div>;
+}
+
+export const RowsAndReadableHintsAppearTogether: Story = {
+  render: (_args, { loaded }) => {
+    const { Page } = loaded as { readonly Page: ComponentType };
+    return (
+      <CompleteRows>
+        <Page />
+      </CompleteRows>
+    );
+  },
+  play: async ({ canvas }) => {
+    const label = canvas.getByText("Open the Command Palette");
+    const hint = canvas.getByText("Ctrl+K");
+    await expect(getComputedStyle(hint).fontSize).toBe(getComputedStyle(label).fontSize);
+    const search = canvas.getByRole("searchbox");
+    await userEvent.type(search, "undo");
+    await userEvent.clear(search);
+    await userEvent.type(search, "a");
+    await expect(canvas.getByText("Ctrl+K")).toBeVisible();
+    await expect(canvas.getByText("Ctrl+N")).toBeVisible();
   },
 };
