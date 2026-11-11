@@ -59,8 +59,8 @@ export function createDataConnection(): DataConnection {
 
   return {
     client: createORPCClient(new DynamicLink(() => currentLink)),
-    getState: state.getState,
-    subscribe: state.subscribe,
+    getState: () => state.getState(),
+    subscribe: (listener) => state.subscribe(listener),
     connect(port) {
       session?.stop();
       if (state.getState() === READY) state.set(RECONNECTING);
@@ -74,7 +74,7 @@ export function createDataConnection(): DataConnection {
           state.set(READY);
         },
         tablesChanged(tables) {
-          for (const listener of [...tablesListeners]) listener(tables);
+          for (const listener of tablesListeners) listener(tables);
         },
         lost() {
           if (session === own) loseSession();

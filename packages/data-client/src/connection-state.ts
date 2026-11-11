@@ -36,7 +36,7 @@ export function createConnectionStateStore(initial: ConnectionState): Connection
     set(state) {
       if (state === current) return;
       current = state;
-      for (const listener of [...listeners]) listener();
+      for (const listener of listeners) listener();
     },
   };
 }
