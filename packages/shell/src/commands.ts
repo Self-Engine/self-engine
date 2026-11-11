@@ -106,6 +106,48 @@ export const isPageCommandElsewhere = (
   activeModuleId: string | undefined,
 ) => command.kind === "page" && moduleId !== activeModuleId;
 
+/** A Command a person can start, since only those have a shortcut. */
+export interface RegisteredPersonCommand extends RegisteredCommand {
+  readonly command: PersonCommand;
+}
+
+/** The Commands that share one key. The key is bound once, whichever module is on screen. */
+export interface ShortcutKey {
+  /** The first spelling the register holds for the key. */
+  readonly shortcut: string;
+  readonly entries: readonly RegisteredPersonCommand[];
+}
+
+/**
+ * One entry per distinct key, in the order of the register. It does not depend on the module on
+ * screen, so a switch between modules leaves every binding as it is.
+ */
+export function shortcutKeys(
+  register: readonly RegisteredCommand[],
+  canonical: (shortcut: string) => string,
+): readonly ShortcutKey[] {
+  const keys = new Map<string, { shortcut: string; entries: RegisteredPersonCommand[] }>();
+  for (const { command, ...entry } of register) {
+    if (command.kind === "input" || command.defaultShortcut === undefined) continue;
+    const shortcut = command.defaultShortcut;
+    const key = canonical(shortcut);
+    const known = keys.get(key);
+    if (known) known.entries.push({ ...entry, command });
+    else keys.set(key, { shortcut, entries: [{ ...entry, command }] });
+  }
+  return [...keys.values()];
+}
+
+/**
+ * What a key starts with this module on screen, or nothing. The audit lets at most one Command
+ * hold a key in any module, so the first that is not elsewhere is the only one.
+ */
+export const commandForKey = (
+  { entries }: ShortcutKey,
+  activeModuleId: string | undefined,
+): RegisteredPersonCommand | undefined =>
+  entries.find((entry) => !isPageCommandElsewhere(entry, activeModuleId));
+
 export function commandRegister(owners: readonly CommandOwner[]): readonly RegisteredCommand[] {
   return owners.flatMap(({ id: moduleId, commands = [] }) =>
     commands.map((command) => ({

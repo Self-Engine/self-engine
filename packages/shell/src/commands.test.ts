@@ -2,6 +2,7 @@ import { describe, expect, test } from "vite-plus/test";
 import { z } from "zod";
 import { auditCommands } from "./command-audit.ts";
 import {
+  commandForKey,
   commandRegister,
   defineInputCommand,
   defineOpenCommand,
@@ -10,6 +11,7 @@ import {
   type OpenCommand,
   type PageCommand,
   type ShellCommand,
+  shortcutKeys,
 } from "./commands.ts";
 import { defineContribution, validateContributions } from "./contributions.ts";
 import { shellCommands } from "./shell-commands.ts";
@@ -66,6 +68,37 @@ describe("the register", () => {
     expect(() => validateContributions([{ id: "shell", views: [{ id: "overview" }] }])).toThrow(
       "reserved",
     );
+  });
+});
+
+describe("the keys of the shortcuts", () => {
+  const newThing = { ...page, defaultShortcut: "Mod+N" };
+  const register = commandRegister([
+    { id: "alpha", commands: [newThing, { ...open, defaultShortcut: "Mod+Shift+E" }, input] },
+    { id: "beta", commands: [{ ...newThing, defaultShortcut: "mod+n" }] },
+    { id: "gamma", commands: [{ ...page, id: "no-key" }] },
+  ]);
+  const keys = shortcutKeys(register, (shortcut) => shortcut.toUpperCase());
+  const [sharedKey, openKey] = keys;
+
+  test("holds each key once, with every Command on it, whichever module is on screen", () => {
+    expect(
+      keys.map(({ shortcut, entries }) => [shortcut, entries.map(({ fullId }) => fullId)]),
+    ).toEqual([
+      ["Mod+N", ["alpha.page-thing", "beta.page-thing"]],
+      ["Mod+Shift+E", ["alpha.open-thing"]],
+    ]);
+  });
+
+  test("a shared page key starts the Command of the module on screen, and elsewhere nothing", () => {
+    expect(commandForKey(sharedKey!, "alpha")?.fullId).toBe("alpha.page-thing");
+    expect(commandForKey(sharedKey!, "beta")?.fullId).toBe("beta.page-thing");
+    expect(commandForKey(sharedKey!, "gamma")).toBeUndefined();
+    expect(commandForKey(sharedKey!, undefined)).toBeUndefined();
+  });
+
+  test("an open key starts its Command in every module", () => {
+    expect(commandForKey(openKey!, "gamma")?.fullId).toBe("alpha.open-thing");
   });
 });
 

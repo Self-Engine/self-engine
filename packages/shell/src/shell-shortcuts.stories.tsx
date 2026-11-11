@@ -1,15 +1,18 @@
 import { ProjectsIcon } from "@self-engine/icons";
 import { confirm } from "@self-engine/ui";
 import type { Meta, StoryObj } from "@storybook/react-vite";
+import { useState } from "react";
 import { expect, fn, screen, userEvent, waitFor, within } from "storybook/test";
 import { z } from "zod";
 import {
   defineOpenCommand,
   definePageCommand,
+  Shell,
   type ShellContribution,
   type ShellProps,
 } from "./index.ts";
 import { onMac, onWindows, SETTINGS, shellMeta, storyRouting } from "./shell-story-helpers.tsx";
+import { registeredBindingIds } from "./shortcut-bindings.tsx";
 
 const body = { description: "A stand-in.", schema: z.object({}), run: () => undefined };
 const page = { id: "new", kind: "page", label: { id: "story-New", message: "New" } } as const;
@@ -192,5 +195,36 @@ export const TypingInAFieldStartsNothingAndModStillDoes: Story = {
     await expect(startedInFirst).not.toHaveBeenCalled();
     await pressNew();
     await expect(startedInFirst).toHaveBeenCalledOnce();
+  },
+};
+
+/** A Shell whose module the story switches with a button in the page, as navigating would. */
+function SwitchingShell(props: ShellProps) {
+  const [activeModule, setActiveModule] = useState(props.activeModule);
+  const next = activeModule === FIRST ? SECOND : FIRST;
+  return (
+    <Shell {...props} activeModule={activeModule}>
+      <button type="button" onClick={() => setActiveModule(next)}>
+        Switch module
+      </button>
+    </Shell>
+  );
+}
+
+export const SwitchingModulesKeepsEveryBinding: Story = {
+  render: (args) => <SwitchingShell {...args} />,
+  play: async ({ canvas }) => {
+    await bindingsArrived();
+    const before = registeredBindingIds();
+    const switchModule = canvas.getByRole("button", { name: "Switch module" });
+    await userEvent.click(switchModule);
+    await expect(registeredBindingIds()).toEqual(before);
+    await pressNew();
+    await expect(startedInSecond).toHaveBeenCalledOnce();
+    await userEvent.click(switchModule);
+    await expect(registeredBindingIds()).toEqual(before);
+    await pressNew();
+    await expect(startedInFirst).toHaveBeenCalledOnce();
+    await expect(startedInSecond).toHaveBeenCalledOnce();
   },
 };

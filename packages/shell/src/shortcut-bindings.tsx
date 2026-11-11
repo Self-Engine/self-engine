@@ -4,13 +4,14 @@
 import { isConfirmationOpen } from "@self-engine/ui";
 import {
   formatForDisplay,
+  getHotkeyManager,
   type HotkeyChord,
   normalizeHotkey,
   useHotkeys,
   validateHotkey,
 } from "@tanstack/react-hotkeys";
 import { useCommandPalette } from "./command-palette-state.tsx";
-import { commandRegister, isPageCommandElsewhere } from "./commands.ts";
+import { commandForKey, commandRegister, shortcutKeys } from "./commands.ts";
 import type { CommandScope } from "./palette-entries.ts";
 import { PALETTE_SHORTCUT, UNDO_COMMAND_ID } from "./shell-commands.ts";
 import { useStartCommand } from "./start-command.tsx";
@@ -30,12 +31,18 @@ export function readShortcut(shortcut: string): ReadShortcut {
   return { canonical: onMac, hasMod: [onMac, normalizeHotkey(chord, "windows")].every(startsMod) };
 }
 
+/** Two spellings of one key on this platform give the same string. */
+const sameKeyAs = (shortcut: string) => normalizeHotkey(shortcut as HotkeyChord);
+
 const startsMod = (chord: string) => chord.startsWith("Mod+");
 
 /** ⌘K on macOS, Ctrl+K elsewhere. */
 export const displayShortcut = (shortcut: string) =>
   // The library's macOS notation puts a space between the symbols.
   formatForDisplay(shortcut as HotkeyChord).replaceAll(" ", "");
+
+/** For the stories: which bindings are registered now, so they can tell when one is replaced. */
+export const registeredBindingIds = () => [...getHotkeyManager().registrations.state.keys()];
 
 export function ShortcutBindings({ owners, activeModuleId }: CommandScope) {
   const start = useStartCommand();
@@ -49,17 +56,23 @@ export function ShortcutBindings({ owners, activeModuleId }: CommandScope) {
           if (!quiet()) palette.open();
         },
       },
-      ...commandRegister(owners).flatMap((entry) => {
-        const { moduleId, command } = entry;
-        if (command.kind === "input" || command.defaultShortcut === undefined) return [];
-        if (isPageCommandElsewhere(entry, activeModuleId)) return [];
+      // One binding per key. Navigating keeps the list as it is, so the library only swaps the
+      // callbacks and options in place and registers nothing anew.
+      ...shortcutKeys(commandRegister(owners), sameKeyAs).map((key) => {
+        const entry = commandForKey(key, activeModuleId);
         return {
-          hotkey: command.defaultShortcut as HotkeyChord,
+          hotkey: key.shortcut as HotkeyChord,
           callback: () => {
-            if (!quiet()) void start(moduleId, command);
+            if (entry !== undefined && !quiet()) void start(entry.moduleId, entry.command);
           },
-          // In a field ⌘Z stays with the text. It is the one shortcut that does not work there.
-          ...(entry.fullId === UNDO_COMMAND_ID && { options: { ignoreInputs: true } }),
+          options: {
+            // Without a Command for it on screen, the key is left to the browser.
+            enabled: entry !== undefined,
+            // In a field ⌘Z stays with the text. It is the one shortcut that does not work there.
+            ...(key.entries.some(({ fullId }) => fullId === UNDO_COMMAND_ID) && {
+              ignoreInputs: true,
+            }),
+          },
         };
       }),
     ],
