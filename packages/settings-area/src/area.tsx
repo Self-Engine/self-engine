@@ -6,23 +6,9 @@ import { useLingui } from "@lingui/react/macro";
 import { CloseButton, Divider, Group, Stack, Text, TextInput, Title } from "@mantine/core";
 import { SearchIcon } from "@self-engine/icons";
 import type { SettingsStore } from "@self-engine/settings";
-import {
-  useViewSearch,
-  useWriteViewSearch,
-  type ViewPageProps,
-  type ViewSearch,
-} from "@self-engine/shell";
+import { useTypedViewSearch, type ViewPageProps } from "@self-engine/shell";
 import { EmptyState } from "@self-engine/ui";
-import {
-  type ComponentType,
-  Fragment,
-  memo,
-  useEffect,
-  useId,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import { type ComponentType, Fragment, memo, useId, useMemo, useRef } from "react";
 import type { SettingsRow } from "./row.ts";
 import { type SettingsRowSources, settingsRows } from "./rows.tsx";
 import { type HitGroup, searchedRows, searchHits } from "./search.ts";
@@ -239,39 +225,6 @@ function titleOf(views: readonly TitledView[], id: string, i18n: I18n) {
   return view ? i18n._(view.title) : id;
 }
 
-/** The search text of the address. The router reads `?q=100` as a number, which is still a text. */
-function searchInAddress(search: ViewSearch): string {
-  const text = search[SEARCH_PARAMETER];
-  if (typeof text === "string") return text;
-  return typeof text === "number" || typeof text === "boolean" ? String(text) : "";
-}
-
-/**
- * The search text, kept in the address so that it survives reload, Back and a change of View. The
- * field shows what was typed at once and does not wait for the address, which follows a moment
- * later; a text the address gets from elsewhere, such as Back, replaces what the field shows.
- */
-function useSearchInAddress(): readonly [string, (text: string) => void] {
-  const inAddress = useViewSearch(searchInAddress);
-  const write = useWriteViewSearch();
-  const [text, setText] = useState(inAddress);
-  /** What was typed and has not arrived in the address yet, oldest first. */
-  const onTheWay = useRef<readonly string[]>([]);
-  useEffect(() => {
-    const arrived = onTheWay.current.indexOf(inAddress);
-    onTheWay.current = arrived === -1 ? [] : onTheWay.current.slice(arrived + 1);
-    if (arrived === -1) setText(inAddress);
-  }, [inAddress]);
-  const search = (next: string) => {
-    setText(next);
-    onTheWay.current = [...onTheWay.current, next];
-    write(({ [SEARCH_PARAMETER]: _previous, ...others }) =>
-      next === "" ? others : { ...others, [SEARCH_PARAMETER]: next },
-    );
-  };
-  return [text, search];
-}
-
 /**
  * The one page of the area, which every View shows at its address: the list of rows is built once,
  * and a change of View during a search leaves the hits as they are.
@@ -286,7 +239,8 @@ export function settingsPage({
 }): ComponentType<ViewPageProps> {
   const rows = settingsRows(sources);
   return function SettingsViewPage({ viewId }) {
-    const [search, onSearch] = useSearchInAddress();
+    // In the address, so that the text survives reload, a change of View and coming back.
+    const [search, onSearch] = useTypedViewSearch(SEARCH_PARAMETER);
     return (
       <SettingsPage
         onSearch={onSearch}

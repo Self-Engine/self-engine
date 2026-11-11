@@ -7,6 +7,7 @@ export type {
   ShellRouting,
   ViewAddress,
   WriteViewSearch,
+  WriteViewSearchOptions,
 } from "./routing.tsx";
 
 export {
@@ -42,6 +43,7 @@ export { wordMatch } from "./word-match.ts";
 
 export { askLeaveGuards, useViewSearch, useWriteViewSearch } from "./routing.tsx";
 export { retainedViewSearch, type ViewSearch } from "./view-search.ts";
+export { useTypedViewSearch } from "./typed-view-search.ts";
 export { ShellGroup, ShellGroupEntry } from "./groups.tsx";
 export { useEditDrawerTitle } from "./edit-drawer-title.ts";
 export { useUnsavedChanges } from "./edit-drawer-exits.tsx";

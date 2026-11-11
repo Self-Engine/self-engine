@@ -1,7 +1,7 @@
 import { APPEARANCE_SETTINGS, appearanceChanges } from "@self-engine/settings-area/settings";
 import { DEFAULT_APPEARANCE } from "@self-engine/theme";
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { expect, userEvent, waitFor, within } from "storybook/test";
+import { expect, fireEvent, userEvent, waitFor, within } from "storybook/test";
 import { settingsStore } from "./settings-store.ts";
 import { AppAt, storyRouter } from "./story-app.tsx";
 
@@ -150,11 +150,55 @@ export const BackBringsTheSearchBack: Story = {
     await expect(await field(canvas)).toHaveValue("license");
     await expect((await hitsOf(canvas, "About")).getByText("AGPL-3.0-only")).toBeVisible();
     await addressHas("license");
+  },
+};
 
-    // Back within the settings takes the field along, here to the text one key press earlier.
+/** Typing rewrites the entry of the page, so Back does not step through the text key by key. */
+export const BackLeavesTheSearchInOneStep: Story = {
+  args: { address: "/placeholder-beta/overview" },
+  play: async ({ canvas }) => {
+    await userEvent.click(await canvas.findByRole("link", { name: "Settings" }));
+    await userEvent.type(await field(canvas), "license");
+    await addressHas("license");
+
     storyRouter().history.back();
-    await waitFor(async () => expect(await field(canvas)).toHaveValue("licens"));
-    await addressHas("licens");
+    await canvas.findByText("The minimal module View.");
+    await expect(location().pathname).toBe("/placeholder-beta/overview");
+
+    storyRouter().history.forward();
+    await expect(await field(canvas)).toHaveValue("license");
+    await addressHas("license");
+  },
+};
+
+/**
+ * A text that is typed and taken back before the address followed never arrives there. Back to an
+ * entry that holds that text is still Back, and the field shows it.
+ */
+export const BackToATextThatWasTypedAndTakenBack: Story = {
+  args: { address: `${APPEARANCE}?q=dark` },
+  play: async ({ canvas }) => {
+    await userEvent.click(await canvas.findByRole("link", { name: "Language" }));
+    await expectViewOfTheAddress(canvas, "Language");
+    const search = await field(canvas);
+    await userEvent.clear(search);
+    await userEvent.type(search, "compact");
+    await addressHas("compact");
+
+    // Both in one task, as a paste that is undone at once: the address goes straight to the end.
+    void fireEvent.change(search, { target: { value: "dark" } });
+    void fireEvent.change(search, { target: { value: "compact" } });
+    await waitFor(() => expect(storyRouter().state.status).toBe("idle"));
+    await addressHas("compact");
+    await expect(search).toHaveValue("compact");
+
+    storyRouter().history.back();
+    await waitFor(() => expect(location().pathname).toBe(APPEARANCE));
+    await addressHas("dark");
+    await waitFor(async () => expect(await field(canvas)).toHaveValue("dark"));
+    await expect(
+      (await hitsOf(canvas, "Appearance")).getByRole("radiogroup", { name: "Color Mode" }),
+    ).toBeVisible();
   },
 };
 
