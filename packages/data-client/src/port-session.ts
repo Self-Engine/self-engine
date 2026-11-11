@@ -40,9 +40,10 @@ export function watchPort(link: RPCLink<object>, events: PortSessionEvents): Por
       // A refusal means the data process is in a failure state; `health` names it. Any other
       // failure is a closed port, reported below as a lost one (D190).
       if (isRefusal(error)) {
-        const health = await client
-          .health(undefined, { signal: stopped.signal })
-          .catch(() => undefined);
+        const health = await client.health(undefined, { signal: stopped.signal }).catch(() => {
+          // The port closed before `health` answered: a lost port as well, reported below.
+          return undefined;
+        });
         if (stopped.signal.aborted) return;
         if (health !== undefined && health.state !== "ready") return events.refused(health);
       }

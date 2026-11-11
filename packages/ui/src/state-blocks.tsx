@@ -66,11 +66,20 @@ export function ErrorState({ title, description, onRetry, action }: ErrorStatePr
   );
 }
 
+/**
+ * Whether a wait that began when the component mounted has turned out slow: false for the first
+ * 200 ms, so a sign of waiting does not flicker for work that is over by then.
+ */
+export function useWaitIsSlow(): boolean {
+  const [slow, setSlow] = useState(false);
+  useTimeout(() => setSlow(true), LOADER_DELAY_MS, { autoInvoke: true });
+  return slow;
+}
+
 /** "Still loading", for work that turned out to be slow. */
 export function LoadingState() {
   const { t } = useLingui();
-  const [slow, setSlow] = useState(false);
-  useTimeout(() => setSlow(true), LOADER_DELAY_MS, { autoInvoke: true });
+  const slow = useWaitIsSlow();
   if (!slow) return null;
   return (
     <Center>

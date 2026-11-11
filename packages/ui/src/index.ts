@@ -16,4 +16,5 @@ export {
   ErrorState,
   type ErrorStateProps,
   LoadingState,
+  useWaitIsSlow,
 } from "./state-blocks.tsx";
