@@ -60,10 +60,12 @@ export function shortcutRows(commandOwners: readonly NamedCommandOwner[]): reado
   ]);
   return [
     shortcutRow("command-palette", general, msg`Open the Command Palette`, PALETTE_SHORTCUT),
-    ...commandRegister([shellCommands, ...commandOwners]).flatMap(({ fullId, moduleId, command }) => {
-      const group = groups.get(moduleId);
-      if (command.kind === "input" || command.defaultShortcut === undefined || !group) return [];
-      return [shortcutRow(fullId, group, command.label, command.defaultShortcut)];
-    }),
+    ...commandRegister([shellCommands, ...commandOwners]).flatMap(
+      ({ fullId, moduleId, command }) => {
+        const group = groups.get(moduleId);
+        if (command.kind === "input" || command.defaultShortcut === undefined || !group) return [];
+        return [shortcutRow(fullId, group, command.label, command.defaultShortcut)];
+      },
+    ),
   ];
 }

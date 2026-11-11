@@ -185,10 +185,7 @@ export function SettingsPage({ view, views, rows, store, search, onSearch }: Set
   const { t, i18n } = useLingui();
   // The texts are translated once per language and not per key press. `i18n` may stay the same
   // object when the language changes, so its language is named too.
-  const searched = useMemo(
-    () => searchedRows(rows, i18n),
-    [rows, i18n, i18n.locale],
-  );
+  const searched = useMemo(() => searchedRows(rows, i18n), [rows, i18n, i18n.locale]);
   const ofView = useMemo<readonly HitGroup<SettingsRow>[]>(
     () => [{ view, rows: rows.filter((row) => row.view === view) }],
     [rows, view],

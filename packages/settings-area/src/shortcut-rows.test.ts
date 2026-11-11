@@ -43,6 +43,9 @@ test("every row belongs to the View Shortcuts and has its own id", () => {
 });
 
 test("the search finds a Shortcut by the name of its Command", () => {
-  const hits = searchHits(searchedRows(shortcutRows([PROJECTS]), { locale: "en", _: english }), "undo");
+  const hits = searchHits(
+    searchedRows(shortcutRows([PROJECTS]), { locale: "en", _: english }),
+    "undo",
+  );
   expect(hits?.map((group) => group.rows.map((row) => english(row.title)))).toEqual([["Undo"]]);
 });

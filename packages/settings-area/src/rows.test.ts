@@ -149,17 +149,21 @@ test('every Accent a user may pick has a name, and so does "From Theme"', () => 
 });
 
 const foundBy = (search: string, i18n: Translator) =>
-  searchHits(searchedRows(settingsRows({ version: WEB, commandOwners: [] }), i18n), search)?.flatMap(
-    (group) => group.rows.map((found) => found.id),
-  );
+  searchHits(
+    searchedRows(settingsRows({ version: WEB, commandOwners: [] }), i18n),
+    search,
+  )?.flatMap((group) => group.rows.map((found) => found.id));
 
-test.each(LANGUAGE_TAGS)("the App Language is found by the name of %s in the language shown", (tag) => {
-  const english: Translator = { locale: "en", _: (descriptor) => descriptor.message ?? "" };
-  const german: Translator = { ...english, locale: "de" };
-  const name = (locale: string) => new Intl.DisplayNames([locale], { type: "language" }).of(tag)!;
-  expect(foundBy(name("en"), english)).toEqual(["app-language"]);
-  expect(foundBy(name("de"), german)).toEqual(["app-language"]);
-});
+test.each(LANGUAGE_TAGS)(
+  "the App Language is found by the name of %s in the language shown",
+  (tag) => {
+    const english: Translator = { locale: "en", _: (descriptor) => descriptor.message ?? "" };
+    const german: Translator = { ...english, locale: "de" };
+    const name = (locale: string) => new Intl.DisplayNames([locale], { type: "language" }).of(tag)!;
+    expect(foundBy(name("en"), english)).toEqual(["app-language"]);
+    expect(foundBy(name("de"), german)).toEqual(["app-language"]);
+  },
+);
 
 test("the App Language is found as German in English and as Englisch in German", () => {
   const english: Translator = { locale: "en", _: (descriptor) => descriptor.message ?? "" };

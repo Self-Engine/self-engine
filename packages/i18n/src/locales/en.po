@@ -187,10 +187,6 @@ msgstr "Discard"
 msgid "Discard changes?"
 msgstr "Discard changes?"
 
-#: packages/settings-area/src/rows.tsx
-msgid "English"
-msgstr "English"
-
 #: packages/placeholder-alpha/src/entries.tsx
 msgid "Entries you create appear here."
 msgstr "Entries you create appear here."
@@ -231,10 +227,6 @@ msgstr "Garden work"
 msgctxt "Shortcuts that belong to no module"
 msgid "General"
 msgstr "General"
-
-#: packages/settings-area/src/rows.tsx
-msgid "German"
-msgstr "German"
 
 #: packages/settings-area/src/theme-rows.tsx
 msgctxt "Accent"
@@ -561,6 +553,11 @@ msgstr "Try another word, or clear the search."
 #: packages/ui/src/feedback.tsx
 msgid "Undo"
 msgstr "Undo"
+
+#: packages/settings-area/src/about-rows.tsx
+msgctxt "Version of the app"
+msgid "Unknown"
+msgstr "Unknown"
 
 #: packages/settings-area/src/about-rows.tsx
 msgid "Version"

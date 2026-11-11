@@ -37,7 +37,10 @@ export function choiceRow<Value extends string>({
     return (
       <SegmentedControl
         aria-labelledby={labelledBy}
-        data={choices.map((choice) => ({ value: choice.value, label: shownText(choice.label, i18n) }))}
+        data={choices.map((choice) => ({
+          value: choice.value,
+          label: shownText(choice.label, i18n),
+        }))}
         onChange={(next) => {
           const choice = choices.find((candidate) => candidate.value === next);
           if (choice) store.write(setting, choice.value);

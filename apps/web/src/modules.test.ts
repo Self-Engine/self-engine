@@ -16,6 +16,11 @@ test("every Command has a unique full id and a schema that matches its kind", as
 test.each([
   ["in the desktop app", { version: "0.4.0", channel: "nightly", operatingSystem: "macOS" }],
   ["on the web", { version: "0.4.0", operatingSystem: "Windows" }],
-] as const)("the app's real list of Settings Rows fits the Views of Settings %s", (_where, version) => {
-  expect(auditSettingsArea(settings.views, { version, commandOwners: contributions })).toEqual([]);
-});
+] as const)(
+  "the app's real list of Settings Rows fits the Views of Settings %s",
+  (_where, version) => {
+    expect(auditSettingsArea(settings.views, { version, commandOwners: contributions })).toEqual(
+      [],
+    );
+  },
+);
