@@ -19,7 +19,7 @@ const PROJECTS: NamedCommandOwner = {
 const HABITS: NamedCommandOwner = { id: "habits", name: text("Habits") };
 
 const shown = (owners: readonly NamedCommandOwner[]) =>
-  shortcutRows(owners).map((row) => [english(row.group!), english(row.title)]);
+  shortcutRows(owners).map((row) => [english(row.group!.heading), english(row.title)]);
 
 test("the general Shortcuts come first: the Command Palette's, then the Shell's Commands", () => {
   expect(shown([])).toEqual([
@@ -43,6 +43,6 @@ test("every row belongs to the View Shortcuts and has its own id", () => {
 });
 
 test("the search finds a Shortcut by the name of its Command", () => {
-  const hits = searchHits(searchedRows(shortcutRows([PROJECTS]), english), "undo");
+  const hits = searchHits(searchedRows(shortcutRows([PROJECTS]), { locale: "en", _: english }), "undo");
   expect(hits?.map((group) => group.rows.map((row) => english(row.title)))).toEqual([["Undo"]]);
 });

@@ -1,9 +1,9 @@
 // What the settings search finds (D199). The rule is the Command Palette's, from the Shell's
 // `wordMatch`; this file only says what of a Settings Row is compared and how hits are grouped.
 
-import type { MessageDescriptor } from "@lingui/core";
 import { wordMatch } from "@self-engine/shell";
 import type { SettingsRow } from "./row.ts";
+import { shownText, type Translator } from "./text.ts";
 
 /** What of a Settings Row the search reads. */
 export type SearchableRow = Pick<
@@ -23,15 +23,12 @@ export interface SearchedRow<Row extends SearchableRow> {
  */
 export function searchedRows<Row extends SearchableRow>(
   rows: readonly Row[],
-  translate: (descriptor: MessageDescriptor) => string,
+  i18n: Translator,
 ): readonly SearchedRow<Row>[] {
   return rows.map((row) => ({
     row,
     searched: [row.title, row.description, ...row.searchWords, ...row.values]
-      .flatMap((part) => {
-        if (part === undefined) return [];
-        return [typeof part === "string" ? part : translate(part)];
-      })
+      .flatMap((part) => (part === undefined ? [] : [shownText(part, i18n)]))
       // A line break belongs to no word and is in no search text, so a match never spans two parts.
       .join("\n")
       .toLowerCase(),

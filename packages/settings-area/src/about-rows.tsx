@@ -3,8 +3,7 @@
 
 import type { MessageDescriptor } from "@lingui/core";
 import { msg } from "@lingui/core/macro";
-import { useLingui } from "@lingui/react";
-import { Trans } from "@lingui/react/macro";
+import { Trans, useLingui } from "@lingui/react/macro";
 import { Button, CopyButton, Text } from "@mantine/core";
 import type { SettingsRow, SettingsRowControlProps } from "./row.ts";
 import { type VersionInfo, versionLine } from "./version.ts";

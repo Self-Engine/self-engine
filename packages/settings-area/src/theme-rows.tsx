@@ -2,9 +2,9 @@
 // colors, and the Accent as colored circles (D201). Both are built on Mantine's `Radio.Card`, and
 // not on `Radio.Group`, which can only be named by a label of its own and not by the row's title.
 
-import type { I18n, MessageDescriptor } from "@lingui/core";
+import type { MessageDescriptor } from "@lingui/core";
 import { msg } from "@lingui/core/macro";
-import { useLingui } from "@lingui/react";
+import { useLingui } from "@lingui/react/macro";
 import {
   Box,
   ColorSwatch,
@@ -35,6 +35,7 @@ import {
 import { useId, useMemo } from "react";
 import type { SettingsRow, SettingsRowControlProps } from "./row.ts";
 import { APPEARANCE_SETTINGS } from "./settings.ts";
+import { type RowText, shownText } from "./text.ts";
 import { VIEW_IDS } from "./views.ts";
 
 const THEME_SETTINGS = {
@@ -49,13 +50,10 @@ const BUILT_IN_THEME_NAMES: Readonly<Record<string, MessageDescriptor>> = {
   cool: msg({ message: "Cool", context: "Theme" }),
 };
 
-const builtInName = (theme: Theme): MessageDescriptor | undefined =>
-  Object.hasOwn(BUILT_IN_THEME_NAMES, theme.id) ? BUILT_IN_THEME_NAMES[theme.id] : undefined;
-
-function themeName(theme: Theme, i18n: I18n): string {
-  const name = builtInName(theme);
-  return name ? i18n._(name) : theme.name;
-}
+/** A Theme that does not ship with the app has its one name in every language. */
+const themeName = (theme: Theme): RowText =>
+  (Object.hasOwn(BUILT_IN_THEME_NAMES, theme.id) ? BUILT_IN_THEME_NAMES[theme.id] : undefined) ??
+  theme.name;
 
 const PICKER_LABELS: Readonly<Record<ResolvedColorMode, MessageDescriptor>> = {
   light: msg`Theme for light`,
@@ -199,7 +197,7 @@ function ThemePicker({
                 <Group gap={rem(6)} px={rem(2)} wrap="nowrap">
                   <Radio.Indicator size="xs" />
                   <Text size="sm" truncate>
-                    {themeName(theme, i18n)}
+                    {shownText(themeName(theme), i18n)}
                   </Text>
                 </Group>
               </Stack>
@@ -273,8 +271,7 @@ export function themeRow(catalog: ThemeCatalog): SettingsRow {
     title: msg`Theme`,
     description: msg`The colors of the app. When the app follows the system, light and dark each have their own Theme.`,
     searchWords: [msg`Colors`, msg`Color scheme`, msg`Light Theme`, msg`Dark Theme`],
-    // A Theme that does not ship with the app has its one name in every language.
-    values: all.map((theme) => builtInName(theme) ?? theme.name),
+    values: all.map(themeName),
     settings: [APPEARANCE_SETTINGS.lightTheme.key, APPEARANCE_SETTINGS.darkTheme.key],
     control: ThemeControl,
   };

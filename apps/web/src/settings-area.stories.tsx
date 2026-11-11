@@ -79,6 +79,7 @@ const meta = {
         i18n={i18n}
         initialLanguage={startLanguage}
         loadCatalog={parameters["germanFailsToLoad"] === true ? germanFailsToLoad : loadAppCatalog}
+        store={settingsStore}
         systemLanguages={currentSystemLanguages}
       >
         <AppearanceProvider>

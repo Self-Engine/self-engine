@@ -1,6 +1,7 @@
 import type { MessageDescriptor } from "@lingui/core";
 import { expect, test } from "vite-plus/test";
 import { type HitGroup, type SearchableRow, searchedRows, searchHits } from "./search.ts";
+import type { Translator } from "./text.ts";
 
 const text = (message: string): MessageDescriptor => ({ id: message, message });
 
@@ -11,7 +12,7 @@ const row = (
   more: Partial<Pick<SearchableRow, "description" | "searchWords" | "values">> = {},
 ): SearchableRow => ({ id, view, title: text(title), searchWords: [], values: [], ...more });
 
-const english = (descriptor: MessageDescriptor) => descriptor.message!;
+const english: Translator = { locale: "en", _: (descriptor) => descriptor.message! };
 
 const GERMAN: Readonly<Record<string, string>> = {
   Density: "Dichte",
@@ -20,8 +21,10 @@ const GERMAN: Readonly<Record<string, string>> = {
   "Font scale": "Schriftgröße",
   "App Language": "App-Sprache",
 };
-const german = (descriptor: MessageDescriptor) =>
-  GERMAN[descriptor.message!] ?? descriptor.message!;
+const german: Translator = {
+  locale: "de",
+  _: (descriptor) => GERMAN[descriptor.message!] ?? descriptor.message!,
+};
 
 const ROWS = [
   row("density", "appearance", "Density", {

@@ -8,6 +8,7 @@ import { aboutRows } from "./about-rows.tsx";
 import type { SettingsRow } from "./row.ts";
 import { APP_LANGUAGE_SETTING, APPEARANCE_SETTINGS, SYSTEM_LANGUAGE } from "./settings.ts";
 import { type NamedCommandOwner, shortcutRows } from "./shortcut-rows.tsx";
+import type { LocalText } from "./text.ts";
 import type { VersionInfo } from "./version.ts";
 import { choiceRow, stopsRow, switchRow } from "./standard-rows.tsx";
 import { accentRow, themeRow } from "./theme-rows.tsx";
@@ -66,6 +67,16 @@ const LANGUAGE_CHOICES = LANGUAGE_TAGS.map((tag) => ({ value: tag, label: LANGUA
   // Compared by code unit, so that the order is the same on every device.
   .sort((a, b) => (a.label < b.label ? -1 : 1));
 
+/**
+ * Each language under its name in the language shown, so that "German" finds the row in English
+ * and "Englisch" in German. The browser knows these names, so a new language needs no entry here.
+ */
+const LANGUAGE_WORDS = LANGUAGE_TAGS.map(
+  (tag): LocalText =>
+    (locale) =>
+      new Intl.DisplayNames([locale], { type: "language" }).of(tag) ?? tag,
+);
+
 const LANGUAGE_ROWS: readonly SettingsRow[] = [
   // The row only writes the Setting. The app's watcher above the router loads the catalog and
   // switches (D200).
@@ -74,7 +85,7 @@ const LANGUAGE_ROWS: readonly SettingsRow[] = [
     view: VIEW_IDS.language,
     title: msg`App Language`,
     description: msg`The language the app is shown in. "System" follows the language of this device.`,
-    searchWords: [msg`Translation`, msg`German`, msg`English`],
+    searchWords: [msg`Translation`, ...LANGUAGE_WORDS],
     setting: APP_LANGUAGE_SETTING,
     choices: [
       { value: SYSTEM_LANGUAGE, label: msg({ message: "System", context: "App Language" }) },

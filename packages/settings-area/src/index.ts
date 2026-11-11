@@ -10,7 +10,7 @@ import type { NamedCommandOwner } from "./shortcut-rows.tsx";
 import type { VersionInfo } from "./version.ts";
 import { SEARCH_PARAMETER, type SettingsViewId, VIEW_IDS } from "./views.ts";
 
-export type { SettingsRow, SettingsRowControlProps } from "./row.ts";
+export type { SettingsRow, SettingsRowControlProps, SettingsRowGroup } from "./row.ts";
 export type { NamedCommandOwner } from "./shortcut-rows.tsx";
 export type { VersionInfo } from "./version.ts";
 

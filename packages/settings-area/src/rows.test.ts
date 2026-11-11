@@ -1,3 +1,4 @@
+import { LANGUAGE_TAGS } from "@self-engine/i18n";
 import { createSettingsStore } from "@self-engine/settings";
 import { createTestAdapter } from "@self-engine/settings/testing";
 import { ACCENT_IDS, BUILT_IN_THEMES } from "@self-engine/theme";
@@ -6,6 +7,8 @@ import { auditSettingsRows } from "./audit-rows.ts";
 import { auditSettingsArea } from "./audit.ts";
 import { createSettingsArea } from "./index.ts";
 import { settingsRows } from "./rows.tsx";
+import { searchedRows, searchHits } from "./search.ts";
+import type { Translator } from "./text.ts";
 import { accentRow } from "./theme-rows.tsx";
 import { type VersionInfo, versionLine } from "./version.ts";
 
@@ -143,4 +146,23 @@ test("About keeps its row for the version when the app does not know it", () => 
 
 test('every Accent a user may pick has a name, and so does "From Theme"', () => {
   expect(accentRow(BUILT_IN_THEMES).values).toHaveLength(ACCENT_IDS.length + 1);
+});
+
+const foundBy = (search: string, i18n: Translator) =>
+  searchHits(searchedRows(settingsRows({ version: WEB, commandOwners: [] }), i18n), search)?.flatMap(
+    (group) => group.rows.map((found) => found.id),
+  );
+
+test.each(LANGUAGE_TAGS)("the App Language is found by the name of %s in the language shown", (tag) => {
+  const english: Translator = { locale: "en", _: (descriptor) => descriptor.message ?? "" };
+  const german: Translator = { ...english, locale: "de" };
+  const name = (locale: string) => new Intl.DisplayNames([locale], { type: "language" }).of(tag)!;
+  expect(foundBy(name("en"), english)).toEqual(["app-language"]);
+  expect(foundBy(name("de"), german)).toEqual(["app-language"]);
+});
+
+test("the App Language is found as German in English and as Englisch in German", () => {
+  const english: Translator = { locale: "en", _: (descriptor) => descriptor.message ?? "" };
+  expect(foundBy("german", english)).toEqual(["app-language"]);
+  expect(foundBy("englisch", { ...english, locale: "de" })).toEqual(["app-language"]);
 });

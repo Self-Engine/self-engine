@@ -90,13 +90,13 @@ interface RowGroupProps {
 /** The rows that share a heading within their View, in the order of the list. */
 function subgroupsOf(rows: readonly SettingsRow[]) {
   const subgroups = new Map<string, { heading?: MessageDescriptor; rows: SettingsRow[] }>();
-  // Rows without a heading come first, whatever the order of the hits.
+  // Rows without a heading come first, whatever the order of the hits. No group has the empty key.
   subgroups.set("", { rows: [] });
   for (const row of rows) {
-    const key = row.group?.id ?? "";
+    const key = row.group?.key ?? "";
     const known = subgroups.get(key);
     if (known) known.rows.push(row);
-    else subgroups.set(key, { ...(row.group && { heading: row.group }), rows: [row] });
+    else subgroups.set(key, { ...(row.group && { heading: row.group.heading }), rows: [row] });
   }
   return [...subgroups].flatMap(([key, subgroup]) =>
     subgroup.rows.length > 0 ? [{ key, ...subgroup }] : [],
@@ -186,7 +186,7 @@ export function SettingsPage({ view, views, rows, store, search, onSearch }: Set
   // The texts are translated once per language and not per key press. `i18n` may stay the same
   // object when the language changes, so its language is named too.
   const searched = useMemo(
-    () => searchedRows(rows, (descriptor) => i18n._(descriptor)),
+    () => searchedRows(rows, i18n),
     [rows, i18n, i18n.locale],
   );
   const ofView = useMemo<readonly HitGroup<SettingsRow>[]>(

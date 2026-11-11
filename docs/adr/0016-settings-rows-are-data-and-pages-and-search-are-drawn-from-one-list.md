@@ -12,13 +12,13 @@ The settings area has to show every Setting on the page of a View and let a sear
 
 ## Decision
 
-1. **Every visible line of the settings area is one Settings Row in one list.** A row has an id, the View it belongs to, a title, an optional description, search words, the names of its values, and a control. Titles, descriptions, search words and value names are message descriptors, translated when shown, so they follow a change of the App Language.
+1. **Every visible line of the settings area is one Settings Row in one list.** A row has an id, the View it belongs to, a title, an optional description, search words, the names of its values, and a control. Titles, descriptions, search words and value names are message descriptors, translated when shown, so they follow a change of the App Language. A search word may instead be worked out for the language shown, such as the name of a language, which the browser knows.
 
 2. **The page of a View draws its rows from that list, in order, and the search filters the same list.** Nothing about a row is declared a second time. The Views share one page, which is told the View on screen and builds the list once, so a change of View during a search leaves the hits where they are.
 
 3. **A row is not a Setting.** It may serve one Setting, several or none, and a Setting may have no row. The row follows what the user sees, not how a value is stored.
 
-4. **The control is a component of the row.** Standard shapes (a few named values, on or off, a few numbers in order) are built by helpers that also fill in the names of the values. A row that fits none of them draws its control itself and is still one row with a title and search words. A row may also be produced from other data: the rows of the View Shortcuts are built from the Command register over what the app hands in, so a new module's Shortcuts need no entry. Rows that belong together within a View, such as the Shortcuts of one module, name a shared heading, and the page and the hit list draw them under it.
+4. **The control is a component of the row.** Standard shapes (a few named values, on or off, a few numbers in order) are built by helpers that also fill in the names of the values. A row that fits none of them draws its control itself and is still one row with a title and search words. A row may also be produced from other data: the rows of the View Shortcuts are built from the Command register over what the app hands in, so a new module's Shortcuts need no entry. Rows that belong together within a View, such as the Shortcuts of one module, name a shared heading with a key of its own, and the page and the hit list draw them under it. The key tells two headings apart that read alike.
 
 5. **The settings area is the package `@self-engine/settings-area`.** Its main entry exports a function that takes what the app owns, at first the settings store, and returns the Shell Contribution `settings`; the app keeps handing it to the Shell beside the modules. Only the id, name, icon and View titles are in the startup bundle. The list of rows and every control load as one chunk when the settings are first opened, not one per View.
 

@@ -26,7 +26,7 @@ await activateLanguage(i18n, language);
 
 createRoot(container).render(
   <StrictMode>
-    <AppLanguage i18n={i18n} initialLanguage={language}>
+    <AppLanguage i18n={i18n} initialLanguage={language} store={settingsStore}>
       <AppearanceProvider>
         <FeedbackHost>
           <RouterProvider router={router} />

@@ -1,23 +1,22 @@
 // The standard shapes of a Settings Row's control. A row that fits none of them writes its own
 // `control` (ADR 0016).
 
-import type { I18n, MessageDescriptor } from "@lingui/core";
-import { useLingui } from "@lingui/react";
+import type { I18n } from "@lingui/core";
+import { useLingui } from "@lingui/react/macro";
 import { SegmentedControl, Slider, Switch } from "@mantine/core";
 import type { SettingDeclaration } from "@self-engine/settings";
 import { useSetting } from "@self-engine/settings/react";
 import type { SettingsRow, SettingsRowControlProps } from "./row.ts";
+import { type RowText, shownText } from "./text.ts";
 
-type RowText = Pick<SettingsRow, "id" | "view" | "title" | "description" | "searchWords">;
+/** What every standard row says about itself, besides its Setting. */
+type RowBase = Pick<SettingsRow, "id" | "view" | "title" | "description" | "searchWords">;
 
 interface Choice<Value extends string> {
   readonly value: Value;
   /** A plain text is shown as it is, in every language. */
-  readonly label: MessageDescriptor | string;
+  readonly label: RowText;
 }
-
-const nameOf = (label: MessageDescriptor | string, i18n: I18n) =>
-  typeof label === "string" ? label : i18n._(label);
 
 /**
  * A Setting with a few named values, all visible at once. A stored value that is none of the
@@ -27,7 +26,7 @@ export function choiceRow<Value extends string>({
   setting,
   choices,
   ...text
-}: RowText & {
+}: RowBase & {
   readonly setting: SettingDeclaration<Value>;
   readonly choices: readonly Choice<Value>[];
 }): SettingsRow {
@@ -38,7 +37,7 @@ export function choiceRow<Value extends string>({
     return (
       <SegmentedControl
         aria-labelledby={labelledBy}
-        data={choices.map((choice) => ({ value: choice.value, label: nameOf(choice.label, i18n) }))}
+        data={choices.map((choice) => ({ value: choice.value, label: shownText(choice.label, i18n) }))}
         onChange={(next) => {
           const choice = choices.find((candidate) => candidate.value === next);
           if (choice) store.write(setting, choice.value);
@@ -59,7 +58,7 @@ export function choiceRow<Value extends string>({
 export function switchRow({
   setting,
   ...text
-}: RowText & { readonly setting: SettingDeclaration<boolean> }): SettingsRow {
+}: RowBase & { readonly setting: SettingDeclaration<boolean> }): SettingsRow {
   function SwitchControl({ store, labelledBy }: SettingsRowControlProps) {
     const checked = useSetting(store, setting);
     return (
@@ -81,7 +80,7 @@ export function stopsRow<Stop extends number>({
   stops,
   format,
   ...text
-}: RowText & {
+}: RowBase & {
   readonly setting: SettingDeclaration<Stop>;
   readonly stops: readonly [Stop, Stop, ...Stop[]];
   /** The name of a stop, in the language shown. */

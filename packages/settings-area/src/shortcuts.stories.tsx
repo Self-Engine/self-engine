@@ -45,10 +45,11 @@ const onMac = () => pretendPlatform("MacIntel", "Macintosh");
 const meta = {
   title: "Settings area/Shortcuts",
   loaders: [
-    async (): Promise<{ readonly Page: ComponentType }> => {
+    async ({ parameters }): Promise<{ readonly Page: ComponentType }> => {
       // Loaded, because a search also draws the controls of the other Views.
       const store = await loadedStoreOn(memoryStorage());
-      return { Page: storyViewPage("shortcuts", { store, commandOwners: OWNERS }) };
+      const commandOwners = (parameters["owners"] as readonly NamedCommandOwner[]) ?? OWNERS;
+      return { Page: storyViewPage("shortcuts", { store, commandOwners }) };
     },
   ],
   render: (_args, { loaded }) => {
@@ -136,5 +137,34 @@ export const InGerman: Story = {
       "rück",
     );
     await expect(groupOf(canvas, "Tastenkürzel").getByText("Rückgängig")).toBeVisible();
+  },
+};
+
+/** A heading belongs to its owner and not to its wording: the same name twice is two headings. */
+export const TwoOwnersWithTheSameNameKeepTheirOwnHeading: Story = {
+  parameters: {
+    owners: [
+      {
+        id: "tools",
+        name: text("Tools"),
+        commands: [
+          { id: "sharpen", kind: "open", label: text("Sharpen"), defaultShortcut: "Mod+1", load },
+        ],
+      },
+      {
+        id: "more-tools",
+        name: text("Tools"),
+        commands: [
+          { id: "polish", kind: "open", label: text("Polish"), defaultShortcut: "Mod+2", load },
+        ],
+      },
+    ] satisfies readonly NamedCommandOwner[],
+  },
+  play: async ({ canvas }) => {
+    const tools = canvas.getAllByRole("region", { name: "Tools" });
+    await expect(tools).toHaveLength(2);
+    await expect(within(tools[0]!).getByText("Sharpen")).toBeVisible();
+    await expect(within(tools[0]!).queryByText("Polish")).toBeNull();
+    await expect(within(tools[1]!).getByText("Polish")).toBeVisible();
   },
 };

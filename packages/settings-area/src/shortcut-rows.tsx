@@ -10,7 +10,7 @@ import {
   shellCommands,
   ShortcutHint,
 } from "@self-engine/shell";
-import type { SettingsRow } from "./row.ts";
+import type { SettingsRow, SettingsRowGroup } from "./row.ts";
 import { VIEW_IDS } from "./views.ts";
 
 /** A Command owner the list can name: its Shortcuts stand under that name. */
@@ -30,7 +30,7 @@ function shownShortcut(shortcut: string) {
 
 const shortcutRow = (
   id: string,
-  group: MessageDescriptor,
+  group: SettingsRowGroup,
   title: MessageDescriptor,
   shortcut: string,
 ): SettingsRow => ({
@@ -49,10 +49,14 @@ const shortcutRow = (
  * until Shortcuts can be rebound (D75).
  */
 export function shortcutRows(commandOwners: readonly NamedCommandOwner[]): readonly SettingsRow[] {
-  const general = msg({ message: "General", context: "Shortcuts that belong to no module" });
-  const groups = new Map<string, MessageDescriptor>([
-    [shellCommands.id, general],
-    ...commandOwners.map(({ id, name }) => [id, name] as const),
+  // Told apart by the id of the owner, which is unique in the app; the name need not be.
+  const general: SettingsRowGroup = {
+    key: shellCommands.id,
+    heading: msg({ message: "General", context: "Shortcuts that belong to no module" }),
+  };
+  const groups = new Map<string, SettingsRowGroup>([
+    [general.key, general],
+    ...commandOwners.map(({ id, name }) => [id, { key: id, heading: name }] as const),
   ]);
   return [
     shortcutRow("command-palette", general, msg`Open the Command Palette`, PALETTE_SHORTCUT),

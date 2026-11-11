@@ -71,7 +71,12 @@ const meta = {
   ],
   decorators: [
     (Story) => (
-      <AppLanguage i18n={i18n} initialLanguage="en" systemLanguages={ENGLISH_SYSTEM}>
+      <AppLanguage
+        i18n={i18n}
+        initialLanguage="en"
+        store={settingsStore}
+        systemLanguages={ENGLISH_SYSTEM}
+      >
         <Story />
       </AppLanguage>
     ),
