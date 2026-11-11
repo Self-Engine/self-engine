@@ -14,7 +14,17 @@ export type ConnectionState =
    * The data process kept crashing and is not restarted until a retry. Calls wait; a retry is
    * `disconnect()` (back to waiting for a port) and a new port.
    */
-  | { readonly status: "stopped" };
+  | { readonly status: "stopped" }
+  /**
+   * The data process could not run this app's migration `migration`; it rolled back and answers
+   * only `health`. Not restarted: a restart would fail the same way.
+   */
+  | { readonly status: "migrationFailed"; readonly migration: string }
+  /**
+   * The database ran `migration`, which this app does not know: a newer app used it. The data
+   * process answers only `health`.
+   */
+  | { readonly status: "databaseNewer"; readonly migration: string };
 
 export type ConnectionStatus = ConnectionState["status"];
 

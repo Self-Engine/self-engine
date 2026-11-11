@@ -175,3 +175,31 @@ test("a port that arrives while stopped reconnects, as after a retry from anothe
 
   expect(statuses).toEqual(["connecting", "ready"]);
 });
+
+test("reports migrationFailed naming the migration when the data process refuses to serve", async () => {
+  dataProcess = await startTestDataProcess({
+    migrations: [{ name: "time/0001", sql: "THIS IS NOT SQL;" }],
+  });
+  const connection = newConnection();
+
+  connection.connect(dataProcess.openPort());
+  await untilStatus(connection, "migrationFailed");
+
+  expect(connection.getState()).toEqual({ status: "migrationFailed", migration: "time/0001" });
+});
+
+test("reports databaseNewer naming the migration this app does not know", async () => {
+  const time = (n: string) => ({ name: `time/${n}`, sql: `CREATE TABLE t${n} (id TEXT) STRICT;` });
+  // A newer app ran two migrations on the database; this app knows only the first.
+  const newer = await startTestDataProcess({ migrations: [time("0001"), time("0002")] });
+  dataProcess = await startTestDataProcess({
+    database: newer.database,
+    migrations: [time("0001")],
+  });
+  const connection = newConnection();
+
+  connection.connect(dataProcess.openPort());
+  await untilStatus(connection, "databaseNewer");
+
+  expect(connection.getState()).toEqual({ status: "databaseNewer", migration: "time/0002" });
+});

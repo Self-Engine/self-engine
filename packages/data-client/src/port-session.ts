@@ -1,7 +1,7 @@
-import { createORPCClient } from "@orpc/client";
+import { createORPCClient, ORPCError } from "@orpc/client";
 import type { RPCLink } from "@orpc/client/message-port";
 import type { ContractRouterClient } from "@orpc/contract";
-import type { AppContract, TablesChanged } from "@self-engine/contracts";
+import type { AppContract, Health, TablesChanged } from "@self-engine/contracts";
 
 export interface PortSessionEvents {
   /** The stream's first, empty event arrived: the port answers. */
@@ -10,6 +10,8 @@ export interface PortSessionEvents {
   tablesChanged(tables: TablesChanged): void;
   /** The stream ended on its own: the port closed or the data process is gone. */
   lost(): void;
+  /** The data process answers, but only `health`: its start failed in this state. */
+  refused(health: Exclude<Health, { state: "ready" }>): void;
 }
 
 export interface PortSession {
@@ -34,10 +36,22 @@ export function watchPort(link: RPCLink<object>, events: PortSessionEvents): Por
         else events.tablesChanged(tables);
         first = false;
       }
-    } catch {
-      // The stream fails when its port closes; the end below reports it as a lost port (D190).
+    } catch (error) {
+      // A refusal means the data process is in a failure state; `health` names it. Any other
+      // failure is a closed port, reported below as a lost one (D190).
+      if (isRefusal(error)) {
+        const health = await client
+          .health(undefined, { signal: stopped.signal })
+          .catch(() => undefined);
+        if (stopped.signal.aborted) return;
+        if (health !== undefined && health.state !== "ready") return events.refused(health);
+      }
     }
     if (!stopped.signal.aborted) events.lost();
   })();
   return { stop: () => stopped.abort() };
+}
+
+function isRefusal(error: unknown): boolean {
+  return error instanceof ORPCError && error.code === "SERVICE_UNAVAILABLE";
 }

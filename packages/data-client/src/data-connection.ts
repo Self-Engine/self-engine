@@ -81,8 +81,9 @@ export function createDataConnection(): DataConnection {
     subscribe: (listener) => state.subscribe(listener),
     connect(port) {
       session?.stop();
-      const current = state.getState();
-      if (current === READY || current === STOPPED) state.set(waiting());
+      // A new port starts over: whatever the last one ended in, the connection waits for it.
+      const current = state.getState().status;
+      if (current !== "connecting" && current !== "reconnecting") state.set(waiting());
       const link = new RPCLink({ port });
       if ("start" in port && typeof port.start === "function") port.start();
       nextLink.resolve(link);
@@ -98,11 +99,14 @@ export function createDataConnection(): DataConnection {
         lost() {
           if (session === own) loseSession();
         },
+        refused(health) {
+          if (session === own) state.set({ status: health.state, migration: health.migration });
+        },
       });
       session = own;
     },
     disconnect() {
-      if (session !== undefined || state.getState() === STOPPED) loseSession();
+      if (session !== undefined || state.getState().status !== "connecting") loseSession();
     },
     stop() {
       dropSession();
