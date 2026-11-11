@@ -1,7 +1,7 @@
 import { MessageChannel, type MessagePort } from "node:worker_threads";
 import type { Database, Migration } from "@self-engine/db";
 import { openDatabase } from "@self-engine/db/better-sqlite3";
-import { startDataProcess } from "../core/index.ts";
+import { type BeforeMigrations, startDataProcess } from "../core/index.ts";
 
 export interface TestDataProcessOptions {
   /** The migrations to run at the start, as a module would compose them. Default: none. */
@@ -11,6 +11,8 @@ export interface TestDataProcessOptions {
    * app does not know). Default: a fresh in-memory database. `close()` closes it either way.
    */
   readonly database?: Database;
+  /** Passed to the core: called before the migrations run when some are pending. */
+  readonly beforeMigrations?: BeforeMigrations;
 }
 
 export interface TestDataProcess {
@@ -33,7 +35,11 @@ export async function startTestDataProcess(
   options: TestDataProcessOptions = {},
 ): Promise<TestDataProcess> {
   const database = options.database ?? openDatabase(":memory:");
-  const core = await startDataProcess({ database, migrations: options.migrations ?? [] });
+  const core = await startDataProcess({
+    database,
+    migrations: options.migrations ?? [],
+    ...(options.beforeMigrations && { beforeMigrations: options.beforeMigrations }),
+  });
   const ports: MessagePort[] = [];
   return {
     database,

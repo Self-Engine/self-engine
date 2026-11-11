@@ -1,13 +1,15 @@
 import type { Database, Migration } from "@self-engine/db";
 import { createRouter } from "./router.ts";
 import { createPortServer, type DataPort } from "./serve.ts";
-import { migrate } from "./startup.ts";
+import { type BeforeMigrations, migrate } from "./startup.ts";
 
 export interface DataProcessOptions {
   /** The opened database; the platform opens it with its own driver. */
   readonly database: Database;
   /** Every module's migrations, composed by the caller (D135). */
   readonly migrations: readonly Migration[];
+  /** Called before the migrations run when some are pending, and not when none are (D138). */
+  readonly beforeMigrations?: BeforeMigrations;
 }
 
 export interface DataProcess {
@@ -23,7 +25,8 @@ export interface DataProcess {
 export async function startDataProcess({
   database,
   migrations,
+  beforeMigrations,
 }: DataProcessOptions): Promise<DataProcess> {
-  const health = await migrate(database, migrations);
+  const health = await migrate(database, migrations, beforeMigrations);
   return { serve: createPortServer(createRouter({ health })) };
 }
