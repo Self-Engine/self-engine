@@ -48,6 +48,7 @@ export interface VerifyDesktopApp {
   deepLink(route: string): Promise<void>;
   startMainAction(): Promise<boolean>;
   isEditDrawerOpen(): Promise<boolean>;
+  closeEditDrawer(): Promise<void>;
   readWindowButtonContent(): Promise<readonly WindowButtonContent[]>;
 }
 export interface DesktopStep extends DesktopState {
@@ -224,6 +225,7 @@ export async function verifyDesktop(
       !(await capture(
         "edit-deep-link",
         async () => {
+          await app.closeEditDrawer();
           await app.openSettings();
           await app.deepLink(address);
         },
@@ -387,6 +389,12 @@ export function verifyDesktopDriver(app: ElectronApplication, folder: string): V
         .waitFor();
       await settle();
       return true;
+    },
+    async closeEditDrawer() {
+      const close = (await page).getByRole("button", { name: /^(Close editor|Editor schließen)$/ });
+      await close.click();
+      await close.waitFor({ state: "hidden" });
+      await settle();
     },
     async isEditDrawerOpen() {
       return (await page)

@@ -47,6 +47,9 @@ function fakeApp(): VerifyDesktopApp & {
     async startMainAction() {
       return false;
     },
+    async closeEditDrawer() {
+      route = route.split("?")[0]!;
+    },
     async isEditDrawerOpen() {
       return route.includes("?edit=");
     },
@@ -288,8 +291,16 @@ it("opens a full View deep link after navigating away and rejects a wrong destin
 it("reopens the edit address from the first module with a main action", async () => {
   const app = fakeApp();
   const read = app.readState.bind(app);
+  const openSettings = app.openSettings.bind(app);
   let edit = false;
   let attempts = 0;
+  app.openSettings = async () => {
+    if (edit) throw new Error("The Edit Drawer covers navigation");
+    await openSettings();
+  };
+  app.closeEditDrawer = async () => {
+    edit = false;
+  };
   app.startMainAction = async () => {
     attempts++;
     edit = attempts === 2;
