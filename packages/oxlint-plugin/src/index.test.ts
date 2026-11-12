@@ -1,3 +1,4 @@
+import noForeignRowMap from "./rules/no-foreign-row-map.ts";
 import { describe, expect, it } from "vite-plus/test";
 import plugin from "./index.ts";
 import noGlobalTMacro from "./rules/no-global-t-macro.ts";
@@ -14,6 +15,7 @@ describe("@self-engine/oxlint-plugin", () => {
   it("exports every rule under its name", () => {
     expect(plugin.rules).toEqual({
       "no-global-t-macro": noGlobalTMacro,
+      "no-foreign-row-map": noForeignRowMap,
       "no-import-type-query": noImportTypeQuery,
       "no-query-or-throw": noQueryOrThrow,
       "no-raw-storage-sql": noRawStorageSql,
