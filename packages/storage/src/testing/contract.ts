@@ -79,6 +79,8 @@ export async function checkContract<Contract extends StorageContract, Rows exten
   try {
     const indexes = await uniqueIndexes(schemaDatabase, Object.keys(module.rowMap));
     for (const columns of new Set(indexes.map((index) => index.columns))) {
+      // Expression indexes are named in SQLite's diagnostic and remain distinguishable.
+      if (columns === undefined) continue;
       const matching = indexes.filter((index) => index.columns === columns);
       const reasons = new Set(
         matching

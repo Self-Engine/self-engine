@@ -92,8 +92,8 @@ After the cursor-seek fixes, the following measurements use **100,000 rows**, **
 pages**, **31 warm-up calls** and the median of **101 measured calls** per case, on in-memory
 SQLite **3.53.4**, Node **26.13.0**, arm64. They time `pageList.run` (query building, cursor
 handling, SQLite execution and row mapping) inside one existing transaction, without the frame
-or process hop. Rows have ten repeated `created_at` values per group and distinct titles and
-ids within each group. Each order has its own matching partial live-row index beginning with
+or process hop. Each group has ten rows sharing one `created_at` value and distinct titles and
+ids. Each order has its own matching partial live-row index beginning with
 `space_id`. The later page starts after the row at offset 79,999 (page at row 80,000).
 
 | Fixed order                          | First page | Page at row 80,000 |

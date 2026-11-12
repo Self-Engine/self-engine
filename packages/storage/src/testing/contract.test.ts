@@ -760,3 +760,24 @@ test("the kit names extra output fields accurately", async () => {
     { entry: "echo", rule: "output contains fields outside the contract" },
   ]);
 });
+
+test("expression indexes remain distinguishable by their diagnostic names", async () => {
+  const fixture = {
+    ...referenceNotes,
+    migrations: [
+      ...referenceNotes.migrations,
+      {
+        name: "notes/0003",
+        sql: "CREATE UNIQUE INDEX notes_lower ON notes(space_id, lower(title)) WHERE deleted_at IS NULL; CREATE UNIQUE INDEX notes_upper ON notes(space_id, upper(title)) WHERE deleted_at IS NULL;",
+      },
+    ],
+    conflicts: {
+      notes_live_title: "title_taken",
+      notes_lower: "lower_taken",
+      notes_upper: "upper_taken",
+    },
+    contract: { list: referenceNotes.contract.list },
+    entries: { list: referenceNotes.entries.list },
+  };
+  await expect(checkContract(fixture, seed, { list: {} })).resolves.toEqual([]);
+});
