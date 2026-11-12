@@ -6,6 +6,7 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
+    "./layout": "./src/layout.ts",
     "./story-interactions": "./src/story-interactions.ts"
   },
   "dependencies": {

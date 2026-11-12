@@ -1,3 +1,8 @@
+import {
+  SHELL_REFERENCE_WIDTHS,
+  SHELL_TOP_STRIP_HEIGHT,
+  START_AFTER_WINDOW_BUTTONS_PX,
+} from "@self-engine/shell/layout";
 // Shared by the Shell's Stories, which are split by concern. Not a story file, so the Catalog
 // does not list it.
 
@@ -87,10 +92,19 @@ export const SETTINGS: ShellContribution = {
 
 /** One real window width per Layout Step, around Mantine's own breakpoints. */
 export const VIEWPORTS = {
-  wide: { name: "Wide", styles: { width: "1280px", height: "800px" } },
-  medium: { name: "Medium", styles: { width: "1100px", height: "800px" } },
-  narrow: { name: "Narrow", styles: { width: "800px", height: "800px" } },
-  narrowest: { name: "Narrowest", styles: { width: "576px", height: "800px" } },
+  wide: { name: "Wide", styles: { width: `${SHELL_REFERENCE_WIDTHS.wide}px`, height: "800px" } },
+  medium: {
+    name: "Medium",
+    styles: { width: `${SHELL_REFERENCE_WIDTHS.medium}px`, height: "800px" },
+  },
+  narrow: {
+    name: "Narrow",
+    styles: { width: `${SHELL_REFERENCE_WIDTHS.narrow}px`, height: "800px" },
+  },
+  narrowest: {
+    name: "Narrowest",
+    styles: { width: `${SHELL_REFERENCE_WIDTHS.narrowest}px`, height: "800px" },
+  },
   phone: { name: "Phone", styles: { width: "390px", height: "800px" } },
 };
 
@@ -393,7 +407,7 @@ export const brandPlace = (canvas: Canvas) => {
   return { markLeft: mark.left, markTop: mark.top, nameLeft: name.left };
 };
 
-export const STRIP_HEIGHT = 48;
+export const STRIP_HEIGHT = SHELL_TOP_STRIP_HEIGHT;
 
 export const dividerIn = (navbar: Element) => {
   const divider = [...navbar.children].find((child) => widthOf(child) === 1);
@@ -454,7 +468,10 @@ export const BOTH_COLLAPSED = {
 
 /** The icons-only Navbar ends 8 px after the window buttons, which end 76 px from the window edge. */
 export const expectIconsOnlyNavbarHoldsTheWindowButtons = async (canvas: Canvas): Promise<void> => {
-  await expect(navbarOf(canvas).getBoundingClientRect().right).toBeCloseTo(84, 0);
+  await expect(navbarOf(canvas).getBoundingClientRect().right).toBeCloseTo(
+    START_AFTER_WINDOW_BUTTONS_PX,
+    0,
+  );
 };
 
 /** Centered on the wider icons-only Navbar, in the geometry an entry has everywhere else. */

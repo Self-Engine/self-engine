@@ -1,3 +1,4 @@
+import { SHELL_REFERENCE_WIDTHS } from "@self-engine/shell/layout";
 import type { Meta } from "@storybook/react-vite";
 import { expect, screen, userEvent, waitFor, within } from "storybook/test";
 import { Shell, type ShellProps } from "./index.ts";
@@ -438,7 +439,7 @@ export const NavbarWidthComesBackAfterTheWindowWasNarrow: Story = {
     await drag.release(40);
     await expect(widthOf(navbar)).toBe(260);
     await expect(args.onNavbarCommit).toHaveBeenCalledTimes(1);
-    await atFrameWidth(1100, async () => {
+    await atFrameWidth(SHELL_REFERENCE_WIDTHS.medium, async () => {
       await waitFor(() => expect(widthOf(navbar)).toBe(56));
     });
     await waitFor(() => expect(widthOf(navbarOf(canvas))).toBe(260));

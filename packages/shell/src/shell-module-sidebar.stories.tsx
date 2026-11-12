@@ -1,3 +1,4 @@
+import { SHELL_REFERENCE_WIDTHS } from "@self-engine/shell/layout";
 import { MantineThemeProvider } from "@mantine/core";
 import type { Meta } from "@storybook/react-vite";
 import { expect, screen, userEvent, waitFor } from "storybook/test";
@@ -220,11 +221,11 @@ export const TheCollapseToggleExistsOnlyAtTheWideAndMediumSteps: Story = {
   ...resizable,
   play: async ({ canvas }) => {
     await expect(collapseToggle(canvas)).toBeVisible();
-    await atFrameWidth(1100, async () => {
+    await atFrameWidth(SHELL_REFERENCE_WIDTHS.medium, async () => {
       await waitFor(() => expect(widthOf(navbarOf(canvas))).toBe(56));
       await expect(collapseToggle(canvas)).toBeVisible();
     });
-    await atFrameWidth(800, async () => {
+    await atFrameWidth(SHELL_REFERENCE_WIDTHS.narrow, async () => {
       await waitFor(() => expect(burgerOf(canvas)).toBeVisible());
       await expect(queryCollapseToggle(canvas)).toBeNull();
     });
