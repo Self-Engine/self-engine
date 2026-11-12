@@ -312,7 +312,14 @@ describe("failureReport", () => {
       {
         passed: false,
         steps: [
-          { step: "wide", width: 1280, colorMode: "light", route: "/a", layoutStep: "wide", errors: [] },
+          {
+            step: "wide",
+            width: 1280,
+            colorMode: "light",
+            route: "/a",
+            layoutStep: "wide",
+            errors: [],
+          },
           {
             step: "narrow",
             width: 800,

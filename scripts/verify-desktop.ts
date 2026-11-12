@@ -205,7 +205,9 @@ export async function verifyDesktop(
     await capture("reload", () => app.reload(), { expectedRoute: settingsRoute });
     // A View other than the one the app starts on, so a link that falls back to the start fails.
     const startRoute = steps[0]!.route;
-    const viewRoutes = steps.filter(({ step }) => step.startsWith("view-")).map(({ route }) => route);
+    const viewRoutes = steps
+      .filter(({ step }) => step.startsWith("view-"))
+      .map(({ route }) => route);
     const viewRoute = viewRoutes.findLast((route) => route !== startRoute) ?? viewRoutes[0]!;
     await capture("deep-link", () => app.deepLink(viewRoute), { expectedRoute: viewRoute });
     await capture(
@@ -257,9 +259,11 @@ export function failureReport(summary: DesktopSummary, folder: string): string {
       ? "Desktop check failed:"
       : `Desktop check failed at step "${failed.step}" (${failed.width} px, ${failed.colorMode}, route ${failed.route || "none"}):`;
   const errors = failed?.errors ?? ["No step recorded an error."];
-  return [heading, ...errors.map((error) => `  ${error}`), `Screenshots and summary: ${folder}`].join(
-    "\n",
-  );
+  return [
+    heading,
+    ...errors.map((error) => `  ${error}`),
+    `Screenshots and summary: ${folder}`,
+  ].join("\n");
 }
 
 export function verifyDesktopOptions(args: readonly string[]): {
