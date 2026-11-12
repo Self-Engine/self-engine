@@ -464,6 +464,10 @@ export function verifyDesktopDriver(app: ElectronApplication, folder: string): V
             { cause: error },
           );
         });
+      // Shell chrome mounts before lazy Views and drawer bodies. Let their local chunks
+      // finish loading (and React's suspense commit settle) before measuring or photographing.
+      await target.waitForLoadState("networkidle");
+      await settle();
     },
     async setWidth(width) {
       await app.evaluate(({ BrowserWindow }, value) => {
