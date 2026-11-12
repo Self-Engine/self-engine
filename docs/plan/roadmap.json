@@ -11,6 +11,10 @@
         {
           "title": "Erster Fachmeilenstein",
           "note": "Offen ist auch der Name des Zeitmoduls."
+        },
+        {
+          "title": "Andockpunkte zwischen Modulen in der Oberfläche",
+          "note": "Ein Modul hängt etwas in die Seite eines anderen ein (D241); die Form ist offen."
         }
       ]
     },

@@ -1,6 +1,6 @@
 # Schicht 2: Datenschicht
 
-Stand: 2026-11-12 · Status: **entschieden** (D86–D98, D133–D142, D187–D196, D219–D230) · Recherche:
+Stand: 2026-11-12 · Status: **entschieden** (D86–D98, D133–D142, D187–D196, D219–D241) · Recherche:
 [`research-layer-2-data.md`](research-layer-2-data.md)
 
 ## Entschieden
@@ -36,6 +36,13 @@ Stand: 2026-11-12 · Status: **entschieden** (D86–D98, D133–D142, D187–D19
 | L2.26 | Typen | `Instant` jetzt aus `time`, eine Id-Marke pro Entität, reiner Einstieg `db/schema` (D223–D225) |
 | L2.27 | Prüfungen | Übereinstimmungstest gegen die echten Spalten; jeder Index mit `space_id` vorn; kein `*OrThrow` (D226–D228) |
 | L2.28 | Testhilfen | `createTestSources` für Uhr und Ids, Beispiel als Testmodul in `db` (D229, D230) |
+| L2.29 | Rahmen | Die obere Lage wird einmal gebaut, die Transaktion merkt sich ihre Tabellen, die Ausgabeprüfung schaltet der Rahmen (D231, D232, D234) |
+| L2.30 | Pakete | Modulliste der Datenseite in `data-process`, Bausteine für Module in `storage` (D233) |
+| L2.31 | Einstieg | `live(tabelle)` und vier einzeilige Standard-Schreibwege, sonst freies Kysely (D235) |
+| L2.32 | Listen | Seiten mit undurchsichtiger Marke, 100 Zeilen, Index geprüft; Fenster und kleine Menge warnen im Dev-Build ab 1.000 (D236, D237) |
+| L2.33 | Konflikte | Eindeutiger Index zu Grund pro Modul, der Rahmen übersetzt; Wiederherstellen meldet denselben Konflikt (D238) |
+| L2.34 | Contract-Tests | Ein Kit-Aufruf pro Modul; `notes` zieht als Vorlage nach `storage` (D239, D240) |
+| L2.35 | Fremde Daten | Lesen nur über freigegebene Lese-Bausteine, Schreiben nie (D241) |
 
 ## Aufbau
 
@@ -56,10 +63,10 @@ löst dasselbe `tablesChanged` aus (D89).
 
 ## Offen
 
-- Ob oRPC die Ausgabeprüfung je Build abschalten kann (erste Aufgabe in #32, D188)
 - Warum im Durchstich jede Zeile neu gezeichnet wurde (erste Aufgabe in #33, D194)
 - Effect für Sync und Import (Sync-Phase, D190); Prüfung fremder Zeilen (Sync-Phase, D188)
 - Migrationen im Build von Mobile (D191)
+- Wie ein Modul in der Oberfläche etwas in die Seite eines anderen einhängt (Schicht 4, D241)
 - Web- und Mobile-Treiber (mit diesen Plattformen)
 - Wahl der Sync-Engine (Sync-Phase, Kriterien in D89), Operations-Protokoll (mit Sync)
 
