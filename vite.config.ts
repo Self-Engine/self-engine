@@ -52,6 +52,12 @@ export default defineConfig({
       "self-engine/no-import-type-query": "error",
       "self-engine/no-silent-catch": "error",
     },
+    overrides: [
+      {
+        files: ["packages/**", "apps/**"],
+        rules: { "self-engine/no-query-or-throw": "error" },
+      },
+    ],
   },
   fmt: {
     // German planning history (D46). Oxfmt rewraps its lists and changes their meaning.
