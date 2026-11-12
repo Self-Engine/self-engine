@@ -1,4 +1,8 @@
-import { SHELL_REFERENCE_WIDTHS, START_AFTER_WINDOW_BUTTONS_PX } from "@self-engine/shell/layout";
+import {
+  SHELL_TOP_STRIP_HEIGHT,
+  SHELL_REFERENCE_WIDTHS,
+  SHELL_START_AFTER_WINDOW_BUTTONS_PX,
+} from "@self-engine/shell/geometry";
 import type { Meta } from "@storybook/react-vite";
 import { expect, screen, userEvent, waitFor, within } from "storybook/test";
 import {
@@ -12,7 +16,6 @@ import {
   ENTRIES,
   LOGO,
   LOGO_AND_WINDOW_BUTTONS,
-  STRIP_HEIGHT,
   appRegionOf,
   LONG_MODULE,
   atFrameWidth,
@@ -82,14 +85,14 @@ export const TheDrawerHeaderSitsBelowTheStripWithWindowButtons: Story = {
     const strip = mark.parentElement!.parentElement!;
     await expect(appRegionOf(strip)).toBe("drag");
     await expect(getComputedStyle(strip).borderBlockEndWidth).toBe("0px");
-    await expect(strip.getBoundingClientRect().height).toBeCloseTo(STRIP_HEIGHT, 0);
+    await expect(strip.getBoundingClientRect().height).toBeCloseTo(SHELL_TOP_STRIP_HEIGHT, 0);
     await expect(centerY(strip)).toBeCloseTo(centerY(pageTitle), 0);
     await expect(drawerHeaderOf(drawer).getBoundingClientRect().top).toBeCloseTo(
       strip.getBoundingClientRect().bottom,
       0,
     );
     await waitFor(() =>
-      expect(mark.getBoundingClientRect().left).toBeCloseTo(START_AFTER_WINDOW_BUTTONS_PX, 0),
+      expect(mark.getBoundingClientRect().left).toBeCloseTo(SHELL_START_AFTER_WINDOW_BUTTONS_PX, 0),
     );
     await expect(
       within(drawer).getByText("Self-Engine").getBoundingClientRect().right,
@@ -260,7 +263,7 @@ export const TheDrawerLogoFitsAtTheSmallestFontScale: Story = {
     const drawer = await openDrawer(canvas);
     await waitFor(() =>
       expect(within(drawer).getByTestId("mark").getBoundingClientRect().left).toBeCloseTo(
-        START_AFTER_WINDOW_BUTTONS_PX,
+        SHELL_START_AFTER_WINDOW_BUTTONS_PX,
         0,
       ),
     );
@@ -339,7 +342,7 @@ export const ThePhoneDrawerHeaderSitsBelowTheStripWithWindowButtons: Story = {
     await expect(frame).not.toBe(header);
     await expect(appRegionOf(frame)).toBe("drag");
     await expect(appRegionOf(strip)).toBe("drag");
-    await expect(strip.getBoundingClientRect().height).toBeCloseTo(STRIP_HEIGHT, 0);
+    await expect(strip.getBoundingClientRect().height).toBeCloseTo(SHELL_TOP_STRIP_HEIGHT, 0);
     await expect(centerY(strip)).toBeCloseTo(centerY(pageTitle), 0);
     await expect(header.getBoundingClientRect().top).toBeCloseTo(
       strip.getBoundingClientRect().bottom,

@@ -10,19 +10,22 @@ import {
   RENDERER_DIR,
   serveRenderer,
   withDesktopApp,
+  waitForApp,
+  DESKTOP_HIDDEN_ENV,
   type DesktopLaunch,
 } from "./desktop-app.ts";
 import { DESKTOP_DIR, ensureElectron } from "./ensure-electron.ts";
 import {
   SHELL_REFERENCE_WIDTHS,
-  START_AFTER_WINDOW_BUTTONS_PX,
-  SHELL_TOP_STRIP_HEIGHT,
-} from "@self-engine/shell/layout";
+  SHELL_START_AFTER_WINDOW_BUTTONS_PX,
+  SHELL_WINDOW_BUTTON_STRIP_HEIGHT,
+  type LayoutStep,
+} from "@self-engine/shell/geometry";
 
-export type ColorMode = "light" | "dark";
+export type SystemTheme = "light" | "dark";
 export interface DesktopState {
   readonly route: string;
-  readonly layoutStep: string;
+  readonly layoutStep: LayoutStep | undefined;
   readonly errors: readonly string[];
 }
 export interface WindowButtonContent {
@@ -36,7 +39,7 @@ export interface WindowButtonContent {
 export interface VerifyDesktopApp {
   waitForApp(): Promise<void>;
   setWidth(width: number): Promise<void>;
-  setSystemTheme(mode: ColorMode): Promise<void>;
+  setSystemTheme(mode: SystemTheme): Promise<void>;
   readState(): Promise<DesktopState>;
   screenshot(name: string): Promise<void>;
   modules(): Promise<readonly string[]>;
@@ -54,7 +57,7 @@ export interface VerifyDesktopApp {
 export interface DesktopStep extends DesktopState {
   readonly step: string;
   readonly width: number;
-  readonly colorMode: ColorMode;
+  readonly colorMode: SystemTheme;
   readonly screenshot?: string;
 }
 export interface DesktopSummary {
@@ -72,16 +75,25 @@ export async function verifyDesktop(
   const steps: DesktopStep[] = [];
   const windowButtons = platform === "darwin" ? "checked" : "skipped: native frame until #167";
   let width: number = SHELL_REFERENCE_WIDTHS.wide;
-  let colorMode: ColorMode = "light";
+  let colorMode: SystemTheme = "light";
+  let screenshotCount = 0;
+  const stopped = new Error("Desktop check stopped");
   const capture = async (
     step: string,
     operation: () => Promise<void>,
-    expected = "wide",
-    photograph = true,
-    expectedRoute?: string,
-    requireEditor = false,
+    {
+      expected = "wide",
+      photograph = true,
+      expectedRoute,
+      requireEditor = false,
+    }: {
+      expected?: LayoutStep;
+      photograph?: boolean;
+      expectedRoute?: string;
+      requireEditor?: boolean;
+    } = {},
   ) => {
-    let state: DesktopState = { route: "", layoutStep: "", errors: [] };
+    let state: DesktopState = { route: "", layoutStep: undefined, errors: [] };
     let screenshot: string | undefined;
     try {
       await app.waitForApp();
@@ -102,9 +114,9 @@ export async function verifyDesktop(
           ({ x, y, width: w, height }) =>
             w > 0 &&
             height > 0 &&
-            x < START_AFTER_WINDOW_BUTTONS_PX &&
+            x < SHELL_START_AFTER_WINDOW_BUTTONS_PX &&
             x + w > 0 &&
-            y < SHELL_TOP_STRIP_HEIGHT &&
+            y < SHELL_WINDOW_BUTTON_STRIP_HEIGHT &&
             y + height > 0,
         );
         if (blocked.length > 0)
@@ -112,12 +124,14 @@ export async function verifyDesktop(
             `Shell content overlaps the window-button strip: ${blocked.map(({ name }) => name).join(", ")}`,
           );
       }
-      if (!photograph) return true;
-      const name = `${String(steps.length + 1).padStart(2, "0")}-${step}-${state.layoutStep}-${colorMode}.png`;
-      await app.screenshot(name);
-      screenshot = name;
-      state = await app.readState();
-      if (state.errors.length > 0) throw new Error(state.errors.join("\n"));
+      if (photograph) {
+        const name = `${String(screenshotCount + 1).padStart(2, "0")}-${step}-${state.layoutStep}-${colorMode}.png`;
+        await app.screenshot(name);
+        screenshot = name;
+        screenshotCount++;
+        state = await app.readState();
+        if (state.errors.length > 0) throw new Error(state.errors.join("\n"));
+      }
     } catch (error) {
       steps.push({
         step,
@@ -130,32 +144,38 @@ export async function verifyDesktop(
             ? state.errors
             : [error instanceof Error ? error.message : String(error)],
       });
-      return false;
+      throw stopped;
     }
-    steps.push({ step, width, colorMode, ...state, screenshot });
-    return true;
+    steps.push({
+      step,
+      width,
+      colorMode,
+      ...state,
+      ...(screenshot === undefined ? {} : { screenshot }),
+    });
   };
-  for (colorMode of ["light", "dark"] as const) {
-    for (const [step, referenceWidth] of Object.entries(SHELL_REFERENCE_WIDTHS)) {
-      width = referenceWidth;
-      if (
-        !(await capture(
+  let editRoute: string | undefined;
+  try {
+    for (colorMode of ["light", "dark"] as const) {
+      for (const step of Object.keys(
+        SHELL_REFERENCE_WIDTHS,
+      ) as (keyof typeof SHELL_REFERENCE_WIDTHS)[]) {
+        const referenceWidth = SHELL_REFERENCE_WIDTHS[step];
+        width = referenceWidth;
+        await capture(
           step,
           async () => {
             if (step === "wide") await app.setSystemTheme(colorMode);
             await app.setWidth(width);
           },
-          step === "narrowest" ? "narrow" : step,
-        ))
-      )
-        return { passed: false, steps, windowButtons };
+          { expected: step === "narrowest" ? "narrow" : step },
+        );
+      }
     }
-  }
-  width = SHELL_REFERENCE_WIDTHS.wide;
-  colorMode = "light";
-  let modules: readonly string[] = [];
-  if (
-    !(await capture(
+    width = SHELL_REFERENCE_WIDTHS.wide;
+    colorMode = "light";
+    let modules: readonly string[] = [];
+    await capture(
       "navigation",
       async () => {
         await app.setWidth(width);
@@ -163,43 +183,29 @@ export async function verifyDesktop(
         modules = await app.modules();
         if (modules.length === 0) throw new Error("The Navbar contains no modules.");
       },
-      "wide",
-      false,
-    ))
-  )
-    return { passed: false, steps, windowButtons };
-  for (const [moduleIndex, module] of modules.entries()) {
-    let views: readonly string[] = [];
-    if (
-      !(await capture(
+      { photograph: false },
+    );
+    for (const [moduleIndex, module] of modules.entries()) {
+      let views: readonly string[] = [];
+      await capture(
         `module-${moduleIndex + 1}`,
         async () => {
           await app.openModule(module);
           views = await app.views();
           if (views.length === 0) throw new Error(`Module "${module}" has no Views.`);
         },
-        "wide",
-        false,
-      ))
-    )
-      return { passed: false, steps, windowButtons };
-    for (const [viewIndex, view] of views.entries()) {
-      if (!(await capture(`view-${moduleIndex + 1}-${viewIndex + 1}`, () => app.openView(view)))) {
-        return { passed: false, steps, windowButtons };
+        { photograph: false },
+      );
+      for (const [viewIndex, view] of views.entries()) {
+        await capture(`view-${moduleIndex + 1}-${viewIndex + 1}`, () => app.openView(view));
       }
     }
-  }
-  if (!(await capture("settings", () => app.openSettings())))
-    return { passed: false, steps, windowButtons };
-  const settingsRoute = steps.at(-1)!.route;
-  if (!(await capture("reload", () => app.reload(), "wide", true, settingsRoute)))
-    return { passed: false, steps, windowButtons };
-  const viewRoute = steps.find((entry) => entry.step === "view-1-1")!.route;
-  if (!(await capture("deep-link", () => app.deepLink(viewRoute), "wide", true, viewRoute)))
-    return { passed: false, steps, windowButtons };
-  let editRoute: string | undefined;
-  if (
-    !(await capture(
+    await capture("settings", () => app.openSettings());
+    const settingsRoute = steps.at(-1)!.route;
+    await capture("reload", () => app.reload(), { expectedRoute: settingsRoute });
+    const viewRoute = steps.find((entry) => entry.step === "view-1-1")!.route;
+    await capture("deep-link", () => app.deepLink(viewRoute), { expectedRoute: viewRoute });
+    await capture(
       "main-action",
       async () => {
         for (const module of modules) {
@@ -214,28 +220,23 @@ export async function verifyDesktop(
           }
         }
       },
-      "wide",
-      false,
-    ))
-  )
-    return { passed: false, steps, windowButtons };
-  if (editRoute !== undefined) {
-    const address = editRoute;
-    if (
-      !(await capture(
+      { photograph: false },
+    );
+    if (editRoute !== undefined) {
+      const address = editRoute;
+      await capture(
         "edit-deep-link",
         async () => {
           await app.closeEditDrawer();
           await app.openSettings();
           await app.deepLink(address);
         },
-        "wide",
-        true,
-        address,
-        true,
-      ))
-    )
-      return { passed: false, steps, windowButtons };
+        { expectedRoute: address, requireEditor: true },
+      );
+    }
+  } catch (error) {
+    if (error !== stopped) throw error;
+    return { passed: false, steps, windowButtons };
   }
   return {
     passed: true,
@@ -298,9 +299,6 @@ function desktopProcesses(): DesktopProcess[] {
 /** Playwright only translates app operations; the flow owns the check and report rules. */
 export function verifyDesktopDriver(app: ElectronApplication, folder: string): VerifyDesktopApp {
   const errors: string[] = [];
-  app.on("console", (message) => {
-    if (message.type() === "error") errors.push(`main console.error: ${message.text()}`);
-  });
   const observed = new WeakSet<object>();
   const observePage = (page: Awaited<ReturnType<ElectronApplication["firstWindow"]>>) => {
     if (observed.has(page)) return;
@@ -312,27 +310,18 @@ export function verifyDesktopDriver(app: ElectronApplication, folder: string): V
   };
   app.on("window", observePage);
   for (const page of app.windows()) observePage(page);
-  const mainErrors = app.evaluateHandle(() => {
-    const failures: string[] = [];
-    process.on("uncaughtExceptionMonitor", (error) =>
-      failures.push(`main uncaughtException: ${error.message}`),
-    );
-    process.on("unhandledRejection", (error: unknown) =>
-      failures.push(`main unhandledRejection: ${String(error)}`),
-    );
-    return failures;
-  });
   const page = app.firstWindow({ timeout: 30_000 });
   // Playwright defaults to emulated light. Clear that override once, so Electron's native
   // theme drives matchMedia; the flow switches themes only through the main process.
   const nativeMedia = page.then((target) => target.emulateMedia({ colorScheme: null }));
   const navbar = page.then((target) =>
-    target.getByRole("navigation", { name: /^(Modules|Module)$/ }),
+    target.getByRole("navigation", { name: "Modules", exact: true }),
   );
   const sidebar = page.then((target) =>
-    target.getByRole("navigation", { name: /^(Module Sidebar|Modul-Sidebar)$/ }),
+    target.getByRole("navigation", { name: "Module Sidebar", exact: true }),
   );
-  const settingsName = /^(Settings|Einstellungen)$/;
+  const settingsName = "Settings";
+  const closeEditorName = "Close editor";
   const names = async (links: Locator) =>
     links.evaluateAll((elements) =>
       elements.map(
@@ -347,7 +336,7 @@ export function verifyDesktopDriver(app: ElectronApplication, folder: string): V
   return {
     async modules() {
       return names((await navbar).getByRole("link")).then((values) =>
-        values.filter((name) => !settingsName.test(name)),
+        values.filter((name) => name !== settingsName),
       );
     },
     async openModule(name) {
@@ -382,16 +371,12 @@ export function verifyDesktopDriver(app: ElectronApplication, folder: string): V
       const action = (await sidebar).getByRole("button");
       if ((await action.count()) === 0) return false;
       await action.click();
-      await (
-        await page
-      )
-        .getByRole("button", { name: /^(Close editor|Editor schließen)$/ })
-        .waitFor();
+      await (await page).getByRole("button", { name: closeEditorName, exact: true }).waitFor();
       await settle();
       return true;
     },
     async closeEditDrawer() {
-      const close = (await page).getByRole("button", { name: /^(Close editor|Editor schließen)$/ });
+      const close = (await page).getByRole("button", { name: closeEditorName, exact: true });
       await close.click();
       await close.waitFor({ state: "hidden" });
       await settle();
@@ -400,7 +385,7 @@ export function verifyDesktopDriver(app: ElectronApplication, folder: string): V
       return (await page)
         .getByRole("dialog")
         .filter({
-          has: (await page).getByRole("button", { name: /^(Close editor|Editor schließen)$/ }),
+          has: (await page).getByRole("button", { name: closeEditorName, exact: true }),
         })
         .isVisible();
     },
@@ -445,26 +430,10 @@ export function verifyDesktopDriver(app: ElectronApplication, folder: string): V
       });
     },
     async waitForApp() {
-      await mainErrors;
       await nativeMedia;
       const target = await page;
-      await target
-        .locator("[data-layout-step]")
-        .waitFor({ state: "visible", timeout: 30_000 })
-        .catch(async (error: unknown) => {
-          const shown = await target
-            .locator("body")
-            .innerText()
-            .catch(() => {
-              // Diagnostic text only; the original wait failure is reported below.
-              return "";
-            });
-          throw new Error(
-            `The page did not show the Shell. It shows: ${shown.slice(0, 300) || "nothing"}`,
-            { cause: error },
-          );
-        });
-      // Shell chrome mounts before lazy Views and drawer bodies. Let their local chunks
+      await waitForApp(target);
+      // The Shell mounts before lazy Views and drawer bodies. Let their local chunks
       // finish loading (and React's suspense commit settle) before measuring or photographing.
       await target.waitForLoadState("networkidle");
       await settle();
@@ -477,9 +446,7 @@ export function verifyDesktopDriver(app: ElectronApplication, folder: string): V
       }, width);
       const target = await page;
       await target.waitForFunction("(width) => window.innerWidth === width", width);
-      await target.evaluate(
-        "new Promise(done => requestAnimationFrame(() => requestAnimationFrame(done)))",
-      );
+      await settle();
     },
     async setSystemTheme(mode) {
       await app.evaluate(({ nativeTheme }, value) => {
@@ -491,9 +458,16 @@ export function verifyDesktopDriver(app: ElectronApplication, folder: string): V
       const target = await page;
       return {
         route: new URL(target.url()).hash.slice(1),
-        layoutStep:
-          (await target.locator("[data-layout-step]").getAttribute("data-layout-step")) ?? "",
-        errors: [...errors, ...(await (await mainErrors).jsonValue())],
+        layoutStep: ((await target
+          .locator("[data-layout-step]")
+          .getAttribute("data-layout-step")) ?? undefined) as LayoutStep | undefined,
+        errors: [
+          ...errors,
+          ...(await app.evaluate(() => {
+            const recorded = Reflect.get(globalThis, "__selfEngineMainErrors");
+            return Array.isArray(recorded) ? recorded.map(String) : [];
+          })),
+        ],
       };
     },
     async screenshot(name) {
@@ -522,7 +496,11 @@ async function main(): Promise<void> {
   let summary: DesktopSummary = { passed: false, steps: [] };
   const run = async (launch: DesktopLaunch): Promise<void> => {
     await withDesktopApp(
-      { ...launch, env: { ...launch.env, SELF_ENGINE_HIDDEN: visible ? "" : "1" } },
+      {
+        ...launch,
+        args: [...launch.args, "--lang=en-US"],
+        env: { ...launch.env, [DESKTOP_HIDDEN_ENV]: visible ? "" : "1" },
+      },
       async (app) => {
         summary = await verifyDesktop(verifyDesktopDriver(app, folder));
       },
@@ -550,7 +528,7 @@ async function main(): Promise<void> {
           width: SHELL_REFERENCE_WIDTHS.wide,
           colorMode: "light",
           route: "",
-          layoutStep: "",
+          layoutStep: undefined,
           errors: [error instanceof Error ? error.message : String(error)],
         },
       ],
@@ -560,7 +538,9 @@ async function main(): Promise<void> {
   }
   if (!summary.passed)
     throw new Error(`Desktop check failed. Read ${join(folder, "summary.json")}`);
-  console.log(`Desktop check passed: ${summary.steps.length} screenshots.\n${folder}`);
+  console.log(
+    `Desktop check passed: ${summary.steps.filter(({ screenshot }) => screenshot !== undefined).length} screenshots.\n${folder}`,
+  );
 }
 
 if (import.meta.main) {

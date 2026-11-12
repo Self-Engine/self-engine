@@ -31,7 +31,7 @@ function fakeApp(script: Script): SmokeApp & { readonly calls: string[] } {
   let killed = false;
   return {
     calls,
-    async waitForWindow() {
+    async waitForPage() {
       calls.push("window");
     },
     async waitForApp() {

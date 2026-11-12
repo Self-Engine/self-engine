@@ -1,3 +1,4 @@
+import "./observe-main-errors.ts";
 import path from "node:path";
 import {
   BrowserWindow,

@@ -8,7 +8,9 @@ import { createRequire } from "node:module";
 import type { AddressInfo } from "node:net";
 import { tmpdir } from "node:os";
 import { extname, join, resolve, sep } from "node:path";
-import { _electron, type ElectronApplication } from "playwright";
+import { _electron, type ElectronApplication, type Page } from "playwright";
+
+export const DESKTOP_HIDDEN_ENV = "SELF_ENGINE_HIDDEN";
 
 export const RENDERER_DIR = resolve(import.meta.dirname, "../apps/web/dist");
 
@@ -178,4 +180,25 @@ export async function serveRenderer(root: string): Promise<RendererServer> {
         server.close(() => settle());
       }),
   };
+}
+
+/** Waits for the Shell; an error page is reported with its visible diagnostic text. */
+export async function waitForApp(page: Page): Promise<void> {
+  const timeout = 30_000;
+  await page
+    .locator("[data-layout-step]")
+    .waitFor({ state: "visible", timeout })
+    .catch(async (error: unknown) => {
+      const shown = await page
+        .locator("body")
+        .innerText()
+        .catch(() => {
+          // Diagnostic text only; the original wait error remains the cause below.
+          return "";
+        });
+      throw new Error(
+        `The page did not show the app within ${timeout} ms. It shows: ${shown.trim().slice(0, 300) || "nothing"}`,
+        { cause: error },
+      );
+    });
 }

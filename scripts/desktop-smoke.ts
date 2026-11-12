@@ -18,6 +18,8 @@ import {
   RENDERER_DIR,
   serveRenderer,
   withDesktopApp,
+  waitForApp,
+  DESKTOP_HIDDEN_ENV,
 } from "./desktop-app.ts";
 import { DESKTOP_DIR } from "./ensure-electron.ts";
 
@@ -42,7 +44,7 @@ export interface PageMarks {
 /** The running app, as the smoke test drives it. */
 export interface SmokeApp {
   /** Waits until the app has a page, even when its native window stays hidden. */
-  waitForWindow(): Promise<void>;
+  waitForPage(): Promise<void>;
   /**
    * Waits until the page shows the app: the Shell's main landmark, which a render error replaces
    * with an error page. Fails naming what the page shows instead.
@@ -66,7 +68,7 @@ export function isSettled(mark: ConnectionMark): boolean {
 }
 
 export async function smokeTest(app: SmokeApp): Promise<SmokeResult> {
-  await app.waitForWindow();
+  await app.waitForPage();
 
   const start = await app.waitForSettled(1);
   const first = start.marks.find(isSettled);
@@ -120,28 +122,11 @@ const WAIT_TIMEOUT_MS = 30_000;
 export function smokeDriver(app: ElectronApplication): SmokeApp {
   const page = app.firstWindow({ timeout: WAIT_TIMEOUT_MS });
   return {
-    async waitForWindow() {
+    async waitForPage() {
       await page;
     },
     async waitForApp() {
-      const target = await page;
-      await target
-        .locator("main")
-        .first()
-        .waitFor({ state: "visible", timeout: WAIT_TIMEOUT_MS })
-        .catch(async (error: unknown) => {
-          const shown = await target
-            .locator("body")
-            .innerText()
-            .catch(() => {
-              // Only a hint for the message: the error below reports the failure either way.
-              return "";
-            });
-          throw new Error(
-            `The page did not show the app within ${WAIT_TIMEOUT_MS} ms. It shows: ${shown.trim().slice(0, 300) || "nothing"}`,
-            { cause: error },
-          );
-        });
+      await waitForApp(await page);
     },
     async waitForSettled(count) {
       const target = await page;
@@ -206,7 +191,7 @@ async function main(): Promise<void> {
       const launch = builtDesktopApp(DESKTOP_DIR, server.url);
       result = await smokeTestApp({
         ...launch,
-        env: { ...launch.env, SELF_ENGINE_HIDDEN: "1" },
+        env: { ...launch.env, [DESKTOP_HIDDEN_ENV]: "1" },
       });
     } finally {
       await server.close();
