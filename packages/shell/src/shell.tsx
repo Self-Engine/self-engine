@@ -905,26 +905,28 @@ function ModuleViews({
   readonly activeView: ShellView | undefined;
   readonly routing: ShellRouting;
 }) {
-  const { i18n } = useLingui();
+  const { i18n, t } = useLingui();
   const closeOverlay = useCloseOverlayOnPick();
   if (!module) return null;
   return (
     <Stack gap="xs" data-module-color={module.color}>
-      {module.primaryAction && (
-        <PrimaryAction moduleId={module.id} command={module.primaryAction} />
-      )}
-      {module.views.map((view) => (
-        <NavLink
-          key={view.id}
-          component={routing.Link}
-          to={viewPath(module.id, view.id)}
-          label={i18n._(view.title)}
-          active={view.id === activeView?.id}
-          aria-current={view.id === activeView?.id ? "page" : undefined}
-          onClick={closeOverlay}
-          vars={ACTIVE_ENTRY_VARS}
-        />
-      ))}
+      <Stack component="nav" aria-label={t`Module Sidebar`} gap="xs">
+        {module.primaryAction && (
+          <PrimaryAction moduleId={module.id} command={module.primaryAction} />
+        )}
+        {module.views.map((view) => (
+          <NavLink
+            key={view.id}
+            component={routing.Link}
+            to={viewPath(module.id, view.id)}
+            label={i18n._(view.title)}
+            active={view.id === activeView?.id}
+            aria-current={view.id === activeView?.id ? "page" : undefined}
+            onClick={closeOverlay}
+            vars={ACTIVE_ENTRY_VARS}
+          />
+        ))}
+      </Stack>
       {module.groups && (
         <LazyContribution
           key={module.id}
