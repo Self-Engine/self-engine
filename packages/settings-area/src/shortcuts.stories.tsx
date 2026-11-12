@@ -1,3 +1,4 @@
+import { loadStoryShell } from "@self-engine/shell/story-interactions";
 import type { MessageDescriptor } from "@lingui/core";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import type { ComponentType } from "react";
@@ -45,6 +46,7 @@ const onMac = () => pretendPlatform("MacIntel", "Macintosh");
 const meta = {
   title: "Settings area/Shortcuts",
   loaders: [
+    loadStoryShell,
     async ({ parameters }): Promise<{ readonly Page: ComponentType }> => {
       // Loaded, because a search also draws the controls of the other Views.
       const store = await loadedStoreOn(memoryStorage());

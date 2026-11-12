@@ -6,8 +6,7 @@ import type { Meta, StoryObj } from "@storybook/react-vite";
 import { expect, fn, userEvent, waitFor, within } from "storybook/test";
 import { DataConnectionStates } from "./data-connection-states.tsx";
 import { dataConnection } from "./desktop-data.ts";
-import { settingsStore } from "./settings-store.ts";
-import { AppAt } from "./story-app.tsx";
+import { AppAt, loadStoryApp } from "./story-app.tsx";
 
 /** A connection whose state the story sets by hand, like the data process would. */
 let connection = createConnectionStateStore({ status: "ready" });
@@ -166,7 +165,7 @@ export const TypedTextSurvivesAReconnect: Story = {
 
 /** Outside the desktop app nothing answers, and the app looks as it did before (D196). */
 export const TheWebAppShowsNoConnectionState: Story = {
-  loaders: [() => settingsStore.load()],
+  loaders: [loadStoryApp],
   beforeEach: () => {
     dataConnection.stop();
     // Back to waiting for a first port, as the web app's connection always is.
