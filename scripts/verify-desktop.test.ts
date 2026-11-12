@@ -3,6 +3,7 @@ import {
   verifyDesktop,
   verifyDesktopOptions,
   assertNoDesktopDev,
+  failureReport,
   type VerifyDesktopApp,
 } from "./verify-desktop.ts";
 
@@ -278,16 +279,59 @@ it("opens a full View deep link after navigating away and rejects a wrong destin
   };
   const result = await verifyDesktop(app);
   expect(result.passed).toBe(true);
-  expect(addresses).toEqual(["/alpha/overview"]);
+  expect(addresses).toEqual(["/beta/list"]);
   expect(result.steps.find(({ step }) => step === "deep-link")).toMatchObject({
-    route: "/alpha/overview",
+    route: "/beta/list",
   });
-  app.deepLink = async () => {};
-  const failed = await verifyDesktop(app);
+  const ignoring = fakeApp();
+  ignoring.deepLink = async () => {};
+  const failed = await verifyDesktop(ignoring);
   expect(failed.passed).toBe(false);
   expect(failed.steps.at(-1)).toMatchObject({
     step: "deep-link",
-    errors: ['Expected route "/alpha/overview", got "/settings/appearance".'],
+    errors: ['Expected route "/beta/list", got "/settings/appearance".'],
+  });
+});
+
+it("rejects a deep link that falls back to the start View", async () => {
+  const app = fakeApp();
+  app.deepLink = async () => {
+    await app.openView("Overview");
+  };
+  const result = await verifyDesktop(app);
+  expect(result.passed).toBe(false);
+  expect(result.steps.at(-1)).toMatchObject({
+    step: "deep-link",
+    errors: ['Expected route "/beta/list", got "/alpha/overview".'],
+  });
+});
+
+describe("failureReport", () => {
+  it("names the failing step, its route and its errors", () => {
+    const report = failureReport(
+      {
+        passed: false,
+        steps: [
+          { step: "wide", width: 1280, colorMode: "light", route: "/a", layoutStep: "wide", errors: [] },
+          {
+            step: "narrow",
+            width: 800,
+            colorMode: "dark",
+            route: "/a",
+            layoutStep: "medium",
+            errors: ['Expected Layout Step "narrow", got "medium".'],
+          },
+        ],
+      },
+      "/out",
+    );
+    expect(report).toBe(
+      [
+        'Desktop check failed at step "narrow" (800 px, dark, route /a):',
+        '  Expected Layout Step "narrow", got "medium".',
+        "Screenshots and summary: /out",
+      ].join("\n"),
+    );
   });
 });
 

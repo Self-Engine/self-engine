@@ -203,7 +203,10 @@ export async function verifyDesktop(
     await capture("settings", () => app.openSettings());
     const settingsRoute = steps.at(-1)!.route;
     await capture("reload", () => app.reload(), { expectedRoute: settingsRoute });
-    const viewRoute = steps.find((entry) => entry.step === "view-1-1")!.route;
+    // A View other than the one the app starts on, so a link that falls back to the start fails.
+    const startRoute = steps[0]!.route;
+    const viewRoutes = steps.filter(({ step }) => step.startsWith("view-")).map(({ route }) => route);
+    const viewRoute = viewRoutes.findLast((route) => route !== startRoute) ?? viewRoutes[0]!;
     await capture("deep-link", () => app.deepLink(viewRoute), { expectedRoute: viewRoute });
     await capture(
       "main-action",
@@ -244,6 +247,19 @@ export async function verifyDesktop(
     windowButtons,
     editDeepLink: editRoute === undefined ? "skipped: no module has a main action" : "checked",
   };
+}
+
+/** What a failed run prints: the failing step and its errors, so nobody has to open the summary. */
+export function failureReport(summary: DesktopSummary, folder: string): string {
+  const failed = summary.steps.findLast(({ errors }) => errors.length > 0);
+  const heading =
+    failed === undefined
+      ? "Desktop check failed:"
+      : `Desktop check failed at step "${failed.step}" (${failed.width} px, ${failed.colorMode}, route ${failed.route || "none"}):`;
+  const errors = failed?.errors ?? ["No step recorded an error."];
+  return [heading, ...errors.map((error) => `  ${error}`), `Screenshots and summary: ${folder}`].join(
+    "\n",
+  );
 }
 
 export function verifyDesktopOptions(args: readonly string[]): {
@@ -536,8 +552,11 @@ async function main(): Promise<void> {
   } finally {
     writeFileSync(join(folder, "summary.json"), `${JSON.stringify(summary, null, 2)}\n`);
   }
-  if (!summary.passed)
-    throw new Error(`Desktop check failed. Read ${join(folder, "summary.json")}`);
+  if (!summary.passed) {
+    console.error(failureReport(summary, folder));
+    process.exitCode = 1;
+    return;
+  }
   console.log(
     `Desktop check passed: ${summary.steps.filter(({ screenshot }) => screenshot !== undefined).length} screenshots.\n${folder}`,
   );
