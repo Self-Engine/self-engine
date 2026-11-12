@@ -50,7 +50,8 @@ function fieldRule(
   const nullable = field instanceof z.ZodNullable;
   // A rowid alias reports notnull = 0, but SQLite never stores NULL in it.
   const mayBeNull = notnull === 0 && !isRowid;
-  if (nullable !== mayBeNull) return mayBeNull ? "field must be nullable" : "field must not be nullable";
+  if (nullable !== mayBeNull)
+    return mayBeNull ? "field must be nullable" : "field must not be nullable";
   const base = nullable ? field.unwrap() : field;
   if (base instanceof z.ZodBoolean) return "use sqliteBoolean instead of z.boolean()";
   if (base !== sqliteBoolean && !isString(base) && !(base instanceof z.ZodNumber))
