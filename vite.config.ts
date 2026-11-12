@@ -55,6 +55,17 @@ export default defineConfig({
     },
     overrides: [
       {
+        files: [
+          "packages/*/src/data/**",
+          "packages/*/src/data.ts",
+          "packages/*/src/storage/**",
+          "packages/*/src/storage.ts",
+          "packages/storage/src/core/**",
+          "packages/storage/test/notes-module/data/**",
+        ],
+        rules: { "self-engine/no-raw-storage-sql": "error" },
+      },
+      {
         files: ["packages/**", "apps/**"],
         rules: { "self-engine/no-query-or-throw": "error" },
       },
