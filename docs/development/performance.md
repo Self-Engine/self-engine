@@ -155,3 +155,13 @@ statement**. A whole call through the frame with and without the plugin (`notes.
 spread between two runs without it (±15 µs on 30–500 µs calls). Only the kit installs the
 plugin; the frame never does, so the packaged app pays nothing. The declaration itself is one
 array per Query entry.
+
+### Query-to-tables list
+
+Measured during #218 on the same setup. The Data Process builds the list once at start and
+sends it with the opening event of every Table Change stream, so it costs once per connection.
+For the test modules `notes` and `note-links` (5 Queries in 2 modules) the list is **121 bytes**
+as JSON, about 24 bytes per Query, and the opening event **149 bytes**, up from 2. A hundred
+Queries would send about 3 KB once per port. Building it takes **about 1.2 µs** at start. Each
+later Table Change carries a `{ kind: "changed", tables }` envelope, **28 bytes** more per
+commit than the bare table array before.

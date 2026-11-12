@@ -2,6 +2,7 @@ import type { Health, TablesChanged } from "@self-engine/contracts";
 import type { Database } from "@self-engine/db";
 import { createFrame, type ContextSources, type FrameOptions } from "@self-engine/storage";
 import { modules as appModules, type DataModules } from "./modules.ts";
+import { queryTables } from "./query-tables.ts";
 import { createRouter } from "./router.ts";
 import { createPortServer, type DataPort } from "./serve.ts";
 import { type BeforeMigrations, migrate } from "./startup.ts";
@@ -64,7 +65,9 @@ export async function startDataProcess({
   );
   return {
     health,
-    serve: createPortServer(createRouter({ health, tablesChanged, moduleRouter })),
+    serve: createPortServer(
+      createRouter({ health, tablesChanged, queries: queryTables(modules), moduleRouter }),
+    ),
     announceTablesChanged: (tables) => tablesChanged.announce(tables),
   };
 }

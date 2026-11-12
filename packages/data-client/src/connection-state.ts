@@ -6,7 +6,7 @@ import type { HealthFailure } from "@self-engine/contracts";
  * state (a failed migration, a stopped data process) adds a variant with its own details.
  */
 export type ConnectionState =
-  /** No port has delivered the first event of `tablesChanged` yet. */
+  /** No port has delivered the opening event of `tablesChanged` yet. */
   | { readonly status: "connecting" }
   /** The port answers and its `tablesChanged` stream stands. */
   | { readonly status: "ready" }

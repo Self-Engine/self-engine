@@ -80,16 +80,16 @@ test("a module list supplies migrations and calls over a MessageChannel", async 
 test("each committed operation emits one event naming all its written tables", async () => {
   const client = await start();
   const events = await client.tablesChanged();
-  await expect(events.next()).resolves.toEqual({ done: false, value: [] });
+  await expect(events.next()).resolves.toMatchObject({ done: false, value: { kind: "opened" } });
   await client.fixture.add("First");
   await client.fixture.audit("Second");
   await expect(events.next()).resolves.toEqual({
     done: false,
-    value: ["fixture_items", "fixture_audit"],
+    value: { kind: "changed", tables: ["fixture_items", "fixture_audit"] },
   });
   await expect(events.next()).resolves.toEqual({
     done: false,
-    value: ["fixture_audit"],
+    value: { kind: "changed", tables: ["fixture_audit"] },
   });
   await events.return();
 });
@@ -189,6 +189,29 @@ test("starts with both an owner module and its consumer registered", async () =>
       noteDeletedAt: null,
     },
   ]);
+});
+
+test("the opening event names each Query of the mounted modules with the tables it reads", async () => {
+  const { notes, links } = await import("@self-engine/storage/testing");
+  const process = await startTestDataProcess({ modules: { notes, links } });
+  started.push(process);
+  const client = createORPCClient<ContractRouterClient<AppContract>>(
+    new RPCLink({ port: process.openPort() }),
+  );
+
+  const events = await client.tablesChanged();
+
+  await expect(events.next()).resolves.toEqual({
+    done: false,
+    value: {
+      kind: "opened",
+      queries: {
+        notes: { get: ["notes"], list: ["notes"], window: ["notes"], pages: ["notes"] },
+        links: { list: ["note_links", "notes"] },
+      },
+    },
+  });
+  await events.return();
 });
 
 test.each(["health", "tablesChanged"])("startup rejects a module named %s", async (name) => {
