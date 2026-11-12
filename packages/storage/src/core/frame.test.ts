@@ -471,6 +471,14 @@ test("zero-row writes and compiled but unexecuted writes announce nothing", asyn
             .where("title", "=", "Absent")
             .execute();
           await tx.deleteFrom("notes").where("title", "=", "Absent").execute();
+          await tx
+            .updateTable("notes")
+            .set({ title: "Missing" })
+            .where("title", "=", "Absent")
+            .returningAll()
+            .execute();
+          await tx.deleteFrom("notes").where("title", "=", "Absent").returningAll().execute();
+
           const row = await tx.selectFrom("notes").selectAll().executeTakeFirst();
           if (row === undefined) throw new Error("Missing seed");
           await tx
@@ -674,4 +682,80 @@ test("failed unique-index diagnostics preserve the original error", async () => 
     },
   ]);
   await expect(client.list({})).resolves.toEqual([note]);
+});
+
+test.each([true, false])(
+  "translated undeclared conflict reasons are reported only with output checks (%s)",
+  async (checkOutputs) => {
+    const { ContractProcedure } = await import("@orpc/contract");
+    const database = await createTestDatabase(notes);
+    cleanups.push(() => database.close());
+    const reports: FrameReport[] = [];
+    const client = createRouterClient(
+      createFrame(
+        {
+          ...notes,
+          contract: {
+            ...notes.contract,
+            create: new ContractProcedure({ ...notes.contract.create["~orpc"], errorMap: {} }),
+          },
+        },
+        {
+          database,
+          sources: createTestContext(),
+          checkOutputs,
+          report: (event) => {
+            reports.push(event);
+          },
+        },
+      ),
+    );
+    await client.create({ title: "Taken", isPinned: false });
+    await expect(client.create({ title: "Taken", isPinned: false })).rejects.toMatchObject({
+      code: "CONFLICT",
+      data: { reason: "title_taken" },
+    });
+    expect(reports).toHaveLength(checkOutputs ? 1 : 0);
+    if (checkOutputs)
+      expect(reports[0]).toMatchObject({
+        kind: "unexpected-error",
+        entry: "create",
+        error: { code: "CONFLICT", data: { reason: "title_taken" } },
+      });
+  },
+);
+
+test("same-column partial unique indexes with the same reason translate consistently", async () => {
+  const module = {
+    ...notes,
+    migrations: [
+      ...notes.migrations,
+      {
+        name: "notes/0003",
+        sql: "DROP INDEX notes_live_title; CREATE UNIQUE INDEX notes_live_title ON notes(space_id, title) WHERE deleted_at IS NULL AND is_pinned = 0; CREATE UNIQUE INDEX notes_pinned_title ON notes(space_id, title) WHERE deleted_at IS NULL AND is_pinned = 1;",
+      },
+    ],
+    conflicts: { notes_live_title: "title_taken", notes_pinned_title: "title_taken" },
+  };
+  const database = await createTestDatabase(module);
+  cleanups.push(() => database.close());
+  const reports: FrameReport[] = [];
+  const client = createRouterClient(
+    createFrame(module, {
+      database,
+      sources: createTestContext(),
+      checkOutputs: true,
+      report: (event) => {
+        reports.push(event);
+      },
+    }),
+  );
+  for (const isPinned of [false, true]) {
+    await client.create({ title: "Taken", isPinned });
+    await expect(client.create({ title: "Taken", isPinned })).rejects.toMatchObject({
+      code: "CONFLICT",
+      data: { reason: "title_taken" },
+    });
+  }
+  expect(reports).toEqual([]);
 });

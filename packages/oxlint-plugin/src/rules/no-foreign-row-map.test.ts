@@ -23,3 +23,15 @@ test("foreign row maps are private while released read pieces and contract ids m
   ]);
   expect(results[0]?.[0]).toContain("released read piece");
 });
+
+test("a foreign module value cannot reveal its row map, including through typeof", () => {
+  const results = lintFixtures("no-foreign-row-map", [
+    'import { notes } from "@self-engine/notes/data"; const rows = notes.rowMap;',
+    'import { notes as foreign } from "@self-engine/notes/data"; type Rows = typeof foreign.rowMap;',
+    'import { notes } from "@self-engine/notes/data"; const rows = notes["rowMap"];',
+    'import { notes } from "./index.ts"; type Rows = typeof notes.rowMap;',
+    "const notes = { rowMap: {} }; const rows = notes.rowMap;",
+    'import { notes } from "@self-engine/notes/data"; function local(notes: { rowMap: string }) { return notes.rowMap; }',
+  ]);
+  expect(results.map((result) => result.length)).toEqual([1, 1, 1, 0, 0, 0]);
+});

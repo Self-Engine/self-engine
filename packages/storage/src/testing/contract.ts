@@ -1,5 +1,6 @@
+import { declaresConflict } from "../core/conflict-declared.ts";
 import { checkConflicts, type ConflictExamples } from "./conflicts.ts";
-import { seedScoping, returnsSeededRow } from "./scoping.ts";
+import { seedScoping, returnsSeededRow, checkEntryScoping, scopedRowsChanged } from "./scoping.ts";
 import { isDeepStrictEqual } from "node:util";
 import type { InferContractRouterInputs } from "@orpc/contract";
 import { call, ORPCError, type AnyProcedure } from "@orpc/server";
@@ -76,7 +77,24 @@ export async function checkContract<Contract extends StorageContract, Rows exten
   const violations: ContractViolation[] = [];
   const schemaDatabase = await createTestDatabase(module, dependencies);
   try {
-    for (const index of await uniqueIndexes(schemaDatabase, Object.keys(module.rowMap))) {
+    const indexes = await uniqueIndexes(schemaDatabase, Object.keys(module.rowMap));
+    for (const columns of new Set(indexes.map((index) => index.columns))) {
+      const matching = indexes.filter((index) => index.columns === columns);
+      const reasons = new Set(
+        matching
+          .map((index) => module.conflicts?.[index.name])
+          .filter((reason) => reason !== undefined),
+      );
+      if (reasons.size > 1)
+        violations.push({
+          entry: matching
+            .map((index) => index.name)
+            .sort()
+            .join(", "),
+          rule: "same-column unique indexes map to different conflict reasons",
+        });
+    }
+    for (const index of indexes) {
       if (!module.conflicts?.[index.name])
         violations.push({ entry: index.name, rule: "unique index has no conflict reason" });
     }
@@ -111,26 +129,50 @@ export async function checkContract<Contract extends StorageContract, Rows exten
       if (definition?.kind === "query" && definition.list?.kind === "pages") {
         const queries = definition.list.queries;
         if (queries !== undefined) {
-          const compiled = await database.kysely
-            .transaction()
-            .execute((tx) =>
-              Promise.resolve(
-                queries(
-                  tx.withTables<TablesOf<Rows>>(),
-                  createContext(sources),
-                  example as never,
-                  entry,
+          try {
+            const compiled = await database.kysely
+              .transaction()
+              .execute((tx) =>
+                Promise.resolve(
+                  queries(
+                    tx.withTables<TablesOf<Rows>>(),
+                    createContext(sources),
+                    example as never,
+                    entry,
+                  ),
                 ),
-              ),
-            );
-          for (const query of compiled) {
-            const plan = await database.kysely.executeQuery<{ detail: string }>(
-              CompiledQuery.raw(`EXPLAIN QUERY PLAN ${query.sql}`, [...query.parameters]),
-            );
-            if (plan.rows.some(({ detail }) => /TEMP B-TREE.*ORDER BY/i.test(detail))) {
-              violations.push({ entry, rule: "page query sorts without an index" });
-              break;
+              );
+            for (const [index, query] of compiled.entries()) {
+              const plan = await database.kysely.executeQuery<{ detail: string }>(
+                CompiledQuery.raw(`EXPLAIN QUERY PLAN ${query.sql}`, [...query.parameters]),
+              );
+              if (plan.rows.some(({ detail }) => /TEMP B-TREE.*ORDER BY/i.test(detail))) {
+                violations.push({ entry, rule: "page query sorts without an index" });
+                break;
+              }
+              if (
+                index > 0 &&
+                !plan.rows.some(({ detail }) =>
+                  /(?:USING (?:COVERING )?INDEX|USING INTEGER PRIMARY KEY).*\b(?!space_id\b)\w+\)?[<>]/i.test(
+                    detail,
+                  ),
+                )
+              ) {
+                violations.push({
+                  entry,
+                  rule: "page cursor query has no index range beyond space_id",
+                });
+                break;
+              }
             }
+          } catch (error) {
+            if (!(error instanceof Error) || !/ambiguous column name/i.test(error.message))
+              throw error;
+            violations.push({
+              entry,
+              rule: "page list has an ambiguous sort column; wrap the join in a subquery",
+            });
+            continue;
           }
         }
       }
@@ -164,10 +206,8 @@ export async function checkContract<Contract extends StorageContract, Rows exten
           await isolated.close();
         }
       }
-      const scoped =
-        module.entries[entry]?.kind === "query"
-          ? await seedScoping(database, module.rowMap, seed, createContext(sources))
-          : undefined;
+      violations.push(...(await checkEntryScoping(module, seed, entry, example, dependencies)));
+      const scoped = await seedScoping(database, module.rowMap, seed, createContext(sources));
       let calls = 0;
       const observed = {
         ...module,
@@ -241,9 +281,28 @@ export async function checkContract<Contract extends StorageContract, Rows exten
           violations.push({ entry, rule: "query output changes with foreign or deleted rows" });
         continue;
       }
+      if (definition?.kind === "operation") {
+        try {
+          await call(target, example);
+        } catch (error) {
+          if (
+            error instanceof ORPCError &&
+            error.code === "CONFLICT" &&
+            !(await declaresConflict(procedure, error))
+          )
+            violations.push({ entry, rule: "operation returns an undeclared conflict or reason" });
+        }
+      }
       if (definition?.kind === "query" && Array.isArray(output) && definition.list === undefined)
         violations.push({ entry, rule: "array query has no list kind" });
       const after = await tableContents(database);
+      if (definition?.kind === "operation") {
+        if (scopedRowsChanged(before, after, scoped.foreign))
+          violations.push({ entry, rule: "operation changes a row from another Space" });
+        if (scopedRowsChanged(before, after, scoped.deleted))
+          violations.push({ entry, rule: "operation changes a deleted row" });
+      }
+
       for (const [table, rows] of after) {
         if (isDeepStrictEqual(before.get(table), rows)) continue;
         if (module.entries[entry]?.kind === "query") {
@@ -265,7 +324,7 @@ export async function checkContract<Contract extends StorageContract, Rows exten
         const parsed = await outputSchema["~standard"].validate(output);
         if (parsed.issues) violations.push({ entry, rule: "output does not match contract" });
         else if (!converts && !isDeepStrictEqual(output, parsed.value))
-          violations.push({ entry, rule: "output schema transforms or defaults a value" });
+          violations.push({ entry, rule: "output contains fields outside the contract" });
       }
     } finally {
       await database.close();

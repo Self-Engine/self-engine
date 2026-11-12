@@ -1,6 +1,6 @@
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
-import type { SelectQueryBuilder } from "kysely";
+import { ExpressionWrapper, TupleNode, type SelectQueryBuilder } from "kysely";
 import type { ReadTransaction } from "./module.ts";
 import type { StorageContext } from "./context.ts";
 
@@ -118,8 +118,9 @@ export function pageList<
     context: StorageContext,
     input: Input,
     list: string,
+    planAnchor?: z.output<typeof cursorPayload>,
   ) {
-    const anchor = readCursor(input.cursor, list);
+    const anchor = planAnchor ?? readCursor(input.cursor, list);
     const backwards = anchor?.direction === "before";
     // Selected scalar columns are guaranteed by Sort<Row>. Kysely cannot infer references
     // from selected output keys, so the dynamic ordering is kept behind this private view.
@@ -133,25 +134,36 @@ export function pageList<
       Row
     >;
     if (anchor !== undefined) {
+      const first = order[0]!;
+      if (!order.every((item) => item.direction === first.direction)) {
+        // Redundant with the lexicographic predicate, but gives SQLite a seekable range.
+        query = query.where(
+          first.column,
+          (first.direction === "asc") !== backwards ? ">=" : "<=",
+          anchor.values[0]!,
+        );
+      }
       query = query.where((eb) => {
         const first = order[0];
-        const second = order[1];
-        if (
-          order.length === 2 &&
-          first !== undefined &&
-          second !== undefined &&
-          first.direction === second.direction
-        ) {
-          return eb(
-            eb.refTuple(first.column, second.column),
+        if (first !== undefined && order.every((item) => item.direction === first.direction)) {
+          const operator =
             (first.direction === "asc") !== backwards
               ? anchor.inclusive
                 ? ">="
                 : ">"
               : anchor.inclusive
                 ? "<="
-                : "<",
-            eb.tuple(anchor.values[0]!, anchor.values[1]!),
+                : "<";
+          if (order.length === 1) return eb(first.column, operator, anchor.values[0]!);
+          // Kysely's typed tuple overloads stop at five values; its tuple node is variadic.
+          return eb(
+            new ExpressionWrapper(
+              TupleNode.create(order.map((item) => eb.ref(item.column).toOperationNode())),
+            ),
+            operator,
+            new ExpressionWrapper(
+              TupleNode.create(anchor.values.map((value) => eb.val(value).toOperationNode())),
+            ),
           );
         }
         return eb.or(
@@ -191,19 +203,17 @@ export function pageList<
         const { query } = await build(tx, context, input, list);
         const queries = [query.compile()];
         const row = (await query.execute())[0];
-        if (row !== undefined) {
-          for (const direction of ["before", "after"] as const) {
-            const next = await build(
-              tx,
-              context,
-              {
-                ...input,
-                cursor: cursor(list, direction, row),
-              },
-              list,
-            );
-            queries.push(next.query.compile());
-          }
+        for (const direction of ["before", "after"] as const) {
+          const next = await build(tx, context, input, list, {
+            list,
+            direction,
+            // EXPLAIN needs the predicate even for an empty seed. Bound values do not
+            // affect its plan, and these synthetic anchors never leave this diagnostic.
+            values: order.map(({ column }) =>
+              row === undefined ? 0 : (row[column as keyof Row] as Scalar),
+            ),
+          });
+          queries.push(next.query.compile());
         }
         return queries;
       },

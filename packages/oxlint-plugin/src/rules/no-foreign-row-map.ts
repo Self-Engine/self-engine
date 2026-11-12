@@ -1,4 +1,4 @@
-import { defineRule } from "@oxlint/plugins";
+import { defineRule, type ESTree, type Scope } from "@oxlint/plugins";
 import { resolve, dirname } from "node:path";
 
 // Row-map exports follow the module's <name>RowMap convention. Whole data namespaces
@@ -29,11 +29,42 @@ export default defineRule({
   meta: { type: "problem", docs: { description: "Keep foreign row maps private." }, schema: [] },
   create(context) {
     // Test setup and agreement checks legitimately inspect the owners’ complete schemas.
-    if (/\.test\.[cm]?tsx?$/.test(context.filename)) return {};
+    if (/\.test\.[cm]?tsx?$/.test(context.filename) || owner(context.filename) === "data-process")
+      return {};
+    const bindings = new Set<string>();
+    function imported(node: ESTree.IdentifierName): boolean {
+      if (!bindings.has(node.name)) return false;
+      for (
+        let scope: Scope | null = context.sourceCode.getScope(node);
+        scope !== null;
+        scope = scope.upper
+      ) {
+        const variable = scope.set.get(node.name);
+        if (variable !== undefined)
+          return variable.defs.some((def) => def.type === "ImportBinding");
+      }
+      return false;
+    }
     return {
+      MemberExpression(node) {
+        const name =
+          !node.computed && node.property.type === "Identifier"
+            ? node.property.name
+            : node.property.type === "Literal"
+              ? node.property.value
+              : undefined;
+        if (name === "rowMap" && node.object.type === "Identifier" && imported(node.object))
+          context.report({ node: node.property, message: MESSAGE });
+      },
+      TSQualifiedName(node) {
+        if (node.right.name === "rowMap" && node.left.type === "Identifier" && imported(node.left))
+          context.report({ node: node.right, message: MESSAGE });
+      },
       ImportDeclaration(node) {
         const source = String(node.source.value);
         if (!foreign(source, context.filename)) return;
+        if (/\/data(?:\/|$)/.test(source))
+          for (const specifier of node.specifiers) bindings.add(specifier.local.name);
         const privateEntry = /\/data\/rows(?:\.ts)?$/.test(source);
         const forbidden = node.specifiers.some(
           (specifier) =>

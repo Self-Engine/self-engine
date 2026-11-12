@@ -1,10 +1,12 @@
+import { appContract } from "@self-engine/contracts";
+import { modules } from "./modules.ts";
 import { createORPCClient } from "@orpc/client";
 import { RPCLink } from "@orpc/client/message-port";
 import { oc, type ContractRouterClient } from "@orpc/contract";
 import type { AppContract } from "@self-engine/contracts";
 import { createTestSources } from "@self-engine/db/testing";
 import { defineStorageModule, type FrameReport } from "@self-engine/storage";
-import { afterEach, expect, test } from "vite-plus/test";
+import { afterEach, expect, expectTypeOf, test } from "vite-plus/test";
 import { z } from "zod";
 import { startTestDataProcess, type TestDataProcess } from "../testing/index.ts";
 
@@ -191,5 +193,15 @@ test("starts with both an owner module and its consumer registered", async () =>
 test.each(["health", "tablesChanged"])("startup rejects a module named %s", async (name) => {
   await expect(startTestDataProcess({ modules: { [name]: fixture } })).rejects.toThrow(
     `Module namespace conflicts with built-in procedure: ${name}`,
+  );
+});
+
+test("registered app module namespaces match the mounted app contract", () => {
+  type Namespaces = Exclude<keyof AppContract, "health" | "tablesChanged">;
+  expectTypeOf<keyof typeof modules>().toEqualTypeOf<Namespaces>();
+  expect(Object.keys(modules).sort()).toEqual(
+    Object.keys(appContract)
+      .filter((key) => key !== "health" && key !== "tablesChanged")
+      .sort(),
   );
 });

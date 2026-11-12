@@ -75,10 +75,12 @@ Space are not found; restoring a live row is also not found.
 
 For joins, aggregates and multi-row changes, use ordinary Kysely builders and explicitly
 apply Space and live-row filters where required. Raw SQL and raw executors in storage are
-rejected by `self-engine/no-raw-storage-sql`; migration SQL remains separate.
+rejected by `self-engine/no-raw-storage-sql`, including `sql` in read-only expressions.
+Use `eb.fn` for SQL functions in storage queries; migration SQL remains separate.
 
 Map each unique index name to its reason, as `notes_live_title: "title_taken"` does. Let the
-index enforce uniqueness, rather than querying first. Restore into a reused title produces the
+index enforce uniqueness, rather than querying first. Unique indexes over the same columns
+must map to the same reason: SQLite's diagnostic cannot distinguish their partial predicates. Restore into a reused title produces the
 same conflict as create. Throw `ORPCError("CONFLICT", { data: { reason } })` for a business
 conflict that no index expresses. Errors carry codes/reasons for the renderer to translate.
 
@@ -96,7 +98,8 @@ Use the three builders shown together in notes:
 | `pageList({ row, query, order, map, size? })` | A growing list. Use `pageInputSchema` and `pageSchema(entitySchema)` in the contract.         |
 
 For pages, supply the selected row schema, scoped query, fixed order ending in `id`, and
-row mapping. Notes orders by `created_at`, then `id`; its migration supplies the matching
+row mapping. Every sort column must be non-null. One page list has one fixed order;
+another order needs another contract entry. Notes orders by `created_at`, then `id`; its migration supplies the matching
 Space-prefixed index. Size defaults to 100 and may be set from 1 to 500 in storage, never by
 the renderer. The result has `rows`, `before` and `after`; pass a returned cursor unchanged
 as `{ cursor }` to move in that direction. Total counts belong to #137.
@@ -110,6 +113,10 @@ Page cursor predicates and order clauses use unqualified selected column names. 
 with overlapping sort-column names, wrap the joined query in a subquery exposing unambiguous
 names. Sorting by a joined column sorts the full set on every page; no index can serve a
 sort on the far side of a left join, and the kit rejects page plans that sort without an index.
+Cursor queries must also use an index range beyond `space_id`, so later pages seek to their
+anchor. Same-direction orders use a row-value comparison; mixed directions add a first-column
+range bound to their lexicographic predicate. The kit checks both cursor directions even
+when the seed leaves the list empty, and names ambiguous sort columns with the subquery remedy.
 
 Window and small-set lists remain unbounded. With output checking enabled, a result of at
 least 1,000 rows sends a warning naming the query through the frame’s injected `report`
@@ -122,7 +129,9 @@ Done when every list has an explicit kind, and page query plans use an index for
 The owner exports a read piece from `./data` with only fixed released columns and a built-in
 Space filter. [`noteTitles`](../../packages/storage/test/notes-module/data/read-piece.ts)
 returns `id`, `title` and `deletedAt`, including deleted targets. The owner alone supplies its
-row-map type. `self-engine/no-foreign-row-map` rejects consumers importing foreign row maps.
+row-map type. `self-engine/no-foreign-row-map` rejects consumers importing foreign row maps
+or accessing an imported foreign module's `.rowMap`, including through `typeof`.
+The Data Process may compose the complete module list.
 
 Follow the second template,
 [`note-links/data/index.ts`](../../packages/storage/test/note-links-module/data/index.ts):
@@ -155,19 +164,27 @@ Use `createTestContext` (built on `createTestSources`) and
 `createTestDatabase(module, dependencies?)` for additional tests; the caller closes that database.
 
 The kit uses fresh in-memory SQLite and the dependencies’ migrations followed by the
-module’s own migrations. For every query it compares the complete output with a database
+module’s own migrations. For every entry it replays the example with seeded live owned rows
+soft-deleted, and with seeded owned rows moved to another Space. Each must behave as if those
+rows were absent: the same output or the same not-found error. Rows explicitly seeded as
+deleted remain available to restore examples in the deletion comparison. Operations also run
+among additional foreign-Space and deleted owned rows; changing any of those rows fails.
+For every query it compares the complete output with a database
 containing only the first Space’s live owned rows against the output with foreign and deleted
 owned rows present. This includes aggregates and by-id lookups; foreign read-piece targets
 retain their deletion marks. Array queries without an explicit list kind fail the kit. It derives invalid inputs
 itself from valid examples: wrong-typed values, omitted object keys and replaced top-level
 values. A schema accepting every derived candidate fails. It checks rejection before the
 handler runs with output checking both on and off, output shape and conversion-free schemas,
-Space/deletion isolation, query read-only behavior, indexed page sorting, unique-index mappings
-and reachable conflict reasons. Business behavior still needs module-owned tests.
+Space/deletion isolation, query read-only behavior, indexed page sorting and cursor seeks,
+unique-index mappings and reachable conflict reasons. It repeats every operation's valid
+example on the same database and rejects conflicts or reasons not declared by that entry.
+Extra output fields have their own violation, separate from schema conversions and defaults. Business behavior still needs module-owned tests.
 
 The kit also fails when a table’s contents changed without being announced. A table is
 announced when a successful write statement targeting it affected at least one row (an absent
-affected-row count is conservatively treated as a write). Rewriting identical values can
+affected-row count uses the returned-row count for a `RETURNING` statement; without `RETURNING`,
+a missing count is conservatively treated as a write). Rewriting identical values can
 therefore announce a table without changing its contents. A trigger writing another table
 cannot ship unnoticed: the kit detects the unannounced changed table.
 
@@ -179,14 +196,18 @@ Add the data entry under its contract namespace to
 [`data-process/src/core/modules.ts`](../../packages/data-process/src/core/modules.ts).
 That single list builds both migrations and the router; module namespaces must not be
 `health` or `tablesChanged`, which are reserved procedures; compose the matching module contract
-in the app-wide contracts package. Add dependencies and allowed import directions together.
+in the app-wide contracts package. The list is typed against the app contract, and a test
+compares the mounted namespace keys. Add dependencies and allowed import directions together.
 Modules import storage, never data-process. Storage itself imports neither Electron nor a
 native driver; the driver and transport remain replaceable, independently of future sync.
 
 The shared frame opens one transaction per call, runs the lower function, validates outputs
 when enabled, and rolls back on failure. After commit it announces a nonempty table set once;
-queries, failed operations and zero-row writes announce nothing. A failing announcer is
-reported as an unexpected error; the caller still receives the committed result. Unmapped unique violations
+queries, failed operations and zero-row writes (including empty `RETURNING` results) announce nothing. A failing announcer is
+reported as an unexpected error; the caller still receives the committed result. With output
+checks on, a translated conflict reason not declared by the entry is also reported as an
+unexpected error; the caller still receives the conflict. With checks off, translation is unchanged.
+Unmapped unique violations
 and other unexpected errors become `INTERNAL_SERVER_ERROR` and go to the same injected
 `report` callback as large-result warnings. The Data Process passes that callback through.
 Development builds report unexpected errors and large results to the console. Issue #37

@@ -1,3 +1,4 @@
+import { declaresConflict } from "./conflict-declared.ts";
 import { ContractProcedure, type AnySchema, type ErrorMap, type Meta } from "@orpc/contract";
 import { z } from "zod";
 import { implement, ORPCError, type ImplementedProcedure } from "@orpc/server";
@@ -130,8 +131,21 @@ export function createFrame(
                     candidate.columns === diagnostic || diagnostic === `index '${candidate.name}'`,
                 );
                 if (matches.length === 1) index = matches[0]?.name;
-                const reason = index === undefined ? undefined : module.conflicts?.[index];
-                if (reason !== undefined) throw new ORPCError("CONFLICT", { data: { reason } });
+                const reasons = matches.map((candidate) => module.conflicts?.[candidate.name]);
+                const reason =
+                  reasons.length > 0 &&
+                  reasons.every((reason) => reason !== undefined && reason === reasons[0])
+                    ? reasons[0]
+                    : undefined;
+                if (reason !== undefined) {
+                  const conflict = new ORPCError("CONFLICT", { data: { reason } });
+                  if (
+                    options.checkOutputs &&
+                    !(await declaresConflict(module.contract[name]!, conflict))
+                  )
+                    reportUnexpected(name, conflict, index);
+                  throw conflict;
+                }
               }
               reportUnexpected(name, error, index);
               throw new ORPCError("INTERNAL_SERVER_ERROR");
