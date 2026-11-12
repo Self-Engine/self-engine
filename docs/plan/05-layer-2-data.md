@@ -1,6 +1,6 @@
 # Schicht 2: Datenschicht
 
-Stand: 2026-11-10 · Status: **entschieden** (D86–D98, D133–D142, D187–D196) · Recherche:
+Stand: 2026-11-12 · Status: **entschieden** (D86–D98, D133–D142, D187–D196, D219–D230) · Recherche:
 [`research-layer-2-data.md`](research-layer-2-data.md)
 
 ## Entschieden
@@ -8,7 +8,7 @@ Stand: 2026-11-10 · Status: **entschieden** (D86–D98, D133–D142, D187–D19
 | Nr. | Thema | Entscheidung |
 |---|---|---|
 | L2.1 | Umfang | Nur Fundament: DB im Desktop, Migrationen, Port-Muster, Einstellungen in der DB, Sicherung; Fachtabellen ab Schicht 3/4 (D86) |
-| L2.2 | Konventionen | UUIDv7 als Text-`id`, `created_at`/`updated_at` UTC-Text, `deleted_at`, `space_id`, `STRICT`, verzögerte FKs, `custom` als JSON, Brücken mit eigener `id` (D87) |
+| L2.2 | Konventionen | UUIDv7 als Text-`id`, `created_at`/`updated_at` UTC-Text, `deleted_at`, `space_id`, `STRICT`, verzögerte FKs, `custom` als JSON erst mit den Nutzerfeldern, Brücken mit eigener `id` (D87, D222) |
 | L2.3 | Schreiben | Benannte Operationen durch den Port, kein Operations-Protokoll vor Sync (D88) |
 | – | Sync-Engine | Schicht 2 bleibt engine-neutral, PowerSync nicht gesetzt; Nahtstelle Port + Schreibweg + Änderungsereignis (D89) |
 | L2.4 | Datenprozess | Electron-`utilityProcess`, Renderer direkt per `MessagePort`, Verträge in `contracts` (D90) |
@@ -30,6 +30,12 @@ Stand: 2026-11-10 · Status: **entschieden** (D86–D98, D133–D142, D187–D19
 | L2.20 | Zeichnen | Seiten-Listen zeichnen nur Sichtbares, eine Zeile pro Änderung, Warten als Standard (D194) |
 | L2.21 | Kontext | Uhr, Id-Erzeuger und Space als ein Kontext aus dem Datenprozess (D195) |
 | L2.22 | Stories | Feste Antworten statt nachgebautem Speicher (D196) |
+| L2.23 | Zeilen | Zeilen-Map aus Zod pro Modul als einzige Quelle, Kysely-Typen abgeleitet (D219) |
+| L2.24 | Abbildung | Spalten snake_case, Entitäten camelCase, eine handgeschriebene Abbildung pro Entität (D220) |
+| L2.25 | Entitäten | `id`, `createdAt`, `updatedAt`; Gelöschtes nur über eigene Operation; eindeutige Indizes partiell (D221) |
+| L2.26 | Typen | `Instant` jetzt aus `time`, eine Id-Marke pro Entität, reiner Einstieg `db/schema` (D223–D225) |
+| L2.27 | Prüfungen | Übereinstimmungstest gegen die echten Spalten; jeder Index mit `space_id` vorn; kein `*OrThrow` (D226–D228) |
+| L2.28 | Testhilfen | `createTestSources` für Uhr und Ids, Beispiel als Testmodul in `db` (D229, D230) |
 
 ## Aufbau
 

@@ -12,7 +12,7 @@ Stand: 2026-11-10 · Status: **entschieden** (D143–D154), Spec #103, Issues #1
 | L3.3 | Geld | `INTEGER` in der kleinsten Einheit, eigener Katalog, einmal gerundet, keine Kurse (D145) |
 | L3.4 | Geld | Eingabe und Anzeige in `money`, `_minor` im Namen, Zod-Schemas im Paket (D146) |
 | L3.5 | Zeit | Eine Zeitzone als Synced Setting, keine Historie, Tageslogik nie in SQL (D147) |
-| L3.6 | Zeit | Übernahme mit Pflicht-Uhr, Typen bis in die Zeile, Lint-Regeln (D148) |
+| L3.6 | Zeit | Übernahme mit Pflicht-Uhr, Typen bis in die Zeile, Lint-Regeln (D148); `Instant` entsteht vorab in #31 (D223) |
 | L3.7 | Zeit | Ergänzungen aus unabhängiger Prüfung (D149) |
 | L3.8 | Tags | Tabelle `tags`, Brücken gehören den Modulen, weiches Löschen (D150) |
 | L3.9 | Icon, Farbe | Name oder Emoji, Farbsatz-Name, vier neue Farbsätze, kein neues Paket (D151) |
@@ -45,7 +45,7 @@ geschnitten. Gebaut wird in Nummernreihenfolge.
 
 | Issue | Paket | Entscheidungen | Blocked by |
 |---|---|---|---|
-| #104 | `time` mit Uhr und Lint-Regeln | D148, D149 | – |
+| #104 | `time` mit Uhr und Lint-Regeln | D148, D149, D223 | – |
 | #105 | `money` | D145, D146, D153 | – |
 | #106 | Icon und Farbe an Entitäten | D151 | – |
 | #107 | ADR und Glossar für Brücken | D152 | – |
@@ -57,6 +57,8 @@ geschnitten. Gebaut wird in Nummernreihenfolge.
 ## Offen
 
 - Name des Zeitmoduls in Schicht 4: `time` ist durch das Wert-Paket belegt.
+- Wie `spaces` höchstens einen persönlichen Space sichert, ohne D227 zu brechen: Ein Index über
+  `kind` beginnt nicht mit `space_id` (klärt #108).
 - Sonderfall doppelter Mitternacht in historischen Zeitzonen; Prüfung auf Hermes (Mobile-Phase).
 - Wie eine Brücken-Aktion in der Oberfläche eines Moduls erscheint (mit der ersten Brücke).
 - Zusammenführen offline angelegter gleicher Tags, Umschreiben der `space_id` (Sync-Phase).
