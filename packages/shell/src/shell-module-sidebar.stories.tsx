@@ -1,4 +1,4 @@
-import { SHELL_REFERENCE_WIDTHS } from "@self-engine/shell/layout";
+import { SHELL_TOP_STRIP_HEIGHT, SHELL_REFERENCE_WIDTHS } from "@self-engine/shell/geometry";
 import { MantineThemeProvider } from "@mantine/core";
 import type { Meta } from "@storybook/react-vite";
 import { expect, screen, userEvent, waitFor } from "storybook/test";
@@ -7,7 +7,6 @@ import {
   ENTRIES,
   LOGO,
   LOGO_AND_WINDOW_BUTTONS,
-  STRIP_HEIGHT,
   appRegionOf,
   atFrameWidth,
   atViewport,
@@ -62,11 +61,11 @@ export const TheModuleSidebarGetsADragStripAboveIt: Story = {
     await expect(appRegionOf(strip)).toBe("drag");
     await expect(strip.getBoundingClientRect()).toMatchObject({
       top: pane.getBoundingClientRect().top,
-      height: STRIP_HEIGHT,
+      height: SHELL_TOP_STRIP_HEIGHT,
       width: pane.getBoundingClientRect().width,
     });
     await expect(canvas.getByText("Sidebar content").getBoundingClientRect().top).toBeGreaterThan(
-      pane.getBoundingClientRect().top + STRIP_HEIGHT,
+      pane.getBoundingClientRect().top + SHELL_TOP_STRIP_HEIGHT,
     );
   },
 };

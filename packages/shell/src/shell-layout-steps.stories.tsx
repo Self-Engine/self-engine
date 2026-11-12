@@ -1,4 +1,4 @@
-import { SHELL_REFERENCE_WIDTHS } from "@self-engine/shell/layout";
+import { SHELL_REFERENCE_WIDTHS } from "@self-engine/shell/geometry";
 import { ProjectsIcon } from "@self-engine/icons";
 import type { Meta } from "@storybook/react-vite";
 import { expect, screen, userEvent, waitFor, within } from "storybook/test";

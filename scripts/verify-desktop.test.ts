@@ -213,6 +213,7 @@ it("clicks and photographs every discovered View, then Settings", async () => {
   expect(result.passed).toBe(true);
   expect(
     result.steps
+      .filter(({ screenshot }) => screenshot !== undefined)
       .slice(8, 12)
       .map(({ route, screenshot, width, colorMode }) => ({ route, screenshot, width, colorMode })),
   ).toEqual([
@@ -278,7 +279,9 @@ it("opens a full View deep link after navigating away and rejects a wrong destin
   const result = await verifyDesktop(app);
   expect(result.passed).toBe(true);
   expect(addresses).toEqual(["/alpha/overview"]);
-  expect(result.steps.at(-1)).toMatchObject({ step: "deep-link", route: "/alpha/overview" });
+  expect(result.steps.find(({ step }) => step === "deep-link")).toMatchObject({
+    route: "/alpha/overview",
+  });
   app.deepLink = async () => {};
   const failed = await verifyDesktop(app);
   expect(failed.passed).toBe(false);
@@ -382,4 +385,28 @@ it("names the failing View and preserves its preceding screenshots", async () =>
     errors: ["Archive could not render"],
   });
   expect(app.screenshots).toHaveLength(9);
+});
+
+it("numbers screenshots consecutively across navigation steps without photographs", async () => {
+  const app = fakeApp();
+  const result = await verifyDesktop(app);
+  expect(result.passed).toBe(true);
+  expect(app.screenshots.map((name) => name.slice(0, 2))).toEqual(
+    Array.from({ length: 14 }, (_, index) => String(index + 1).padStart(2, "0")),
+  );
+  expect(result.steps.filter(({ screenshot }) => screenshot !== undefined)).toHaveLength(14);
+});
+
+it("reports a main-process error recorded before the Shell started", async () => {
+  const app = fakeApp();
+  const read = app.readState.bind(app);
+  app.readState = async () => ({
+    ...(await read()),
+    errors: ["main uncaughtException: startup failure"],
+  });
+  expect(await verifyDesktop(app)).toMatchObject({
+    passed: false,
+    steps: [{ step: "wide", errors: ["main uncaughtException: startup failure"] }],
+  });
+  expect(app.screenshots).toEqual([]);
 });

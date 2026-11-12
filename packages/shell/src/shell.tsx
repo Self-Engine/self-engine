@@ -1,4 +1,9 @@
-import { START_AFTER_WINDOW_BUTTONS_PX, SHELL_TOP_STRIP_HEIGHT } from "./layout.ts";
+import {
+  SHELL_START_AFTER_WINDOW_BUTTONS_PX,
+  SHELL_TOP_STRIP_HEIGHT,
+  SHELL_WINDOW_BUTTON_STRIP_HEIGHT,
+  type LayoutStep,
+} from "./geometry.ts";
 import { CommandPalette } from "./command-palette.tsx";
 import {
   CommandPaletteProvider,
@@ -67,12 +72,9 @@ import {
 } from "./routing.tsx";
 import { useNavbarResize } from "./use-navbar-resize.ts";
 
-const CONTENT_HEADER_HEIGHT = SHELL_TOP_STRIP_HEIGHT;
 const BOTTOM_BAR_HEIGHT = 64;
 const ENTRY_HEIGHT = 40;
-/** As high as the content header and level with it, so window buttons, logo and page title share a line. */
-const TOP_STRIP_HEIGHT = CONTENT_HEADER_HEIGHT;
-const START_AFTER_WINDOW_BUTTONS = `${START_AFTER_WINDOW_BUTTONS_PX}px`;
+const START_AFTER_WINDOW_BUTTONS = `${SHELL_START_AFTER_WINDOW_BUTTONS_PX}px`;
 /** The same place from inside the frame, for the content header that the buttons float over. */
 const HEADER_START_AFTER_WINDOW_BUTTONS = `calc(${START_AFTER_WINDOW_BUTTONS} - ${rem(GAP)})`;
 /** The Layout Steps, on Mantine's own breakpoints. */
@@ -82,10 +84,7 @@ const LAYOUT_STEPS = { base: "phone", xs: "narrow", md: "medium", lg: "wide" } a
 const MEASURE_ON_FIRST_RENDER = { getInitialValueInEffect: false };
 
 function useLayoutStep() {
-  return useMatches<(typeof LAYOUT_STEPS)[keyof typeof LAYOUT_STEPS]>(
-    LAYOUT_STEPS,
-    MEASURE_ON_FIRST_RENDER,
-  );
+  return useMatches<LayoutStep>(LAYOUT_STEPS, MEASURE_ON_FIRST_RENDER);
 }
 
 const RADIUS = "var(--mantine-radius-md)";
@@ -306,7 +305,11 @@ interface ShellFrameProps {
 /** The band at the top of a navigation surface, which moves the window. It can hold the logo. */
 function TopStrip({ children, style }: { children?: ReactNode; style?: CSSProperties }) {
   return (
-    <Box flex="none" h={rem(TOP_STRIP_HEIGHT)} style={{ ...WINDOW_DRAG_STYLE, ...style }}>
+    <Box
+      flex="none"
+      h={rem(SHELL_WINDOW_BUTTON_STRIP_HEIGHT)}
+      style={{ ...WINDOW_DRAG_STYLE, ...style }}
+    >
       {children}
     </Box>
   );
@@ -320,7 +323,12 @@ interface LogoProps {
 
 function Logo({ logo, markOnly = false, style }: LogoProps) {
   return (
-    <Group gap="xs" h={rem(TOP_STRIP_HEIGHT)} style={{ ...LOGO_STYLE, ...style }} wrap="nowrap">
+    <Group
+      gap="xs"
+      h={rem(SHELL_WINDOW_BUTTON_STRIP_HEIGHT)}
+      style={{ ...LOGO_STYLE, ...style }}
+      wrap="nowrap"
+    >
       {logo.mark}
       {!markOnly && <Text fw={600}>{logo.name}</Text>}
     </Group>
@@ -460,7 +468,7 @@ function ContentHeader({
     <Group
       flex="none"
       gap="sm"
-      h={rem(CONTENT_HEADER_HEIGHT)}
+      h={rem(SHELL_TOP_STRIP_HEIGHT)}
       pe="md"
       ps={startsAfterWindowButtons ? HEADER_START_AFTER_WINDOW_BUTTONS : "md"}
       style={WINDOW_DRAG_STYLE}
@@ -676,7 +684,7 @@ function ShellFrame({
   // Keeps the entries in their column, so the wider icons-only Navbar only adds room on both sides.
   const iconsOnlyNavbarPadding = rem((limits.iconsOnlyWidth - ICON_COLUMN_WIDTH) / 2);
   const hasNavigationStrip = hasTopStrip && !navigationInDrawer;
-  const topStripHeight = hasNavigationStrip ? rem(TOP_STRIP_HEIGHT) : 0;
+  const topStripHeight = hasNavigationStrip ? rem(SHELL_WINDOW_BUTTON_STRIP_HEIGHT) : 0;
 
   useEffect(() => {
     if (!navigationInDrawer) closeDrawer();

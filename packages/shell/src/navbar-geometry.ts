@@ -1,4 +1,4 @@
-import { START_AFTER_WINDOW_BUTTONS_PX } from "./layout.ts";
+import { SHELL_START_AFTER_WINDOW_BUTTONS_PX } from "./geometry.ts";
 import { clamp } from "@mantine/hooks";
 
 /** Starting values from #19, in Mantine's unscaled numbers. */
@@ -41,7 +41,8 @@ export interface NavbarLimits {
  * Where anything beside the window buttons starts inside the frame, in Mantine's unscaled numbers.
  * The frame follows the scale and the buttons stay in real pixels, so it depends on the scale.
  */
-const startAfterWindowButtons = (scale: number) => START_AFTER_WINDOW_BUTTONS_PX / scale - GAP;
+const startAfterWindowButtons = (scale: number) =>
+  SHELL_START_AFTER_WINDOW_BUTTONS_PX / scale - GAP;
 
 /** The narrowest wide Navbar: the logo with its name has to fit its strip. */
 function navbarMinWideWidth(scale: number, reserveWindowButtons: boolean): number {

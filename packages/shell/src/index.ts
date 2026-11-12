@@ -1,8 +1,3 @@
-export {
-  SHELL_REFERENCE_WIDTHS,
-  START_AFTER_WINDOW_BUTTONS_PX,
-  SHELL_TOP_STRIP_HEIGHT,
-} from "./layout.ts";
 export { SHELL_STANDARD_NAVBAR, type ShellNavbarState } from "./navbar-geometry.ts";
 export { Shell, type ShellLogo, type ShellProps } from "./shell.tsx";
 export { SHELL_STANDARD_MODULE_SIDEBAR_WIDTH } from "./use-module-sidebar-resize.ts";
