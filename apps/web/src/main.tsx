@@ -9,11 +9,19 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { AppLanguage, browserLanguages } from "./app-language.tsx";
 import { AppearanceProvider } from "./appearance.tsx";
+import { connectDesktopData, dataConnection, markConnectionStates } from "./desktop-data.ts";
 import { router } from "./router.ts";
 import { settingsStore } from "./settings-store.ts";
 
 const container = document.getElementById("root");
 if (container === null) throw new Error("index.html has no #root element");
+
+// First, so the data process's port is on its way while the rest starts. The marks are what the
+// desktop smoke test reads (desktop-data.ts).
+if (window.desktopBridge) {
+  markConnectionStates(dataConnection, (name, options) => performance.mark(name, options));
+  connectDesktopData(window, window.desktopBridge, dataConnection);
+}
 
 // The first render needs the stored appearance and language; the Start Cache covers this wait.
 await settingsStore.load();

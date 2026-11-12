@@ -1,5 +1,6 @@
-// `pnpm dev`: the Vite dev server for the renderer, `vp pack --watch` for main and preload,
-// and Electron, restarted when a bundle changes. Closing the window ends the whole run.
+// `pnpm dev`: the Vite dev server for the renderer, `vp pack --watch` for main, preload and the
+// data process, and Electron, restarted when a bundle changes. Closing the window ends the
+// whole run.
 //
 // `node_modules/.bin/vp` is a shell shim, so killing its pid leaves the real process behind
 // (spike RESULTS.md). Every child therefore runs in its own process group, and stopping a
@@ -13,7 +14,7 @@ import { DESKTOP_DIR, ensureElectron } from "./ensure-electron.ts";
 
 const WEB_DIR = resolve(import.meta.dirname, "../apps/web");
 const BUNDLE_DIR = join(DESKTOP_DIR, "dist-electron");
-const BUNDLES = ["main.cjs", "preload.cjs"];
+const BUNDLES = ["main.cjs", "preload.cjs", "data-process.cjs"];
 const DEV_PORT = 5733;
 const STOP_GRACE_MS = 1_500;
 const RESTART_DEBOUNCE_MS = 150;

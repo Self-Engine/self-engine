@@ -17,15 +17,19 @@
     "storybook": "pnpm --filter @self-engine/component-catalog storybook",
     "test": "vp test run",
     "verify": "node scripts/verify.ts",
-    "renders": "node scripts/measure-renders.ts"
+    "renders": "node scripts/measure-renders.ts",
+    "verify:desktop": "node scripts/verify-desktop.ts"
   },
   "devDependencies": {
+    "@babel/core": "catalog:",
     "@lingui/cli": "catalog:",
     "@lingui/conf": "catalog:",
     "@lingui/format-po": "catalog:",
     "@messageformat/parser": "catalog:",
+    "@self-engine/desktop-bridge": "workspace:*",
     "@self-engine/i18n": "workspace:*",
     "@self-engine/oxlint-plugin": "workspace:*",
+    "@self-engine/shell": "workspace:*",
     "@self-engine/theme": "workspace:*",
     "@swc/core": "catalog:",
     "@types/node": "catalog:",

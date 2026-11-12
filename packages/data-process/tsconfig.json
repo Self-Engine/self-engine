@@ -1,0 +1,11 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "module": "Preserve",
+    "moduleResolution": "Bundler",
+    // The core knows no Electron and no DOM; Node types only for `node:worker_threads` in tests.
+    "lib": ["ESNext"],
+    "types": ["node"]
+  },
+  "include": ["src"]
+}

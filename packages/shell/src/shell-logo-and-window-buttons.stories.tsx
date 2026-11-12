@@ -1,3 +1,8 @@
+import {
+  SHELL_TOP_STRIP_HEIGHT,
+  SHELL_START_AFTER_WINDOW_BUTTONS_PX,
+  SHELL_REFERENCE_WIDTHS,
+} from "@self-engine/shell/geometry";
 import type { Meta } from "@storybook/react-vite";
 import { expect, userEvent, waitFor, within } from "storybook/test";
 import { Shell, type ShellProps } from "./index.ts";
@@ -6,7 +11,6 @@ import {
   LOGO,
   LOGO_AND_WINDOW_BUTTONS,
   SCALING_LOGO,
-  STRIP_HEIGHT,
   appRegionOf,
   atSmallestFontScale,
   atViewport,
@@ -54,7 +58,7 @@ export const StripForTheWindowButtons: Story = {
   play: async ({ canvas }) => {
     const first = canvas.getByRole("link", { name: "Projects" });
     await expect(first.getBoundingClientRect().top).toBeCloseTo(
-      navbarOf(canvas).getBoundingClientRect().top + 48,
+      navbarOf(canvas).getBoundingClientRect().top + SHELL_TOP_STRIP_HEIGHT,
       0,
     );
     await expect(appRegionOf(navbarOf(canvas).firstElementChild!)).toBe("drag");
@@ -76,7 +80,7 @@ export const StripOverANavbarTheUserCollapsed: Story = {
   play: async ({ canvas }) => {
     await expectStripOverAnIconsOnlyNavbar(canvas);
     await expect(navbarHandle(canvas).getBoundingClientRect().top).toBeCloseTo(
-      navbarOf(canvas).getBoundingClientRect().top + STRIP_HEIGHT,
+      navbarOf(canvas).getBoundingClientRect().top + SHELL_TOP_STRIP_HEIGHT,
       0,
     );
   },
@@ -115,7 +119,11 @@ export const TheTopEdgeDragsTheWindowAndItsControlsStayClickable: Story = {
       (element) =>
         appRegionOf(element) === "drag" && getComputedStyle(element).position === "fixed",
     );
-    await expect(topEdge?.getBoundingClientRect()).toMatchObject({ top: 0, left: 0, width: 800 });
+    await expect(topEdge?.getBoundingClientRect()).toMatchObject({
+      top: 0,
+      left: 0,
+      width: SHELL_REFERENCE_WIDTHS.narrow,
+    });
   },
 };
 
@@ -212,14 +220,14 @@ export const TheStripReadsAsOneSurface: Story = {
     const box = navbar.getBoundingClientRect();
     const divider = dividerOf(canvas).getBoundingClientRect();
     await expect(getComputedStyle(navbar).borderInlineEndWidth).toBe("0px");
-    await expect(divider.top).toBeCloseTo(box.top + STRIP_HEIGHT, 0);
+    await expect(divider.top).toBeCloseTo(box.top + SHELL_TOP_STRIP_HEIGHT, 0);
     await expect(divider.bottom).toBeCloseTo(box.bottom, 0);
     await expect(divider.right).toBeCloseTo(box.right, 0);
     await expect(dividerOf(canvas)).toHaveStyle({
       backgroundColor: getComputedStyle(navbar).getPropertyValue("--se-border"),
     });
     await expect(navbarHandle(canvas).getBoundingClientRect().top).toBeCloseTo(
-      box.top + STRIP_HEIGHT,
+      box.top + SHELL_TOP_STRIP_HEIGHT,
       0,
     );
   },
@@ -231,7 +239,7 @@ export const TheStripStaysForTheLogoWithoutWindowButtons: Story = {
   play: async ({ canvas }) => {
     const firstEntry = canvas.getByRole("link", { name: "Projects" });
     await expect(firstEntry.getBoundingClientRect().top).toBeCloseTo(
-      navbarOf(canvas).getBoundingClientRect().top + STRIP_HEIGHT,
+      navbarOf(canvas).getBoundingClientRect().top + SHELL_TOP_STRIP_HEIGHT,
       0,
     );
   },
@@ -298,7 +306,10 @@ export const TheNarrowHeaderStartsAfterTheWindowButtons: Story = {
     const burger = burgerOf(canvas);
     const title = canvas.getByRole("heading", { name: "Time" });
     const badge = canvas.getByText("Nightly");
-    await expect(burger.getBoundingClientRect().left).toBeCloseTo(84, 0);
+    await expect(burger.getBoundingClientRect().left).toBeCloseTo(
+      SHELL_START_AFTER_WINDOW_BUTTONS_PX,
+      0,
+    );
     await expect(title.getBoundingClientRect().left).toBeGreaterThan(
       burger.getBoundingClientRect().right,
     );
@@ -315,7 +326,10 @@ export const TheNarrowHeaderClearsTheWindowButtonsAtTheSmallestFontScale: Story 
   ...atSmallestFontScale("narrow"),
   args: { reserveWindowButtons: true },
   play: async ({ canvas }) => {
-    await expect(burgerOf(canvas).getBoundingClientRect().left).toBeCloseTo(84, 0);
+    await expect(burgerOf(canvas).getBoundingClientRect().left).toBeCloseTo(
+      SHELL_START_AFTER_WINDOW_BUTTONS_PX,
+      0,
+    );
   },
 };
 
@@ -372,7 +386,7 @@ export const TheIconsOnlyNavbarHoldsTheWindowButtonsWhenBothAreCollapsed: Story 
     await expect(Math.round(active.getBoundingClientRect().height)).toBe(40);
     await expect([...navbar.children].filter((child) => widthOf(child) === 1)).toEqual([]);
     await expect(navbarHandle(canvas).getBoundingClientRect().top).toBeCloseTo(
-      navbar.getBoundingClientRect().top + STRIP_HEIGHT,
+      navbar.getBoundingClientRect().top + SHELL_TOP_STRIP_HEIGHT,
       0,
     );
   },
@@ -483,7 +497,10 @@ export const TheMarkLeavesTheContentHeaderWhenTheModuleSidebarOpens: Story = {
     await userEvent.click(expandToggle(canvas));
     await waitFor(() => expect(canvas.getByText("Self-Engine")).toBeVisible());
     await expect(widthOf(navbarOf(canvas))).toBe(56);
-    await expect(canvas.getByTestId("mark").getBoundingClientRect().left).toBeCloseTo(84, 0);
+    await expect(canvas.getByTestId("mark").getBoundingClientRect().left).toBeCloseTo(
+      SHELL_START_AFTER_WINDOW_BUTTONS_PX,
+      0,
+    );
   },
 };
 
@@ -652,13 +669,16 @@ export const ACollapsedSidebarBesideAWideNavbarKeepsTheStripInTheNavbar: Story =
     await expectEntriesBelowTheStrip(canvas);
     await expect(appRegionOf(navbar.firstElementChild!)).toBe("drag");
     await expect(canvas.getByText("Self-Engine")).toBeVisible();
-    await expect(canvas.getByTestId("mark").getBoundingClientRect().left).toBeCloseTo(84, 0);
+    await expect(canvas.getByTestId("mark").getBoundingClientRect().left).toBeCloseTo(
+      SHELL_START_AFTER_WINDOW_BUTTONS_PX,
+      0,
+    );
     await expect(centerY(canvas.getByTestId("mark"))).toBeCloseTo(
       centerY(canvas.getByRole("heading", { name: "Time" })),
       0,
     );
     await expect(navbarHandle(canvas).getBoundingClientRect().top).toBeCloseTo(
-      navbar.getBoundingClientRect().top + STRIP_HEIGHT,
+      navbar.getBoundingClientRect().top + SHELL_TOP_STRIP_HEIGHT,
       0,
     );
     await expect([...navbar.children].filter((child) => widthOf(child) === 1)).toEqual([]);

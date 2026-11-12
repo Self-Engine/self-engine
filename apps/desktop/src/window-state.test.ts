@@ -8,6 +8,7 @@ import {
   MINIMUM_WIDTH,
   WRITE_DELAY_MS,
   type WindowSnapshot,
+  applyWindowOpening,
   openWindowState,
   recordWindowState,
 } from "./window-state.ts";
@@ -200,5 +201,33 @@ describe("recordWindowState", () => {
     const recorder = recordWindowState(join(folder, "missing", "window-state.json"), globalThis);
     expect(() => recorder.close(snapshot(first))).not.toThrow();
     expect(logged).toHaveBeenCalledOnce();
+  });
+});
+
+describe("applyWindowOpening", () => {
+  it.each([
+    [false, false],
+    [true, false],
+    [false, true],
+    [true, true],
+  ])("restores position before special states and recording (%s, %s)", (maximize, fullScreen) => {
+    const calls: unknown[] = [];
+    applyWindowOpening(
+      {
+        show: () => calls.push("show"),
+        setPosition: (x, y) => calls.push(["position", x, y]),
+        maximize: () => calls.push("maximize"),
+        setFullScreen: (value) => calls.push(["fullScreen", value]),
+      },
+      { bounds: { x: 120, y: 100, width: 1000, height: 650 }, maximize, fullScreen },
+      () => calls.push("record"),
+    );
+    expect(calls).toEqual([
+      "show",
+      ["position", 120, 100],
+      ...(maximize ? ["maximize"] : []),
+      ...(fullScreen ? [["fullScreen", true]] : []),
+      "record",
+    ]);
   });
 });

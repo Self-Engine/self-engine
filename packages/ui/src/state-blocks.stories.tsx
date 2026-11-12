@@ -3,7 +3,7 @@ import { ProjectsIcon } from "@self-engine/icons";
 import { roleColor } from "@self-engine/theme";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { expect, fn, userEvent } from "storybook/test";
-import { EmptyState, ErrorState, LoadingState } from "./index.ts";
+import { EmptyState, ErrorState, LOADER_DELAY_MS, LoadingState } from "./index.ts";
 import { holdTimers } from "./story-timers.ts";
 
 const meta = {
@@ -85,7 +85,7 @@ let heldWait: ReturnType<typeof holdTimers>["held"];
 
 export const LoadingShowsNothingUntilTheWaitIsOver: Story = {
   beforeEach: () => {
-    const timers = holdTimers(200);
+    const timers = holdTimers(LOADER_DELAY_MS);
     heldWait = timers.held;
     return timers.restore;
   },

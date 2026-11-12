@@ -1163,6 +1163,327 @@ RPC-Schicht aus D93 entfällt.
   die Fensterknöpfe aus, die Hülle hält ihren Streifen aber frei; das zu beheben braucht den ersten
   Kanal vom Hauptprozess zum Renderer und gehört daher nicht in #24.
 
+### Runde 30 (2026-11-12): App-Check `verify-desktop` (#25, verfeinert D76)
+
+- **D210 Ein festes Skript fährt den Ablauf, der Skill erklärt nur drumherum.** Das Skript liegt
+  in `scripts/` mit Test und baut auf dem Start der Stufe `smoke` auf; die `SKILL.md` sagt, wann
+  man es startet, wie man die Ausgabe liest und was in den Bericht gehört. Jeder Lauf ist gleich,
+  und ein Agent kann danach von Hand weitermachen. _Verworfen:_ ein Rezept, nach dem jeder Agent
+  sein eigenes Playwright schreibt (ungetestet, jeder Lauf anders, Electron-Fallen wie
+  `ELECTRON_RUN_AS_NODE` und das Wegwerf-Profil jedes Mal neu).
+- **D211 Geprüft wird die gebaute App im eigenen Checkout des Agenten.** Erst der Build, dann
+  Electron mit Wegwerf-Profil und eigenem Port, wie `smoke`; `--executable` prüft eine paketierte
+  App. Läuft im selben Checkout `pnpm dev`, bricht das Skript mit einem Hinweis ab, statt mit dem
+  Build die laufende Dev-App neu zu starten. _Verworfen:_ ein Dev-Server-Modus oder das Andocken an
+  eine laufende `pnpm dev`-Sitzung (eigene Daten, fester Port 5733, das eigene Fenster würde auf
+  576 px gezogen).
+- **D212 Das Fenster bleibt unsichtbar, auch in `smoke`.** Eine Umgebungsvariable, die nur der
+  Kanal `dev` beachtet, lässt das Fenster ungezeigt, blendet das Dock-Symbol aus und schaltet die
+  Hintergrund-Drosselung ab, damit die Seite trotzdem voll zeichnet. Playwright holt Screenshots
+  aus Chromium, nicht vom Bildschirm. `--visible` zeigt das Fenster doch. So springt weder beim
+  App-Check noch bei `pnpm verify` ein Fenster nach vorne und nimmt den Fokus. Eine paketierte
+  Nightly oder Stable lässt sich so nicht verstecken. _Verworfen:_ `showInactive()` (das Fenster
+  springt trotzdem achtmal sichtbar um); ein Fenster außerhalb des Bildschirms (macOS und D207
+  holen es zurück).
+- **D213 Screenshots zeigen nur die Seite, die Fensterknöpfe prüft die Geometrie.** macOS zeichnet
+  die Knöpfe über die Seite, sie fehlen also auf den Bildern; der Skill sagt das dem Agenten. Das
+  Skript prüft stattdessen in jeder Layoutstufe, dass der Streifen für die Knöpfe frei bleibt, mit
+  dem Maß, das die Hülle selbst dafür verwendet. Unter Windows und Linux gibt es bis #167 den
+  nativen Rahmen (D205) und daher nichts zu prüfen; #167 erweitert die Prüfung. _Verworfen:_ eine
+  Aufnahme auf Systemebene (braucht die macOS-Freigabe für Bildschirmaufnahme, nur Mac).
+- **D214 Hell und Dunkel kommen über das System-Theme.** Der Hauptprozess stellt das System-Theme
+  um; der Farbmodus bleibt auf seinem Standard „System“. Das prüft nebenbei, dass die App dem System
+  folgt. _Verworfen:_ die Einstellung im Einstellungsbereich anklicken (bindet den Ablauf an dessen
+  Oberfläche); Medien-Emulation des Browsers (umgeht Electron).
+- **D215 Vier Breiten, jede gegen ihre Layoutstufe geprüft.** 1280 (wide), 1100 (medium), 800
+  (narrow) und 576 (Mindestbreite, noch narrow), je hell und dunkel. Die Hülle zeigt ihre
+  Layoutstufe als Attribut an ihrer Wurzel; das ist Produkt-Markup, kein Test-Haken, und kostet
+  nichts, weil die Stufe ohnehin berechnet ist. Die Breiten exportiert die Hülle an einer Stelle,
+  Stories und Skript lesen sie von dort. Ändert jemand einen Breakpoint, scheitert der Lauf, statt
+  plausibel aussehende Bilder der falschen Stufe zu liefern.
+- **D216 Objektive Fehler lassen den Lauf scheitern, alles andere beurteilt der Agent.** Hart
+  scheitert er an der Fehlerseite statt der Hülle, an einem ungefangenen Fehler in Seite oder
+  Hauptprozess, an `console.error`, an einer falschen Layoutstufe, einer falschen Route oder einem
+  belegten Streifen für die Fensterknöpfe. Aussehen, Überlappung und Kontrast beurteilt der Agent an
+  den Bildern. Auch ein gescheiterter Lauf behält die Bilder bis zum Fehler.
+- **D217 Der Ablauf folgt der Oberfläche, nicht den Platzhaltern.** Das Skript liest die Module aus
+  der Navbar und ihre Ansichten aus der Modul-Sidebar, über Rollen und Namen, und klickt sie an wie
+  ein Mensch; so übersteht es den Ersatz der Platzhalter und prüft, dass jede Ansicht erreichbar
+  ist. Es besucht jede Ansicht (wide, hell), deckt auf der ersten alle Layoutstufen in beiden
+  Farbmodi ab, öffnet den Einstellungsbereich und lädt neu (dieselbe Route muss bleiben). Deep Link
+  heißt: eine volle Adresse in den Hash schreiben und neu laden. Für `?edit=` (D77) startet es die
+  Hauptaktion des ersten Moduls, das eine hat, und öffnet die Adresse mit offenem
+  Bearbeiten-Drawer später neu. Ein OS-Protokoll (`self-engine://`) gehört nicht dazu.
+  _Verworfen:_ das Register über einen Test-Haken der App auslesen (Testschnittstelle in der
+  ausgelieferten App, Klickweg ungeprüft).
+- **D218 Ausgabe in `.temp/`, Bericht mit Bildern, Verweis in AGENTS.md.** Jeder Lauf schreibt in
+  einen eigenen Ordner mit Zeitstempel: nummerierte Bilder mit Schritt, Layoutstufe und Farbmodus im
+  Namen und eine Zusammenfassung mit Schritten, Routen, Layoutstufen und Fehlern. Der Agent zeigt
+  die wichtigen Bilder im Bericht, nennt, was ihm auffiel, und was ungeprüft blieb. Die Regel in
+  AGENTS.md, eine nicht geprüfte visuelle Änderung zu melden und den Check anzubieten, nennt den
+  Skill. Läuft nur auf Wunsch, nie in CI (D76).
+
+### Runde 31 (2026-11-12): Typisierte Abfragen mit Kysely und Zod (#31, verfeinert D87, D91, D187, D195)
+
+- **D219 Die Zeilen-Map ist die einzige geschriebene Quelle der Spaltentypen.** Jedes Modul
+  deklariert in `./data` eine Map aus Tabellennamen und Zod-Zeilenschemas mit Speichertypen
+  (snake_case, `deleted_at` nullbar). Die Kysely-Typen leitet ein kleiner Typ `TablesOf` aus `db`
+  daraus ab; `withTables` und jede Speicherfunktion nutzen ihn, und der Übereinstimmungstest
+  liest dieselbe Map. Das geht, weil Zeilen keine Defaults haben (D140, D141) und damit beim
+  Einfügen, Lesen und Ändern gleich aussehen; `Generated<>` und `ColumnType` entfallen. Ein
+  abgeleiteter Typ ist immer ein `type`-Alias, die `interface`-Reibung des Durchstichs entfällt.
+  _Preis:_ Die Zeilenschemas werden beim Laden von `./data` gebaut, aber nie geparst (D188).
+  _Verworfen:_ handgeschriebener Kysely-Typ neben einem Zod-Schema (zwei Quellen, dritte
+  Prüfung); `kysely-codegen` (erzeugte Datei pro Modul, Erzeugung muss durch Vite, D191).
+- **D220 Spalten snake_case, Entitäten camelCase, eine handgeschriebene Abbildung pro Entität.**
+  Sie liegt in `./data`, ist gegen die abgeleitete Zeile typisiert und macht auch die übrigen
+  Umwandlungen (`0/1` zu `boolean`, Weglassen der Konventionsspalten). Gemessen: 0,39 ms pro
+  10.000 Zeilen. _Verworfen:_ Kyselys `CamelCasePlugin` (zwei Namen für eine Spalte, rohe
+  `sql`-Fragmente umgehen es, Kosten pro Zeile ohne Ersparnis bei der Abbildung); snake_case bis in
+  die Entität.
+- **D221 Eine Entität trägt `id`, `createdAt` und `updatedAt`, Gelöschtes verlässt den Port nur
+  ausdrücklich.** `space_id` und `deleted_at` bleiben im Datenprozess: Der Space kommt aus dem
+  Kontext (D195), und solange nur ein Space sichtbar ist, trüge jede Zeile denselben Wert. Braucht
+  eine Ansicht später Spaces gemischt, kommt `spaceId` als additives Feld. Rückgängig beim Löschen
+  (D79) braucht nur die `id` und `restore`; ein Papierkorb wäre eine eigene Operation mit eigener
+  Entität samt `deletedAt`. `get` und jede Änderung auf eine gelöschte Id liefern „nicht gefunden“
+  (D190). Jede Abfrage filtert selbst; #32 baut einen gemeinsamen Einstieg, der `space_id` und
+  `deleted_at IS NULL` an einer Stelle setzt, und das Contract-Test-Kit legt neben die Zeilen in
+  zwei Spaces eine gelöschte Zeile. Eindeutige Indizes auf synchronisierten Tabellen sind partiell
+  auf `deleted_at IS NULL`, sonst blockiert ein gelöschter Name einen neuen; `checkConventions`
+  prüft das. Ein Wiederherstellen in einen inzwischen vergebenen Wert ist ein Konflikt mit Grund
+  (klärt #32). _Verworfen:_ eine View pro Tabelle (doppelt in unveränderlichen Migrationen, Lesen
+  und Schreiben getrennt); nur Konvention ohne Prüfung.
+- **D222 `custom` kommt erst mit den Nutzerfeldern (schärft D87).** Form, Prüfung und Oberfläche
+  der Nutzerfelder sind nicht entworfen; jetzt eine Spalte festzulegen nähme dem Entwurf eine
+  Antwort vorweg und kostete in jeder Zeile ein `JSON.parse`. Mit dem Feature ergänzt jedes Modul
+  `ALTER TABLE … ADD COLUMN custom TEXT NOT NULL DEFAULT '{}'`, in SQLite eine reine
+  Schemaänderung ohne Umschreiben der Tabelle; D140 verbietet `DEFAULT` nur auf den Zeitspalten.
+  Ihr Platz ist die Zeilen-Map (`z.string()`) und die Abbildung (`JSON.parse`). _Preis:_ eine
+  Migration pro Modul, wenn das Feature kommt.
+- **D223 `time` entsteht jetzt mit nur `Instant`.** `./contracts` darf `db` nicht importieren
+  (D187), braucht aber für D188 einen gebrandeten Zeitpunkt. `time` bekommt daher in #31 genau
+  `Instant` mit Zod-Schema: exakte Form `2026-11-09T14:07:46.297Z`, Jahre 1000 bis 9999 (D149).
+  `newTimestamp` in `db` liefert `Instant`. Name und Form folgen dem, was #104 aus der alten App
+  übernimmt (D148); #104 baut das Paket aus, statt etwas zu ersetzen. _Verworfen:_ vorläufig in
+  `db` mit Ausnahme in den Modulgrenzen (alles zöge nach #104 um); `string` bis #104 (gegen D188).
+- **D224 Eine Id-Marke pro Entität.** `idSchema("Project")` prüft UUIDv7 und trägt die Marke
+  `ProjectId`. Zeilen-Map, Kysely-Typen (über D219), Abbildung und Vertrag nutzen dieselben
+  Schemas, auch für Fremdschlüssel; eine Abfrage auf `projects.id` liefert direkt `ProjectId`. Neue
+  Ids entstehen nur über den Kontext, ohne Typumwandlung von Hand. Ein Fremdschlüssel auf ein
+  anderes Modul importiert dessen `./contracts` und braucht seinen Eintrag in `ALLOWED_IMPORTS`.
+  _Grund:_ `timeEntries.create({ projectId: task.id })` kompiliert sonst und fällt erst beim
+  Commit oder gar nicht auf. Marken kosten zur Laufzeit nichts. _Verworfen:_ eine gemeinsame
+  Marke `Id`; keine Marke.
+- **D225 Ein reiner Einstieg `@self-engine/db/schema` (ergänzt D187).** Er enthält nur Zod-Schemas,
+  die Zeile und Vertrag teilen: `idSchema` und `sqliteBoolean`. Die Kern-Reinheitsregel sichert ihn
+  (kein Kysely, kein `uuid`, kein Treiber), und `./contracts` darf ihn importieren. _Verworfen:_
+  ein eigenes Paket für eine Datei; Id-Schemas in jedem Modul.
+- **D226 Der Übereinstimmungstest vergleicht die Zeilen-Map mit den echten Spalten.** Er kommt aus
+  `@self-engine/db/testing`, liefert wie `checkConventions` eine Liste von Verstößen und lässt die
+  Migrationen des Moduls allein auf einer frischen Datenbank laufen; jede Tabelle danach gehört dem
+  Modul, ausgenommen die von Kysely und SQLite. Geprüft werden: Tabellen und Spalten als Menge
+  gleich; nur erlaubte Formen (`z.string()` und alles darauf zu `TEXT`, `z.number().int()` zu
+  `INTEGER`, `z.number()` zu `REAL`, `sqliteBoolean` als `0 | 1` zu `INTEGER`); `.nullable()` genau
+  bei Spalten ohne `NOT NULL`; `.optional()` ist verboten. `z.boolean()` ist verboten, weil der
+  Treiber `0`/`1` liefert und der abgeleitete Typ sonst lügt; die Spalte trägt `CHECK (x IN (0,
+  1))`, den der Test nicht liest. Indizes, Fremdschlüssel und `STRICT` bleiben bei
+  `checkConventions`.
+- **D227 Jeder Index auf einer synchronisierten Tabelle beginnt mit `space_id`, ohne Ausnahmeliste
+  (schärft D195).** Eine Prüfung kann nicht wissen, welcher Index einem Fenster dient, und ein
+  Index ohne Fenster ist nicht in Sicht: Suchen nach `id` deckt der Primärschlüssel, „Aufgaben
+  eines Projekts“ ist selbst ein Fenster. Der automatische Index des Primärschlüssels und lokale
+  Tabellen sind ausgenommen. Mit D221 heißt das: Eindeutigkeit auf synchronisierten Tabellen läuft
+  über `CREATE UNIQUE INDEX (space_id, …) WHERE deleted_at IS NULL`, nie über ein eingebettetes
+  `UNIQUE`. `checkConventions` prüft beides. _Preis:_ eine Space-Id mehr pro Indexeintrag, bei
+  100.000 Zeilen rund 3,6 MB pro Index (gerechnet). _Verworfen:_ nur Konvention; Ausnahmeliste.
+- **D228 Kein `*OrThrow` im Speicher.** Kyselys `NoResultError` war im Bundle nicht am Namen zu
+  erkennen. Abfragen nutzen `executeTakeFirst()`, und der Speicher macht aus `undefined`
+  ausdrücklich „nicht gefunden“ (D190). Eine Lint-Regel im Repo-Plugin verbietet
+  `executeTakeFirstOrThrow` und `takeFirstOrThrow` und nennt den Ersatz. _Verworfen:_ `instanceof
+  NoResultError` (erwartete Fälle als Ausnahme, `try/catch` in jeder Funktion).
+- **D229 `createTestSources(start)` in `@self-engine/db/testing`.** Liefert Uhr, `IdSources` und
+  `advance(ms)` über eine gemeinsame Zeit, die nur bei `advance` weiterläuft (eine Zeit pro
+  Transaktion, D195). Die Zufallsbytes sind ein Zähler: Ids sind eindeutig und steigen auch
+  innerhalb einer Millisekunde in Anlegereihenfolge. Der Test-Kontext aus #32 baut darauf auf.
+- **D230 Das Beispiel ist ein Testmodul in `db`.** Eine Tabelle `notes` nach allen Konventionen mit
+  Zeilen-Map, partiellem eindeutigem Index, Abbildung und Entitäts-Schema; sein Test führt
+  `checkConventions` und den Übereinstimmungstest aus und liest eine geschriebene Zeile gebrandet
+  zurück. Das bestehende Migrations-Testmodul bleibt, wie es ist. Die absichtlich falschen Spalten
+  stehen als Fixtures in den Tests des Übereinstimmungstests. Die Aufteilung in `./contracts` und
+  `./data` zeigt erst #32. _Verworfen:_ eine Tabelle in `placeholder-alpha` vor dem Port-Muster;
+  ein eigenes Paket.
+
+### Runde 32 (2026-11-12): Port-Muster und Contract-Test-Kit (#32, verfeinert D152, D188–D190, D193, D221, ändert D135 und D230)
+
+Geprüft vor der Runde: oRPC 1.16.2 hat keinen Schalter für die Ausgabeprüfung, `validateOutput`
+läuft immer, sobald ein Ausgabe-Schema da ist. better-sqlite3 13.0.3 bietet keinen Update-Hook.
+Kysely 0.29.8 reicht einem Plugin in `transformQuery` den Abfragebaum, und `withPlugin` gibt es
+auch auf einer Transaktion. Gebaut oder gemessen wurde in dieser Runde nichts; wo eine Zahl steht,
+ist sie geschätzt und so benannt.
+
+- **D231 Die Transaktion merkt sich selbst, welche Tabellen sie geschrieben hat.** Ein
+  Kysely-Plugin liest aus jedem Abfragebaum das Ziel von `INSERT`, `UPDATE` und `DELETE` und
+  sammelt die Tabellennamen; nach dem Commit meldet die obere Lage (D189) genau diese Menge. Kein
+  Modul zählt Tabellen von Hand auf. Rohes SQL ist im Speicher verboten, weil das Plugin es nicht
+  lesen kann; eine Lint-Regel sichert das. Das Contract-Test-Kit prüft den Mechanismus: Die
+  gemeldeten Tabellen stimmen mit den wirklich geänderten überein. _Preis:_ ein Durchlauf über den
+  Abfragebaum pro Schreibbefehl, nicht gemessen. _Verworfen:_ Tabellen pro Operation von Hand
+  angeben (eine vergessene Tabelle heißt: Die Liste lädt nicht neu, und kein Test merkt es); ein
+  Update-Hook des Treibers (gibt es nicht).
+- **D232 Der Rahmen der oberen Lage wird einmal gebaut.** Er prüft die Eingabe, baut den Kontext
+  (D195), öffnet die Transaktion, meldet die Tabellen (D231), rollt bei einem Fehler zurück und
+  übersetzt ihn (D238). Ein Modul liefert pro Vertragseintrag eine Funktion `(tx, kontext,
+  eingabe) => ergebnis` der unteren Lage und markiert sie als Abfrage oder Operation. Eine Abfrage
+  bekommt einen Zugang, der nur lesen kann. Brücken (D152) rufen dieselben Funktionen. Sonderfälle
+  wie ein langer Import mit Fortschritt oder ein Strom werden von Hand geschrieben, wie `health`
+  und `tablesChanged` heute. _Verworfen:_ jedes Modul schreibt den Rahmen selbst (die Regeln aus
+  D188, D190 und D195 lägen in jeder Datei noch einmal).
+- **D233 Die Modulliste der Datenseite liegt in `data-process`, die Bausteine in einem neuen Paket
+  `@self-engine/storage` (ändert D135).** Bisher stellt die Desktop-App die Migrationen zusammen.
+  Künftig hält `data-process` eine Liste der Daten-Einstiege aller Module und baut daraus
+  Migrationen und Router; jede App, die den Datenprozess startet, bekommt dieselbe Liste. Was ein
+  Modul für seinen Speicher braucht (Markierungen für Abfrage und Operation, Kontext,
+  Listen-Bausteine, gemeinsamer Einstieg, Test-Kit), liegt in `storage`, denn ein Modul darf
+  `data-process` nicht importieren, wenn `data-process` die Module importiert
+  ([ADR 0006](../adr/0006-module-boundaries-are-enforced-three-ways.md)). `db` kennt weiter kein
+  Modul. _Verworfen:_ jede App setzt selbst zusammen (Desktop, Mobile und MCP-Server liefen
+  auseinander, wie in D187); Bausteine in `db` (zöge oRPC und den Vertrag in das Treiber-Paket).
+- **D234 Die Ausgabeprüfung schaltet der Rahmen, nicht oRPC (beantwortet die offene Frage aus
+  D188).** Module schreiben normale Zod-Ausgabe-Schemas in den Vertrag. Der Rahmen bekommt beim
+  Start die Option „Ausgaben prüfen“; ist sie aus, arbeitet er auf einer Kopie des Vertrags ohne
+  Ausgabe-Schemas. Tests und der Dev-Build prüfen, die gepackte App nicht; ein Test hält beide
+  Fälle fest. Das Kit prüft, dass kein Ausgabe-Schema etwas umwandelt. _Verworfen:_ ein
+  ungeprüftes Schema wie im Durchstich (der Vertrag verlöre die Form der Ausgabe, auch für Stories
+  nach D196).
+- **D235 Der gemeinsame Einstieg bietet `live(tabelle)` und vier einzeilige Standard-Schreibwege.**
+  `live` setzt `space_id` aus dem Kontext und `deleted_at IS NULL` (D221). Anlegen, Ändern,
+  Löschen (weich) und Wiederherstellen setzen die Konventionsspalten und liefern „nicht gefunden“
+  nach D221. Beides gilt nur für synchronisierte Tabellen. Alles andere (Verbindungen, Summen,
+  Änderungen an mehreren Zeilen) bleibt freies Kysely; die Filter setzt dort das Modul, und das Kit
+  prüft sie. _Verworfen:_ ein vollständiger Abfrage-Baukasten über Kysely (eine zweite
+  Abfragesprache, die jede Ausnahme nachbauen müsste).
+- **D236 Eine Seiten-Liste blättert mit einer undurchsichtigen Marke, die Größe bestimmt der Port
+  (schärft D193).** Der Datenprozess gibt mit jeder Seite eine Marke für davor und danach mit, der
+  Renderer reicht sie unverändert zurück und kennt ihren Inhalt nicht. Sie entsteht aus dem
+  Sortierwert und der `id`; jede Seiten-Liste hat eine feste Reihenfolge mit der `id` als letztem
+  Kriterium. Eine Seite hat 100 Zeilen, eine einzelne Liste darf das im Speicher auf höchstens 500
+  setzen, der Renderer wählt die Größe nie. Das Kit liest den Abfrageplan und schlägt fehl, wenn
+  eine Seiten-Abfrage ohne Index sortiert. Die Gesamtzahl der Zeilen klärt #137. _Verworfen:_ der
+  Renderer baut die Marke aus der letzten Zeile (jede Liste der Oberfläche müsste die Sortierung
+  kennen); Größe pro Aufruf (eine Komponente könnte alles verlangen).
+- **D237 Fenster und kleine Menge bleiben unbegrenzt, der Dev-Build warnt ab 1.000 Zeilen.** Beide
+  liefern immer alles. Prüft der Rahmen Ausgaben (D234), schreibt er ab 1.000 Zeilen eine Warnung
+  mit dem Namen der Abfrage ins lokale Fehlerprotokoll. Die Zahl ist geschätzt, nicht gemessen.
+  _Preis:_ Die Warnung fällt nur auf, wenn jemand mit vielen Daten entwickelt; den großen
+  Testdatensatz plant #33 mit den Zeitmessungen ein. _Verworfen:_ nur die Markierung (niemand
+  erfährt, wenn die Menge wächst); eine harte Grenze (ein Auswahlfeld ginge kaputt, das nur
+  langsam gewesen wäre).
+- **D238 Das Modul hinterlegt, welcher eindeutige Index welcher Konflikt ist, der Rahmen übersetzt
+  (schärft D190, klärt D221).** Pro eindeutigem Index nennt das Modul den Grund (`name_taken`). Der
+  Rahmen fängt die Verletzung aus SQLite und macht daraus „Konflikt“ mit diesem Grund; eine
+  Verletzung ohne Eintrag ist unerwartet und geht ins Fehlerprotokoll. Es gibt keine Abfrage vor
+  dem Schreiben, die Regel steht nur im Index. Das Kit prüft, dass jeder eindeutige Index eines
+  Moduls einen Eintrag hat, und löst jeden Grund einmal aus. Wiederherstellen in einen inzwischen
+  vergebenen Wert meldet denselben Konflikt wie Anlegen; die Oberfläche entscheidet, was sie
+  anbietet. Gründe, die kein Index ausdrückt (`already_billed`), wirft die Funktion der unteren
+  Lage weiter selbst. _Verworfen:_ vorher nachfragen (eine Abfrage mehr pro Schreibvorgang, die
+  Regel doppelt); beim Wiederherstellen umbenennen (ändert Daten ungefragt und wäre für eine
+  Rechnungsnummer falsch).
+- **D239 Das Contract-Test-Kit ist ein Aufruf pro Modul.** Das Modul übergibt seinen
+  Daten-Einstieg, eine Funktion, die Beispieldaten anlegt, und pro Vertragseintrag eine gültige
+  Beispiel-Eingabe; fehlt eine, schlägt der Test fehl. Das Kit läuft gegen echtes SQLite in
+  `:memory:` (D95) und prüft für jeden Eintrag: gemeldete gegen geänderte Tabellen (D231);
+  Abfragen schreiben nichts (D232); Ausgabe-Schemas wandeln nichts um und die Ausgabe passt zum
+  Vertrag (D188, D234); keine Zeile aus einem zweiten Space und keine gelöschte Zeile (D195,
+  D221); Seiten-Abfragen nutzen einen Index (D236); jeder eindeutige Index hat seinen Grund
+  (D238); ungültige Eingaben werden abgewiesen. Die Fachlogik testet das Modul selbst.
+  _Verworfen:_ ein Werkzeugkasten, aus dem jedes Modul seine Prüfungen zusammensetzt (eine
+  vergessene Prüfung fällt nicht auf).
+- **D240 Das Beispiel `notes` zieht nach `storage` und wird zur Vorlage (ändert D230).** Es bekommt
+  `./contracts` und `./data`, Abfragen in allen drei Listen-Arten, Operationen und seinen
+  eindeutigen Index, läuft durch das Kit und ist das Muster, von dem Module abschreiben. In der App
+  taucht es nicht auf. Der Durchstich durch die echte App (`placeholder-alpha` auf dem Port) ist
+  die erste Aufgabe von #33, weil er die Hooks braucht; dort entsteht auch der Helfer für feste
+  Antworten (D196). _Verworfen:_ `placeholder-alpha` schon in #32 umstellen (#32 wäre ohne die
+  offenen Entscheidungen von #33 nicht baubar).
+- **D241 Ein Modul liest fremde Daten nur über freigegebene Lese-Bausteine, nie über fremde
+  Tabellen (verfeinert D152).** Das besitzende Modul exportiert in `./data` einen Baustein mit
+  wenigen festen Spalten (etwa Id, Name und Farbe eines Projekts) und eingebautem Space-Filter.
+  Ein Modul, das nach D152 darauf aufbauen darf, verbindet ihn in einer Abfrage und kann so danach
+  sortieren und filtern. Der Baustein liefert auch gelöschte Zeilen und markiert sie, damit ein
+  Zeiteintrag nicht verschwindet, weil sein Projekt gelöscht ist. Eine Brücke liest über die
+  Abfragen der Module oder über diese Bausteine. Die Zeilen-Map eines fremden Moduls zu
+  importieren verbietet eine Lint-Regel; geschrieben wird in fremde Tabellen nie. Die Regel
+  dahinter: Ein Modul kennt nur Module, auf denen es aufbaut. _Preis:_ Das besitzende Modul pflegt
+  den Baustein. _Offen:_ Wie ein Modul in der Oberfläche etwas in die Seite eines anderen einhängt
+  (das Zeitmodul eine Karte „Aufgenommene Zeit“ in die Projektseite), ist nicht entschieden und
+  gehört zu Schicht 4. _Verworfen:_ nur über die Abfragen des anderen Moduls (kein Sortieren und
+  Filtern über beide Seiten); freier Zugriff auf fremde Tabellen (jede Spaltenänderung bricht das
+  lesende Modul, die Filter stünden doppelt).
+
+### Nachtrag zu Runde 32 (2026-11-12): beim Bau von #32 entschieden (verfeinert D231, D236–D239, D241)
+
+Beim Bau von #32 blieben fünf Fragen offen, die Runde 32 nicht beantwortet hatte. Sie wurden
+während des Baus und im Review entschieden und hier nachgetragen. Gemessen wurde auf SQLite im Speicher, ohne den
+Weg zwischen den Prozessen; die Zahlen stehen mit #210 in `docs/development/performance.md`.
+
+- **D242 Das Kit bildet ungültige Eingaben selbst (verfeinert D239).** Das Modul übergibt pro
+  Vertragseintrag nur eine gültige Beispiel-Eingabe. Das Kit bildet daraus Kandidaten (feste Werte
+  vom falschen Typ, das Beispiel ohne je ein Feld, das Beispiel mit je einem Feld vom falschen
+  Typ). Jeden Kandidaten, den das Eingabe-Schema ablehnt, muss auch der Rahmen abweisen. Lehnt das
+  Schema eines Eintrags keinen einzigen ab, schlägt der Test fehl: Ein Schema, das alles annimmt,
+  prüft nichts. _Verworfen:_ das Modul liefert ungültige
+  Beispiele mit (jedes Modul müsste sie pflegen, und ein vergessenes Beispiel fiele nicht auf).
+- **D243 Eine Tabelle wird nur gemeldet, wenn eine Zeile betroffen war (verfeinert D231).** Das
+  Plugin merkt sich das Ziel jedes Schreibbefehls; der Rahmen meldet nach dem Commit nur die
+  Tabellen, bei denen mindestens eine Zeile geändert wurde. Ein `UPDATE`, das nichts trifft, lädt
+  keine Liste neu. Das Kit vergleicht die gemeldeten Tabellen mit dem wirklichen Inhalt vorher und
+  nachher und schlägt auch fehl, wenn eine geänderte Tabelle nicht gemeldet wurde. Ein Trigger, der
+  eine zweite Tabelle schreibt, fällt so im Test auf und kommt nicht unbemerkt in die App.
+  _Preis:_ rund 0,4 µs pro Schreibbefehl, gemessen. _Verworfen:_ jedes Schreibziel melden (Listen
+  lüden neu, obwohl sich nichts geändert hat); Trigger im Plugin nachverfolgen (das Plugin sieht
+  nur den Abfragebaum, nicht das Schema).
+- **D244 Unerwartete Fehler und die Warnung ab 1.000 Zeilen gehen an eine Melde-Stelle des Rahmens
+  (verfeinert D237, D238).** D237 und D238 nennen das lokale Fehlerprotokoll, das es erst mit #37
+  gibt. Der Rahmen bekommt deshalb beim Start eine Funktion `report` und ruft sie mit einem von
+  zwei Ereignissen auf: unerwarteter Fehler (mit Eintrag und Fehler) oder große Ergebnismenge (mit
+  Eintrag und Zeilenzahl). Der Datenprozess reicht die Funktion durch. Bis #37 schreibt der
+  Dev-Build auf die Konsole, die gepackte App nirgendwohin; #37 hängt das Protokoll an dieselbe
+  Stelle, ohne dass ein Modul sich ändert. _Preis:_ rund 7 ns pro Abfrage für die Prüfung der
+  Zeilenzahl, gemessen. In der gepackten App geht ein unerwarteter Fehler bis #37 nur als Fehler an
+  den Aufrufer und wird nirgends festgehalten. _Verworfen:_ das Protokoll in #32 vorziehen (#37
+  hat eigene offene Fragen); `console` fest im Rahmen (die gepackte App schriebe ins Leere, und
+  Tests könnten nichts prüfen).
+- **D245 Eine Blätter-Marke ist unsigniert und übersteht einen Neustart des Datenprozesses
+  (verfeinert D236).** Die Marke enthält den Namen des Vertragseintrags, die Richtung und die
+  Sortierwerte der Randzeile, als Base64 verpackt. Der Rahmen prüft sie beim Lesen: Name des
+  Eintrags, Anzahl der Werte und jeder Wert gegen das Schema seiner Spalte; alles andere ist eine
+  ungültige Eingabe. Eine Signatur gibt es nicht. Der Renderer ist kein Gegner, sondern Teil
+  derselben App, und eine gefälschte Marke erreicht nur Zeilen, die dieselbe Abfrage mit ihren
+  Space- und Löschfiltern ohnehin liefert. Führt eine Marke hinter das Ende, kommt eine leere Seite
+  mit einer Marke zurück, die wieder zur letzten Zeile führt. _Offen:_ Zwei Module, die einer
+  Seiten-Liste denselben Eintragsnamen geben, nehmen die Marken des jeweils anderen an; der
+  Modulname gehört in die Marke, sobald das erste echte Modul eine Seiten-Liste hat (#33).
+  _Verworfen:_ Signatur mit einem Schlüssel pro Prozess (jede Marke würde bei einem Neustart des
+  Datenprozesses ungültig, und die offene Liste spränge an den Anfang); Schlüssel auf der Platte
+  (ein Geheimnis mehr, ohne dass es etwas schützt).
+- **D246 Ein Modul sieht vor dem Schreiben nach, ob das Ziel eines Verweises existiert (verfeinert
+  D241).** Speichert eine Operation einen Verweis auf die Zeile eines anderen Moduls (ein
+  Zeiteintrag auf ein Projekt), liest sie das Ziel zuerst über dessen Lese-Baustein. Fehlt es, ist
+  es gelöscht oder liegt es in einem anderen Space, meldet sie „nicht gefunden“, und der
+  Vertragseintrag nennt diesen Fehler. Ohne das Nachsehen käme ein fehlendes Ziel als interner
+  Fehler beim Aufrufer an. Ob ein gelöschtes Ziel im Einzelfall doch erlaubt ist, entscheidet das
+  Modul; die Vorlage `note-links` lehnt es ab. Der Fremdschlüssel in der Datenbank bleibt als
+  zweite Sicherung. _Preis:_ eine Abfrage über den Primärschlüssel mehr pro Schreibvorgang mit
+  Verweis, nicht gemessen. _Verworfen:_ der Rahmen übersetzt die Fremdschlüssel-Verletzung (SQLite
+  nennt nicht, welcher Fremdschlüssel verletzt wurde; bei zwei Verweisen wüsste niemand, welches
+  Ziel fehlt, und ein Ziel in einem fremden Space fiele gar nicht auf).
+
+Richtigstellung zur Spezifikation in #32: Ein Port hat zwei Einstiege, `./contracts` und `./data`
+(D187, D240). „Vier Einstiege“ in der ersten Fassung der Spezifikation war ein Schreibfehler; die
+Texte von #32 und #209 sind korrigiert.
+
 ## Fakten
 
 - Self-Engine hat Abo-Infrastruktur über Clerk Billing (`apps/web/src/features/billing`),

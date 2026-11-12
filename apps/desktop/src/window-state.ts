@@ -38,6 +38,30 @@ export interface WindowOpening {
   readonly fullScreen: boolean;
 }
 
+/** The native operations needed once the window is ready to show. */
+export interface OpeningWindow {
+  show(): void;
+  setPosition(x: number, y: number): void;
+  maximize(): void;
+  setFullScreen(value: boolean): void;
+}
+
+/** Applies the opening state before any transient native changes can be recorded. */
+export function applyWindowOpening(
+  window: OpeningWindow,
+  opening: WindowOpening,
+  startRecording: () => void,
+): void {
+  window.show();
+  // On macOS the first show() can center the window despite its constructor bounds (#175).
+  // The native cause is unknown; setting the position before show() does not prevent it.
+  window.setPosition(opening.bounds.x, opening.bounds.y);
+  if (opening.maximize) window.maximize();
+  // On macOS full screen is a Space of its own, which a hidden window cannot enter.
+  if (opening.fullScreen) window.setFullScreen(true);
+  startRecording();
+}
+
 export interface WindowStateRecorder {
   /** Reports a move, a resize, or a change of maximized or full screen. */
   change(snapshot: WindowSnapshot): void;

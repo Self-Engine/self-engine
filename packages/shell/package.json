@@ -6,6 +6,7 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
+    "./geometry": "./src/geometry.ts",
     "./story-interactions": "./src/story-interactions.ts"
   },
   "dependencies": {
