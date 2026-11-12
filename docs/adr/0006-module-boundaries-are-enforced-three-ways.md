@@ -23,6 +23,11 @@ Each boundary is enforced by three independent mechanisms:
 3. **dependency-cruiser in CI** checks the allowed directions between packages and forbids
    cycles.
 
+The database depends on `time` for `Instant`. A module's `./contracts` may import `time`,
+other declared module contracts and the pure `@self-engine/db/schema` entry, but never database
+runtime code. The schema entry stays free of Kysely, uuid and drivers. Dedicated purity rules
+protect these entries; package dependencies and allowed directions still apply (D223–D225).
+
 A formal module manifest follows only once the third module exists.
 
 ## Consequences

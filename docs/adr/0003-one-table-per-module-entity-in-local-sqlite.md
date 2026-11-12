@@ -16,8 +16,9 @@ realistic data: tables per entity were as fast as a generic `objects` table with
 
 ## Decision
 
-- **Each module entity gets its own table.** User-defined fields go into a `custom` JSON
-  column on that table.
+- **Each module entity gets its own table.** User-defined fields will go into a `custom` JSON
+  column on that table when that feature is built; [ADR 0019](0019-row-maps-are-the-single-source-of-storage-types.md)
+  postpones the column until then (D222).
 - **Links between modules get their own tables** (for example `payout_entries`), never a flag
   or foreign key on the other module's table (no `paid` / `payout_id` on a time entry).
 - Schema changes are ordinary migrations, and the database enforces references.

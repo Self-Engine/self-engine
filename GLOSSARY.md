@@ -66,7 +66,27 @@ _Avoid_: backend, server, worker, database process
 A table whose rows stay on one device and never sync, such as cached figures. Nothing that syncs may depend on its rows.
 _Avoid_: private table, device table
 
+**Entity Id** (de: _Entitäts-Id_):
+The identity of one entity, branded for its kind so a project id cannot stand in for a task id. References to that entity keep the same identity.
+_Avoid_: generic id, shared id brand
+
+**Instant** (de: _Zeitpunkt_):
+An exact moment in UTC, with millisecond precision and a year from 1000 to 9999. It is independent of the person's time zone.
+_Avoid_: local time, date
+
+**Live Row** (de: _nicht gelöschte Zeile_):
+A stored row that has not been soft-deleted. Ordinary reads and changes see only live rows in the current space.
+_Avoid_: active row, undeleted record
+
+**Row Map** (de: _Zeilen-Map_):
+A module's complete description of its stored tables and the fields of each row. It is the single source of their storage types, separate from the entities a port exposes.
+_Avoid_: entity map, table interface
+
 ### Development
+
+**Agreement Test** (de: _Übereinstimmungstest_):
+The check that a module's migrated tables and columns agree with its _Row Map_, including storage types and nullability. It is separate from the checks of table conventions.
+_Avoid_: schema validation, convention test
 
 **Component Catalog** (de: _Komponentenkatalog_):
 The place outside the app where every shared building block can be seen and tried out in any appearance. It never ships with the app.

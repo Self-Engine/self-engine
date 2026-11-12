@@ -1,14 +1,10 @@
 import { sql } from "kysely";
 import type { Database } from "../core/index.ts";
 
-/** One broken convention: which table, and the rule it breaks. */
-export interface ConventionViolation {
-  readonly table: string;
-  readonly rule: string;
-}
+import type { SchemaViolation } from "./violation.ts";
 
-import { columnsOf, tablesOf } from "./schema.ts";
-import type { ColumnRow } from "./schema.ts";
+import { columnsOf, tablesOf } from "./introspect.ts";
+import type { ColumnRow } from "./introspect.ts";
 
 const TIMESTAMP_COLUMNS = ["created_at", "updated_at", "deleted_at"];
 
@@ -185,9 +181,9 @@ async function indexRules(
 }
 
 /** Reads a database's schema after its migrations and reports every broken table convention. */
-export async function checkConventions(database: Database): Promise<ConventionViolation[]> {
+export async function checkConventions(database: Database): Promise<SchemaViolation[]> {
   const rows = await tablesOf(database);
-  const violations: ConventionViolation[] = [];
+  const violations: SchemaViolation[] = [];
   for (const { name, strict, sql: createTable } of rows) {
     const rules = [
       ...(strict === 1 ? [] : ["must be STRICT"]),
