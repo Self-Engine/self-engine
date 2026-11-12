@@ -432,6 +432,61 @@ describe("the db core", () => {
   });
 });
 
+describe("the db schema entry", () => {
+  const schema: FixturePackage = {
+    dir: "packages/db",
+    dependencies: ["zod"],
+    exports: { ".": "./src/core/index.ts", "./schema": "./src/schema/index.ts" },
+    files: {
+      "src/core/index.ts": "export {};\n",
+      "src/schema/index.ts": 'import "zod";\n',
+      "src/better-sqlite3/index.ts": "export {};\n",
+    },
+  };
+
+  it.each(["kysely", "uuid", "better-sqlite3"])("fails an import of %s", async (name) => {
+    const found = await cruise([
+      withFiles(declaring(schema, name), { "src/schema/index.ts": `import "${name}";\n` }),
+    ]);
+    expect(ruleNames(found)).toEqual(["db-schema-is-pure"]);
+  });
+
+  it.each(["core", "better-sqlite3"])("fails a relative import of the %s entry", async (entry) => {
+    const found = await cruise([
+      withFiles(schema, { "src/schema/index.ts": `import "../${entry}/index.ts";\n` }),
+    ]);
+    expect(ruleNames(found)).toEqual(["db-schema-is-pure"]);
+  });
+
+  it.each(["@self-engine/db", "@self-engine/db/better-sqlite3"])(
+    "fails %s in a module's contracts even when the package direction is allowed",
+    async (entry) => {
+      const database = {
+        ...schema,
+        exports: { ...schema.exports, "./better-sqlite3": "./src/better-sqlite3/index.ts" },
+      };
+      const module = declaring(
+        extraPackage("packages/module", {
+          "src/contracts/index.ts": `import "${entry}";\n`,
+        }),
+        "@self-engine/db",
+      );
+      const found = await cruise([database, module], { allowedImports: { module: ["db"] } });
+      expect(ruleNames(found)).toEqual(["module-contracts-is-pure"]);
+    },
+  );
+
+  it("passes Zod in the schema entry and the schema in a module's contracts", async () => {
+    const module = {
+      ...extraPackage("packages/module", {
+        "src/contracts/index.ts": 'import "@self-engine/db/schema";\n',
+      }),
+      dependencies: ["@self-engine/db"],
+    };
+    expect(await cruise([schema, module], { allowedImports: { module: ["db"] } })).toEqual([]);
+  });
+});
+
 describe("the settings core", () => {
   const settings = (dependencies: string[], files: Record<string, string>): FixturePackage => ({
     dir: "packages/settings",

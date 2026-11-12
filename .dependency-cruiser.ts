@@ -125,6 +125,8 @@ function declaredWorkspaceRules(rootDir: string): IForbiddenRuleType[] {
 interface CorePurity {
   /** The package's folder under `packages/`, which holds `src/core/`. */
   readonly folder: string;
+  /** The pure entry folder, defaulting to `core`. */
+  readonly entry?: string;
   /** The folder under `src/` where the framework code lives instead. */
   readonly binding: string;
   /** Alternatives, as a regular expression, of the npm packages the core must not import. */
@@ -133,12 +135,18 @@ interface CorePurity {
 }
 
 /** The pure core of a package stays free of the framework its binding entry point wraps. */
-function corePurityRule({ folder, binding, npmPattern, comment }: CorePurity): IForbiddenRuleType {
+function corePurityRule({
+  folder,
+  entry = "core",
+  binding,
+  npmPattern,
+  comment,
+}: CorePurity): IForbiddenRuleType {
   return {
-    name: `${folder}-core-is-pure`,
+    name: `${folder}-${entry}-is-pure`,
     comment,
     severity: "error",
-    from: { path: `^packages/${folder}/src/core/` },
+    from: { path: `^packages/${folder}/src/${entry}/` },
     to: { path: [`(^|/)node_modules/(${npmPattern})/`, `^packages/${folder}/src/${binding}/`] },
   };
 }
@@ -191,6 +199,14 @@ export function boundaryConfig({ allowedImports, rootDir }: BoundaryOptions): IC
       comment:
         "The database core (`@self-engine/db`) is what modules import, so it stays free of the native driver and the web build keeps compiling. The driver belongs in `@self-engine/db/better-sqlite3`.",
     }),
+    corePurityRule({
+      folder: "db",
+      entry: "schema",
+      binding: "(?:core|better-sqlite3|testing)",
+      npmPattern: "better-sqlite3|kysely|uuid",
+      comment:
+        "The shared schemas (`@self-engine/db/schema`) load in contracts and row maps, so they stay free of Kysely, uuid and the driver (D225). Runtime helpers belong in `@self-engine/db`.",
+    }),
     {
       name: "contracts-is-pure",
       comment:
@@ -200,6 +216,17 @@ export function boundaryConfig({ allowedImports, rootDir }: BoundaryOptions): IC
       to: {
         dependencyTypesNot: ["local"],
         pathNot: `^packages/|(^|/)node_modules/(?:${alternatives(CONTRACT_LIBRARIES)})/`,
+      },
+    },
+    {
+      name: "module-contracts-is-pure",
+      comment:
+        "A module's contracts load on both sides (D187): import only contract schemas, time or `@self-engine/db/schema`, never database runtime code (D225).",
+      severity: "error",
+      from: { path: "^packages/[^/]+/src/contracts/" },
+      to: {
+        dependencyTypesNot: ["local"],
+        pathNot: `^packages/(?:db/src/schema/|time/|[^/]+/src/contracts/)|(^|/)node_modules/(?:${alternatives(CONTRACT_LIBRARIES)})/`,
       },
     },
     {
