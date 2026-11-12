@@ -126,6 +126,11 @@ export function resolveDevServer(channel: Channel, url: string | undefined): URL
   return new URL(trimmed);
 }
 
+/** Automation may hide a dev window; release channels always remain visible (D212). */
+export function shouldHideWindow(channel: Channel, value: string | undefined): boolean {
+  return channel === "dev" && Boolean(value);
+}
+
 // A sandboxed preload cannot ask the main process anything before the page runs, but it does see
 // the arguments the main process adds to the renderer (`webPreferences.additionalArguments`).
 const VERSION_SWITCH = "--self-engine-version=";
