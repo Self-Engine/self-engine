@@ -399,6 +399,33 @@ describe("the translation core", () => {
   });
 });
 
+describe("the time package", () => {
+  it("imports no other workspace package, even as a type", async () => {
+    const time = declaring(
+      extraPackage("packages/time", {
+        "src/index.ts": 'import type { formatMinutes } from "@self-engine/shared";\n',
+      }),
+      "@self-engine/shared",
+    );
+    expect(ruleNames(await cruise([time, shared], { allowedImports: ALLOWED_IMPORTS }))).toEqual([
+      "package-direction:time",
+    ]);
+  });
+
+  it("can be imported by a module contract", async () => {
+    const time = extraPackage("packages/time");
+    const module = declaring(
+      extraPackage("packages/module", {
+        "src/contracts/index.ts": 'import "@self-engine/time";\n',
+      }),
+      "@self-engine/time",
+    );
+    expect(
+      await cruise([time, module], { allowedImports: { time: [], module: ["time"] } }),
+    ).toEqual([]);
+  });
+});
+
 describe("the db core", () => {
   const db = (dependencies: string[], files: Record<string, string>): FixturePackage => ({
     dir: "packages/db",

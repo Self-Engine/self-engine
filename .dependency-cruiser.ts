@@ -28,11 +28,13 @@ export const ALLOWED_IMPORTS: AllowedImports = {
   "data-process": ["contracts", "db"],
   // The preload and the page share it; the failure states come from the contract.
   "desktop-bridge": ["contracts"],
+  db: ["time"],
   icons: ["theme"],
   "placeholder-alpha": ["shell", "icons", "ui"],
   "placeholder-beta": ["shell", "icons"],
   "settings-area": ["i18n", "icons", "settings", "shell", "theme", "ui"],
   shell: ["icons", "theme", "ui"],
+  time: [],
   ui: ["icons", "theme"],
 };
 
