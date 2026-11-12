@@ -1422,10 +1422,10 @@ ist sie geschätzt und so benannt.
   Filtern über beide Seiten); freier Zugriff auf fremde Tabellen (jede Spaltenänderung bricht das
   lesende Modul, die Filter stünden doppelt).
 
-### Nachtrag zu Runde 32 (2026-11-12): beim Bau von #32 entschieden (verfeinert D231, D236–D239)
+### Nachtrag zu Runde 32 (2026-11-12): beim Bau von #32 entschieden (verfeinert D231, D236–D239, D241)
 
-Beim Bau von #32 blieben vier Fragen offen, die Runde 32 nicht beantwortet hatte. Sie wurden
-während des Baus entschieden und hier nachgetragen. Gemessen wurde auf SQLite im Speicher, ohne den
+Beim Bau von #32 blieben fünf Fragen offen, die Runde 32 nicht beantwortet hatte. Sie wurden
+während des Baus und im Review entschieden und hier nachgetragen. Gemessen wurde auf SQLite im Speicher, ohne den
 Weg zwischen den Prozessen; die Zahlen stehen mit #210 in `docs/development/performance.md`.
 
 - **D242 Das Kit bildet ungültige Eingaben selbst (verfeinert D239).** Das Modul übergibt pro
@@ -1468,6 +1468,17 @@ Weg zwischen den Prozessen; die Zahlen stehen mit #210 in `docs/development/perf
   _Verworfen:_ Signatur mit einem Schlüssel pro Prozess (jede Marke würde bei einem Neustart des
   Datenprozesses ungültig, und die offene Liste spränge an den Anfang); Schlüssel auf der Platte
   (ein Geheimnis mehr, ohne dass es etwas schützt).
+- **D246 Ein Modul sieht vor dem Schreiben nach, ob das Ziel eines Verweises existiert (verfeinert
+  D241).** Speichert eine Operation einen Verweis auf die Zeile eines anderen Moduls (ein
+  Zeiteintrag auf ein Projekt), liest sie das Ziel zuerst über dessen Lese-Baustein. Fehlt es, ist
+  es gelöscht oder liegt es in einem anderen Space, meldet sie „nicht gefunden“, und der
+  Vertragseintrag nennt diesen Fehler. Ohne das Nachsehen käme ein fehlendes Ziel als interner
+  Fehler beim Aufrufer an. Ob ein gelöschtes Ziel im Einzelfall doch erlaubt ist, entscheidet das
+  Modul; die Vorlage `note-links` lehnt es ab. Der Fremdschlüssel in der Datenbank bleibt als
+  zweite Sicherung. _Preis:_ eine Abfrage über den Primärschlüssel mehr pro Schreibvorgang mit
+  Verweis, nicht gemessen. _Verworfen:_ der Rahmen übersetzt die Fremdschlüssel-Verletzung (SQLite
+  nennt nicht, welcher Fremdschlüssel verletzt wurde; bei zwei Verweisen wüsste niemand, welches
+  Ziel fehlt, und ein Ziel in einem fremden Space fiele gar nicht auf).
 
 Richtigstellung zur Spezifikation in #32: Ein Port hat zwei Einstiege, `./contracts` und `./data`
 (D187, D240). „Vier Einstiege“ in der ersten Fassung der Spezifikation war ein Schreibfehler; die
