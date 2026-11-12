@@ -10,8 +10,8 @@ import {
 } from "@self-engine/shell";
 import { expect, fn, screen, spyOn, userEvent, waitFor, within } from "storybook/test";
 import { z } from "zod";
-import { settingsStore } from "./settings-store.ts";
 import {
+  loadStoryApp,
   answer,
   AppAt,
   asked,
@@ -35,7 +35,7 @@ const meta = {
   title: "App/Command palette",
   component: AppAt,
   parameters: { layout: "fullscreen" },
-  loaders: [() => settingsStore.load()],
+  loaders: [loadStoryApp],
   args: { address: OVERVIEW },
 } satisfies Meta<typeof AppAt>;
 export default meta;

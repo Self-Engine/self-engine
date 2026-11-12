@@ -1,10 +1,34 @@
 // Shared by the app's Stories. Not a story file, so the Catalog does not list it.
 
-import { modKey } from "@self-engine/shell/story-interactions";
+import { LANGUAGE_TAGS, loadAppCatalog } from "@self-engine/i18n";
+import { loadStoryShell, modKey } from "@self-engine/shell/story-interactions";
 import { createMemoryHistory, RouterProvider } from "@tanstack/react-router";
 import { useState } from "react";
 import { expect, screen, userEvent, waitFor, within } from "storybook/test";
 import { createAppRouter } from "./app-router.ts";
+import { contributions } from "./modules.ts";
+import { settingsStore } from "./settings-store.ts";
+
+/**
+ * Finish fetching the app's lazy code before a Story starts interacting. On a cold dev server,
+ * compiling a View or drawer can outlast a DOM query's deadline under load. Storybook awaits
+ * loaders before `beforeEach`, so stories can still replace a load with slow or failing work.
+ * Every story rendering AppAt or createAppRouter must install this loader in its meta (or call
+ * it from its own loader). Do not move it into AppAt: that would invoke the beforeEach mocks.
+ */
+export async function loadStoryApp() {
+  await Promise.all([
+    settingsStore.load(),
+    loadStoryShell(),
+    ...LANGUAGE_TAGS.map(loadAppCatalog),
+    ...contributions.flatMap((module) => [
+      ...module.views.map((view) => view.load()),
+      module.groups?.(),
+      module.editDrawer?.(),
+      ...(module.commands ?? []).map((command) => command.load()),
+    ]),
+  ]);
+}
 
 type AppRouter = ReturnType<typeof createAppRouter>;
 

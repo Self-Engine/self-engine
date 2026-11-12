@@ -1,6 +1,7 @@
 // For Stories only, here and in the app. A subpath of its own, so that `storybook` stays out of
 // what the package's main entry ships.
 
+import { shellCommands } from "./shell-commands.ts";
 import { expect, screen, userEvent, waitFor, within } from "storybook/test";
 
 /** Follows a spied platform too, because the hotkey library reads it at each press. */
@@ -10,6 +11,16 @@ export const modKey = () =>
 /** Presses a shortcut the way this platform spells `Mod`. */
 export const pressWithMod = (key: string) =>
   userEvent.keyboard(`{${modKey()}>}${key}{/${modKey()}}`);
+
+/** Fetch code before rendering; never call contribution loaders after story mocks are installed. */
+export async function loadStoryShell() {
+  await Promise.all([
+    import("./shortcut-bindings.tsx"),
+    import("./command-palette-dialog.tsx"),
+    ...(shellCommands.commands ?? []).map((command) => command.load()),
+    ...(import.meta.env.MODE === "test" ? [import("vite-plus/test/browser")] : []),
+  ]);
+}
 
 const PALETTE_NAME = "Command palette";
 
