@@ -18,6 +18,11 @@ export type ModuleEntries<Contract extends StorageContract, Rows extends RowMap>
   readonly [Entry in keyof Contract]:
     | {
         readonly kind: "query";
+        /**
+         * Every table the query takes rows from, including tables reached through a released
+         * read piece. A Table Change naming one of them makes its answer outdated (D248).
+         */
+        readonly reads: readonly string[];
         readonly list?:
           | { readonly kind: "window" | "small-set" }
           | {
@@ -71,11 +76,13 @@ export type ErasedStorageModule = Pick<
   readonly entries: Readonly<
     Record<
       string,
-      {
-        readonly kind: "query" | "operation";
-        readonly list?: { readonly kind: "window" | "small-set" | "pages" };
-        readonly run: (...args: never[]) => unknown;
-      }
+      | {
+          readonly kind: "query";
+          readonly reads: readonly string[];
+          readonly list?: { readonly kind: "window" | "small-set" | "pages" };
+          readonly run: (...args: never[]) => unknown;
+        }
+      | { readonly kind: "operation"; readonly run: (...args: never[]) => unknown }
     >
   >;
 };

@@ -24,6 +24,7 @@ export const notes = defineStorageModule({
   entries: {
     get: {
       kind: "query",
+      reads: ["notes"],
       async run(tx, context, input) {
         return toNote(await sharedEntry(tx, context).lookup("notes", input.id));
       },
@@ -58,10 +59,11 @@ export const notes = defineStorageModule({
         return toNote(row);
       },
     },
-    list: smallSetList(async (tx: NotesRead, context: StorageContext) => {
+    list: smallSetList(["notes"], async (tx: NotesRead, context: StorageContext) => {
       return (await allNotes(tx, context).orderBy("id").execute()).map(toNote);
     }),
     window: windowList(
+      ["notes"],
       async (tx: NotesRead, context: StorageContext, input: { from: Instant; to: Instant }) => {
         return (
           await allNotes(tx, context)
@@ -73,6 +75,7 @@ export const notes = defineStorageModule({
       },
     ),
     pages: pageList({
+      reads: ["notes"],
       row: notesRowMap.notes,
       query: allNotes,
       order: [
