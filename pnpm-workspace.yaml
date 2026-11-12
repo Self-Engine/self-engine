@@ -56,6 +56,8 @@ catalog:
   "@swc/core": 1.16.22
   # Still beta, so pinned exactly (D179). Only packages/shell/src/shortcut-bindings.tsx imports it.
   "@tanstack/react-hotkeys": 0.22.3
+  # The query cache of the page (D249). Only packages/data-client/src/react/ imports it.
+  "@tanstack/react-query": 5.107.1
   "@tanstack/react-router": 1.170.46
   "@tanstack/router-plugin": 1.168.48
   # Pinned to the Node version inside Electron (45.x ships Node 24), so TypeScript
@@ -76,6 +78,8 @@ catalog:
   dependency-cruiser: 18.7.2
   electron: 45.2.3
   electron-builder: 26.18.0
+  # A DOM for the hook tests of packages/data-client/src/react/, which run in Node.
+  happy-dom: 21.0.4
   # The query layer and the migration runner (D91).
   kysely: 0.29.8
   # Its version pins the Chromium revision, so a bump downloads the browser again.
