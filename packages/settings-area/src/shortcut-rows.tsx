@@ -2,14 +2,15 @@
 // register, so a new module's Shortcuts appear without a change here.
 
 import type { MessageDescriptor } from "@lingui/core";
+import { Kbd } from "@mantine/core";
 import { msg } from "@lingui/core/macro";
 import {
   type CommandOwner,
   commandRegister,
   PALETTE_SHORTCUT,
   shellCommands,
-  ShortcutHint,
 } from "@self-engine/shell";
+import { displayShortcut } from "@self-engine/shell/shortcut-display";
 import type { SettingsRow, SettingsRowGroup } from "./row.ts";
 import { VIEW_IDS } from "./views.ts";
 
@@ -21,10 +22,10 @@ export interface NamedCommandOwner extends CommandOwner {
 /** What finds every Shortcut, besides the name of its Command. */
 const SEARCH_WORDS = [msg`Shortcut`, msg`Keyboard`, msg`Key combination`];
 
-/** The notation is the Shell's hint, which appears once the hotkey library has loaded. */
+/** Loaded with the settings chunk: every row has its notation on its first render. */
 function shownShortcut(shortcut: string) {
   return function ShownShortcut() {
-    return <ShortcutHint shortcut={shortcut} />;
+    return <Kbd size="lg">{displayShortcut(shortcut)}</Kbd>;
   };
 }
 
