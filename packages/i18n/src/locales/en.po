@@ -542,6 +542,7 @@ msgid "This entry could not be loaded."
 msgstr "This entry could not be loaded."
 
 #: packages/shell/src/lazy-contribution.tsx
+#: packages/ui/src/query-state-block.tsx
 msgid "This part could not be loaded."
 msgstr "This part could not be loaded."
 
@@ -604,6 +605,10 @@ msgstr "Warm"
 #: packages/shell/src/edit-drawer-exits.tsx
 msgid "What you changed here will be lost."
 msgstr "What you changed here will be lost."
+
+#: packages/data-client/src/react/reload-notice.tsx
+msgid "What you see may be outdated: it could not be reloaded."
+msgstr "What you see may be outdated: it could not be reloaded."
 
 #: apps/web/src/data-connection-states.tsx
 msgid "Your data cannot be reached."

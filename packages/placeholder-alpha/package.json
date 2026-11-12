@@ -5,14 +5,20 @@
   "license": "AGPL-3.0-only",
   "type": "module",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./contracts": "./src/contracts/index.ts",
+    "./data": "./src/data/index.ts"
   },
   "dependencies": {
     "@lingui/core": "catalog:",
     "@lingui/react": "catalog:",
     "@mantine/core": "catalog:",
+    "@orpc/contract": "catalog:",
+    "@self-engine/db": "workspace:*",
     "@self-engine/icons": "workspace:*",
     "@self-engine/shell": "workspace:*",
+    "@self-engine/storage": "workspace:*",
+    "@self-engine/time": "workspace:*",
     "@self-engine/ui": "workspace:*",
     "react": "catalog:",
     "zod": "catalog:"

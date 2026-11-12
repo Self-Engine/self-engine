@@ -6,6 +6,7 @@
 import { msg } from "@lingui/core/macro";
 import { ORPCError } from "@orpc/client";
 import type { notesContract } from "@self-engine/storage/testing";
+import { notifyError } from "@self-engine/ui";
 import { act } from "react";
 import { afterEach, beforeEach, expect, test, vi } from "vite-plus/test";
 import {
@@ -18,6 +19,9 @@ import {
 } from "./hook-harness.ts";
 import { portHooks } from "./index.ts";
 import { NOT_FOUND_NOTICE, UNEXPECTED_NOTICE } from "./operation-hook.ts";
+
+// The feedback system is replaced, so no notice is drawn; the other tests collect notices instead.
+vi.mock("@self-engine/ui", () => ({ notifyError: vi.fn() }));
 
 const notesPort = portHooks<typeof notesContract>("notes");
 const TITLE_TAKEN = msg`A note with this title already exists.`;
@@ -196,4 +200,16 @@ test("the Operation's input, result and conflict texts are typed from the module
   // @ts-expect-error A misspelled entry is not in the Contract.
   notesPort.operation("updaet");
   expect(typeof typed).toBe("function");
+});
+
+test("without a collector, the notices go to the feedback system as error notices", async () => {
+  const port = fakePort();
+  port.answer("update", () => {
+    throw new ORPCError("NOT_FOUND");
+  });
+  const rename = await renderHook(port, () => useRenameNote());
+
+  await runOnce(rename);
+
+  expect(vi.mocked(notifyError)).toHaveBeenCalledOnce();
 });

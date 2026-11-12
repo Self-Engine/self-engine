@@ -1,7 +1,7 @@
 import type { MessageDescriptor } from "@lingui/core";
 import { useLingui } from "@lingui/react";
 import { notifyError } from "@self-engine/ui";
-import { type Query, QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { type Query, QueryCache, QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import {
   createContext,
   createElement,
@@ -12,6 +12,7 @@ import {
   useState,
 } from "react";
 import type { PortAccess } from "./port-access.ts";
+import { noticeFailedReload } from "./reload-notice.tsx";
 
 /** Answers no View shows are dropped after this long (D250). */
 export const UNUSED_ANSWER_LIFETIME_MS = 5 * 60 * 1000;
@@ -36,10 +37,12 @@ export function useDataContext(): DataContext {
 /**
  * The query cache of the page (D249, D250). An answer stays valid until a Table Change names one
  * of its tables, so nothing reloads on time, window focus, mount or a network change; only Table
- * Changes and reconnects mark answers, and a marked answer on screen reloads at once.
+ * Changes and reconnects mark answers, and a marked answer on screen reloads at once. A failed
+ * reload tells the user once that the answer kept on screen may be outdated (D257).
  */
 function createQueryCache(): QueryClient {
   return new QueryClient({
+    queryCache: new QueryCache({ onError: noticeFailedReload }),
     defaultOptions: {
       queries: {
         staleTime: Infinity,
