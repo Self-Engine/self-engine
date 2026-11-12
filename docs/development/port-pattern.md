@@ -5,7 +5,9 @@ foreign data for a join. [ADR 0020](../adr/0020-modules-implement-their-ports-th
 records the architectural choice. Start from the test-only
 [`notes` template](../../packages/storage/test/notes-module/); it is not registered in the app.
 Its relative imports reach storage internals because it lives inside that package. A real
-module imports `@self-engine/storage` and `@self-engine/storage/testing` through their exports.
+module imports `@self-engine/storage` and `@self-engine/storage/testing` through their exports,
+as [`placeholder-alpha`](../../packages/placeholder-alpha/) does: the first module mounted in
+the app (D252), with `src/contracts/`, `src/data/` and its kit test in `src/data/`.
 
 ## 1. Set up the entries and contract
 
@@ -244,6 +246,7 @@ will replace that reporter with the local error log; until then these reports wr
 Special procedures such as streams or long imports with progress can remain hand-written.
 
 For stories and component tests, the helper for fixed answers from the same contract is
-planned in #33 (D196); it is not available yet. Do not register notes or note-links as app modules.
+planned in #33 (D196); it is not available yet. Do not register notes or note-links as app modules; `placeholder-alpha` is the mounted example
+(`placeholderAlpha` in both lists).
 
 Done when the committed implementation passes `pnpm verify` with `VERIFY: PASS` as its final line.

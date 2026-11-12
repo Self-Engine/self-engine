@@ -1,4 +1,5 @@
 import type { AppContract } from "@self-engine/contracts";
+import { placeholderAlpha } from "@self-engine/placeholder-alpha/data";
 import type { ErasedStorageModule } from "@self-engine/storage";
 
 export type DataModules = Readonly<Record<string, ErasedStorageModule>>;
@@ -14,4 +15,4 @@ type AppModules = keyof ModuleContracts extends never
     };
 
 /** Add a module's data entry here; both migrations and calls come from this list. */
-export const modules = {} satisfies AppModules;
+export const modules = { placeholderAlpha } satisfies AppModules;
