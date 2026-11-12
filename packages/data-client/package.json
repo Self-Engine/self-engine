@@ -6,7 +6,8 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
-    "./react": "./src/react/index.ts"
+    "./react": "./src/react/index.ts",
+    "./testing": "./src/testing/index.ts"
   },
   "dependencies": {
     "@lingui/core": "catalog:",
@@ -19,13 +20,16 @@
     "react": "catalog:"
   },
   "devDependencies": {
+    "@mantine/core": "catalog:",
     "@self-engine/data-process": "workspace:*",
     "@self-engine/storage": "workspace:*",
+    "@storybook/react-vite": "catalog:",
     "@types/node": "catalog:",
     "@types/react": "catalog:",
     "@types/react-dom": "catalog:",
     "happy-dom": "catalog:",
     "react-dom": "catalog:",
+    "storybook": "catalog:",
     "vite-plus": "catalog:"
   }
 }

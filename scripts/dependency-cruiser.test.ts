@@ -620,6 +620,43 @@ describe("the query library", () => {
   });
 });
 
+describe("testing entries", () => {
+  const RULE = "testing-entries-only-in-tests-and-stories";
+  /** The shared package with a `./testing` entry, as `@self-engine/data-client/testing`. */
+  const withTesting: FixturePackage = {
+    ...withFiles(shared, { "src/testing/index.ts": "export const fixed = 1;\n" }),
+    exports: { ".": "./src/index.ts", "./testing": "./src/testing/index.ts" },
+  };
+  const importing = (file: string) =>
+    withFiles(module_, {
+      [file]: 'import "@self-engine/shared/testing";\n',
+    });
+
+  it.each(["src/notes.test.ts", "src/notes.stories.tsx", "src/testing/helpers.ts"])(
+    "passes an import in %s",
+    async (file) => {
+      expect(await cruise([withTesting, importing(file)])).toEqual([]);
+    },
+  );
+
+  it("fails an import in a module's code", async () => {
+    expect(ruleNames(await cruise([withTesting, importing("src/notes-view.tsx")]))).toEqual([RULE]);
+  });
+
+  it("fails an import in an app's code", async () => {
+    const web = declaring(
+      app("web", { "src/main.ts": 'import "@self-engine/shared/testing";\n' }),
+      "@self-engine/shared",
+    );
+    expect(ruleNames(await cruise([withTesting, web]))).toEqual([RULE]);
+  });
+
+  it("fails an import of the package's own testing folder from its code", async () => {
+    const own = withFiles(withTesting, { "src/index.ts": 'import "./testing/index.ts";\n' });
+    expect(ruleNames(await cruise([own]))).toEqual([RULE]);
+  });
+});
+
 describe("icon libraries", () => {
   const RULE = "icons-only-through-catalog";
 
@@ -799,16 +836,24 @@ describe("the renderer", () => {
   );
 
   it.each([
-    ["the data process core", "@self-engine/data-process"],
-    ["the data process test harness", "@self-engine/data-process/testing"],
-    ["the database connection", "@self-engine/db/better-sqlite3"],
-    ["a module's ./data entry", "@self-engine/time/data"],
-  ])("fails an import of %s", async (_, specifier) => {
+    ["the data process core", "@self-engine/data-process", []],
+    // A testing entry outside tests and stories breaks a second rule.
+    [
+      "the data process test harness",
+      "@self-engine/data-process/testing",
+      ["testing-entries-only-in-tests-and-stories"],
+    ],
+    ["the database connection", "@self-engine/db/better-sqlite3", []],
+    ["a module's ./data entry", "@self-engine/time/data", []],
+  ])("fails an import of %s", async (_, specifier, alsoBroken) => {
     const packageName = specifier.split("/").slice(0, 2).join("/");
     for (const make of renderers) {
       const renderer = declaring(make({ "src/data.ts": `import "${specifier}";\n` }), packageName);
       const found = await cruise([dataProcess, db, time, renderer], { allowedImports: ALLOW });
-      expect(ruleNames(found), renderer.dir).toEqual(["renderer-stays-off-the-database"]);
+      expect(ruleNames(found), renderer.dir).toEqual([
+        "renderer-stays-off-the-database",
+        ...alsoBroken,
+      ]);
     }
   });
 
