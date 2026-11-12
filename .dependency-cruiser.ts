@@ -3,7 +3,8 @@
 // these rules are the third: the directions allowed between packages, every workspace import
 // declared in the importer's own `package.json`, no relative imports into another package, no
 // imports past another package's `exports`, no icon library outside `@self-engine/icons`, no
-// hotkey library outside the Shell's binding file, and no cycles.
+// hotkey library outside the Shell's binding file, no query library outside the data client's
+// React entry, and no cycles.
 //
 // Paths are relative to the repo root, or to the fixture root in
 // scripts/dependency-cruiser.test.ts, which builds its own config with `boundaryConfig`.
@@ -23,8 +24,9 @@ export type AllowedImports = Readonly<Record<string, readonly string[]>>;
 export const ALLOWED_IMPORTS: AllowedImports = {
   // Composes the modules' contracts once they have some (D187): `contracts → module`.
   contracts: [],
-  // The data process test harness only in the client's tests (a devDependency).
-  "data-client": ["contracts", "data-process"],
+  // The data process test harness and the `notes` test module only in the client's tests
+  // (devDependencies).
+  "data-client": ["contracts", "data-process", "storage"],
   "data-process": ["contracts", "db", "storage"],
   // The preload and the page share it; the failure states come from the contract.
   "desktop-bridge": ["contracts"],
@@ -274,6 +276,14 @@ export function boundaryConfig({ allowedImports, rootDir }: BoundaryOptions): IC
       severity: "error",
       from: { path: "^(apps|packages)/", pathNot: "^packages/shell/src/shortcut-bindings\\.tsx$" },
       to: { path: "(^|(^|/)node_modules/)@tanstack/(?:react-)?hotkeys(/|$)" },
+    },
+    {
+      name: "query-library-only-through-building-block",
+      comment:
+        "Only the data client's React entry may import the query library, so cache keys, reloads and error paths stay the same for every module (D249). Build the hook with `portHooks` from `@self-engine/data-client/react`.",
+      severity: "error",
+      from: { path: "^(apps|packages)/", pathNot: "^packages/data-client/src/react/" },
+      to: { path: "(^|(^|/)node_modules/)@tanstack/(?:react-)?query(?:-core|-devtools)?(/|$)" },
     },
     {
       name: "no-relative-import-across-packages",

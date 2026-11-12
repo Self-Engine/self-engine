@@ -5,7 +5,9 @@
     "moduleResolution": "Bundler",
     // Runs in the renderer of every platform, so no Node types outside its tests.
     "lib": ["ESNext", "DOM"],
-    "types": ["node"]
+    // `vite-plus/client` types `import.meta.env.DEV`, which keeps the dev-build report (D248)
+    // out of a production bundle.
+    "types": ["node", "vite-plus/client"]
   },
   "include": ["src"]
 }
