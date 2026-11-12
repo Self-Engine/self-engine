@@ -865,3 +865,34 @@ describe("the storage package", () => {
     },
   );
 });
+
+describe("data-side module composition", () => {
+  it("allows data-process to import storage", async () => {
+    const process = declaring(
+      extraPackage("packages/data-process", {
+        "src/index.ts": 'import "@self-engine/storage";\n',
+      }),
+      "@self-engine/storage",
+    );
+    expect(
+      await cruise([process, extraPackage("packages/storage")], {
+        allowedImports: ALLOWED_IMPORTS,
+      }),
+    ).toEqual([]);
+  });
+  it("rejects a module importing data-process even if it declares the dependency", async () => {
+    const module = declaring(
+      extraPackage("packages/placeholder-alpha", {
+        "src/data/index.ts": 'import "@self-engine/data-process";\n',
+      }),
+      "@self-engine/data-process",
+    );
+    expect(
+      ruleNames(
+        await cruise([module, extraPackage("packages/data-process")], {
+          allowedImports: ALLOWED_IMPORTS,
+        }),
+      ),
+    ).toEqual(["package-direction:placeholder-alpha"]);
+  });
+});

@@ -1,5 +1,13 @@
 import type { Health, TablesChanged } from "@self-engine/contracts";
-import type { Database, Migration } from "@self-engine/db";
+import type { Database } from "@self-engine/db";
+import {
+  createFrame,
+  type RowMap,
+  type StorageContract,
+  type StorageModule,
+  type ContextSources,
+} from "@self-engine/storage";
+import { modules as appModules, type DataModules } from "./modules.ts";
 import { createRouter } from "./router.ts";
 import { createPortServer, type DataPort } from "./serve.ts";
 import { type BeforeMigrations, migrate } from "./startup.ts";
@@ -8,8 +16,10 @@ import { createTablesChangedPublisher } from "./tables-changed.ts";
 export interface DataProcessOptions {
   /** The opened database; the platform opens it with its own driver. */
   readonly database: Database;
-  /** Every module's migrations, composed by the caller (D135). */
-  readonly migrations: readonly Migration[];
+  /** Tests may replace the app module list with fixture data entries. */
+  readonly modules?: DataModules;
+  readonly sources?: ContextSources;
+  readonly checkOutputs: boolean;
   /** Called before the migrations run when some are pending, and not when none are (D138). */
   readonly beforeMigrations?: BeforeMigrations;
 }
@@ -33,14 +43,39 @@ export interface DataProcess {
  */
 export async function startDataProcess({
   database,
-  migrations,
+  modules = appModules,
+  sources = systemSources,
+  checkOutputs,
   beforeMigrations,
 }: DataProcessOptions): Promise<DataProcess> {
-  const health = await migrate(database, migrations, beforeMigrations);
+  const health = await migrate(
+    database,
+    Object.values(modules).flatMap((module) => module.migrations),
+    beforeMigrations,
+  );
   const tablesChanged = createTablesChangedPublisher();
+  // Each module was checked against its own contract and rows by defineStorageModule.
+  // Erase those different types only here, where the frame is built for each entry.
+  const moduleRouter = Object.fromEntries(
+    Object.entries(modules).map(([name, module]) => [
+      name,
+      createFrame(module as StorageModule<StorageContract, RowMap>, {
+        database,
+        sources,
+        checkOutputs,
+        announce: (tables) => tablesChanged.announce([...tables]),
+      }),
+    ]),
+  );
   return {
     health,
-    serve: createPortServer(createRouter({ health, tablesChanged })),
+    serve: createPortServer(createRouter({ health, tablesChanged, moduleRouter })),
     announceTablesChanged: (tables) => tablesChanged.announce(tables),
   };
 }
+
+const clock = () => new Date();
+const systemSources: ContextSources = {
+  clock,
+  ids: { clock, random: () => crypto.getRandomValues(new Uint8Array(16)) },
+};

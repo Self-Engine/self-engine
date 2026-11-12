@@ -47,3 +47,34 @@ describe("the data process bundle", () => {
     });
   });
 });
+
+test.each([
+  ["dev", true],
+  ["nightly", false],
+  ["stable", false],
+] as const)(
+  "%s bundles start the data process with output checks %s",
+  async (channel, checkOutputs) => {
+    const directory = mkdtempSync(join(tmpdir(), "data-process-output-checks-"));
+    try {
+      const entry = packEntries(channel).find(
+        (bundle) => bundle.entry[0] === "src/data-process.ts",
+      );
+      if (entry === undefined) throw new Error("No data process bundle");
+      await build({
+        ...entry,
+        config: false,
+        logLevel: "silent",
+        entry: [resolve(import.meta.dirname, "../test/output-checks/index.ts")],
+        outDir: directory,
+        sourcemap: false,
+      });
+      const { dataProcessOptions } = createRequire(import.meta.url)(
+        join(directory, "index.cjs"),
+      ) as { dataProcessOptions: { checkOutputs: boolean } };
+      expect(dataProcessOptions.checkOutputs).toBe(checkOutputs);
+    } finally {
+      rmSync(directory, { recursive: true, force: true });
+    }
+  },
+);

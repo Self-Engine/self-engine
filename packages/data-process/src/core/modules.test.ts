@@ -1,0 +1,132 @@
+import { createORPCClient } from "@orpc/client";
+import { RPCLink } from "@orpc/client/message-port";
+import { oc, type ContractRouterClient } from "@orpc/contract";
+import type { AppContract } from "@self-engine/contracts";
+import { createTestSources } from "@self-engine/db/testing";
+import { defineStorageModule } from "@self-engine/storage";
+import { afterEach, expect, test } from "vite-plus/test";
+import { z } from "zod";
+import { startTestDataProcess, type TestDataProcess } from "../testing/index.ts";
+
+const fixture = defineStorageModule({
+  contract: {
+    add: oc.input(z.string()).output(z.string()),
+    list: oc.output(z.array(z.string())),
+    audit: oc.input(z.string()).output(z.string()),
+  },
+  migrations: [
+    {
+      name: "fixture/0001",
+      sql: "CREATE TABLE fixture_items (name TEXT NOT NULL) STRICT; CREATE TABLE fixture_audit (name TEXT NOT NULL) STRICT;",
+    },
+  ],
+  rowMap: {
+    fixture_items: z.object({ name: z.string() }),
+    fixture_audit: z.object({ name: z.string() }),
+  },
+  entries: {
+    audit: {
+      kind: "operation",
+      async run(tx, _context, name) {
+        await tx.insertInto("fixture_audit").values({ name }).execute();
+        return name;
+      },
+    },
+    add: {
+      kind: "operation",
+      async run(tx, _context, name) {
+        await tx.insertInto("fixture_items").values({ name }).execute();
+        await tx.insertInto("fixture_audit").values({ name }).execute();
+        return name;
+      },
+    },
+    list: {
+      kind: "query",
+      async run(tx) {
+        return (await tx.selectFrom("fixture_items").selectAll().execute()).map((row) => row.name);
+      },
+    },
+  },
+});
+const started: TestDataProcess[] = [];
+afterEach(async () => {
+  for (const process of started.splice(0)) await process.close();
+});
+
+async function start() {
+  const process = await startTestDataProcess({
+    modules: { fixture },
+    sources: createTestSources(new Date("2026-01-01T00:00:00.000Z")),
+  });
+  started.push(process);
+  return createORPCClient<ContractRouterClient<AppContract & { fixture: typeof fixture.contract }>>(
+    new RPCLink({ port: process.openPort() }),
+  );
+}
+
+test("a module list supplies migrations and calls over a MessageChannel", async () => {
+  const client = await start();
+  await expect(client.health()).resolves.toMatchObject({
+    state: "ready",
+    migrations: ["fixture/0001"],
+  });
+  await expect(client.fixture.add("Invoice")).resolves.toBe("Invoice");
+  await expect(client.fixture.list()).resolves.toEqual(["Invoice"]);
+});
+
+test("each committed operation emits one event naming all its written tables", async () => {
+  const client = await start();
+  const events = await client.tablesChanged();
+  await expect(events.next()).resolves.toEqual({ done: false, value: [] });
+  await client.fixture.add("First");
+  await client.fixture.audit("Second");
+  await expect(events.next()).resolves.toEqual({
+    done: false,
+    value: ["fixture_items", "fixture_audit"],
+  });
+  await expect(events.next()).resolves.toEqual({
+    done: false,
+    value: ["fixture_audit"],
+  });
+  await events.return();
+});
+
+test.each([true, false])(
+  "start option checks outputs only when enabled (%s)",
+  async (checkOutputs) => {
+    const invalidOutput = defineStorageModule({
+      contract: { read: oc.output(z.string()) },
+      rowMap: {},
+      migrations: [],
+      entries: { read: { kind: "query", run: () => 42 as never } },
+    });
+    const process = await startTestDataProcess({
+      modules: { fixture: invalidOutput },
+      checkOutputs,
+    });
+    started.push(process);
+    const client = createORPCClient<
+      ContractRouterClient<{ fixture: typeof invalidOutput.contract }>
+    >(new RPCLink({ port: process.openPort() }));
+    if (checkOutputs)
+      await expect(client.fixture.read()).rejects.toMatchObject({ code: "INTERNAL_SERVER_ERROR" });
+    else await expect(client.fixture.read()).resolves.toBe(42);
+  },
+);
+
+test("a failed module migration keeps health available and refuses module calls", async () => {
+  const process = await startTestDataProcess({
+    modules: { fixture: { ...fixture, migrations: [{ name: "fixture/0001", sql: "NOT SQL;" }] } },
+  });
+  started.push(process);
+  const client = createORPCClient<
+    ContractRouterClient<AppContract & { fixture: typeof fixture.contract }>
+  >(new RPCLink({ port: process.openPort() }));
+  await expect(client.health()).resolves.toEqual({
+    state: "migrationFailed",
+    migration: "fixture/0001",
+  });
+  await expect(client.fixture.add("Invoice")).rejects.toMatchObject({
+    code: "SERVICE_UNAVAILABLE",
+  });
+});

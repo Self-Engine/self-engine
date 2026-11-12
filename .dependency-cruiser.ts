@@ -25,7 +25,7 @@ export const ALLOWED_IMPORTS: AllowedImports = {
   contracts: [],
   // The data process test harness only in the client's tests (a devDependency).
   "data-client": ["contracts", "data-process"],
-  "data-process": ["contracts", "db"],
+  "data-process": ["contracts", "db", "storage"],
   // The preload and the page share it; the failure states come from the contract.
   "desktop-bridge": ["contracts"],
   // Timestamp generation returns the shared Instant brand (D223).
