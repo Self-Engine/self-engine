@@ -574,6 +574,12 @@ importers:
 
   packages/data-client:
     dependencies:
+      '@lingui/core':
+        specifier: 'catalog:'
+        version: 6.12.0(@babel/core@8.1.0)
+      '@lingui/react':
+        specifier: 'catalog:'
+        version: 6.12.0(@babel/core@8.1.0)(react@19.3.1)
       '@orpc/client':
         specifier: 'catalog:'
         version: 1.16.2
@@ -583,6 +589,9 @@ importers:
       '@self-engine/contracts':
         specifier: workspace:*
         version: link:../contracts
+      '@self-engine/ui':
+        specifier: workspace:*
+        version: link:../ui
       '@tanstack/react-query':
         specifier: 'catalog:'
         version: 5.107.1(@types/react@19.3.0)(react@19.3.1)
