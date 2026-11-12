@@ -1,3 +1,4 @@
+import noForeignRowMap from "./rules/no-foreign-row-map.ts";
 /**
  * The repo's own lint rules, loaded by Oxlint as a JS plugin (`lint.jsPlugins` in
  * vite.config.ts). Rules are reported as `self-engine/<rule>`.
@@ -13,6 +14,7 @@ export default definePlugin({
   meta: { name: "self-engine" },
   rules: {
     "no-global-t-macro": noGlobalTMacro,
+    "no-foreign-row-map": noForeignRowMap,
     "no-import-type-query": noImportTypeQuery,
     "no-query-or-throw": noQueryOrThrow,
     "no-silent-catch": noSilentCatch,
