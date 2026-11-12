@@ -1,3 +1,4 @@
+import { START_AFTER_WINDOW_BUTTONS_PX, SHELL_TOP_STRIP_HEIGHT } from "./layout.ts";
 import { CommandPalette } from "./command-palette.tsx";
 import {
   CommandPaletteProvider,
@@ -53,7 +54,6 @@ import {
   navbarLimits,
   SHELL_STANDARD_NAVBAR,
   type ShellNavbarState,
-  START_AFTER_WINDOW_BUTTONS_PX,
 } from "./navbar-geometry.ts";
 import {
   SHELL_STANDARD_MODULE_SIDEBAR_WIDTH,
@@ -67,7 +67,7 @@ import {
 } from "./routing.tsx";
 import { useNavbarResize } from "./use-navbar-resize.ts";
 
-const CONTENT_HEADER_HEIGHT = 48;
+const CONTENT_HEADER_HEIGHT = SHELL_TOP_STRIP_HEIGHT;
 const BOTTOM_BAR_HEIGHT = 64;
 const ENTRY_HEIGHT = 40;
 /** As high as the content header and level with it, so window buttons, logo and page title share a line. */
@@ -686,6 +686,7 @@ function ShellFrame({
     <ShellRoutingContext value={routing}>
       {isPhone && <style>{`:root{${NOTICE_CLEARANCE_VARIABLE}:${rem(BOTTOM_BAR_HEIGHT)}}`}</style>}
       <AppShell
+        data-layout-step={step}
         {...(isPhone && { footer: { height: BOTTOM_BAR_HEIGHT } })}
         mode="static"
         // `collapsed.desktop` gives the narrow step's width to the content, since the Navbar is in the

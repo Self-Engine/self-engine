@@ -1,3 +1,5 @@
+import { START_AFTER_WINDOW_BUTTONS_PX } from "@self-engine/shell/layout";
+import { SHELL_REFERENCE_WIDTHS } from "@self-engine/shell/layout";
 import type { Meta } from "@storybook/react-vite";
 import { expect, userEvent, waitFor, within } from "storybook/test";
 import { Shell, type ShellProps } from "./index.ts";
@@ -54,7 +56,7 @@ export const StripForTheWindowButtons: Story = {
   play: async ({ canvas }) => {
     const first = canvas.getByRole("link", { name: "Projects" });
     await expect(first.getBoundingClientRect().top).toBeCloseTo(
-      navbarOf(canvas).getBoundingClientRect().top + 48,
+      navbarOf(canvas).getBoundingClientRect().top + STRIP_HEIGHT,
       0,
     );
     await expect(appRegionOf(navbarOf(canvas).firstElementChild!)).toBe("drag");
@@ -115,7 +117,11 @@ export const TheTopEdgeDragsTheWindowAndItsControlsStayClickable: Story = {
       (element) =>
         appRegionOf(element) === "drag" && getComputedStyle(element).position === "fixed",
     );
-    await expect(topEdge?.getBoundingClientRect()).toMatchObject({ top: 0, left: 0, width: 800 });
+    await expect(topEdge?.getBoundingClientRect()).toMatchObject({
+      top: 0,
+      left: 0,
+      width: SHELL_REFERENCE_WIDTHS.narrow,
+    });
   },
 };
 
@@ -298,7 +304,7 @@ export const TheNarrowHeaderStartsAfterTheWindowButtons: Story = {
     const burger = burgerOf(canvas);
     const title = canvas.getByRole("heading", { name: "Time" });
     const badge = canvas.getByText("Nightly");
-    await expect(burger.getBoundingClientRect().left).toBeCloseTo(84, 0);
+    await expect(burger.getBoundingClientRect().left).toBeCloseTo(START_AFTER_WINDOW_BUTTONS_PX, 0);
     await expect(title.getBoundingClientRect().left).toBeGreaterThan(
       burger.getBoundingClientRect().right,
     );
@@ -315,7 +321,10 @@ export const TheNarrowHeaderClearsTheWindowButtonsAtTheSmallestFontScale: Story 
   ...atSmallestFontScale("narrow"),
   args: { reserveWindowButtons: true },
   play: async ({ canvas }) => {
-    await expect(burgerOf(canvas).getBoundingClientRect().left).toBeCloseTo(84, 0);
+    await expect(burgerOf(canvas).getBoundingClientRect().left).toBeCloseTo(
+      START_AFTER_WINDOW_BUTTONS_PX,
+      0,
+    );
   },
 };
 
@@ -483,7 +492,10 @@ export const TheMarkLeavesTheContentHeaderWhenTheModuleSidebarOpens: Story = {
     await userEvent.click(expandToggle(canvas));
     await waitFor(() => expect(canvas.getByText("Self-Engine")).toBeVisible());
     await expect(widthOf(navbarOf(canvas))).toBe(56);
-    await expect(canvas.getByTestId("mark").getBoundingClientRect().left).toBeCloseTo(84, 0);
+    await expect(canvas.getByTestId("mark").getBoundingClientRect().left).toBeCloseTo(
+      START_AFTER_WINDOW_BUTTONS_PX,
+      0,
+    );
   },
 };
 
@@ -652,7 +664,10 @@ export const ACollapsedSidebarBesideAWideNavbarKeepsTheStripInTheNavbar: Story =
     await expectEntriesBelowTheStrip(canvas);
     await expect(appRegionOf(navbar.firstElementChild!)).toBe("drag");
     await expect(canvas.getByText("Self-Engine")).toBeVisible();
-    await expect(canvas.getByTestId("mark").getBoundingClientRect().left).toBeCloseTo(84, 0);
+    await expect(canvas.getByTestId("mark").getBoundingClientRect().left).toBeCloseTo(
+      START_AFTER_WINDOW_BUTTONS_PX,
+      0,
+    );
     await expect(centerY(canvas.getByTestId("mark"))).toBeCloseTo(
       centerY(canvas.getByRole("heading", { name: "Time" })),
       0,

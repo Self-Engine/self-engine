@@ -1,3 +1,4 @@
+import { SHELL_REFERENCE_WIDTHS, START_AFTER_WINDOW_BUTTONS_PX } from "@self-engine/shell/layout";
 import type { Meta } from "@storybook/react-vite";
 import { expect, screen, userEvent, waitFor, within } from "storybook/test";
 import {
@@ -41,7 +42,7 @@ export const WidenedWindowClosesTheDrawer: Story = {
   play: async ({ canvas }) => {
     await userEvent.click(canvas.getByRole("button", { name: "Open navigation" }));
     await screen.findByRole("dialog", { name: "Module Sidebar" });
-    await atFrameWidth(1100, async () => {
+    await atFrameWidth(SHELL_REFERENCE_WIDTHS.medium, async () => {
       await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
     });
     await waitFor(() =>
@@ -87,7 +88,9 @@ export const TheDrawerHeaderSitsBelowTheStripWithWindowButtons: Story = {
       strip.getBoundingClientRect().bottom,
       0,
     );
-    await waitFor(() => expect(mark.getBoundingClientRect().left).toBeCloseTo(84, 0));
+    await waitFor(() =>
+      expect(mark.getBoundingClientRect().left).toBeCloseTo(START_AFTER_WINDOW_BUTTONS_PX, 0),
+    );
     await expect(
       within(drawer).getByText("Self-Engine").getBoundingClientRect().right,
     ).toBeLessThan(drawer.getBoundingClientRect().right);
@@ -256,7 +259,10 @@ export const TheDrawerLogoFitsAtTheSmallestFontScale: Story = {
   play: async ({ canvas }) => {
     const drawer = await openDrawer(canvas);
     await waitFor(() =>
-      expect(within(drawer).getByTestId("mark").getBoundingClientRect().left).toBeCloseTo(84, 0),
+      expect(within(drawer).getByTestId("mark").getBoundingClientRect().left).toBeCloseTo(
+        START_AFTER_WINDOW_BUTTONS_PX,
+        0,
+      ),
     );
     await expect(
       within(drawer).getByText("Self-Engine").getBoundingClientRect().right,
@@ -391,7 +397,7 @@ export const TheCollapsedStateDoesNotReachTheNarrowDrawer: Story = {
   ...atViewport("narrow"),
   args: { moduleSidebarCollapsed: true },
   play: async ({ canvas }) => {
-    await expectContentFillsTheFrame(canvas, 800);
+    await expectContentFillsTheFrame(canvas, SHELL_REFERENCE_WIDTHS.narrow);
     await openDrawer(canvas);
   },
 };

@@ -1,3 +1,4 @@
+import { START_AFTER_WINDOW_BUTTONS_PX } from "./layout.ts";
 import { clamp } from "@mantine/hooks";
 
 /** Starting values from #19, in Mantine's unscaled numbers. */
@@ -19,12 +20,6 @@ const LOGO_MARK_INSET = (ICON_COLUMN_WIDTH - LOGO_MARK_WIDTH) / 2;
 export const GAP = 8;
 /** From the window edge to the mark on the icon axis, with or without its name. */
 export const LOGO_START_ON_ICON_AXIS = GAP + NAVBAR_PADDING + LOGO_MARK_INSET;
-/**
- * Where anything beside the macOS window buttons starts, from the window edge: they end at 76 px
- * (see `titleBarOptions`). In real pixels, because the buttons do not follow Mantine's scale.
- */
-export const START_AFTER_WINDOW_BUTTONS_PX = 84;
-
 /** What the user set for the Navbar. Only the wide Layout Step shows it. */
 export interface ShellNavbarState {
   readonly collapsed: boolean;
