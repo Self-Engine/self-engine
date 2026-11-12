@@ -9,9 +9,12 @@
     "./react": "./src/react/index.ts"
   },
   "dependencies": {
+    "@lingui/core": "catalog:",
+    "@lingui/react": "catalog:",
     "@orpc/client": "catalog:",
     "@orpc/contract": "catalog:",
     "@self-engine/contracts": "workspace:*",
+    "@self-engine/ui": "workspace:*",
     "@tanstack/react-query": "catalog:",
     "react": "catalog:"
   },
