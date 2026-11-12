@@ -18,7 +18,7 @@ CI runs the same gate, except that its format and i18n stages only check (`CI` s
 `sh -c`, shell keywords, or `git -C <other-checkout>`) unless the last pass covered exactly
 HEAD of the checkout being pushed, so any edit after a pass needs another run (unchanged
 stages replay from the cache). Run the app only when the user asks. If a change is visual
-and was not checked in the app, say so in the final report and offer the check.
+and was not checked in the app, say so in the final report and offer the [`verify-desktop`](.agents/skills/verify-desktop/SKILL.md) skill.
 
 ## Pull Requests
 
