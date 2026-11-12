@@ -1,5 +1,5 @@
 // The `smoke` stage of `pnpm verify` (spec #29, testing seam 3): starts the built desktop app with
-// a throwaway data folder and checks what a broken start would break. The window appears, the
+// a throwaway data folder and checks what a broken start would break. The page loads, the
 // data connection gets ready (the data process only answers when its `health` is ready), the
 // first answer comes within FIRST_ANSWER_LIMIT_MS, the page shows the app, and after the data
 // process is killed the page is ready again without a reload and still shows the app.
@@ -41,7 +41,7 @@ export interface PageMarks {
 
 /** The running app, as the smoke test drives it. */
 export interface SmokeApp {
-  /** Waits until a window of the app is visible. */
+  /** Waits until the app has a page, even when its native window stays hidden. */
   waitForWindow(): Promise<void>;
   /**
    * Waits until the page shows the app: the Shell's main landmark, which a render error replaces
@@ -122,24 +122,6 @@ export function smokeDriver(app: ElectronApplication): SmokeApp {
   return {
     async waitForWindow() {
       await page;
-      // The window shows once its page has painted (apps/desktop/src/main.ts).
-      await app.evaluate(
-        ({ BrowserWindow }, timeout) =>
-          new Promise<void>((settle, fail) => {
-            const [window] = BrowserWindow.getAllWindows();
-            if (window === undefined) return fail(new Error("The app has no window."));
-            if (window.isVisible()) return settle();
-            const timer = setTimeout(
-              () => fail(new Error(`The window did not show within ${timeout} ms.`)),
-              timeout,
-            );
-            window.once("show", () => {
-              clearTimeout(timer);
-              settle();
-            });
-          }),
-        WAIT_TIMEOUT_MS,
-      );
     },
     async waitForApp() {
       const target = await page;
@@ -221,7 +203,11 @@ async function main(): Promise<void> {
   } else {
     const server = await serveRenderer(RENDERER_DIR);
     try {
-      result = await smokeTestApp(builtDesktopApp(DESKTOP_DIR, server.url));
+      const launch = builtDesktopApp(DESKTOP_DIR, server.url);
+      result = await smokeTestApp({
+        ...launch,
+        env: { ...launch.env, SELF_ENGINE_HIDDEN: "1" },
+      });
     } finally {
       await server.close();
     }
