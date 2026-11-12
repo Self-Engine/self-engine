@@ -1,8 +1,8 @@
+import { seedScoping, returnsSeededRow } from "./scoping.ts";
 import { isDeepStrictEqual } from "node:util";
 import type { InferContractRouterInputs } from "@orpc/contract";
 import { call, ORPCError, type AnyProcedure } from "@orpc/server";
 import type { TablesOf } from "@self-engine/db";
-import type { Transaction } from "kysely";
 import { z } from "zod";
 import {
   createContext,
@@ -10,7 +10,6 @@ import {
   type RowMap,
   type StorageContract,
   type StorageModule,
-  type StorageContext,
 } from "../core/index.ts";
 import { tableContents } from "./table-contents.ts";
 import { QueryWriteError } from "../core/table-writes.ts";
@@ -20,10 +19,8 @@ export interface ContractViolation {
   readonly entry: string;
   readonly rule: string;
 }
-export type Seed<Rows extends RowMap> = (
-  tx: Transaction<TablesOf<Rows>>,
-  context: StorageContext,
-) => void | Promise<void>;
+export type { Seed } from "./seed.ts";
+import type { Seed } from "./seed.ts";
 
 function candidates(example: unknown): unknown[] {
   const values: unknown[] = [undefined, 42, "invalid", null, {}, [], true];
@@ -97,6 +94,10 @@ export async function checkContract<Contract extends StorageContract, Rows exten
         .execute((tx) =>
           Promise.resolve(seed(tx.withTables<TablesOf<Rows>>(), createContext(sources))),
         );
+      const scoped =
+        module.entries[entry]?.kind === "query"
+          ? await seedScoping(database, module.rowMap, seed, createContext(sources))
+          : undefined;
       let calls = 0;
       const observed = {
         ...module,
@@ -164,6 +165,12 @@ export async function checkContract<Contract extends StorageContract, Rows exten
         }
         if (!announced.has(table))
           violations.push({ entry, rule: `changed table not announced: ${table}` });
+      }
+      if (scoped !== undefined) {
+        if (returnsSeededRow(output, scoped.foreign))
+          violations.push({ entry, rule: "returns a row from another Space" });
+        if (returnsSeededRow(output, scoped.deleted))
+          violations.push({ entry, rule: "returns a deleted row" });
       }
       if (outputSchema !== undefined) {
         const parsed = await outputSchema["~standard"].validate(output);

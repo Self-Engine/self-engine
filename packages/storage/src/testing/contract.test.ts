@@ -3,6 +3,13 @@ import { expect, test } from "vite-plus/test";
 import { z } from "zod";
 import { defineStorageModule } from "../core/index.ts";
 import { checkContract } from "./index.ts";
+import { notes as referenceNotes } from "../../test/notes-module/data/index.ts";
+
+const announcementNotes = {
+  ...referenceNotes,
+  contract: { create: referenceNotes.contract.create, list: referenceNotes.contract.list },
+  entries: { create: referenceNotes.entries.create, list: referenceNotes.entries.list },
+};
 
 const good = defineStorageModule({
   contract: { echo: oc.input(z.object({ text: z.string() })).output(z.string()) },
@@ -73,7 +80,7 @@ test("an entry without input passes with an explicit undefined example", async (
 });
 
 test("the kit names a query that attempts a write", async () => {
-  const { notes } = await import("../../test/notes-module/data/index.ts");
+  const notes = announcementNotes;
   const writes = {
     ...notes,
     entries: {
@@ -103,7 +110,7 @@ test("the kit names a query that attempts a write", async () => {
 });
 
 test("the kit names an entry whose trigger changes an unannounced table", async () => {
-  const { notes } = await import("../../test/notes-module/data/index.ts");
+  const notes = announcementNotes;
   const triggerWrite = {
     ...notes,
     migrations: [
@@ -128,7 +135,7 @@ test("the kit names an entry whose trigger changes an unannounced table", async 
 });
 
 test("the kit accepts an announcement for an update that rewrites identical values", async () => {
-  const { notes } = await import("../../test/notes-module/data/index.ts");
+  const notes = announcementNotes;
   const unchanged = {
     ...notes,
     entries: {
@@ -159,3 +166,46 @@ test("the kit accepts an announcement for an update that rewrites identical valu
     ),
   ).resolves.toEqual([]);
 });
+
+test.each(["space", "deleted"] as const)(
+  "the kit names a query that leaks a %s row",
+  async (leak) => {
+    const { notes } = await import("../../test/notes-module/data/index.ts");
+    const { toNote } = await import("../../test/notes-module/data/rows.ts");
+    const broken = {
+      ...notes,
+      contract: { list: notes.contract.list },
+      entries: {
+        list: {
+          kind: "query" as const,
+          async run(
+            tx: Parameters<typeof notes.entries.list.run>[0],
+            context: Parameters<typeof notes.entries.list.run>[1],
+          ) {
+            const query = tx.selectFrom("notes").selectAll();
+            const rows = await (
+              leak === "space"
+                ? query.where("deleted_at", "is", null)
+                : query.where("space_id", "=", context.spaceId)
+            ).execute();
+            return rows.map(toNote);
+          },
+        },
+      },
+    };
+    await expect(
+      checkContract(
+        broken,
+        async (tx, context) => {
+          await notes.entries.create.run(tx, context, { title: "Example", isPinned: false });
+        },
+        { list: {} },
+      ),
+    ).resolves.toEqual([
+      {
+        entry: "list",
+        rule: leak === "space" ? "returns a row from another Space" : "returns a deleted row",
+      },
+    ]);
+  },
+);
