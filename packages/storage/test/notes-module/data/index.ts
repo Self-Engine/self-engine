@@ -88,3 +88,4 @@ export const notes = defineStorageModule({
     }),
   },
 });
+export { noteTitles } from "./read-piece.ts";
