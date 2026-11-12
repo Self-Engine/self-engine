@@ -9,7 +9,7 @@ import {
   type StorageContract,
   type StorageModule,
 } from "../core/index.ts";
-import type { ContractViolation } from "./contract.ts";
+import type { ContractViolation } from "./violation.ts";
 import type { Seed } from "./seed.ts";
 import { createTestContext, createTestDatabase } from "./helpers.ts";
 
@@ -42,8 +42,9 @@ export async function checkConflicts<Contract extends StorageContract, Rows exte
 ): Promise<ContractViolation[]> {
   const violations: ContractViolation[] = [];
   for (const [entry, procedure] of Object.entries(module.contract)) {
-    const data = procedure["~orpc"].errorMap.CONFLICT?.data;
-    if (data === undefined) continue;
+    const conflict = procedure["~orpc"].errorMap.CONFLICT;
+    if (conflict === undefined) continue;
+    const data = conflict.data;
     const expected = data instanceof z.ZodObject ? reasons(data.shape.reason) : undefined;
     if (expected === undefined || expected.length === 0) {
       violations.push({ entry, rule: "CONFLICT must list reason codes" });
@@ -72,8 +73,8 @@ export async function checkConflicts<Contract extends StorageContract, Rows exte
           await call(target, scenario.input);
         } catch (error) {
           if (error instanceof ORPCError && error.code === "CONFLICT") {
-            const parsed = await data["~standard"].validate(error.data);
-            if (!parsed.issues && typeof error.data?.reason === "string")
+            const parsed = await data?.["~standard"].validate(error.data);
+            if (parsed !== undefined && !parsed.issues && typeof error.data?.reason === "string")
               triggered.add(error.data.reason);
           }
         }

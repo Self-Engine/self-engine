@@ -16,10 +16,8 @@ import { tableContents } from "./table-contents.ts";
 import { QueryWriteError } from "../core/table-writes.ts";
 import { createTestContext, createTestDatabase } from "./helpers.ts";
 
-export interface ContractViolation {
-  readonly entry: string;
-  readonly rule: string;
-}
+import type { ContractViolation } from "./violation.ts";
+export type { ContractViolation } from "./violation.ts";
 export type { Seed } from "./seed.ts";
 import type { Seed } from "./seed.ts";
 

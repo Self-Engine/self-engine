@@ -240,3 +240,56 @@ test("the kit names a contract reason no example triggers", async () => {
     { entry: "echo", rule: "conflict reason not triggered: locked" },
   ]);
 });
+
+test.each(["success", "wrong reason", "unexpected", "right reason"] as const)(
+  "the kit counts only a declared conflict triggered by the example: %s",
+  async (outcome) => {
+    const { ORPCError } = await import("@orpc/server");
+    const fixture = defineStorageModule({
+      ...good,
+      contract: {
+        echo: good.contract.echo.errors({
+          CONFLICT: { data: z.object({ reason: z.literal("already_billed") }) },
+        }),
+      },
+      entries: {
+        echo: {
+          kind: "operation",
+          run: (_tx, _context, input) => {
+            if (input.text === "normal" || outcome === "success") return input.text;
+            if (outcome === "unexpected") throw new Error("Unexpected");
+            throw new ORPCError("CONFLICT", {
+              data: { reason: outcome === "right reason" ? "already_billed" : "other" },
+            });
+          },
+        },
+      },
+    });
+    await expect(
+      checkContract(
+        fixture,
+        seed,
+        { echo: { text: "normal" } },
+        {
+          echo: [{ input: { text: "conflict" } }],
+        },
+      ),
+    ).resolves.toEqual(
+      outcome === "right reason"
+        ? []
+        : [{ entry: "echo", rule: "conflict reason not triggered: already_billed" }],
+    );
+  },
+);
+
+test("the kit rejects CONFLICT without a finite list of reason codes", async () => {
+  const fixture = defineStorageModule({
+    ...good,
+    contract: {
+      echo: good.contract.echo.errors({ CONFLICT: {} }),
+    },
+  });
+  await expect(checkContract(fixture, seed, { echo: { text: "Valid" } })).resolves.toEqual([
+    { entry: "echo", rule: "CONFLICT must list reason codes" },
+  ]);
+});
