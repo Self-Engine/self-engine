@@ -1,5 +1,5 @@
 import type { AnyRouter } from "@orpc/server";
-import type { Health } from "@self-engine/contracts";
+import type { Health, QueryTables } from "@self-engine/contracts";
 import { healthProcedure } from "./procedures/health.ts";
 import { tablesChangedProcedure } from "./procedures/tables-changed.ts";
 import { refuseUnlessReady } from "./refuse-unless-ready.ts";
@@ -9,13 +9,15 @@ export interface RouterOptions {
   readonly moduleRouter: Readonly<Record<string, AnyRouter>>;
   readonly health: Health;
   readonly tablesChanged: TablesChangedPublisher;
+  /** Sent with the opening event of every Table Change stream (D248). */
+  readonly queries: QueryTables;
 }
 
 /**
  * The procedure tree the data process serves; each procedure lives in `procedures/`. In a failure
  * state of the start only `health` answers.
  */
-export function createRouter({ health, tablesChanged, moduleRouter }: RouterOptions) {
+export function createRouter({ health, tablesChanged, queries, moduleRouter }: RouterOptions) {
   for (const name of ["health", "tablesChanged"]) {
     if (Object.hasOwn(moduleRouter, name))
       throw new Error(`Module namespace conflicts with built-in procedure: ${name}`);
@@ -23,6 +25,6 @@ export function createRouter({ health, tablesChanged, moduleRouter }: RouterOpti
   return refuseUnlessReady(health, {
     ...moduleRouter,
     health: healthProcedure(health),
-    tablesChanged: tablesChangedProcedure(tablesChanged),
+    tablesChanged: tablesChangedProcedure(tablesChanged, queries),
   });
 }

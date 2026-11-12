@@ -3,3 +3,4 @@ export {
   type TestDataProcess,
   type TestDataProcessOptions,
 } from "./test-data-process.ts";
+export type { DataModules } from "../core/index.ts";

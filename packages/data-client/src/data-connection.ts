@@ -1,7 +1,12 @@
 import { createORPCClient, DynamicLink } from "@orpc/client";
 import { RPCLink, type SupportedMessagePort } from "@orpc/client/message-port";
 import type { ContractRouterClient } from "@orpc/contract";
-import type { AppContract, HealthFailure, TablesChanged } from "@self-engine/contracts";
+import type {
+  AppContract,
+  HealthFailure,
+  QueryTables,
+  TablesChanged,
+} from "@self-engine/contracts";
 import {
   type ConnectionState,
   type ConnectionStateStore,
@@ -15,6 +20,14 @@ export type DataClient = ContractRouterClient<AppContract>;
 
 /** A port of the platform: a DOM or Node `MessagePort`, or Electron's `MessagePortMain`. */
 export type DataPort = SupportedMessagePort;
+
+/**
+ * What the Data Process says about one entry of a mounted module (D248): a Query with the
+ * tables it reads, or an Operation. An entry absent from the Data Process's list is an Operation.
+ */
+export type EntryDescription =
+  | { readonly kind: "query"; readonly reads: readonly string[] }
+  | { readonly kind: "operation" };
 
 export interface DataConnection extends Pick<ConnectionStateStore, "getState" | "subscribe"> {
   /**
@@ -44,15 +57,23 @@ export interface DataConnection extends Pick<ConnectionStateStore, "getState" | 
   fail(failure: HealthFailure): void;
   /**
    * Calls `listener` with the tables of each commit, over whichever port is connected. It does
-   * not hear the opening empty event; returns the function that stops it.
+   * not hear the opening event; returns the function that stops it.
    */
   onTablesChanged(listener: (tables: TablesChanged) => void): () => void;
+  /**
+   * Whether the entry `entry` of the module mounted as `module` is a Query and which tables it
+   * reads, from the list the Data Process sent with the opening event of the last port that got
+   * ready. `undefined` until the first port got ready. While reconnecting it keeps the last list;
+   * a new port's opening event replaces it before the state turns ready.
+   */
+  describeEntry(module: string, entry: string): EntryDescription | undefined;
 }
 
 const CONNECTING: ConnectionState = { status: "connecting" };
 const READY: ConnectionState = { status: "ready" };
 const RECONNECTING: ConnectionState = { status: "reconnecting" };
 const STOPPED: ConnectionState = { status: "stopped" };
+const OPERATION: EntryDescription = { kind: "operation" };
 
 /** The renderer's connection to the data process, platform-neutral: it only needs a port. */
 export function createDataConnection(): DataConnection {
@@ -62,6 +83,7 @@ export function createDataConnection(): DataConnection {
   let currentLink: Promise<RPCLink<object>> = nextLink.promise;
   let session: PortSession | undefined;
   let wasReady = false;
+  let queries: QueryTables | undefined;
 
   function waiting(): ConnectionState {
     return wasReady ? RECONNECTING : CONNECTING;
@@ -96,7 +118,8 @@ export function createDataConnection(): DataConnection {
       nextLink.resolve(link);
       currentLink = Promise.resolve(link);
       const own: PortSession = watchPort(link, {
-        ready() {
+        ready(list) {
+          queries = list;
           wasReady = true;
           state.set(READY);
         },
@@ -129,6 +152,12 @@ export function createDataConnection(): DataConnection {
       const entry = (tables: TablesChanged) => listener(tables);
       tablesListeners.add(entry);
       return () => tablesListeners.delete(entry);
+    },
+    describeEntry(module, entry) {
+      if (queries === undefined) return undefined;
+      const reads = Object.hasOwn(queries, module) ? queries[module] : undefined;
+      if (reads === undefined || !Object.hasOwn(reads, entry)) return OPERATION;
+      return { kind: "query", reads: reads[entry]! };
     },
   };
 }

@@ -65,6 +65,9 @@ through a released read piece, as `reads: ["note_links", "notes"]` in note-links
 require it. Operations declare nothing; the tables they wrote are announced after commit.
 A Table Change naming one of a query's declared tables makes its answer outdated, so a
 missing table leaves a list showing old data. The contract kit checks the declaration (step 6).
+The Data Process collects every mounted Query's `reads` into one list and sends it to the page
+with the opening event of each Table Change stream; the page learns from it which entries are
+Queries and which tables they read, and never names a table itself.
 Its lower function receives `(tx, context, input, entry, module)`: the checked input, stable
 contract key and module name accompany the existing transaction. Queries receive read-only access; operations may write
 only their owned tables. These functions neither open transactions nor announce tables.
