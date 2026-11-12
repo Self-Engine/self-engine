@@ -5,7 +5,7 @@ import { uniqueIndexes, type Database, type TablesOf } from "@self-engine/db";
 import { createContext, type ContextSources } from "./context.ts";
 import { reportLargeResult, type LargeResultReport } from "./large-result.ts";
 import { recordTableWrites } from "./table-writes.ts";
-import type { RowMap, StorageContract, StorageModule } from "./module.ts";
+import type { RowMap, StorageContract, StorageModule, ErasedStorageModule } from "./module.ts";
 
 export type FrameReport =
   | LargeResultReport
@@ -46,7 +46,30 @@ type FrameRouter<Contract extends StorageContract> = {
 export function createFrame<Contract extends StorageContract, Rows extends RowMap>(
   module: StorageModule<Contract, Rows>,
   options: FrameOptions,
-): FrameRouter<Contract> {
+): FrameRouter<Contract>;
+export function createFrame(
+  module: ErasedStorageModule,
+  options: FrameOptions,
+): FrameRouter<StorageContract>;
+export function createFrame(
+  erasedModule: ErasedStorageModule,
+  options: FrameOptions,
+): FrameRouter<StorageContract> {
+  // Module definitions check the lower functions before heterogeneous collections erase them.
+  const module = erasedModule as StorageModule<StorageContract, RowMap>;
+  function reportUnexpected(entry: string, error: unknown, index?: string) {
+    try {
+      options.report?.({
+        kind: "unexpected-error",
+        entry,
+        error,
+        ...(index === undefined ? {} : { index }),
+      });
+    } catch (reportError) {
+      // Reporting cannot change a committed result or the original failure.
+      void reportError;
+    }
+  }
   const contract = Object.fromEntries(
     Object.entries(module.contract).map(([name, procedure]) => {
       const definition = {
@@ -74,7 +97,7 @@ export function createFrame<Contract extends StorageContract, Rows extends RowMa
               result = await options.database.kysely.transaction().execute(async (transaction) => {
                 const context = createContext(options.sources);
                 const tx = transaction
-                  .withTables<TablesOf<Rows>>()
+                  .withTables<TablesOf<RowMap>>()
                   .withPlugin(recordTableWrites(tables, entry.kind === "query"));
                 return next({ context: { tx, storageContext: context } });
               });
@@ -95,7 +118,13 @@ export function createFrame<Contract extends StorageContract, Rows extends RowMa
                 error instanceof Error
               ) {
                 const diagnostic = error.message.replace(/^UNIQUE constraint failed: /, "");
-                const indexes = await uniqueIndexes(options.database, Object.keys(module.rowMap));
+                let indexes: Awaited<ReturnType<typeof uniqueIndexes>> = [];
+                try {
+                  indexes = await uniqueIndexes(options.database, Object.keys(module.rowMap));
+                } catch (diagnosticError) {
+                  // Diagnostics must not replace the original database failure.
+                  void diagnosticError;
+                }
                 const matches = indexes.filter(
                   (candidate) =>
                     candidate.columns === diagnostic || diagnostic === `index '${candidate.name}'`,
@@ -104,20 +133,16 @@ export function createFrame<Contract extends StorageContract, Rows extends RowMa
                 const reason = index === undefined ? undefined : module.conflicts?.[index];
                 if (reason !== undefined) throw new ORPCError("CONFLICT", { data: { reason } });
               }
-              try {
-                options.report?.({
-                  kind: "unexpected-error",
-                  entry: name,
-                  error,
-                  ...(index === undefined ? {} : { index }),
-                });
-              } catch (reportError) {
-                // A reporting sink cannot change the operation's failure.
-                void reportError;
-              }
+              reportUnexpected(name, error, index);
               throw new ORPCError("INTERNAL_SERVER_ERROR");
             }
-            if (entry.kind === "operation" && tables.size > 0) await options.announce?.(tables);
+            if (entry.kind === "operation" && tables.size > 0) {
+              try {
+                await options.announce?.(tables);
+              } catch (error) {
+                reportUnexpected(name, error);
+              }
+            }
             return result;
           })
           .handler(async ({ context, input }) => {
@@ -131,5 +156,5 @@ export function createFrame<Contract extends StorageContract, Rows extends RowMa
     }),
   );
   // The dynamic traversal preserves each contract entry's input/output types.
-  return router as FrameRouter<Contract>;
+  return router as FrameRouter<StorageContract>;
 }

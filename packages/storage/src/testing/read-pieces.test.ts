@@ -6,7 +6,7 @@ import { notes } from "../../test/notes-module/data/index.ts";
 import { links } from "../../test/note-links-module/data/index.ts";
 
 test("lists links sorted and filtered by the released note title in one query", async () => {
-  const database = await createTestDatabase(links);
+  const database = await createTestDatabase(links, [notes]);
   try {
     const sources = createTestContext();
     const noteClient = createRouterClient(
@@ -48,7 +48,7 @@ test("lists links sorted and filtered by the released note title in one query", 
 });
 
 test("a link keeps its deleted note title and an explicit deleted mark", async () => {
-  const database = await createTestDatabase(links);
+  const database = await createTestDatabase(links, [notes]);
   try {
     const sources = createTestContext();
     const noteClient = createRouterClient(
@@ -70,7 +70,7 @@ test("a link keeps its deleted note title and an explicit deleted mark", async (
 });
 
 test("a target in another Space is not joined or available to the title filter", async () => {
-  const database = await createTestDatabase(links);
+  const database = await createTestDatabase(links, [notes]);
   try {
     const sources = createTestContext();
     const { spaceIdSchema } = await import("../core/index.ts");
@@ -110,6 +110,8 @@ test("note links passes the storage contract kit using only its own row map", as
           noteId: noteIdSchema.parse(note.id),
           label: "Seed link",
         });
+        // Foreign targets stay released even when deleted; only owned rows are isolated.
+        await notes.entries.delete.run(tx.withTables(), context, { id: note.id });
       },
       {
         create: {
@@ -118,6 +120,8 @@ test("note links passes the storage contract kit using only its own row map", as
         },
         list: {},
       },
+      {},
+      [notes],
     ),
   ).resolves.toEqual([]);
 });

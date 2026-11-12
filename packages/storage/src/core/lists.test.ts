@@ -401,3 +401,31 @@ test("storage refuses a page order without a final unique id", async () => {
     }),
   ).toThrow("no repeated columns");
 });
+
+test.each(["after", "before"] as const)(
+  "an empty %s page retains a way back after deletion",
+  async (direction) => {
+    const database = await createTestDatabase(notes);
+    cleanups.push(() => database.close());
+    const client = createRouterClient(
+      createFrame(notes, {
+        database,
+        sources: createTestContext(),
+        checkOutputs: true,
+      }),
+    );
+    for (let i = 0; i < 101; i++) await client.create({ title: `Note ${i}`, isPinned: false });
+    const first = await client.pages({});
+    if (!first.after) throw new Error("Missing next cursor");
+    const last = await client.pages({ cursor: first.after });
+    if (!last.before) throw new Error("Missing previous cursor");
+    const removed = direction === "after" ? last : first;
+    for (const row of removed.rows) await client.delete({ id: row.id });
+    const empty = await client.pages({ cursor: direction === "after" ? first.after : last.before });
+    expect(empty.rows).toEqual([]);
+    const back = direction === "after" ? empty.before : empty.after;
+    expect(back).not.toBeNull();
+    const returned = await client.pages({ cursor: back! });
+    expect(returned.rows).toEqual(direction === "after" ? first.rows : last.rows);
+  },
+);

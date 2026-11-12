@@ -516,10 +516,23 @@ test("a write attempted inside a query fails and announces nothing", async () =>
       },
     },
   };
-  const client = await connect(module, true, (tables) => {
-    announcements.push(tables);
+  const database = await createTestDatabase(notes);
+  cleanups.push(() => database.close());
+  const options = {
+    database,
+    sources: createTestContext(),
+    checkOutputs: true,
+    announce: (tables: ReadonlySet<string>) => {
+      announcements.push(tables);
+    },
+  };
+  const client = createRouterClient(createFrame(module, options));
+  await expect(client.list({})).rejects.toMatchObject({
+    code: "INTERNAL_SERVER_ERROR",
+    message: "Internal Server Error",
   });
-  await expect(client.list({})).rejects.toThrow();
+  const reader = createRouterClient(createFrame(notes, options));
+  await expect(reader.list({})).resolves.toEqual([]);
   expect(announcements).toEqual([]);
 });
 
@@ -597,4 +610,68 @@ test("interleaved write results count only the target whose statement affected r
   );
   await client.create({ title: "Unused", isPinned: false });
   expect(announcements).toEqual([new Set(["notes"])]);
+});
+
+test("a failing announcer reports its error and returns the committed result", async () => {
+  const database = await createTestDatabase(notes);
+  cleanups.push(() => database.close());
+  const error = new Error("Announcement failed");
+  const reports: FrameReport[] = [];
+  const client = createRouterClient(
+    createFrame(notes, {
+      database,
+      sources: createTestContext(),
+      checkOutputs: true,
+      announce() {
+        throw error;
+      },
+      report(event) {
+        reports.push(event);
+      },
+    }),
+  );
+  const note = await client.create({ title: "Committed", isPinned: false });
+  await expect(client.get({ id: note.id })).resolves.toEqual(note);
+  expect(reports).toEqual([{ kind: "unexpected-error", entry: "create", error }]);
+});
+
+test("failed unique-index diagnostics preserve the original error", async () => {
+  const database = await createTestDatabase(notes);
+  cleanups.push(() => database.close());
+  const diagnosticFailure = new Error("Diagnostics unavailable");
+  const observed = {
+    ...database,
+    kysely: database.kysely.withPlugin({
+      transformQuery({ node }) {
+        if (JSON.stringify(node).includes("pragma_")) throw diagnosticFailure;
+        return node;
+      },
+      async transformResult({ result }) {
+        return result;
+      },
+    }),
+  };
+  const reports: FrameReport[] = [];
+  const client = createRouterClient(
+    createFrame(notes, {
+      database: observed,
+      sources: createTestContext(),
+      checkOutputs: true,
+      report(event) {
+        reports.push(event);
+      },
+    }),
+  );
+  const note = await client.create({ title: "Taken", isPinned: false });
+  await expect(client.create({ title: "Taken", isPinned: false })).rejects.toMatchObject({
+    code: "INTERNAL_SERVER_ERROR",
+  });
+  expect(reports).toMatchObject([
+    {
+      kind: "unexpected-error",
+      entry: "create",
+      error: { code: "SQLITE_CONSTRAINT_UNIQUE" },
+    },
+  ]);
+  await expect(client.list({})).resolves.toEqual([note]);
 });

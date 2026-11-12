@@ -120,3 +120,63 @@ test("another Space's row is absent from lookup and every single-row change", as
     await database.close();
   }
 });
+
+test("standard writes ignore injected convention columns at runtime", async () => {
+  const { createContext, sharedWrites } = await import("./index.ts");
+  const { noteIdSchema } = await import("../../test/notes-module/data/rows.ts");
+  const database = await createTestDatabase(notes);
+  try {
+    await database.kysely.transaction().execute(async (transaction) => {
+      const tx = transaction.withTables<TablesOf<typeof notes.rowMap>>();
+      const sources = createTestContext();
+      const context = createContext(sources);
+      const writes = sharedWrites(tx, context);
+      const id = context.newId(noteIdSchema);
+      const injected = {
+        title: "Safe",
+        is_pinned: 0 as const,
+        id: "rewritten",
+        space_id: "foreign",
+        created_at: "rewritten",
+        updated_at: "rewritten",
+        deleted_at: "rewritten",
+      };
+      // @ts-expect-error Non-literal convention fields are forbidden.
+      const inserted = await writes.insert("notes", id, injected);
+      // @ts-expect-error Non-literal convention fields are forbidden.
+      const updated = await writes.update("notes", id, injected);
+      expect(updated).toEqual(inserted);
+      expect(updated).toMatchObject({
+        id,
+        space_id: context.spaceId,
+        created_at: context.now,
+        updated_at: context.now,
+        deleted_at: null,
+      });
+    });
+  } finally {
+    await database.close();
+  }
+});
+
+test("live rows can join another table with convention columns", async () => {
+  const { createContext, sharedEntry, sharedWrites } = await import("./index.ts");
+  const { noteIdSchema } = await import("../../test/notes-module/data/rows.ts");
+  const database = await createTestDatabase(notes);
+  try {
+    await database.kysely.transaction().execute(async (transaction) => {
+      const tx = transaction.withTables<TablesOf<typeof notes.rowMap>>();
+      const context = createContext(createTestContext());
+      const id = context.newId(noteIdSchema);
+      await sharedWrites(tx, context).insert("notes", id, { title: "Joined", is_pinned: 0 });
+      const rows = await sharedEntry(tx, context)
+        .live("notes")
+        .innerJoin("notes as target", "target.id", "notes.id")
+        .select("notes.title")
+        .execute();
+      expect(rows).toEqual([{ title: "Joined" }]);
+    });
+  } finally {
+    await database.close();
+  }
+});

@@ -1,13 +1,6 @@
 import type { Health, TablesChanged } from "@self-engine/contracts";
 import type { Database } from "@self-engine/db";
-import {
-  createFrame,
-  type RowMap,
-  type StorageContract,
-  type StorageModule,
-  type ContextSources,
-  type FrameOptions,
-} from "@self-engine/storage";
+import { createFrame, type ContextSources, type FrameOptions } from "@self-engine/storage";
 import { modules as appModules, type DataModules } from "./modules.ts";
 import { createRouter } from "./router.ts";
 import { createPortServer, type DataPort } from "./serve.ts";
@@ -57,12 +50,10 @@ export async function startDataProcess({
     beforeMigrations,
   );
   const tablesChanged = createTablesChangedPublisher();
-  // Each module was checked against its own contract and rows by defineStorageModule.
-  // Erase those different types only here, where the frame is built for each entry.
   const moduleRouter = Object.fromEntries(
     Object.entries(modules).map(([name, module]) => [
       name,
-      createFrame(module as StorageModule<StorageContract, RowMap>, {
+      createFrame(module, {
         database,
         sources,
         checkOutputs,

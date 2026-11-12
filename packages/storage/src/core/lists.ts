@@ -41,10 +41,15 @@ const cursorPayload = z
     list: z.string(),
     direction: z.enum(["before", "after"]),
     values: z.array(z.union([z.string(), z.number().finite()])),
+    inclusive: z.literal(true).optional(),
   })
   .strict();
 
-/** A fixed keyset order, always ending in id. Cursors carry the stable contract entry name. */
+/**
+ * A fixed keyset order, always ending in id. Cursors carry the stable contract entry name.
+ * Cursor predicates and ordering use unqualified selected column names. Joined queries must
+ * expose unambiguous sort columns; wrap a join in a subquery when names overlap.
+ */
 export function pageList<
   DB,
   Table extends keyof DB & string,
@@ -139,7 +144,13 @@ export function pageList<
         ) {
           return eb(
             eb.refTuple(first.column, second.column),
-            (first.direction === "asc") !== backwards ? ">" : "<",
+            (first.direction === "asc") !== backwards
+              ? anchor.inclusive
+                ? ">="
+                : ">"
+              : anchor.inclusive
+                ? "<="
+                : "<",
             eb.tuple(anchor.values[0]!, anchor.values[1]!),
           );
         }
@@ -151,7 +162,13 @@ export function pageList<
                 .map((prefix, previous) => eb(prefix.column, "=", anchor.values[previous]!)),
               eb(
                 item.column,
-                (item.direction === "asc") !== backwards ? ">" : "<",
+                (item.direction === "asc") !== backwards
+                  ? anchor.inclusive && index === order.length - 1
+                    ? ">="
+                    : ">"
+                  : anchor.inclusive && index === order.length - 1
+                    ? "<="
+                    : "<",
                 anchor.values[index]!,
               ),
             ]),
@@ -202,6 +219,19 @@ export function pageList<
       const more = found.length > size;
       const rows = found.slice(0, size);
       if (backwards) rows.reverse();
+      if (rows.length === 0 && anchor !== undefined) {
+        const back = encode(
+          new TextEncoder().encode(
+            JSON.stringify({
+              list,
+              direction: backwards ? "after" : "before",
+              values: anchor.values,
+              inclusive: true,
+            }),
+          ),
+        );
+        return { rows: [], before: backwards ? null : back, after: backwards ? back : null };
+      }
       const first = rows[0];
       const last = rows.at(-1);
       return {

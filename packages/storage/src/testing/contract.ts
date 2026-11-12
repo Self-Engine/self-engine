@@ -69,9 +69,12 @@ export async function checkContract<Contract extends StorageContract, Rows exten
   seed: Seed<Rows>,
   examples: Partial<InferContractRouterInputs<Contract>>,
   conflictExamples: ConflictExamples<Contract, Rows> = {},
+  dependencies: readonly {
+    readonly migrations: StorageModule<Contract, Rows>["migrations"];
+  }[] = [],
 ): Promise<ContractViolation[]> {
   const violations: ContractViolation[] = [];
-  const schemaDatabase = await createTestDatabase(module);
+  const schemaDatabase = await createTestDatabase(module, dependencies);
   try {
     for (const index of await uniqueIndexes(schemaDatabase, Object.keys(module.rowMap))) {
       if (!module.conflicts?.[index.name])
@@ -96,7 +99,7 @@ export async function checkContract<Contract extends StorageContract, Rows exten
       invalid.push(candidate);
     }
     if (invalid.length === 0) violations.push({ entry, rule: "accepts invalid input" });
-    const database = await createTestDatabase(module);
+    const database = await createTestDatabase(module, dependencies);
     try {
       const sources = createTestContext();
       await database.kysely
@@ -129,6 +132,36 @@ export async function checkContract<Contract extends StorageContract, Rows exten
               break;
             }
           }
+        }
+      }
+      let baseline: unknown;
+      if (definition?.kind === "query") {
+        const isolated = await createTestDatabase(module, dependencies);
+        try {
+          const isolatedSources = createTestContext();
+          await isolated.kysely.transaction().execute(async (transaction) => {
+            await seed(transaction.withTables<TablesOf<Rows>>(), createContext(isolatedSources));
+            const tx = transaction.withTables<Record<string, { deleted_at: string | null }>>();
+            for (const [table, schema] of Object.entries(module.rowMap)) {
+              if (!table.startsWith("local_") && Object.hasOwn(schema.shape, "deleted_at"))
+                await tx.deleteFrom(table).where("deleted_at", "is not", null).execute();
+            }
+          });
+          const isolatedRouter: Record<string, AnyProcedure> = createFrame(module, {
+            database: isolated,
+            sources: isolatedSources,
+            checkOutputs: false,
+          });
+          const isolatedTarget = isolatedRouter[entry];
+          if (isolatedTarget === undefined) throw new Error(`Missing module function: ${entry}`);
+          try {
+            baseline = { output: await call(isolatedTarget, example) };
+          } catch (error) {
+            if (!(error instanceof ORPCError)) throw error;
+            baseline = { code: error.code, data: error.data };
+          }
+        } finally {
+          await isolated.close();
         }
       }
       const scoped =
@@ -194,10 +227,22 @@ export async function checkContract<Contract extends StorageContract, Rows exten
       try {
         output = await call(target, example);
       } catch (error) {
-        if (!queryWrite) throw error;
-        violations.push({ entry, rule: "query writes" });
+        if (queryWrite) {
+          violations.push({ entry, rule: "query writes" });
+          continue;
+        }
+        if (
+          definition?.kind !== "query" ||
+          !(error instanceof ORPCError) ||
+          error.code !== "NOT_FOUND"
+        )
+          throw error;
+        if (!isDeepStrictEqual(baseline, { code: error.code, data: error.data }))
+          violations.push({ entry, rule: "query output changes with foreign or deleted rows" });
         continue;
       }
+      if (definition?.kind === "query" && Array.isArray(output) && definition.list === undefined)
+        violations.push({ entry, rule: "array query has no list kind" });
       const after = await tableContents(database);
       for (const [table, rows] of after) {
         if (isDeepStrictEqual(before.get(table), rows)) continue;
@@ -208,6 +253,8 @@ export async function checkContract<Contract extends StorageContract, Rows exten
         if (!announced.has(table))
           violations.push({ entry, rule: `changed table not announced: ${table}` });
       }
+      if (definition?.kind === "query" && !isDeepStrictEqual(baseline, { output }))
+        violations.push({ entry, rule: "query output changes with foreign or deleted rows" });
       if (scoped !== undefined) {
         if (returnsSeededRow(output, scoped.foreign))
           violations.push({ entry, rule: "returns a row from another Space" });
@@ -224,6 +271,6 @@ export async function checkContract<Contract extends StorageContract, Rows exten
       await database.close();
     }
   }
-  violations.push(...(await checkConflicts(module, seed, conflictExamples)));
+  violations.push(...(await checkConflicts(module, seed, conflictExamples, dependencies)));
   return violations;
 }

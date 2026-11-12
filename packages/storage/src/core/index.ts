@@ -2,6 +2,7 @@ export { createFrame, type FrameReport, type FrameOptions } from "./frame.ts";
 export {
   defineStorageModule,
   type StorageModule,
+  type ErasedStorageModule,
   type ModuleEntries,
   type ReadTransaction,
   type StorageContract,

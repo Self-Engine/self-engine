@@ -39,6 +39,9 @@ export async function checkConflicts<Contract extends StorageContract, Rows exte
   module: StorageModule<Contract, Rows>,
   seed: Seed<Rows>,
   examples: ConflictExamples<Contract, Rows>,
+  dependencies: readonly {
+    readonly migrations: StorageModule<Contract, Rows>["migrations"];
+  }[] = [],
 ): Promise<ContractViolation[]> {
   const violations: ContractViolation[] = [];
   for (const [entry, procedure] of Object.entries(module.contract)) {
@@ -53,7 +56,7 @@ export async function checkConflicts<Contract extends StorageContract, Rows exte
     const triggered = new Set<string>();
     const scenarios = examples[entry] ?? [];
     for (const scenario of scenarios) {
-      const database = await createTestDatabase(module);
+      const database = await createTestDatabase(module, dependencies);
       try {
         const sources = createTestContext();
         await database.kysely.transaction().execute(async (transaction) => {
@@ -62,21 +65,25 @@ export async function checkConflicts<Contract extends StorageContract, Rows exte
           await seed(tx, context);
           await scenario.prepare?.(tx, context);
         });
+        let unexpected: { error: unknown } | undefined;
         const router: Record<string, AnyProcedure> = createFrame(module, {
           database,
           sources,
           checkOutputs: true,
+          report(event) {
+            if (event.kind === "unexpected-error") unexpected = event;
+          },
         });
         const target = router[entry];
         if (target === undefined) throw new Error(`Missing module function: ${entry}`);
         try {
           await call(target, scenario.input);
         } catch (error) {
-          if (error instanceof ORPCError && error.code === "CONFLICT") {
-            const parsed = await data?.["~standard"].validate(error.data);
-            if (parsed !== undefined && !parsed.issues && typeof error.data?.reason === "string")
-              triggered.add(error.data.reason);
-          }
+          if (!(error instanceof ORPCError) || error.code !== "CONFLICT")
+            throw unexpected === undefined ? error : unexpected.error;
+          const parsed = await data?.["~standard"].validate(error.data);
+          if (parsed !== undefined && !parsed.issues && typeof error.data?.reason === "string")
+            triggered.add(error.data.reason);
         }
       } finally {
         await database.close();

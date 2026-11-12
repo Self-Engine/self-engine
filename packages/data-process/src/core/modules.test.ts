@@ -163,3 +163,33 @@ test("unexpected operation errors reach the report sink while the port caller ge
   });
   expect(reports).toEqual([{ kind: "unexpected-error", entry: "fail", error }]);
 });
+
+test("starts with both an owner module and its consumer registered", async () => {
+  const { notes, links } = await import("@self-engine/storage/testing");
+  const process = await startTestDataProcess({ modules: { notes, links } });
+  started.push(process);
+  const client = createORPCClient<
+    ContractRouterClient<
+      AppContract & {
+        notes: typeof notes.contract;
+        links: typeof links.contract;
+      }
+    >
+  >(new RPCLink({ port: process.openPort() }));
+  await expect(client.health()).resolves.toMatchObject({ state: "ready" });
+  const note = await client.notes.create({ title: "Target", isPinned: false });
+  const link = await client.links.create({ noteId: note.id, label: "Work" });
+  await expect(client.links.list({})).resolves.toEqual([
+    {
+      ...link,
+      noteTitle: "Target",
+      noteDeletedAt: null,
+    },
+  ]);
+});
+
+test.each(["health", "tablesChanged"])("startup rejects a module named %s", async (name) => {
+  await expect(startTestDataProcess({ modules: { [name]: fixture } })).rejects.toThrow(
+    `Module namespace conflicts with built-in procedure: ${name}`,
+  );
+});

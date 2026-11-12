@@ -33,7 +33,6 @@ export async function runDataProcess({
   parentPort,
   ...options
 }: DataProcessRuntime): Promise<void> {
-  // #37 will supply report here to write frame diagnostics to the local error log.
   const dataProcess = await startDataProcess(options);
   const pagePorts = new Map<number, HandedPort>();
   parentPort.on("message", ({ data, ports }) => {

@@ -61,3 +61,21 @@ export function defineStorageModule<
 ): StorageModule<Contract, Rows> & { readonly entries: Entries } {
   return module;
 }
+
+// Heterogeneous module collections erase lower-function parameter types only after
+// defineStorageModule checked each module against its own contract and row map.
+export type ErasedStorageModule = Pick<
+  StorageModule<StorageContract, RowMap>,
+  "contract" | "migrations" | "rowMap" | "conflicts"
+> & {
+  readonly entries: Readonly<
+    Record<
+      string,
+      {
+        readonly kind: "query" | "operation";
+        readonly list?: { readonly kind: "window" | "small-set" | "pages" };
+        readonly run: (...args: never[]) => unknown;
+      }
+    >
+  >;
+};

@@ -1,11 +1,19 @@
+import type { InferSchemaOutput } from "@orpc/contract";
 import type { TablesOf } from "@self-engine/db";
-import { defineStorageModule, sharedEntry, sharedWrites } from "../../../src/core/index.ts";
-import { notes, noteTitles } from "../../notes-module/data/index.ts";
+import {
+  defineStorageModule,
+  sharedEntry,
+  sharedWrites,
+  smallSetList,
+  type ReadTransaction,
+  type StorageContext,
+} from "../../../src/core/index.ts";
+import { noteTitles } from "../../notes-module/data/index.ts";
 import { linksContract, linkIdSchema } from "../contracts/index.ts";
 import { linksMigrations, linksRowMap, toLink } from "./rows.ts";
 export const links = defineStorageModule({
   contract: linksContract,
-  migrations: [...notes.migrations, ...linksMigrations],
+  migrations: linksMigrations,
   rowMap: linksRowMap,
   entries: {
     create: {
@@ -19,9 +27,12 @@ export const links = defineStorageModule({
         );
       },
     },
-    list: {
-      kind: "query",
-      async run(tx, context, input) {
+    list: smallSetList(
+      async (
+        tx: ReadTransaction<TablesOf<typeof linksRowMap>>,
+        context: StorageContext,
+        input: InferSchemaOutput<NonNullable<(typeof linksContract.list)["~orpc"]["inputSchema"]>>,
+      ) => {
         let query = sharedEntry<TablesOf<typeof linksRowMap>>(tx, context)
           .live("note_links")
           .leftJoin(noteTitles(tx, context, "target"), "target.id", "note_links.note_id")
@@ -36,6 +47,6 @@ export const links = defineStorageModule({
           noteDeletedAt: row.noteDeletedAt,
         }));
       },
-    },
+    ),
   },
 });

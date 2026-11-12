@@ -61,7 +61,7 @@ export default defineConfig({
           "packages/*/src/storage/**",
           "packages/*/src/storage.ts",
           "packages/storage/src/core/**",
-          "packages/storage/test/notes-module/data/**",
+          "packages/storage/test/*/data/**",
         ],
         rules: { "self-engine/no-raw-storage-sql": "error" },
       },

@@ -39,6 +39,7 @@ restore result may expose stored data, as notes does.
 Apply [ADR 0019](../adr/0019-row-maps-are-the-single-source-of-storage-types.md) and
 [the migration rules](../adr/0014-migrations-belong-to-one-module-and-run-in-one-transaction.md):
 
+- A module lists only its own migrations, including when it consumes another module.
 - A migration reads and writes only its own module’s tables. A foreign key may reference another
   module; it belongs in a link table.
 - Add a new forward migration to change a schema. A merged migration is immutable.
@@ -67,7 +68,8 @@ fixed personal Space until #108.
 For synchronized rows, use `sharedEntry(tx, context).live(table)` for a Space-filtered,
 non-deleted select, and `.lookup(table, id)` for one live row or `NOT_FOUND`. Use
 `sharedWrites(tx, context)` for `insert(table, id, fields)`, `update(table, id, fields)`,
-`softDelete(table, id)` and `restore(table, id)`. These set convention columns. Update and
+`softDelete(table, id)` and `restore(table, id)`. These set convention columns; callers cannot supply those columns in fields, even through
+non-literal objects, and runtime writes discard injected convention fields. Update and
 soft delete require a live row; restore requires a deleted row. Unknown ids and ids in another
 Space are not found; restoring a live row is also not found.
 
@@ -101,7 +103,13 @@ as `{ cursor }` to move in that direction. Total counts belong to #137.
 
 A cursor carries the contract entry’s name, direction and sort values. It is unsigned and
 survives a Data Process restart; it is an opaque navigation value for the renderer, not an
-authorization token. Malformed cursors or cursors for another entry are rejected.
+authorization token. Malformed cursors or cursors for another entry are rejected. If a cursor page becomes empty,
+for example after deletion, its opposite-direction cursor still leads back to existing rows.
+
+Page cursor predicates and order clauses use unqualified selected column names. For a join
+with overlapping sort-column names, wrap the joined query in a subquery exposing unambiguous
+names. Sorting by a joined column sorts the full set on every page; no index can serve a
+sort on the far side of a left join, and the kit rejects page plans that sort without an index.
 
 Window and small-set lists remain unbounded. With output checking enabled, a result of at
 least 1,000 rows sends a warning naming the query through the frame’s injected `report`
@@ -124,9 +132,10 @@ a deleted target retains its title and explicit deletion mark. Filter and sort b
 columns in that same query. Declare allowed package dependencies in both `package.json` and
 `ALLOWED_IMPORTS` in `.dependency-cruiser.ts`.
 
-A bridge calls modules’ lower functions inside its own transaction, collecting announcements
-once for the whole operation. It reads through their queries or released read pieces and
-never writes foreign tables directly. A real bridge package is deferred until one is needed.
+The bridge runner is not built yet; it comes with the first bridge. The intended runner
+will call modules’ lower functions inside one transaction and announce all changed tables
+together after commit. No exported runner currently makes that composition available.
+A bridge will read through queries or released read pieces and never write foreign tables directly.
 
 Done when foreign reads use only released pieces and the module writes only its own tables.
 
@@ -134,17 +143,22 @@ Done when foreign reads use only released pieces and the module writes only its 
 
 Copy the complete `notes passes the storage contract kit` test in
 [`notes-module.test.ts`](../../packages/storage/src/testing/notes-module.test.ts).
-The call is `checkContract(module, seed, examples, conflictExamples?)`; assert that it resolves
+The call is `checkContract(module, seed, examples, conflictExamples?, dependencies?)`; assert that it resolves
 to `[]`. Import it from `@self-engine/storage/testing` in a real module.
 
 Seed through lower functions using the supplied transaction/context, including a live row and
 a deleted row. Give every contract entry one valid example input, with ids matching the
 seed’s deterministic ids. Supply conflict cases per operation, with an optional `prepare`
 function, to trigger every declared reason. Notes covers create, update and restore conflicts.
-Use `createTestContext` (built on `createTestSources`) and `createTestDatabase` for additional
-tests; the caller closes that database.
+Pass modules the consumer builds on as `dependencies`, for example `[notes]` for note-links.
+Use `createTestContext` (built on `createTestSources`) and
+`createTestDatabase(module, dependencies?)` for additional tests; the caller closes that database.
 
-The kit uses fresh in-memory SQLite and the module’s migrations. It derives invalid inputs
+The kit uses fresh in-memory SQLite and the dependencies’ migrations followed by the
+module’s own migrations. For every query it compares the complete output with a database
+containing only the first Space’s live owned rows against the output with foreign and deleted
+owned rows present. This includes aggregates and by-id lookups; foreign read-piece targets
+retain their deletion marks. Array queries without an explicit list kind fail the kit. It derives invalid inputs
 itself from valid examples: wrong-typed values, omitted object keys and replaced top-level
 values. A schema accepting every derived candidate fails. It checks rejection before the
 handler runs with output checking both on and off, output shape and conversion-free schemas,
@@ -163,17 +177,20 @@ Done when the kit returns no violations and business tests cover behavior beyond
 
 Add the data entry under its contract namespace to
 [`data-process/src/core/modules.ts`](../../packages/data-process/src/core/modules.ts).
-That single list builds both migrations and the router; compose the matching module contract
+That single list builds both migrations and the router; module namespaces must not be
+`health` or `tablesChanged`, which are reserved procedures; compose the matching module contract
 in the app-wide contracts package. Add dependencies and allowed import directions together.
 Modules import storage, never data-process. Storage itself imports neither Electron nor a
 native driver; the driver and transport remain replaceable, independently of future sync.
 
 The shared frame opens one transaction per call, runs the lower function, validates outputs
 when enabled, and rolls back on failure. After commit it announces a nonempty table set once;
-queries, failed operations and zero-row writes announce nothing. Unmapped unique violations
+queries, failed operations and zero-row writes announce nothing. A failing announcer is
+reported as an unexpected error; the caller still receives the committed result. Unmapped unique violations
 and other unexpected errors become `INTERNAL_SERVER_ERROR` and go to the same injected
 `report` callback as large-result warnings. The Data Process passes that callback through.
-Issue #37 will connect the local error log; until then these reports write no file.
+Development builds report unexpected errors and large results to the console. Issue #37
+will replace that reporter with the local error log; until then these reports write no file.
 Special procedures such as streams or long imports with progress can remain hand-written.
 
 For stories and component tests, the helper for fixed answers from the same contract is

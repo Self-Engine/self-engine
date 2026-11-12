@@ -62,14 +62,7 @@ export const notes = defineStorageModule({
       return (await allNotes(tx, context).orderBy("id").execute()).map(toNote);
     }),
     window: windowList(
-      async (
-        tx: NotesRead,
-        context: StorageContext,
-        input: {
-          from: Instant;
-          to: Instant;
-        },
-      ) => {
+      async (tx: NotesRead, context: StorageContext, input: { from: Instant; to: Instant }) => {
         return (
           await allNotes(tx, context)
             .where("created_at", ">=", input.from)

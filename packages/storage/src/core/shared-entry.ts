@@ -24,7 +24,20 @@ type SyncedTable<DB> = {
       ? Table
       : never;
 }[keyof DB & string];
-type Fields<Row> = Omit<Row, keyof Convention>;
+type Fields<Row> = Omit<Row, keyof Convention> & { [Key in keyof Convention]?: never };
+
+function assertSynchronizedTable(table: string) {
+  if (table.startsWith("local_"))
+    throw new Error(`Shared entry requires a synchronized table: ${table}`);
+}
+
+function writableFields(fields: object) {
+  return Object.fromEntries(
+    Object.entries(fields).filter(
+      ([key]) => !["id", "space_id", "created_at", "updated_at", "deleted_at"].includes(key),
+    ),
+  );
+}
 type ReadAccess<DB> = Pick<Kysely<DB>, "selectFrom">;
 
 /** One place for Space and live-row scoping; compound queries remain ordinary Kysely. */
@@ -33,12 +46,11 @@ export function sharedEntry<DB>(tx: ReadAccess<DB>, context: StorageContext) {
   // The public constraint guarantees them; this view is private to the shared implementation.
   const db = tx as unknown as Kysely<Record<string, Convention>>;
   function scoped(table: string) {
-    if (table.startsWith("local_"))
-      throw new Error(`Shared entry requires a synchronized table: ${table}`);
-    return db.selectFrom(String(table)).where("space_id", "=", context.spaceId);
+    assertSynchronizedTable(table);
+    return db.selectFrom(String(table)).where(`${table}.space_id`, "=", context.spaceId);
   }
   function live<Table extends SyncedTable<DB>>(table: Table) {
-    return scoped(table).where("deleted_at", "is", null) as unknown as SelectQueryBuilder<
+    return scoped(table).where(`${table}.deleted_at`, "is", null) as unknown as SelectQueryBuilder<
       DB,
       Table,
       {}
@@ -49,8 +61,8 @@ export function sharedEntry<DB>(tx: ReadAccess<DB>, context: StorageContext) {
     id: DB[Table] extends Convention ? DB[Table]["id"] : never,
   ) {
     const row = await scoped(table)
-      .where("deleted_at", "is", null)
-      .where("id", "=", id)
+      .where(`${table}.deleted_at`, "is", null)
+      .where(`${String(table)}.id`, "=", id)
       .selectAll()
       .executeTakeFirst();
     if (row === undefined) throw new ORPCError("NOT_FOUND");
@@ -69,7 +81,7 @@ export function sharedWrites<DB>(tx: Transaction<DB>, context: StorageContext) {
     values: object,
     restoring: boolean,
   ) {
-    reads.live(table);
+    assertSynchronizedTable(table);
     // RETURNING makes an absent row explicit without another query or an exception class.
     const result = await db
       .updateTable(String(table))
@@ -90,7 +102,7 @@ export function sharedWrites<DB>(tx: Transaction<DB>, context: StorageContext) {
       fields: Fields<Insertable<DB[Table]>>,
     ) {
       // Also checks the reserved Local Table prefix at runtime for untyped callers.
-      reads.live(table);
+      assertSynchronizedTable(table);
       const row = await db
         .insertInto(String(table))
         .values({
@@ -111,7 +123,7 @@ export function sharedWrites<DB>(tx: Transaction<DB>, context: StorageContext) {
       id: DB[Table] extends Convention ? DB[Table]["id"] : never,
       fields: Fields<Updateable<DB[Table]>>,
     ) {
-      return change(table, id, fields, false);
+      return change(table, id, writableFields(fields), false);
     },
     softDelete<Table extends SyncedTable<DB>>(
       table: Table,

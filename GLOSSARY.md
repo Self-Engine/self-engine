@@ -185,3 +185,13 @@ _Avoid_: locale, UI language, account language
 **Base Language** (de: _Basissprache_):
 English: the language every text is first written in, and the one shown when a text has no translation in the language asked for.
 _Avoid_: default locale, fallback language, source locale
+
+### Stored Data
+
+**Frame** (de: _Aufrufrahmen_):
+The shared boundary around one module call that checks its input, keeps its changes atomic and announces committed changes. It also gives failures a consistent meaning for the caller.
+_Avoid_: handler, wrapper
+
+**Read Piece** (de: _Lesebaustein_):
+A module’s deliberately released view of its own data for other modules to combine with their records, scoped to the current Space. Deleted targets remain visible with an explicit deletion mark.
+_Avoid_: foreign table, shared row map

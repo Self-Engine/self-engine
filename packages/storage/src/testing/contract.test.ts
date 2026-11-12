@@ -1,4 +1,4 @@
-import { notesRowMap } from "../../test/notes-module/data/rows.ts";
+import { noteIdSchema, notesRowMap } from "../../test/notes-module/data/rows.ts";
 import { ContractProcedure, oc } from "@orpc/contract";
 import { expect, test } from "vite-plus/test";
 import { z } from "zod";
@@ -181,6 +181,7 @@ test.each(["space", "deleted"] as const)(
       contract: { list: notes.contract.list },
       entries: {
         list: {
+          ...notes.entries.list,
           kind: "query" as const,
           async run(
             tx: Parameters<typeof notes.entries.list.run>[0],
@@ -206,6 +207,7 @@ test.each(["space", "deleted"] as const)(
         { list: {} },
       ),
     ).resolves.toEqual([
+      { entry: "list", rule: "query output changes with foreign or deleted rows" },
       {
         entry: "list",
         rule: leak === "space" ? "returns a row from another Space" : "returns a deleted row",
@@ -299,16 +301,17 @@ test.each(["success", "wrong reason", "unexpected", "right reason"] as const)(
         },
       },
     });
-    await expect(
-      checkContract(
-        fixture,
-        seed,
-        { echo: { text: "normal" } },
-        {
-          echo: [{ input: { text: "conflict" } }],
-        },
-      ),
-    ).resolves.toEqual(
+    const result = checkContract(
+      fixture,
+      seed,
+      { echo: { text: "normal" } },
+      { echo: [{ input: { text: "conflict" } }] },
+    );
+    if (outcome === "unexpected") {
+      await expect(result).rejects.toThrow("Unexpected");
+      return;
+    }
+    await expect(result).resolves.toEqual(
       outcome === "right reason"
         ? []
         : [{ entry: "echo", rule: "conflict reason not triggered: already_billed" }],
@@ -326,4 +329,116 @@ test("the kit rejects CONFLICT without a finite list of reason codes", async () 
   await expect(checkContract(fixture, seed, { echo: { text: "Valid" } })).resolves.toEqual([
     { entry: "echo", rule: "CONFLICT must list reason codes" },
   ]);
+});
+
+test("the kit rejects an array query without an explicit list kind", async () => {
+  const fixture = defineStorageModule({
+    ...good,
+    contract: { loose: oc.input(z.undefined()).output(z.array(z.string())) },
+    entries: { loose: { kind: "query", run: () => [] } },
+  });
+  await expect(checkContract(fixture, seed, { loose: undefined })).resolves.toEqual([
+    { entry: "loose", rule: "array query has no list kind" },
+  ]);
+});
+
+test("the kit rejects a count that includes another Space or deleted rows", async () => {
+  const fixture = defineStorageModule({
+    ...referenceNotes,
+    contract: { count: oc.input(z.undefined()).output(z.number()) },
+    entries: {
+      count: {
+        kind: "query",
+        async run(tx) {
+          const row = await tx
+            .selectFrom("notes")
+            .select((eb) => eb.fn.countAll<number>().as("count"))
+            .executeTakeFirst();
+          return row?.count ?? 0;
+        },
+      },
+    },
+  });
+  await expect(
+    checkContract(
+      fixture,
+      async (tx, context) => {
+        await referenceNotes.entries.create.run(tx, context, { title: "Seed", isPinned: false });
+      },
+      { count: undefined },
+    ),
+  ).resolves.toContainEqual({
+    entry: "count",
+    rule: "query output changes with foreign or deleted rows",
+  });
+});
+
+test("the kit rejects a by-id lookup of its own deleted row", async () => {
+  const fixture = defineStorageModule({
+    ...referenceNotes,
+    contract: { lookup: oc.input(z.object({ id: noteIdSchema })).output(z.string().nullable()) },
+    entries: {
+      lookup: {
+        kind: "query",
+        async run(tx, _context, input) {
+          const row = await tx
+            .selectFrom("notes")
+            .select("title")
+            .where("id", "=", input.id)
+            .executeTakeFirst();
+          return row?.title ?? null;
+        },
+      },
+    },
+  });
+  await expect(
+    checkContract(
+      fixture,
+      async (tx, context) => {
+        const note = await referenceNotes.entries.create.run(tx, context, {
+          title: "Seed",
+          isPinned: false,
+        });
+        await referenceNotes.entries.delete.run(tx, context, { id: note.id });
+      },
+      { lookup: { id: "01a1cfa1-0a00-7000-8000-000000000000" } },
+    ),
+  ).resolves.toContainEqual({
+    entry: "lookup",
+    rule: "query output changes with foreign or deleted rows",
+  });
+});
+
+test("the kit rejects a by-id lookup of another Space's scalar value", async () => {
+  const fixture = defineStorageModule({
+    ...referenceNotes,
+    contract: {
+      lookup: oc.input(z.object({ id: noteIdSchema })).output(z.string().nullable()),
+    },
+    entries: {
+      lookup: {
+        kind: "query",
+        async run(tx, _context, input) {
+          const row = await tx
+            .selectFrom("notes")
+            .select("title")
+            .where("id", "=", input.id)
+            .executeTakeFirst();
+          return row?.title ?? null;
+        },
+      },
+    },
+  });
+  await expect(
+    checkContract(
+      fixture,
+      async (tx, context) => {
+        await referenceNotes.entries.create.run(tx, context, { title: "Seed", isPinned: false });
+      },
+      { lookup: { id: "01a1cfa1-0a00-7000-8000-000000000001" } },
+    ),
+  ).resolves.toContainEqual({
+    entry: "lookup",
+    rule: "query output changes with foreign or deleted rows",
+  });
 });

@@ -16,6 +16,10 @@ export interface RouterOptions {
  * state of the start only `health` answers.
  */
 export function createRouter({ health, tablesChanged, moduleRouter }: RouterOptions) {
+  for (const name of ["health", "tablesChanged"]) {
+    if (Object.hasOwn(moduleRouter, name))
+      throw new Error(`Module namespace conflicts with built-in procedure: ${name}`);
+  }
   return refuseUnlessReady(health, {
     ...moduleRouter,
     health: healthProcedure(health),
