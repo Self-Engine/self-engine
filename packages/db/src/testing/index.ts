@@ -2,3 +2,5 @@
 
 export { checkConventions } from "./conventions.ts";
 export type { ConventionViolation } from "./conventions.ts";
+export { checkAgreement } from "./agreement.ts";
+export type { AgreementViolation } from "./agreement.ts";
