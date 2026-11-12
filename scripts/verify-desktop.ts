@@ -313,7 +313,9 @@ function desktopProcesses(): DesktopProcess[] {
     } catch (error) {
       // lsof fails for a process that exited after `ps` listed it; that one cannot clash.
       if (spawnSync("ps", ["-p", pid!]).status !== 0) return [];
-      throw new Error(`Cannot read the checkout of dev process ${pid} with lsof.`, { cause: error });
+      throw new Error(`Cannot read the checkout of dev process ${pid} with lsof.`, {
+        cause: error,
+      });
     }
     const cwd = fields
       .split("\n")
