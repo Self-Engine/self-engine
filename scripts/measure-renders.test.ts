@@ -22,8 +22,10 @@ it("loads a validated baseline before measurements and rejects unusable input", 
     scenarios: {
       "change-view": { commits: 2, components: { Shell: 3 } },
       "open-edit-drawer": { commits: 1, components: { Drawer: 1 } },
+      "rename-one-of-1000": { commits: 1, components: { EntryRow: 1 } },
     },
   };
+  const { "rename-one-of-1000": _, ...withoutRename } = report.scenarios;
   try {
     expect(() => readBaseline(path)).toThrow();
     writeFileSync(path, "not json");
@@ -36,6 +38,7 @@ it("loads a validated baseline before measurements and rejects unusable input", 
       { ...report, scenarios: null },
       { ...report, scenarios: [] },
       { ...report, scenarios: {} },
+      { ...report, scenarios: withoutRename },
       { ...report, scenarios: { "change-view": { commits: -1, components: {} } } },
       { ...report, scenarios: { "change-view": { commits: 1, components: { Shell: "3" } } } },
       { ...report, scenarios: { "change-view": { commits: 1, components: null } } },
