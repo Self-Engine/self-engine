@@ -1,0 +1,152 @@
+import { isDeepStrictEqual } from "node:util";
+import type { InferContractRouterInputs } from "@orpc/contract";
+import { call, ORPCError, type AnyProcedure } from "@orpc/server";
+import type { TablesOf } from "@self-engine/db";
+import type { Transaction } from "kysely";
+import { z } from "zod";
+import {
+  createContext,
+  createFrame,
+  type RowMap,
+  type StorageContract,
+  type StorageModule,
+  type StorageContext,
+} from "../core/index.ts";
+import { createTestContext, createTestDatabase } from "./helpers.ts";
+
+export interface ContractViolation {
+  readonly entry: string;
+  readonly rule: string;
+}
+export type Seed<Rows extends RowMap> = (
+  tx: Transaction<TablesOf<Rows>>,
+  context: StorageContext,
+) => void | Promise<void>;
+
+function candidates(example: unknown): unknown[] {
+  const values: unknown[] = [undefined, 42, "invalid", null, {}, [], true];
+  if (typeof example === "object" && example !== null && !Array.isArray(example)) {
+    for (const [key, value] of Object.entries(example)) {
+      const omitted = { ...example };
+      Reflect.deleteProperty(omitted, key);
+      values.push(omitted, { ...example, [key]: typeof value === "string" ? 42 : "invalid" });
+    }
+  }
+  return values.filter((value) => !Object.is(value, example));
+}
+
+// Inspect schema definitions as well as the example: a default or a no-op transform can
+// leave that particular output unchanged and must still be forbidden (D188).
+function convertsOutput(value: unknown, seen = new Set<object>()): boolean {
+  if (typeof value !== "object" || value === null || seen.has(value)) return false;
+  seen.add(value);
+  if (value instanceof z.ZodLazy) return convertsOutput(value.unwrap(), seen);
+  if ("_zod" in value && typeof value._zod === "object" && value._zod !== null)
+    return convertsOutput(Reflect.get(value._zod, "def"), seen);
+  if ("type" in value && ["transform", "default", "prefault", "catch"].includes(String(value.type)))
+    return true;
+  if (
+    ("coerce" in value && value.coerce === true) ||
+    ("check" in value && value.check === "overwrite")
+  )
+    return true;
+  return Object.values(value).some((child: unknown) => convertsOutput(child, seen));
+}
+
+/**
+ * Checks a module with fresh in-memory SQLite per entry and only valid example inputs.
+ * Invalid candidates are fixed wrong-typed values (undefined, number, string, null, object,
+ * array, boolean), plus object examples with each top-level key removed and each top-level
+ * value replaced by another type. Candidates differing from the example that its input
+ * schema rejects must be rejected by the frame before the module function runs, with both
+ * output-check settings. At least one candidate must be rejected; otherwise the entry
+ * fails with "accepts invalid input". Entries without input accept only undefined.
+ */
+export async function checkContract<Contract extends StorageContract, Rows extends RowMap>(
+  module: StorageModule<Contract, Rows>,
+  seed: Seed<Rows>,
+  examples: Partial<InferContractRouterInputs<Contract>>,
+): Promise<ContractViolation[]> {
+  const violations: ContractViolation[] = [];
+  for (const [entry, procedure] of Object.entries(module.contract)) {
+    if (!Object.hasOwn(examples, entry)) {
+      violations.push({ entry, rule: "missing example" });
+      continue;
+    }
+    const outputSchema = procedure["~orpc"].outputSchema;
+    const converts = convertsOutput(outputSchema);
+    if (converts) violations.push({ entry, rule: "output schema transforms or defaults a value" });
+    const example: unknown = Reflect.get(examples, entry);
+    const inputSchema = procedure["~orpc"].inputSchema ?? z.undefined();
+    const invalid: unknown[] = [];
+    for (const candidate of candidates(example)) {
+      if (!(await inputSchema["~standard"].validate(candidate)).issues) continue;
+      invalid.push(candidate);
+    }
+    if (invalid.length === 0) violations.push({ entry, rule: "accepts invalid input" });
+    const database = await createTestDatabase(module);
+    try {
+      const sources = createTestContext();
+      await database.kysely
+        .transaction()
+        .execute((tx) =>
+          Promise.resolve(seed(tx.withTables<TablesOf<Rows>>(), createContext(sources))),
+        );
+      let calls = 0;
+      const observed = {
+        ...module,
+        entries: Object.fromEntries(
+          Object.entries(module.entries).map(([name, definition]) => [
+            name,
+            {
+              ...definition,
+              run: (...args: Parameters<typeof definition.run>) => {
+                calls++;
+                return definition.run(...args);
+              },
+            },
+          ]),
+        ),
+      } as StorageModule<Contract, Rows>;
+      for (const checkOutputs of [true, false]) {
+        const router: Record<string, AnyProcedure> = createFrame(observed, {
+          database,
+          sources,
+          checkOutputs,
+        });
+        const target = router[entry];
+        if (target === undefined) throw new Error(`Missing module function: ${entry}`);
+        for (const candidate of invalid) {
+          calls = 0;
+          let rejected = false;
+          try {
+            await call(target, candidate);
+          } catch (error) {
+            rejected = error instanceof ORPCError && error.code === "BAD_REQUEST";
+          }
+          if (!rejected || calls !== 0) {
+            violations.push({ entry, rule: "accepts invalid input" });
+            break;
+          }
+        }
+      }
+      const router: Record<string, AnyProcedure> = createFrame(observed, {
+        database,
+        sources,
+        checkOutputs: false,
+      });
+      const target = router[entry];
+      if (target === undefined) throw new Error(`Missing module function: ${entry}`);
+      const output = await call(target, example);
+      if (outputSchema !== undefined) {
+        const parsed = await outputSchema["~standard"].validate(output);
+        if (parsed.issues) violations.push({ entry, rule: "output does not match contract" });
+        else if (!converts && !isDeepStrictEqual(output, parsed.value))
+          violations.push({ entry, rule: "output schema transforms or defaults a value" });
+      }
+    } finally {
+      await database.close();
+    }
+  }
+  return violations;
+}

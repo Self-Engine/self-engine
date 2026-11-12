@@ -1,0 +1,73 @@
+import { oc } from "@orpc/contract";
+import { expect, test } from "vite-plus/test";
+import { z } from "zod";
+import { defineStorageModule } from "../core/index.ts";
+import { checkContract } from "./index.ts";
+
+const good = defineStorageModule({
+  contract: { echo: oc.input(z.object({ text: z.string() })).output(z.string()) },
+  migrations: [],
+  rowMap: {},
+  entries: { echo: { kind: "query", run: (_tx, _context, input) => input.text } },
+});
+const seed = async () => {};
+
+test("the kit names a contract entry without an example", async () => {
+  await expect(checkContract(good, seed, {})).resolves.toEqual([
+    { entry: "echo", rule: "missing example" },
+  ]);
+});
+
+test("the kit names an entry that accepts invalid input", async () => {
+  const acceptsAnything = defineStorageModule({
+    contract: { loose: oc.input(z.unknown()).output(z.string()) },
+    migrations: [],
+    rowMap: {},
+    entries: { loose: { kind: "query", run: () => "answer" } },
+  });
+  await expect(checkContract(acceptsAnything, seed, { loose: "valid" })).resolves.toEqual([
+    { entry: "loose", rule: "accepts invalid input" },
+  ]);
+});
+
+test("the kit names an entry whose output breaks the contract", async () => {
+  const wrongOutput = {
+    ...good,
+    entries: { echo: { kind: "query" as const, run: () => 42 as never } },
+  };
+  await expect(checkContract(wrongOutput, seed, { echo: { text: "Valid" } })).resolves.toEqual([
+    { entry: "echo", rule: "output does not match contract" },
+  ]);
+});
+
+test.each([
+  ["transform", z.string().transform((text) => text.toUpperCase())],
+  ["default", z.string().default("Fallback")],
+])(
+  "the kit rejects an output schema with %s, even when the example is unchanged",
+  async (_name, output) => {
+    const converts = defineStorageModule({
+      contract: { convert: oc.input(z.undefined()).output(z.object({ text: output })) },
+      migrations: [],
+      rowMap: {},
+      entries: { convert: { kind: "query", run: () => ({ text: "UNCHANGED" }) } },
+    });
+    await expect(checkContract(converts, seed, { convert: undefined })).resolves.toEqual([
+      { entry: "convert", rule: "output schema transforms or defaults a value" },
+    ]);
+  },
+);
+
+test("a module with a normal contract passes every kit check", async () => {
+  await expect(checkContract(good, seed, { echo: { text: "Valid" } })).resolves.toEqual([]);
+});
+
+test("an entry without input passes with an explicit undefined example", async () => {
+  const noInput = defineStorageModule({
+    contract: { read: oc.output(z.string()) },
+    migrations: [],
+    rowMap: {},
+    entries: { read: { kind: "query", run: () => "answer" } },
+  });
+  await expect(checkContract(noInput, seed, { read: undefined })).resolves.toEqual([]);
+});

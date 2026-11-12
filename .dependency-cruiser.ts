@@ -35,6 +35,7 @@ export const ALLOWED_IMPORTS: AllowedImports = {
   "placeholder-beta": ["shell", "icons"],
   "settings-area": ["i18n", "icons", "settings", "shell", "theme", "ui"],
   shell: ["icons", "theme", "ui"],
+  storage: ["db", "time"],
   time: [],
   ui: ["icons", "theme"],
 };
@@ -174,6 +175,14 @@ export function boundaryConfig({ allowedImports, rootDir }: BoundaryOptions): IC
       to: { path: "^packages/", pathNot: "^packages/$1/" },
     },
     ...declaredWorkspaceRules(rootDir),
+    {
+      name: "storage-is-portable",
+      comment:
+        "Storage uses db's platform-neutral interface; Electron and native drivers belong in platform bindings (D233).",
+      severity: "error",
+      from: { path: "^packages/storage/" },
+      to: { path: "(^|/)node_modules/(electron|better-sqlite3)/" },
+    },
     corePurityRule({
       folder: "theme",
       binding: "mantine",

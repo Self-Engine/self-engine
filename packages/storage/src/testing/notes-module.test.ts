@@ -7,16 +7,16 @@ import {
   toNote,
   type NoteId,
   type NoteRow,
-} from "../../test/notes-module/index.ts";
+} from "../../test/notes-module/data/rows.ts";
 import {
   createMigrationRunner,
   newId,
   newTimestamp,
   type TablesOf,
   type Database,
-} from "../core/index.ts";
-import { checkAgreement, checkConventions, createTestSources } from "../testing/index.ts";
-import { openDatabase } from "./index.ts";
+} from "@self-engine/db";
+import { checkAgreement, checkConventions, createTestSources } from "@self-engine/db/testing";
+import { openDatabase } from "@self-engine/db/better-sqlite3";
 
 let database: Database;
 
@@ -131,4 +131,18 @@ test("live titles are unique within a space and become reusable after soft delet
     .where("id", "=", row.id)
     .executeTakeFirst();
   expect(original).toEqual({ deleted_at: "2026-11-12T12:00:01.000Z" });
+});
+
+test("notes passes the storage contract kit", async () => {
+  const { notes } = await import("../../test/notes-module/data/index.ts");
+  const { checkContract } = await import("./index.ts");
+  await expect(
+    checkContract(
+      notes,
+      async (tx, context) => {
+        await notes.entries.create.run(tx, context, { title: "Seed note", isPinned: false });
+      },
+      { create: { title: "New note", isPinned: true }, list: {} },
+    ),
+  ).resolves.toEqual([]);
 });
