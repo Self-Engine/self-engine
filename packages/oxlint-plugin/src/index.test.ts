@@ -2,6 +2,7 @@ import { describe, expect, it } from "vite-plus/test";
 import plugin from "./index.ts";
 import noGlobalTMacro from "./rules/no-global-t-macro.ts";
 import noImportTypeQuery from "./rules/no-import-type-query.ts";
+import noQueryOrThrow from "./rules/no-query-or-throw.ts";
 import noSilentCatch from "./rules/no-silent-catch.ts";
 
 describe("@self-engine/oxlint-plugin", () => {
@@ -13,6 +14,7 @@ describe("@self-engine/oxlint-plugin", () => {
     expect(plugin.rules).toEqual({
       "no-global-t-macro": noGlobalTMacro,
       "no-import-type-query": noImportTypeQuery,
+      "no-query-or-throw": noQueryOrThrow,
       "no-silent-catch": noSilentCatch,
     });
   });

@@ -11,6 +11,7 @@
     "./schema": "./src/schema/index.ts"
   },
   "dependencies": {
+    "@self-engine/time": "workspace:*",
     "better-sqlite3": "catalog:",
     "kysely": "catalog:",
     "uuid": "catalog:",
