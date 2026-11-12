@@ -12,6 +12,8 @@ import {
   type StorageModule,
   type StorageContext,
 } from "../core/index.ts";
+import { tableContents } from "./table-contents.ts";
+import { QueryWriteError } from "../core/table-writes.ts";
 import { createTestContext, createTestDatabase } from "./helpers.ts";
 
 export interface ContractViolation {
@@ -55,6 +57,9 @@ function convertsOutput(value: unknown, seen = new Set<object>()): boolean {
 
 /**
  * Checks a module with fresh in-memory SQLite per entry and only valid example inputs.
+ * Every table whose contents change must be announced. Announced tables whose contents
+ * remain byte-identical are allowed: rewriting the same values still affects rows.
+ * Queries must not write, even when their attempted write would affect zero rows.
  * Invalid candidates are fixed wrong-typed values (undefined, number, string, null, object,
  * array, boolean), plus object examples with each top-level key removed and each top-level
  * value replaced by another type. Candidates differing from the example that its input
@@ -130,14 +135,36 @@ export async function checkContract<Contract extends StorageContract, Rows exten
           }
         }
       }
+      const announced = new Set<string>();
+      const before = await tableContents(database);
       const router: Record<string, AnyProcedure> = createFrame(observed, {
         database,
         sources,
         checkOutputs: false,
+        announce: (tables) => {
+          for (const table of tables) announced.add(table);
+        },
       });
       const target = router[entry];
       if (target === undefined) throw new Error(`Missing module function: ${entry}`);
-      const output = await call(target, example);
+      let output: unknown;
+      try {
+        output = await call(target, example);
+      } catch (error) {
+        if (!(error instanceof QueryWriteError)) throw error;
+        violations.push({ entry, rule: "query writes" });
+        continue;
+      }
+      const after = await tableContents(database);
+      for (const [table, rows] of after) {
+        if (isDeepStrictEqual(before.get(table), rows)) continue;
+        if (module.entries[entry]?.kind === "query") {
+          violations.push({ entry, rule: "query writes" });
+          break;
+        }
+        if (!announced.has(table))
+          violations.push({ entry, rule: `changed table not announced: ${table}` });
+      }
       if (outputSchema !== undefined) {
         const parsed = await outputSchema["~standard"].validate(output);
         if (parsed.issues) violations.push({ entry, rule: "output does not match contract" });

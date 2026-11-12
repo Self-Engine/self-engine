@@ -71,3 +71,91 @@ test("an entry without input passes with an explicit undefined example", async (
   });
   await expect(checkContract(noInput, seed, { read: undefined })).resolves.toEqual([]);
 });
+
+test("the kit names a query that attempts a write", async () => {
+  const { notes } = await import("../../test/notes-module/data/index.ts");
+  const writes = {
+    ...notes,
+    entries: {
+      ...notes.entries,
+      list: {
+        kind: "query" as const,
+        async run(
+          tx: Parameters<typeof notes.entries.list.run>[0],
+          context: Parameters<typeof notes.entries.list.run>[1],
+        ) {
+          await notes.entries.create.run(
+            tx as Parameters<typeof notes.entries.create.run>[0],
+            context,
+            { title: "Forbidden", isPinned: false },
+          );
+          return [];
+        },
+      },
+    },
+  };
+  await expect(
+    checkContract(writes, seed, {
+      create: { title: "Valid", isPinned: false },
+      list: {},
+    }),
+  ).resolves.toEqual([{ entry: "list", rule: "query writes" }]);
+});
+
+test("the kit names an entry whose trigger changes an unannounced table", async () => {
+  const { notes } = await import("../../test/notes-module/data/index.ts");
+  const triggerWrite = {
+    ...notes,
+    migrations: [
+      ...notes.migrations,
+      {
+        name: "notes/0002",
+        sql: `
+      CREATE TABLE local_notes_audit (title TEXT NOT NULL) STRICT;
+      CREATE TRIGGER notes_audit AFTER INSERT ON notes BEGIN
+        INSERT INTO local_notes_audit (title) VALUES (NEW.title);
+      END;
+    `,
+      },
+    ],
+  };
+  await expect(
+    checkContract(triggerWrite, seed, {
+      create: { title: "Triggers another write", isPinned: false },
+      list: {},
+    }),
+  ).resolves.toEqual([{ entry: "create", rule: "changed table not announced: local_notes_audit" }]);
+});
+
+test("the kit accepts an announcement for an update that rewrites identical values", async () => {
+  const { notes } = await import("../../test/notes-module/data/index.ts");
+  const unchanged = {
+    ...notes,
+    entries: {
+      ...notes.entries,
+      list: {
+        kind: "operation" as const,
+        async run(
+          tx: Parameters<typeof notes.entries.create.run>[0],
+          context: Parameters<typeof notes.entries.list.run>[1],
+        ) {
+          await tx
+            .updateTable("notes")
+            .set({ title: "Seed" })
+            .where("title", "=", "Seed")
+            .execute();
+          return notes.entries.list.run(tx, context);
+        },
+      },
+    },
+  };
+  await expect(
+    checkContract(
+      unchanged,
+      async (tx, context) => {
+        await notes.entries.create.run(tx, context, { title: "Seed", isPinned: false });
+      },
+      { create: { title: "New", isPinned: false }, list: {} },
+    ),
+  ).resolves.toEqual([]);
+});
