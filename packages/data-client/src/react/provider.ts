@@ -1,3 +1,6 @@
+import type { MessageDescriptor } from "@lingui/core";
+import { useLingui } from "@lingui/react";
+import { notifyError } from "@self-engine/ui";
 import { type Query, QueryCache, QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import {
   createContext,
@@ -18,6 +21,8 @@ interface DataContext {
   readonly access: PortAccess;
   /** Reports, once per entry, a Query hook whose entry the Data Process calls an Operation. */
   readonly checkQuery: (module: string, entry: string) => void;
+  /** Shows a notice of the building block, such as an Operation's unexpected error (D251). */
+  readonly notify: (notice: MessageDescriptor) => void;
 }
 
 const Context = createContext<DataContext | undefined>(undefined);
@@ -71,17 +76,28 @@ export interface DataProviderProps {
    * build logs it, and a production build reports nothing.
    */
   readonly reportMisuse?: (problem: string) => void;
+  /**
+   * Where the building block's notices go, such as "not found" after an Operation (D251). By
+   * default the feedback system shows them as error notices; a test collects them instead.
+   */
+  readonly notify?: (notice: MessageDescriptor) => void;
   readonly children?: ReactNode;
 }
 
 /** Gives the tree below one query cache and the Port access (D249). */
-export function DataProvider({ access, reportMisuse, children }: DataProviderProps): ReactNode {
+export function DataProvider({
+  access,
+  reportMisuse,
+  notify = showNotice,
+  children,
+}: DataProviderProps): ReactNode {
   const [cache] = useState(createQueryCache);
   const context = useMemo<DataContext>(() => {
     const report = reportMisuse ?? defaultReport();
     const reported = new Set<string>();
     return {
       access,
+      notify,
       checkQuery: (module, entry) => {
         const name = `${module}.${entry}`;
         if (report === undefined || reported.has(name)) return;
@@ -90,7 +106,7 @@ export function DataProvider({ access, reportMisuse, children }: DataProviderPro
         report(`The Query hook for ${name} points at an Operation; use an Operation hook.`);
       },
     };
-  }, [access, reportMisuse]);
+  }, [access, reportMisuse, notify]);
 
   useEffect(() => {
     const stopTables = access.onTablesChanged((tables) => {
@@ -124,4 +140,14 @@ export function DataProvider({ access, reportMisuse, children }: DataProviderPro
 
 function defaultReport(): ((problem: string) => void) | undefined {
   return import.meta.env.DEV ? (problem) => console.error(problem) : undefined;
+}
+
+/** Shows a notice through the feedback system, translated while it is on screen. */
+function showNotice(notice: MessageDescriptor): void {
+  notifyError({ message: createElement(NoticeText, { notice }) });
+}
+
+/** A notice's text in the language of the moment, so it follows a language switch. */
+function NoticeText({ notice }: { readonly notice: MessageDescriptor }): ReactNode {
+  return useLingui().i18n._(notice);
 }
