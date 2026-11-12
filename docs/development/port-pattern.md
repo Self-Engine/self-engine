@@ -55,8 +55,11 @@ violations, as in the notes tests.
 ## 3. Implement the data entry
 
 Follow [`notes/data/index.ts`](../../packages/storage/test/notes-module/data/index.ts).
-`defineStorageModule` receives `contract`, `migrations`, `rowMap`, `entries` and the optional
-`conflicts` mapping. Every contract key has an entry marked `kind: "query"` or `kind: "operation"`.
+A module is defined in two steps (D260):
+`defineStorageModule({ name, contract, migrations, rowMap, conflicts? }).entries({ … })`.
+The first step fixes the Contract and row map, so the entries take `tx` and `input` from them,
+list builders included; write no types on a lower function’s parameters. `name` is the module’s
+namespace in the app contract; page cursors carry it. `conflicts` is optional. Every contract key has an entry marked `kind: "query"` or `kind: "operation"`.
 A query entry also declares `reads`: every table it takes rows from, including tables reached
 through a released read piece, as `reads: ["note_links", "notes"]` in note-links. The types
 require it. Operations declare nothing; the tables they wrote are announced after commit.
@@ -65,8 +68,8 @@ missing table leaves a list showing old data. The contract kit checks the declar
 The Data Process collects every mounted Query's `reads` into one list and sends it to the page
 with the opening event of each Table Change stream; the page learns from it which entries are
 Queries and which tables they read, and never names a table itself.
-Its lower function receives `(tx, context, input, entry)`: the checked input and stable contract
-key accompany the existing transaction. Queries receive read-only access; operations may write
+Its lower function receives `(tx, context, input, entry, module)`: the checked input, stable
+contract key and module name accompany the existing transaction. Queries receive read-only access; operations may write
 only their owned tables. These functions neither open transactions nor announce tables.
 
 Use `context.now`, the frozen `context.clock`, and `context.newId(entityIdSchema)` rather than
@@ -97,7 +100,9 @@ contract shape, and has the appropriate query/operation marker and conflict mapp
 
 ## 4. Choose each list’s kind
 
-Use the three builders shown together in notes:
+Use the three builders shown together in notes. Each one takes `tx` and `input` from the
+entry’s place in the module, so a page list whose contract input extends `pageInputSchema` gets
+its extra fields typed in `query`:
 
 | Builder                                       | Use and contract                                                                              |
 | --------------------------------------------- | --------------------------------------------------------------------------------------------- |
@@ -112,9 +117,9 @@ Space-prefixed index. Size defaults to 100 and may be set from 1 to 500 in stora
 the renderer. The result has `rows`, `before` and `after`; pass a returned cursor unchanged
 as `{ cursor }` to move in that direction. Total counts belong to #137.
 
-A cursor carries the contract entry’s name, direction and sort values. It is unsigned and
+A cursor carries the module’s name, the contract entry’s name, direction and sort values. It is unsigned and
 survives a Data Process restart; it is an opaque navigation value for the renderer, not an
-authorization token. Malformed cursors or cursors for another entry are rejected. If a cursor page becomes empty,
+authorization token. Malformed cursors and cursors for another entry are rejected, also when another module’s entry has the same name. If a cursor page becomes empty,
 for example after deletion, its opposite-direction cursor still leads back to existing rows.
 
 Page cursor predicates and order clauses use unqualified selected column names. For a join

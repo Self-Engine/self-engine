@@ -20,17 +20,17 @@ afterEach(async () => {
 });
 
 /** A data entry reduced to what the list is built from: its kind and declared reads. */
-function moduleWith(entries: DataModules[string]["entries"]): DataModules[string] {
-  const contract = Object.fromEntries(Object.keys(entries).map((name) => [name, oc]));
-  return { contract, rowMap: {}, migrations: [], entries };
+function moduleWith(name: string, entries: DataModules[string]["entries"]): DataModules[string] {
+  const contract = Object.fromEntries(Object.keys(entries).map((entry) => [entry, oc]));
+  return { name, contract, rowMap: {}, migrations: [], entries };
 }
 
 const run = () => [];
-const tasks = moduleWith({
+const tasks = moduleWith("tasks", {
   list: { kind: "query", reads: ["tasks", "projects"], run },
   create: { kind: "operation", run },
 });
-const habits = moduleWith({ get: { kind: "query", reads: ["habits"], run } });
+const habits = moduleWith("habits", { get: { kind: "query", reads: ["habits"], run } });
 
 async function start(modules: DataModules): Promise<TestDataProcess> {
   const process = await startTestDataProcess({ modules });
@@ -83,7 +83,7 @@ test("before the first opening event the client cannot tell", async () => {
 test("after a reconnect on a new port the client holds the list of the new connection", async () => {
   const before = await start({ tasks });
   const after = await start({
-    tasks: moduleWith({ list: { kind: "query", reads: ["tasks"], run } }),
+    tasks: moduleWith("tasks", { list: { kind: "query", reads: ["tasks"], run } }),
   });
   const connection = newConnection();
   const first = before.openPort();

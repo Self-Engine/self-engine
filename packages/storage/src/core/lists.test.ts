@@ -2,7 +2,13 @@ import { createRouterClient } from "@orpc/server";
 import { afterEach, expect, test } from "vite-plus/test";
 import { notesRowMap } from "../../test/notes-module/data/rows.ts";
 import { notes } from "../../test/notes-module/data/index.ts";
-import { createFrame, smallSetList, windowList, type FrameReport } from "./index.ts";
+import {
+  createFrame,
+  defineStorageModule,
+  smallSetList,
+  windowList,
+  type FrameReport,
+} from "./index.ts";
 import { createTestContext, createTestDatabase } from "../testing/index.ts";
 
 const cleanups: (() => Promise<void>)[] = [];
@@ -240,6 +246,29 @@ test("tampered cursors and another list's cursor are invalid input", async () =>
   }
 });
 
+test("a cursor of one module's page list is invalid input for a same-named entry of another module", async () => {
+  const database = await createTestDatabase(notes);
+  cleanups.push(() => database.close());
+  // Same entry name, same row shape and order: only the module name tells the lists apart.
+  const archive = defineStorageModule({ ...notes, name: "archive" }).entries(notes.entries);
+  const options = { database, sources: createTestContext(), checkOutputs: false };
+  const notesClient = createRouterClient(createFrame(notes, options));
+  const archiveClient = createRouterClient(createFrame(archive, options));
+  for (let i = 0; i < 101; i++) await notesClient.create({ title: `Note ${i}`, isPinned: false });
+  const notesPage = await notesClient.pages({});
+  const archivePage = await archiveClient.pages({});
+  if (notesPage.after === null || archivePage.after === null)
+    throw new Error("Missing next cursor");
+  await expect(archiveClient.pages({ cursor: notesPage.after })).rejects.toMatchObject({
+    code: "BAD_REQUEST",
+  });
+  await expect(notesClient.pages({ cursor: archivePage.after })).rejects.toMatchObject({
+    code: "BAD_REQUEST",
+  });
+  expect((await notesClient.pages({ cursor: notesPage.after })).rows).toHaveLength(1);
+  expect((await archiveClient.pages({ cursor: archivePage.after })).rows).toHaveLength(1);
+});
+
 test("page cursors reject noncanonical payloads, wrong schemas and sort value counts and types", async () => {
   const database = await createTestDatabase(notes);
   cleanups.push(() => database.close());
@@ -251,16 +280,26 @@ test("page cursors reject noncanonical payloads, wrong schemas and sort value co
     }),
   );
   const encode = (text: string) => Buffer.from(text).toString("base64url");
+  // Unsigned (D245): a well-formed cursor built by hand is accepted.
+  await expect(
+    client.pages({
+      cursor: encode(
+        '{"module":"notes","list":"pages","direction":"after","values":["2026-11-12T12:00:00.000Z","01a1cfa1-0a00-7000-8000-000000000000"]}',
+      ),
+    }),
+  ).resolves.toEqual({ rows: [], before: expect.any(String), after: null });
   for (const payload of [
-    '{"list":"pages","direction":"after","values":[42,"01a1cfa1-0a00-7000-8000-000000000000"]}',
-    '{"list":"pages","direction":"after","values":["2026-11-12T12:00:00.000Z",42]}',
-    '{"list":"pages","direction":"after","values":["2026-11-12T12:00:00.000Z"]}',
-    '{"list":"pages","direction":"after","values":["2026-11-12T12:00:00.000Z","01a1cfa1-0a00-7000-8000-000000000000",0]}',
-    '{"list":"pages","direction":"sideways","values":["2026-11-12T12:00:00.000Z","01a1cfa1-0a00-7000-8000-000000000000"]}',
-    '{"list":"pages","direction":"after","values":[null,"01a1cfa1-0a00-7000-8000-000000000000"]}',
-    '{"list":"pages","direction":"after","values":["2026-11-12T12:00:00.000Z","01a1cfa1-0a00-7000-8000-000000000000"],"extra":true}',
-    '{ "list":"pages","direction":"after","values":["2026-11-12T12:00:00.000Z","01a1cfa1-0a00-7000-8000-000000000000"]}',
-    '{"list":"pages","direction":"after","values":["2026-11-12T12:00:00.000Z","01a1cfa1-0a00-7000-8000-000000000000"],"list":"pages"}',
+    '{"module":"notes","list":"pages","direction":"after","values":[42,"01a1cfa1-0a00-7000-8000-000000000000"]}',
+    '{"module":"notes","list":"pages","direction":"after","values":["2026-11-12T12:00:00.000Z",42]}',
+    '{"module":"notes","list":"pages","direction":"after","values":["2026-11-12T12:00:00.000Z"]}',
+    '{"module":"notes","list":"pages","direction":"after","values":["2026-11-12T12:00:00.000Z","01a1cfa1-0a00-7000-8000-000000000000",0]}',
+    '{"module":"notes","list":"pages","direction":"sideways","values":["2026-11-12T12:00:00.000Z","01a1cfa1-0a00-7000-8000-000000000000"]}',
+    '{"module":"notes","list":"pages","direction":"after","values":[null,"01a1cfa1-0a00-7000-8000-000000000000"]}',
+    '{"module":"notes","list":"pages","direction":"after","values":["2026-11-12T12:00:00.000Z","01a1cfa1-0a00-7000-8000-000000000000"],"extra":true}',
+    '{ "module":"notes","list":"pages","direction":"after","values":["2026-11-12T12:00:00.000Z","01a1cfa1-0a00-7000-8000-000000000000"]}',
+    '{"module":"notes","list":"pages","direction":"after","values":["2026-11-12T12:00:00.000Z","01a1cfa1-0a00-7000-8000-000000000000"],"list":"pages"}',
+    '{"list":"pages","direction":"after","values":["2026-11-12T12:00:00.000Z","01a1cfa1-0a00-7000-8000-000000000000"]}',
+    '{"module":"archive","list":"pages","direction":"after","values":["2026-11-12T12:00:00.000Z","01a1cfa1-0a00-7000-8000-000000000000"]}',
     "[]",
   ]) {
     await expect(client.pages({ cursor: encode(payload) })).rejects.toMatchObject({
@@ -271,7 +310,7 @@ test("page cursors reject noncanonical payloads, wrong schemas and sort value co
     client.pages({
       cursor:
         encode(
-          '{"list":"pages","direction":"after","values":["2026-11-12T12:00:00.000Z","01a1cfa1-0a00-7000-8000-000000000000"]}',
+          '{"module":"notes","list":"pages","direction":"after","values":["2026-11-12T12:00:00.000Z","01a1cfa1-0a00-7000-8000-000000000000"]}',
         ) + "=",
     }),
   ).rejects.toMatchObject({ code: "BAD_REQUEST" });

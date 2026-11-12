@@ -13,6 +13,8 @@ type Handler<Tx, Input, Output> = (
   input: Input,
   /** Stable contract key, supplied by the frame (and the kit for query plans). */
   entry: string,
+  /** The module's name, supplied by the frame (and the kit for query plans). */
+  module: string,
 ) => Output | Promise<Output>;
 export type ModuleEntries<Contract extends StorageContract, Rows extends RowMap> = {
   readonly [Entry in keyof Contract]:
@@ -49,6 +51,8 @@ export type ModuleEntries<Contract extends StorageContract, Rows extends RowMap>
       };
 };
 export interface StorageModule<Contract extends StorageContract, Rows extends RowMap> {
+  /** The module's namespace in the app contract; page cursors carry it (D259). */
+  readonly name: string;
   readonly contract: Contract;
   readonly migrations: readonly Migration[];
   readonly rowMap: Rows;
@@ -57,21 +61,34 @@ export interface StorageModule<Contract extends StorageContract, Rows extends Ro
   readonly conflicts?: Readonly<Record<string, string>>;
 }
 
+/** Everything a module declares before its entries: name, Contract, row map and migrations. */
+export type StorageModuleDefinition<Contract extends StorageContract, Rows extends RowMap> = Omit<
+  StorageModule<Contract, Rows>,
+  "entries"
+>;
+
+/**
+ * Defines a module in two steps (refines D259): the Contract and row map are fixed first, so
+ * the entries, including list builders, take `tx` and `input` from them without written types.
+ */
 export function defineStorageModule<
   const Contract extends StorageContract,
   const Rows extends RowMap,
-  const Entries extends ModuleEntries<Contract, Rows>,
->(
-  module: StorageModule<Contract, Rows> & { readonly entries: Entries },
-): StorageModule<Contract, Rows> & { readonly entries: Entries } {
-  return module;
+>(definition: StorageModuleDefinition<Contract, Rows>) {
+  return {
+    entries<const Entries extends ModuleEntries<Contract, Rows>>(
+      entries: Entries,
+    ): StorageModule<Contract, Rows> & { readonly entries: Entries } {
+      return { ...definition, entries };
+    },
+  };
 }
 
 // Heterogeneous module collections erase lower-function parameter types only after
 // defineStorageModule checked each module against its own contract and row map.
 export type ErasedStorageModule = Pick<
   StorageModule<StorageContract, RowMap>,
-  "contract" | "migrations" | "rowMap" | "conflicts"
+  "name" | "contract" | "migrations" | "rowMap" | "conflicts"
 > & {
   readonly entries: Readonly<
     Record<
