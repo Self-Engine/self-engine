@@ -8,3 +8,4 @@ export type { MigrationRunFailure } from "./migration-run-error.ts";
 export { createMigrationRunner } from "./runner.ts";
 export type { MigrationRunner } from "./runner.ts";
 export type { TablesOf } from "./tables.ts";
+export { uniqueIndexes, type UniqueIndex } from "./unique-indexes.ts";

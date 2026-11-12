@@ -36,6 +36,8 @@ export interface StorageModule<Contract extends StorageContract, Rows extends Ro
   readonly migrations: readonly Migration[];
   readonly rowMap: Rows;
   readonly entries: ModuleEntries<Contract, Rows>;
+  /** Unique index name to the reason code declared by the contract. */
+  readonly conflicts?: Readonly<Record<string, string>>;
 }
 
 export function defineStorageModule<

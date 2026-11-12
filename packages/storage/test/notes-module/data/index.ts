@@ -3,6 +3,7 @@ import { notesContract } from "../contracts/index.ts";
 import { notesMigrations, notesRowMap, noteIdSchema, toNote } from "./rows.ts";
 export const notes = defineStorageModule({
   contract: notesContract,
+  conflicts: { notes_live_title: "title_taken" },
   migrations: notesMigrations,
   rowMap: notesRowMap,
   entries: {

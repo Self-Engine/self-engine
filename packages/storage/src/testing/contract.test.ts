@@ -114,3 +114,31 @@ test.each(["space", "deleted"] as const)(
     ]);
   },
 );
+
+test("the kit names a unique index without a conflict reason", async () => {
+  const { notes } = await import("../../test/notes-module/data/index.ts");
+  const fixture = {
+    ...notes,
+    conflicts: {},
+    contract: { list: notes.contract.list },
+    entries: { list: notes.entries.list },
+  };
+  await expect(checkContract(fixture, seed, { list: {} })).resolves.toEqual([
+    { entry: "notes_live_title", rule: "unique index has no conflict reason" },
+  ]);
+});
+
+test("the kit names a contract reason no example triggers", async () => {
+  const fixture = defineStorageModule({
+    ...good,
+    contract: {
+      echo: good.contract.echo.errors({
+        CONFLICT: { data: z.object({ reason: z.enum(["already_billed", "locked"]) }) },
+      }),
+    },
+  });
+  await expect(checkContract(fixture, seed, { echo: { text: "Valid" } })).resolves.toEqual([
+    { entry: "echo", rule: "conflict reason not triggered: already_billed" },
+    { entry: "echo", rule: "conflict reason not triggered: locked" },
+  ]);
+});

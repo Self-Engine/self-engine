@@ -1,4 +1,4 @@
-export { createFrame, type FrameOptions } from "./frame.ts";
+export { createFrame, type FrameReport, type FrameOptions } from "./frame.ts";
 export {
   defineStorageModule,
   type StorageModule,

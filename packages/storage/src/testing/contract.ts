@@ -1,8 +1,9 @@
+import { checkConflicts, type ConflictExamples } from "./conflicts.ts";
 import { seedScoping, returnsSeededRow } from "./scoping.ts";
 import { isDeepStrictEqual } from "node:util";
 import type { InferContractRouterInputs } from "@orpc/contract";
 import { call, ORPCError, type AnyProcedure } from "@orpc/server";
-import type { TablesOf } from "@self-engine/db";
+import { uniqueIndexes, type TablesOf } from "@self-engine/db";
 import { z } from "zod";
 import {
   createContext,
@@ -63,8 +64,18 @@ export async function checkContract<Contract extends StorageContract, Rows exten
   module: StorageModule<Contract, Rows>,
   seed: Seed<Rows>,
   examples: Partial<InferContractRouterInputs<Contract>>,
+  conflictExamples: ConflictExamples<Contract, Rows> = {},
 ): Promise<ContractViolation[]> {
   const violations: ContractViolation[] = [];
+  const schemaDatabase = await createTestDatabase(module);
+  try {
+    for (const index of await uniqueIndexes(schemaDatabase, Object.keys(module.rowMap))) {
+      if (!module.conflicts?.[index.name])
+        violations.push({ entry: index.name, rule: "unique index has no conflict reason" });
+    }
+  } finally {
+    await schemaDatabase.close();
+  }
   for (const [entry, procedure] of Object.entries(module.contract)) {
     if (!Object.hasOwn(examples, entry)) {
       violations.push({ entry, rule: "missing example" });
@@ -155,5 +166,6 @@ export async function checkContract<Contract extends StorageContract, Rows exten
       await database.close();
     }
   }
+  violations.push(...(await checkConflicts(module, seed, conflictExamples)));
   return violations;
 }

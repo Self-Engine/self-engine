@@ -159,6 +159,31 @@ test("notes passes the storage contract kit", async () => {
         delete: { id: noteIdSchema.parse("01a1cfa1-0a00-7000-8000-000000000000") },
         restore: { id: noteIdSchema.parse("01a1cfa1-0a00-7000-8000-000000000001") },
       },
+      {
+        create: [{ input: { title: "Seed note", isPinned: false } }],
+        update: [
+          {
+            input: {
+              id: noteIdSchema.parse("01a1cfa1-0a00-7000-8000-000000000000"),
+              title: "Taken",
+            },
+            prepare: async (tx, context) => {
+              await notes.entries.create.run(tx, context, { title: "Taken", isPinned: false });
+            },
+          },
+        ],
+        restore: [
+          {
+            input: { id: noteIdSchema.parse("01a1cfa1-0a00-7000-8000-000000000001") },
+            prepare: async (tx, context) => {
+              await notes.entries.create.run(tx, context, {
+                title: "Deleted note",
+                isPinned: false,
+              });
+            },
+          },
+        ],
+      },
     ),
   ).resolves.toEqual([]);
 });

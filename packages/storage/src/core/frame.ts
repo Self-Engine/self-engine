@@ -1,14 +1,22 @@
 import { ContractProcedure, type AnySchema, type ErrorMap, type Meta } from "@orpc/contract";
 import { z } from "zod";
-import { implement, type ImplementedProcedure } from "@orpc/server";
-import type { Database, TablesOf } from "@self-engine/db";
+import { implement, ORPCError, type ImplementedProcedure } from "@orpc/server";
+import { uniqueIndexes, type Database, type TablesOf } from "@self-engine/db";
 import { createContext, type ContextSources } from "./context.ts";
 import type { RowMap, StorageContract, StorageModule } from "./module.ts";
+
+export type FrameReport = {
+  readonly kind: "unexpected-error";
+  readonly entry: string;
+  readonly error: unknown;
+  readonly index?: string;
+};
 
 export interface FrameOptions {
   readonly database: Database;
   readonly sources: ContextSources;
   readonly checkOutputs: boolean;
+  readonly report?: (report: FrameReport) => void;
 }
 type FrameRouter<Contract extends StorageContract> = {
   [Entry in keyof Contract]: Contract[Entry] extends ContractProcedure<
@@ -53,13 +61,51 @@ export function createFrame<Contract extends StorageContract, Rows extends RowMa
       return [
         name,
         procedure
-          .use(async ({ next }) =>
-            options.database.kysely.transaction().execute(async (transaction) => {
-              const context = createContext(options.sources);
-              const tx = transaction.withTables<TablesOf<Rows>>();
-              return next({ context: { tx, storageContext: context } });
-            }),
-          )
+          .use(async ({ next }) => {
+            try {
+              return await options.database.kysely.transaction().execute(async (transaction) => {
+                const context = createContext(options.sources);
+                const tx = transaction.withTables<TablesOf<Rows>>();
+                return next({ context: { tx, storageContext: context } });
+              });
+            } catch (error) {
+              if (
+                error instanceof ORPCError &&
+                (error.code === "NOT_FOUND" || error.code === "CONFLICT")
+              )
+                throw error;
+              let index: string | undefined;
+              if (
+                typeof error === "object" &&
+                error !== null &&
+                "code" in error &&
+                error.code === "SQLITE_CONSTRAINT_UNIQUE" &&
+                error instanceof Error
+              ) {
+                const diagnostic = error.message.replace(/^UNIQUE constraint failed: /, "");
+                const indexes = await uniqueIndexes(options.database, Object.keys(module.rowMap));
+                const matches = indexes.filter(
+                  (candidate) =>
+                    candidate.columns === diagnostic || diagnostic === `index '${candidate.name}'`,
+                );
+                if (matches.length === 1) index = matches[0]?.name;
+                const reason = index === undefined ? undefined : module.conflicts?.[index];
+                if (reason !== undefined) throw new ORPCError("CONFLICT", { data: { reason } });
+              }
+              try {
+                options.report?.({
+                  kind: "unexpected-error",
+                  entry: name,
+                  error,
+                  ...(index === undefined ? {} : { index }),
+                });
+              } catch (reportError) {
+                // A reporting sink cannot change the operation's failure.
+                void reportError;
+              }
+              throw new ORPCError("INTERNAL_SERVER_ERROR");
+            }
+          })
           .handler(({ context, input }) => entry.run(context.tx, context.storageContext, input)),
       ];
     }),

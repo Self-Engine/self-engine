@@ -5,9 +5,9 @@ import type { ContractRouterClient } from "@orpc/contract";
 import { RPCHandler } from "@orpc/server/message-port";
 import { afterEach, expect, expectTypeOf, test } from "vite-plus/test";
 import { notes } from "../../test/notes-module/data/index.ts";
-import { createRouterClient } from "@orpc/server";
+import { ORPCError, createRouterClient } from "@orpc/server";
 import { noteIdSchema, type NoteId } from "../../test/notes-module/data/rows.ts";
-import { createFrame, createContext, type StorageModule } from "./index.ts";
+import { createFrame, createContext, type FrameReport, type StorageModule } from "./index.ts";
 import { createTestContext, createTestDatabase } from "../testing/index.ts";
 
 const cleanups: (() => void | Promise<void>)[] = [];
@@ -91,9 +91,9 @@ test("a failed operation rolls back every write", async () => {
   const client = createRouterClient(
     createFrame(module, { database, sources: createTestContext(), checkOutputs: true }),
   );
-  await expect(client.create({ title: "Rolled back", isPinned: false })).rejects.toThrow(
-    "Interrupted operation",
-  );
+  await expect(client.create({ title: "Rolled back", isPinned: false })).rejects.toMatchObject({
+    code: "INTERNAL_SERVER_ERROR",
+  });
   await expect(client.list({})).resolves.toEqual([]);
 });
 
@@ -173,4 +173,152 @@ test("output validation rejects and rolls back with checks on, and passes with c
       await expect(client.list({})).resolves.toHaveLength(1);
     }
   }
+});
+
+test("a taken unique title answers CONFLICT and rolls back earlier writes", async () => {
+  const client = await connect({
+    ...notes,
+    entries: {
+      ...notes.entries,
+      create: {
+        kind: "operation",
+        async run(tx, context, input) {
+          if (input.isPinned) {
+            await notes.entries.create.run(tx, context, { title: "Rolled back", isPinned: false });
+          }
+          return notes.entries.create.run(tx, context, input);
+        },
+      },
+    },
+  });
+  const first = await client.create({ title: "Taken", isPinned: false });
+  await expect(client.create({ title: "Taken", isPinned: true })).rejects.toMatchObject({
+    code: "CONFLICT",
+    data: { reason: "title_taken" },
+  });
+  await expect(client.list({})).resolves.toEqual([first]);
+});
+
+test("restoring a taken title answers the create conflict and preserves both rows", async () => {
+  const client = await connect();
+  const old = await client.create({ title: "Reusable", isPinned: false });
+  await client.delete({ id: old.id });
+  const replacement = await client.create({ title: "Reusable", isPinned: true });
+  await expect(client.restore({ id: old.id })).rejects.toMatchObject({
+    code: "CONFLICT",
+    data: { reason: "title_taken" },
+  });
+  await expect(client.list({})).resolves.toEqual([replacement]);
+  await client.delete({ id: replacement.id });
+  await client.restore({ id: old.id });
+  await expect(client.get({ id: old.id })).resolves.toEqual(old);
+});
+
+test("a module's own conflict reaches the renderer with its reason", async () => {
+  const client = await connect({
+    ...notes,
+    entries: {
+      ...notes.entries,
+      create: {
+        kind: "operation",
+        run() {
+          throw new ORPCError("CONFLICT", { data: { reason: "title_taken" } });
+        },
+      },
+    },
+  });
+  await expect(client.create({ title: "Business rule", isPinned: false })).rejects.toMatchObject({
+    code: "CONFLICT",
+    data: { reason: "title_taken" },
+  });
+});
+
+test.each(["absent", "collect", "throw"] as const)(
+  "an unmapped unique violation is general to the caller with a %s reporter",
+  async (sink) => {
+    const database = await createTestDatabase(notes);
+    cleanups.push(() => database.close());
+    const reports: FrameReport[] = [];
+    const client = createRouterClient(
+      createFrame(
+        { ...notes, conflicts: {} },
+        {
+          database,
+          sources: createTestContext(),
+          checkOutputs: true,
+          ...(sink === "absent"
+            ? {}
+            : {
+                report(report: FrameReport) {
+                  reports.push(report);
+                  if (sink === "throw") throw new Error("Reporter failed");
+                },
+              }),
+        },
+      ),
+    );
+    const first = await client.create({ title: "Private content", isPinned: false });
+    await expect(
+      client.create({ title: "Private content", isPinned: false }),
+    ).rejects.toMatchObject({
+      code: "INTERNAL_SERVER_ERROR",
+      message: "Internal Server Error",
+      data: undefined,
+    });
+    await expect(client.list({})).resolves.toEqual([first]);
+    if (sink !== "absent") {
+      expect(reports).toHaveLength(1);
+      expect(reports[0]).toMatchObject({
+        kind: "unexpected-error",
+        entry: "create",
+        index: "notes_live_title",
+        error: {
+          code: "SQLITE_CONSTRAINT_UNIQUE",
+          message: "UNIQUE constraint failed: notes.space_id, notes.title",
+        },
+      });
+      expect(reports[0]?.error).toBeInstanceOf(Error);
+      const error = reports[0]?.error;
+      if (!(error instanceof Error)) throw new Error("Expected the original error");
+      expect(error.stack).toContain("SqliteError");
+    }
+  },
+);
+
+test("unexpected errors preserve original details only in the report", async () => {
+  const database = await createTestDatabase(notes);
+  cleanups.push(() => database.close());
+  const original = new Error("Private failure details");
+  const reports: FrameReport[] = [];
+  const client = createRouterClient(
+    createFrame(
+      {
+        ...notes,
+        entries: {
+          ...notes.entries,
+          create: {
+            kind: "operation",
+            run() {
+              throw original;
+            },
+          },
+        },
+      },
+      {
+        database,
+        sources: createTestContext(),
+        checkOutputs: true,
+        report: (event) => {
+          reports.push(event);
+        },
+      },
+    ),
+  );
+  await expect(client.create({ title: "Input", isPinned: false })).rejects.toMatchObject({
+    code: "INTERNAL_SERVER_ERROR",
+    message: "Internal Server Error",
+    data: undefined,
+  });
+  expect(reports).toEqual([{ kind: "unexpected-error", entry: "create", error: original }]);
+  expect(reports[0]?.error).toBe(original);
 });
