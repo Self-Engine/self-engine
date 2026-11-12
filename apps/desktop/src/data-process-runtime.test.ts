@@ -24,7 +24,7 @@ class FakeParentPort extends EventEmitter implements ParentPort {
 
 const opened: { database: Database; ports: MessagePort[] }[] = [];
 
-function start(parentPort: FakeParentPort, migrations: readonly Migration[] = []) {
+function start(parentPort: FakeParentPort, migrations?: readonly Migration[]) {
   const entry = { database: openDatabase(":memory:"), ports: [] as MessagePort[] };
   opened.push(entry);
   const channel = () => {
@@ -34,7 +34,14 @@ function start(parentPort: FakeParentPort, migrations: readonly Migration[] = []
   };
   return {
     channel,
-    running: runDataProcess({ parentPort, database: entry.database, migrations }),
+    running: runDataProcess({
+      parentPort,
+      database: entry.database,
+      checkOutputs: true,
+      ...(migrations === undefined
+        ? {}
+        : { modules: { fixture: { migrations, contract: {}, rowMap: {}, entries: {} } } }),
+    }),
   };
 }
 
@@ -46,7 +53,7 @@ afterEach(async () => {
 });
 
 describe("runDataProcess", () => {
-  it("answers health on a port the main process hands over", async () => {
+  it("starts from the core module list without app-composed migrations and answers health", async () => {
     const parentPort = new FakeParentPort();
     const { channel, running } = start(parentPort);
     await running;
@@ -57,7 +64,10 @@ describe("runDataProcess", () => {
     const connection = createDataConnection();
     connection.connect(port2);
 
-    await expect(connection.client.health()).resolves.toMatchObject({ state: "ready" });
+    await expect(connection.client.health()).resolves.toMatchObject({
+      state: "ready",
+      migrations: [],
+    });
   });
 
   it("serves a port handed over the moment it says it is serving", async () => {
