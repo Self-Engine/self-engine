@@ -18,4 +18,5 @@ Run when the user requests or accepts an app check. This is a visual inspection 
 - Page screenshots omit the native macOS window buttons. The geometry check covers their reserved strip; their appearance and full-screen behavior need a separate inspection.
 - Windows and Linux use the native frame. Their window-button strip check follows the overlay in #167.
 - The desktop window's minimum width keeps the phone Layout Step unreachable.
+- Main-process errors are recorded only in a hidden run; with `--visible`, only page errors fail the check.
 - Deep links exercise page addresses. OS-protocol links need a separate check.
