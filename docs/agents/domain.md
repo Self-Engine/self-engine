@@ -46,3 +46,6 @@ If the concept you need isn't in the glossary yet, that's a signal: either you'r
 If your output contradicts an existing ADR, surface it explicitly rather than silently overriding:
 
 > _Contradicts ADR-0003 (one table per module entity), but worth reopening because…_
+
+Before adding or changing a module’s port, contract entry, or released read piece, follow
+[the port guide](../development/port-pattern.md).

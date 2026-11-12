@@ -1,5 +1,8 @@
-import type { Database, Migration } from "@self-engine/db";
-import { type DataPort, startDataProcess } from "@self-engine/data-process";
+import {
+  type DataPort,
+  type DataProcessOptions,
+  startDataProcess,
+} from "@self-engine/data-process";
 import { handoffPage, servingMessage } from "./data-process-messages.ts";
 
 /** A message from the main process, as Electron's `process.parentPort` delivers it. */
@@ -17,12 +20,8 @@ export interface ParentPort {
   postMessage(message: unknown): void;
 }
 
-export interface DataProcessRuntime {
+export interface DataProcessRuntime extends DataProcessOptions {
   readonly parentPort: ParentPort;
-  /** The opened database; data-process.ts opens the file the main process named. */
-  readonly database: Database;
-  /** Every module's migrations, composed by the app (D135). */
-  readonly migrations: readonly Migration[];
 }
 
 /**
@@ -32,10 +31,9 @@ export interface DataProcessRuntime {
  */
 export async function runDataProcess({
   parentPort,
-  database,
-  migrations,
+  ...options
 }: DataProcessRuntime): Promise<void> {
-  const dataProcess = await startDataProcess({ database, migrations });
+  const dataProcess = await startDataProcess(options);
   const pagePorts = new Map<number, HandedPort>();
   parentPort.on("message", ({ data, ports }) => {
     const page = handoffPage(data);

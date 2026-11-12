@@ -1,22 +1,23 @@
 import type { Instant } from "@self-engine/time";
 import { afterEach, beforeEach, expect, expectTypeOf, test } from "vite-plus/test";
 import {
+  noteIdSchema,
   notesMigrations,
   notesRowMap,
   noteSchema,
   toNote,
   type NoteId,
   type NoteRow,
-} from "../../test/notes-module/index.ts";
+} from "../../test/notes-module/data/rows.ts";
 import {
   createMigrationRunner,
   newId,
   newTimestamp,
   type TablesOf,
   type Database,
-} from "../core/index.ts";
-import { checkAgreement, checkConventions, createTestSources } from "../testing/index.ts";
-import { openDatabase } from "./index.ts";
+} from "@self-engine/db";
+import { checkAgreement, checkConventions, createTestSources } from "@self-engine/db/testing";
+import { openDatabase } from "@self-engine/db/better-sqlite3";
 
 let database: Database;
 
@@ -131,4 +132,60 @@ test("live titles are unique within a space and become reusable after soft delet
     .where("id", "=", row.id)
     .executeTakeFirst();
   expect(original).toEqual({ deleted_at: "2026-11-12T12:00:01.000Z" });
+});
+
+test("notes passes the storage contract kit", async () => {
+  const { notes } = await import("../../test/notes-module/data/index.ts");
+  const { checkContract } = await import("./index.ts");
+  await expect(
+    checkContract(
+      notes,
+      async (tx, context) => {
+        await notes.entries.create.run(tx, context, { title: "Seed note", isPinned: false });
+        const removed = await notes.entries.create.run(tx, context, {
+          title: "Deleted note",
+          isPinned: false,
+        });
+        await notes.entries.delete.run(tx, context, { id: noteIdSchema.parse(removed.id) });
+      },
+      {
+        create: { title: "New note", isPinned: true },
+        list: {},
+        pages: {},
+        window: { from: "2026-11-12T00:00:00.000Z", to: "2026-11-13T00:00:00.000Z" },
+        get: { id: noteIdSchema.parse("01a1cfa1-0a00-7000-8000-000000000000") },
+        update: {
+          id: noteIdSchema.parse("01a1cfa1-0a00-7000-8000-000000000000"),
+          title: "Updated note",
+        },
+        delete: { id: noteIdSchema.parse("01a1cfa1-0a00-7000-8000-000000000000") },
+        restore: { id: noteIdSchema.parse("01a1cfa1-0a00-7000-8000-000000000001") },
+      },
+      {
+        create: [{ input: { title: "Seed note", isPinned: false } }],
+        update: [
+          {
+            input: {
+              id: noteIdSchema.parse("01a1cfa1-0a00-7000-8000-000000000000"),
+              title: "Taken",
+            },
+            prepare: async (tx, context) => {
+              await notes.entries.create.run(tx, context, { title: "Taken", isPinned: false });
+            },
+          },
+        ],
+        restore: [
+          {
+            input: { id: noteIdSchema.parse("01a1cfa1-0a00-7000-8000-000000000001") },
+            prepare: async (tx, context) => {
+              await notes.entries.create.run(tx, context, {
+                title: "Deleted note",
+                isPinned: false,
+              });
+            },
+          },
+        ],
+      },
+    ),
+  ).resolves.toEqual([]);
 });

@@ -58,6 +58,18 @@ _Avoid_: skin, palette
 
 ### Data
 
+**Contract** (de: _Vertrag_):
+The description of a module’s _Port_: its inputs, answers and expected errors. A module has one contract, with no separate description of the same interface.
+_Avoid_: port (for its description), storage interface
+
+**Port** (de: _Port_):
+Everything a module offers for reading and changing its data, and the only way to reach its tables. Its _Contract_ describes it; its _Storage_ implements it.
+_Avoid_: repository, data service
+
+**Storage** (de: _Speicher_):
+The implementation of a module’s _Port_ against the stored data. Its lower layer works within an existing transaction; its upper layer checks calls, owns the transaction and announces committed table writes.
+_Avoid_: port (for its implementation), persistence layer
+
 **Data Process** (de: _Datenprozess_):
 The process of the desktop app that holds the database and answers the page's calls. The page reaches it directly, not through the main process. When it is lost, the connection is lost, not a call.
 _Avoid_: backend, server, worker, database process
@@ -173,3 +185,13 @@ _Avoid_: locale, UI language, account language
 **Base Language** (de: _Basissprache_):
 English: the language every text is first written in, and the one shown when a text has no translation in the language asked for.
 _Avoid_: default locale, fallback language, source locale
+
+### Stored Data
+
+**Frame** (de: _Aufrufrahmen_):
+The shared boundary around one module call that checks its input, keeps its changes atomic and announces committed changes. It also gives failures a consistent meaning for the caller.
+_Avoid_: handler, wrapper
+
+**Read Piece** (de: _Lesebaustein_):
+A module’s deliberately released view of its own data for other modules to combine with their records, scoped to the current Space. Deleted targets remain visible with an explicit deletion mark.
+_Avoid_: foreign table, shared row map

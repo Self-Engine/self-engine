@@ -596,6 +596,9 @@ importers:
       '@self-engine/db':
         specifier: workspace:*
         version: link:../db
+      '@self-engine/storage':
+        specifier: workspace:*
+        version: link:../storage
       kysely:
         specifier: 'catalog:'
         version: 0.29.8
@@ -943,6 +946,37 @@ importers:
       storybook:
         specifier: 'catalog:'
         version: 10.6.6(@types/react@19.3.0)(prettier@3.9.10)(react@19.3.1)(vite-plus@1.5.0(@types/node@24.19.2)(@vitest/browser-playwright@5.1.0)(@vitest/ui@5.1.0)(esbuild@0.28.2)(jiti@2.7.0)(playwright@1.65.0)(typescript@7.0.2))
+      vite-plus:
+        specifier: 1.5.0
+        version: 1.5.0(@types/node@24.19.2)(@vitest/browser-playwright@5.1.0)(@vitest/ui@5.1.0)(esbuild@0.28.2)(jiti@2.7.0)(playwright@1.65.0)(typescript@7.0.2)
+
+  packages/storage:
+    dependencies:
+      '@orpc/contract':
+        specifier: 'catalog:'
+        version: 1.16.2
+      '@orpc/server':
+        specifier: 'catalog:'
+        version: 1.16.2(ws@8.22.1)
+      '@self-engine/db':
+        specifier: workspace:*
+        version: link:../db
+      '@self-engine/time':
+        specifier: workspace:*
+        version: link:../time
+      kysely:
+        specifier: 'catalog:'
+        version: 0.29.8
+      zod:
+        specifier: 'catalog:'
+        version: 4.6.7
+    devDependencies:
+      '@orpc/client':
+        specifier: 'catalog:'
+        version: 1.16.2
+      '@types/node':
+        specifier: 24.19.2
+        version: 24.19.2
       vite-plus:
         specifier: 1.5.0
         version: 1.5.0(@types/node@24.19.2)(@vitest/browser-playwright@5.1.0)(@vitest/ui@5.1.0)(esbuild@0.28.2)(jiti@2.7.0)(playwright@1.65.0)(typescript@7.0.2)

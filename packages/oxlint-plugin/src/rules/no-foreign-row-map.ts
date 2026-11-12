@@ -1,0 +1,127 @@
+import { defineRule, type ESTree, type Scope } from "@oxlint/plugins";
+import { resolve, dirname } from "node:path";
+
+// Row-map exports follow the module's <name>RowMap convention. Whole data namespaces
+// and private rows entries would bypass that check, so they are private too.
+const MESSAGE =
+  "A foreign row map is private. Import a released read piece from the module's data entry instead.";
+function owner(path: string): string | undefined {
+  return /\/(?:packages|apps)\/([^/]+)/.exec(path)?.[1];
+}
+function foreign(source: string, filename: string): boolean {
+  // The frame exports the generic RowMap type, not an owning module’s table schemas.
+  if (source === "@self-engine/storage") return false;
+  if (source.startsWith("@self-engine/")) {
+    const name = source.split("/")[1];
+    return name !== owner(filename);
+  }
+  if (!source.startsWith(".")) return false;
+  const target = resolve(dirname(filename), source);
+  const testModule = (path: string) => /\/test\/([^/]+-module)\//.exec(path)?.[1];
+  const targetModule = testModule(target);
+  if (targetModule !== undefined) return targetModule !== testModule(filename);
+  // Relative imports within one package are local unless they explicitly name a
+  // sibling test module (also used by the standalone lint fixtures).
+  if (/(?:^|\/)\w[\w-]*-module\/data\//.test(source)) return true;
+  return owner(target) !== undefined && owner(target) !== owner(filename);
+}
+export default defineRule({
+  meta: { type: "problem", docs: { description: "Keep foreign row maps private." }, schema: [] },
+  create(context) {
+    // Test setup and agreement checks legitimately inspect the owners’ complete schemas.
+    if (/\.test\.[cm]?tsx?$/.test(context.filename) || owner(context.filename) === "data-process")
+      return {};
+    const bindings = new Set<string>();
+    function imported(node: ESTree.IdentifierName): boolean {
+      if (!bindings.has(node.name)) return false;
+      for (
+        let scope: Scope | null = context.sourceCode.getScope(node);
+        scope !== null;
+        scope = scope.upper
+      ) {
+        const variable = scope.set.get(node.name);
+        if (variable !== undefined)
+          return variable.defs.some((def) => def.type === "ImportBinding");
+      }
+      return false;
+    }
+    return {
+      MemberExpression(node) {
+        const name =
+          !node.computed && node.property.type === "Identifier"
+            ? node.property.name
+            : node.property.type === "Literal"
+              ? node.property.value
+              : undefined;
+        if (name === "rowMap" && node.object.type === "Identifier" && imported(node.object))
+          context.report({ node: node.property, message: MESSAGE });
+      },
+      VariableDeclarator(node) {
+        if (node.id.type !== "ObjectPattern" || node.init?.type !== "Identifier") return;
+        if (!imported(node.init)) return;
+        for (const property of node.id.properties) {
+          if (property.type !== "Property") continue;
+          const key = property.key;
+          const name =
+            !property.computed && key.type === "Identifier"
+              ? key.name
+              : key.type === "Literal"
+                ? key.value
+                : undefined;
+          if (name === "rowMap") context.report({ node: key, message: MESSAGE });
+        }
+      },
+      TSQualifiedName(node) {
+        if (node.right.name === "rowMap" && node.left.type === "Identifier" && imported(node.left))
+          context.report({ node: node.right, message: MESSAGE });
+      },
+      ImportDeclaration(node) {
+        const source = String(node.source.value);
+        if (!foreign(source, context.filename)) return;
+        if (/\/data(?:\/|$)/.test(source))
+          for (const specifier of node.specifiers) bindings.add(specifier.local.name);
+        const privateEntry = /\/data\/rows(?:\.ts)?$/.test(source);
+        const forbidden = node.specifiers.some(
+          (specifier) =>
+            (specifier.type !== "ImportSpecifier" && /\/data(?:\/|$)/.test(source)) ||
+            (specifier.type === "ImportSpecifier" &&
+              /rowmap$/i.test(
+                specifier.imported.type === "Identifier"
+                  ? specifier.imported.name
+                  : String(specifier.imported.value),
+              )),
+        );
+        if (privateEntry || forbidden) context.report({ node, message: MESSAGE });
+      },
+      ExportNamedDeclaration(node) {
+        if (!node.source || !foreign(String(node.source.value), context.filename)) return;
+        if (
+          /\/data\/rows(?:\.ts)?$/.test(String(node.source.value)) ||
+          node.specifiers.some((specifier) =>
+            /rowmap$/i.test(
+              specifier.local.type === "Identifier"
+                ? specifier.local.name
+                : String(specifier.local.value),
+            ),
+          )
+        )
+          context.report({ node, message: MESSAGE });
+      },
+      ImportExpression(node) {
+        if (node.source.type !== "Literal" || typeof node.source.value !== "string") return;
+        if (
+          /\/data(?:\/|$)/.test(node.source.value) &&
+          foreign(node.source.value, context.filename)
+        )
+          context.report({ node, message: MESSAGE });
+      },
+      ExportAllDeclaration(node) {
+        if (
+          /\/data(?:\/|$)/.test(String(node.source.value)) &&
+          foreign(String(node.source.value), context.filename)
+        )
+          context.report({ node, message: MESSAGE });
+      },
+    };
+  },
+});

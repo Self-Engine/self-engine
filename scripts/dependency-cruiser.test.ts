@@ -819,3 +819,80 @@ describe("the repo's workspace", () => {
     }
   });
 });
+
+describe("the storage package", () => {
+  it("may import db and time", async () => {
+    const storage = declaring(
+      extraPackage("packages/storage", {
+        "src/index.ts": 'import "@self-engine/db";\nimport "@self-engine/time";\n',
+      }),
+      "@self-engine/db",
+      "@self-engine/time",
+    );
+    expect(
+      await cruise([storage, extraPackage("packages/db"), extraPackage("packages/time")], {
+        allowedImports: ALLOWED_IMPORTS,
+      }),
+    ).toEqual([]);
+  });
+  it.each(["contracts", "data-process", "shared"])("cannot import %s", async (target) => {
+    const storage = declaring(
+      extraPackage("packages/storage", {
+        "src/index.ts": `import "@self-engine/${target}";\n`,
+      }),
+      `@self-engine/${target}`,
+    );
+    expect(
+      ruleNames(
+        await cruise([storage, extraPackage(`packages/${target}`)], {
+          allowedImports: ALLOWED_IMPORTS,
+        }),
+      ),
+    ).toEqual(["package-direction:storage"]);
+  });
+  it.each(["electron", "better-sqlite3"])(
+    "cannot import %s, including in testing",
+    async (dependency) => {
+      const storage = declaring(
+        extraPackage("packages/storage", {
+          "src/testing/index.ts": `import "${dependency}";\n`,
+        }),
+        dependency,
+      );
+      expect(ruleNames(await cruise([storage], { allowedImports: ALLOWED_IMPORTS }))).toEqual([
+        "storage-is-portable",
+      ]);
+    },
+  );
+});
+
+describe("data-side module composition", () => {
+  it("allows data-process to import storage", async () => {
+    const process = declaring(
+      extraPackage("packages/data-process", {
+        "src/index.ts": 'import "@self-engine/storage";\n',
+      }),
+      "@self-engine/storage",
+    );
+    expect(
+      await cruise([process, extraPackage("packages/storage")], {
+        allowedImports: ALLOWED_IMPORTS,
+      }),
+    ).toEqual([]);
+  });
+  it("rejects a module importing data-process even if it declares the dependency", async () => {
+    const module = declaring(
+      extraPackage("packages/placeholder-alpha", {
+        "src/data/index.ts": 'import "@self-engine/data-process";\n',
+      }),
+      "@self-engine/data-process",
+    );
+    expect(
+      ruleNames(
+        await cruise([module, extraPackage("packages/data-process")], {
+          allowedImports: ALLOWED_IMPORTS,
+        }),
+      ),
+    ).toEqual(["package-direction:placeholder-alpha"]);
+  });
+});

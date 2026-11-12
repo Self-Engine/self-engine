@@ -12,6 +12,7 @@
     "@orpc/server": "catalog:",
     "@self-engine/contracts": "workspace:*",
     "@self-engine/db": "workspace:*",
+    "@self-engine/storage": "workspace:*",
     "kysely": "catalog:"
   },
   "devDependencies": {
