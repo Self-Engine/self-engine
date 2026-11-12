@@ -275,18 +275,25 @@ export function pageList<
   };
 }
 
+/**
+ * A window or small-set lower function. DB and Input come from the entry's place in its
+ * module, so the Contract types `tx` and `input`.
+ */
+type ListRun<DB, Input, Row> = (
+  tx: ReadTransaction<DB>,
+  context: StorageContext,
+  input: Input,
+) => Promise<Row[]> | Row[];
+
 /** Explicitly unbounded domain window. The frame checks its returned array length. */
-export function windowList<Args extends unknown[], Row>(
-  reads: readonly string[],
-  run: (...args: Args) => Promise<Row[]> | Row[],
-) {
+export function windowList<DB, Input, Row>(reads: readonly string[], run: ListRun<DB, Input, Row>) {
   return { kind: "query" as const, reads, list: { kind: "window" as const }, run };
 }
 
 /** Explicitly unbounded whole set, expected to stay small. */
-export function smallSetList<Args extends unknown[], Row>(
+export function smallSetList<DB, Input, Row>(
   reads: readonly string[],
-  run: (...args: Args) => Promise<Row[]> | Row[],
+  run: ListRun<DB, Input, Row>,
 ) {
   return { kind: "query" as const, reads, list: { kind: "small-set" as const }, run };
 }

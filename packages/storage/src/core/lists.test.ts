@@ -250,7 +250,7 @@ test("a cursor of one module's page list is invalid input for a same-named entry
   const database = await createTestDatabase(notes);
   cleanups.push(() => database.close());
   // Same entry name, same row shape and order: only the module name tells the lists apart.
-  const archive = defineStorageModule({ ...notes, name: "archive" });
+  const archive = defineStorageModule({ ...notes, name: "archive" }).entries(notes.entries);
   const options = { database, sources: createTestContext(), checkOutputs: false };
   const notesClient = createRouterClient(createFrame(notes, options));
   const archiveClient = createRouterClient(createFrame(archive, options));

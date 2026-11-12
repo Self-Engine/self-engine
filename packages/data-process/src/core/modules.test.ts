@@ -27,28 +27,27 @@ const fixture = defineStorageModule({
     fixture_items: z.object({ name: z.string() }),
     fixture_audit: z.object({ name: z.string() }),
   },
-  entries: {
-    audit: {
-      kind: "operation",
-      async run(tx, _context, name) {
-        await tx.insertInto("fixture_audit").values({ name }).execute();
-        return name;
-      },
+}).entries({
+  audit: {
+    kind: "operation",
+    async run(tx, _context, name) {
+      await tx.insertInto("fixture_audit").values({ name }).execute();
+      return name;
     },
-    add: {
-      kind: "operation",
-      async run(tx, _context, name) {
-        await tx.insertInto("fixture_items").values({ name }).execute();
-        await tx.insertInto("fixture_audit").values({ name }).execute();
-        return name;
-      },
+  },
+  add: {
+    kind: "operation",
+    async run(tx, _context, name) {
+      await tx.insertInto("fixture_items").values({ name }).execute();
+      await tx.insertInto("fixture_audit").values({ name }).execute();
+      return name;
     },
-    list: {
-      kind: "query",
-      reads: ["fixture_items"],
-      async run(tx) {
-        return (await tx.selectFrom("fixture_items").selectAll().execute()).map((row) => row.name);
-      },
+  },
+  list: {
+    kind: "query",
+    reads: ["fixture_items"],
+    async run(tx) {
+      return (await tx.selectFrom("fixture_items").selectAll().execute()).map((row) => row.name);
     },
   },
 });
@@ -103,8 +102,7 @@ test.each([true, false])(
       contract: { read: oc.output(z.string()) },
       rowMap: {},
       migrations: [],
-      entries: { read: { kind: "query", reads: [], run: () => 42 as never } },
-    });
+    }).entries({ read: { kind: "query", reads: [], run: () => 42 as never } });
     const process = await startTestDataProcess({
       modules: { fixture: invalidOutput },
       checkOutputs,
@@ -143,12 +141,11 @@ test("unexpected operation errors reach the report sink while the port caller ge
     contract: { fail: oc.output(z.string()) },
     migrations: [],
     rowMap: {},
-    entries: {
-      fail: {
-        kind: "operation",
-        run() {
-          throw error;
-        },
+  }).entries({
+    fail: {
+      kind: "operation",
+      run() {
+        throw error;
       },
     },
   });
