@@ -356,3 +356,19 @@ it("reports a skipped edit deep link when no module has a main action", async ()
   expect(result.editDeepLink).toBe("skipped: no module has a main action");
   expect(result.steps.filter(({ step }) => step === "edit-deep-link")).toEqual([]);
 });
+
+it("names the failing View and preserves its preceding screenshots", async () => {
+  const app = fakeApp();
+  const openView = app.openView.bind(app);
+  app.openView = async (name) => {
+    if (name === "Archive") throw new Error("Archive could not render");
+    await openView(name);
+  };
+  const result = await verifyDesktop(app);
+  expect(result.passed).toBe(false);
+  expect(result.steps.at(-1)).toMatchObject({
+    step: "view-1-2",
+    errors: ["Archive could not render"],
+  });
+  expect(app.screenshots).toHaveLength(9);
+});

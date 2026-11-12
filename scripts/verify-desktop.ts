@@ -1,3 +1,4 @@
+/// <reference lib="dom" />
 import { execFileSync, spawnSync } from "node:child_process";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
@@ -151,30 +152,42 @@ export async function verifyDesktop(
   }
   width = SHELL_REFERENCE_WIDTHS.wide;
   colorMode = "light";
+  let modules: readonly string[] = [];
   if (
     !(await capture(
       "navigation",
       async () => {
         await app.setWidth(width);
         await app.setSystemTheme(colorMode);
-        const modules = await app.modules();
+        modules = await app.modules();
         if (modules.length === 0) throw new Error("The Navbar contains no modules.");
-        for (const [moduleIndex, module] of modules.entries()) {
-          await app.openModule(module);
-          for (const [viewIndex, view] of (await app.views()).entries()) {
-            if (
-              !(await capture(`view-${moduleIndex + 1}-${viewIndex + 1}`, () => app.openView(view)))
-            ) {
-              throw new Error("View walk failed.");
-            }
-          }
-        }
       },
       "wide",
       false,
     ))
   )
     return { passed: false, steps, windowButtons };
+  for (const [moduleIndex, module] of modules.entries()) {
+    let views: readonly string[] = [];
+    if (
+      !(await capture(
+        `module-${moduleIndex + 1}`,
+        async () => {
+          await app.openModule(module);
+          views = await app.views();
+          if (views.length === 0) throw new Error(`Module "${module}" has no Views.`);
+        },
+        "wide",
+        false,
+      ))
+    )
+      return { passed: false, steps, windowButtons };
+    for (const [viewIndex, view] of views.entries()) {
+      if (!(await capture(`view-${moduleIndex + 1}-${viewIndex + 1}`, () => app.openView(view)))) {
+        return { passed: false, steps, windowButtons };
+      }
+    }
+  }
   if (!(await capture("settings", () => app.openSettings())))
     return { passed: false, steps, windowButtons };
   const settingsRoute = steps.at(-1)!.route;
@@ -188,7 +201,7 @@ export async function verifyDesktop(
     !(await capture(
       "main-action",
       async () => {
-        for (const module of await app.modules()) {
+        for (const module of modules) {
           await app.openModule(module);
           if (await app.startMainAction()) {
             await app.waitForApp();
@@ -319,8 +332,10 @@ export function verifyDesktopDriver(app: ElectronApplication, folder: string): V
   );
   const settingsName = /^(Settings|Einstellungen)$/;
   const names = async (links: Locator) =>
-    links.evaluateAll<string[], undefined>(
-      `elements => elements.map(element => element.getAttribute("aria-label") ?? element.textContent?.trim() ?? "")`,
+    links.evaluateAll((elements) =>
+      elements.map(
+        (element) => element.getAttribute("aria-label") ?? element.textContent?.trim() ?? "",
+      ),
     );
   const settle = async () => {
     await (
@@ -353,7 +368,11 @@ export function verifyDesktopDriver(app: ElectronApplication, folder: string): V
       await settle();
     },
     async deepLink(route) {
-      await (await page).evaluate("address => { window.location.hash = address; }", route);
+      await (
+        await page
+      ).evaluate((address) => {
+        window.location.hash = address;
+      }, route);
       await (await page).reload();
       await settle();
     },
@@ -378,14 +397,11 @@ export function verifyDesktopDriver(app: ElectronApplication, folder: string): V
         .isVisible();
     },
     async readWindowButtonContent() {
-      return (await page).locator("[data-layout-step]").evaluate<
-        WindowButtonContent[],
-        undefined
-      >(`root => {
+      return (await page).locator("[data-layout-step]").evaluate((root) => {
         const style = getComputedStyle(root);
         const scale = Number.parseFloat(style.getPropertyValue("--mantine-scale")) || 1;
         const top = root.getBoundingClientRect().top + Number.parseFloat(style.paddingTop);
-        const boxes = [];
+        const boxes: WindowButtonContent[] = [];
         // Containers and drag surfaces intentionally reach under the strip. Measure painted
         // text and leaf content instead, including icons and controls without text.
         const walker = document.createTreeWalker(
@@ -418,7 +434,7 @@ export function verifyDesktopDriver(app: ElectronApplication, folder: string): V
           });
         }
         return boxes;
-      }`);
+      });
     },
     async waitForApp() {
       await mainErrors;

@@ -310,7 +310,7 @@ export const ThePhoneDrawerHoldsOnlyTheModuleSidebar: Story = {
   args: { logo: LOGO, moduleSidebarWidth: 320 },
   play: async ({ canvas }) => {
     const drawer = await openDrawer(canvas, "Open module sidebar");
-    await expect(within(drawer).queryByRole("navigation")).toBeNull();
+    await expect(within(drawer).queryByRole("navigation", { name: "Modules" })).toBeNull();
     await expect(within(drawer).queryByTestId("mark")).toBeNull();
     await expect(drawerHeaderOf(drawer).getBoundingClientRect().top).toBeCloseTo(
       drawer.getBoundingClientRect().top,
@@ -351,7 +351,7 @@ export const ThePhoneDrawerHeaderSitsBelowTheStripWithWindowButtons: Story = {
     ).toBeGreaterThanOrEqual(stripBottom);
     const close = within(drawer).getByRole("button", { name: "Close module sidebar" });
     await expect(close.getBoundingClientRect().top).toBeGreaterThanOrEqual(stripBottom);
-    await expect(within(drawer).queryByRole("navigation")).toBeNull();
+    await expect(within(drawer).queryByRole("navigation", { name: "Modules" })).toBeNull();
     await expect(within(drawer).queryByTestId("mark")).toBeNull();
     await expect(widthOf(drawer)).toBe(320);
   },

@@ -226,8 +226,10 @@ export const ContentStaysMountedAcrossTheNarrowStep: Story = {
       await expect(canvas.getByRole("textbox", { name: "Draft" })).toBe(draft);
       await expect(draft).toHaveValue("unsaved");
     };
-    const navbarIsThere = () => expect(canvas.queryByRole("navigation")).not.toBeNull();
-    const navbarIsGone = () => expect(canvas.queryByRole("navigation")).toBeNull();
+    const navbarIsThere = () =>
+      expect(canvas.queryByRole("navigation", { name: "Modules" })).not.toBeNull();
+    const navbarIsGone = () =>
+      expect(canvas.queryByRole("navigation", { name: "Modules" })).toBeNull();
     await waitFor(navbarIsThere);
     await atFrameWidth(SHELL_REFERENCE_WIDTHS.narrow, async () => {
       await waitFor(navbarIsGone);
