@@ -307,7 +307,15 @@ function desktopProcesses(): DesktopProcess[] {
     const match = line.trim().match(/^(\d+)\s+(.+scripts\/desktop-dev\.ts(?:\s.*)?)$/);
     if (!match) return [];
     const [, pid, command] = match;
-    const cwd = execFileSync("lsof", ["-a", "-p", pid!, "-d", "cwd", "-Fn"], { encoding: "utf8" })
+    let fields: string;
+    try {
+      fields = execFileSync("lsof", ["-a", "-p", pid!, "-d", "cwd", "-Fn"], { encoding: "utf8" });
+    } catch (error) {
+      // lsof fails for a process that exited after `ps` listed it; that one cannot clash.
+      if (spawnSync("ps", ["-p", pid!]).status !== 0) return [];
+      throw new Error(`Cannot read the checkout of dev process ${pid} with lsof.`, { cause: error });
+    }
+    const cwd = fields
       .split("\n")
       .find((field) => field.startsWith("n"))
       ?.slice(1);
@@ -465,7 +473,7 @@ export function verifyDesktopDriver(app: ElectronApplication, folder: string): V
         window.setContentSize(value, 800);
       }, width);
       const target = await page;
-      await target.waitForFunction("(width) => window.innerWidth === width", width);
+      await target.waitForFunction((expected) => window.innerWidth === expected, width);
       await settle();
     },
     async setSystemTheme(mode) {
