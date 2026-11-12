@@ -55,10 +55,11 @@ violations, as in the notes tests.
 ## 3. Implement the data entry
 
 Follow [`notes/data/index.ts`](../../packages/storage/test/notes-module/data/index.ts).
-`defineStorageModule` receives `contract`, `migrations`, `rowMap`, `entries` and the optional
-`conflicts` mapping. Every contract key has an entry marked `kind: "query"` or `kind: "operation"`.
-Its lower function receives `(tx, context, input, entry)`: the checked input and stable contract
-key accompany the existing transaction. Queries receive read-only access; operations may write
+`defineStorageModule` receives `name`, `contract`, `migrations`, `rowMap`, `entries` and the
+optional `conflicts` mapping. `name` is the module’s namespace in the app contract; page cursors
+carry it. Every contract key has an entry marked `kind: "query"` or `kind: "operation"`.
+Its lower function receives `(tx, context, input, entry, module)`: the checked input, stable
+contract key and module name accompany the existing transaction. Queries receive read-only access; operations may write
 only their owned tables. These functions neither open transactions nor announce tables.
 
 Use `context.now`, the frozen `context.clock`, and `context.newId(entityIdSchema)` rather than
@@ -104,9 +105,9 @@ Space-prefixed index. Size defaults to 100 and may be set from 1 to 500 in stora
 the renderer. The result has `rows`, `before` and `after`; pass a returned cursor unchanged
 as `{ cursor }` to move in that direction. Total counts belong to #137.
 
-A cursor carries the contract entry’s name, direction and sort values. It is unsigned and
+A cursor carries the module’s name, the contract entry’s name, direction and sort values. It is unsigned and
 survives a Data Process restart; it is an opaque navigation value for the renderer, not an
-authorization token. Malformed cursors or cursors for another entry are rejected. If a cursor page becomes empty,
+authorization token. Malformed cursors and cursors for another entry are rejected, also when another module’s entry has the same name. If a cursor page becomes empty,
 for example after deletion, its opposite-direction cursor still leads back to existing rows.
 
 Page cursor predicates and order clauses use unqualified selected column names. For a join

@@ -40,7 +40,7 @@ changes atomically without opening a transaction for each call.
   absent rows explicitly. Other queries remain ordinary Kysely with explicit filters.
 - Lists are windows, pages or small sets. Pages use an indexed fixed keyset order ending in
   `id`, default to 100 rows and allow at most 500, chosen in storage. Their unsigned opaque
-  cursor carries the contract entry name, direction and sort values and survives Data Process
+  cursor carries the module and contract entry names, direction and sort values and survives Data Process
   restarts. Windows and small sets return all rows; with output checks on, at least 1,000 rows
   produce a warning rather than a failure.
 - Expected errors are `NOT_FOUND` and `CONFLICT` with operation-specific reason codes. Each
