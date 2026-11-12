@@ -28,6 +28,7 @@ export const ALLOWED_IMPORTS: AllowedImports = {
   "data-process": ["contracts", "db"],
   // The preload and the page share it; the failure states come from the contract.
   "desktop-bridge": ["contracts"],
+  // Timestamp generation returns the shared Instant brand (D223).
   db: ["time"],
   icons: ["theme"],
   "placeholder-alpha": ["shell", "icons", "ui"],

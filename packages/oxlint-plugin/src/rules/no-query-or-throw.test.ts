@@ -35,4 +35,16 @@ describe("self-engine/no-query-or-throw", () => {
     ]);
     expect(results.map((hits) => hits.length)).toEqual([1, 1, 1, 1]);
   });
+  it("reports destructured throwing methods, including aliases and literal keys", () => {
+    const results = lintFixtures("no-query-or-throw", [
+      "const { executeTakeFirstOrThrow } = query;",
+      "const { takeFirstOrThrow: run } = query;",
+      'const { ["executeTakeFirstOrThrow"]: run } = query;',
+      'const { "takeFirstOrThrow": run } = query;',
+      "function run({ executeTakeFirstOrThrow }) {}",
+      "const { executeTakeFirst } = query;",
+      "const query = { executeTakeFirstOrThrow() {} };",
+    ]);
+    expect(results.map((hits) => hits.length)).toEqual([1, 1, 1, 1, 1, 0, 0]);
+  });
 });

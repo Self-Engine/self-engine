@@ -211,3 +211,12 @@ test("checks generated columns too", async () => {
     { table: "notes", column: "size", rule: "column must have a row map field" },
   ]);
 });
+
+test.each([z.enum(["draft", "published"]), z.literal("draft")])(
+  "accepts string enums and literals for TEXT",
+  async (field) => {
+    await expect(checkAgreement(migrations, { notes: z.object({ body: field }) })).resolves.toEqual(
+      [],
+    );
+  },
+);

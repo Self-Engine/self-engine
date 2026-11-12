@@ -1,7 +1,14 @@
 import type { Clock, IdSources } from "../core/index.ts";
 
+/** Shared deterministic sources for a test transaction context. */
+export interface TestSources {
+  readonly clock: Clock;
+  readonly ids: IdSources;
+  readonly advance: (ms: number) => void;
+}
+
 /** A fixed transaction time, moved only by `advance`. */
-export function createTestSources(start: Date) {
+export function createTestSources(start: Date): TestSources {
   let milliseconds = start.getTime();
   const clock: Clock = () => new Date(milliseconds);
   let counter = 0;

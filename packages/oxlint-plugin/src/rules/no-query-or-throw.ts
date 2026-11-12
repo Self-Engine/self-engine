@@ -12,6 +12,20 @@ export default defineRule({
   },
   create(context) {
     return {
+      ObjectPattern(node) {
+        for (const property of node.properties) {
+          if (property.type !== "Property") continue;
+          const { key } = property;
+          const name =
+            !property.computed && key.type === "Identifier"
+              ? key.name
+              : key.type === "Literal"
+                ? key.value
+                : undefined;
+          if (name === "executeTakeFirstOrThrow" || name === "takeFirstOrThrow")
+            context.report({ node: key, message: MESSAGE });
+        }
+      },
       MemberExpression(node) {
         const { property } = node;
         const name =

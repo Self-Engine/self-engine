@@ -15,7 +15,7 @@ export interface ColumnRow {
   readonly pk: number;
 }
 
-/** Only bookkeeping tables belong to the database rather than the module. */
+/** Returns main-schema tables with their SQL and STRICT flag, excluding SQLite and Kysely bookkeeping. */
 export async function tablesOf(database: Database): Promise<readonly TableRow[]> {
   const { rows } = await sql<TableRow>`
     SELECT list.name, list.strict, entry.sql
