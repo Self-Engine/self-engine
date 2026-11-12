@@ -1,6 +1,6 @@
 import type { AnyContractProcedure, InferSchemaInput, InferSchemaOutput } from "@orpc/contract";
 import type { Migration, TablesOf } from "@self-engine/db";
-import type { Transaction } from "kysely";
+import type { Transaction, CompiledQuery } from "kysely";
 import type { z } from "zod";
 import type { StorageContext } from "./context.ts";
 
@@ -16,6 +16,16 @@ export type ModuleEntries<Contract extends StorageContract, Rows extends RowMap>
   readonly [Entry in keyof Contract]:
     | {
         readonly kind: "query";
+        readonly list?:
+          | { readonly kind: "window" | "small-set" }
+          | {
+              readonly kind: "pages";
+              readonly queries: Handler<
+                ReadTransaction<TablesOf<Rows>>,
+                InferSchemaOutput<Contract[Entry]["~orpc"]["inputSchema"]>,
+                readonly CompiledQuery[]
+              >;
+            };
         readonly run: Handler<
           ReadTransaction<TablesOf<Rows>>,
           InferSchemaOutput<Contract[Entry]["~orpc"]["inputSchema"]>,

@@ -1,3 +1,4 @@
+import { pageSchema, pageInputSchema } from "../../../src/core/index.ts";
 import { oc } from "@orpc/contract";
 import { instantSchema } from "@self-engine/time";
 import { idSchema } from "@self-engine/db/schema";
@@ -31,5 +32,9 @@ export const notesContract = {
   create: oc
     .input(z.object({ title: z.string().min(1), isPinned: z.boolean() }))
     .output(noteSchema),
+  pages: oc.input(pageInputSchema).output(pageSchema(noteSchema)),
+  window: oc
+    .input(z.object({ from: instantSchema, to: instantSchema }))
+    .output(z.array(noteSchema)),
   list: oc.input(z.object({})).output(z.array(noteSchema)),
 };

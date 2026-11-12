@@ -3,12 +3,16 @@ import { z } from "zod";
 import { implement, type ImplementedProcedure } from "@orpc/server";
 import type { Database, TablesOf } from "@self-engine/db";
 import { createContext, type ContextSources } from "./context.ts";
+import { reportLargeResult, type LargeResultReport } from "./large-result.ts";
 import type { RowMap, StorageContract, StorageModule } from "./module.ts";
+
+export type StorageReport = LargeResultReport;
 
 export interface FrameOptions {
   readonly database: Database;
   readonly sources: ContextSources;
   readonly checkOutputs: boolean;
+  readonly report?: (value: StorageReport) => void;
 }
 type FrameRouter<Contract extends StorageContract> = {
   [Entry in keyof Contract]: Contract[Entry] extends ContractProcedure<
@@ -60,7 +64,13 @@ export function createFrame<Contract extends StorageContract, Rows extends RowMa
               return next({ context: { tx, storageContext: context } });
             }),
           )
-          .handler(({ context, input }) => entry.run(context.tx, context.storageContext, input)),
+          .handler(async ({ context, input }) => {
+            const output = await entry.run(context.tx, context.storageContext, input);
+            if (options.checkOutputs && entry.kind === "query") {
+              reportLargeResult(name, entry.list?.kind, output, options.report);
+            }
+            return output;
+          }),
       ];
     }),
   );

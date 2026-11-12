@@ -151,6 +151,8 @@ test("notes passes the storage contract kit", async () => {
       {
         create: { title: "New note", isPinned: true },
         list: {},
+        pages: {},
+        window: { from: "2026-11-12T00:00:00.000Z", to: "2026-11-13T00:00:00.000Z" },
         get: { id: noteIdSchema.parse("01a1cfa1-0a00-7000-8000-000000000000") },
         update: {
           id: noteIdSchema.parse("01a1cfa1-0a00-7000-8000-000000000000"),

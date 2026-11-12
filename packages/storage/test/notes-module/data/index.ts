@@ -1,6 +1,21 @@
-import { defineStorageModule, sharedEntry, sharedWrites } from "../../../src/core/index.ts";
+import type { Instant } from "@self-engine/time";
+import type { TablesOf } from "@self-engine/db";
+import {
+  defineStorageModule,
+  sharedEntry,
+  sharedWrites,
+  smallSetList,
+  windowList,
+  pageList,
+  type ReadTransaction,
+  type StorageContext,
+} from "../../../src/core/index.ts";
 import { notesContract } from "../contracts/index.ts";
 import { notesMigrations, notesRowMap, noteIdSchema, toNote } from "./rows.ts";
+type NotesRead = ReadTransaction<TablesOf<typeof notesRowMap>>;
+function allNotes(tx: NotesRead, context: StorageContext) {
+  return sharedEntry(tx, context).live("notes").selectAll();
+}
 export const notes = defineStorageModule({
   contract: notesContract,
   migrations: notesMigrations,
@@ -42,16 +57,34 @@ export const notes = defineStorageModule({
         return toNote(row);
       },
     },
-    list: {
-      kind: "query",
-      async run(tx, context) {
-        const rows = await sharedEntry(tx, context)
-          .live("notes")
-          .selectAll()
-          .orderBy("id")
-          .execute();
-        return rows.map(toNote);
+    list: smallSetList(async (tx: NotesRead, context: StorageContext) => {
+      return (await allNotes(tx, context).orderBy("id").execute()).map(toNote);
+    }),
+    window: windowList(
+      async (
+        tx: NotesRead,
+        context: StorageContext,
+        input: {
+          from: Instant;
+          to: Instant;
+        },
+      ) => {
+        return (
+          await allNotes(tx, context)
+            .where("created_at", ">=", input.from)
+            .where("created_at", "<", input.to)
+            .orderBy("id")
+            .execute()
+        ).map(toNote);
       },
-    },
+    ),
+    pages: pageList({
+      query: allNotes,
+      order: [
+        { column: "created_at", direction: "asc" },
+        { column: "id", direction: "asc" },
+      ],
+      map: toNote,
+    }),
   },
 });

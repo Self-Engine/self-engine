@@ -114,3 +114,35 @@ test.each(["space", "deleted"] as const)(
     ]);
   },
 );
+
+test("the kit names a page query that sorts without an index", async () => {
+  const { notes } = await import("../../test/notes-module/data/index.ts");
+  const { toNote } = await import("../../test/notes-module/data/rows.ts");
+  const { pageList, sharedEntry } = await import("../core/index.ts");
+  const broken = {
+    ...notes,
+    contract: { pages: notes.contract.pages },
+    entries: {
+      pages: pageList({
+        query: (
+          tx: Parameters<typeof notes.entries.pages.run>[0],
+          context: Parameters<typeof notes.entries.pages.run>[1],
+        ) => sharedEntry(tx, context).live("notes").selectAll(),
+        order: [
+          { column: "is_pinned", direction: "asc" },
+          { column: "id", direction: "asc" },
+        ],
+        map: toNote,
+      }),
+    },
+  };
+  await expect(
+    checkContract(
+      broken,
+      async (tx, context) => {
+        await notes.entries.create.run(tx, context, { title: "Seed", isPinned: false });
+      },
+      { pages: {} },
+    ),
+  ).resolves.toEqual([{ entry: "pages", rule: "page query sorts without an index" }]);
+});

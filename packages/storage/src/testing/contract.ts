@@ -3,6 +3,7 @@ import { isDeepStrictEqual } from "node:util";
 import type { InferContractRouterInputs } from "@orpc/contract";
 import { call, ORPCError, type AnyProcedure } from "@orpc/server";
 import type { TablesOf } from "@self-engine/db";
+import { CompiledQuery } from "kysely";
 import { z } from "zod";
 import {
   createContext,
@@ -89,6 +90,28 @@ export async function checkContract<Contract extends StorageContract, Rows exten
         .execute((tx) =>
           Promise.resolve(seed(tx.withTables<TablesOf<Rows>>(), createContext(sources))),
         );
+      const definition = module.entries[entry];
+      if (definition?.kind === "query" && definition.list?.kind === "pages") {
+        const queries = definition.list.queries;
+        if (queries !== undefined) {
+          const compiled = await database.kysely
+            .transaction()
+            .execute((tx) =>
+              Promise.resolve(
+                queries(tx.withTables<TablesOf<Rows>>(), createContext(sources), example as never),
+              ),
+            );
+          for (const query of compiled) {
+            const plan = await database.kysely.executeQuery<{ detail: string }>(
+              CompiledQuery.raw(`EXPLAIN QUERY PLAN ${query.sql}`, [...query.parameters]),
+            );
+            if (plan.rows.some(({ detail }) => /TEMP B-TREE.*ORDER BY/i.test(detail))) {
+              violations.push({ entry, rule: "page query sorts without an index" });
+              break;
+            }
+          }
+        }
+      }
       const scoped =
         module.entries[entry]?.kind === "query"
           ? await seedScoping(database, module.rowMap, seed, createContext(sources))

@@ -1,4 +1,4 @@
-export { createFrame, type FrameOptions } from "./frame.ts";
+export { createFrame, type FrameOptions, type StorageReport } from "./frame.ts";
 export {
   defineStorageModule,
   type StorageModule,
@@ -16,3 +16,12 @@ export {
   type ContextSources,
 } from "./context.ts";
 export { sharedEntry, sharedWrites } from "./shared-entry.ts";
+
+export {
+  windowList,
+  smallSetList,
+  pageList,
+  pageSchema,
+  pageInputSchema,
+  type Page,
+} from "./lists.ts";
