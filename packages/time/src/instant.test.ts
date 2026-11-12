@@ -25,10 +25,9 @@ test.each([
   expect(instantSchema.safeParse(value).success).toBe(false);
 });
 
-test.each([
-  "1000-01-01T00:00:00.000Z",
-  "9999-12-31T23:59:59.999Z",
-  "2000-02-29T00:00:00.000Z",
-])("accepts valid boundary and leap-day instant %s unchanged", (value) => {
-  expect(instantSchema.parse(value)).toBe(value);
-});
+test.each(["1000-01-01T00:00:00.000Z", "9999-12-31T23:59:59.999Z", "2000-02-29T00:00:00.000Z"])(
+  "accepts valid boundary and leap-day instant %s unchanged",
+  (value) => {
+    expect(instantSchema.parse(value)).toBe(value);
+  },
+);

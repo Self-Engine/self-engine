@@ -4,7 +4,13 @@
   "private": true,
   "license": "AGPL-3.0-only",
   "type": "module",
-  "exports": { ".": "./src/index.ts" },
-  "dependencies": { "zod": "catalog:" },
-  "devDependencies": { "vite-plus": "catalog:" }
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "vite-plus": "catalog:"
+  }
 }
