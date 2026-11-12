@@ -3,6 +3,8 @@
   "compilerOptions": {
     "module": "Preserve",
     "moduleResolution": "Bundler",
+    // Checks the components of `ui`, whose feedback system shows the building block's notices.
+    "jsx": "react-jsx",
     // Runs in the renderer of every platform, so no Node types outside its tests.
     "lib": ["ESNext", "DOM"],
     // `vite-plus/client` types `import.meta.env.DEV`, which keeps the dev-build report (D248)

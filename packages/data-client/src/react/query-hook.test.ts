@@ -3,85 +3,15 @@
 // against a substituted Port access whose Table Changes and reconnects the test drives by hand.
 // Fake timers stand in for the clock: the query library batches its updates on `setTimeout(0)`.
 
-import type { QueryTables, TablesChanged } from "@self-engine/contracts";
 import type { notesContract } from "@self-engine/storage/testing";
-import { createElement, type ReactNode } from "react";
 import { act } from "react";
-import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, expect, test, vi } from "vite-plus/test";
-import { DataProvider, type PortAccess, portHooks, type QueryState } from "./index.ts";
-
-declare global {
-  var IS_REACT_ACT_ENVIRONMENT: boolean | undefined;
-}
-
-globalThis.IS_REACT_ACT_ENVIRONMENT = true;
+import { type FakePort, fakePort, held, renderHook, settle, unmountHook } from "./hook-harness.ts";
+import { portHooks, type QueryState } from "./index.ts";
 
 const notesPort = portHooks<typeof notesContract>("notes");
 const useNoteList = notesPort.query("list");
 const useNote = notesPort.query("get");
-
-const QUERIES: QueryTables = { notes: { list: ["notes"], get: ["notes"], window: ["notes"] } };
-
-interface Call {
-  readonly module: string;
-  readonly entry: string;
-  readonly input: unknown;
-}
-
-interface FakePort {
-  readonly access: PortAccess;
-  readonly calls: Call[];
-  /** What each entry answers; called once per call, so every answer is a new object. */
-  answer(entry: string, run: (input: unknown) => unknown): void;
-  /** Delivers a Table Change, as the Data Process does after a commit. */
-  changeTables(tables: TablesChanged): void;
-  /** Reports a reconnect to the Data Process. */
-  reconnect(): void;
-}
-
-function fakePort(queries: QueryTables = QUERIES): FakePort {
-  const calls: Call[] = [];
-  const answers = new Map<string, (input: unknown) => unknown>();
-  const tablesListeners = new Set<(tables: TablesChanged) => void>();
-  const reconnectListeners = new Set<() => void>();
-  return {
-    calls,
-    access: {
-      call(module, entry, input) {
-        calls.push({ module, entry, input });
-        const run = answers.get(`${module}.${entry}`);
-        if (run === undefined) return Promise.reject(new Error(`No answer for ${entry}`));
-        try {
-          return Promise.resolve(run(input));
-        } catch (error) {
-          return Promise.reject(error instanceof Error ? error : new Error(String(error)));
-        }
-      },
-      describeEntry(module, entry) {
-        const reads = queries[module]?.[entry];
-        return reads === undefined ? { kind: "operation" } : { kind: "query", reads };
-      },
-      onTablesChanged(listener) {
-        tablesListeners.add(listener);
-        return () => tablesListeners.delete(listener);
-      },
-      onReconnected(listener) {
-        reconnectListeners.add(listener);
-        return () => reconnectListeners.delete(listener);
-      },
-    },
-    answer(entry, run) {
-      answers.set(`notes.${entry}`, run);
-    },
-    changeTables(tables) {
-      for (const listener of tablesListeners) listener(tables);
-    },
-    reconnect() {
-      for (const listener of reconnectListeners) listener();
-    },
-  };
-}
 
 const T0 = "2026-11-13T09:00:00.000Z";
 
@@ -94,66 +24,14 @@ function listAnswer(titles: () => readonly string[]) {
   return () => titles().map((title, index) => note(`note-${index}`, title));
 }
 
-let root: Root | undefined;
-let container: HTMLElement | undefined;
-
 beforeEach(() => {
   vi.useFakeTimers();
 });
 
-afterEach(async () => {
-  if (root !== undefined) act(() => root?.unmount());
-  root = undefined;
-  container?.remove();
-  container = undefined;
+afterEach(() => {
+  unmountHook();
   vi.useRealTimers();
 });
-
-/** Lets answers arrive and the library's batched updates reach React. */
-async function settle(): Promise<void> {
-  await act(() => vi.advanceTimersByTimeAsync(0));
-}
-
-interface Rendered<State> {
-  /** The state of the last render. */
-  current(): State;
-  /** Shows or hides the hook, as a View that is shown or left. */
-  show(visible: boolean): Promise<void>;
-}
-
-async function renderHook<State>(
-  port: FakePort,
-  useHook: () => State,
-  options: { readonly reportMisuse?: (problem: string) => void } = {},
-): Promise<Rendered<State>> {
-  let state: State | undefined;
-  function Probe(): ReactNode {
-    state = useHook();
-    return null;
-  }
-  container = document.createElement("div");
-  document.body.append(container);
-  const mounted = createRoot(container);
-  root = mounted;
-  const draw = (visible: boolean) =>
-    createElement(
-      DataProvider,
-      { access: port.access, ...options },
-      visible ? createElement(Probe) : null,
-    );
-  act(() => mounted.render(draw(true)));
-  await settle();
-  return {
-    current() {
-      if (state === undefined) throw new Error("The hook has not rendered");
-      return state;
-    },
-    async show(visible) {
-      act(() => mounted.render(draw(visible)));
-      await settle();
-    },
-  };
-}
 
 function data<Output>(state: QueryState<Output>): Output {
   if (!("data" in state)) throw new Error(`No answer, the state is ${state.status}`);
@@ -218,17 +96,6 @@ test("a Query shown again without a Table Change in between is not called again"
   expect(listCalls(port)).toBe(1);
   expect(list.current()).toMatchObject({ status: "content" });
 });
-
-/** An answer the test lets arrive when it wants. */
-function held<Value>() {
-  let resolve: (value: Value) => void = () => {};
-  let reject: (error: Error) => void = () => {};
-  const promise = new Promise<Value>((settleWith, failWith) => {
-    resolve = settleWith;
-    reject = failWith;
-  });
-  return { promise, resolve, reject };
-}
 
 test("a Query on screen keeps its previous answer until the reload arrives", async () => {
   const port = fakePort();

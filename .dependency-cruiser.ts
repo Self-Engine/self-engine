@@ -25,8 +25,8 @@ export const ALLOWED_IMPORTS: AllowedImports = {
   // Composes the modules' contracts once they have some (D187): `contracts → module`.
   contracts: [],
   // The data process test harness and the `notes` test module only in the client's tests
-  // (devDependencies).
-  "data-client": ["contracts", "data-process", "storage"],
+  // (devDependencies). The building block shows its notices through the feedback system of `ui`.
+  "data-client": ["contracts", "data-process", "storage", "ui"],
   "data-process": ["contracts", "db", "storage"],
   // The preload and the page share it; the failure states come from the contract.
   "desktop-bridge": ["contracts"],
