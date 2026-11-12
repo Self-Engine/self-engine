@@ -7,28 +7,8 @@ export interface ConventionViolation {
   readonly rule: string;
 }
 
-interface TableRow {
-  readonly name: string;
-  readonly strict: number;
-  readonly sql: string;
-}
-
-interface ColumnRow {
-  readonly name: string;
-  readonly type: string;
-  readonly notnull: number;
-  readonly dflt_value: string | null;
-  readonly pk: number;
-}
-
-/** Tables the conventions do not apply to, by their exact names. */
-const SKIPPED_TABLES: ReadonlySet<string> = new Set([
-  "kysely_migration",
-  "kysely_migration_lock",
-  "sqlite_sequence",
-  "sqlite_stat1",
-  "sqlite_stat4",
-]);
+import { columnsOf, tablesOf } from "./schema.ts";
+import type { ColumnRow } from "./schema.ts";
 
 const TIMESTAMP_COLUMNS = ["created_at", "updated_at", "deleted_at"];
 
@@ -146,13 +126,6 @@ function foreignKeyRules(table: string, createTable: string): string[] {
   ]);
 }
 
-async function columnsOf(database: Database, table: string): Promise<readonly ColumnRow[]> {
-  const { rows } = await sql<ColumnRow>`
-    SELECT name, type, "notnull", dflt_value, pk FROM pragma_table_info(${table})
-  `.execute(database.kysely);
-  return rows;
-}
-
 interface IndexRow {
   readonly name: string;
   readonly origin: string;
@@ -213,16 +186,9 @@ async function indexRules(
 
 /** Reads a database's schema after its migrations and reports every broken table convention. */
 export async function checkConventions(database: Database): Promise<ConventionViolation[]> {
-  const { rows } = await sql<TableRow>`
-    SELECT list.name, list.strict, entry.sql
-    FROM pragma_table_list AS list
-    JOIN sqlite_schema AS entry ON entry.name = list.name AND entry.type = 'table'
-    WHERE list.schema = 'main'
-    ORDER BY list.name
-  `.execute(database.kysely);
+  const rows = await tablesOf(database);
   const violations: ConventionViolation[] = [];
   for (const { name, strict, sql: createTable } of rows) {
-    if (SKIPPED_TABLES.has(name)) continue;
     const rules = [
       ...(strict === 1 ? [] : ["must be STRICT"]),
       ...columnRules(name, await columnsOf(database, name)),
