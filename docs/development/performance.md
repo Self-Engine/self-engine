@@ -66,6 +66,23 @@ The rule that follows: a row is its own component wrapped in `memo`, receives it
 and nothing that is new on every render of the list, and gets callbacks from its own hooks. An
 unchanged row only stays undrawn while its object stays the same across a reload (D250).
 
+### The Query hook keeps unchanged rows
+
+Measured during #219 on Node 26, Apple M3 Pro, median of 50 runs after 10 warm-up runs. After a
+reload the Query hook compares the new answer with the old one and keeps every unchanged row as
+the same object (structural sharing of the query library), which the rule above relies on. For
+note rows of five fields, one of them renamed, the comparison takes **0.03 ms at 100 rows,
+0.25 ms at 1,000 and 2.5 ms at 10,000**: linear, a tenth of the spike's 2 ms fetch at 1,000 rows.
+A hook test fails if a reload replaces an unchanged row.
+
+An answer that no View shows stays in memory for 5 minutes (D250). Held as parsed JSON, 1,000
+such rows take about **226 KiB** of heap, and 10,000 about **2.1 MiB**.
+
+The building block (`@self-engine/data-client/react`) bundles to **35,422 bytes** minified
+(10,855 gzipped), of which the query library is 33,315. Nothing at startup imports it yet, so
+the startup budget below is unchanged; the slice that mounts it in the app (#224) measures it
+against the budget.
+
 ## Startup JavaScript budget
 
 Every production web build, including `pnpm verify` and Electron packaging, audits the

@@ -587,6 +587,39 @@ describe("the hotkey library", () => {
   });
 });
 
+describe("the query library", () => {
+  const RULE = "query-library-only-through-building-block";
+  const dataClient = (library: string, file: string): FixturePackage => ({
+    dir: "packages/data-client",
+    dependencies: [library],
+    files: { [file]: `import "${library}";\n` },
+  });
+
+  describe.each(["@tanstack/react-query", "@tanstack/query-core"])("%s", (library) => {
+    it("passes an import in the building block", async () => {
+      expect(await cruise([dataClient(library, "src/react/query-hook.ts")])).toEqual([]);
+    });
+
+    it("fails an import in another file of the data client", async () => {
+      expect(ruleNames(await cruise([dataClient(library, "src/data-connection.ts")]))).toEqual([
+        RULE,
+      ]);
+    });
+
+    it("fails an import in a module", async () => {
+      const importing = withFiles(declaring(module_, library), {
+        "src/notes.ts": `import "${library}";\n`,
+      });
+      expect(ruleNames(await cruise([shared, importing]))).toEqual([RULE]);
+    });
+
+    it("fails an import in an app", async () => {
+      const web = declaring(app("web", { "src/main.ts": `import "${library}";\n` }), library);
+      expect(ruleNames(await cruise([web]))).toEqual([RULE]);
+    });
+  });
+});
+
 describe("icon libraries", () => {
   const RULE = "icons-only-through-catalog";
 
