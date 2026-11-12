@@ -1,0 +1,1 @@
+CREATE TABLE fixture_notes (id TEXT PRIMARY KEY, body TEXT NOT NULL) STRICT;

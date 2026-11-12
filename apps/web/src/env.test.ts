@@ -1,11 +1,18 @@
+import type { DesktopBridge, DesktopChannel } from "@self-engine/desktop-bridge";
 import { describe, expect, it } from "vite-plus/test";
 import { channelBadge, historyKind, reservesWindowButtons, versionInfo } from "./env.ts";
 
+function bridge(
+  platform: string,
+  channel: DesktopChannel,
+  version: string | undefined = "1.0.0",
+): DesktopBridge {
+  return { platform, channel, version, requestDataPort: () => {}, retryDataProcess: () => {} };
+}
+
 describe("historyKind", () => {
   it("uses hash history in Electron, where the preload installs the bridge", () => {
-    expect(
-      historyKind({ desktopBridge: { platform: "darwin", channel: "stable", version: "1.0.0" } }),
-    ).toBe("hash");
+    expect(historyKind({ desktopBridge: bridge("darwin", "stable") })).toBe("hash");
   });
 
   it("uses browser history on the web", () => {
@@ -19,9 +26,7 @@ describe("channelBadge", () => {
     ["nightly", "Nightly"],
     ["stable", undefined],
   ] as const)("marks %s as %s", (channel, badge) => {
-    expect(channelBadge({ desktopBridge: { platform: "darwin", channel, version: "1.0.0" } })).toBe(
-      badge,
-    );
+    expect(channelBadge({ desktopBridge: bridge("darwin", channel) })).toBe(badge);
   });
 
   it("shows nothing on the web", () => {
@@ -31,19 +36,11 @@ describe("channelBadge", () => {
 
 describe("reservesWindowButtons", () => {
   it("keeps the strip free in the macOS desktop app", () => {
-    expect(
-      reservesWindowButtons({
-        desktopBridge: { platform: "darwin", channel: "stable", version: "1.0.0" },
-      }),
-    ).toBe(true);
+    expect(reservesWindowButtons({ desktopBridge: bridge("darwin", "stable") })).toBe(true);
   });
 
   it("wastes no room on the Windows desktop app", () => {
-    expect(
-      reservesWindowButtons({
-        desktopBridge: { platform: "win32", channel: "stable", version: "1.0.0" },
-      }),
-    ).toBe(false);
+    expect(reservesWindowButtons({ desktopBridge: bridge("win32", "stable") })).toBe(false);
   });
 
   it("wastes no room on the web", () => {
@@ -59,7 +56,7 @@ describe("versionInfo", () => {
     const nightly = "0.4.0-nightly.20261112.3";
     expect(
       versionInfo(
-        { desktopBridge: { platform: "darwin", channel: "nightly", version: nightly } },
+        { desktopBridge: bridge("darwin", "nightly", nightly) },
         { userAgent: MAC_BROWSER },
         "0.0.1",
       ),
@@ -72,11 +69,8 @@ describe("versionInfo", () => {
     ["linux", "Linux"],
   ])("names the desktop platform %s as %s", (platform, operatingSystem) => {
     expect(
-      versionInfo(
-        { desktopBridge: { platform, channel: "stable", version: "1.0.0" } },
-        { userAgent: "" },
-        "0.0.1",
-      ).operatingSystem,
+      versionInfo({ desktopBridge: bridge(platform, "stable") }, { userAgent: "" }, "0.0.1")
+        .operatingSystem,
     ).toBe(operatingSystem);
   });
 
@@ -84,7 +78,7 @@ describe("versionInfo", () => {
     // The web build's version is another app's and must not stand in for it.
     expect(
       versionInfo(
-        { desktopBridge: { platform: "darwin", channel: "nightly", version: undefined } },
+        { desktopBridge: { ...bridge("darwin", "nightly"), version: undefined } },
         { userAgent: MAC_BROWSER },
         "0.0.1",
       ),
@@ -117,11 +111,8 @@ describe("versionInfo", () => {
 
   it("passes on a platform it has no name for instead of guessing", () => {
     expect(
-      versionInfo(
-        { desktopBridge: { platform: "freebsd", channel: "dev", version: "0.0.1" } },
-        { userAgent: "" },
-        "0.0.1",
-      ).operatingSystem,
+      versionInfo({ desktopBridge: bridge("freebsd", "dev", "0.0.1") }, { userAgent: "" }, "0.0.1")
+        .operatingSystem,
     ).toBe("freebsd");
     expect(versionInfo({}, { userAgent: "SomeBot/1.0" }, "0.0.1").operatingSystem).toBe(
       "SomeBot/1.0",

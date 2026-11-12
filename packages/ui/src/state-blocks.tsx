@@ -5,8 +5,11 @@ import { ErrorIcon } from "@self-engine/icons";
 import { roleColor } from "@self-engine/theme";
 import { type ComponentType, type CSSProperties, type ReactNode, useState } from "react";
 
-/** Local reads usually finish within milliseconds, and a spinner for those would only flicker. */
-const LOADER_DELAY_MS = 200;
+/**
+ * How long a wait lasts before a sign of it appears (`useWaitIsSlow`). Local reads usually finish
+ * within milliseconds, and a spinner for those would only flicker.
+ */
+export const LOADER_DELAY_MS = 200;
 
 /** A catalog icon sizes itself for a line of text, and here it fills Mantine's indicator instead. */
 const FILL_INDICATOR: CSSProperties = { width: "1em", height: "1em" };
@@ -66,11 +69,20 @@ export function ErrorState({ title, description, onRetry, action }: ErrorStatePr
   );
 }
 
+/**
+ * Whether a wait that began when the component mounted has turned out slow: false for the first
+ * 200 ms, so a sign of waiting does not flicker for work that is over by then.
+ */
+export function useWaitIsSlow(): boolean {
+  const [slow, setSlow] = useState(false);
+  useTimeout(() => setSlow(true), LOADER_DELAY_MS, { autoInvoke: true });
+  return slow;
+}
+
 /** "Still loading", for work that turned out to be slow. */
 export function LoadingState() {
   const { t } = useLingui();
-  const [slow, setSlow] = useState(false);
-  useTimeout(() => setSlow(true), LOADER_DELAY_MS, { autoInvoke: true });
+  const slow = useWaitIsSlow();
   if (!slow) return null;
   return (
     <Center>

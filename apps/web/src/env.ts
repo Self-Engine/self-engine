@@ -1,20 +1,10 @@
+import type { DesktopBridge, DesktopChannel } from "@self-engine/desktop-bridge";
 import type { VersionInfo } from "@self-engine/settings-area";
-
-/** The release channels; `Channel` in apps/desktop/src/channel.ts is the source. */
-export type DesktopChannel = "dev" | "nightly" | "stable";
 
 declare global {
   interface Window {
     /** Installed by the Electron preload (apps/desktop/src/preload.ts); absent on the web. */
-    readonly desktopBridge?: {
-      readonly platform: string;
-      readonly channel: DesktopChannel;
-      /**
-       * The version of the main process: a release only gets its version at packaging. Absent
-       * when the preload was handed none, which leaves the rest of the bridge as it is.
-       */
-      readonly version: string | undefined;
-    };
+    readonly desktopBridge?: DesktopBridge;
   }
 }
 

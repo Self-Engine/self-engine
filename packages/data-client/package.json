@@ -1,0 +1,20 @@
+{
+  "name": "@self-engine/data-client",
+  "version": "0.0.0",
+  "private": true,
+  "license": "AGPL-3.0-only",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@orpc/client": "catalog:",
+    "@orpc/contract": "catalog:",
+    "@self-engine/contracts": "workspace:*"
+  },
+  "devDependencies": {
+    "@self-engine/data-process": "workspace:*",
+    "@types/node": "catalog:",
+    "vite-plus": "catalog:"
+  }
+}

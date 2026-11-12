@@ -1,3 +1,4 @@
+import { SHELL_START_AFTER_WINDOW_BUTTONS_PX } from "./geometry.ts";
 import { clamp } from "@mantine/hooks";
 
 /** Starting values from #19, in Mantine's unscaled numbers. */
@@ -19,12 +20,6 @@ const LOGO_MARK_INSET = (ICON_COLUMN_WIDTH - LOGO_MARK_WIDTH) / 2;
 export const GAP = 8;
 /** From the window edge to the mark on the icon axis, with or without its name. */
 export const LOGO_START_ON_ICON_AXIS = GAP + NAVBAR_PADDING + LOGO_MARK_INSET;
-/**
- * Where anything beside the macOS window buttons starts, from the window edge: they end at 76 px
- * (see `titleBarOptions`). In real pixels, because the buttons do not follow Mantine's scale.
- */
-export const START_AFTER_WINDOW_BUTTONS_PX = 84;
-
 /** What the user set for the Navbar. Only the wide Layout Step shows it. */
 export interface ShellNavbarState {
   readonly collapsed: boolean;
@@ -46,7 +41,8 @@ export interface NavbarLimits {
  * Where anything beside the window buttons starts inside the frame, in Mantine's unscaled numbers.
  * The frame follows the scale and the buttons stay in real pixels, so it depends on the scale.
  */
-const startAfterWindowButtons = (scale: number) => START_AFTER_WINDOW_BUTTONS_PX / scale - GAP;
+const startAfterWindowButtons = (scale: number) =>
+  SHELL_START_AFTER_WINDOW_BUTTONS_PX / scale - GAP;
 
 /** The narrowest wide Navbar: the logo with its name has to fit its strip. */
 function navbarMinWideWidth(scale: number, reserveWindowButtons: boolean): number {

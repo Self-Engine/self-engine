@@ -48,10 +48,28 @@ export default defineConfig({
     jsPlugins: [{ name: "self-engine", specifier: "@self-engine/oxlint-plugin" }],
     rules: {
       "self-engine/no-global-t-macro": "error",
+      "self-engine/no-foreign-row-map": "error",
       // dependency-cruiser cannot see `import("…")` types (.dependency-cruiser.ts).
       "self-engine/no-import-type-query": "error",
       "self-engine/no-silent-catch": "error",
     },
+    overrides: [
+      {
+        files: [
+          "packages/*/src/data/**",
+          "packages/*/src/data.ts",
+          "packages/*/src/storage/**",
+          "packages/*/src/storage.ts",
+          "packages/storage/src/core/**",
+          "packages/storage/test/*/data/**",
+        ],
+        rules: { "self-engine/no-raw-storage-sql": "error" },
+      },
+      {
+        files: ["packages/**", "apps/**"],
+        rules: { "self-engine/no-query-or-throw": "error" },
+      },
+    ],
   },
   fmt: {
     // German planning history (D46). Oxfmt rewraps its lists and changes their meaning.
@@ -102,6 +120,30 @@ export default defineConfig({
       },
       // Uncached: a replay would report a browser as there after it was removed.
       "ensure-chromium": { command: "node scripts/ensure-chromium.ts", cache: false },
+      // Starts the built desktop app with a throwaway data folder (scripts/desktop-smoke.ts).
+      // The inputs are named: the cache cannot follow the reads of Electron and its processes,
+      // and the run writes only to a temporary folder it removes. The bundles, the web build,
+      // the launcher with the page's mark name it reads, and the lockfile for the Electron,
+      // Playwright and SQLite versions.
+      "verify:smoke": {
+        command: "node scripts/desktop-smoke.ts",
+        dependsOn: ["ensure-electron"],
+        cache: {
+          input: [
+            "apps/desktop/dist-electron/**",
+            "apps/desktop/package.json",
+            "apps/web/dist/**",
+            "packages/desktop-bridge/src/**",
+            "scripts/desktop-app.ts",
+            "scripts/desktop-smoke.ts",
+            "scripts/ensure-electron.ts",
+            "pnpm-lock.yaml",
+          ],
+          output: [],
+        },
+      },
+      // Uncached, like ensure-chromium.
+      "ensure-electron": { command: "node scripts/ensure-electron.ts", cache: false },
     },
   },
 });

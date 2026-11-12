@@ -16,7 +16,7 @@ through a PR.
 
 - **One gate, `pnpm verify`**, for humans, agents and CI: format, lint with warnings as
   errors, typecheck, the module boundaries ([ADR 0006](0006-module-boundaries-are-enforced-three-ways.md)),
-  the ADR check, the guard against changed migrations, the theme CSS check, the translation check, the workspace build, then the tests and the story tests. The stages are
+  the ADR check, the guard against changed migrations, the theme CSS check, the translation check, the workspace build, then the tests, the story tests and the smoke test of the built desktop app. The stages are
   `vp run` tasks, so an unchanged stage replays from the cache. The last line is `VERIFY: PASS`
   or `VERIFY: FAIL`.
 - **A pass writes a stamp**: the git tree of the verified checkout.
@@ -38,7 +38,12 @@ through a PR.
   checks out the full history.
 - The build stage (`vp run --cache -r build`) makes the apps compile on every gate run, as ADR
   0001 requires: a pack entry pointing at a missing file passes typecheck and the tests and
-  fails only there. It bundles and never starts Electron, so CI needs no Electron binary.
+  fails only there. It bundles and never starts Electron.
+- The smoke stage (`scripts/desktop-smoke.ts`, spec #29) starts the built desktop app under
+  Playwright with a temporary data folder. Electron's file reads are invisible to the tracking,
+  so the stage names its inputs: the bundles, the web build, its scripts and the lockfile. CI
+  downloads the Electron binary and runs the gate under `xvfb-run`, since its Linux runner has
+  no display.
 - The guard covers Claude Code only. CI runs the same gate for every PR and every push to
   `main` (`.github/workflows/ci.yml`); there the format and i18n stages check instead of
   rewriting (`verify:<stage>:check`), and CI does not depend on the stamp.

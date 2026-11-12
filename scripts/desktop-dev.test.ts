@@ -30,6 +30,8 @@ describe("isBundle", () => {
   it.each([
     ["main.cjs", true],
     ["preload.cjs", true],
+    ["data-process.cjs", true],
+    ["data-process.cjs.map", false],
     ["main.cjs.map", false],
     [null, false],
   ])("%s -> %s", (name, expected) => {

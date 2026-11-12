@@ -1,8 +1,10 @@
 import type { MessageDescriptor } from "@lingui/core";
+import { useLingui } from "@lingui/react/macro";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { type ComponentType, type ReactNode, useLayoutEffect, useRef } from "react";
 import { expect, spyOn, userEvent, within } from "storybook/test";
 import type { NamedCommandOwner } from "./index.ts";
+import { shortcutRows } from "./shortcut-rows.tsx";
 import { storyViewPage } from "./story-page.tsx";
 import { loadedStoreOn, memoryStorage } from "./story-store.ts";
 
@@ -74,7 +76,7 @@ export const GroupedByModuleWithTheGeneralOnesFirst: Story = {
     const general = groupOf(canvas, "General");
     await expect(general.getByText("Open the Command Palette")).toBeVisible();
     // The notation is present with the row.
-    await expect(await general.findByText("Ctrl+K")).toBeVisible();
+    await expect(general.getByText("Ctrl+K")).toBeVisible();
     await expect(general.getByText("Undo")).toBeVisible();
     await expect(general.getByText("Ctrl+Z")).toBeVisible();
     const projects = groupOf(canvas, "Projects");
@@ -169,19 +171,31 @@ export const TwoOwnersWithTheSameNameKeepTheirOwnHeading: Story = {
   },
 };
 
-/** Inspect the committed DOM before effects can load or insert a missing hint. */
+interface Inspection {
+  readonly violations: string[];
+  readonly inspected: Set<Element>;
+  labels: string[];
+}
+const inspections = new WeakMap<Element, Inspection>();
+
+/** Inspect before paint, and retain transient violations even after a late hint arrives. */
 function CompleteRows({ children }: { readonly children: ReactNode }) {
   const root = useRef<HTMLDivElement>(null);
+  const { i18n } = useLingui();
   useLayoutEffect(() => {
+    const expected = shortcutRows(OWNERS).map((row) => i18n._(row.title));
+    const inspection: Inspection = { violations: [], inspected: new Set(), labels: [] };
+    inspections.set(root.current!, inspection);
     const checkRows = () => {
-      for (const label of root.current!.querySelectorAll("p[id]")) {
-        if (
-          ["Open the Command Palette", "Undo", "New project", "Start timer"].includes(
-            label.textContent ?? "",
-          ) &&
-          !label.parentElement?.parentElement?.querySelector("kbd")
-        ) {
-          throw new Error(`Shortcut row rendered without its hint: ${label.textContent}`);
+      inspection.labels = [];
+      for (const row of root.current!.querySelectorAll('[role="group"][aria-labelledby]')) {
+        const label =
+          document.getElementById(row.getAttribute("aria-labelledby")!)?.textContent ?? "";
+        if (!expected.includes(label)) continue;
+        inspection.labels.push(label);
+        inspection.inspected.add(row);
+        if (!row.querySelector("kbd")) {
+          inspection.violations.push(`Shortcut row rendered without its hint: ${label}`);
         }
       }
     };
@@ -189,8 +203,12 @@ function CompleteRows({ children }: { readonly children: ReactNode }) {
     const observer = new MutationObserver(checkRows);
     observer.observe(root.current!, { childList: true, subtree: true });
     return () => observer.disconnect();
-  }, []);
-  return <div ref={root}>{children}</div>;
+  }, [i18n]);
+  return (
+    <div data-testid="complete-rows" ref={root}>
+      {children}
+    </div>
+  );
 }
 
 export const RowsAndReadableHintsAppearTogether: Story = {
@@ -203,14 +221,23 @@ export const RowsAndReadableHintsAppearTogether: Story = {
     );
   },
   play: async ({ canvas }) => {
+    const inspection = inspections.get(canvas.getByTestId("complete-rows"))!;
+    const expectedCount = shortcutRows(OWNERS).length;
+    await expect(inspection.labels).toHaveLength(expectedCount);
+    await expect(inspection.violations).toEqual([]);
     const label = canvas.getByText("Open the Command Palette");
     const hint = canvas.getByText("Ctrl+K");
     await expect(getComputedStyle(hint).fontSize).toBe(getComputedStyle(label).fontSize);
     const search = canvas.getByRole("searchbox");
     await userEvent.type(search, "undo");
+    await expect(inspection.labels).toHaveLength(1);
+    const inspectedBeforeReplacement = inspection.inspected.size;
     await userEvent.clear(search);
     await userEvent.type(search, "a");
     await expect(canvas.getByText("Ctrl+K")).toBeVisible();
     await expect(canvas.getByText("Ctrl+N")).toBeVisible();
+    await expect(inspection.labels).toHaveLength(expectedCount);
+    await expect(inspection.inspected.size).toBeGreaterThan(inspectedBeforeReplacement);
+    await expect(inspection.violations).toEqual([]);
   },
 };

@@ -1,3 +1,8 @@
+import {
+  SHELL_REFERENCE_WIDTHS,
+  SHELL_TOP_STRIP_HEIGHT,
+  SHELL_START_AFTER_WINDOW_BUTTONS_PX,
+} from "@self-engine/shell/geometry";
 // Shared by the Shell's Stories, which are split by concern. Not a story file, so the Catalog
 // does not list it.
 
@@ -86,12 +91,18 @@ export const SETTINGS: ShellContribution = {
 };
 
 /** One real window width per Layout Step, around Mantine's own breakpoints. */
+const viewport = (name: string, width: number) => ({
+  name,
+  styles: { width: `${width}px`, height: "800px" },
+});
 export const VIEWPORTS = {
-  wide: { name: "Wide", styles: { width: "1280px", height: "800px" } },
-  medium: { name: "Medium", styles: { width: "1100px", height: "800px" } },
-  narrow: { name: "Narrow", styles: { width: "800px", height: "800px" } },
-  narrowest: { name: "Narrowest", styles: { width: "576px", height: "800px" } },
-  phone: { name: "Phone", styles: { width: "390px", height: "800px" } },
+  ...(Object.fromEntries(
+    Object.entries(SHELL_REFERENCE_WIDTHS).map(([step, width]) => [
+      step,
+      viewport(step[0]!.toUpperCase() + step.slice(1), width),
+    ]),
+  ) as Record<keyof typeof SHELL_REFERENCE_WIDTHS, ReturnType<typeof viewport>>),
+  phone: viewport("Phone", 390),
 };
 
 export function atViewport(value: keyof typeof VIEWPORTS) {
@@ -268,16 +279,16 @@ export async function expectStripOverAnIconsOnlyNavbar(canvas: Canvas): Promise<
   await expectContainersReachTheTop(canvas);
   await expect(appRegionOf(navbar.firstElementChild!)).toBe("drag");
   await expect(Math.round(navbar.firstElementChild!.getBoundingClientRect().height)).toBe(
-    STRIP_HEIGHT,
+    SHELL_TOP_STRIP_HEIGHT,
   );
   await expectEntriesBelowTheStrip(canvas);
   const pane = paneOf(canvas, "Sidebar content");
   await expect(appRegionOf(pane.firstElementChild!)).toBe("drag");
   await expect(Math.round(pane.firstElementChild!.getBoundingClientRect().height)).toBe(
-    STRIP_HEIGHT,
+    SHELL_TOP_STRIP_HEIGHT,
   );
   await expect(canvas.getByText("Sidebar content").getBoundingClientRect().top).toBeGreaterThan(
-    pane.getBoundingClientRect().top + STRIP_HEIGHT,
+    pane.getBoundingClientRect().top + SHELL_TOP_STRIP_HEIGHT,
   );
 }
 
@@ -393,8 +404,6 @@ export const brandPlace = (canvas: Canvas) => {
   return { markLeft: mark.left, markTop: mark.top, nameLeft: name.left };
 };
 
-export const STRIP_HEIGHT = 48;
-
 export const dividerIn = (navbar: Element) => {
   const divider = [...navbar.children].find((child) => widthOf(child) === 1);
   if (divider === undefined) throw new Error("the Navbar has no divider");
@@ -454,7 +463,10 @@ export const BOTH_COLLAPSED = {
 
 /** The icons-only Navbar ends 8 px after the window buttons, which end 76 px from the window edge. */
 export const expectIconsOnlyNavbarHoldsTheWindowButtons = async (canvas: Canvas): Promise<void> => {
-  await expect(navbarOf(canvas).getBoundingClientRect().right).toBeCloseTo(84, 0);
+  await expect(navbarOf(canvas).getBoundingClientRect().right).toBeCloseTo(
+    SHELL_START_AFTER_WINDOW_BUTTONS_PX,
+    0,
+  );
 };
 
 /** Centered on the wider icons-only Navbar, in the geometry an entry has everywhere else. */
@@ -497,7 +509,7 @@ export const expectContainersReachTheTop = async (canvas: Canvas): Promise<void>
 export const expectEntriesBelowTheStrip = async (canvas: Canvas): Promise<void> => {
   await expect(
     canvas.getByRole("link", { name: "Projects" }).getBoundingClientRect().top,
-  ).toBeCloseTo(navbarOf(canvas).getBoundingClientRect().top + STRIP_HEIGHT, 0);
+  ).toBeCloseTo(navbarOf(canvas).getBoundingClientRect().top + SHELL_TOP_STRIP_HEIGHT, 0);
 };
 
 export const expectMarkOnTheIconAxis = async (canvas: Canvas): Promise<void> => {

@@ -3,9 +3,9 @@ import "@mantine/spotlight/styles.css";
 import { useLingui } from "@lingui/react/macro";
 import { Kbd } from "@mantine/core";
 import { createSpotlight, Spotlight, useSpotlight } from "@mantine/spotlight";
+import { NOT_WINDOW_DRAG_STYLE } from "@self-engine/ui";
 import { Fragment, useEffect, useMemo, useState } from "react";
 import { useCommandPalette, useCommandPaletteOpen } from "./command-palette-state.tsx";
-import { NOT_WINDOW_DRAG_STYLE } from "./navigation-style.ts";
 import {
   type CommandScope,
   isViewEntry,

@@ -27,7 +27,7 @@ Stand: 2026-11-08 · Status: **entschieden** (D54–D82); Zuschnitt in Issues fo
 | L1.15 | Katalog | Storybook + Vitest-Browser-Modus (D73) |
 | L1.16 | Modul ↔ Hülle | Typisierter Hüllen-Beitrag pro Modul (D74) |
 | L1.17 | Kürzel | TanStack Hotkeys (Beta) + eigenes Befehls-Register (D75) |
-| L1.18 | App-Check | Skill `verify-desktop` (D76) |
+| L1.18 | App-Check | Skill `verify-desktop`: festes Skript gegen die gebaute App, unsichtbares Fenster, vier Breiten hell/dunkel (D76, D210–D218) |
 | L1.19 | Routen | `/<modul>/<ansicht>`, `?edit=<id>`, `/settings/<bereich>` (D77) |
 | L1.20 | Fenster | Mac `hiddenInset`; Win/Linux `titleBarOverlay` zurückgestellt (#167); Fensterzustand pro Kanal gemerkt (D78, D205–D209) |
 | L1.21 | Rückmeldung | Notifications, Rückgängig statt Nachfrage, Zustands-Bausteine (D79) |

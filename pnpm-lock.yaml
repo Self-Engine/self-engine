@@ -206,6 +206,15 @@ catalogs:
     '@messageformat/parser':
       specifier: 5.2.0
       version: 5.2.0
+    '@orpc/client':
+      specifier: 1.16.2
+      version: 1.16.2
+    '@orpc/contract':
+      specifier: 1.16.2
+      version: 1.16.2
+    '@orpc/server':
+      specifier: 1.16.2
+      version: 1.16.2
     '@oxlint/plugins':
       specifier: 1.91.0
       version: 1.91.0
@@ -303,6 +312,9 @@ importers:
 
   .:
     devDependencies:
+      '@babel/core':
+        specifier: 'catalog:'
+        version: 8.1.0
       '@lingui/cli':
         specifier: 'catalog:'
         version: 6.12.0(esbuild@0.28.2)(rolldown@1.3.0)(supports-color@7.2.0)
@@ -315,12 +327,18 @@ importers:
       '@messageformat/parser':
         specifier: 'catalog:'
         version: 5.2.0
+      '@self-engine/desktop-bridge':
+        specifier: workspace:*
+        version: link:packages/desktop-bridge
       '@self-engine/i18n':
         specifier: workspace:*
         version: link:packages/i18n
       '@self-engine/oxlint-plugin':
         specifier: workspace:*
         version: link:packages/oxlint-plugin
+      '@self-engine/shell':
+        specifier: workspace:*
+        version: link:packages/shell
       '@self-engine/theme':
         specifier: workspace:*
         version: link:packages/theme
@@ -405,7 +423,26 @@ importers:
         version: 1.5.0(@types/node@24.19.2)(@vitest/browser-playwright@5.1.0)(@vitest/ui@5.1.0)(esbuild@0.28.2)(jiti@2.7.0)(playwright@1.65.0)(typescript@7.0.2)
 
   apps/desktop:
+    dependencies:
+      better-sqlite3:
+        specifier: 'catalog:'
+        version: 13.0.3
     devDependencies:
+      '@self-engine/contracts':
+        specifier: workspace:*
+        version: link:../../packages/contracts
+      '@self-engine/data-client':
+        specifier: workspace:*
+        version: link:../../packages/data-client
+      '@self-engine/data-process':
+        specifier: workspace:*
+        version: link:../../packages/data-process
+      '@self-engine/db':
+        specifier: workspace:*
+        version: link:../../packages/db
+      '@self-engine/desktop-bridge':
+        specifier: workspace:*
+        version: link:../../packages/desktop-bridge
       '@types/node':
         specifier: 24.19.2
         version: 24.19.2
@@ -433,6 +470,12 @@ importers:
       '@mantine/hooks':
         specifier: 'catalog:'
         version: 9.7.5(react@19.3.1)
+      '@self-engine/data-client':
+        specifier: workspace:*
+        version: link:../../packages/data-client
+      '@self-engine/desktop-bridge':
+        specifier: workspace:*
+        version: link:../../packages/desktop-bridge
       '@self-engine/i18n':
         specifier: workspace:*
         version: link:../../packages/i18n
@@ -507,8 +550,80 @@ importers:
         specifier: 1.5.0
         version: 1.5.0(@types/node@24.19.2)(@vitest/browser-playwright@5.1.0)(@vitest/ui@5.1.0)(esbuild@0.28.2)(jiti@2.7.0)(playwright@1.65.0)(typescript@7.0.2)
 
+  packages/contracts:
+    dependencies:
+      '@orpc/contract':
+        specifier: 'catalog:'
+        version: 1.16.2
+      zod:
+        specifier: 'catalog:'
+        version: 4.6.7
+    devDependencies:
+      vite-plus:
+        specifier: 1.5.0
+        version: 1.5.0(@types/node@24.19.2)(@vitest/browser-playwright@5.1.0)(@vitest/ui@5.1.0)(esbuild@0.28.2)(jiti@2.7.0)(playwright@1.65.0)(typescript@7.0.2)
+
+  packages/data-client:
+    dependencies:
+      '@orpc/client':
+        specifier: 'catalog:'
+        version: 1.16.2
+      '@orpc/contract':
+        specifier: 'catalog:'
+        version: 1.16.2
+      '@self-engine/contracts':
+        specifier: workspace:*
+        version: link:../contracts
+    devDependencies:
+      '@self-engine/data-process':
+        specifier: workspace:*
+        version: link:../data-process
+      '@types/node':
+        specifier: 24.19.2
+        version: 24.19.2
+      vite-plus:
+        specifier: 1.5.0
+        version: 1.5.0(@types/node@24.19.2)(@vitest/browser-playwright@5.1.0)(@vitest/ui@5.1.0)(esbuild@0.28.2)(jiti@2.7.0)(playwright@1.65.0)(typescript@7.0.2)
+
+  packages/data-process:
+    dependencies:
+      '@orpc/server':
+        specifier: 'catalog:'
+        version: 1.16.2(ws@8.22.1)
+      '@self-engine/contracts':
+        specifier: workspace:*
+        version: link:../contracts
+      '@self-engine/db':
+        specifier: workspace:*
+        version: link:../db
+      '@self-engine/storage':
+        specifier: workspace:*
+        version: link:../storage
+      kysely:
+        specifier: 'catalog:'
+        version: 0.29.8
+    devDependencies:
+      '@orpc/client':
+        specifier: 'catalog:'
+        version: 1.16.2
+      '@orpc/contract':
+        specifier: 'catalog:'
+        version: 1.16.2
+      '@types/node':
+        specifier: 24.19.2
+        version: 24.19.2
+      vite-plus:
+        specifier: 1.5.0
+        version: 1.5.0(@types/node@24.19.2)(@vitest/browser-playwright@5.1.0)(@vitest/ui@5.1.0)(esbuild@0.28.2)(jiti@2.7.0)(playwright@1.65.0)(typescript@7.0.2)
+      zod:
+        specifier: 'catalog:'
+        version: 4.6.7
+
   packages/db:
     dependencies:
+      '@self-engine/time':
+        specifier: workspace:*
+        version: link:../time
       better-sqlite3:
         specifier: 'catalog:'
         version: 13.0.3
@@ -518,6 +633,9 @@ importers:
       uuid:
         specifier: 'catalog:'
         version: 14.0.3
+      zod:
+        specifier: 'catalog:'
+        version: 4.6.7
     devDependencies:
       '@types/better-sqlite3':
         specifier: 'catalog:'
@@ -529,6 +647,16 @@ importers:
         specifier: 1.5.0
         version: 1.5.0(@types/node@24.19.2)(@vitest/browser-playwright@5.1.0)(@vitest/ui@5.1.0)(esbuild@0.28.2)(jiti@2.7.0)(playwright@1.65.0)(typescript@7.0.2)
 
+  packages/desktop-bridge:
+    dependencies:
+      '@self-engine/contracts':
+        specifier: workspace:*
+        version: link:../contracts
+    devDependencies:
+      vite-plus:
+        specifier: 1.5.0
+        version: 1.5.0(@types/node@24.19.2)(@vitest/browser-playwright@5.1.0)(@vitest/ui@5.1.0)(esbuild@0.28.2)(jiti@2.7.0)(playwright@1.65.0)(typescript@7.0.2)
+
   packages/i18n:
     dependencies:
       '@lingui/conf':
@@ -536,16 +664,16 @@ importers:
         version: 6.12.0
       '@lingui/core':
         specifier: 'catalog:'
-        version: 6.12.0(@babel/core@7.29.13(supports-color@7.2.0))
+        version: 6.12.0(@babel/core@8.1.0)
       '@lingui/format-po':
         specifier: 'catalog:'
         version: 6.12.0
       '@lingui/react':
         specifier: 'catalog:'
-        version: 6.12.0(@babel/core@7.29.13(supports-color@7.2.0))(react@19.3.1)
+        version: 6.12.0(@babel/core@8.1.0)(react@19.3.1)
       '@lingui/vite-plugin':
         specifier: 'catalog:'
-        version: 6.12.0(@babel/core@7.29.13(supports-color@7.2.0))(@lingui/babel-plugin-lingui-macro@6.12.0(@babel/core@7.29.13(supports-color@7.2.0)))(@voidzero-dev/vite-plus-core@1.5.0(@types/node@24.19.2)(esbuild@0.28.2)(jiti@2.7.0)(typescript@7.0.2))(esbuild@0.28.2)(rolldown@1.3.0)(supports-color@7.2.0)
+        version: 6.12.0(@babel/core@8.1.0)(@lingui/babel-plugin-lingui-macro@6.12.0(@babel/core@8.1.0))(@voidzero-dev/vite-plus-core@1.5.0(@types/node@24.19.2)(esbuild@0.28.2)(jiti@2.7.0)(typescript@7.0.2))(esbuild@0.28.2)(rolldown@1.3.0)(supports-color@7.2.0)
       react:
         specifier: 'catalog:'
         version: 19.3.1
@@ -623,10 +751,10 @@ importers:
     dependencies:
       '@lingui/core':
         specifier: 'catalog:'
-        version: 6.12.0(@babel/core@7.29.13(supports-color@7.2.0))
+        version: 6.12.0(@babel/core@8.1.0)
       '@lingui/react':
         specifier: 'catalog:'
-        version: 6.12.0(@babel/core@7.29.13(supports-color@7.2.0))(react@19.3.1)
+        version: 6.12.0(@babel/core@8.1.0)(react@19.3.1)
       '@mantine/core':
         specifier: 'catalog:'
         version: 9.7.5(@mantine/hooks@9.7.5(react@19.3.1))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
@@ -663,10 +791,10 @@ importers:
     dependencies:
       '@lingui/core':
         specifier: 'catalog:'
-        version: 6.12.0(@babel/core@7.29.13(supports-color@7.2.0))
+        version: 6.12.0(@babel/core@8.1.0)
       '@lingui/react':
         specifier: 'catalog:'
-        version: 6.12.0(@babel/core@7.29.13(supports-color@7.2.0))(react@19.3.1)
+        version: 6.12.0(@babel/core@8.1.0)(react@19.3.1)
       '@mantine/core':
         specifier: 'catalog:'
         version: 9.7.5(@mantine/hooks@9.7.5(react@19.3.1))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
@@ -713,10 +841,10 @@ importers:
     dependencies:
       '@lingui/core':
         specifier: 'catalog:'
-        version: 6.12.0(@babel/core@7.29.13(supports-color@7.2.0))
+        version: 6.12.0(@babel/core@8.1.0)
       '@lingui/react':
         specifier: 'catalog:'
-        version: 6.12.0(@babel/core@7.29.13(supports-color@7.2.0))(react@19.3.1)
+        version: 6.12.0(@babel/core@8.1.0)(react@19.3.1)
       '@mantine/core':
         specifier: 'catalog:'
         version: 9.7.5(@mantine/hooks@9.7.5(react@19.3.1))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
@@ -768,10 +896,10 @@ importers:
     dependencies:
       '@lingui/core':
         specifier: 'catalog:'
-        version: 6.12.0(@babel/core@7.29.13(supports-color@7.2.0))
+        version: 6.12.0(@babel/core@8.1.0)
       '@lingui/react':
         specifier: 'catalog:'
-        version: 6.12.0(@babel/core@7.29.13(supports-color@7.2.0))(react@19.3.1)
+        version: 6.12.0(@babel/core@8.1.0)(react@19.3.1)
       '@mantine/core':
         specifier: 'catalog:'
         version: 9.7.5(@mantine/hooks@9.7.5(react@19.3.1))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
@@ -822,6 +950,37 @@ importers:
         specifier: 1.5.0
         version: 1.5.0(@types/node@24.19.2)(@vitest/browser-playwright@5.1.0)(@vitest/ui@5.1.0)(esbuild@0.28.2)(jiti@2.7.0)(playwright@1.65.0)(typescript@7.0.2)
 
+  packages/storage:
+    dependencies:
+      '@orpc/contract':
+        specifier: 'catalog:'
+        version: 1.16.2
+      '@orpc/server':
+        specifier: 'catalog:'
+        version: 1.16.2(ws@8.22.1)
+      '@self-engine/db':
+        specifier: workspace:*
+        version: link:../db
+      '@self-engine/time':
+        specifier: workspace:*
+        version: link:../time
+      kysely:
+        specifier: 'catalog:'
+        version: 0.29.8
+      zod:
+        specifier: 'catalog:'
+        version: 4.6.7
+    devDependencies:
+      '@orpc/client':
+        specifier: 'catalog:'
+        version: 1.16.2
+      '@types/node':
+        specifier: 24.19.2
+        version: 24.19.2
+      vite-plus:
+        specifier: 1.5.0
+        version: 1.5.0(@types/node@24.19.2)(@vitest/browser-playwright@5.1.0)(@vitest/ui@5.1.0)(esbuild@0.28.2)(jiti@2.7.0)(playwright@1.65.0)(typescript@7.0.2)
+
   packages/theme:
     dependencies:
       '@fontsource-variable/inter':
@@ -862,14 +1021,24 @@ importers:
         specifier: 1.5.0
         version: 1.5.0(@types/node@24.19.2)(@vitest/browser-playwright@5.1.0)(@vitest/ui@5.1.0)(esbuild@0.28.2)(jiti@2.7.0)(playwright@1.65.0)(typescript@7.0.2)
 
+  packages/time:
+    dependencies:
+      zod:
+        specifier: 'catalog:'
+        version: 4.6.7
+    devDependencies:
+      vite-plus:
+        specifier: 1.5.0
+        version: 1.5.0(@types/node@24.19.2)(@vitest/browser-playwright@5.1.0)(@vitest/ui@5.1.0)(esbuild@0.28.2)(jiti@2.7.0)(playwright@1.65.0)(typescript@7.0.2)
+
   packages/ui:
     dependencies:
       '@lingui/core':
         specifier: 'catalog:'
-        version: 6.12.0(@babel/core@7.29.13(supports-color@7.2.0))
+        version: 6.12.0(@babel/core@8.1.0)
       '@lingui/react':
         specifier: 'catalog:'
-        version: 6.12.0(@babel/core@7.29.13(supports-color@7.2.0))(react@19.3.1)
+        version: 6.12.0(@babel/core@8.1.0)(react@19.3.1)
       '@mantine/core':
         specifier: 'catalog:'
         version: 9.7.5(@mantine/hooks@9.7.5(react@19.3.1))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
@@ -1562,6 +1731,57 @@ packages:
     resolution: {integrity: sha512-X5XaVWZIBCT7HHZGm5I7ZQXDwLG+bGXuSrMQAW+7Zvl87h1kmc1ZB1VSRJcpUfoUrGQp4Fkoxm5kZ+Ms+aW+eA==}
     engines: {node: '>= 20.19.0'}
 
+  '@orpc/client@1.16.2':
+    resolution: {integrity: sha512-c1Y6WGXLomRAJfLvSgIp8cEed/pOxVgxrXJYeLPGzItkTQ62pndsaLCSVl+WTJz5uvmpvLt2jtp2IE1noidtUg==}
+
+  '@orpc/contract@1.16.2':
+    resolution: {integrity: sha512-n2YuNUerGQoS/KSrIFUPxNtFyIDqHVS/OBVlMXXTukeGPfAjVTM9gHhf5EKX9HSdpDHqf/5ken1wlZZTaI4Rlg==}
+
+  '@orpc/interop@1.16.2':
+    resolution: {integrity: sha512-0TJ8s9lMk61DDamXUhaFT0b+f7dvHoJBklTVUWG1mVbPLA4ccE22xtHuzk6O4MooD3sVlDNbF4z9x9AkbLBnhw==}
+
+  '@orpc/server@1.16.2':
+    resolution: {integrity: sha512-GNZp4Ol/EIOJO7SDM9K8NM0qhtbND3hR9Q3Pj6fJxQYI/lV/A+8UkAFrp9bAAf388JsOxFFN3qFxgFOy5GQLag==}
+    peerDependencies:
+      crossws: '>=0.3.4'
+      ws: '>=8.18.1'
+    peerDependenciesMeta:
+      crossws:
+        optional: true
+      ws:
+        optional: true
+
+  '@orpc/shared@1.16.2':
+    resolution: {integrity: sha512-j9EX9FvUcnR4tz5ooheC1R7guNg04UePb0Ws7/3GYEJBCX+8OmXKXiNaytTeUbs1zYZbZqyZrE2/FewBeYu7BA==}
+    peerDependencies:
+      '@opentelemetry/api': '>=1.9.0'
+    peerDependenciesMeta:
+      '@opentelemetry/api':
+        optional: true
+
+  '@orpc/standard-server-aws-lambda@1.16.2':
+    resolution: {integrity: sha512-in3TYXpwp0+5++Kgk2M69lSExE4R7cz7+X9SjDpfZjtmlOt3Fkxo5bP8u5Ah3Xyk7flkcqMb3i4Yc9VUrTMhlw==}
+
+  '@orpc/standard-server-fastify@1.16.2':
+    resolution: {integrity: sha512-mO3PBAzOicc/6oLLR63exTZ/JfUl8k9YFgBHdbzdcBF5RNygHmRYwE9maoBnIP5bAoeN3/Qd0k2R1njj0GbQDw==}
+    peerDependencies:
+      fastify: '>=5.6.1'
+    peerDependenciesMeta:
+      fastify:
+        optional: true
+
+  '@orpc/standard-server-fetch@1.16.2':
+    resolution: {integrity: sha512-LKuyi5H6Exsvm611XjJxNfQiqjXbvNjKkMVAu/yC46LeTPc0o6cO/AF6G6VERl95E97dZCtPkMfKDyOppLONsw==}
+
+  '@orpc/standard-server-node@1.16.2':
+    resolution: {integrity: sha512-cwdVnBSQ2h46TSkxz0U9NPXCCrjxEN/s3T6uEyOLZaMY8E4QnjgAyZ5DuF1SkqLy4d9/FtQjAy4X4zn0NelYGw==}
+
+  '@orpc/standard-server-peer@1.16.2':
+    resolution: {integrity: sha512-vtYUUWIShiUs4CVbaMWrnGI/Wgro9aZXme69kaIONJ2siq15oYT+PASbQaePdokr2NUe8aL1NKLKlsT/2rMT4A==}
+
+  '@orpc/standard-server@1.16.2':
+    resolution: {integrity: sha512-tfDncJE1025RNnkav67Bz9KmxX8yhOflDXTRIXs4EAy2KGK/cT1KdN3sQ1U/sEhfRKu5PYYWkAO6AvRD2NQt0g==}
+
   '@oxc-parser/binding-android-arm-eabi@0.127.0':
     resolution: {integrity: sha512-0LC7ye4hvqbIKxAzThzvswgHLFu2AURKzYLeSVvLdu2TBOYWQDmHnTqPLeA597BcUCxiLqLsS4CJ5uoI5WYWCQ==}
     engines: {node: ^20.19.0 || >=22.12.0}
@@ -2241,6 +2461,9 @@ packages:
   '@sindresorhus/is@4.6.0':
     resolution: {integrity: sha512-t09vSN3MdfsyCHoFcTRCH/iUtG7OJ0CsjzB8cjAmKc/va/kIgeDI/TxsigdncE/4be734m0cvIYwNaV4i2XqAw==}
     engines: {node: '>=10'}
+
+  '@standard-schema/spec@1.1.0':
+    resolution: {integrity: sha512-l2aFy5jALhniG5HgqrD6jXLi/rUWrKvqN/qJx6yoJsgKhblVd+iqqU4RCXavm/jPityDo5TCvKMnpjKnOriy0w==}
 
   '@storybook/addon-vitest@10.6.6':
     resolution: {integrity: sha512-wyCJ6922tD/xxcADk0lnKqZ5OiekD59oIyt7iUZM7X/nUOqfoY3AU4kwvvIM+6sd68YUT8QyTmGZAzyiLVduFA==}
@@ -3267,6 +3490,10 @@ packages:
   cookie-es@3.1.1:
     resolution: {integrity: sha512-UaXxwISYJPTr9hwQxMFYZ7kNhSXboMXP+Z3TRX6f1/NyaGPfuNUZOWP1pUEb75B2HjfklIYLVRfWiFZJyC6Npg==}
 
+  cookie@1.1.1:
+    resolution: {integrity: sha512-ei8Aos7ja0weRpFzJnEA9UHJ/7XQmqglbRwnf2ATjcB9Wq874VKH9kfjjirM6UhU2/E5fFYadylyhFldcqSidQ==}
+    engines: {node: '>=18'}
+
   core-util-is@1.0.3:
     resolution: {integrity: sha512-ZQBvi1DcpJ4GDqanjucZ2Hj3wEO5pZDS89BWbkcrvdxksJorwUDDZamX9ldFkp9aw2lmBDLgkObEA4DWNJ9FYQ==}
 
@@ -4096,6 +4323,9 @@ packages:
     resolution: {integrity: sha512-YgBpdJHPyQ2UE5x+hlSXcnejzAvD0b22U2OuAP+8OnlJT+PjWPxtgmGqKKc+RgTM63U9gN0YzrYc71R2WT/hTA==}
     engines: {node: '>=18'}
 
+  openapi-types@12.1.3:
+    resolution: {integrity: sha512-N4YtSYJqghVu4iek2ZUvcN/0aqH1kRDuNqzcycDxhOUpg7GdvLa2F3DgS6yBNhInhv2r/6I0Flkn7CqL8+nIcw==}
+
   ora@9.4.1:
     resolution: {integrity: sha512-6VlU9MLXbjVQD04AZCMX28hVtA5bUoadvUqO76MUCVA0ilwJbMiHsITRPfyVm6p/BC0Av/BXMujx39WCe1LEqw==}
     engines: {node: '>=20'}
@@ -4276,6 +4506,10 @@ packages:
   quick-lru@5.1.1:
     resolution: {integrity: sha512-WuyALRjWPDGtt/wzJiadO5AXY+8hZ80hVpe6MyivgraREW751X3SbhRvG3eLKOYN+8VEvqLcf3wdnt44Z4S4SA==}
     engines: {node: '>=10'}
+
+  radash@12.1.1:
+    resolution: {integrity: sha512-h36JMxKRqrAxVD8201FrCpyeNuUY9Y5zZwujr20fFO77tpUtGa6EZzfKw/3WaiBX95fq7+MpsuMLNdSnORAwSA==}
+    engines: {node: '>=14.18.0'}
 
   react-docgen-typescript@2.4.0:
     resolution: {integrity: sha512-ZtAp5XTO5HRzQctjPU0ybY0RRCQO19X/8fxn3w7y2VVTUbGHDKULPTL4ky3vB05euSgG5NpALhEhDPvQ56wvXg==}
@@ -5559,15 +5793,6 @@ snapshots:
       '@lingui/native-tools-win32-arm64-msvc': 0.2.0
       '@lingui/native-tools-win32-x64-msvc': 0.2.0
 
-  '@lingui/react@6.12.0(@babel/core@7.29.13(supports-color@7.2.0))(react@19.3.1)':
-    dependencies:
-      '@lingui/babel-plugin-lingui-macro': 6.12.0(@babel/core@7.29.13(supports-color@7.2.0))
-      '@lingui/core': 6.12.0(@babel/core@7.29.13(supports-color@7.2.0))
-      react: 19.3.1
-      use-sync-external-store: 1.7.0(react@19.3.1)
-    transitivePeerDependencies:
-      - '@babel/core'
-
   '@lingui/react@6.12.0(@babel/core@8.1.0)(react@19.3.1)':
     dependencies:
       '@lingui/babel-plugin-lingui-macro': 6.12.0(@babel/core@8.1.0)
@@ -5577,15 +5802,15 @@ snapshots:
     transitivePeerDependencies:
       - '@babel/core'
 
-  '@lingui/vite-plugin@6.12.0(@babel/core@7.29.13(supports-color@7.2.0))(@lingui/babel-plugin-lingui-macro@6.12.0(@babel/core@7.29.13(supports-color@7.2.0)))(@voidzero-dev/vite-plus-core@1.5.0(@types/node@24.19.2)(esbuild@0.28.2)(jiti@2.7.0)(typescript@7.0.2))(esbuild@0.28.2)(rolldown@1.3.0)(supports-color@7.2.0)':
+  '@lingui/vite-plugin@6.12.0(@babel/core@8.1.0)(@lingui/babel-plugin-lingui-macro@6.12.0(@babel/core@8.1.0))(@voidzero-dev/vite-plus-core@1.5.0(@types/node@24.19.2)(esbuild@0.28.2)(jiti@2.7.0)(typescript@7.0.2))(esbuild@0.28.2)(rolldown@1.3.0)(supports-color@7.2.0)':
     dependencies:
       '@lingui/cli': 6.12.0(esbuild@0.28.2)(rolldown@1.3.0)(supports-color@7.2.0)
       '@lingui/conf': 6.12.0
       '@lingui/native-tools': 0.2.0(@lingui/conf@6.12.0)
       vite: '@voidzero-dev/vite-plus-core@1.5.0(@types/node@24.19.2)(esbuild@0.28.2)(jiti@2.7.0)(typescript@7.0.2)'
     optionalDependencies:
-      '@babel/core': 7.29.13(supports-color@7.2.0)
-      '@lingui/babel-plugin-lingui-macro': 6.12.0(@babel/core@7.29.13(supports-color@7.2.0))
+      '@babel/core': 8.1.0
+      '@lingui/babel-plugin-lingui-macro': 6.12.0(@babel/core@8.1.0)
       rolldown: 1.3.0
     transitivePeerDependencies:
       - babel-plugin-macros
@@ -5680,6 +5905,95 @@ snapshots:
   '@noble/hashes@1.8.0': {}
 
   '@noble/hashes@2.4.0': {}
+
+  '@orpc/client@1.16.2':
+    dependencies:
+      '@orpc/shared': 1.16.2
+      '@orpc/standard-server': 1.16.2
+      '@orpc/standard-server-fetch': 1.16.2
+      '@orpc/standard-server-peer': 1.16.2
+    transitivePeerDependencies:
+      - '@opentelemetry/api'
+
+  '@orpc/contract@1.16.2':
+    dependencies:
+      '@orpc/client': 1.16.2
+      '@orpc/shared': 1.16.2
+      '@standard-schema/spec': 1.1.0
+      openapi-types: 12.1.3
+    transitivePeerDependencies:
+      - '@opentelemetry/api'
+
+  '@orpc/interop@1.16.2': {}
+
+  '@orpc/server@1.16.2(ws@8.22.1)':
+    dependencies:
+      '@orpc/client': 1.16.2
+      '@orpc/contract': 1.16.2
+      '@orpc/interop': 1.16.2
+      '@orpc/shared': 1.16.2
+      '@orpc/standard-server': 1.16.2
+      '@orpc/standard-server-aws-lambda': 1.16.2
+      '@orpc/standard-server-fastify': 1.16.2
+      '@orpc/standard-server-fetch': 1.16.2
+      '@orpc/standard-server-node': 1.16.2
+      '@orpc/standard-server-peer': 1.16.2
+      cookie: 1.1.1
+    optionalDependencies:
+      ws: 8.22.1
+    transitivePeerDependencies:
+      - '@opentelemetry/api'
+      - fastify
+
+  '@orpc/shared@1.16.2':
+    dependencies:
+      radash: 12.1.1
+      type-fest: 5.10.0
+
+  '@orpc/standard-server-aws-lambda@1.16.2':
+    dependencies:
+      '@orpc/shared': 1.16.2
+      '@orpc/standard-server': 1.16.2
+      '@orpc/standard-server-fetch': 1.16.2
+      '@orpc/standard-server-node': 1.16.2
+    transitivePeerDependencies:
+      - '@opentelemetry/api'
+
+  '@orpc/standard-server-fastify@1.16.2':
+    dependencies:
+      '@orpc/shared': 1.16.2
+      '@orpc/standard-server': 1.16.2
+      '@orpc/standard-server-node': 1.16.2
+    transitivePeerDependencies:
+      - '@opentelemetry/api'
+
+  '@orpc/standard-server-fetch@1.16.2':
+    dependencies:
+      '@orpc/shared': 1.16.2
+      '@orpc/standard-server': 1.16.2
+    transitivePeerDependencies:
+      - '@opentelemetry/api'
+
+  '@orpc/standard-server-node@1.16.2':
+    dependencies:
+      '@orpc/shared': 1.16.2
+      '@orpc/standard-server': 1.16.2
+      '@orpc/standard-server-fetch': 1.16.2
+    transitivePeerDependencies:
+      - '@opentelemetry/api'
+
+  '@orpc/standard-server-peer@1.16.2':
+    dependencies:
+      '@orpc/shared': 1.16.2
+      '@orpc/standard-server': 1.16.2
+    transitivePeerDependencies:
+      - '@opentelemetry/api'
+
+  '@orpc/standard-server@1.16.2':
+    dependencies:
+      '@orpc/shared': 1.16.2
+    transitivePeerDependencies:
+      - '@opentelemetry/api'
 
   '@oxc-parser/binding-android-arm-eabi@0.127.0':
     optional: true
@@ -6048,6 +6362,8 @@ snapshots:
   '@sinclair/typebox@0.27.12': {}
 
   '@sindresorhus/is@4.6.0': {}
+
+  '@standard-schema/spec@1.1.0': {}
 
   '@storybook/addon-vitest@10.6.6(@vitest/browser-playwright@5.1.0)(@vitest/browser@5.1.0(@voidzero-dev/vite-plus-core@1.5.0(@types/node@24.19.2)(esbuild@0.28.2)(jiti@2.7.0)(typescript@7.0.2))(vitest@5.1.0))(react@19.3.1)(storybook@10.6.6(@types/react@19.3.0)(prettier@3.9.10)(react@19.3.1)(vite-plus@1.5.0(@types/node@24.19.2)(@vitest/browser-playwright@5.1.0)(@vitest/ui@5.1.0)(esbuild@0.28.2)(jiti@2.7.0)(playwright@1.65.0)(typescript@7.0.2)))(vitest@5.1.0)':
     dependencies:
@@ -6972,6 +7288,8 @@ snapshots:
 
   cookie-es@3.1.1: {}
 
+  cookie@1.1.1: {}
+
   core-util-is@1.0.3: {}
 
   cross-dirname@0.1.0:
@@ -7784,6 +8102,8 @@ snapshots:
       is-inside-container: 1.0.0
       wsl-utils: 0.1.0
 
+  openapi-types@12.1.3: {}
+
   ora@9.4.1:
     dependencies:
       chalk: 5.6.2
@@ -8023,6 +8343,8 @@ snapshots:
   pvutils@1.2.0: {}
 
   quick-lru@5.1.1: {}
+
+  radash@12.1.1: {}
 
   react-docgen-typescript@2.4.0(typescript@7.0.2):
     dependencies:

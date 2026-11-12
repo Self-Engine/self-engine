@@ -7,6 +7,10 @@ msgstr ""
 "X-Generator: @lingui/cli\n"
 "Language: en\n"
 
+#: apps/web/src/data-connection-states.tsx
+msgid "A newer version already applied the update {migration}, which this version does not know. Open your data with the newer version."
+msgstr "A newer version already applied the update {migration}, which this version does not know. Open your data with the newer version."
+
 #: packages/settings-area/src/index.ts
 msgid "About"
 msgstr "About"
@@ -377,6 +381,10 @@ msgstr "Placeholder Beta"
 msgid "Platform"
 msgstr "Platform"
 
+#: apps/web/src/data-connection-states.tsx
+msgid "Reconnecting to your data…"
+msgstr "Reconnecting to your data…"
+
 #: packages/settings-area/src/about-rows.tsx
 msgid "Release"
 msgstr "Release"
@@ -505,6 +513,10 @@ msgstr "The language the app is shown in. \"System\" follows the language of thi
 msgid "The minimal module View."
 msgstr "The minimal module View."
 
+#: apps/web/src/data-connection-states.tsx
+msgid "The part of Self-Engine that keeps your data stopped after it crashed several times."
+msgstr "The part of Self-Engine that keeps your data stopped after it crashed several times."
+
 #: packages/settings-area/src/about-rows.tsx
 msgid "The release line this app belongs to."
 msgstr "The release line this app belongs to."
@@ -532,6 +544,10 @@ msgstr "This entry could not be loaded."
 #: packages/shell/src/lazy-contribution.tsx
 msgid "This part could not be loaded."
 msgstr "This part could not be loaded."
+
+#: apps/web/src/data-connection-states.tsx
+msgid "This version of Self-Engine could not apply the update {migration} to your data. It was undone, so your data is unchanged."
+msgstr "This version of Self-Engine could not apply the update {migration} to your data. It was undone, so your data is unchanged."
 
 #: apps/web/src/route-states.tsx
 msgid "This View could not be loaded. Please try again."
@@ -588,6 +604,18 @@ msgstr "Warm"
 #: packages/shell/src/edit-drawer-exits.tsx
 msgid "What you changed here will be lost."
 msgstr "What you changed here will be lost."
+
+#: apps/web/src/data-connection-states.tsx
+msgid "Your data cannot be reached."
+msgstr "Your data cannot be reached."
+
+#: apps/web/src/data-connection-states.tsx
+msgid "Your data comes from a newer version of Self-Engine."
+msgstr "Your data comes from a newer version of Self-Engine."
+
+#: apps/web/src/data-connection-states.tsx
+msgid "Your data could not be updated."
+msgstr "Your data could not be updated."
 
 #: packages/settings-area/src/rows.tsx
 msgid "Zoom"

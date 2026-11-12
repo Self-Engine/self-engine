@@ -1,7 +1,19 @@
+import "./observe-main-errors.ts";
 import path from "node:path";
-import { BrowserWindow, app, net, protocol, screen } from "electron";
+import {
+  BrowserWindow,
+  MessageChannelMain,
+  app,
+  ipcMain,
+  net,
+  protocol,
+  screen,
+  utilityProcess,
+} from "electron";
 import { buildIdentity } from "./build-channel.ts";
-import { resolveDevServer, userDataPath, versionArgument } from "./channel.ts";
+import { resolveDevServer, shouldHideWindow, userDataPath, versionArgument } from "./channel.ts";
+import { databaseFile, isOwnPage, serveDataProcessRequests } from "./data-process-host.ts";
+import { superviseDataProcess } from "./data-process-supervisor.ts";
 import {
   contentSecurityPolicy,
   desktopUrl,
@@ -14,6 +26,7 @@ import { titleBarOptions } from "./title-bar.ts";
 import {
   MINIMUM_WIDTH,
   type WindowSnapshot,
+  applyWindowOpening,
   openWindowState,
   recordWindowState,
 } from "./window-state.ts";
@@ -57,6 +70,24 @@ function registerProtocol(devServer: URL | undefined): void {
   });
 }
 
+// Starts beside the window, so the database opens while the page loads. The page asks for its
+// port, and gets it once the data process is serving; after a crash it gets a fresh one.
+function startDataProcess(): void {
+  const supervisor = superviseDataProcess({
+    databasePath: databaseFile(app.getPath("userData")),
+    startProcess: (args) =>
+      utilityProcess.fork(path.join(__dirname, "data-process.cjs"), args, {
+        serviceName: `${productName} Data`,
+      }),
+    createChannel: () => new MessageChannelMain(),
+    now: () => performance.now(),
+    isOwnPage: (frame) => isOwnPage(frame, scheme),
+  });
+  serveDataProcessRequests(ipcMain, supervisor, scheme);
+  // Quitting ends the data process on purpose: no crash, no restart.
+  app.on("will-quit", () => supervisor.stop());
+}
+
 // The Window State's file; per channel, because each channel has its own data folder.
 function windowStateFile(): string {
   return path.join(app.getPath("userData"), "window-state.json");
@@ -95,7 +126,7 @@ function rememberWindowState(window: BrowserWindow): void {
   window.on("close", () => recorder.close(windowSnapshot(window)));
 }
 
-async function openWindow(): Promise<void> {
+async function openWindow(hidden: boolean): Promise<void> {
   const primary = screen.getPrimaryDisplay();
   const opening = openWindowState(
     windowStateFile(),
@@ -118,16 +149,13 @@ async function openWindow(): Promise<void> {
       preload: path.join(__dirname, "preload.cjs"),
       contextIsolation: true,
       sandbox: true,
+      backgroundThrottling: !hidden,
       // Read by the preload, which hands the version on to the page.
       additionalArguments: [versionArgument(app.getVersion())],
     },
   });
   window.once("ready-to-show", () => {
-    if (opening.maximize) window.maximize();
-    window.show();
-    // On macOS full screen is a Space of its own, which a hidden window cannot enter.
-    if (opening.fullScreen) window.setFullScreen(true);
-    rememberWindowState(window);
+    if (!hidden) applyWindowOpening(window, opening, () => rememberWindowState(window));
   });
   window.webContents.setWindowOpenHandler(() => ({ action: "deny" }));
   window.webContents.on("will-navigate", (event, url) => {
@@ -139,11 +167,15 @@ async function openWindow(): Promise<void> {
 async function start(): Promise<void> {
   // Set by the dev runner (scripts/desktop-dev.ts).
   const devServer = resolveDevServer(channel, process.env.VITE_DEV_SERVER_URL);
+  const hidden = shouldHideWindow(channel, process.env.SELF_ENGINE_HIDDEN);
+  // Hide before readiness so automation never activates the app or shows its Dock icon.
+  if (hidden) app.dock?.hide();
   await app.whenReady();
   // `electron .` runs under Electron's own bundle, so the Dock needs telling.
-  if (channel === "dev") app.dock?.setIcon(path.join(app.getAppPath(), icon));
+  if (channel === "dev" && !hidden) app.dock?.setIcon(path.join(app.getAppPath(), icon));
   registerProtocol(devServer);
-  await openWindow();
+  startDataProcess();
+  await openWindow(hidden);
 }
 
 function failStart(error: unknown): void {

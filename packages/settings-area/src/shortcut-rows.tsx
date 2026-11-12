@@ -3,7 +3,6 @@
 
 import type { MessageDescriptor } from "@lingui/core";
 import { Kbd } from "@mantine/core";
-import { displayShortcut } from "@self-engine/shell/shortcut-display";
 import { msg } from "@lingui/core/macro";
 import {
   type CommandOwner,
@@ -11,6 +10,7 @@ import {
   PALETTE_SHORTCUT,
   shellCommands,
 } from "@self-engine/shell";
+import { displayShortcut } from "@self-engine/shell/shortcut-display";
 import type { SettingsRow, SettingsRowGroup } from "./row.ts";
 import { VIEW_IDS } from "./views.ts";
 

@@ -1,3 +1,8 @@
+import {
+  SHELL_TOP_STRIP_HEIGHT,
+  SHELL_REFERENCE_WIDTHS,
+  SHELL_START_AFTER_WINDOW_BUTTONS_PX,
+} from "@self-engine/shell/geometry";
 import type { Meta } from "@storybook/react-vite";
 import { expect, screen, userEvent, waitFor, within } from "storybook/test";
 import {
@@ -11,7 +16,6 @@ import {
   ENTRIES,
   LOGO,
   LOGO_AND_WINDOW_BUTTONS,
-  STRIP_HEIGHT,
   appRegionOf,
   LONG_MODULE,
   atFrameWidth,
@@ -41,7 +45,7 @@ export const WidenedWindowClosesTheDrawer: Story = {
   play: async ({ canvas }) => {
     await userEvent.click(canvas.getByRole("button", { name: "Open navigation" }));
     await screen.findByRole("dialog", { name: "Module Sidebar" });
-    await atFrameWidth(1100, async () => {
+    await atFrameWidth(SHELL_REFERENCE_WIDTHS.medium, async () => {
       await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
     });
     await waitFor(() =>
@@ -81,13 +85,15 @@ export const TheDrawerHeaderSitsBelowTheStripWithWindowButtons: Story = {
     const strip = mark.parentElement!.parentElement!;
     await expect(appRegionOf(strip)).toBe("drag");
     await expect(getComputedStyle(strip).borderBlockEndWidth).toBe("0px");
-    await expect(strip.getBoundingClientRect().height).toBeCloseTo(STRIP_HEIGHT, 0);
+    await expect(strip.getBoundingClientRect().height).toBeCloseTo(SHELL_TOP_STRIP_HEIGHT, 0);
     await expect(centerY(strip)).toBeCloseTo(centerY(pageTitle), 0);
     await expect(drawerHeaderOf(drawer).getBoundingClientRect().top).toBeCloseTo(
       strip.getBoundingClientRect().bottom,
       0,
     );
-    await waitFor(() => expect(mark.getBoundingClientRect().left).toBeCloseTo(84, 0));
+    await waitFor(() =>
+      expect(mark.getBoundingClientRect().left).toBeCloseTo(SHELL_START_AFTER_WINDOW_BUTTONS_PX, 0),
+    );
     await expect(
       within(drawer).getByText("Self-Engine").getBoundingClientRect().right,
     ).toBeLessThan(drawer.getBoundingClientRect().right);
@@ -256,7 +262,10 @@ export const TheDrawerLogoFitsAtTheSmallestFontScale: Story = {
   play: async ({ canvas }) => {
     const drawer = await openDrawer(canvas);
     await waitFor(() =>
-      expect(within(drawer).getByTestId("mark").getBoundingClientRect().left).toBeCloseTo(84, 0),
+      expect(within(drawer).getByTestId("mark").getBoundingClientRect().left).toBeCloseTo(
+        SHELL_START_AFTER_WINDOW_BUTTONS_PX,
+        0,
+      ),
     );
     await expect(
       within(drawer).getByText("Self-Engine").getBoundingClientRect().right,
@@ -304,7 +313,7 @@ export const ThePhoneDrawerHoldsOnlyTheModuleSidebar: Story = {
   args: { logo: LOGO, moduleSidebarWidth: 320 },
   play: async ({ canvas }) => {
     const drawer = await openDrawer(canvas, "Open module sidebar");
-    await expect(within(drawer).queryByRole("navigation")).toBeNull();
+    await expect(within(drawer).queryByRole("navigation", { name: "Modules" })).toBeNull();
     await expect(within(drawer).queryByTestId("mark")).toBeNull();
     await expect(drawerHeaderOf(drawer).getBoundingClientRect().top).toBeCloseTo(
       drawer.getBoundingClientRect().top,
@@ -333,7 +342,7 @@ export const ThePhoneDrawerHeaderSitsBelowTheStripWithWindowButtons: Story = {
     await expect(frame).not.toBe(header);
     await expect(appRegionOf(frame)).toBe("drag");
     await expect(appRegionOf(strip)).toBe("drag");
-    await expect(strip.getBoundingClientRect().height).toBeCloseTo(STRIP_HEIGHT, 0);
+    await expect(strip.getBoundingClientRect().height).toBeCloseTo(SHELL_TOP_STRIP_HEIGHT, 0);
     await expect(centerY(strip)).toBeCloseTo(centerY(pageTitle), 0);
     await expect(header.getBoundingClientRect().top).toBeCloseTo(
       strip.getBoundingClientRect().bottom,
@@ -345,7 +354,7 @@ export const ThePhoneDrawerHeaderSitsBelowTheStripWithWindowButtons: Story = {
     ).toBeGreaterThanOrEqual(stripBottom);
     const close = within(drawer).getByRole("button", { name: "Close module sidebar" });
     await expect(close.getBoundingClientRect().top).toBeGreaterThanOrEqual(stripBottom);
-    await expect(within(drawer).queryByRole("navigation")).toBeNull();
+    await expect(within(drawer).queryByRole("navigation", { name: "Modules" })).toBeNull();
     await expect(within(drawer).queryByTestId("mark")).toBeNull();
     await expect(widthOf(drawer)).toBe(320);
   },
@@ -391,7 +400,7 @@ export const TheCollapsedStateDoesNotReachTheNarrowDrawer: Story = {
   ...atViewport("narrow"),
   args: { moduleSidebarCollapsed: true },
   play: async ({ canvas }) => {
-    await expectContentFillsTheFrame(canvas, 800);
+    await expectContentFillsTheFrame(canvas, SHELL_REFERENCE_WIDTHS.narrow);
     await openDrawer(canvas);
   },
 };

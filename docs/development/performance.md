@@ -58,3 +58,62 @@ set from the bundler's module graph, rather than a list of today's module/View f
 Shared dependencies of lazy modules can still be eager; the lazy entry itself cannot.
 A fixture test builds both lazy and accidentally eager versions and checks the actual
 build fails, including when it is below the byte limit.
+
+## Storage port pattern
+
+Measured during #32 on **in-memory SQLite, Node 26, arm64, without the hop between
+processes**. That environment applies to every row below. These are diagnostic measurements,
+not timing gates; costs measured independently should not be added into an end-to-end estimate.
+The shared-entry, table-write plugin, frame and conflict figures are added cost per call on
+top of the SQLite call, not absolute call times.
+
+| Measurement                                        | Result                |
+| -------------------------------------------------- | --------------------- |
+| Frame beyond the transaction                       | About 3.5 µs per call |
+| Shared entry lookup                                | 0.21 µs               |
+| Shared entry insert                                | 1.14 µs               |
+| Shared entry update                                | 0.79 µs               |
+| Shared entry soft delete plus restore              | 2.10 µs               |
+| Table-write plugin                                 | 0.41 µs per write     |
+| Conflict translation, read                         | 0.82 µs per read      |
+| Conflict translation, write                        | 0.52 µs per write     |
+| Conflict translation when a conflict occurs        | 34 µs                 |
+| Page list, 100,000 rows, 100-row pages, first page | 0.072 ms median       |
+| Page list, 100,000 rows, 100-row pages, row 90,000 | 0.094 ms median       |
+| Large-result check                                 | About 7 ns per call   |
+| 10,000-row list without join                       | 5.0 ms median         |
+| 10,000-row list with released read-piece join      | 8.0 ms median         |
+
+The existing **0.072/0.094 ms** page measurements above apply to the notes template's
+two-column order `(created_at ASC, id ASC)`, with a matching live-row index beginning in
+`space_id`; the later measurement is at row 90,000. They do not describe other orders.
+
+After the cursor-seek fixes, the following measurements use **100,000 rows**, **100-row
+pages**, **31 warm-up calls** and the median of **101 measured calls** per case, on in-memory
+SQLite **3.53.4**, Node **26.13.0**, arm64. They time `pageList.run` (query building, cursor
+handling, SQLite execution and row mapping) inside one existing transaction, without the frame
+or process hop. Each group has ten rows sharing one `created_at` value and distinct titles and
+ids. Each order has its own matching partial live-row index beginning with
+`space_id`. The later page starts after the row at offset 79,999 (page at row 80,000).
+
+| Fixed order                          | First page | Page at row 80,000 |
+| ------------------------------------ | ---------- | ------------------ |
+| `created_at ASC, title ASC, id ASC`  | 0.0549 ms  | 0.0812 ms          |
+| `created_at ASC, title DESC, id ASC` | 0.0583 ms  | 0.0957 ms          |
+
+`EXPLAIN QUERY PLAN` shows `(created_at,title,id)>(?,?,?)` for the same-direction cursor
+and `created_at>?` for the mixed-direction cursor, both in addition to `space_id=?`.
+A mixed order can still scan rows sharing its first sort value; the bound avoids scanning
+all earlier first-column values. The diagnostic script stays in `.temp/`, outside version control.
+
+The read-piece join comparison uses 10,000 notes and 10,000 links, one link per note,
+and the median of 61 warm samples. The query plan uses the primary key; adding a covering
+index changed nothing. The difference is 10,000 primary-key lookups. A page list sorted by a
+joined column sorts the full set on every page: no index can serve a sort on the far side
+of a left join.
+
+The built desktop smoke stage’s **Data Process first answer** was re-measured with 10
+alternating runs each on `main` and the branch. The median was **145.5 ms on main**
+(range 135–185 ms) and **146.5 ms on the branch** (range 140–150 ms): no measurable change.
+Unlike the in-memory microbenchmarks, this includes the process hop. The data-process bundle
+grew from **703,842 to 726,220 bytes**.

@@ -6,8 +6,9 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
-    "./story-interactions": "./src/story-interactions.ts",
-    "./shortcut-display": "./src/shortcut-display.ts"
+    "./geometry": "./src/geometry.ts",
+    "./shortcut-display": "./src/shortcut-display.ts",
+    "./story-interactions": "./src/story-interactions.ts"
   },
   "dependencies": {
     "@lingui/core": "catalog:",

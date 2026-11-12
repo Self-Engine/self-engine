@@ -21,11 +21,22 @@ export type AllowedImports = Readonly<Record<string, readonly string[]>>;
  * the two lists match.
  */
 export const ALLOWED_IMPORTS: AllowedImports = {
+  // Composes the modules' contracts once they have some (D187): `contracts → module`.
+  contracts: [],
+  // The data process test harness only in the client's tests (a devDependency).
+  "data-client": ["contracts", "data-process"],
+  "data-process": ["contracts", "db", "storage"],
+  // The preload and the page share it; the failure states come from the contract.
+  "desktop-bridge": ["contracts"],
+  // Timestamp generation returns the shared Instant brand (D223).
+  db: ["time"],
   icons: ["theme"],
   "placeholder-alpha": ["shell", "icons", "ui"],
   "placeholder-beta": ["shell", "icons"],
   "settings-area": ["i18n", "icons", "settings", "shell", "theme", "ui"],
   shell: ["icons", "theme", "ui"],
+  storage: ["db", "time"],
+  time: [],
   ui: ["icons", "theme"],
 };
 
@@ -37,6 +48,26 @@ const ICON_LIBRARIES = [
   "lucide-react",
   "react-icons",
 ];
+
+/** The npm packages the app contract may import: it stays pure (D187). */
+const CONTRACT_LIBRARIES = ["zod", "@orpc/contract"];
+
+/**
+ * Code that runs in the renderer: the web app, the Component Catalog, the data client and the
+ * desktop bridge. The data client's tests are exempt: they start the real data process core.
+ */
+const RENDERER = {
+  path: "^(?:apps/(?:web|component-catalog)|packages/(?:data-client|desktop-bridge))/",
+  pathNot: String.raw`^packages/data-client/.*\.test\.ts$`,
+};
+
+/**
+ * Apps whose source bundles the workspace packages it imports. electron-builder ships the
+ * desktop app's `dependencies` as node_modules beside its bundles, so it declares there only
+ * what the bundles leave out (the native SQLite module), and its workspace packages, like
+ * `electron` itself, as `devDependencies`.
+ */
+const BUNDLING_APPS = ["apps/desktop"];
 
 /** Test and story files may also import what `devDependencies` declares. */
 const DEV_ONLY_FILE = String.raw`\.(?:test|stories)\.[cm]?[jt]sx?$`;
@@ -89,7 +120,7 @@ function declaredWorkspaceRules(rootDir: string): IForbiddenRuleType[] {
     });
     const prefix = `^${alternatives([dir])}/`;
     return [
-      rule("", { path: prefix, pathNot: DEV_ONLY_FILE }, false),
+      rule("", { path: prefix, pathNot: DEV_ONLY_FILE }, BUNDLING_APPS.includes(dir)),
       rule(":dev-only", { path: `${prefix}.*${DEV_ONLY_FILE}` }, true),
     ];
   });
@@ -98,6 +129,8 @@ function declaredWorkspaceRules(rootDir: string): IForbiddenRuleType[] {
 interface CorePurity {
   /** The package's folder under `packages/`, which holds `src/core/`. */
   readonly folder: string;
+  /** The pure entry folder, defaulting to `core`. */
+  readonly entry?: string;
   /** The folder under `src/` where the framework code lives instead. */
   readonly binding: string;
   /** Alternatives, as a regular expression, of the npm packages the core must not import. */
@@ -106,12 +139,18 @@ interface CorePurity {
 }
 
 /** The pure core of a package stays free of the framework its binding entry point wraps. */
-function corePurityRule({ folder, binding, npmPattern, comment }: CorePurity): IForbiddenRuleType {
+function corePurityRule({
+  folder,
+  entry = "core",
+  binding,
+  npmPattern,
+  comment,
+}: CorePurity): IForbiddenRuleType {
   return {
-    name: `${folder}-core-is-pure`,
+    name: `${folder}-${entry}-is-pure`,
     comment,
     severity: "error",
-    from: { path: `^packages/${folder}/src/core/` },
+    from: { path: `^packages/${folder}/src/${entry}/` },
     to: { path: [`(^|/)node_modules/(${npmPattern})/`, `^packages/${folder}/src/${binding}/`] },
   };
 }
@@ -136,6 +175,14 @@ export function boundaryConfig({ allowedImports, rootDir }: BoundaryOptions): IC
       to: { path: "^packages/", pathNot: "^packages/$1/" },
     },
     ...declaredWorkspaceRules(rootDir),
+    {
+      name: "storage-is-portable",
+      comment:
+        "Storage uses db's platform-neutral interface; Electron and native drivers belong in platform bindings (D233).",
+      severity: "error",
+      from: { path: "^packages/storage/" },
+      to: { path: "(^|/)node_modules/(electron|better-sqlite3)/" },
+    },
     corePurityRule({
       folder: "theme",
       binding: "mantine",
@@ -164,6 +211,51 @@ export function boundaryConfig({ allowedImports, rootDir }: BoundaryOptions): IC
       comment:
         "The database core (`@self-engine/db`) is what modules import, so it stays free of the native driver and the web build keeps compiling. The driver belongs in `@self-engine/db/better-sqlite3`.",
     }),
+    corePurityRule({
+      folder: "db",
+      entry: "schema",
+      binding: "(?:core|better-sqlite3|testing)",
+      npmPattern: "better-sqlite3|kysely|uuid",
+      comment:
+        "The shared schemas (`@self-engine/db/schema`) load in contracts and row maps, so they stay free of Kysely, uuid and the driver (D225). Runtime helpers belong in `@self-engine/db`.",
+    }),
+    {
+      name: "contracts-is-pure",
+      comment:
+        "The app contract (`@self-engine/contracts`) loads in the renderer and the data process, so it holds only Zod schemas and oRPC contracts (D187): no database code, no Node built-in, nothing from Electron.",
+      severity: "error",
+      from: { path: "^packages/contracts/" },
+      to: {
+        dependencyTypesNot: ["local"],
+        pathNot: `^packages/|(^|/)node_modules/(?:${alternatives(CONTRACT_LIBRARIES)})/`,
+      },
+    },
+    {
+      name: "module-contracts-is-pure",
+      comment:
+        "A module's contracts load on both sides (D187): import only contract schemas, time or `@self-engine/db/schema`, never database runtime code (D225).",
+      severity: "error",
+      from: { path: "^packages/[^/]+/src/contracts/" },
+      to: {
+        pathNot: `^packages/(?:db/src/schema/|time/|[^/]+/src/contracts/)|(^|/)node_modules/(?:${alternatives(CONTRACT_LIBRARIES)})/`,
+      },
+    },
+    {
+      name: "renderer-imports-the-contract-as-a-type",
+      comment:
+        "The renderer imports the app contract as a type only (`import type`), so no schema loads at startup and inputs are validated in the data process alone (D187, D188).",
+      severity: "error",
+      from: RENDERER,
+      to: { path: "^packages/contracts/", dependencyTypesNot: ["type-only"] },
+    },
+    {
+      name: "renderer-stays-off-the-database",
+      comment:
+        "Only the data process opens the database. The renderer reaches it through `@self-engine/data-client`, never through the data process core, the database connection (`@self-engine/db/better-sqlite3`) or a module's `./data` entry.",
+      severity: "error",
+      from: RENDERER,
+      to: { path: "^packages/(?:data-process/|db/src/better-sqlite3/|[^/]+/src/data/)" },
+    },
     {
       name: "icons-only-through-catalog",
       comment:

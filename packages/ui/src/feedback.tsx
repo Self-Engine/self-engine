@@ -100,6 +100,22 @@ export function notifyError({ message }: NotifyErrorOptions) {
   notifications.show({ message, color: roleColor("error") });
 }
 
+export interface NotifyProgressOptions {
+  readonly message: ReactNode;
+}
+
+/** Shows ongoing work until the caller invokes the returned hide function. */
+export function notifyProgress({ message }: NotifyProgressOptions): () => void {
+  const id = notifications.show({
+    message,
+    loading: true,
+    withCloseButton: false,
+    autoClose: false,
+    role: "status",
+  });
+  return () => notifications.hide(id);
+}
+
 export interface NotifyUndoableOptions {
   readonly message: ReactNode;
   readonly undo: () => Promise<void> | void;

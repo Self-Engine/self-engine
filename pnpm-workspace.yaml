@@ -18,6 +18,9 @@ allowBuilds:
   esbuild: false
 
 catalog:
+  # Also a dev dependency of the root, so that every package resolves the peers of @lingui/react
+  # and @lingui/core against this one version: with two, each package gets its own copy, and a
+  # component reads a Lingui context that no provider fills (the start crashed on nightly).
   "@babel/core": 8.1.0
   "@rolldown/plugin-babel": 0.3.1
   babel-plugin-react-compiler: 1.0.0
@@ -38,6 +41,11 @@ catalog:
   "@mantine/spotlight": 9.7.5
   # The JS plugin API of the Oxlint that vite-plus ships; move it with vite-plus.
   "@oxlint/plugins": 1.91.0
+  # The transport between the renderer and the data process (D93): contracts, the
+  # message-port server in the data process and the typed client. Every oRPC package moves together.
+  "@orpc/client": 1.16.2
+  "@orpc/contract": 1.16.2
+  "@orpc/server": 1.16.2
   # Only packages/icons may depend on it (#18).
   "@phosphor-icons/react": 2.1.10
   # The Component Catalog (apps/component-catalog). Every Storybook package moves together.
