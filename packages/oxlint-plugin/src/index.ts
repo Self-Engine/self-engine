@@ -6,6 +6,7 @@
 import { definePlugin } from "@oxlint/plugins";
 import noGlobalTMacro from "./rules/no-global-t-macro.ts";
 import noImportTypeQuery from "./rules/no-import-type-query.ts";
+import noQueryOrThrow from "./rules/no-query-or-throw.ts";
 import noSilentCatch from "./rules/no-silent-catch.ts";
 
 export default definePlugin({
@@ -13,6 +14,7 @@ export default definePlugin({
   rules: {
     "no-global-t-macro": noGlobalTMacro,
     "no-import-type-query": noImportTypeQuery,
+    "no-query-or-throw": noQueryOrThrow,
     "no-silent-catch": noSilentCatch,
   },
 });

@@ -1,4 +1,7 @@
-import { afterEach, beforeEach, describe, expect, test, vi } from "vite-plus/test";
+import { afterEach, beforeEach, describe, expect, expectTypeOf, test, vi } from "vite-plus/test";
+import { z } from "zod";
+import { idSchema } from "@self-engine/db/schema";
+import { instantSchema, type Instant } from "@self-engine/time";
 import { newId, newTimestamp } from "./index.ts";
 
 describe("newTimestamp", () => {
@@ -7,7 +10,10 @@ describe("newTimestamp", () => {
     ["a time whose milliseconds are zero", "2026-11-09T14:07:46.000Z"],
     ["a time whose whole minute is zero", "2026-11-09T14:00:00.000Z"],
   ])("writes %s in the one exact format", (_name, expected) => {
-    expect(newTimestamp(() => new Date(Date.parse(expected)))).toBe(expected);
+    const timestamp = newTimestamp(() => new Date(Date.parse(expected)));
+    expect(timestamp).toBe(expected);
+    expectTypeOf(timestamp).toEqualTypeOf<Instant>();
+    expect(instantSchema.parse(timestamp)).toBe(timestamp);
   });
 
   test("writes UTC for a time given with another offset", () => {
@@ -18,6 +24,7 @@ describe("newTimestamp", () => {
 
   test.each([
     ["after the year 9999", "+010000-01-01T00:00:00.000Z"],
+    ["before the year 1000", "0999-12-31T23:59:59.999Z"],
     ["before the year 0", "-000001-12-31T23:59:59.999Z"],
   ])("refuses a time %s, which has no place in the format", (_name, iso) => {
     expect(() => newTimestamp(() => new Date(iso))).toThrow(iso);
@@ -28,6 +35,17 @@ const ZEROS = () => new Uint8Array(16);
 const ONES = () => new Uint8Array(16).fill(0xff);
 
 describe("newId", () => {
+  test("returns the requested entity brand without changing the generated id", () => {
+    const projectId = idSchema("Project");
+    type ProjectId = z.output<typeof projectId>;
+    const id = newId<ProjectId>({
+      clock: () => new Date("2026-11-09T14:07:46.297Z"),
+      random: ZEROS,
+    });
+    expectTypeOf(id).toEqualTypeOf<ProjectId>();
+    expect(id).toBe("01a1c0a2-f079-7000-8000-000000000000");
+    expect(projectId.parse(id)).toBe(id);
+  });
   test("is a UUIDv7 made of the supplied clock and random source", () => {
     const id = newId({ clock: () => new Date("2026-11-09T14:07:46.297Z"), random: ZEROS });
 

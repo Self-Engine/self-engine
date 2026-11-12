@@ -399,6 +399,33 @@ describe("the translation core", () => {
   });
 });
 
+describe("the time package", () => {
+  it("imports no other workspace package, even as a type", async () => {
+    const time = declaring(
+      extraPackage("packages/time", {
+        "src/index.ts": 'import type { formatMinutes } from "@self-engine/shared";\n',
+      }),
+      "@self-engine/shared",
+    );
+    expect(ruleNames(await cruise([time, shared], { allowedImports: ALLOWED_IMPORTS }))).toEqual([
+      "package-direction:time",
+    ]);
+  });
+
+  it("can be imported by a module contract", async () => {
+    const time = extraPackage("packages/time");
+    const module = declaring(
+      extraPackage("packages/module", {
+        "src/contracts/index.ts": 'import "@self-engine/time";\n',
+      }),
+      "@self-engine/time",
+    );
+    expect(
+      await cruise([time, module], { allowedImports: { time: [], module: ["time"] } }),
+    ).toEqual([]);
+  });
+});
+
 describe("the db core", () => {
   const db = (dependencies: string[], files: Record<string, string>): FixturePackage => ({
     dir: "packages/db",
@@ -429,6 +456,77 @@ describe("the db core", () => {
       }),
     ]);
     expect(found).toEqual([]);
+  });
+});
+
+describe("the db schema entry", () => {
+  const schema: FixturePackage = {
+    dir: "packages/db",
+    dependencies: ["zod"],
+    exports: { ".": "./src/core/index.ts", "./schema": "./src/schema/index.ts" },
+    files: {
+      "src/core/index.ts": "export {};\n",
+      "src/schema/index.ts": 'import "zod";\n',
+      "src/better-sqlite3/index.ts": "export {};\n",
+    },
+  };
+
+  it.each(["kysely", "uuid", "better-sqlite3"])("fails an import of %s", async (name) => {
+    const found = await cruise([
+      withFiles(declaring(schema, name), { "src/schema/index.ts": `import "${name}";\n` }),
+    ]);
+    expect(ruleNames(found)).toEqual(["db-schema-is-pure"]);
+  });
+
+  it.each(["core", "better-sqlite3"])("fails a relative import of the %s entry", async (entry) => {
+    const found = await cruise([
+      withFiles(schema, { "src/schema/index.ts": `import "../${entry}/index.ts";\n` }),
+    ]);
+    expect(ruleNames(found)).toEqual(["db-schema-is-pure"]);
+  });
+
+  it.each(["@self-engine/db", "@self-engine/db/better-sqlite3"])(
+    "fails %s in a module's contracts even when the package direction is allowed",
+    async (entry) => {
+      const database = {
+        ...schema,
+        exports: { ...schema.exports, "./better-sqlite3": "./src/better-sqlite3/index.ts" },
+      };
+      const module = declaring(
+        extraPackage("packages/module", {
+          "src/contracts/index.ts": `import "${entry}";\n`,
+        }),
+        "@self-engine/db",
+      );
+      const found = await cruise([database, module], { allowedImports: { module: ["db"] } });
+      expect(ruleNames(found)).toEqual(["module-contracts-is-pure"]);
+    },
+  );
+
+  it("fails a relative import from a module's contracts into its runtime code", async () => {
+    const module = extraPackage("packages/module", {
+      "src/data/index.ts": "export const data = 1;\n",
+      "src/contracts/index.ts": 'import "../data/index.ts";\n',
+    });
+    expect(ruleNames(await cruise([module]))).toEqual(["module-contracts-is-pure"]);
+  });
+
+  it("passes a relative import within a module's contracts", async () => {
+    const module = extraPackage("packages/module", {
+      "src/contracts/schemas.ts": "export const schema = 1;\n",
+      "src/contracts/index.ts": 'import "./schemas.ts";\n',
+    });
+    expect(await cruise([module])).toEqual([]);
+  });
+
+  it("passes Zod in the schema entry and the schema in a module's contracts", async () => {
+    const module = {
+      ...extraPackage("packages/module", {
+        "src/contracts/index.ts": 'import "@self-engine/db/schema";\n',
+      }),
+      dependencies: ["@self-engine/db"],
+    };
+    expect(await cruise([schema, module], { allowedImports: { module: ["db"] } })).toEqual([]);
   });
 });
 

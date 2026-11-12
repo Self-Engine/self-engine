@@ -1,34 +1,10 @@
 import { sql } from "kysely";
 import type { Database } from "../core/index.ts";
 
-/** One broken convention: which table, and the rule it breaks. */
-export interface ConventionViolation {
-  readonly table: string;
-  readonly rule: string;
-}
+import type { SchemaViolation } from "./violation.ts";
 
-interface TableRow {
-  readonly name: string;
-  readonly strict: number;
-  readonly sql: string;
-}
-
-interface ColumnRow {
-  readonly name: string;
-  readonly type: string;
-  readonly notnull: number;
-  readonly dflt_value: string | null;
-  readonly pk: number;
-}
-
-/** Tables the conventions do not apply to, by their exact names. */
-const SKIPPED_TABLES: ReadonlySet<string> = new Set([
-  "kysely_migration",
-  "kysely_migration_lock",
-  "sqlite_sequence",
-  "sqlite_stat1",
-  "sqlite_stat4",
-]);
+import { columnsOf, tablesOf } from "./introspect.ts";
+import type { ColumnRow } from "./introspect.ts";
 
 const TIMESTAMP_COLUMNS = ["created_at", "updated_at", "deleted_at"];
 
@@ -146,29 +122,74 @@ function foreignKeyRules(table: string, createTable: string): string[] {
   ]);
 }
 
-async function columnsOf(database: Database, table: string): Promise<readonly ColumnRow[]> {
-  const { rows } = await sql<ColumnRow>`
-    SELECT name, type, "notnull", dflt_value, pk FROM pragma_table_info(${table})
+interface IndexRow {
+  readonly name: string;
+  readonly origin: string;
+  readonly unique: number;
+  readonly partial: number;
+  readonly sql: string | null;
+}
+
+/** Only the live-row predicate, allowing SQL quoting, comments and redundant parentheses. */
+function isLiveRowIndex(index: IndexRow): boolean {
+  if (index.partial !== 1 || index.sql === null) return false;
+  const tokens = tokensOf(index.sql);
+  const where = tokens.findIndex((token) => token.toUpperCase() === "WHERE");
+  const predicate = tokens.slice(where + 1).filter((token) => !["(", ")", ";"].includes(token));
+  return (
+    where !== -1 &&
+    predicate.length === 3 &&
+    !predicate[0]?.startsWith("'") &&
+    unquoted(predicate[0] ?? "").toLowerCase() === "deleted_at" &&
+    predicate[1]?.toUpperCase() === "IS" &&
+    predicate[2]?.toUpperCase() === "NULL"
+  );
+}
+
+async function indexRules(
+  database: Database,
+  table: string,
+  createTable: string,
+): Promise<string[]> {
+  if (isLocalTable(table)) return [];
+  const { rows } = await sql<IndexRow>`
+    SELECT list.name, list.origin, list."unique", list.partial, entry.sql
+    FROM pragma_index_list(${table}) AS list
+    LEFT JOIN sqlite_schema AS entry ON entry.name = list.name AND entry.type = 'index'
+    ORDER BY list.name
   `.execute(database.kysely);
-  return rows;
+  // SQLite may fold a redundant UNIQUE into the primary key's index, so read the declaration.
+  const rules = tokensOf(createTable)
+    .filter((token) => token.toUpperCase() === "UNIQUE")
+    .map(
+      () =>
+        "must not have an inline UNIQUE constraint; use a partial unique index starting with space_id WHERE deleted_at IS NULL",
+    );
+  for (const index of rows) {
+    if (index.origin === "pk" || index.origin === "u") continue;
+    const { rows: columns } = await sql<{ name: string | null }>`
+      SELECT name FROM pragma_index_info(${index.name}) ORDER BY seqno
+    `.execute(database.kysely);
+    if (index.unique === 1 && !isLiveRowIndex(index)) {
+      rules.push(`unique index ${index.name} must be partial on deleted_at IS NULL`);
+    }
+    if (columns[0]?.name?.toLowerCase() !== "space_id") {
+      rules.push(`index ${index.name} must start with space_id`);
+    }
+  }
+  return rules;
 }
 
 /** Reads a database's schema after its migrations and reports every broken table convention. */
-export async function checkConventions(database: Database): Promise<ConventionViolation[]> {
-  const { rows } = await sql<TableRow>`
-    SELECT list.name, list.strict, entry.sql
-    FROM pragma_table_list AS list
-    JOIN sqlite_schema AS entry ON entry.name = list.name AND entry.type = 'table'
-    WHERE list.schema = 'main'
-    ORDER BY list.name
-  `.execute(database.kysely);
-  const violations: ConventionViolation[] = [];
+export async function checkConventions(database: Database): Promise<SchemaViolation[]> {
+  const rows = await tablesOf(database);
+  const violations: SchemaViolation[] = [];
   for (const { name, strict, sql: createTable } of rows) {
-    if (SKIPPED_TABLES.has(name)) continue;
     const rules = [
       ...(strict === 1 ? [] : ["must be STRICT"]),
       ...columnRules(name, await columnsOf(database, name)),
       ...foreignKeyRules(name, createTable),
+      ...(await indexRules(database, name, createTable)),
     ];
     violations.push(...rules.map((rule) => ({ table: name, rule })));
   }
