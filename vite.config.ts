@@ -48,6 +48,7 @@ export default defineConfig({
     jsPlugins: [{ name: "self-engine", specifier: "@self-engine/oxlint-plugin" }],
     rules: {
       "self-engine/no-global-t-macro": "error",
+      "self-engine/no-foreign-row-map": "error",
       // dependency-cruiser cannot see `import("…")` types (.dependency-cruiser.ts).
       "self-engine/no-import-type-query": "error",
       "self-engine/no-silent-catch": "error",
