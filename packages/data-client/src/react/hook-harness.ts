@@ -112,9 +112,12 @@ export type ShownNotices = MessageDescriptor[];
 
 let mounted: { readonly root: Root; readonly container: HTMLElement } | undefined;
 
-/** Renders `useHook` below a `DataProvider` over the fake port, and lets its first answer in. */
+/**
+ * Renders `useHook` below a `DataProvider` over the Port access, fake or Fixed Answers, and lets
+ * its first answer in.
+ */
 export async function renderHook<State>(
-  port: FakePort,
+  port: Pick<FakePort, "access">,
   useHook: () => State,
   options: Pick<DataProviderProps, "reportMisuse" | "notify"> = {},
 ): Promise<Rendered<State>> {

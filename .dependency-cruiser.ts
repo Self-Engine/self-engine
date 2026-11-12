@@ -4,7 +4,7 @@
 // declared in the importer's own `package.json`, no relative imports into another package, no
 // imports past another package's `exports`, no icon library outside `@self-engine/icons`, no
 // hotkey library outside the Shell's binding file, no query library outside the data client's
-// React entry, and no cycles.
+// React entry, no `testing` entry outside tests and stories, and no cycles.
 //
 // Paths are relative to the repo root, or to the fixture root in
 // scripts/dependency-cruiser.test.ts, which builds its own config with `boundaryConfig`.
@@ -285,6 +285,17 @@ export function boundaryConfig({ allowedImports, rootDir }: BoundaryOptions): IC
       severity: "error",
       from: { path: "^(apps|packages)/", pathNot: "^packages/data-client/src/react/" },
       to: { path: "(^|(^|/)node_modules/)@tanstack/(?:react-)?query(?:-core|-devtools)?(/|$)" },
+    },
+    {
+      name: "testing-entries-only-in-tests-and-stories",
+      comment:
+        "A package's `./testing` entry (its `src/testing/` folder) is for tests and stories only, so a test double such as Fixed Answers, and the module Contract schemas it is given, never load in the app (D255). Import it from a `*.test.*` or `*.stories.*` file, or from another `src/testing/` folder.",
+      severity: "error",
+      from: {
+        path: "^(apps|packages)/",
+        pathNot: [DEV_ONLY_FILE, "^packages/[^/]+/src/testing/"],
+      },
+      to: { path: "^packages/[^/]+/src/testing/" },
     },
     {
       name: "no-relative-import-across-packages",

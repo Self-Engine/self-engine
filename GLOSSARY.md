@@ -104,6 +104,10 @@ _Avoid_: schema validation, convention test
 The place outside the app where every shared building block can be seen and tried out in any appearance. It never ships with the app.
 _Avoid_: catalog (on its own), design system, Storybook
 
+**Fixed Answer** (de: _feste Antwort_):
+What one _Port_ entry returns in a story or component test, without a _Data Process_: data, loading that never ends, an unexpected error, a declared conflict or "not found". It is checked against the entry's _Contract_, and a call to an entry without one fails.
+_Avoid_: mock, fixture, stub
+
 ### Settings
 
 **Device Setting** (de: _Geräteeinstellung_):
