@@ -4,7 +4,7 @@ import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { createServer } from "node:net";
 import { dirname, resolve } from "node:path";
 import { parseArgs } from "node:util";
-import { chromium } from "playwright";
+import { chromium, type Page } from "playwright";
 import { workingTreeHash } from "./verify-stamp.ts";
 import {
   countCommit,
@@ -25,6 +25,9 @@ export function options(args: string[]) {
     strict: true,
   }).values;
 }
+
+/** The scenarios of one report; a baseline must have exactly these to be compared. */
+export const SCENARIOS = ["change-view", "open-edit-drawer", "rename-one-of-1000"] as const;
 
 /** Read a compatible baseline before allocating a port or starting the app. */
 export function readBaseline(path: string): RenderReport {
@@ -60,7 +63,7 @@ export function readBaseline(path: string): RenderReport {
       enumerable: true,
     });
   }
-  if (Object.keys(scenarios).sort().join() !== ["change-view", "open-edit-drawer"].sort().join()) {
+  if (Object.keys(scenarios).sort().join() !== [...SCENARIOS].sort().join()) {
     throw new Error(`Incompatible render report scenarios: ${path}`);
   }
   return { version: 1, revision: parsed.revision, scenarios };
@@ -77,6 +80,25 @@ async function freePort(): Promise<number> {
   if (!address || typeof address === "string") throw new Error("No TCP port allocated");
   await new Promise<void>((resolvePromise) => server.close(() => resolvePromise()));
   return address.port;
+}
+
+/**
+ * Fill `placeholder-alpha` up to 1,000 entries, or rename one of them. The module has no way to
+ * create many entries from outside, so this calls its store through the module instance the dev
+ * server already serves to the page. Only the measured step, the rename, is a single change.
+ */
+async function renameOneOf1000(page: Page, step: "seed" | "rename"): Promise<void> {
+  await page.evaluate(async (step) => {
+    const url = performance
+      .getEntriesByType("resource")
+      .map(({ name }) => name)
+      .find((name) => new URL(name).pathname.endsWith("/placeholder-alpha/src/entry-store.ts"));
+    if (!url) throw new Error("The placeholder-alpha entry store was not loaded");
+    const store: { saveEntry: (id: string, name: string) => void } = await import(url);
+    if (step === "rename") return store.saveEntry("entry-500", "Renamed entry");
+    // Three sample entries exist already.
+    for (let number = 4; number <= 1000; number++) store.saveEntry("new", `Entry ${number}`);
+  }, step);
 }
 
 /** Measure the real app and always release its browser and dev server. */
@@ -180,9 +202,19 @@ async function main(): Promise<void> {
     scenarios["change-view"] = difference(await read(), before);
     before = await read();
     await page.getByRole("button", { name: "Studio work", exact: true }).click();
-    await page.getByRole("dialog", { name: "Editor", exact: true }).waitFor();
+    await page.getByRole("dialog", { name: "Studio work", exact: true }).waitFor();
     await settle();
     scenarios["open-edit-drawer"] = difference(await read(), before);
+    await page.goto(`http://127.0.0.1:${port}/placeholder-alpha/overview`);
+    await page.getByRole("button", { name: "Studio work", exact: true }).waitFor();
+    await renameOneOf1000(page, "seed");
+    await page.getByRole("button", { name: "Entry 1000", exact: true }).waitFor();
+    await settle();
+    before = await read();
+    await renameOneOf1000(page, "rename");
+    await page.getByRole("button", { name: "Renamed entry", exact: true }).waitFor();
+    await settle();
+    scenarios["rename-one-of-1000"] = difference(await read(), before);
     if (errors.length) throw new Error(`Application errors:\n${errors.join("\n")}`);
     if (Object.values(scenarios).some((scenario) => Object.keys(scenario.components).length === 0))
       throw new Error(

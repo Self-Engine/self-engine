@@ -40,6 +40,8 @@ export const links = defineStorageModule({
       },
     },
     list: smallSetList(
+      // Its own table, and the notes table through the released read piece.
+      ["note_links", "notes"],
       async (
         tx: ReadTransaction<TablesOf<typeof linksRowMap>>,
         context: StorageContext,

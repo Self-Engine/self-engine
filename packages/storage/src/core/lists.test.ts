@@ -26,7 +26,7 @@ test.each(["window", "small-set"] as const)(
       ...notes,
       contract: { list: notes.contract.list },
       entries: {
-        list: (kind === "window" ? windowList : smallSetList)(async () =>
+        list: (kind === "window" ? windowList : smallSetList)(["notes"], async () =>
           Array.from({ length: count }, () => ({
             id: "01a1cfa1-0a00-7000-8000-000000000000" as never,
             createdAt: "2026-11-12T12:00:00.000Z" as never,
@@ -172,7 +172,7 @@ test("a renderer cannot raise page size, and storage can set at most 500", async
           ...notes,
           entries: {
             ...notes.entries,
-            pages: pageList({ row: notesRowMap.notes, ...options, size }),
+            pages: pageList({ reads: ["notes"], row: notesRowMap.notes, ...options, size }),
           },
         },
         { database, sources: createTestContext(), checkOutputs: true },
@@ -187,7 +187,9 @@ test("a renderer cannot raise page size, and storage can set at most 500", async
     });
   }
   for (const size of [0, -1, 501, 1.5, NaN, Infinity]) {
-    expect(() => pageList({ row: notesRowMap.notes, ...options, size })).toThrow("Page size");
+    expect(() => pageList({ reads: ["notes"], row: notesRowMap.notes, ...options, size })).toThrow(
+      "Page size",
+    );
   }
 });
 
@@ -213,6 +215,7 @@ test("tampered cursors and another list's cursor are invalid input", async () =>
         contract: { otherPages: notes.contract.pages },
         entries: {
           otherPages: pageList({
+            reads: ["notes"],
             row: notesRowMap.notes,
             query: (
               tx: Parameters<typeof notes.entries.pages.run>[0],
@@ -339,6 +342,7 @@ test.each(["descending", "mixed", "id-only"] as const)(
           entries: {
             ...notes.entries,
             pages: pageList({
+              reads: ["notes"],
               row: notesRowMap.notes,
               query: (
                 tx: Parameters<typeof notes.entries.pages.run>[0],
@@ -419,17 +423,19 @@ test("storage refuses a page order without a final unique id", async () => {
   ) => sharedEntry(tx, context).live("notes").selectAll();
   expect(() =>
     pageList({
+      reads: ["notes"],
       row: notesRowMap.notes,
       query,
       map: toNote,
       order: [{ column: "created_at", direction: "asc" }],
     }),
   ).toThrow("Page order must end in id");
-  expect(() => pageList({ row: notesRowMap.notes, query, map: toNote, order: [] })).toThrow(
-    "Page order must end in id",
-  );
+  expect(() =>
+    pageList({ reads: ["notes"], row: notesRowMap.notes, query, map: toNote, order: [] }),
+  ).toThrow("Page order must end in id");
   expect(() =>
     pageList({
+      reads: ["notes"],
       row: notesRowMap.notes,
       query,
       map: toNote,

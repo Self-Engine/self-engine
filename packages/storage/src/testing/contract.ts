@@ -5,7 +5,7 @@ import { isDeepStrictEqual } from "node:util";
 import type { InferContractRouterInputs } from "@orpc/contract";
 import { call, ORPCError, type AnyProcedure } from "@orpc/server";
 import { uniqueIndexes, type TablesOf } from "@self-engine/db";
-import { CompiledQuery } from "kysely";
+import { CompiledQuery, type Transaction } from "kysely";
 import { z } from "zod";
 import {
   createContext,
@@ -16,6 +16,7 @@ import {
 } from "../core/index.ts";
 import { tableContents } from "./table-contents.ts";
 import { QueryWriteError } from "../core/table-writes.ts";
+import { recordTableReads } from "./table-reads.ts";
 import { createTestContext, createTestDatabase } from "./helpers.ts";
 
 import type { ContractViolation } from "./violation.ts";
@@ -212,6 +213,7 @@ export async function checkContract<Contract extends StorageContract, Rows exten
       violations.push(...(await checkEntryScoping(module, seed, entry, example, dependencies)));
       const scoped = await seedScoping(database, module.rowMap, seed, createContext(sources));
       let calls = 0;
+      const read = new Set<string>();
       const observed = {
         ...module,
         entries: Object.fromEntries(
@@ -219,14 +221,32 @@ export async function checkContract<Contract extends StorageContract, Rows exten
             name,
             {
               ...definition,
-              run: (...args: Parameters<typeof definition.run>) => {
+              run: (tx: Transaction<TablesOf<Rows>>, ...rest: never[]) => {
                 calls++;
-                return definition.run(...args);
+                // The module definition checked each lower function; this wrapper only forwards.
+                const run = definition.run as (tx: unknown, ...rest: never[]) => unknown;
+                // Only the kit records reads; the frame in the app runs queries without it.
+                return run(
+                  definition.kind === "query" ? tx.withPlugin(recordTableReads(read)) : tx,
+                  ...rest,
+                );
               },
             },
           ]),
         ),
       } as StorageModule<Contract, Rows>;
+      const realTables = new Set(
+        (await database.kysely.introspection.getTables())
+          .filter((table) => !table.isView)
+          .map((table) => table.name),
+      );
+      const checkReads = () => {
+        if (definition?.kind !== "query") return;
+        const declared = new Set(definition.reads);
+        for (const table of [...read].sort())
+          if (realTables.has(table) && !declared.has(table))
+            violations.push({ entry, rule: `query reads an undeclared table: ${table}` });
+      };
       for (const checkOutputs of [true, false]) {
         const router: Record<string, AnyProcedure> = createFrame(observed, {
           database,
@@ -267,8 +287,10 @@ export async function checkContract<Contract extends StorageContract, Rows exten
       const target = router[entry];
       if (target === undefined) throw new Error(`Missing module function: ${entry}`);
       let output: unknown;
+      read.clear();
       try {
         output = await call(target, example);
+        checkReads();
       } catch (error) {
         if (queryWrite) {
           violations.push({ entry, rule: "query writes" });
@@ -280,6 +302,7 @@ export async function checkContract<Contract extends StorageContract, Rows exten
           error.code !== "NOT_FOUND"
         )
           throw error;
+        checkReads();
         if (!isDeepStrictEqual(baseline, { code: error.code, data: error.data }))
           violations.push({ entry, rule: "query output changes with foreign or deleted rows" });
         continue;

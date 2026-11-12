@@ -45,6 +45,7 @@ const fixture = defineStorageModule({
     },
     list: {
       kind: "query",
+      reads: ["fixture_items"],
       async run(tx) {
         return (await tx.selectFrom("fixture_items").selectAll().execute()).map((row) => row.name);
       },
@@ -102,7 +103,7 @@ test.each([true, false])(
       contract: { read: oc.output(z.string()) },
       rowMap: {},
       migrations: [],
-      entries: { read: { kind: "query", run: () => 42 as never } },
+      entries: { read: { kind: "query", reads: [], run: () => 42 as never } },
     });
     const process = await startTestDataProcess({
       modules: { fixture: invalidOutput },
