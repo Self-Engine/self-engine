@@ -10,7 +10,24 @@ export const noteSchema = z.object({
   title: z.string(),
   isPinned: z.boolean(),
 });
+const byId = z.object({ id: noteIdSchema });
+const storedNote = z.object({
+  id: noteIdSchema,
+  space_id: idSchema("Space"),
+  created_at: instantSchema,
+  updated_at: instantSchema,
+  deleted_at: instantSchema.nullable(),
+  title: z.string(),
+  is_pinned: z.union([z.literal(0), z.literal(1)]),
+});
 export const notesContract = {
+  get: oc.input(byId).output(noteSchema).errors({ NOT_FOUND: {} }),
+  update: oc
+    .input(byId.extend({ title: z.string().min(1) }))
+    .output(noteSchema)
+    .errors({ NOT_FOUND: {} }),
+  delete: oc.input(byId).output(storedNote).errors({ NOT_FOUND: {} }),
+  restore: oc.input(byId).output(storedNote).errors({ NOT_FOUND: {} }),
   create: oc
     .input(z.object({ title: z.string().min(1), isPinned: z.boolean() }))
     .output(noteSchema),

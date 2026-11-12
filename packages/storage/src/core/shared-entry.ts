@@ -1,0 +1,129 @@
+import { ORPCError } from "@orpc/server";
+import type { Instant } from "@self-engine/time";
+import type {
+  Transaction,
+  Insertable,
+  Kysely,
+  Selectable,
+  SelectQueryBuilder,
+  Updateable,
+} from "kysely";
+import type { StorageContext } from "./context.ts";
+
+interface Convention {
+  id: string;
+  space_id: string;
+  created_at: Instant;
+  updated_at: Instant;
+  deleted_at: Instant | null;
+}
+type SyncedTable<DB> = {
+  [Table in keyof DB & string]: Table extends `local_${string}`
+    ? never
+    : DB[Table] extends Convention
+      ? Table
+      : never;
+}[keyof DB & string];
+type Fields<Row> = Omit<Row, keyof Convention>;
+type ReadAccess<DB> = Pick<Kysely<DB>, "selectFrom">;
+
+/** One place for Space and live-row scoping; compound queries remain ordinary Kysely. */
+export function sharedEntry<DB>(tx: ReadAccess<DB>, context: StorageContext) {
+  // Kysely cannot infer convention columns from the conditional table-name constraint.
+  // The public constraint guarantees them; this view is private to the shared implementation.
+  const db = tx as unknown as Kysely<Record<string, Convention>>;
+  function scoped(table: string) {
+    if (table.startsWith("local_"))
+      throw new Error(`Shared entry requires a synchronized table: ${table}`);
+    return db.selectFrom(String(table)).where("space_id", "=", context.spaceId);
+  }
+  function live<Table extends SyncedTable<DB>>(table: Table) {
+    return scoped(table).where("deleted_at", "is", null) as unknown as SelectQueryBuilder<
+      DB,
+      Table,
+      {}
+    >;
+  }
+  async function lookup<Table extends SyncedTable<DB>>(
+    table: Table,
+    id: DB[Table] extends Convention ? DB[Table]["id"] : never,
+  ) {
+    const row = await scoped(table)
+      .where("deleted_at", "is", null)
+      .where("id", "=", id)
+      .selectAll()
+      .executeTakeFirst();
+    if (row === undefined) throw new ORPCError("NOT_FOUND");
+    return row as Selectable<DB[Table]>;
+  }
+  return { live, lookup };
+}
+
+/** Standard single-row writes are available only on an operation's write transaction. */
+export function sharedWrites<DB>(tx: Transaction<DB>, context: StorageContext) {
+  const db = tx as unknown as Kysely<Record<string, Convention>>;
+  const reads = sharedEntry<DB>(tx, context);
+  async function change<Table extends SyncedTable<DB>>(
+    table: Table,
+    id: DB[Table] extends Convention ? DB[Table]["id"] : never,
+    values: object,
+    restoring: boolean,
+  ) {
+    reads.live(table);
+    // RETURNING makes an absent row explicit without another query or an exception class.
+    const result = await db
+      .updateTable(String(table))
+      .set({ ...values, updated_at: context.now })
+      .where("space_id", "=", context.spaceId)
+      .where("id", "=", id)
+      .where("deleted_at", restoring ? "is not" : "is", null)
+      .returningAll()
+      .executeTakeFirst();
+    if (result === undefined) throw new ORPCError("NOT_FOUND");
+    return result as Selectable<DB[Table]>;
+  }
+  return {
+    ...reads,
+    async insert<Table extends SyncedTable<DB>>(
+      table: Table,
+      id: DB[Table] extends Convention ? DB[Table]["id"] : never,
+      fields: Fields<Insertable<DB[Table]>>,
+    ) {
+      // Also checks the reserved Local Table prefix at runtime for untyped callers.
+      reads.live(table);
+      const row = await db
+        .insertInto(String(table))
+        .values({
+          ...fields,
+          id,
+          space_id: context.spaceId,
+          created_at: context.now,
+          updated_at: context.now,
+          deleted_at: null,
+        })
+        .returningAll()
+        .executeTakeFirst();
+      if (row === undefined) throw new Error("Insert returned no row");
+      return row as Selectable<DB[Table]>;
+    },
+    update<Table extends SyncedTable<DB>>(
+      table: Table,
+      id: DB[Table] extends Convention ? DB[Table]["id"] : never,
+      fields: Fields<Updateable<DB[Table]>>,
+    ) {
+      return change(table, id, fields, false);
+    },
+    softDelete<Table extends SyncedTable<DB>>(
+      table: Table,
+      id: DB[Table] extends Convention ? DB[Table]["id"] : never,
+    ) {
+      return change(table, id, { deleted_at: context.now }, false);
+    },
+    restore<Table extends SyncedTable<DB>>(
+      table: Table,
+      id: DB[Table] extends Convention ? DB[Table]["id"] : never,
+    ) {
+      return change(table, id, { deleted_at: null }, true);
+    },
+  };
+}

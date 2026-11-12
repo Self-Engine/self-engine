@@ -1,6 +1,7 @@
 import type { Instant } from "@self-engine/time";
 import { afterEach, beforeEach, expect, expectTypeOf, test } from "vite-plus/test";
 import {
+  noteIdSchema,
   notesMigrations,
   notesRowMap,
   noteSchema,
@@ -141,8 +142,23 @@ test("notes passes the storage contract kit", async () => {
       notes,
       async (tx, context) => {
         await notes.entries.create.run(tx, context, { title: "Seed note", isPinned: false });
+        const removed = await notes.entries.create.run(tx, context, {
+          title: "Deleted note",
+          isPinned: false,
+        });
+        await notes.entries.delete.run(tx, context, { id: noteIdSchema.parse(removed.id) });
       },
-      { create: { title: "New note", isPinned: true }, list: {} },
+      {
+        create: { title: "New note", isPinned: true },
+        list: {},
+        get: { id: noteIdSchema.parse("01a1cfa1-0a00-7000-8000-000000000000") },
+        update: {
+          id: noteIdSchema.parse("01a1cfa1-0a00-7000-8000-000000000000"),
+          title: "Updated note",
+        },
+        delete: { id: noteIdSchema.parse("01a1cfa1-0a00-7000-8000-000000000000") },
+        restore: { id: noteIdSchema.parse("01a1cfa1-0a00-7000-8000-000000000001") },
+      },
     ),
   ).resolves.toEqual([]);
 });

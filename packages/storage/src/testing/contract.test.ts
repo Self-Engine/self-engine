@@ -71,3 +71,46 @@ test("an entry without input passes with an explicit undefined example", async (
   });
   await expect(checkContract(noInput, seed, { read: undefined })).resolves.toEqual([]);
 });
+
+test.each(["space", "deleted"] as const)(
+  "the kit names a query that leaks a %s row",
+  async (leak) => {
+    const { notes } = await import("../../test/notes-module/data/index.ts");
+    const { toNote } = await import("../../test/notes-module/data/rows.ts");
+    const broken = {
+      ...notes,
+      contract: { list: notes.contract.list },
+      entries: {
+        list: {
+          kind: "query" as const,
+          async run(
+            tx: Parameters<typeof notes.entries.list.run>[0],
+            context: Parameters<typeof notes.entries.list.run>[1],
+          ) {
+            const query = tx.selectFrom("notes").selectAll();
+            const rows = await (
+              leak === "space"
+                ? query.where("deleted_at", "is", null)
+                : query.where("space_id", "=", context.spaceId)
+            ).execute();
+            return rows.map(toNote);
+          },
+        },
+      },
+    };
+    await expect(
+      checkContract(
+        broken,
+        async (tx, context) => {
+          await notes.entries.create.run(tx, context, { title: "Example", isPinned: false });
+        },
+        { list: {} },
+      ),
+    ).resolves.toEqual([
+      {
+        entry: "list",
+        rule: leak === "space" ? "returns a row from another Space" : "returns a deleted row",
+      },
+    ]);
+  },
+);

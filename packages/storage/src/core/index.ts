@@ -15,3 +15,4 @@ export {
   type StorageContext,
   type ContextSources,
 } from "./context.ts";
+export { sharedEntry, sharedWrites } from "./shared-entry.ts";

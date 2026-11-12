@@ -1,3 +1,4 @@
+import { seedScoping, returnsSeededRow } from "./scoping.ts";
 import { isDeepStrictEqual } from "node:util";
 import type { InferContractRouterInputs } from "@orpc/contract";
 import { call, ORPCError, type AnyProcedure } from "@orpc/server";
@@ -92,6 +93,10 @@ export async function checkContract<Contract extends StorageContract, Rows exten
         .execute((tx) =>
           Promise.resolve(seed(tx.withTables<TablesOf<Rows>>(), createContext(sources))),
         );
+      const scoped =
+        module.entries[entry]?.kind === "query"
+          ? await seedScoping(database, module.rowMap, seed, createContext(sources))
+          : undefined;
       let calls = 0;
       const observed = {
         ...module,
@@ -138,6 +143,12 @@ export async function checkContract<Contract extends StorageContract, Rows exten
       const target = router[entry];
       if (target === undefined) throw new Error(`Missing module function: ${entry}`);
       const output = await call(target, example);
+      if (scoped !== undefined) {
+        if (returnsSeededRow(output, scoped.foreign))
+          violations.push({ entry, rule: "returns a row from another Space" });
+        if (returnsSeededRow(output, scoped.deleted))
+          violations.push({ entry, rule: "returns a deleted row" });
+      }
       if (outputSchema !== undefined) {
         const parsed = await outputSchema["~standard"].validate(output);
         if (parsed.issues) violations.push({ entry, rule: "output does not match contract" });
