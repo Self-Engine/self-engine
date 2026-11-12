@@ -160,7 +160,7 @@ export function createFrame(
             return result;
           })
           .handler(async ({ context, input }) => {
-            const output = await entry.run(context.tx, context.storageContext, input, name);
+            const output = await entry.run(context.tx, context.storageContext, input, name, module.name);
             if (options.checkOutputs && entry.kind === "query") {
               reportLargeResult(name, entry.list?.kind, output, options.report);
             }

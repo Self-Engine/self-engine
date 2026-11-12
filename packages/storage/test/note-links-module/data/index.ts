@@ -13,6 +13,7 @@ import { noteTitles } from "../../notes-module/data/index.ts";
 import { linksContract, linkIdSchema } from "../contracts/index.ts";
 import { linksMigrations, linksRowMap, toLink } from "./rows.ts";
 export const links = defineStorageModule({
+  name: "noteLinks",
   contract: linksContract,
   migrations: linksMigrations,
   rowMap: linksRowMap,

@@ -16,6 +16,7 @@ const announcementNotes = {
 };
 
 const good = defineStorageModule({
+  name: "fixture",
   contract: { echo: oc.input(z.object({ text: z.string() })).output(z.string()) },
   migrations: [],
   rowMap: {},
@@ -31,6 +32,7 @@ test("the kit names a contract entry without an example", async () => {
 
 test("the kit names an entry that accepts invalid input", async () => {
   const acceptsAnything = defineStorageModule({
+    name: "fixture",
     contract: { loose: oc.input(z.unknown()).output(z.string()) },
     migrations: [],
     rowMap: {},
@@ -58,6 +60,7 @@ test.each([
   "the kit rejects an output schema with %s, even when the example is unchanged",
   async (_name, output) => {
     const converts = defineStorageModule({
+      name: "fixture",
       contract: { convert: oc.input(z.undefined()).output(z.object({ text: output })) },
       migrations: [],
       rowMap: {},
@@ -75,6 +78,7 @@ test("a module with a normal contract passes every kit check", async () => {
 
 test("an entry without input passes with an explicit undefined example", async () => {
   const noInput = defineStorageModule({
+    name: "fixture",
     contract: { read: oc.output(z.string()) },
     migrations: [],
     rowMap: {},
@@ -623,6 +627,7 @@ test.each(["asc", "desc"] as const)(
           context,
           {},
           "pages",
+          "notes",
         );
         expect(queries).toHaveLength(3);
         for (const query of queries.slice(1)) {

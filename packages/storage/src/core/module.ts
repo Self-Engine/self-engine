@@ -13,6 +13,8 @@ type Handler<Tx, Input, Output> = (
   input: Input,
   /** Stable contract key, supplied by the frame (and the kit for query plans). */
   entry: string,
+  /** The module's name, supplied by the frame (and the kit for query plans). */
+  module: string,
 ) => Output | Promise<Output>;
 export type ModuleEntries<Contract extends StorageContract, Rows extends RowMap> = {
   readonly [Entry in keyof Contract]:
@@ -44,6 +46,8 @@ export type ModuleEntries<Contract extends StorageContract, Rows extends RowMap>
       };
 };
 export interface StorageModule<Contract extends StorageContract, Rows extends RowMap> {
+  /** The module's namespace in the app contract; page cursors carry it (D259). */
+  readonly name: string;
   readonly contract: Contract;
   readonly migrations: readonly Migration[];
   readonly rowMap: Rows;
@@ -66,7 +70,7 @@ export function defineStorageModule<
 // defineStorageModule checked each module against its own contract and row map.
 export type ErasedStorageModule = Pick<
   StorageModule<StorageContract, RowMap>,
-  "contract" | "migrations" | "rowMap" | "conflicts"
+  "name" | "contract" | "migrations" | "rowMap" | "conflicts"
 > & {
   readonly entries: Readonly<
     Record<

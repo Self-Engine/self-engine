@@ -54,7 +54,13 @@ export async function startTestDataProcess(
     core = await startDataProcess({
       database,
       modules: options.modules ?? {
-        fixture: { migrations: options.migrations ?? [], contract: {}, rowMap: {}, entries: {} },
+        fixture: {
+          name: "fixture",
+          migrations: options.migrations ?? [],
+          contract: {},
+          rowMap: {},
+          entries: {},
+        },
       },
       sources: options.sources ?? createTestSources(new Date("2026-01-01T00:00:00.000Z")),
       checkOutputs: options.checkOutputs ?? true,

@@ -38,6 +38,7 @@ function decode(text: string) {
 }
 const cursorPayload = z
   .object({
+    module: z.string(),
     list: z.string(),
     direction: z.enum(["before", "after"]),
     values: z.array(z.union([z.string(), z.number().finite()])),
@@ -46,7 +47,7 @@ const cursorPayload = z
   .strict();
 
 /**
- * A fixed keyset order, always ending in id. Cursors carry the stable contract entry name.
+ * A fixed keyset order, always ending in id. Cursors carry the module and contract entry names.
  * Cursor predicates and ordering use unqualified selected column names. Joined queries must
  * expose unambiguous sort columns; wrap a join in a subquery when names overlap.
  */
@@ -80,10 +81,11 @@ export function pageList<
     new Set(order.map((item) => item.column)).size !== order.length
   )
     throw new Error("Page order must end in id and contain no repeated columns");
-  function cursor(list: string, direction: "before" | "after", row: Row) {
+  function cursor(module: string, list: string, direction: "before" | "after", row: Row) {
     return encode(
       new TextEncoder().encode(
         JSON.stringify({
+          module,
           list,
           direction,
           values: order.map(({ column }) => row[column as keyof Row]),
@@ -91,7 +93,7 @@ export function pageList<
       ),
     );
   }
-  function readCursor(value: string | undefined, list: string) {
+  function readCursor(value: string | undefined, module: string, list: string) {
     if (value === undefined) return undefined;
     try {
       const payload = decode(value);
@@ -100,6 +102,7 @@ export function pageList<
       if (
         encode(payload) !== value ||
         JSON.stringify(parsed) !== text ||
+        parsed.module !== module ||
         parsed.list !== list ||
         parsed.values.length !== order.length ||
         order.some(({ column }, index) => {
@@ -117,10 +120,11 @@ export function pageList<
     tx: ReadTransaction<DB>,
     context: StorageContext,
     input: Input,
+    module: string,
     list: string,
     planAnchor?: z.output<typeof cursorPayload>,
   ) {
-    const anchor = planAnchor ?? readCursor(input.cursor, list);
+    const anchor = planAnchor ?? readCursor(input.cursor, module, list);
     const backwards = anchor?.direction === "before";
     // Selected scalar columns are guaranteed by Sort<Row>. Kysely cannot infer references
     // from selected output keys, so the dynamic ordering is kept behind this private view.
@@ -199,12 +203,19 @@ export function pageList<
     kind: "query" as const,
     list: {
       kind: "pages" as const,
-      async queries(tx: ReadTransaction<DB>, context: StorageContext, input: Input, list: string) {
-        const { query } = await build(tx, context, input, list);
+      async queries(
+        tx: ReadTransaction<DB>,
+        context: StorageContext,
+        input: Input,
+        list: string,
+        module: string,
+      ) {
+        const { query } = await build(tx, context, input, module, list);
         const queries = [query.compile()];
         const row = (await query.execute())[0];
         for (const direction of ["before", "after"] as const) {
-          const next = await build(tx, context, input, list, {
+          const next = await build(tx, context, input, module, list, {
+            module,
             list,
             direction,
             // EXPLAIN needs the predicate even for an empty seed. Bound values do not
@@ -223,8 +234,9 @@ export function pageList<
       context: StorageContext,
       input: Input,
       list: string,
+      module: string,
     ): Promise<Page<Output>> {
-      const { query, anchor, backwards } = await build(tx, context, input, list);
+      const { query, anchor, backwards } = await build(tx, context, input, module, list);
       const found = await query.execute();
       const more = found.length > size;
       const rows = found.slice(0, size);
@@ -233,6 +245,7 @@ export function pageList<
         const back = encode(
           new TextEncoder().encode(
             JSON.stringify({
+              module,
               list,
               direction: backwards ? "after" : "before",
               values: anchor.values,
@@ -248,11 +261,11 @@ export function pageList<
         rows: rows.map(options.map),
         before:
           first !== undefined && (backwards ? more : anchor !== undefined)
-            ? cursor(list, "before", first)
+            ? cursor(module, list, "before", first)
             : null,
         after:
           last !== undefined && (backwards ? anchor !== undefined : more)
-            ? cursor(list, "after", last)
+            ? cursor(module, list, "after", last)
             : null,
       };
     },

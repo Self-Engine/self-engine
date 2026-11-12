@@ -17,6 +17,7 @@ function allNotes(tx: NotesRead, context: StorageContext) {
   return sharedEntry(tx, context).live("notes").selectAll();
 }
 export const notes = defineStorageModule({
+  name: "notes",
   contract: notesContract,
   conflicts: { notes_live_title: "title_taken" },
   migrations: notesMigrations,

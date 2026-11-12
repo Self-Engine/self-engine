@@ -11,6 +11,7 @@ import { z } from "zod";
 import { startTestDataProcess, type TestDataProcess } from "../testing/index.ts";
 
 const fixture = defineStorageModule({
+  name: "fixture",
   contract: {
     add: oc.input(z.string()).output(z.string()),
     list: oc.output(z.array(z.string())),
@@ -97,6 +98,7 @@ test.each([true, false])(
   "start option checks outputs only when enabled (%s)",
   async (checkOutputs) => {
     const invalidOutput = defineStorageModule({
+      name: "fixture",
       contract: { read: oc.output(z.string()) },
       rowMap: {},
       migrations: [],
@@ -136,6 +138,7 @@ test("a failed module migration keeps health available and refuses module calls"
 test("unexpected operation errors reach the report sink while the port caller gets a general error", async () => {
   const error = new Error("Private operation detail");
   const broken = defineStorageModule({
+    name: "fixture",
     contract: { fail: oc.output(z.string()) },
     migrations: [],
     rowMap: {},
