@@ -380,9 +380,7 @@ test("the kit names an undeclared conflict reason next to a triggered declared o
       { echo: { text: "normal" } },
       { echo: [{ input: { text: "declared" } }, { input: { text: "undeclared" } }] },
     ),
-  ).resolves.toEqual([
-    { entry: "echo", rule: "conflict data does not match the declared schema" },
-  ]);
+  ).resolves.toEqual([{ entry: "echo", rule: "conflict data does not match the declared schema" }]);
 });
 
 test("the kit rejects CONFLICT without a finite list of reason codes", async () => {
