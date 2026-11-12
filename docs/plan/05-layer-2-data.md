@@ -1,6 +1,6 @@
 # Schicht 2: Datenschicht
 
-Stand: 2026-11-12 · Status: **entschieden** (D86–D98, D133–D142, D187–D196, D219–D246) · Recherche:
+Stand: 2026-11-13 · Status: **entschieden** (D86–D98, D133–D142, D187–D196, D219–D259) · Recherche:
 [`research-layer-2-data.md`](research-layer-2-data.md)
 
 ## Entschieden
@@ -44,6 +44,11 @@ Stand: 2026-11-12 · Status: **entschieden** (D86–D98, D133–D142, D187–D19
 | L2.34 | Contract-Tests | Ein Kit-Aufruf pro Modul; `notes` zieht als Vorlage nach `storage` (D239, D240) |
 | L2.35 | Fremde Daten | Lesen nur über freigegebene Lese-Bausteine, Schreiben nie (D241) |
 | L2.36 | Nachtrag zum Bau | Das Kit bildet ungültige Eingaben selbst; gemeldet wird nur eine Tabelle mit geänderter Zeile; Fehler und Warnung gehen an eine Melde-Stelle; Marken sind unsigniert; das Ziel eines Verweises wird vor dem Schreiben nachgesehen (D242–D246) |
+| L2.37 | Bauweise | „Fragen und neu laden“ bleibt die Grundlage; eine Kopie in der Oberfläche nur gezielt pro Ansicht (D247) |
+| L2.38 | Hooks | Abfragen erklären ihre Tabellen auf der Datenseite; nur ein Baustein in `data-client` kennt TanStack Query; eine Antwort gilt bis zur Tabellenmeldung (D248–D250) |
+| L2.39 | Fehler und Zustände | Erwartete Fehler sind Rückgabewerte, Konflikte gehen ans Feld; Abfragen zeigen `LoadingState` und `ErrorState` (D251, D257) |
+| L2.40 | Umfang von #33 | `placeholder-alpha` mit echter Tabelle; Seiten-Hook erst in #137; zwei Reste aus #32; Start-Grenze nach Messung plus 6 % (D252, D253, D258, D259) |
+| L2.41 | Prüfen und Begriffe | Feste Antworten gegen das Schema; Zeichen-Test mit genau einer Zeile; vier Glossar-Begriffe (D254–D256) |
 
 ## Aufbau
 
@@ -68,6 +73,8 @@ löst dasselbe `tablesChanged` aus (D89).
 - Effect für Sync und Import (Sync-Phase, D190); Prüfung fremder Zeilen (Sync-Phase, D188)
 - Migrationen im Build von Mobile (D191)
 - Wie ein Modul in der Oberfläche etwas in die Seite eines anderen einhängt (Schicht 4, D241)
+- Wie ein Modul samt Tabelle verschwindet (mit dem Ersatz der Platzhalter, D252)
+- Allgemeiner Formular-Helfer mit Eingabeprüfung (mit dem ersten echten Modul, D251)
 - Web- und Mobile-Treiber (mit diesen Plattformen)
 - Wahl der Sync-Engine (Sync-Phase, Kriterien in D89), Operations-Protokoll (mit Sync)
 
