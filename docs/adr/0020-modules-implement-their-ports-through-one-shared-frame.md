@@ -1,7 +1,7 @@
 ---
 status: accepted
 date: 2026-11-12
-decisions: D187, D188, D189, D190, D195, D231, D232, D233, D234, D235, D236, D237, D238, D239, D240, D241
+decisions: D187, D188, D189, D190, D195, D231, D232, D233, D234, D235, D236, D237, D238, D239, D240, D241, D260
 ---
 
 # Modules implement their ports through one shared frame
@@ -19,7 +19,9 @@ changes atomically without opening a transaction for each call.
 - A module owns one port and one contract describing it. Its pure `./contracts` entry exports
   schemas and the oRPC contract; `./data` implements it with a row map, migrations, lower
   functions, conflict mappings and released read pieces. There is no second hand-written
-  interface for the same port.
+  interface for the same port. A module is defined in two steps: its name, contract, row map
+  and migrations first, then its lower functions, which take their transaction and input types
+  from that first step, list builders included.
 - `@self-engine/storage` supplies a shared frame built on oRPC. It checks inputs before the
   transaction, builds a context with one sampled time, branded id generation and the Space,
   and calls a lower function marked query or operation. Lower functions receive the existing

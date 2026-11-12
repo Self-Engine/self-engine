@@ -55,9 +55,11 @@ violations, as in the notes tests.
 ## 3. Implement the data entry
 
 Follow [`notes/data/index.ts`](../../packages/storage/test/notes-module/data/index.ts).
-`defineStorageModule` receives `name`, `contract`, `migrations`, `rowMap`, `entries` and the
-optional `conflicts` mapping. `name` is the module’s namespace in the app contract; page cursors
-carry it. Every contract key has an entry marked `kind: "query"` or `kind: "operation"`.
+A module is defined in two steps (D260):
+`defineStorageModule({ name, contract, migrations, rowMap, conflicts? }).entries({ … })`.
+The first step fixes the Contract and row map, so the entries take `tx` and `input` from them,
+list builders included; write no types on a lower function’s parameters. `name` is the module’s
+namespace in the app contract; page cursors carry it. `conflicts` is optional. Every contract key has an entry marked `kind: "query"` or `kind: "operation"`.
 A query entry also declares `reads`: every table it takes rows from, including tables reached
 through a released read piece, as `reads: ["note_links", "notes"]` in note-links. The types
 require it. Operations declare nothing; the tables they wrote are announced after commit.
@@ -95,7 +97,9 @@ contract shape, and has the appropriate query/operation marker and conflict mapp
 
 ## 4. Choose each list’s kind
 
-Use the three builders shown together in notes:
+Use the three builders shown together in notes. Each one takes `tx` and `input` from the
+entry’s place in the module, so a page list whose contract input extends `pageInputSchema` gets
+its extra fields typed in `query`:
 
 | Builder                                       | Use and contract                                                                              |
 | --------------------------------------------- | --------------------------------------------------------------------------------------------- |

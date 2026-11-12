@@ -1609,6 +1609,17 @@ markiert und wird beim Bau gemessen.
   annehmen. `windowList` und `smallSetList` leiten ihren Eingabe-Typ aus dem Vertrag ab. _Nicht
   hier:_ der Läufer für Brücken über mehrere Module (kommt mit der ersten Brücke, D152); die
   Grenzen der Seiten-Liste bei Sortierspalten und Reihenfolge (#137).
+- **D260 Ein Speicher-Modul wird in zwei Schritten definiert (verfeinert D259).**
+  `defineStorageModule({ name, contract, rowMap, migrations, conflicts? }).entries({ … })`: Erst
+  stehen Name, Vertrag, Zeilen-Karte und Migrationen fest, dann werden die Einträge geprüft. So
+  leiten `pageList`, `windowList` und `smallSetList` `tx` und `input` aus dem Vertrag ab, auch eine
+  Seiten-Liste mit erweiterter Eingabe (`pageInputSchema.extend({ q })`). In einem einzigen
+  Objekt prüft TypeScript den Aufruf eines Bausteins, bevor es den Vertrag aus demselben Objekt
+  abgeleitet hat; `input` war dort `unknown`, und `pageList` fiel nur auf `PageInput` zurück.
+  _Preis:_ keiner zur Laufzeit; jede Moduldefinition bekommt einen zweiten Aufruf.
+  _Verworfen:_ die Bausteine für Fenster und kleine Mengen streichen und die Einträge als
+  Objekt schreiben (`pageList` bliebe ohne Ableitung); den Vertragseintrag an den Baustein geben
+  (`tx` bliebe von Hand typisiert).
 
 ## Fakten
 
