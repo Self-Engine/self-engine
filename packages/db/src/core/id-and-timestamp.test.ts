@@ -1,4 +1,6 @@
-import { afterEach, beforeEach, describe, expect, test, vi } from "vite-plus/test";
+import { afterEach, beforeEach, describe, expect, expectTypeOf, test, vi } from "vite-plus/test";
+import { z } from "zod";
+import { idSchema } from "@self-engine/db/schema";
 import { newId, newTimestamp } from "./index.ts";
 
 describe("newTimestamp", () => {
@@ -28,6 +30,17 @@ const ZEROS = () => new Uint8Array(16);
 const ONES = () => new Uint8Array(16).fill(0xff);
 
 describe("newId", () => {
+  test("returns the requested entity brand without changing the generated id", () => {
+    const projectId = idSchema("Project");
+    type ProjectId = z.output<typeof projectId>;
+    const id = newId<ProjectId>({
+      clock: () => new Date("2026-11-09T14:07:46.297Z"),
+      random: ZEROS,
+    });
+    expectTypeOf(id).toEqualTypeOf<ProjectId>();
+    expect(id).toBe("01a1c0a2-f079-7000-8000-000000000000");
+    expect(projectId.parse(id)).toBe(id);
+  });
   test("is a UUIDv7 made of the supplied clock and random source", () => {
     const id = newId({ clock: () => new Date("2026-11-09T14:07:46.297Z"), random: ZEROS });
 
