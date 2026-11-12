@@ -58,6 +58,10 @@ _Avoid_: skin, palette
 
 ### Data
 
+**Data Process** (de: _Datenprozess_):
+The process of the desktop app that holds the database and answers the page's calls. The page reaches it directly, not through the main process. When it is lost, the connection is lost, not a call.
+_Avoid_: backend, server, worker, database process
+
 **Local Table** (de: _lokale Tabelle_):
 A table whose rows stay on one device and never sync, such as cached figures. Nothing that syncs may depend on its rows.
 _Avoid_: private table, device table
