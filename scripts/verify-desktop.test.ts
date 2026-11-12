@@ -15,10 +15,44 @@ function fakeApp(): VerifyDesktopApp & {
   const widths: number[] = [];
   const modes: string[] = [];
   const screenshots: string[] = [];
+  let route = "/alpha/overview";
   return {
     widths,
     modes,
     screenshots,
+    async modules() {
+      return ["Alpha", "Beta"];
+    },
+    async openModule(name) {
+      route = name === "Alpha" ? "/alpha/overview" : "/beta/list";
+    },
+    async views() {
+      return route.startsWith("/alpha") ? ["Overview", "Archive"] : ["List"];
+    },
+    async openView(name) {
+      route =
+        name === "Overview"
+          ? "/alpha/overview"
+          : name === "Archive"
+            ? "/alpha/archive"
+            : "/beta/list";
+    },
+    async openSettings() {
+      route = "/settings/appearance";
+    },
+    async reload() {},
+    async deepLink(address) {
+      route = address;
+    },
+    async startMainAction() {
+      return false;
+    },
+    async isEditDrawerOpen() {
+      return route.includes("?edit=");
+    },
+    async readWindowButtonContent() {
+      return [];
+    },
     async waitForApp() {},
     async setWidth(value) {
       width = value;
@@ -29,7 +63,7 @@ function fakeApp(): VerifyDesktopApp & {
     },
     async readState() {
       return {
-        route: "/alpha/overview",
+        route,
         layoutStep: width >= 1200 ? "wide" : width >= 960 ? "medium" : "narrow",
         errors: [],
       };
@@ -45,9 +79,9 @@ describe("verifyDesktop", () => {
     const app = fakeApp();
     const result = await verifyDesktop(app);
     expect(result.passed).toBe(true);
-    expect(app.widths).toEqual([1280, 1100, 800, 576, 1280, 1100, 800, 576]);
-    expect(app.modes).toEqual(["light", "dark"]);
-    expect(app.screenshots).toEqual([
+    expect(app.widths.slice(0, 8)).toEqual([1280, 1100, 800, 576, 1280, 1100, 800, 576]);
+    expect(app.modes.slice(0, 2)).toEqual(["light", "dark"]);
+    expect(app.screenshots.slice(0, 8)).toEqual([
       "01-wide-wide-light.png",
       "02-medium-medium-light.png",
       "03-narrow-narrow-light.png",
@@ -169,4 +203,156 @@ it("reports errors emitted during the final screenshot", async () => {
     screenshot: "08-narrowest-narrow-dark.png",
     errors: ["console.error: late error"],
   });
+});
+
+it("clicks and photographs every discovered View, then Settings", async () => {
+  const result = await verifyDesktop(fakeApp());
+  expect(result.passed).toBe(true);
+  expect(
+    result.steps
+      .slice(8, 12)
+      .map(({ route, screenshot, width, colorMode }) => ({ route, screenshot, width, colorMode })),
+  ).toEqual([
+    {
+      route: "/alpha/overview",
+      screenshot: "09-view-1-1-wide-light.png",
+      width: 1280,
+      colorMode: "light",
+    },
+    {
+      route: "/alpha/archive",
+      screenshot: "10-view-1-2-wide-light.png",
+      width: 1280,
+      colorMode: "light",
+    },
+    {
+      route: "/beta/list",
+      screenshot: "11-view-2-1-wide-light.png",
+      width: 1280,
+      colorMode: "light",
+    },
+    {
+      route: "/settings/appearance",
+      screenshot: "12-settings-wide-light.png",
+      width: 1280,
+      colorMode: "light",
+    },
+  ]);
+});
+
+it("fails when the Navbar contains no modules", async () => {
+  const app = fakeApp();
+  app.modules = async () => [];
+  const result = await verifyDesktop(app);
+  expect(result.passed).toBe(false);
+  expect(result.steps.at(-1)).toMatchObject({
+    step: "navigation",
+    errors: ["The Navbar contains no modules."],
+  });
+});
+
+it("reloads Settings and rejects a changed route", async () => {
+  const app = fakeApp();
+  app.reload = async () => {
+    await app.openModule("Alpha");
+  };
+  const result = await verifyDesktop(app);
+  expect(result.passed).toBe(false);
+  expect(result.steps.at(-1)).toMatchObject({
+    step: "reload",
+    errors: ['Expected route "/settings/appearance", got "/alpha/overview".'],
+  });
+});
+
+it("opens a full View deep link after navigating away and rejects a wrong destination", async () => {
+  const app = fakeApp();
+  const addresses: string[] = [];
+  const deepLink = app.deepLink.bind(app);
+  app.deepLink = async (address) => {
+    addresses.push(address);
+    await deepLink(address);
+  };
+  const result = await verifyDesktop(app);
+  expect(result.passed).toBe(true);
+  expect(addresses).toEqual(["/alpha/overview"]);
+  expect(result.steps.at(-1)).toMatchObject({ step: "deep-link", route: "/alpha/overview" });
+  app.deepLink = async () => {};
+  const failed = await verifyDesktop(app);
+  expect(failed.passed).toBe(false);
+  expect(failed.steps.at(-1)).toMatchObject({
+    step: "deep-link",
+    errors: ['Expected route "/alpha/overview", got "/settings/appearance".'],
+  });
+});
+
+it("reopens the edit address from the first module with a main action", async () => {
+  const app = fakeApp();
+  const read = app.readState.bind(app);
+  let edit = false;
+  let attempts = 0;
+  app.startMainAction = async () => {
+    attempts++;
+    edit = attempts === 2;
+    return edit;
+  };
+  app.readState = async () => {
+    const state = await read();
+    return { ...state, route: edit ? state.route + "?edit=new" : state.route };
+  };
+  const deepLink = app.deepLink.bind(app);
+  app.deepLink = async (route) => {
+    edit = false;
+    await deepLink(route);
+  };
+  const result = await verifyDesktop(app);
+  expect(result.passed).toBe(true);
+  expect(attempts).toBe(2);
+  expect(result.steps.at(-1)).toMatchObject({
+    step: "edit-deep-link",
+    route: "/beta/list?edit=new",
+  });
+  app.isEditDrawerOpen = async () => false;
+  attempts = 0;
+  const failed = await verifyDesktop(app);
+  expect(failed.passed).toBe(false);
+  expect(failed.steps.at(-1)).toMatchObject({
+    step: "edit-deep-link",
+    errors: ["The Edit Drawer is not open."],
+  });
+});
+
+it.each(["darwin", "win32", "linux"])(
+  "checks the window-button strip only on macOS (%s)",
+  async (platform) => {
+    const app = fakeApp();
+    let reads = 0;
+    app.readWindowButtonContent = async () => {
+      reads++;
+      return [{ name: "Covered link", x: 20, y: 15, width: 30, height: 20 }];
+    };
+    const result = await verifyDesktop(app, platform);
+    expect(result.passed).toBe(platform !== "darwin");
+    expect(reads).toBe(platform === "darwin" ? 1 : 0);
+    expect(result.windowButtons).toBe(
+      platform === "darwin" ? "checked" : "skipped: native frame until #167",
+    );
+    if (platform === "darwin")
+      expect(result.steps[0]?.errors).toEqual([
+        "Shell content overlaps the window-button strip: Covered link",
+      ]);
+  },
+);
+
+it("reports a skipped edit deep link when no module has a main action", async () => {
+  const app = fakeApp();
+  let attempts = 0;
+  app.startMainAction = async () => {
+    attempts++;
+    return false;
+  };
+  const result = await verifyDesktop(app);
+  expect(result.passed).toBe(true);
+  expect(attempts).toBe(2);
+  expect(result.editDeepLink).toBe("skipped: no module has a main action");
+  expect(result.steps.filter(({ step }) => step === "edit-deep-link")).toEqual([]);
 });
