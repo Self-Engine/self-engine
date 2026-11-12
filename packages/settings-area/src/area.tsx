@@ -28,7 +28,7 @@ export const Row = memo(function Row({ row, store }: RowProps) {
   const titleId = useId();
   const Control = row.control;
   return (
-    <Group gap="md" justify="space-between" py="md">
+    <Group aria-labelledby={titleId} gap="md" justify="space-between" py="md" role="group">
       <Stack flex="1 1 16rem" gap={2}>
         <Text fw={500} id={titleId}>
           {i18n._(row.title)}
