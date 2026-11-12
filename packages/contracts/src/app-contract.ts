@@ -1,3 +1,4 @@
+import { placeholderAlphaContract } from "@self-engine/placeholder-alpha/contracts";
 import { healthContract } from "./health.ts";
 import { tablesChangedContract } from "./tables-changed.ts";
 
@@ -9,6 +10,7 @@ import { tablesChangedContract } from "./tables-changed.ts";
 export const appContract = {
   health: healthContract,
   tablesChanged: tablesChangedContract,
+  placeholderAlpha: placeholderAlphaContract,
 };
 
 /** The renderer imports only this type, so no schema loads at startup (D187). */

@@ -229,3 +229,38 @@ test("registered app module namespaces match the mounted app contract", () => {
       .sort(),
   );
 });
+
+test("placeholder-alpha is mounted: an Operation is followed by its Table Change and the list Query returns the new row", async () => {
+  const process = await startTestDataProcess({ modules });
+  started.push(process);
+  const client = createORPCClient<ContractRouterClient<AppContract>>(
+    new RPCLink({ port: process.openPort() }),
+  );
+  await expect(client.health()).resolves.toMatchObject({
+    state: "ready",
+    migrations: ["placeholder-alpha/0001"],
+  });
+  const events = await client.tablesChanged();
+  await expect(events.next()).resolves.toEqual({
+    done: false,
+    value: {
+      kind: "opened",
+      queries: { placeholderAlpha: { list: ["placeholder_alpha_entries"] } },
+    },
+  });
+
+  const created = await client.placeholderAlpha.create({ name: "Studio work" });
+
+  await expect(events.next()).resolves.toEqual({
+    done: false,
+    value: { kind: "changed", tables: ["placeholder_alpha_entries"] },
+  });
+  await expect(client.placeholderAlpha.list({})).resolves.toEqual([
+    { id: created.id, name: "Studio work" },
+  ]);
+  await expect(client.placeholderAlpha.create({ name: "Studio work" })).rejects.toMatchObject({
+    code: "CONFLICT",
+    data: { reason: "name_taken" },
+  });
+  await events.return();
+});

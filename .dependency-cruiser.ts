@@ -22,16 +22,17 @@ export type AllowedImports = Readonly<Record<string, readonly string[]>>;
  */
 export const ALLOWED_IMPORTS: AllowedImports = {
   // Composes the modules' contracts once they have some (D187): `contracts → module`.
-  contracts: [],
+  contracts: ["placeholder-alpha"],
   // The data process test harness only in the client's tests (a devDependency).
   "data-client": ["contracts", "data-process"],
-  "data-process": ["contracts", "db", "storage"],
+  "data-process": ["contracts", "db", "placeholder-alpha", "storage"],
   // The preload and the page share it; the failure states come from the contract.
   "desktop-bridge": ["contracts"],
   // Timestamp generation returns the shared Instant brand (D223).
   db: ["time"],
   icons: ["theme"],
-  "placeholder-alpha": ["shell", "icons", "ui"],
+  // Its contracts and data entries (D252); the root entry stays with the shell and the UI.
+  "placeholder-alpha": ["db", "icons", "shell", "storage", "time", "ui"],
   "placeholder-beta": ["shell", "icons"],
   "settings-area": ["i18n", "icons", "settings", "shell", "theme", "ui"],
   shell: ["icons", "theme", "ui"],

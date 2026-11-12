@@ -57,7 +57,7 @@ afterEach(async () => {
 });
 
 describe("runDataProcess", () => {
-  it("starts from the core module list without app-composed migrations and answers health", async () => {
+  it("starts from the core module list, applies its migrations and answers health", async () => {
     const parentPort = new FakeParentPort();
     const { channel, running } = start(parentPort);
     await running;
@@ -70,7 +70,7 @@ describe("runDataProcess", () => {
 
     await expect(connection.client.health()).resolves.toMatchObject({
       state: "ready",
-      migrations: [],
+      migrations: ["placeholder-alpha/0001"],
     });
   });
 
