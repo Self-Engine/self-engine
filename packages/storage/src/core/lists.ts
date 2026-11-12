@@ -38,12 +38,13 @@ function decode(text: string) {
 }
 const cursorPayload = z
   .object({
+    list: z.string(),
     direction: z.enum(["before", "after"]),
     values: z.array(z.union([z.string(), z.number().finite()])),
   })
   .strict();
 
-/** A fixed keyset order, always ending in id. Cursors are authenticated per list instance. */
+/** A fixed keyset order, always ending in id. Cursors carry the stable contract entry name. */
 export function pageList<
   DB,
   Table extends keyof DB & string,
@@ -56,10 +57,13 @@ export function pageList<
     context: StorageContext,
     input: Input,
   ) => SelectQueryBuilder<DB, Table, Row>;
+  /** Reuse the selected row schema so cursor values are checked before querying. */
+  readonly row: { readonly shape: { [Key in keyof Row & string]: z.core.$ZodType<Row[Key]> } };
   readonly order: readonly Sort<Row>[];
   readonly map: (row: Row) => Output;
   readonly size?: number;
 }) {
+  const columns: Readonly<Record<string, z.core.$ZodType>> = options.row.shape;
   const size = options.size ?? 100;
   const order: readonly { readonly column: string; readonly direction: "asc" | "desc" }[] =
     options.order.map((item) => ({ ...item }));
@@ -71,44 +75,46 @@ export function pageList<
     new Set(order.map((item) => item.column)).size !== order.length
   )
     throw new Error("Page order must end in id and contain no repeated columns");
-  const key = crypto.subtle.importKey(
-    "raw",
-    crypto.getRandomValues(new Uint8Array(32)),
-    { name: "HMAC", hash: "SHA-256" },
-    false,
-    ["sign", "verify"],
-  );
-  async function cursor(direction: "before" | "after", row: Row) {
-    const payload = new TextEncoder().encode(
-      JSON.stringify({ direction, values: order.map(({ column }) => row[column as keyof Row]) }),
+  function cursor(list: string, direction: "before" | "after", row: Row) {
+    return encode(
+      new TextEncoder().encode(
+        JSON.stringify({
+          list,
+          direction,
+          values: order.map(({ column }) => row[column as keyof Row]),
+        }),
+      ),
     );
-    const signature = new Uint8Array(await crypto.subtle.sign("HMAC", await key, payload));
-    return `${encode(payload)}.${encode(signature)}`;
   }
-  async function readCursor(value: string | undefined) {
+  function readCursor(value: string | undefined, list: string) {
     if (value === undefined) return undefined;
     try {
-      const parts = value.split(".");
-      if (parts.length !== 2 || parts[0] === undefined || parts[1] === undefined)
-        throw new Error("Invalid cursor");
-      const payload = decode(parts[0]);
-      const signature = decode(parts[1]);
-      // Reject noncanonical encodings too: every change to a cursor is invalid input.
+      const payload = decode(value);
+      const text = new TextDecoder("utf-8", { fatal: true }).decode(payload);
+      const parsed = cursorPayload.parse(JSON.parse(text));
       if (
-        encode(payload) !== parts[0] ||
-        encode(signature) !== parts[1] ||
-        !(await crypto.subtle.verify("HMAC", await key, signature, payload))
+        encode(payload) !== value ||
+        JSON.stringify(parsed) !== text ||
+        parsed.list !== list ||
+        parsed.values.length !== order.length ||
+        order.some(({ column }, index) => {
+          const schema = columns[column];
+          return schema === undefined || !z.safeParse(schema, parsed.values[index]).success;
+        })
       )
         throw new Error("Invalid cursor");
-      const parsed = cursorPayload.parse(JSON.parse(new TextDecoder().decode(payload)));
-      if (parsed.values.length !== order.length) throw new Error("Invalid cursor");
       return parsed;
     } catch {
       throw new ORPCError("BAD_REQUEST");
     }
   }
-  async function build(tx: ReadTransaction<DB>, context: StorageContext, input: Input) {
-    const anchor = await readCursor(input.cursor);
+  async function build(
+    tx: ReadTransaction<DB>,
+    context: StorageContext,
+    input: Input,
+    list: string,
+  ) {
+    const anchor = readCursor(input.cursor, list);
     const backwards = anchor?.direction === "before";
     // Selected scalar columns are guaranteed by Sort<Row>. Kysely cannot infer references
     // from selected output keys, so the dynamic ordering is kept behind this private view.
@@ -164,16 +170,21 @@ export function pageList<
     kind: "query" as const,
     list: {
       kind: "pages" as const,
-      async queries(tx: ReadTransaction<DB>, context: StorageContext, input: Input) {
-        const { query } = await build(tx, context, input);
+      async queries(tx: ReadTransaction<DB>, context: StorageContext, input: Input, list: string) {
+        const { query } = await build(tx, context, input, list);
         const queries = [query.compile()];
         const row = (await query.execute())[0];
         if (row !== undefined) {
           for (const direction of ["before", "after"] as const) {
-            const next = await build(tx, context, {
-              ...input,
-              cursor: await cursor(direction, row),
-            });
+            const next = await build(
+              tx,
+              context,
+              {
+                ...input,
+                cursor: cursor(list, direction, row),
+              },
+              list,
+            );
             queries.push(next.query.compile());
           }
         }
@@ -184,8 +195,9 @@ export function pageList<
       tx: ReadTransaction<DB>,
       context: StorageContext,
       input: Input,
+      list: string,
     ): Promise<Page<Output>> {
-      const { query, anchor, backwards } = await build(tx, context, input);
+      const { query, anchor, backwards } = await build(tx, context, input, list);
       const found = await query.execute();
       const more = found.length > size;
       const rows = found.slice(0, size);
@@ -196,11 +208,11 @@ export function pageList<
         rows: rows.map(options.map),
         before:
           first !== undefined && (backwards ? more : anchor !== undefined)
-            ? await cursor("before", first)
+            ? cursor(list, "before", first)
             : null,
         after:
           last !== undefined && (backwards ? anchor !== undefined : more)
-            ? await cursor("after", last)
+            ? cursor(list, "after", last)
             : null,
       };
     },

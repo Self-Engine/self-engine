@@ -1,5 +1,6 @@
 import { createRouterClient } from "@orpc/server";
 import { afterEach, expect, test } from "vite-plus/test";
+import { notesRowMap } from "../../test/notes-module/data/rows.ts";
 import { notes } from "../../test/notes-module/data/index.ts";
 import { createFrame, smallSetList, windowList, type FrameReport } from "./index.ts";
 import { createTestContext, createTestDatabase } from "../testing/index.ts";
@@ -115,6 +116,25 @@ test("notes exposes all three lists; pages walk repeated sort values in both dir
   ).resolves.toEqual([]);
 });
 
+test("page cursors survive rebuilding the module and frame over the same database", async () => {
+  const database = await createTestDatabase(notes);
+  cleanups.push(() => database.close());
+  const options = { database, sources: createTestContext(), checkOutputs: true };
+  const first = createRouterClient(createFrame(notes, options));
+  for (let i = 0; i < 101; i++) await first.create({ title: `Restart ${i}`, isPinned: false });
+  const page = await first.pages({});
+  if (page.after === null) throw new Error("Missing next cursor");
+  // Reloading the data entry constructs a new page builder, as a process restart does.
+  const { vi } = await import("vite-plus/test");
+  vi.resetModules();
+  const { notes: rebuilt } = await import("../../test/notes-module/data/index.ts");
+  const second = createRouterClient(createFrame(rebuilt, options));
+  const next = await second.pages({ cursor: page.after });
+  expect(next.rows.map((row) => row.title)).toEqual(["Restart 100"]);
+  if (next.before === null) throw new Error("Missing previous cursor");
+  expect(await second.pages({ cursor: next.before })).toEqual(page);
+});
+
 test("a renderer cannot raise page size, and storage can set at most 500", async () => {
   const database = await createTestDatabase(notes);
   cleanups.push(() => database.close());
@@ -144,7 +164,10 @@ test("a renderer cannot raise page size, and storage can set at most 500", async
       createFrame(
         {
           ...notes,
-          entries: { ...notes.entries, pages: pageList({ ...options, size }) },
+          entries: {
+            ...notes.entries,
+            pages: pageList({ row: notesRowMap.notes, ...options, size }),
+          },
         },
         { database, sources: createTestContext(), checkOutputs: true },
       ),
@@ -158,7 +181,7 @@ test("a renderer cannot raise page size, and storage can set at most 500", async
     });
   }
   for (const size of [0, -1, 501, 1.5, NaN, Infinity]) {
-    expect(() => pageList({ ...options, size })).toThrow("Page size");
+    expect(() => pageList({ row: notesRowMap.notes, ...options, size })).toThrow("Page size");
   }
 });
 
@@ -181,9 +204,10 @@ test("tampered cursors and another list's cursor are invalid input", async () =>
     createFrame(
       {
         ...notes,
+        contract: { otherPages: notes.contract.pages },
         entries: {
-          ...notes.entries,
-          pages: pageList({
+          otherPages: pageList({
+            row: notesRowMap.notes,
             query: (
               tx: Parameters<typeof notes.entries.pages.run>[0],
               context: Parameters<typeof notes.entries.pages.run>[1],
@@ -199,7 +223,9 @@ test("tampered cursors and another list's cursor are invalid input", async () =>
       { database, sources: createTestContext(), checkOutputs: false },
     ),
   );
-  await expect(other.pages({ cursor: page.after })).rejects.toMatchObject({ code: "BAD_REQUEST" });
+  await expect(other.otherPages({ cursor: page.after })).rejects.toMatchObject({
+    code: "BAD_REQUEST",
+  });
   for (const cursor of [
     "garbage",
     "",
@@ -209,6 +235,43 @@ test("tampered cursors and another list's cursor are invalid input", async () =>
   ]) {
     await expect(client.pages({ cursor })).rejects.toMatchObject({ code: "BAD_REQUEST" });
   }
+});
+
+test("page cursors reject noncanonical payloads, wrong schemas and sort value counts and types", async () => {
+  const database = await createTestDatabase(notes);
+  cleanups.push(() => database.close());
+  const client = createRouterClient(
+    createFrame(notes, {
+      database,
+      sources: createTestContext(),
+      checkOutputs: false,
+    }),
+  );
+  const encode = (text: string) => Buffer.from(text).toString("base64url");
+  for (const payload of [
+    '{"list":"pages","direction":"after","values":[42,"01a1cfa1-0a00-7000-8000-000000000000"]}',
+    '{"list":"pages","direction":"after","values":["2026-11-12T12:00:00.000Z",42]}',
+    '{"list":"pages","direction":"after","values":["2026-11-12T12:00:00.000Z"]}',
+    '{"list":"pages","direction":"after","values":["2026-11-12T12:00:00.000Z","01a1cfa1-0a00-7000-8000-000000000000",0]}',
+    '{"list":"pages","direction":"sideways","values":["2026-11-12T12:00:00.000Z","01a1cfa1-0a00-7000-8000-000000000000"]}',
+    '{"list":"pages","direction":"after","values":[null,"01a1cfa1-0a00-7000-8000-000000000000"]}',
+    '{"list":"pages","direction":"after","values":["2026-11-12T12:00:00.000Z","01a1cfa1-0a00-7000-8000-000000000000"],"extra":true}',
+    '{ "list":"pages","direction":"after","values":["2026-11-12T12:00:00.000Z","01a1cfa1-0a00-7000-8000-000000000000"]}',
+    '{"list":"pages","direction":"after","values":["2026-11-12T12:00:00.000Z","01a1cfa1-0a00-7000-8000-000000000000"],"list":"pages"}',
+    "[]",
+  ]) {
+    await expect(client.pages({ cursor: encode(payload) })).rejects.toMatchObject({
+      code: "BAD_REQUEST",
+    });
+  }
+  await expect(
+    client.pages({
+      cursor:
+        encode(
+          '{"list":"pages","direction":"after","values":["2026-11-12T12:00:00.000Z","01a1cfa1-0a00-7000-8000-000000000000"]}',
+        ) + "=",
+    }),
+  ).rejects.toMatchObject({ code: "BAD_REQUEST" });
 });
 
 test.each(["descending", "mixed", "id-only"] as const)(
@@ -237,6 +300,7 @@ test.each(["descending", "mixed", "id-only"] as const)(
           entries: {
             ...notes.entries,
             pages: pageList({
+              row: notesRowMap.notes,
               query: (
                 tx: Parameters<typeof notes.entries.pages.run>[0],
                 context: Parameters<typeof notes.entries.pages.run>[1],
@@ -290,6 +354,15 @@ test.each(["descending", "mixed", "id-only"] as const)(
             "Note 0",
           ],
     );
+    if (ordering === "mixed") {
+      const cursor = pages[0]?.after;
+      if (!cursor) throw new Error("Missing next cursor");
+      const payload = JSON.parse(Buffer.from(cursor, "base64url").toString("utf8"));
+      payload.values[0] = "1";
+      await expect(
+        client.pages({ cursor: Buffer.from(JSON.stringify(payload)).toString("base64url") }),
+      ).rejects.toMatchObject({ code: "BAD_REQUEST" });
+    }
     for (let index = pages.length - 1; index > 0; index--) {
       if (page.before === null) throw new Error("Missing previous cursor");
       page = await client.pages({ cursor: page.before });
@@ -306,11 +379,19 @@ test("storage refuses a page order without a final unique id", async () => {
     context: Parameters<typeof notes.entries.pages.run>[1],
   ) => sharedEntry(tx, context).live("notes").selectAll();
   expect(() =>
-    pageList({ query, map: toNote, order: [{ column: "created_at", direction: "asc" }] }),
+    pageList({
+      row: notesRowMap.notes,
+      query,
+      map: toNote,
+      order: [{ column: "created_at", direction: "asc" }],
+    }),
   ).toThrow("Page order must end in id");
-  expect(() => pageList({ query, map: toNote, order: [] })).toThrow("Page order must end in id");
+  expect(() => pageList({ row: notesRowMap.notes, query, map: toNote, order: [] })).toThrow(
+    "Page order must end in id",
+  );
   expect(() =>
     pageList({
+      row: notesRowMap.notes,
       query,
       map: toNote,
       order: [

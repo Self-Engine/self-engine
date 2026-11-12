@@ -6,6 +6,7 @@ import {
   type StorageContract,
   type StorageModule,
   type ContextSources,
+  type FrameOptions,
 } from "@self-engine/storage";
 import { modules as appModules, type DataModules } from "./modules.ts";
 import { createRouter } from "./router.ts";
@@ -20,6 +21,7 @@ export interface DataProcessOptions {
   readonly modules?: DataModules;
   readonly sources?: ContextSources;
   readonly checkOutputs: boolean;
+  readonly report?: FrameOptions["report"];
   /** Called before the migrations run when some are pending, and not when none are (D138). */
   readonly beforeMigrations?: BeforeMigrations;
 }
@@ -47,6 +49,7 @@ export async function startDataProcess({
   sources = systemSources,
   checkOutputs,
   beforeMigrations,
+  report,
 }: DataProcessOptions): Promise<DataProcess> {
   const health = await migrate(
     database,
@@ -63,6 +66,7 @@ export async function startDataProcess({
         database,
         sources,
         checkOutputs,
+        ...(report === undefined ? {} : { report }),
         announce: (tables) => tablesChanged.announce([...tables]),
       }),
     ]),

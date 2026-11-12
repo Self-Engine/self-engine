@@ -1,3 +1,4 @@
+import { notesRowMap } from "../../test/notes-module/data/rows.ts";
 import { ContractProcedure, oc } from "@orpc/contract";
 import { expect, test } from "vite-plus/test";
 import { z } from "zod";
@@ -222,6 +223,7 @@ test("the kit names a page query that sorts without an index", async () => {
     contract: { pages: notes.contract.pages },
     entries: {
       pages: pageList({
+        row: notesRowMap.notes,
         query: (
           tx: Parameters<typeof notes.entries.pages.run>[0],
           context: Parameters<typeof notes.entries.pages.run>[1],

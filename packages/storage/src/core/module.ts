@@ -11,6 +11,8 @@ type Handler<Tx, Input, Output> = (
   tx: Tx,
   context: StorageContext,
   input: Input,
+  /** Stable contract key, supplied by the frame (and the kit for query plans). */
+  entry: string,
 ) => Output | Promise<Output>;
 export type ModuleEntries<Contract extends StorageContract, Rows extends RowMap> = {
   readonly [Entry in keyof Contract]:

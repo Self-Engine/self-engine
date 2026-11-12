@@ -4,12 +4,18 @@ import type { Database, Migration } from "@self-engine/db";
 import { openDatabase } from "@self-engine/db/better-sqlite3";
 import { createTestSources } from "@self-engine/db/testing";
 import type { ContextSources } from "@self-engine/storage";
-import { type BeforeMigrations, type DataModules, startDataProcess } from "../core/index.ts";
+import {
+  type BeforeMigrations,
+  type DataModules,
+  type DataProcessOptions,
+  startDataProcess,
+} from "../core/index.ts";
 
 export interface TestDataProcessOptions {
   readonly modules?: DataModules;
   readonly sources?: ContextSources;
   readonly checkOutputs?: boolean;
+  readonly report?: DataProcessOptions["report"];
   /** Migration-only fixture for startup tests; module call tests supply modules instead. */
   readonly migrations?: readonly Migration[];
   /**
@@ -52,6 +58,7 @@ export async function startTestDataProcess(
       },
       sources: options.sources ?? createTestSources(new Date("2026-01-01T00:00:00.000Z")),
       checkOutputs: options.checkOutputs ?? true,
+      ...(options.report === undefined ? {} : { report: options.report }),
       ...(options.beforeMigrations && { beforeMigrations: options.beforeMigrations }),
     });
   } catch (error) {

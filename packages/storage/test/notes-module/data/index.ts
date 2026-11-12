@@ -80,6 +80,7 @@ export const notes = defineStorageModule({
       },
     ),
     pages: pageList({
+      row: notesRowMap.notes,
       query: allNotes,
       order: [
         { column: "created_at", direction: "asc" },

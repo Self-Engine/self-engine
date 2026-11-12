@@ -121,7 +121,7 @@ export function createFrame<Contract extends StorageContract, Rows extends RowMa
             return result;
           })
           .handler(async ({ context, input }) => {
-            const output = await entry.run(context.tx, context.storageContext, input);
+            const output = await entry.run(context.tx, context.storageContext, input, name);
             if (options.checkOutputs && entry.kind === "query") {
               reportLargeResult(name, entry.list?.kind, output, options.report);
             }

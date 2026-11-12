@@ -3,7 +3,7 @@ import { RPCLink } from "@orpc/client/message-port";
 import { oc, type ContractRouterClient } from "@orpc/contract";
 import type { AppContract } from "@self-engine/contracts";
 import { createTestSources } from "@self-engine/db/testing";
-import { defineStorageModule } from "@self-engine/storage";
+import { defineStorageModule, type FrameReport } from "@self-engine/storage";
 import { afterEach, expect, test } from "vite-plus/test";
 import { z } from "zod";
 import { startTestDataProcess, type TestDataProcess } from "../testing/index.ts";
@@ -129,4 +129,37 @@ test("a failed module migration keeps health available and refuses module calls"
   await expect(client.fixture.add("Invoice")).rejects.toMatchObject({
     code: "SERVICE_UNAVAILABLE",
   });
+});
+
+test("unexpected operation errors reach the report sink while the port caller gets a general error", async () => {
+  const error = new Error("Private operation detail");
+  const broken = defineStorageModule({
+    contract: { fail: oc.output(z.string()) },
+    migrations: [],
+    rowMap: {},
+    entries: {
+      fail: {
+        kind: "operation",
+        run() {
+          throw error;
+        },
+      },
+    },
+  });
+  const reports: FrameReport[] = [];
+  const process = await startTestDataProcess({
+    modules: { fixture: broken },
+    report: (value) => {
+      reports.push(value);
+    },
+  });
+  started.push(process);
+  const client = createORPCClient<ContractRouterClient<{ fixture: typeof broken.contract }>>(
+    new RPCLink({ port: process.openPort() }),
+  );
+  await expect(client.fixture.fail()).rejects.toMatchObject({
+    code: "INTERNAL_SERVER_ERROR",
+    message: "Internal Server Error",
+  });
+  expect(reports).toEqual([{ kind: "unexpected-error", entry: "fail", error }]);
 });

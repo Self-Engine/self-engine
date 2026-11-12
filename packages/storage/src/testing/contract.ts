@@ -112,7 +112,12 @@ export async function checkContract<Contract extends StorageContract, Rows exten
             .transaction()
             .execute((tx) =>
               Promise.resolve(
-                queries(tx.withTables<TablesOf<Rows>>(), createContext(sources), example as never),
+                queries(
+                  tx.withTables<TablesOf<Rows>>(),
+                  createContext(sources),
+                  example as never,
+                  entry,
+                ),
               ),
             );
           for (const query of compiled) {
