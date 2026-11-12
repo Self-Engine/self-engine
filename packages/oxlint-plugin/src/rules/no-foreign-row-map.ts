@@ -9,6 +9,8 @@ function owner(path: string): string | undefined {
   return /\/(?:packages|apps)\/([^/]+)/.exec(path)?.[1];
 }
 function foreign(source: string, filename: string): boolean {
+  // The frame exports the generic RowMap type, not an owning module’s table schemas.
+  if (source === "@self-engine/storage") return false;
   if (source.startsWith("@self-engine/")) {
     const name = source.split("/")[1];
     return name !== owner(filename);
