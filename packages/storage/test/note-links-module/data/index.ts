@@ -1,4 +1,5 @@
 import type { InferSchemaOutput } from "@orpc/contract";
+import { ORPCError } from "@orpc/server";
 import type { TablesOf } from "@self-engine/db";
 import {
   defineStorageModule,
@@ -19,6 +20,16 @@ export const links = defineStorageModule({
     create: {
       kind: "operation",
       async run(tx, context, input) {
+        // A missing target is the caller's mistake, not a server fault: look it up through
+        // the owner's read piece before writing. SQLite's foreign-key error names no column.
+        const reads: ReadTransaction<TablesOf<typeof linksRowMap>> = tx;
+        const target = await reads
+          .selectFrom(noteTitles(reads, context, "target"))
+          .select("target.id")
+          .where("target.id", "=", input.noteId)
+          .where("target.deletedAt", "is", null)
+          .executeTakeFirst();
+        if (target === undefined) throw new ORPCError("NOT_FOUND");
         return toLink(
           await sharedWrites(tx, context).insert("note_links", context.newId(linkIdSchema), {
             note_id: input.noteId,

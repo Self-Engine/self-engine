@@ -12,7 +12,10 @@ const link = z.object({
   noteId: noteIdSchema,
 });
 export const linksContract = {
-  create: oc.input(z.object({ noteId: noteIdSchema, label: z.string().min(1) })).output(link),
+  create: oc
+    .input(z.object({ noteId: noteIdSchema, label: z.string().min(1) }))
+    .output(link)
+    .errors({ NOT_FOUND: {} }),
   list: oc.input(z.object({ title: z.string().optional() })).output(
     z.array(
       link.extend({

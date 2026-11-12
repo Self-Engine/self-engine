@@ -137,7 +137,13 @@ Follow the second template,
 [`note-links/data/index.ts`](../../packages/storage/test/note-links-module/data/index.ts):
 keep only owned rows in the consuming row map and join `noteTitles(tx, context, "target")`
 in one query. Its left join retains the link when the target is absent or in another Space;
-a deleted target retains its title and explicit deletion mark. Filter and sort by released
+a deleted target retains its title and explicit deletion mark.
+
+An operation that stores a reference to another module's row looks the target up through the
+read piece first and answers `NOT_FOUND` when it is missing, deleted or in another Space; the
+contract entry declares that error. SQLite's foreign-key error does not name the constraint,
+so the frame cannot translate it, and without the lookup a missing target would reach the
+caller as an internal error. The lookup is one primary-key read per write. Filter and sort by released
 columns in that same query. Declare allowed package dependencies in both `package.json` and
 `ALLOWED_IMPORTS` in `.dependency-cruiser.ts`.
 
