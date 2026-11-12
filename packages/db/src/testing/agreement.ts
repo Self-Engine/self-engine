@@ -37,15 +37,20 @@ const TYPE_RULES: Readonly<
 };
 
 /** The first disagreement for a field, in the order a module author should fix it. */
-function fieldRule(field: z.ZodType, { type, notnull }: ColumnRow): string | undefined {
+function fieldRule(
+  field: z.ZodType,
+  { type, notnull }: ColumnRow,
+  isRowid: boolean,
+): string | undefined {
   if (
     field instanceof z.ZodOptional ||
     (field instanceof z.ZodNullable && field.unwrap() instanceof z.ZodOptional)
   )
     return "field must not be optional";
   const nullable = field instanceof z.ZodNullable;
-  if (nullable !== (notnull === 0))
-    return notnull === 0 ? "field must be nullable" : "field must not be nullable";
+  // A rowid alias reports notnull = 0, but SQLite never stores NULL in it.
+  const mayBeNull = notnull === 0 && !isRowid;
+  if (nullable !== mayBeNull) return mayBeNull ? "field must be nullable" : "field must not be nullable";
   const base = nullable ? field.unwrap() : field;
   if (base instanceof z.ZodBoolean) return "use sqliteBoolean instead of z.boolean()";
   if (base !== sqliteBoolean && !isString(base) && !(base instanceof z.ZodNumber))
@@ -53,6 +58,15 @@ function fieldRule(field: z.ZodType, { type, notnull }: ColumnRow): string | und
   const match = TYPE_RULES[type.toUpperCase()];
   if (match === undefined) return `unsupported SQLite type ${type}`;
   return match.fits(base) ? undefined : match.rule;
+}
+
+/** The sole primary-key column declared exactly `INTEGER` aliases the rowid. */
+function isRowidAlias(column: ColumnRow, columns: readonly ColumnRow[]): boolean {
+  return (
+    column.pk > 0 &&
+    column.type.toUpperCase() === "INTEGER" &&
+    columns.filter(({ pk }) => pk > 0).length === 1
+  );
 }
 
 /** Runs only this module's migrations in a private in-memory database. */
@@ -86,7 +100,7 @@ export async function checkAgreement(
           violations.push({ table, column, rule: "column must have a row map field" });
           continue;
         }
-        const rule = fieldRule(shape[column], metadata);
+        const rule = fieldRule(shape[column], metadata, isRowidAlias(metadata, columns));
         if (rule !== undefined) violations.push({ table, column, rule });
       }
     }

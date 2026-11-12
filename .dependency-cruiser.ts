@@ -228,7 +228,6 @@ export function boundaryConfig({ allowedImports, rootDir }: BoundaryOptions): IC
       severity: "error",
       from: { path: "^packages/[^/]+/src/contracts/" },
       to: {
-        dependencyTypesNot: ["local"],
         pathNot: `^packages/(?:db/src/schema/|time/|[^/]+/src/contracts/)|(^|/)node_modules/(?:${alternatives(CONTRACT_LIBRARIES)})/`,
       },
     },

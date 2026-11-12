@@ -189,7 +189,7 @@ test("ignores bookkeeping and views but checks similar table names and later mig
         { name: "test/0002", sql: "ALTER TABLE kysely_migration_notes ADD COLUMN title TEXT;" },
       ],
       {
-        local_counter: z.object({ n: z.number().int().nullable() }),
+        local_counter: z.object({ n: z.number().int() }),
         kysely_migration_notes: z.object({ body: z.string(), title: z.string().nullable() }),
       },
     ),

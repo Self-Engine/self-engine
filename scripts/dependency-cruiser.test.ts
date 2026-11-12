@@ -503,6 +503,22 @@ describe("the db schema entry", () => {
     },
   );
 
+  it("fails a relative import from a module's contracts into its runtime code", async () => {
+    const module = extraPackage("packages/module", {
+      "src/data/index.ts": "export const data = 1;\n",
+      "src/contracts/index.ts": 'import "../data/index.ts";\n',
+    });
+    expect(ruleNames(await cruise([module]))).toEqual(["module-contracts-is-pure"]);
+  });
+
+  it("passes a relative import within a module's contracts", async () => {
+    const module = extraPackage("packages/module", {
+      "src/contracts/schemas.ts": "export const schema = 1;\n",
+      "src/contracts/index.ts": 'import "./schemas.ts";\n',
+    });
+    expect(await cruise([module])).toEqual([]);
+  });
+
   it("passes Zod in the schema entry and the schema in a module's contracts", async () => {
     const module = {
       ...extraPackage("packages/module", {
