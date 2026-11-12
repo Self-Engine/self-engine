@@ -76,6 +76,146 @@ describe("checkConventions", () => {
     });
   });
 
+  describe("indexes", () => {
+    test.each([
+      ["a plain index", "CREATE INDEX notes_created ON notes (space_id, created_at)"],
+      [
+        "a live unique index",
+        "CREATE UNIQUE INDEX notes_created ON notes (space_id, created_at) WHERE deleted_at IS NULL",
+      ],
+      [
+        "quoted names and comments",
+        'CREATE UNIQUE INDEX "WHERE" ON notes ("SPACE_ID", created_at) where (("DELETED_AT") is /* live */ null)',
+      ],
+      [
+        "bracketed names",
+        "CREATE UNIQUE INDEX notes_created ON notes ([space_id], created_at) WHERE [deleted_at] IS NULL",
+      ],
+      [
+        "backtick names",
+        "CREATE UNIQUE INDEX notes_created ON notes (`space_id`, created_at) WHERE `deleted_at` IS NULL",
+      ],
+    ])("accepts %s", async (_name, definition) => {
+      await database.executeScript(`
+        CREATE TABLE notes (${SYNCED_COLUMNS}) STRICT;
+        ${definition};
+      `);
+
+      await expect(checkConventions(database)).resolves.toEqual([]);
+    });
+
+    test.each([
+      ["another predicate", "created_at IS NOT NULL"],
+      ["a misleading comment", "created_at IS NOT NULL /* deleted_at IS NULL */"],
+      ["a string", "'deleted_at IS NULL'"],
+      ["a quoted string instead of a column", "'deleted_at' IS NULL"],
+      ["deleted rows included by OR", "deleted_at IS NULL OR created_at IS NOT NULL"],
+    ])("reports a unique index with %s", async (_name, predicate) => {
+      await database.executeScript(`
+        CREATE TABLE notes (${SYNCED_COLUMNS}) STRICT;
+        CREATE UNIQUE INDEX notes_created ON notes (space_id, created_at) WHERE ${predicate};
+      `);
+
+      await expect(checkConventions(database)).resolves.toEqual([
+        {
+          table: "notes",
+          rule: "unique index notes_created must be partial on deleted_at IS NULL",
+        },
+      ]);
+    });
+
+    test("reports an expression before space_id", async () => {
+      await database.executeScript(`
+        CREATE TABLE notes (${SYNCED_COLUMNS}) STRICT;
+        CREATE INDEX notes_created ON notes (lower(created_at), space_id);
+      `);
+
+      await expect(checkConventions(database)).resolves.toEqual([
+        { table: "notes", rule: "index notes_created must start with space_id" },
+      ]);
+    });
+
+    test("reports both broken rules on one unique index", async () => {
+      await database.executeScript(`
+        CREATE TABLE notes (${SYNCED_COLUMNS}) STRICT;
+        CREATE UNIQUE INDEX notes_created ON notes (created_at);
+      `);
+
+      await expect(checkConventions(database)).resolves.toEqual([
+        {
+          table: "notes",
+          rule: "unique index notes_created must be partial on deleted_at IS NULL",
+        },
+        { table: "notes", rule: "index notes_created must start with space_id" },
+      ]);
+    });
+
+    test("allows any indexes and inline UNIQUE on a Local Table", async () => {
+      await database.executeScript(`
+        CREATE TABLE local_figures (id TEXT PRIMARY KEY, total INTEGER UNIQUE) STRICT;
+        CREATE INDEX local_total ON local_figures (total);
+        CREATE UNIQUE INDEX local_id ON local_figures (id);
+        CREATE UNIQUE INDEX local_positive ON local_figures (total) WHERE total > 0;
+      `);
+
+      await expect(checkConventions(database)).resolves.toEqual([]);
+    });
+
+    test("does not read inline UNIQUE from comments, strings or quoted names", async () => {
+      await database.executeScript(`
+        CREATE TABLE notes (
+          ${SYNCED_COLUMNS},
+          "UNIQUE" TEXT DEFAULT 'UNIQUE',
+          body TEXT /* UNIQUE */ -- UNIQUE
+        ) STRICT;
+      `);
+
+      await expect(checkConventions(database)).resolves.toEqual([]);
+    });
+
+    test.each([
+      ["a column constraint", "body TEXT UNIQUE"],
+      ["a table constraint", "body TEXT, UNIQUE (space_id, body)"],
+      ["a redundant constraint on the primary key", "UNIQUE (id)"],
+    ])("reports inline UNIQUE as %s", async (_name, definition) => {
+      await database.executeScript(`
+        CREATE TABLE notes (${SYNCED_COLUMNS}, ${definition}) STRICT;
+      `);
+
+      await expect(checkConventions(database)).resolves.toEqual([
+        {
+          table: "notes",
+          rule: "must not have an inline UNIQUE constraint; use a partial unique index starting with space_id WHERE deleted_at IS NULL",
+        },
+      ]);
+    });
+
+    test("reports a unique index that includes deleted rows", async () => {
+      await database.executeScript(`
+        CREATE TABLE notes (${SYNCED_COLUMNS}) STRICT;
+        CREATE UNIQUE INDEX notes_created ON notes (space_id, created_at);
+      `);
+
+      await expect(checkConventions(database)).resolves.toEqual([
+        {
+          table: "notes",
+          rule: "unique index notes_created must be partial on deleted_at IS NULL",
+        },
+      ]);
+    });
+
+    test("reports an index that does not start with space_id", async () => {
+      await database.executeScript(`
+        CREATE TABLE notes (${SYNCED_COLUMNS}) STRICT;
+        CREATE INDEX notes_created ON notes (created_at, space_id);
+      `);
+
+      await expect(checkConventions(database)).resolves.toEqual([
+        { table: "notes", rule: "index notes_created must start with space_id" },
+      ]);
+    });
+  });
+
   describe("the required columns", () => {
     const ID_RULE = "must have id as its TEXT primary key";
     const CREATED_RULE = "must have created_at as non-null TEXT";

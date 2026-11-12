@@ -153,6 +153,64 @@ async function columnsOf(database: Database, table: string): Promise<readonly Co
   return rows;
 }
 
+interface IndexRow {
+  readonly name: string;
+  readonly origin: string;
+  readonly unique: number;
+  readonly partial: number;
+  readonly sql: string | null;
+}
+
+/** Only the live-row predicate, allowing SQL quoting, comments and redundant parentheses. */
+function isLiveRowIndex(index: IndexRow): boolean {
+  if (index.partial !== 1 || index.sql === null) return false;
+  const tokens = tokensOf(index.sql);
+  const where = tokens.findIndex((token) => token.toUpperCase() === "WHERE");
+  const predicate = tokens.slice(where + 1).filter((token) => !["(", ")", ";"].includes(token));
+  return (
+    where !== -1 &&
+    predicate.length === 3 &&
+    !predicate[0]?.startsWith("'") &&
+    unquoted(predicate[0] ?? "").toLowerCase() === "deleted_at" &&
+    predicate[1]?.toUpperCase() === "IS" &&
+    predicate[2]?.toUpperCase() === "NULL"
+  );
+}
+
+async function indexRules(
+  database: Database,
+  table: string,
+  createTable: string,
+): Promise<string[]> {
+  if (isLocalTable(table)) return [];
+  const { rows } = await sql<IndexRow>`
+    SELECT list.name, list.origin, list."unique", list.partial, entry.sql
+    FROM pragma_index_list(${table}) AS list
+    LEFT JOIN sqlite_schema AS entry ON entry.name = list.name AND entry.type = 'index'
+    ORDER BY list.name
+  `.execute(database.kysely);
+  // SQLite may fold a redundant UNIQUE into the primary key's index, so read the declaration.
+  const rules = tokensOf(createTable)
+    .filter((token) => token.toUpperCase() === "UNIQUE")
+    .map(
+      () =>
+        "must not have an inline UNIQUE constraint; use a partial unique index starting with space_id WHERE deleted_at IS NULL",
+    );
+  for (const index of rows) {
+    if (index.origin === "pk" || index.origin === "u") continue;
+    const { rows: columns } = await sql<{ name: string | null }>`
+      SELECT name FROM pragma_index_info(${index.name}) ORDER BY seqno
+    `.execute(database.kysely);
+    if (index.unique === 1 && !isLiveRowIndex(index)) {
+      rules.push(`unique index ${index.name} must be partial on deleted_at IS NULL`);
+    }
+    if (columns[0]?.name?.toLowerCase() !== "space_id") {
+      rules.push(`index ${index.name} must start with space_id`);
+    }
+  }
+  return rules;
+}
+
 /** Reads a database's schema after its migrations and reports every broken table convention. */
 export async function checkConventions(database: Database): Promise<ConventionViolation[]> {
   const { rows } = await sql<TableRow>`
@@ -169,6 +227,7 @@ export async function checkConventions(database: Database): Promise<ConventionVi
       ...(strict === 1 ? [] : ["must be STRICT"]),
       ...columnRules(name, await columnsOf(database, name)),
       ...foreignKeyRules(name, createTable),
+      ...(await indexRules(database, name, createTable)),
     ];
     violations.push(...rules.map((rule) => ({ table: name, rule })));
   }
