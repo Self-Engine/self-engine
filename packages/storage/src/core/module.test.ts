@@ -115,3 +115,18 @@ test("all three list builders take tx and input from the Contract", () => {
     }),
   });
 });
+
+test("a module keeps its name as a literal, so the app's module list can check its mount key", () => {
+  const module = defineStorageModule({
+    name: "fixture",
+    contract,
+    migrations: [],
+    rowMap: {},
+  }).entries({
+    read: { kind: "query", reads: [], run: () => "answer" },
+    list: smallSetList([], () => []),
+    write: { kind: "operation", run: () => "done" },
+  });
+  expectTypeOf(module.name).toEqualTypeOf<"fixture">();
+  expect(module.name).toBe("fixture");
+});

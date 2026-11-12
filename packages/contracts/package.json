@@ -9,6 +9,7 @@
   },
   "dependencies": {
     "@orpc/contract": "catalog:",
+    "@self-engine/placeholder-alpha": "workspace:*",
     "zod": "catalog:"
   },
   "devDependencies": {

@@ -50,9 +50,16 @@ export type ModuleEntries<Contract extends StorageContract, Rows extends RowMap>
         >;
       };
 };
-export interface StorageModule<Contract extends StorageContract, Rows extends RowMap> {
-  /** The module's namespace in the app contract; page cursors carry it (D259). */
-  readonly name: string;
+export interface StorageModule<
+  Contract extends StorageContract,
+  Rows extends RowMap,
+  Name extends string = string,
+> {
+  /**
+   * The module's namespace in the app contract; page cursors carry it (D259). Kept as its
+   * literal, so the app's module list can require it to equal the key it is mounted under.
+   */
+  readonly name: Name;
   readonly contract: Contract;
   readonly migrations: readonly Migration[];
   readonly rowMap: Rows;
@@ -62,10 +69,11 @@ export interface StorageModule<Contract extends StorageContract, Rows extends Ro
 }
 
 /** Everything a module declares before its entries: name, Contract, row map and migrations. */
-export type StorageModuleDefinition<Contract extends StorageContract, Rows extends RowMap> = Omit<
-  StorageModule<Contract, Rows>,
-  "entries"
->;
+export type StorageModuleDefinition<
+  Contract extends StorageContract,
+  Rows extends RowMap,
+  Name extends string = string,
+> = Omit<StorageModule<Contract, Rows, Name>, "entries">;
 
 /**
  * Defines a module in two steps (refines D259): the Contract and row map are fixed first, so
@@ -74,11 +82,12 @@ export type StorageModuleDefinition<Contract extends StorageContract, Rows exten
 export function defineStorageModule<
   const Contract extends StorageContract,
   const Rows extends RowMap,
->(definition: StorageModuleDefinition<Contract, Rows>) {
+  const Name extends string,
+>(definition: StorageModuleDefinition<Contract, Rows, Name>) {
   return {
     entries<const Entries extends ModuleEntries<Contract, Rows>>(
       entries: Entries,
-    ): StorageModule<Contract, Rows> & { readonly entries: Entries } {
+    ): StorageModule<Contract, Rows, Name> & { readonly entries: Entries } {
       return { ...definition, entries };
     },
   };
