@@ -1,3 +1,4 @@
+import { SHELL_TOP_STRIP_HEIGHT, SHELL_REFERENCE_WIDTHS } from "@self-engine/shell/geometry";
 import { MantineThemeProvider } from "@mantine/core";
 import type { Meta } from "@storybook/react-vite";
 import { expect, screen, userEvent, waitFor } from "storybook/test";
@@ -6,7 +7,6 @@ import {
   ENTRIES,
   LOGO,
   LOGO_AND_WINDOW_BUTTONS,
-  STRIP_HEIGHT,
   appRegionOf,
   atFrameWidth,
   atViewport,
@@ -61,11 +61,11 @@ export const TheModuleSidebarGetsADragStripAboveIt: Story = {
     await expect(appRegionOf(strip)).toBe("drag");
     await expect(strip.getBoundingClientRect()).toMatchObject({
       top: pane.getBoundingClientRect().top,
-      height: STRIP_HEIGHT,
+      height: SHELL_TOP_STRIP_HEIGHT,
       width: pane.getBoundingClientRect().width,
     });
     await expect(canvas.getByText("Sidebar content").getBoundingClientRect().top).toBeGreaterThan(
-      pane.getBoundingClientRect().top + STRIP_HEIGHT,
+      pane.getBoundingClientRect().top + SHELL_TOP_STRIP_HEIGHT,
     );
   },
 };
@@ -220,11 +220,11 @@ export const TheCollapseToggleExistsOnlyAtTheWideAndMediumSteps: Story = {
   ...resizable,
   play: async ({ canvas }) => {
     await expect(collapseToggle(canvas)).toBeVisible();
-    await atFrameWidth(1100, async () => {
+    await atFrameWidth(SHELL_REFERENCE_WIDTHS.medium, async () => {
       await waitFor(() => expect(widthOf(navbarOf(canvas))).toBe(56));
       await expect(collapseToggle(canvas)).toBeVisible();
     });
-    await atFrameWidth(800, async () => {
+    await atFrameWidth(SHELL_REFERENCE_WIDTHS.narrow, async () => {
       await waitFor(() => expect(burgerOf(canvas)).toBeVisible());
       await expect(queryCollapseToggle(canvas)).toBeNull();
     });

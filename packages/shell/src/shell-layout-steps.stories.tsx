@@ -1,3 +1,4 @@
+import { SHELL_REFERENCE_WIDTHS } from "@self-engine/shell/geometry";
 import { ProjectsIcon } from "@self-engine/icons";
 import type { Meta } from "@storybook/react-vite";
 import { expect, screen, userEvent, waitFor, within } from "storybook/test";
@@ -30,6 +31,7 @@ export const Wide: Story = {
   ...atViewport("wide"),
   play: async ({ canvas, globals }) => {
     await expectWindow(canvas, "wide", globals);
+    await expect(canvasRoot(canvas)).toHaveAttribute("data-layout-step", "wide");
     await expectNavigationLinks(within(navbarOf(canvas)));
     const navbar = within(canvas.getByRole("navigation", { name: "Modules" }));
     await expect(navbar.getByText("Projects")).toBeVisible();
@@ -51,6 +53,7 @@ export const Medium: Story = {
   ...atViewport("medium"),
   play: async ({ canvas, globals }) => {
     await expectWindow(canvas, "medium", globals);
+    await expect(canvasRoot(canvas)).toHaveAttribute("data-layout-step", "medium");
     await expectNavigationLinks(within(navbarOf(canvas)));
     const navbar = navbarOf(canvas);
     await expect(widthOf(navbar)).toBe(56);
@@ -100,7 +103,8 @@ export const Narrow: Story = {
   ...atViewport("narrow"),
   play: async ({ canvas, globals }) => {
     await expectWindow(canvas, "narrow", globals);
-    await expectContentFillsTheFrame(canvas, 800);
+    await expect(canvasRoot(canvas)).toHaveAttribute("data-layout-step", "narrow");
+    await expectContentFillsTheFrame(canvas, SHELL_REFERENCE_WIDTHS.narrow);
     await expect(canvas.queryByText("Sidebar content")).toBeNull();
     await userEvent.click(canvas.getByRole("button", { name: "Open navigation" }));
     const drawer = await screen.findByRole("dialog", { name: "Module Sidebar" });
@@ -114,7 +118,8 @@ export const Narrow: Story = {
 export const NarrowAtExactlyTheMinimumWindowWidth: Story = {
   ...atViewport("narrowest"),
   play: async ({ canvas }) => {
-    await expectContentFillsTheFrame(canvas, 576);
+    await expect(canvasRoot(canvas)).toHaveAttribute("data-layout-step", "narrow");
+    await expectContentFillsTheFrame(canvas, SHELL_REFERENCE_WIDTHS.narrowest);
     await expect(screen.queryByRole("contentinfo")).toBeNull();
   },
 };
@@ -126,6 +131,7 @@ export const Phone: Story = {
   },
   play: async ({ canvas, globals }) => {
     await expectWindow(canvas, "phone", globals);
+    await expect(canvasRoot(canvas)).toHaveAttribute("data-layout-step", "phone");
     await expect(paneOf(canvas, "Page content").getBoundingClientRect().top).toBeCloseTo(8, 0);
     await expect(canvas.queryByRole("separator")).toBeNull();
     await expect(canvas.queryByText("Sidebar content")).toBeNull();
@@ -189,14 +195,15 @@ export const ContentStaysMountedAcrossLayoutSteps: Story = {
   play: async ({ canvas }) => {
     const draft = canvas.getByRole("textbox", { name: "Draft" });
     await userEvent.type(draft, "unsaved");
-    for (const [width, button] of [
-      [1100, null],
-      [800, "Open navigation"],
-      [390, "Open module sidebar"],
+    for (const [width, button, step] of [
+      [SHELL_REFERENCE_WIDTHS.medium, null, "medium"],
+      [SHELL_REFERENCE_WIDTHS.narrow, "Open navigation", "narrow"],
+      [390, "Open module sidebar", "phone"],
     ] as const) {
       // oxlint-disable-next-line no-await-in-loop -- the steps are walked one after the other
       await atFrameWidth(width, async () => {
         await waitFor(async () => {
+          await expect(canvasRoot(canvas)).toHaveAttribute("data-layout-step", step);
           if (button !== null)
             await expect(canvas.getByRole("button", { name: button })).toBeVisible();
           else await expect(widthOf(navbarOf(canvas))).toBe(56);
@@ -219,13 +226,15 @@ export const ContentStaysMountedAcrossTheNarrowStep: Story = {
       await expect(canvas.getByRole("textbox", { name: "Draft" })).toBe(draft);
       await expect(draft).toHaveValue("unsaved");
     };
-    const navbarIsThere = () => expect(canvas.queryByRole("navigation")).not.toBeNull();
-    const navbarIsGone = () => expect(canvas.queryByRole("navigation")).toBeNull();
+    const navbarIsThere = () =>
+      expect(canvas.queryByRole("navigation", { name: "Modules" })).not.toBeNull();
+    const navbarIsGone = () =>
+      expect(canvas.queryByRole("navigation", { name: "Modules" })).toBeNull();
     await waitFor(navbarIsThere);
-    await atFrameWidth(800, async () => {
+    await atFrameWidth(SHELL_REFERENCE_WIDTHS.narrow, async () => {
       await waitFor(navbarIsGone);
       await expectDraftKept();
-      await atFrameWidth(1100, async () => {
+      await atFrameWidth(SHELL_REFERENCE_WIDTHS.medium, async () => {
         await waitFor(navbarIsThere);
         await expectDraftKept();
       });

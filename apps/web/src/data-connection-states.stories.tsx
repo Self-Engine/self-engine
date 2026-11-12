@@ -174,7 +174,7 @@ export const TheWebAppShowsNoConnectionState: Story = {
   },
   render: () => <AppAt address="/placeholder-alpha/overview" />,
   play: async ({ canvas }) => {
-    await expect(await canvas.findByRole("navigation")).toBeVisible();
+    await expect(await canvas.findByRole("navigation", { name: "Modules" })).toBeVisible();
     await expect(canvas.queryByRole("alert")).toBeNull();
   },
 };

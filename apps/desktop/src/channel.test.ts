@@ -7,6 +7,7 @@ import {
   channelIdentity,
   parseChannel,
   resolveDevServer,
+  shouldHideWindow,
   userDataPath,
   versionArgument,
   versionFromArguments,
@@ -136,6 +137,20 @@ describe("resolveDevServer", () => {
   it.each(["nightly", "stable"] as const)("makes %s ignore the variable", (channel) => {
     expect(resolveDevServer(channel, "http://127.0.0.1:5733/")).toBeUndefined();
     expect(resolveDevServer(channel, undefined)).toBeUndefined();
+  });
+});
+
+describe("shouldHideWindow", () => {
+  it.each([
+    ["dev", "1", true],
+    ["dev", undefined, false],
+    ["dev", "", false],
+    ["nightly", "1", false],
+    ["stable", "1", false],
+    ["nightly", undefined, false],
+    ["stable", undefined, false],
+  ] as const)("hides %s with the switch %j: %s", (channel, value, hidden) => {
+    expect(shouldHideWindow(channel, value)).toBe(hidden);
   });
 });
 

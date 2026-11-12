@@ -1,3 +1,4 @@
+import "./observe-main-errors.ts";
 import path from "node:path";
 import {
   BrowserWindow,
@@ -10,7 +11,7 @@ import {
   utilityProcess,
 } from "electron";
 import { buildIdentity } from "./build-channel.ts";
-import { resolveDevServer, userDataPath, versionArgument } from "./channel.ts";
+import { resolveDevServer, shouldHideWindow, userDataPath, versionArgument } from "./channel.ts";
 import { databaseFile, isOwnPage, serveDataProcessRequests } from "./data-process-host.ts";
 import { superviseDataProcess } from "./data-process-supervisor.ts";
 import {
@@ -125,7 +126,7 @@ function rememberWindowState(window: BrowserWindow): void {
   window.on("close", () => recorder.close(windowSnapshot(window)));
 }
 
-async function openWindow(): Promise<void> {
+async function openWindow(hidden: boolean): Promise<void> {
   const primary = screen.getPrimaryDisplay();
   const opening = openWindowState(
     windowStateFile(),
@@ -148,12 +149,13 @@ async function openWindow(): Promise<void> {
       preload: path.join(__dirname, "preload.cjs"),
       contextIsolation: true,
       sandbox: true,
+      backgroundThrottling: !hidden,
       // Read by the preload, which hands the version on to the page.
       additionalArguments: [versionArgument(app.getVersion())],
     },
   });
   window.once("ready-to-show", () => {
-    applyWindowOpening(window, opening, () => rememberWindowState(window));
+    if (!hidden) applyWindowOpening(window, opening, () => rememberWindowState(window));
   });
   window.webContents.setWindowOpenHandler(() => ({ action: "deny" }));
   window.webContents.on("will-navigate", (event, url) => {
@@ -165,12 +167,15 @@ async function openWindow(): Promise<void> {
 async function start(): Promise<void> {
   // Set by the dev runner (scripts/desktop-dev.ts).
   const devServer = resolveDevServer(channel, process.env.VITE_DEV_SERVER_URL);
+  const hidden = shouldHideWindow(channel, process.env.SELF_ENGINE_HIDDEN);
+  // Hide before readiness so automation never activates the app or shows its Dock icon.
+  if (hidden) app.dock?.hide();
   await app.whenReady();
   // `electron .` runs under Electron's own bundle, so the Dock needs telling.
-  if (channel === "dev") app.dock?.setIcon(path.join(app.getAppPath(), icon));
+  if (channel === "dev" && !hidden) app.dock?.setIcon(path.join(app.getAppPath(), icon));
   registerProtocol(devServer);
   startDataProcess();
-  await openWindow();
+  await openWindow(hidden);
 }
 
 function failStart(error: unknown): void {

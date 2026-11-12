@@ -336,6 +336,9 @@ importers:
       '@self-engine/oxlint-plugin':
         specifier: workspace:*
         version: link:packages/oxlint-plugin
+      '@self-engine/shell':
+        specifier: workspace:*
+        version: link:packages/shell
       '@self-engine/theme':
         specifier: workspace:*
         version: link:packages/theme
