@@ -1,6 +1,6 @@
 # Schicht 2: Datenschicht
 
-Stand: 2026-11-12 · Status: **entschieden** (D86–D98, D133–D142, D187–D196, D219–D241) · Recherche:
+Stand: 2026-11-12 · Status: **entschieden** (D86–D98, D133–D142, D187–D196, D219–D245) · Recherche:
 [`research-layer-2-data.md`](research-layer-2-data.md)
 
 ## Entschieden
@@ -43,6 +43,7 @@ Stand: 2026-11-12 · Status: **entschieden** (D86–D98, D133–D142, D187–D19
 | L2.33 | Konflikte | Eindeutiger Index zu Grund pro Modul, der Rahmen übersetzt; Wiederherstellen meldet denselben Konflikt (D238) |
 | L2.34 | Contract-Tests | Ein Kit-Aufruf pro Modul; `notes` zieht als Vorlage nach `storage` (D239, D240) |
 | L2.35 | Fremde Daten | Lesen nur über freigegebene Lese-Bausteine, Schreiben nie (D241) |
+| L2.36 | Nachtrag zum Bau | Das Kit bildet ungültige Eingaben selbst; gemeldet wird nur eine Tabelle mit geänderter Zeile; Fehler und Warnung gehen an eine Melde-Stelle; Marken sind unsigniert (D242–D245) |
 
 ## Aufbau
 
