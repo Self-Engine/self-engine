@@ -2,10 +2,15 @@ import { MessageChannel, type MessagePort } from "node:worker_threads";
 import type { TablesChanged } from "@self-engine/contracts";
 import type { Database, Migration } from "@self-engine/db";
 import { openDatabase } from "@self-engine/db/better-sqlite3";
-import { type BeforeMigrations, startDataProcess } from "../core/index.ts";
+import { createTestSources } from "@self-engine/db/testing";
+import type { ContextSources } from "@self-engine/storage";
+import { type BeforeMigrations, type DataModules, startDataProcess } from "../core/index.ts";
 
 export interface TestDataProcessOptions {
-  /** The migrations to run at the start, as a module would compose them. Default: none. */
+  readonly modules?: DataModules;
+  readonly sources?: ContextSources;
+  readonly checkOutputs?: boolean;
+  /** Migration-only fixture for startup tests; module call tests supply modules instead. */
   readonly migrations?: readonly Migration[];
   /**
    * The database to start on, for a test that prepares it first (e.g. with migrations an older
@@ -42,7 +47,11 @@ export async function startTestDataProcess(
   try {
     core = await startDataProcess({
       database,
-      migrations: options.migrations ?? [],
+      modules: options.modules ?? {
+        fixture: { migrations: options.migrations ?? [], contract: {}, rowMap: {}, entries: {} },
+      },
+      sources: options.sources ?? createTestSources(new Date("2026-01-01T00:00:00.000Z")),
+      checkOutputs: options.checkOutputs ?? true,
       ...(options.beforeMigrations && { beforeMigrations: options.beforeMigrations }),
     });
   } catch (error) {

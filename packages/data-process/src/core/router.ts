@@ -1,3 +1,4 @@
+import type { AnyRouter } from "@orpc/server";
 import type { Health } from "@self-engine/contracts";
 import { healthProcedure } from "./procedures/health.ts";
 import { tablesChangedProcedure } from "./procedures/tables-changed.ts";
@@ -5,6 +6,7 @@ import { refuseUnlessReady } from "./refuse-unless-ready.ts";
 import type { TablesChangedPublisher } from "./tables-changed.ts";
 
 export interface RouterOptions {
+  readonly moduleRouter: Readonly<Record<string, AnyRouter>>;
   readonly health: Health;
   readonly tablesChanged: TablesChangedPublisher;
 }
@@ -13,8 +15,9 @@ export interface RouterOptions {
  * The procedure tree the data process serves; each procedure lives in `procedures/`. In a failure
  * state of the start only `health` answers.
  */
-export function createRouter({ health, tablesChanged }: RouterOptions) {
+export function createRouter({ health, tablesChanged, moduleRouter }: RouterOptions) {
   return refuseUnlessReady(health, {
+    ...moduleRouter,
     health: healthProcedure(health),
     tablesChanged: tablesChangedProcedure(tablesChanged),
   });
