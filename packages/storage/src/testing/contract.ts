@@ -142,6 +142,7 @@ export async function checkContract<Contract extends StorageContract, Rows exten
                     createContext(sources),
                     example as never,
                     entry,
+                    module.name,
                   ),
                 ),
               );

@@ -40,7 +40,11 @@ function start(parentPort: FakeParentPort, migrations?: readonly Migration[]) {
       checkOutputs: true,
       ...(migrations === undefined
         ? {}
-        : { modules: { fixture: { migrations, contract: {}, rowMap: {}, entries: {} } } }),
+        : {
+            modules: {
+              fixture: { name: "fixture", migrations, contract: {}, rowMap: {}, entries: {} },
+            },
+          }),
     }),
   };
 }

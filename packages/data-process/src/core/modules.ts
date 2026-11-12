@@ -8,6 +8,7 @@ type AppModules = keyof ModuleContracts extends never
   ? Readonly<Record<string, never>>
   : {
       readonly [Key in keyof ModuleContracts]: ErasedStorageModule & {
+        readonly name: Key;
         readonly contract: ModuleContracts[Key];
       };
     };
