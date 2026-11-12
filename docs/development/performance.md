@@ -165,3 +165,12 @@ as JSON, about 24 bytes per Query, and the opening event **149 bytes**, up from 
 Queries would send about 3 KB once per port. Building it takes **about 1.2 µs** at start. Each
 later Table Change carries a `{ kind: "changed", tables }` envelope, **28 bytes** more per
 commit than the bare table array before.
+
+### First module on a real Port
+
+Measured during #223 (`placeholder-alpha` mounted with one table and its migration, D252). The
+built desktop smoke stage starts with a fresh data folder, so its **Data Process first answer**
+includes creating the table. With 10 alternating runs each on `main` and the branch, the median
+was **185 ms on main** (range 167–223 ms) and **181.5 ms on the branch** (range 164–208 ms): no
+measurable change. The data-process bundle is **745,996 bytes**, up from **727,817** on `main`;
+that difference also holds the earlier slices of #33.
