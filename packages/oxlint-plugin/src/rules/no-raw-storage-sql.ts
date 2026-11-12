@@ -1,4 +1,4 @@
-import { defineRule } from "@oxlint/plugins";
+import { defineRule, type ESTree, type Scope } from "@oxlint/plugins";
 
 const MESSAGE = "Use Kysely builders in storage; raw SQL bypasses table announcements (D231).";
 const RAW_IMPORTS = new Set(["sql", "CompiledQuery"]);
@@ -12,6 +12,20 @@ export default defineRule({
   },
   create(context) {
     const namespaces = new Set<string>();
+    // A parameter or local with the namespace's name is unrelated to Kysely.
+    function namespace(node: ESTree.IdentifierReference): boolean {
+      if (!namespaces.has(node.name)) return false;
+      for (
+        let scope: Scope | null = context.sourceCode.getScope(node);
+        scope !== null;
+        scope = scope.upper
+      ) {
+        const variable = scope.set.get(node.name);
+        if (variable !== undefined)
+          return variable.defs.some((def) => def.type === "ImportBinding");
+      }
+      return false;
+    }
     return {
       ImportDeclaration(node) {
         if (node.source.value !== "kysely" || node.importKind === "type") return;
@@ -35,15 +49,13 @@ export default defineRule({
         if (typeof name !== "string") return;
         if (
           RAW_EXECUTORS.has(name) ||
-          (node.object.type === "Identifier" &&
-            namespaces.has(node.object.name) &&
-            RAW_IMPORTS.has(name))
+          (node.object.type === "Identifier" && namespace(node.object) && RAW_IMPORTS.has(name))
         )
           context.report({ node: node.property, message: MESSAGE });
       },
       VariableDeclarator(node) {
         if (node.id.type !== "ObjectPattern") return;
-        const namespace = node.init?.type === "Identifier" && namespaces.has(node.init.name);
+        const fromNamespace = node.init?.type === "Identifier" && namespace(node.init);
         for (const property of node.id.properties) {
           if (property.type !== "Property") continue;
           const key = property.key;
@@ -55,7 +67,7 @@ export default defineRule({
                 : undefined;
           if (
             typeof name === "string" &&
-            (RAW_EXECUTORS.has(name) || (namespace && RAW_IMPORTS.has(name)))
+            (RAW_EXECUTORS.has(name) || (fromNamespace && RAW_IMPORTS.has(name)))
           )
             context.report({ node: key, message: MESSAGE });
         }

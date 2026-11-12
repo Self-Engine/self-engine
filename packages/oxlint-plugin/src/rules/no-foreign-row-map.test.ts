@@ -32,6 +32,9 @@ test("a foreign module value cannot reveal its row map, including through typeof
     'import { notes } from "./index.ts"; type Rows = typeof notes.rowMap;',
     "const notes = { rowMap: {} }; const rows = notes.rowMap;",
     'import { notes } from "@self-engine/notes/data"; function local(notes: { rowMap: string }) { return notes.rowMap; }',
+    'import { notes } from "@self-engine/notes/data"; const { rowMap } = notes;',
+    'import { notes } from "@self-engine/notes/data"; const { rowMap: rows } = notes;',
+    'import { notes } from "@self-engine/notes/data"; function local(notes: { rowMap: string }) { const { rowMap } = notes; return rowMap; }',
   ]);
-  expect(results.map((result) => result.length)).toEqual([1, 1, 1, 0, 0, 0]);
+  expect(results.map((result) => result.length)).toEqual([1, 1, 1, 0, 0, 0, 1, 1, 0]);
 });

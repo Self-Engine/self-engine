@@ -56,6 +56,21 @@ export default defineRule({
         if (name === "rowMap" && node.object.type === "Identifier" && imported(node.object))
           context.report({ node: node.property, message: MESSAGE });
       },
+      VariableDeclarator(node) {
+        if (node.id.type !== "ObjectPattern" || node.init?.type !== "Identifier") return;
+        if (!imported(node.init)) return;
+        for (const property of node.id.properties) {
+          if (property.type !== "Property") continue;
+          const key = property.key;
+          const name =
+            !property.computed && key.type === "Identifier"
+              ? key.name
+              : key.type === "Literal"
+                ? key.value
+                : undefined;
+          if (name === "rowMap") context.report({ node: key, message: MESSAGE });
+        }
+      },
       TSQualifiedName(node) {
         if (node.right.name === "rowMap" && node.left.type === "Identifier" && imported(node.left))
           context.report({ node: node.right, message: MESSAGE });

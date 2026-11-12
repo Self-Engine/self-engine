@@ -156,7 +156,8 @@ The call is `checkContract(module, seed, examples, conflictExamples?, dependenci
 to `[]`. Import it from `@self-engine/storage/testing` in a real module.
 
 Seed through lower functions using the supplied transaction/context, including a live row and
-a deleted row. Give every contract entry one valid example input, with ids matching the
+a deleted row. The kit runs the seed again for other Spaces, so every insert must succeed on a
+repeated run; make an insert into a Local Table idempotent. Give every contract entry one valid example input, with ids matching the
 seed’s deterministic ids. Supply conflict cases per operation, with an optional `prepare`
 function, to trigger every declared reason. Notes covers create, update and restore conflicts.
 Pass modules the consumer builds on as `dependencies`, for example `[notes]` for note-links.

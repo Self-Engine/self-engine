@@ -342,10 +342,48 @@ test.each(["success", "wrong reason", "unexpected", "right reason"] as const)(
     await expect(result).resolves.toEqual(
       outcome === "right reason"
         ? []
-        : [{ entry: "echo", rule: "conflict reason not triggered: already_billed" }],
+        : [
+            ...(outcome === "wrong reason"
+              ? [{ entry: "echo", rule: "conflict data does not match the declared schema" }]
+              : []),
+            { entry: "echo", rule: "conflict reason not triggered: already_billed" },
+          ],
     );
   },
 );
+
+test("the kit names an undeclared conflict reason next to a triggered declared one", async () => {
+  const { ORPCError } = await import("@orpc/server");
+  const fixture = defineStorageModule({
+    ...good,
+    contract: {
+      echo: good.contract.echo.errors({
+        CONFLICT: { data: z.object({ reason: z.literal("already_billed") }) },
+      }),
+    },
+    entries: {
+      echo: {
+        kind: "operation",
+        run: (_tx, _context, input) => {
+          if (input.text === "normal") return input.text;
+          throw new ORPCError("CONFLICT", {
+            data: { reason: input.text === "declared" ? "already_billed" : "other" },
+          });
+        },
+      },
+    },
+  });
+  await expect(
+    checkContract(
+      fixture,
+      seed,
+      { echo: { text: "normal" } },
+      { echo: [{ input: { text: "declared" } }, { input: { text: "undeclared" } }] },
+    ),
+  ).resolves.toEqual([
+    { entry: "echo", rule: "conflict data does not match the declared schema" },
+  ]);
+});
 
 test("the kit rejects CONFLICT without a finite list of reason codes", async () => {
   const fixture = defineStorageModule({

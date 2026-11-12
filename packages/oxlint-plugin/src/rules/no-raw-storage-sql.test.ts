@@ -27,7 +27,9 @@ describe("self-engine/no-raw-storage-sql", () => {
       'import type { RawBuilder } from "kysely";',
       'import { sql } from "another-package"; sql();',
       'const sql = "a label";',
+      'import * as queries from "kysely"; function render(queries: { sql: () => string }) { return queries.sql(); }',
+      'import * as queries from "kysely"; function render(queries: { sql: () => string }) { const { sql } = queries; return sql(); }',
     ]);
-    expect(results).toEqual([[], [], [], [], [], [], []]);
+    expect(results).toEqual([[], [], [], [], [], [], [], [], []]);
   });
 });

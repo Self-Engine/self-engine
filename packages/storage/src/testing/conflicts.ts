@@ -82,8 +82,9 @@ export async function checkConflicts<Contract extends StorageContract, Rows exte
           if (!(error instanceof ORPCError) || error.code !== "CONFLICT")
             throw unexpected === undefined ? error : unexpected.error;
           const parsed = await data?.["~standard"].validate(error.data);
-          if (parsed !== undefined && !parsed.issues && typeof error.data?.reason === "string")
-            triggered.add(error.data.reason);
+          if (parsed === undefined || parsed.issues)
+            violations.push({ entry, rule: "conflict data does not match the declared schema" });
+          else if (typeof error.data?.reason === "string") triggered.add(error.data.reason);
         }
       } finally {
         await database.close();
