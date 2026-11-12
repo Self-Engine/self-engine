@@ -21,6 +21,9 @@ Chromium, runs the real app, and closes both on completion or failure. It measur
 
 1. Alpha Overview → Archive, including pending routing work.
 2. Opening the Studio entry's edit drawer, including its first lazy load.
+3. Renaming one of 1,000 `placeholder-alpha` entries (`rename-one-of-1000`). The scenario fills
+   the list through the module's store in the page, then renames one entry the same way, so it
+   counts only what the list draws for one changed row.
 
 Each scenario reports root commits, committed function-component renders and counts by
 component name. The JSON records the commit and complete working-tree hash, including
@@ -38,6 +41,30 @@ only. It counts `PerformedWork` for function/forward-ref/simple-memo Fibers and 
 last committed Fiber to exclude reused subtrees with stale flags. This private React
 interface needs checking on React upgrades; a scenario recording no work fails explicitly.
 Storybook and production code do not include the hook.
+
+## One changed row redraws one row
+
+The data layer spike (D194) counted about 4,150 component renders when one of 1,000 rows was
+renamed. Reproduced on `main` with `rename-one-of-1000`, before any query hook existed: renaming
+one entry drew **10,003 components in 1 commit**: `Entries` once, and for each of the 1,000 rows
+its `Group`, two `Button`s, two `UnstyledButton`s and five `Box`es. Nothing outside the list drew:
+no Shell component, provider or route. The spike's rows are not on `main`; it had fewer
+components per row, the same cause.
+
+**Cause:** the list wrote its rows inline in its `map`. Every render of the list renders every
+row's subtree, and the React Compiler does not memoize JSX built per item inside a loop. A row
+component alone is not enough: with `EntryRow` as a plain component the count fell to **1,013**,
+because the compiler skipped each row's Mantine subtree but every `EntryRow` function still ran.
+With `EntryRow` wrapped in `memo` and receiving its entry whole, the count is **14 in 1 commit**:
+the list once, the renamed row once, and that row's Mantine components.
+
+The same rename through the edit drawer, as a user does it, drew 10,144 components in 7 commits
+before and 155 in 7 commits after; the Shell's share (routes, drawer) does not grow with the list.
+Measured with `pnpm renders` in the web dev server, headless Chromium, React development mode.
+
+The rule that follows: a row is its own component wrapped in `memo`, receives its row object whole
+and nothing that is new on every render of the list, and gets callbacks from its own hooks. An
+unchanged row only stays undrawn while its object stays the same across a reload (D250).
 
 ## Startup JavaScript budget
 
