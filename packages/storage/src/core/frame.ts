@@ -42,7 +42,7 @@ type FrameRouter<Contract extends StorageContract> = {
     : never;
 };
 
-/** Built once, with validation inside the transaction and announcements only after commit. */
+/** Input validation precedes the transaction; output checks run inside it, announcements after commit. */
 export function createFrame<Contract extends StorageContract, Rows extends RowMap>(
   module: StorageModule<Contract, Rows>,
   options: FrameOptions,

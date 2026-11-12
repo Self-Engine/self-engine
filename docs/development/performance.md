@@ -58,3 +58,43 @@ set from the bundler's module graph, rather than a list of today's module/View f
 Shared dependencies of lazy modules can still be eager; the lazy entry itself cannot.
 A fixture test builds both lazy and accidentally eager versions and checks the actual
 build fails, including when it is below the byte limit.
+
+## Storage port pattern
+
+Measured during #32 on **in-memory SQLite, Node 26, arm64, without the hop between
+processes**. That environment applies to every row below. These are diagnostic measurements,
+not timing gates; costs measured independently should not be added into an end-to-end estimate.
+
+| Measurement                                        | Result                              |
+| -------------------------------------------------- | ----------------------------------- |
+| Frame beyond the transaction                       | About 3.5 µs per call               |
+| Shared entry lookup                                | 0.21 µs                             |
+| Shared entry insert                                | 1.14 µs                             |
+| Shared entry update                                | 0.79 µs                             |
+| Shared entry soft delete plus restore              | 2.10 µs                             |
+| Table-write plugin                                 | 0.41 µs per write                   |
+| Conflict translation, read                         | 0.82 µs per read                    |
+| Conflict translation, write                        | 0.52 µs per write                   |
+| Conflict translation when a conflict occurs        | 34 µs                               |
+| Page list, 100,000 rows, 100-row pages, first page | 0.072 ms median                     |
+| Page list, 100,000 rows, 100-row pages, row 90,000 | 0.094 ms median                     |
+| Large-result check                                 | About 7 ns per call                 |
+| 10,000-row list without join                       | 5.152 ms median                     |
+| 10,000-row list with released read-piece join      | 7.911 ms median; +2.759 ms (+53.6%) |
+
+The join comparison was re-measured for #209 on 2026-11-12 with Node 26.13.0, arm64,
+in-memory SQLite and no process hop. The database contained 10,000 notes and 10,000 links,
+one link per note, all live in one Space. Both paths read, scope, sort and map all 10,000 links
+inside a transaction. The baseline sorts by link id; the joined path runs the note-links
+module’s list, left-joining the owner’s `noteTitles` read piece and sorting by title then link
+id. This measures the complete list shape including the changed ordering and extra mapped
+columns, rather than isolating the SQL join alone. After 10 warm-up calls per path, 51 samples
+per path alternated execution order; the table gives their medians. It replaces the earlier
++2.3 ms (+48%) figure, whose row count could not be established from the #207 commit or
+`packages/storage/src/testing/read-pieces.test.ts`.
+
+Separately, the built desktop smoke stage’s **Data Process first answer** was **175 ms before**
+and **269 ms after**, against a **2,000 ms limit**. These are **single samples**, not medians or
+an established regression. Unlike the in-memory microbenchmarks above, this is a real app
+startup measurement including the process hop. The reported build environment was Node 26,
+arm64; no in-memory-only claim applies to the smoke measurement.
