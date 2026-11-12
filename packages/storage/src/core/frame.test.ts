@@ -266,7 +266,7 @@ test.each(["absent", "collect", "throw"] as const)(
   async (sink) => {
     const database = await createTestDatabase(notes);
     cleanups.push(() => database.close());
-    const reports: FrameReport[] = [];
+    const reports: Extract<FrameReport, { kind: "unexpected-error" }>[] = [];
     const client = createRouterClient(
       createFrame(
         { ...notes, conflicts: {} },
@@ -278,7 +278,7 @@ test.each(["absent", "collect", "throw"] as const)(
             ? {}
             : {
                 report(report: FrameReport) {
-                  reports.push(report);
+                  if (report.kind === "unexpected-error") reports.push(report);
                   if (sink === "throw") throw new Error("Reporter failed");
                 },
               }),
@@ -317,7 +317,7 @@ test("unexpected errors preserve original details only in the report", async () 
   const database = await createTestDatabase(notes);
   cleanups.push(() => database.close());
   const original = new Error("Private failure details");
-  const reports: FrameReport[] = [];
+  const reports: Extract<FrameReport, { kind: "unexpected-error" }>[] = [];
   const client = createRouterClient(
     createFrame(
       {
@@ -337,7 +337,7 @@ test("unexpected errors preserve original details only in the report", async () 
         sources: createTestContext(),
         checkOutputs: true,
         report: (event) => {
-          reports.push(event);
+          if (event.kind === "unexpected-error") reports.push(event);
         },
       },
     ),

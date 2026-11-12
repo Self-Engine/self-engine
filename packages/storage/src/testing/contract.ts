@@ -153,7 +153,8 @@ export async function checkContract<Contract extends StorageContract, Rows exten
         sources,
         checkOutputs: false,
         report: (event) => {
-          if (event.error instanceof QueryWriteError) queryWrite = true;
+          if (event.kind === "unexpected-error" && event.error instanceof QueryWriteError)
+            queryWrite = true;
         },
         announce: (tables) => {
           for (const table of tables) announced.add(table);
