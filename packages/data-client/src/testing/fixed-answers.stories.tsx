@@ -11,7 +11,7 @@ import { LOADER_DELAY_MS, QueryStateBlock } from "@self-engine/ui";
 import { holdTimers } from "@self-engine/ui/story-timers";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { type FormEvent, useState } from "react";
-import { expect, screen, userEvent } from "storybook/test";
+import { expect, screen, userEvent, waitFor } from "storybook/test";
 import { DataProvider, portHooks } from "../react/index.ts";
 import { type FixedAnswers, fixedAnswers } from "./index.ts";
 
@@ -172,8 +172,11 @@ export const ShowsAConflictAtItsField: Story = {
 
 export const ShowsThatTheEntryIsGone: Story = {
   args: { answers: { notes: { list: { data: [GROCERIES] }, update: "notFound" } } },
+  // A notice stays until the story looked at it.
+  beforeEach: holdWaitsOf(8000),
   play: async () => {
     await renameGroceriesTo("Shopping");
-    await expect(await screen.findByText("This entry no longer exists.")).toBeVisible();
+    const notice = await screen.findByText("This entry no longer exists.");
+    await waitFor(() => expect(notice).toBeVisible());
   },
 };
