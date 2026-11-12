@@ -97,7 +97,8 @@ async function renderOverPort() {
   };
 }
 
-const titles = (hooks: Hooks) => (hooks.list.status === "content" ? hooks.list.data : []).map((note) => note.title);
+const titles = (hooks: Hooks) =>
+  (hooks.list.status === "content" ? hooks.list.data : []).map((note) => note.title);
 
 test("each result of the notes module arrives as a value, and the list reloads on its Table Change alone", async () => {
   const rendered = await renderOverPort();
@@ -111,7 +112,12 @@ test("each result of the notes module arrives as a value, and the list reloads o
   if (created.status !== "success") throw new Error("Alpha was not created");
 
   const taken = await both.rename.run({ id: created.data.id, title: "Beta" });
-  expect(taken).toEqual({ status: "conflict", reason: "title_taken", field: "title", text: TITLE_TAKEN });
+  expect(taken).toEqual({
+    status: "conflict",
+    reason: "title_taken",
+    field: "title",
+    text: TITLE_TAKEN,
+  });
 
   // A well-formed id that names no note.
   const missing = "01900000-0000-7000-8000-000000000000" as typeof created.data.id;

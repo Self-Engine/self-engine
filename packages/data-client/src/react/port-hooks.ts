@@ -25,7 +25,11 @@ export interface PortHooks<Contract extends ModuleContract> {
   operation<Entry extends EntryName<Contract>>(
     entry: Entry,
     ...handling: HandlingArgument<InputOf<Contract, Entry>, ConflictReasonOf<Contract, Entry>>
-  ): OperationHook<InputOf<Contract, Entry>, OutputOf<Contract, Entry>, ConflictReasonOf<Contract, Entry>>;
+  ): OperationHook<
+    InputOf<Contract, Entry>,
+    OutputOf<Contract, Entry>,
+    ConflictReasonOf<Contract, Entry>
+  >;
 }
 
 /**

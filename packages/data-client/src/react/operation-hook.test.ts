@@ -150,7 +150,10 @@ test('a module\'s replacement for "not found" runs instead of the default notice
 test.each([
   ["an error of the Data Process", new ORPCError("INTERNAL_SERVER_ERROR")],
   ["a lost connection", new Error("The port closed")],
-  ["a conflict reason the entry does not declare", new ORPCError("CONFLICT", { data: { reason: "x" } })],
+  [
+    "a conflict reason the entry does not declare",
+    new ORPCError("CONFLICT", { data: { reason: "x" } }),
+  ],
   ["rejected input", new ORPCError("BAD_REQUEST")],
 ])("%s returns as unexpected and shows the general notice once", async (_case, error) => {
   const port = fakePort();
@@ -194,8 +197,11 @@ test("the Operation's input, result and conflict texts are typed from the module
     conflicts: { title_taken: { text: TITLE_TAKEN, field: "name" } },
   });
   notesPort.operation("create", {
-    // @ts-expect-error `create` declares no reason `other`.
-    conflicts: { title_taken: { text: TITLE_TAKEN, field: "title" }, other: { text: TITLE_TAKEN, field: "title" } },
+    conflicts: {
+      title_taken: { text: TITLE_TAKEN, field: "title" },
+      // @ts-expect-error `create` declares no reason `other`.
+      other: { text: TITLE_TAKEN, field: "title" },
+    },
   });
   // @ts-expect-error A misspelled entry is not in the Contract.
   notesPort.operation("updaet");
