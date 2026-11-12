@@ -1,8 +1,9 @@
+import { checkConflicts, type ConflictExamples } from "./conflicts.ts";
 import { seedScoping, returnsSeededRow } from "./scoping.ts";
 import { isDeepStrictEqual } from "node:util";
 import type { InferContractRouterInputs } from "@orpc/contract";
 import { call, ORPCError, type AnyProcedure } from "@orpc/server";
-import type { TablesOf } from "@self-engine/db";
+import { uniqueIndexes, type TablesOf } from "@self-engine/db";
 import { CompiledQuery } from "kysely";
 import { z } from "zod";
 import {
@@ -16,10 +17,8 @@ import { tableContents } from "./table-contents.ts";
 import { QueryWriteError } from "../core/table-writes.ts";
 import { createTestContext, createTestDatabase } from "./helpers.ts";
 
-export interface ContractViolation {
-  readonly entry: string;
-  readonly rule: string;
-}
+import type { ContractViolation } from "./violation.ts";
+export type { ContractViolation } from "./violation.ts";
 export type { Seed } from "./seed.ts";
 import type { Seed } from "./seed.ts";
 
@@ -69,8 +68,18 @@ export async function checkContract<Contract extends StorageContract, Rows exten
   module: StorageModule<Contract, Rows>,
   seed: Seed<Rows>,
   examples: Partial<InferContractRouterInputs<Contract>>,
+  conflictExamples: ConflictExamples<Contract, Rows> = {},
 ): Promise<ContractViolation[]> {
   const violations: ContractViolation[] = [];
+  const schemaDatabase = await createTestDatabase(module);
+  try {
+    for (const index of await uniqueIndexes(schemaDatabase, Object.keys(module.rowMap))) {
+      if (!module.conflicts?.[index.name])
+        violations.push({ entry: index.name, rule: "unique index has no conflict reason" });
+    }
+  } finally {
+    await schemaDatabase.close();
+  }
   for (const [entry, procedure] of Object.entries(module.contract)) {
     if (!Object.hasOwn(examples, entry)) {
       violations.push({ entry, rule: "missing example" });
@@ -159,12 +168,17 @@ export async function checkContract<Contract extends StorageContract, Rows exten
           }
         }
       }
+      let queryWrite = false;
       const announced = new Set<string>();
       const before = await tableContents(database);
       const router: Record<string, AnyProcedure> = createFrame(observed, {
         database,
         sources,
         checkOutputs: false,
+        report: (event) => {
+          if (event.kind === "unexpected-error" && event.error instanceof QueryWriteError)
+            queryWrite = true;
+        },
         announce: (tables) => {
           for (const table of tables) announced.add(table);
         },
@@ -175,7 +189,7 @@ export async function checkContract<Contract extends StorageContract, Rows exten
       try {
         output = await call(target, example);
       } catch (error) {
-        if (!(error instanceof QueryWriteError)) throw error;
+        if (!queryWrite) throw error;
         violations.push({ entry, rule: "query writes" });
         continue;
       }
@@ -205,5 +219,6 @@ export async function checkContract<Contract extends StorageContract, Rows exten
       await database.close();
     }
   }
+  violations.push(...(await checkConflicts(module, seed, conflictExamples)));
   return violations;
 }

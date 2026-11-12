@@ -18,6 +18,7 @@ function allNotes(tx: NotesRead, context: StorageContext) {
 }
 export const notes = defineStorageModule({
   contract: notesContract,
+  conflicts: { notes_live_title: "title_taken" },
   migrations: notesMigrations,
   rowMap: notesRowMap,
   entries: {

@@ -1,7 +1,7 @@
 import { createRouterClient } from "@orpc/server";
 import { afterEach, expect, test } from "vite-plus/test";
 import { notes } from "../../test/notes-module/data/index.ts";
-import { createFrame, smallSetList, windowList, type StorageReport } from "./index.ts";
+import { createFrame, smallSetList, windowList, type FrameReport } from "./index.ts";
 import { createTestContext, createTestDatabase } from "../testing/index.ts";
 
 const cleanups: (() => Promise<void>)[] = [];
@@ -31,7 +31,7 @@ test.each(["window", "small-set"] as const)(
       },
     };
     for (const checkOutputs of [true, false]) {
-      const reports: StorageReport[] = [];
+      const reports: FrameReport[] = [];
       const client = createRouterClient(
         createFrame(module, {
           database,
