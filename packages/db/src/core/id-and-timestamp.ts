@@ -9,12 +9,13 @@ export interface IdSources {
   readonly random: () => Uint8Array;
 }
 
-/** A new time-ordered UUIDv7, the id of every record. */
-export function newId(sources?: IdSources): string {
+/** A new time-ordered UUIDv7. Request the entity id type from its shared schema. */
+export function newId<Id extends string = string>(sources?: IdSources): Id {
   // Without sources, uuid keeps a counter that orders ids made within one millisecond.
-  return sources === undefined
-    ? v7()
-    : v7({ msecs: sources.clock().getTime(), rng: sources.random });
+  // UUID generation establishes validity; the brand records which entity owns this id.
+  return (
+    sources === undefined ? v7() : v7({ msecs: sources.clock().getTime(), rng: sources.random })
+  ) as Id;
 }
 
 const systemClock: Clock = () => new Date();

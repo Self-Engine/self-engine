@@ -7,12 +7,14 @@
   "exports": {
     ".": "./src/core/index.ts",
     "./better-sqlite3": "./src/better-sqlite3/index.ts",
-    "./testing": "./src/testing/index.ts"
+    "./testing": "./src/testing/index.ts",
+    "./schema": "./src/schema/index.ts"
   },
   "dependencies": {
     "better-sqlite3": "catalog:",
     "kysely": "catalog:",
-    "uuid": "catalog:"
+    "uuid": "catalog:",
+    "zod": "catalog:"
   },
   "devDependencies": {
     "@types/better-sqlite3": "catalog:",
