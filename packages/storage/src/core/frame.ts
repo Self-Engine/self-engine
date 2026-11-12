@@ -3,6 +3,7 @@ import { z } from "zod";
 import { implement, ORPCError, type ImplementedProcedure } from "@orpc/server";
 import { uniqueIndexes, type Database, type TablesOf } from "@self-engine/db";
 import { createContext, type ContextSources } from "./context.ts";
+import { recordTableWrites } from "./table-writes.ts";
 import type { RowMap, StorageContract, StorageModule } from "./module.ts";
 
 export type FrameReport = {
@@ -17,6 +18,8 @@ export interface FrameOptions {
   readonly sources: ContextSources;
   readonly checkOutputs: boolean;
   readonly report?: (report: FrameReport) => void;
+  /** Called once after commit when at least one table was written; never for queries. */
+  readonly announce?: (tables: ReadonlySet<string>) => void | Promise<void>;
 }
 type FrameRouter<Contract extends StorageContract> = {
   [Entry in keyof Contract]: Contract[Entry] extends ContractProcedure<
@@ -36,7 +39,7 @@ type FrameRouter<Contract extends StorageContract> = {
     : never;
 };
 
-/** Built once, with validation inside the transaction so every failure rolls back. */
+/** Built once, with validation inside the transaction and announcements only after commit. */
 export function createFrame<Contract extends StorageContract, Rows extends RowMap>(
   module: StorageModule<Contract, Rows>,
   options: FrameOptions,
@@ -62,10 +65,14 @@ export function createFrame<Contract extends StorageContract, Rows extends RowMa
         name,
         procedure
           .use(async ({ next }) => {
+            const tables = new Set<string>();
+            let result;
             try {
-              return await options.database.kysely.transaction().execute(async (transaction) => {
+              result = await options.database.kysely.transaction().execute(async (transaction) => {
                 const context = createContext(options.sources);
-                const tx = transaction.withTables<TablesOf<Rows>>();
+                const tx = transaction
+                  .withTables<TablesOf<Rows>>()
+                  .withPlugin(recordTableWrites(tables, entry.kind === "query"));
                 return next({ context: { tx, storageContext: context } });
               });
             } catch (error) {
@@ -105,6 +112,8 @@ export function createFrame<Contract extends StorageContract, Rows extends RowMa
               }
               throw new ORPCError("INTERNAL_SERVER_ERROR");
             }
+            if (entry.kind === "operation" && tables.size > 0) await options.announce?.(tables);
+            return result;
           })
           .handler(({ context, input }) => entry.run(context.tx, context.storageContext, input)),
       ];
