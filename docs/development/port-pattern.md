@@ -57,6 +57,11 @@ violations, as in the notes tests.
 Follow [`notes/data/index.ts`](../../packages/storage/test/notes-module/data/index.ts).
 `defineStorageModule` receives `contract`, `migrations`, `rowMap`, `entries` and the optional
 `conflicts` mapping. Every contract key has an entry marked `kind: "query"` or `kind: "operation"`.
+A query entry also declares `reads`: every table it takes rows from, including tables reached
+through a released read piece, as `reads: ["note_links", "notes"]` in note-links. The types
+require it. Operations declare nothing; the tables they wrote are announced after commit.
+A Table Change naming one of a query's declared tables makes its answer outdated, so a
+missing table leaves a list showing old data. The contract kit checks the declaration (step 6).
 Its lower function receives `(tx, context, input, entry)`: the checked input and stable contract
 key accompany the existing transaction. Queries receive read-only access; operations may write
 only their owned tables. These functions neither open transactions nor announce tables.
@@ -93,9 +98,9 @@ Use the three builders shown together in notes:
 
 | Builder                                       | Use and contract                                                                              |
 | --------------------------------------------- | --------------------------------------------------------------------------------------------- |
-| `windowList(run)`                             | A domain window, such as notes’ `from <= created_at < to`; returns the entire matching array. |
-| `smallSetList(run)`                           | A whole set expected to remain small; returns the entire array.                               |
-| `pageList({ row, query, order, map, size? })` | A growing list. Use `pageInputSchema` and `pageSchema(entitySchema)` in the contract.         |
+| `windowList(reads, run)`                      | A domain window, such as notes’ `from <= created_at < to`; returns the entire matching array. |
+| `smallSetList(reads, run)`                    | A whole set expected to remain small; returns the entire array.                               |
+| `pageList({ reads, row, query, order, map })` | A growing list. Use `pageInputSchema` and `pageSchema(entitySchema)` in the contract.         |
 
 For pages, supply the selected row schema, scoped query, fixed order ending in `id`, and
 row mapping. Every sort column must be non-null. One page list has one fixed order;
@@ -187,6 +192,15 @@ Space/deletion isolation, query read-only behavior, indexed page sorting and cur
 unique-index mappings and reachable conflict reasons. It repeats every operation's valid
 example on the same database and rejects conflicts or reasons not declared by that entry.
 Extra output fields have their own violation, separate from schema conversions and defaults. Business behavior still needs module-owned tests.
+
+The kit records the tables each query’s SQL takes rows from (FROM, JOIN and subqueries,
+including those a read piece builds) and reports `query reads an undeclared table: <table>`
+for each one missing from `reads`. It sees only the SQL its example ran: a table a query
+reads only under some inputs, such as a join added when a filter is set, is caught only by
+an example that takes that path. Cover such a branch with a second `checkContract` call whose
+example for that entry sets the filter, as the conditional-read test beside the note-links
+kit test does. Declaring a table the example did not read is not a violation. Recording runs
+only in the kit; the frame in the app never records reads.
 
 The kit also fails when a table’s contents changed without being announced. A table is
 announced when a successful write statement targeting it affected at least one row (an absent

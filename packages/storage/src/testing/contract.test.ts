@@ -19,7 +19,7 @@ const good = defineStorageModule({
   contract: { echo: oc.input(z.object({ text: z.string() })).output(z.string()) },
   migrations: [],
   rowMap: {},
-  entries: { echo: { kind: "query", run: (_tx, _context, input) => input.text } },
+  entries: { echo: { kind: "query", reads: [], run: (_tx, _context, input) => input.text } },
 });
 const seed = async () => {};
 
@@ -34,7 +34,7 @@ test("the kit names an entry that accepts invalid input", async () => {
     contract: { loose: oc.input(z.unknown()).output(z.string()) },
     migrations: [],
     rowMap: {},
-    entries: { loose: { kind: "query", run: () => "answer" } },
+    entries: { loose: { kind: "query", reads: [], run: () => "answer" } },
   });
   await expect(checkContract(acceptsAnything, seed, { loose: "valid" })).resolves.toEqual([
     { entry: "loose", rule: "accepts invalid input" },
@@ -44,7 +44,7 @@ test("the kit names an entry that accepts invalid input", async () => {
 test("the kit names an entry whose output breaks the contract", async () => {
   const wrongOutput = {
     ...good,
-    entries: { echo: { kind: "query" as const, run: () => 42 as never } },
+    entries: { echo: { kind: "query" as const, reads: [], run: () => 42 as never } },
   };
   await expect(checkContract(wrongOutput, seed, { echo: { text: "Valid" } })).resolves.toEqual([
     { entry: "echo", rule: "output does not match contract" },
@@ -61,7 +61,7 @@ test.each([
       contract: { convert: oc.input(z.undefined()).output(z.object({ text: output })) },
       migrations: [],
       rowMap: {},
-      entries: { convert: { kind: "query", run: () => ({ text: "UNCHANGED" }) } },
+      entries: { convert: { kind: "query", reads: [], run: () => ({ text: "UNCHANGED" }) } },
     });
     await expect(checkContract(converts, seed, { convert: undefined })).resolves.toEqual([
       { entry: "convert", rule: "output schema transforms or defaults a value" },
@@ -78,7 +78,7 @@ test("an entry without input passes with an explicit undefined example", async (
     contract: { read: oc.output(z.string()) },
     migrations: [],
     rowMap: {},
-    entries: { read: { kind: "query", run: () => "answer" } },
+    entries: { read: { kind: "query", reads: [], run: () => "answer" } },
   });
   await expect(checkContract(noInput, seed, { read: undefined })).resolves.toEqual([]);
 });
@@ -91,6 +91,7 @@ test("the kit names a query that attempts a write", async () => {
       ...notes.entries,
       list: {
         kind: "query" as const,
+        reads: ["notes"],
         async run(
           tx: Parameters<typeof notes.entries.list.run>[0],
           context: Parameters<typeof notes.entries.list.run>[1],
@@ -201,6 +202,7 @@ test.each(["space", "deleted"] as const)(
         list: {
           ...notes.entries.list,
           kind: "query" as const,
+          reads: ["notes"],
           async run(
             tx: Parameters<typeof notes.entries.list.run>[0],
             context: Parameters<typeof notes.entries.list.run>[1],
@@ -253,6 +255,7 @@ test("the kit names a page query that sorts without an index", async () => {
     contract: { pages: notes.contract.pages },
     entries: {
       pages: pageList({
+        reads: ["notes"],
         row: notesRowMap.notes,
         query: (
           tx: Parameters<typeof notes.entries.pages.run>[0],
@@ -399,7 +402,7 @@ test("the kit rejects an array query without an explicit list kind", async () =>
   const fixture = defineStorageModule({
     ...good,
     contract: { loose: oc.input(z.undefined()).output(z.array(z.string())) },
-    entries: { loose: { kind: "query", run: () => [] } },
+    entries: { loose: { kind: "query", reads: [], run: () => [] } },
   });
   await expect(checkContract(fixture, seed, { loose: undefined })).resolves.toEqual([
     { entry: "loose", rule: "array query has no list kind" },
@@ -413,6 +416,7 @@ test("the kit rejects a count that includes another Space or deleted rows", asyn
     entries: {
       count: {
         kind: "query",
+        reads: ["notes"],
         async run(tx) {
           const row = await tx
             .selectFrom("notes")
@@ -444,6 +448,7 @@ test("the kit rejects a by-id lookup of its own deleted row", async () => {
     entries: {
       lookup: {
         kind: "query",
+        reads: ["notes"],
         async run(tx, _context, input) {
           const row = await tx
             .selectFrom("notes")
@@ -482,6 +487,7 @@ test("the kit rejects a by-id lookup of another Space's scalar value", async () 
     entries: {
       lookup: {
         kind: "query",
+        reads: ["notes"],
         async run(tx, _context, input) {
           const row = await tx
             .selectFrom("notes")
@@ -518,6 +524,7 @@ test("the kit catches by-id reads, by-id writes and bulk writes without scoping"
     entries: {
       get: {
         kind: "query",
+        reads: ["notes"],
         async run(tx, _context, input) {
           const row = await tx
             .selectFrom("notes")
@@ -592,6 +599,7 @@ test.each(["asc", "desc"] as const)(
       contract: { pages: referenceNotes.contract.pages },
       entries: {
         pages: pageList({
+          reads: ["notes"],
           row: notesRowMap.notes,
           query: (
             tx: Parameters<typeof referenceNotes.entries.pages.run>[0],
@@ -703,6 +711,7 @@ test.each([false, true])(
       contract: { pages: referenceNotes.contract.pages },
       entries: {
         pages: pageList({
+          reads: ["notes"],
           row: notesRowMap.notes,
           query: (
             tx: Parameters<typeof referenceNotes.entries.pages.run>[0],
@@ -789,7 +798,11 @@ test("the kit names extra output fields accurately", async () => {
     ...good,
     contract: { echo: oc.input(z.string()).output(z.object({ text: z.string() })) },
     entries: {
-      echo: { kind: "query", run: (_tx, _context, text) => ({ text, extra: "private" }) },
+      echo: {
+        kind: "query",
+        reads: [],
+        run: (_tx, _context, text) => ({ text, extra: "private" }),
+      },
     },
   });
   await expect(checkContract(fixture, seed, { echo: "Hello" })).resolves.toEqual([
