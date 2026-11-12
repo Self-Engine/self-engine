@@ -1,6 +1,6 @@
 import type { Database, TablesOf } from "@self-engine/db";
 import { spaceIdSchema, type RowMap, type StorageContext } from "../core/index.ts";
-import type { Seed } from "./contract.ts";
+import type { Seed } from "./seed.ts";
 
 /** Seed independent examples so the caller's example input still addresses the first Space. */
 export async function seedScoping<Rows extends RowMap>(

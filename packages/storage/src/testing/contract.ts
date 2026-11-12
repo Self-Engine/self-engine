@@ -3,7 +3,6 @@ import { isDeepStrictEqual } from "node:util";
 import type { InferContractRouterInputs } from "@orpc/contract";
 import { call, ORPCError, type AnyProcedure } from "@orpc/server";
 import type { TablesOf } from "@self-engine/db";
-import type { Transaction } from "kysely";
 import { z } from "zod";
 import {
   createContext,
@@ -11,7 +10,6 @@ import {
   type RowMap,
   type StorageContract,
   type StorageModule,
-  type StorageContext,
 } from "../core/index.ts";
 import { createTestContext, createTestDatabase } from "./helpers.ts";
 
@@ -19,10 +17,8 @@ export interface ContractViolation {
   readonly entry: string;
   readonly rule: string;
 }
-export type Seed<Rows extends RowMap> = (
-  tx: Transaction<TablesOf<Rows>>,
-  context: StorageContext,
-) => void | Promise<void>;
+export type { Seed } from "./seed.ts";
+import type { Seed } from "./seed.ts";
 
 function candidates(example: unknown): unknown[] {
   const values: unknown[] = [undefined, 42, "invalid", null, {}, [], true];

@@ -13,6 +13,13 @@ test("standard writes preserve creation time and move update and deletion times"
       createFrame(notes, { database, sources, checkOutputs: true }),
     );
     const note = await client.create({ title: "First", isPinned: false });
+    expect(note).toMatchObject({
+      title: "First",
+      isPinned: false,
+      createdAt: "2026-11-12T12:00:00.000Z",
+      updatedAt: "2026-11-12T12:00:00.000Z",
+    });
+    await expect(client.get({ id: note.id })).resolves.toEqual(note);
     sources.advance(1000);
     const updated = await client.update({ id: note.id, title: "Changed" });
     expect(updated).toEqual({ ...note, title: "Changed", updatedAt: "2026-11-12T12:00:01.000Z" });
