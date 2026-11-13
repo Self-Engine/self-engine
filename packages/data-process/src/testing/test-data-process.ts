@@ -1,5 +1,5 @@
 import { MessageChannel, type MessagePort } from "node:worker_threads";
-import type { TablesChanged } from "@self-engine/contracts";
+import type { TablesChanged } from "@self-engine/data-protocol";
 import type { Database, Migration } from "@self-engine/db";
 import { openDatabase } from "@self-engine/db/better-sqlite3";
 import { createTestSources } from "@self-engine/db/testing";
@@ -54,7 +54,13 @@ export async function startTestDataProcess(
     core = await startDataProcess({
       database,
       modules: options.modules ?? {
-        fixture: { migrations: options.migrations ?? [], contract: {}, rowMap: {}, entries: {} },
+        fixture: {
+          name: "fixture",
+          migrations: options.migrations ?? [],
+          contract: {},
+          rowMap: {},
+          entries: {},
+        },
       },
       sources: options.sources ?? createTestSources(new Date("2026-01-01T00:00:00.000Z")),
       checkOutputs: options.checkOutputs ?? true,

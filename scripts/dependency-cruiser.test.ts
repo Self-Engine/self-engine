@@ -4,14 +4,14 @@
 
 import { resolve } from "node:path";
 import { describe, expect, it } from "vite-plus/test";
-import boundaryRules, { ALLOWED_IMPORTS } from "../.dependency-cruiser.ts";
+import boundaryRules, { ALLOWED_IMPORTS, TEST_ONLY_IMPORTS } from "../.dependency-cruiser.ts";
 import {
   cruiseFixture,
   type FixturePackage,
   ruleNames,
   withFiles,
 } from "./testing/cruise-fixture.ts";
-import { workspaceDependencies, workspacePackages } from "./workspace-manifest.ts";
+import { packageCycles, workspaceDependencies, workspacePackages } from "./workspace-manifest.ts";
 
 /** `packages/module` may import `packages/shared`, not the other way round. */
 const ALLOWED = { module: ["shared"] };
@@ -587,6 +587,76 @@ describe("the hotkey library", () => {
   });
 });
 
+describe("the query library", () => {
+  const RULE = "query-library-only-through-building-block";
+  const dataClient = (library: string, file: string): FixturePackage => ({
+    dir: "packages/data-client",
+    dependencies: [library],
+    files: { [file]: `import "${library}";\n` },
+  });
+
+  describe.each(["@tanstack/react-query", "@tanstack/query-core"])("%s", (library) => {
+    it("passes an import in the building block", async () => {
+      expect(await cruise([dataClient(library, "src/react/query-hook.ts")])).toEqual([]);
+    });
+
+    it("fails an import in another file of the data client", async () => {
+      expect(ruleNames(await cruise([dataClient(library, "src/data-connection.ts")]))).toEqual([
+        RULE,
+      ]);
+    });
+
+    it("fails an import in a module", async () => {
+      const importing = withFiles(declaring(module_, library), {
+        "src/notes.ts": `import "${library}";\n`,
+      });
+      expect(ruleNames(await cruise([shared, importing]))).toEqual([RULE]);
+    });
+
+    it("fails an import in an app", async () => {
+      const web = declaring(app("web", { "src/main.ts": `import "${library}";\n` }), library);
+      expect(ruleNames(await cruise([web]))).toEqual([RULE]);
+    });
+  });
+});
+
+describe("testing entries", () => {
+  const RULE = "testing-entries-only-in-tests-and-stories";
+  /** The shared package with a `./testing` entry, as `@self-engine/data-client/testing`. */
+  const withTesting: FixturePackage = {
+    ...withFiles(shared, { "src/testing/index.ts": "export const fixed = 1;\n" }),
+    exports: { ".": "./src/index.ts", "./testing": "./src/testing/index.ts" },
+  };
+  const importing = (file: string) =>
+    withFiles(module_, {
+      [file]: 'import "@self-engine/shared/testing";\n',
+    });
+
+  it.each(["src/notes.test.ts", "src/notes.stories.tsx", "src/testing/helpers.ts"])(
+    "passes an import in %s",
+    async (file) => {
+      expect(await cruise([withTesting, importing(file)])).toEqual([]);
+    },
+  );
+
+  it("fails an import in a module's code", async () => {
+    expect(ruleNames(await cruise([withTesting, importing("src/notes-view.tsx")]))).toEqual([RULE]);
+  });
+
+  it("fails an import in an app's code", async () => {
+    const web = declaring(
+      app("web", { "src/main.ts": 'import "@self-engine/shared/testing";\n' }),
+      "@self-engine/shared",
+    );
+    expect(ruleNames(await cruise([withTesting, web]))).toEqual([RULE]);
+  });
+
+  it("fails an import of the package's own testing folder from its code", async () => {
+    const own = withFiles(withTesting, { "src/index.ts": 'import "./testing/index.ts";\n' });
+    expect(ruleNames(await cruise([own]))).toEqual([RULE]);
+  });
+});
+
 describe("icon libraries", () => {
   const RULE = "icons-only-through-catalog";
 
@@ -765,17 +835,42 @@ describe("the renderer", () => {
     },
   );
 
+  it("fails a value import of the protocol, which loads its schemas too", async () => {
+    const protocol: FixturePackage = {
+      dir: "packages/data-protocol",
+      files: { "src/index.ts": "export const protocolContract = {};\n" },
+    };
+    const client = declaring(
+      extraPackage("packages/data-client", {
+        "src/client.ts": 'import { protocolContract } from "@self-engine/data-protocol";\n',
+      }),
+      "@self-engine/data-protocol",
+    );
+    const allow = { "data-client": ["data-protocol"] };
+    expect(ruleNames(await cruise([protocol, client], { allowedImports: allow }))).toEqual([
+      "renderer-imports-the-contract-as-a-type",
+    ]);
+  });
+
   it.each([
-    ["the data process core", "@self-engine/data-process"],
-    ["the data process test harness", "@self-engine/data-process/testing"],
-    ["the database connection", "@self-engine/db/better-sqlite3"],
-    ["a module's ./data entry", "@self-engine/time/data"],
-  ])("fails an import of %s", async (_, specifier) => {
+    ["the data process core", "@self-engine/data-process", []],
+    // A testing entry outside tests and stories breaks a second rule.
+    [
+      "the data process test harness",
+      "@self-engine/data-process/testing",
+      ["testing-entries-only-in-tests-and-stories"],
+    ],
+    ["the database connection", "@self-engine/db/better-sqlite3", []],
+    ["a module's ./data entry", "@self-engine/time/data", []],
+  ])("fails an import of %s", async (_, specifier, alsoBroken) => {
     const packageName = specifier.split("/").slice(0, 2).join("/");
     for (const make of renderers) {
       const renderer = declaring(make({ "src/data.ts": `import "${specifier}";\n` }), packageName);
       const found = await cruise([dataProcess, db, time, renderer], { allowedImports: ALLOW });
-      expect(ruleNames(found), renderer.dir).toEqual(["renderer-stays-off-the-database"]);
+      expect(ruleNames(found), renderer.dir).toEqual([
+        "renderer-stays-off-the-database",
+        ...alsoBroken,
+      ]);
     }
   });
 
@@ -809,13 +904,18 @@ describe("the repo's workspace", () => {
     }
   });
 
+  it("has no cycle between packages, devDependencies included (ADR 0006)", () => {
+    expect(packageCycles(packages)).toEqual([]);
+  });
+
   it("allows exactly the workspace dependencies each package declares, so both change together", () => {
     for (const { dir, manifest } of packages.filter(({ dir }) => dir.startsWith("packages/"))) {
       const name = dir.slice("packages/".length);
       const declared = workspaceDependencies(manifest, { dev: true }).map((dependency) =>
         dependency.replace(/^@self-engine\//, ""),
       );
-      expect([...(ALLOWED_IMPORTS[name] ?? [])].sort(), name).toEqual(declared);
+      const allowed = [...(ALLOWED_IMPORTS[name] ?? []), ...(TEST_ONLY_IMPORTS[name] ?? [])];
+      expect(allowed.sort(), name).toEqual(declared);
     }
   });
 });
@@ -894,5 +994,24 @@ describe("data-side module composition", () => {
         }),
       ),
     ).toEqual(["package-direction:placeholder-alpha"]);
+  });
+  it("lets the data client's tests import the test Data Process, and only its tests", async () => {
+    const client = declaring(
+      extraPackage("packages/data-client", {
+        "src/query-tables.test.ts": 'import "@self-engine/data-process";\n',
+      }),
+      "@self-engine/data-process",
+    );
+    const options = { allowedImports: ALLOWED_IMPORTS, testOnlyImports: TEST_ONLY_IMPORTS };
+    expect(await cruise([client, extraPackage("packages/data-process")], options)).toEqual([]);
+    const fromCode = declaring(
+      extraPackage("packages/data-client", {
+        "src/data-connection.ts": 'import "@self-engine/data-process";\n',
+      }),
+      "@self-engine/data-process",
+    );
+    expect(
+      ruleNames(await cruise([fromCode, extraPackage("packages/data-process")], options)),
+    ).toEqual(["package-direction:data-client"]);
   });
 });

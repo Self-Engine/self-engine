@@ -63,7 +63,9 @@ Change existing code instead of adding local workarounds. Build bottom-up: finis
 foundation before the feature that sits on it. Each module is its own package, reached only
 through its `exports` ([ADR 0006](docs/adr/0006-module-boundaries-are-enforced-three-ways.md));
 an import between two packages needs an entry in `ALLOWED_IMPORTS` in `.dependency-cruiser.ts`
-next to the dependency in `package.json`.
+next to the dependency in `package.json`; an import only tests and stories use goes into
+`TEST_ONLY_IMPORTS` instead, next to a devDependency. No cycle between packages, devDependencies
+included.
 
 ## Adding Translated Text
 

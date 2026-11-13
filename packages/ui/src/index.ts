@@ -13,6 +13,11 @@ export {
   undoLatest,
 } from "./feedback.tsx";
 export {
+  type QueryDisplayState,
+  QueryStateBlock,
+  type QueryStateBlockProps,
+} from "./query-state-block.tsx";
+export {
   EmptyState,
   type EmptyStateProps,
   ErrorState,

@@ -9,6 +9,7 @@
   },
   "dependencies": {
     "@orpc/contract": "catalog:",
+    "@self-engine/data-protocol": "workspace:*",
     "zod": "catalog:"
   },
   "devDependencies": {

@@ -1,5 +1,5 @@
 import { type AnyMiddleware, type AnyRouter, enhanceRouter, ORPCError } from "@orpc/server";
-import type { Health } from "@self-engine/contracts";
+import type { Health } from "@self-engine/data-protocol";
 
 /**
  * The router itself when the start was ready. In a failure state every procedure but `health`

@@ -6,7 +6,7 @@
 // serving only once its handler is installed; the main process creates a channel only after
 // that, per request of a page, and gives one end to the data process and the other to the page.
 
-import { type Health, healthSchema } from "@self-engine/contracts";
+import { type Health, healthSchema } from "@self-engine/data-protocol";
 
 const SERVING = "data-process:serving";
 const PORT_HANDOFF = "data-process:port";

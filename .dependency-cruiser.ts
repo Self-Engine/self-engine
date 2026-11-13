@@ -3,7 +3,8 @@
 // these rules are the third: the directions allowed between packages, every workspace import
 // declared in the importer's own `package.json`, no relative imports into another package, no
 // imports past another package's `exports`, no icon library outside `@self-engine/icons`, no
-// hotkey library outside the Shell's binding file, and no cycles.
+// hotkey library outside the Shell's binding file, no query library outside the data client's
+// React entry, no `testing` entry outside tests and stories, and no cycles.
 //
 // Paths are relative to the repo root, or to the fixture root in
 // scripts/dependency-cruiser.test.ts, which builds its own config with `boundaryConfig`.
@@ -21,13 +22,18 @@ export type AllowedImports = Readonly<Record<string, readonly string[]>>;
  * the two lists match.
  */
 export const ALLOWED_IMPORTS: AllowedImports = {
-  // Composes the modules' contracts once they have some (D187): `contracts → module`.
-  contracts: [],
-  // The data process test harness only in the client's tests (a devDependency).
-  "data-client": ["contracts", "data-process"],
-  "data-process": ["contracts", "db", "storage"],
-  // The preload and the page share it; the failure states come from the contract.
-  "desktop-bridge": ["contracts"],
+  // Composes the protocol and the modules' contracts (D187): `contracts → module`. Only the
+  // desktop app's module list imports it.
+  contracts: ["data-protocol"],
+  // The building block tells the user through `ui`'s feedback system. It takes the protocol from
+  // `data-protocol`, which knows no module, so no cycle runs through a module (ADR 0006).
+  "data-client": ["data-protocol", "ui"],
+  // The core knows no module: the app passes its module list in.
+  "data-process": ["data-protocol", "db", "storage"],
+  // `health` and the Table Change stream: imports nothing of the workspace.
+  "data-protocol": [],
+  // The preload and the page share it; the failure states come from the protocol.
+  "desktop-bridge": ["data-protocol"],
   // Timestamp generation returns the shared Instant brand (D223).
   db: ["time"],
   icons: ["theme"],
@@ -38,6 +44,16 @@ export const ALLOWED_IMPORTS: AllowedImports = {
   storage: ["db", "time"],
   time: [],
   ui: ["icons", "theme"],
+};
+
+/**
+ * Further packages a package may import from its test and story files only, never from its own
+ * code: the one place to declare a test-only import (a devDependency of the package). They count
+ * as allowed for the check against `package.json` like ALLOWED_IMPORTS.
+ */
+export const TEST_ONLY_IMPORTS: AllowedImports = {
+  // The test Data Process and the `notes` test module, to test the client over the real core.
+  "data-client": ["data-process", "storage"],
 };
 
 /** Only `@self-engine/icons` may import these; Tabler and the rest would be a second library. */
@@ -76,15 +92,30 @@ function alternatives(names: readonly string[]): string {
   return names.map((name) => name.replaceAll(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|");
 }
 
-/** One rule per package in `allowed`: no workspace package outside its list. */
-function allowedDirectionRules(allowed: AllowedImports): IForbiddenRuleType[] {
-  return Object.entries(allowed).map(([name, targets]) => ({
-    name: `package-direction:${name}`,
-    comment: `packages/${name} may import only ${["itself", ...targets].join(", ")} (ALLOWED_IMPORTS in .dependency-cruiser.ts).`,
-    severity: "error",
-    from: { path: `^packages/(?:${alternatives([name])})/` },
-    to: { path: "^packages/", pathNot: `^packages/(?:${alternatives([name, ...targets])})/` },
-  }));
+/**
+ * One rule per package in `allowed`: no workspace package outside its list. A package with
+ * test-only imports gets a second rule for its test and story files, which may import those too.
+ */
+function allowedDirectionRules(
+  allowed: AllowedImports,
+  testOnly: AllowedImports,
+): IForbiddenRuleType[] {
+  return Object.entries(allowed).flatMap(([name, targets]): IForbiddenRuleType[] => {
+    const forTests = testOnly[name] ?? [];
+    const rule = (suffix: string, path: string, list: readonly string[], pathNot?: string) => ({
+      name: `package-direction:${name}${suffix}`,
+      comment: `packages/${name} may import only ${["itself", ...list].join(", ")}${suffix ? " from its tests and stories" : ""} (ALLOWED_IMPORTS and TEST_ONLY_IMPORTS in .dependency-cruiser.ts).`,
+      severity: "error" as const,
+      from: pathNot === undefined ? { path } : { path, pathNot },
+      to: { path: "^packages/", pathNot: `^packages/(?:${alternatives([name, ...list])})/` },
+    });
+    const prefix = `^packages/(?:${alternatives([name])})/`;
+    if (forTests.length === 0) return [rule("", prefix, targets)];
+    return [
+      rule("", prefix, targets, DEV_ONLY_FILE),
+      rule(":tests", `${prefix}.*${DEV_ONLY_FILE}`, [...targets, ...forTests]),
+    ];
+  });
 }
 
 /**
@@ -158,14 +189,20 @@ function corePurityRule({
 export interface BoundaryOptions {
   /** The allowed directions between packages, see ALLOWED_IMPORTS. */
   readonly allowedImports: AllowedImports;
+  /** The directions allowed only from test and story files, see TEST_ONLY_IMPORTS. */
+  readonly testOnlyImports?: AllowedImports;
   /** The workspace root, whose `apps/*` and `packages/*` manifests are read. */
   readonly rootDir: string;
 }
 
 /** The boundary rules for the workspace at `rootDir`. */
-export function boundaryConfig({ allowedImports, rootDir }: BoundaryOptions): IConfiguration {
+export function boundaryConfig({
+  allowedImports,
+  testOnlyImports = {},
+  rootDir,
+}: BoundaryOptions): IConfiguration {
   const forbidden: IForbiddenRuleType[] = [
-    ...allowedDirectionRules(allowedImports),
+    ...allowedDirectionRules(allowedImports, testOnlyImports),
     {
       name: "package-direction:unlisted",
       comment:
@@ -222,9 +259,9 @@ export function boundaryConfig({ allowedImports, rootDir }: BoundaryOptions): IC
     {
       name: "contracts-is-pure",
       comment:
-        "The app contract (`@self-engine/contracts`) loads in the renderer and the data process, so it holds only Zod schemas and oRPC contracts (D187): no database code, no Node built-in, nothing from Electron.",
+        "The app contract (`@self-engine/contracts`) and the protocol (`@self-engine/data-protocol`) load in the renderer and the data process, so they hold only Zod schemas and oRPC contracts (D187): no database code, no Node built-in, nothing from Electron.",
       severity: "error",
-      from: { path: "^packages/contracts/" },
+      from: { path: "^packages/(?:contracts|data-protocol)/" },
       to: {
         dependencyTypesNot: ["local"],
         pathNot: `^packages/|(^|/)node_modules/(?:${alternatives(CONTRACT_LIBRARIES)})/`,
@@ -243,10 +280,10 @@ export function boundaryConfig({ allowedImports, rootDir }: BoundaryOptions): IC
     {
       name: "renderer-imports-the-contract-as-a-type",
       comment:
-        "The renderer imports the app contract as a type only (`import type`), so no schema loads at startup and inputs are validated in the data process alone (D187, D188).",
+        "The renderer imports the app contract and the protocol as types only (`import type`), so no schema loads at startup and inputs are validated in the data process alone (D187, D188).",
       severity: "error",
       from: RENDERER,
-      to: { path: "^packages/contracts/", dependencyTypesNot: ["type-only"] },
+      to: { path: "^packages/(?:contracts|data-protocol)/", dependencyTypesNot: ["type-only"] },
     },
     {
       name: "renderer-stays-off-the-database",
@@ -274,6 +311,25 @@ export function boundaryConfig({ allowedImports, rootDir }: BoundaryOptions): IC
       severity: "error",
       from: { path: "^(apps|packages)/", pathNot: "^packages/shell/src/shortcut-bindings\\.tsx$" },
       to: { path: "(^|(^|/)node_modules/)@tanstack/(?:react-)?hotkeys(/|$)" },
+    },
+    {
+      name: "query-library-only-through-building-block",
+      comment:
+        "Only the data client's React entry may import the query library, so cache keys, reloads and error paths stay the same for every module (D249). Build the hook with `portHooks` from `@self-engine/data-client/react`.",
+      severity: "error",
+      from: { path: "^(apps|packages)/", pathNot: "^packages/data-client/src/react/" },
+      to: { path: "(^|(^|/)node_modules/)@tanstack/(?:react-)?query(?:-core|-devtools)?(/|$)" },
+    },
+    {
+      name: "testing-entries-only-in-tests-and-stories",
+      comment:
+        "A package's `./testing` entry (its `src/testing/` folder) is for tests and stories only, so a test double such as Fixed Answers, and the module Contract schemas it is given, never load in the app (D255). Import it from a `*.test.*` or `*.stories.*` file, or from another `src/testing/` folder.",
+      severity: "error",
+      from: {
+        path: "^(apps|packages)/",
+        pathNot: [DEV_ONLY_FILE, "^packages/[^/]+/src/testing/"],
+      },
+      to: { path: "^packages/[^/]+/src/testing/" },
     },
     {
       name: "no-relative-import-across-packages",
@@ -360,4 +416,8 @@ export function boundaryConfig({ allowedImports, rootDir }: BoundaryOptions): IC
   };
 }
 
-export default boundaryConfig({ allowedImports: ALLOWED_IMPORTS, rootDir: import.meta.dirname });
+export default boundaryConfig({
+  allowedImports: ALLOWED_IMPORTS,
+  testOnlyImports: TEST_ONLY_IMPORTS,
+  rootDir: import.meta.dirname,
+});

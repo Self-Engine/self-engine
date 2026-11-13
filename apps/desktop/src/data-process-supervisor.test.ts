@@ -2,7 +2,7 @@
 
 import { EventEmitter } from "node:events";
 import { describe, expect, it } from "vite-plus/test";
-import type { Health } from "@self-engine/contracts";
+import type { Health } from "@self-engine/data-protocol";
 import {
   FAILED_CHANNEL,
   GONE_CHANNEL,

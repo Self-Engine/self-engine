@@ -74,3 +74,45 @@ export function workspacePackages(root: string): WorkspacePackage[] {
     .sort()
     .map((dir) => ({ dir, manifest: readManifest(join(root, dir)) }));
 }
+
+/**
+ * The cycles between workspace packages, each as the sorted names of the packages it joins, in
+ * order of their first name. A package depends on what its manifest declares with `workspace:`,
+ * devDependencies included: pnpm links both, and a test that imports a package above its own
+ * closes a cycle as well (ADR 0006). dependency-cruiser sees cycles between files only.
+ */
+export function packageCycles(packages: readonly WorkspacePackage[]): string[][] {
+  const edges = new Map(
+    packages.map(({ manifest }) => [manifest.name, workspaceDependencies(manifest, { dev: true })]),
+  );
+  // Tarjan's strongly connected components.
+  const index = new Map<string, number>();
+  const low = new Map<string, number>();
+  const stack: string[] = [];
+  const onStack = new Set<string>();
+  const cycles: string[][] = [];
+  const visit = (name: string): void => {
+    index.set(name, index.size);
+    low.set(name, index.get(name)!);
+    stack.push(name);
+    onStack.add(name);
+    for (const next of edges.get(name) ?? []) {
+      if (!edges.has(next)) continue;
+      if (!index.has(next)) {
+        visit(next);
+        low.set(name, Math.min(low.get(name)!, low.get(next)!));
+      } else if (onStack.has(next)) low.set(name, Math.min(low.get(name)!, index.get(next)!));
+    }
+    if (low.get(name) !== index.get(name)) return;
+    const component: string[] = [];
+    let member: string;
+    do {
+      member = stack.pop()!;
+      onStack.delete(member);
+      component.push(member);
+    } while (member !== name);
+    if (component.length > 1 || edges.get(name)!.includes(name)) cycles.push(component.sort());
+  };
+  for (const name of edges.keys()) if (!index.has(name)) visit(name);
+  return cycles.sort((a, b) => a[0]!.localeCompare(b[0]!));
+}

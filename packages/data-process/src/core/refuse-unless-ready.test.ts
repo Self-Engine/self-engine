@@ -6,7 +6,7 @@ import { createORPCClient, ORPCError } from "@orpc/client";
 import { RPCLink } from "@orpc/client/message-port";
 import { type ContractRouterClient, oc } from "@orpc/contract";
 import { implement } from "@orpc/server";
-import { type Health, healthContract } from "@self-engine/contracts";
+import { type Health, healthContract } from "@self-engine/data-protocol";
 import { afterEach, describe, expect, test } from "vite-plus/test";
 import { z } from "zod";
 import { refuseUnlessReady } from "./refuse-unless-ready.ts";

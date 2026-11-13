@@ -1,16 +1,15 @@
-import { appContract } from "@self-engine/contracts";
-import { modules } from "./modules.ts";
 import { createORPCClient } from "@orpc/client";
 import { RPCLink } from "@orpc/client/message-port";
 import { oc, type ContractRouterClient } from "@orpc/contract";
-import type { AppContract } from "@self-engine/contracts";
+import type { ProtocolContract } from "@self-engine/data-protocol";
 import { createTestSources } from "@self-engine/db/testing";
 import { defineStorageModule, type FrameReport } from "@self-engine/storage";
-import { afterEach, expect, expectTypeOf, test } from "vite-plus/test";
+import { afterEach, expect, test } from "vite-plus/test";
 import { z } from "zod";
 import { startTestDataProcess, type TestDataProcess } from "../testing/index.ts";
 
 const fixture = defineStorageModule({
+  name: "fixture",
   contract: {
     add: oc.input(z.string()).output(z.string()),
     list: oc.output(z.array(z.string())),
@@ -26,27 +25,27 @@ const fixture = defineStorageModule({
     fixture_items: z.object({ name: z.string() }),
     fixture_audit: z.object({ name: z.string() }),
   },
-  entries: {
-    audit: {
-      kind: "operation",
-      async run(tx, _context, name) {
-        await tx.insertInto("fixture_audit").values({ name }).execute();
-        return name;
-      },
+}).entries({
+  audit: {
+    kind: "operation",
+    async run(tx, _context, name) {
+      await tx.insertInto("fixture_audit").values({ name }).execute();
+      return name;
     },
-    add: {
-      kind: "operation",
-      async run(tx, _context, name) {
-        await tx.insertInto("fixture_items").values({ name }).execute();
-        await tx.insertInto("fixture_audit").values({ name }).execute();
-        return name;
-      },
+  },
+  add: {
+    kind: "operation",
+    async run(tx, _context, name) {
+      await tx.insertInto("fixture_items").values({ name }).execute();
+      await tx.insertInto("fixture_audit").values({ name }).execute();
+      return name;
     },
-    list: {
-      kind: "query",
-      async run(tx) {
-        return (await tx.selectFrom("fixture_items").selectAll().execute()).map((row) => row.name);
-      },
+  },
+  list: {
+    kind: "query",
+    reads: ["fixture_items"],
+    async run(tx) {
+      return (await tx.selectFrom("fixture_items").selectAll().execute()).map((row) => row.name);
     },
   },
 });
@@ -61,9 +60,9 @@ async function start() {
     sources: createTestSources(new Date("2026-01-01T00:00:00.000Z")),
   });
   started.push(process);
-  return createORPCClient<ContractRouterClient<AppContract & { fixture: typeof fixture.contract }>>(
-    new RPCLink({ port: process.openPort() }),
-  );
+  return createORPCClient<
+    ContractRouterClient<ProtocolContract & { fixture: typeof fixture.contract }>
+  >(new RPCLink({ port: process.openPort() }));
 }
 
 test("a module list supplies migrations and calls over a MessageChannel", async () => {
@@ -79,16 +78,16 @@ test("a module list supplies migrations and calls over a MessageChannel", async 
 test("each committed operation emits one event naming all its written tables", async () => {
   const client = await start();
   const events = await client.tablesChanged();
-  await expect(events.next()).resolves.toEqual({ done: false, value: [] });
+  await expect(events.next()).resolves.toMatchObject({ done: false, value: { kind: "opened" } });
   await client.fixture.add("First");
   await client.fixture.audit("Second");
   await expect(events.next()).resolves.toEqual({
     done: false,
-    value: ["fixture_items", "fixture_audit"],
+    value: { kind: "changed", tables: ["fixture_items", "fixture_audit"] },
   });
   await expect(events.next()).resolves.toEqual({
     done: false,
-    value: ["fixture_audit"],
+    value: { kind: "changed", tables: ["fixture_audit"] },
   });
   await events.return();
 });
@@ -97,11 +96,11 @@ test.each([true, false])(
   "start option checks outputs only when enabled (%s)",
   async (checkOutputs) => {
     const invalidOutput = defineStorageModule({
+      name: "fixture",
       contract: { read: oc.output(z.string()) },
       rowMap: {},
       migrations: [],
-      entries: { read: { kind: "query", run: () => 42 as never } },
-    });
+    }).entries({ read: { kind: "query", reads: [], run: () => 42 as never } });
     const process = await startTestDataProcess({
       modules: { fixture: invalidOutput },
       checkOutputs,
@@ -122,7 +121,7 @@ test("a failed module migration keeps health available and refuses module calls"
   });
   started.push(process);
   const client = createORPCClient<
-    ContractRouterClient<AppContract & { fixture: typeof fixture.contract }>
+    ContractRouterClient<ProtocolContract & { fixture: typeof fixture.contract }>
   >(new RPCLink({ port: process.openPort() }));
   await expect(client.health()).resolves.toEqual({
     state: "migrationFailed",
@@ -136,15 +135,15 @@ test("a failed module migration keeps health available and refuses module calls"
 test("unexpected operation errors reach the report sink while the port caller gets a general error", async () => {
   const error = new Error("Private operation detail");
   const broken = defineStorageModule({
+    name: "fixture",
     contract: { fail: oc.output(z.string()) },
     migrations: [],
     rowMap: {},
-    entries: {
-      fail: {
-        kind: "operation",
-        run() {
-          throw error;
-        },
+  }).entries({
+    fail: {
+      kind: "operation",
+      run() {
+        throw error;
       },
     },
   });
@@ -172,7 +171,7 @@ test("starts with both an owner module and its consumer registered", async () =>
   started.push(process);
   const client = createORPCClient<
     ContractRouterClient<
-      AppContract & {
+      ProtocolContract & {
         notes: typeof notes.contract;
         links: typeof links.contract;
       }
@@ -190,18 +189,31 @@ test("starts with both an owner module and its consumer registered", async () =>
   ]);
 });
 
+test("the opening event names each Query of the mounted modules with the tables it reads", async () => {
+  const { notes, links } = await import("@self-engine/storage/testing");
+  const process = await startTestDataProcess({ modules: { notes, links } });
+  started.push(process);
+  const client = createORPCClient<ContractRouterClient<ProtocolContract>>(
+    new RPCLink({ port: process.openPort() }),
+  );
+
+  const events = await client.tablesChanged();
+
+  await expect(events.next()).resolves.toEqual({
+    done: false,
+    value: {
+      kind: "opened",
+      queries: {
+        notes: { get: ["notes"], list: ["notes"], window: ["notes"], pages: ["notes"] },
+        links: { list: ["note_links", "notes"] },
+      },
+    },
+  });
+  await events.return();
+});
+
 test.each(["health", "tablesChanged"])("startup rejects a module named %s", async (name) => {
   await expect(startTestDataProcess({ modules: { [name]: fixture } })).rejects.toThrow(
     `Module namespace conflicts with built-in procedure: ${name}`,
-  );
-});
-
-test("registered app module namespaces match the mounted app contract", () => {
-  type Namespaces = Exclude<keyof AppContract, "health" | "tablesChanged">;
-  expectTypeOf<keyof typeof modules>().toEqualTypeOf<Namespaces>();
-  expect(Object.keys(modules).sort()).toEqual(
-    Object.keys(appContract)
-      .filter((key) => key !== "health" && key !== "tablesChanged")
-      .sort(),
   );
 });

@@ -1,5 +1,5 @@
 import { EventPublisher } from "@orpc/server";
-import type { TablesChanged } from "@self-engine/contracts";
+import type { TablesChanged } from "@self-engine/data-protocol";
 
 /**
  * Carries each committed transaction's changed tables to every open `tablesChanged` stream.

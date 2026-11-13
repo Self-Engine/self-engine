@@ -117,3 +117,24 @@ alternating runs each on `main` and the branch. The median was **145.5 ms on mai
 (range 135–185 ms) and **146.5 ms on the branch** (range 140–150 ms): no measurable change.
 Unlike the in-memory microbenchmarks, this includes the process hop. The data-process bundle
 grew from **703,842 to 726,220 bytes**.
+
+### Declared reads
+
+Measured during #216 on the same setup (in-memory SQLite, Node 26.13.0, Apple M3 Pro, no
+process hop). The contract kit records a Query's tables with a plugin that walks each
+statement's tree. The walk over the joined `note-links` list query takes **about 1.3 µs per
+statement**. A whole call through the frame with and without the plugin (`notes.list`,
+`notes.get`, `note-links.list` over 100 rows, 10,000 calls each) differed by less than the
+spread between two runs without it (±15 µs on 30–500 µs calls). Only the kit installs the
+plugin; the frame never does, so the packaged app pays nothing. The declaration itself is one
+array per Query entry.
+
+### Query-to-tables list
+
+Measured during #218 on the same setup. The Data Process builds the list once at start and
+sends it with the opening event of every Table Change stream, so it costs once per connection.
+For the test modules `notes` and `note-links` (5 Queries in 2 modules) the list is **121 bytes**
+as JSON, about 24 bytes per Query, and the opening event **149 bytes**, up from 2. A hundred
+Queries would send about 3 KB once per port. Building it takes **about 1.2 µs** at start. Each
+later Table Change carries a `{ kind: "changed", tables }` envelope, **28 bytes** more per
+commit than the bare table array before.

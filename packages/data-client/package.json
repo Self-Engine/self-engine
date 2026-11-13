@@ -5,16 +5,27 @@
   "license": "AGPL-3.0-only",
   "type": "module",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./react": "./src/react/index.ts"
   },
   "dependencies": {
+    "@lingui/core": "catalog:",
+    "@lingui/react": "catalog:",
     "@orpc/client": "catalog:",
     "@orpc/contract": "catalog:",
-    "@self-engine/contracts": "workspace:*"
+    "@self-engine/data-protocol": "workspace:*",
+    "@self-engine/ui": "workspace:*",
+    "@tanstack/react-query": "catalog:",
+    "react": "catalog:"
   },
   "devDependencies": {
     "@self-engine/data-process": "workspace:*",
+    "@self-engine/storage": "workspace:*",
     "@types/node": "catalog:",
+    "@types/react": "catalog:",
+    "@types/react-dom": "catalog:",
+    "happy-dom": "catalog:",
+    "react-dom": "catalog:",
     "vite-plus": "catalog:"
   }
 }

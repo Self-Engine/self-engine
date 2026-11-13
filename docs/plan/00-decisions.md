@@ -1609,6 +1609,60 @@ markiert und wird beim Bau gemessen.
   annehmen. `windowList` und `smallSetList` leiten ihren Eingabe-Typ aus dem Vertrag ab. _Nicht
   hier:_ der Läufer für Brücken über mehrere Module (kommt mit der ersten Brücke, D152); die
   Grenzen der Seiten-Liste bei Sortierspalten und Reihenfolge (#137).
+- **D260 Ein Speicher-Modul wird in zwei Schritten definiert (verfeinert D259).**
+  `defineStorageModule({ name, contract, rowMap, migrations, conflicts? }).entries({ … })`: Erst
+  stehen Name, Vertrag, Zeilen-Karte und Migrationen fest, dann werden die Einträge geprüft. So
+  leiten `pageList`, `windowList` und `smallSetList` `tx` und `input` aus dem Vertrag ab, auch eine
+  Seiten-Liste mit erweiterter Eingabe (`pageInputSchema.extend({ q })`). In einem einzigen
+  Objekt prüft TypeScript den Aufruf eines Bausteins, bevor es den Vertrag aus demselben Objekt
+  abgeleitet hat; `input` war dort `unknown`, und `pageList` fiel nur auf `PageInput` zurück.
+  _Preis:_ keiner zur Laufzeit; jede Moduldefinition bekommt einen zweiten Aufruf.
+  _Verworfen:_ die Bausteine für Fenster und kleine Mengen streichen und die Einträge als
+  Objekt schreiben (`pageList` bliebe ohne Ableitung); den Vertragseintrag an den Baustein geben
+  (`tx` bliebe von Hand typisiert).
+- **D261 Jeder Befehl bekommt den Port-Zugang in seinem Kontext (verfeinert D174, D249).** Ein
+  Befehl ruft eine Operation auf, läuft aber außerhalb von React und kann keinen Hook nutzen. Darum
+  trägt der Kontext jeder Art (`page`, `open`, `input`) das Feld `data`: denselben Port-Zugang, den
+  die App dem `DataProvider` gibt, zusammen mit dessen Weg für Benachrichtigungen
+  (`useDataAccess()` → `{ access, notify }`, D265); die Hülle reicht beides an jeden Start weiter,
+  ein späterer Agent ebenso. Der Baustein bietet neben dem Operations-Hook dessen Form als Funktion
+  (`portHooks(…).run(eintrag, behandlung)` → `(daten, eingabe) => Ergebnis`), aus demselben Vertrag
+  typisiert, mit demselben Ergebnis und denselben Standard-Benachrichtigungen über denselben Weg;
+  Hook und Funktion teilen sich den Code dafür. Stories und Tests geben feste Antworten in dasselbe Feld. Die Hülle
+  typisiert das Feld über einen reinen Typ-Import von `data-client` (Kante in `ALLOWED_IMPORTS` und
+  `package.json`). _Preis:_ ein Feld mehr im Befehls-Kontext; zur Laufzeit nichts. _Verworfen:_ ein
+  globaler Zugang des zuletzt eingehängten Providers (zwei Provider auf einer Seite überschreiben
+  sich, ein Befehl vor dem ersten Provider hätte nichts); Befehle rufen noch keine Operationen
+  (D252 wäre nicht erfüllt, die Frage käme mit dem ersten echten Modul wieder); das Feld als
+  `unknown` mit Prüfung zur Laufzeit.
+
+### Runde 34 (2026-11-13): Befunde der Code-Prüfung zu #33 (verfeinert D187, D251, D261)
+
+- **D264 Ein Konfliktgrund ohne Feld sagt das ausdrücklich (verfeinert D251).** Die Typen
+  verlangen weiter für jeden Grund Text und Feld; ein Modul darf `field: null` schreiben, wenn
+  kein Feld den Konflikt zeigen kann (Rückgängig, ein Befehl ohne Formular). Dann zeigt der
+  Baustein den Text selbst als Benachrichtigung, genau einmal, über denselben Weg wie seine
+  anderen Benachrichtigungen; das Ergebnis trägt `field: null`. Ein weggelassenes Feld
+  kompiliert nicht. _Verworfen:_ ein erfundenes Feld wie `id` und eine Kopie des
+  Benachrichtigungs-Helfers im Modul (der Baustein ließe eine Lücke, die jedes Modul selbst
+  stopft).
+- **D265 Alle Benachrichtigungen des Bausteins gehen über eine Naht (verfeinert D261).** Der
+  Befehls-Kontext trägt in `data` den Port-Zugang zusammen mit dem `notify` des `DataProvider`
+  (`useDataAccess()` → `{ access, notify }`), und die Funktionsform einer Operation nimmt beides.
+  So landen die Benachrichtigungen von Hook, Funktionsform, Neuladen und Konflikt ohne Feld an
+  derselben Stelle, und eine Story oder ein Test, der den Zugang ersetzt, sammelt sie mit.
+  _Verworfen:_ die Funktionsform ruft das Rückmelde-System direkt (Tests müssten `ui` ersetzen,
+  eine Story sähe die Benachrichtigungen nicht).
+- **D266 Zwischen Paketen gibt es keinen Kreis, auch nicht über devDependencies (verfeinert
+  D187, ADR 0006).** `health` und der Strom der Tabellenmeldungen liegen im Paket
+  `data-protocol`, das kein Modul kennt; `data-client`, Datenprozess und Desktop-Brücke nehmen
+  sie von dort. Der Kern des Datenprozesses kennt keine Module mehr: Die Desktop-App gibt ihm
+  ihre Modulliste (`apps/desktop/src/data-modules.ts`), geprüft gegen den App-Vertrag, den
+  `contracts` weiter zusammensetzt. Ein Test über alle `package.json` schlägt bei jedem Kreis
+  zwischen Paketen fehl; dependency-cruiser sieht nur Kreise zwischen Dateien. Ein Import nur
+  für Tests steht immer in `TEST_ONLY_IMPORTS`. _Preis:_ ein Paket mehr. _Verworfen:_ die Tests
+  über den echten Datenprozess aus `data-client` und dem Modul in ein höheres Paket verschieben
+  (die Tests lägen weit weg von ihrem Code, und der Kreis über `contracts` bliebe).
 
 ## Fakten
 

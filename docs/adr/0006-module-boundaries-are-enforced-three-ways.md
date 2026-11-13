@@ -1,7 +1,7 @@
 ---
 status: accepted
 date: 2026-11-08
-decisions: D10, D21, D36
+decisions: D10, D21, D36, D266
 ---
 
 # Module boundaries are enforced three ways
@@ -21,7 +21,8 @@ Each boundary is enforced by three independent mechanisms:
 2. **The `exports` field is the public interface.** Anything not exported is internal, and deep
    imports into another package fail to resolve.
 3. **dependency-cruiser in CI** checks the allowed directions between packages and forbids
-   cycles.
+   cycles between files; a test of every `package.json` forbids cycles between packages,
+   devDependencies included (D266).
 
 The database depends on `time` for `Instant`. A module's `./contracts` may import `time`,
 other declared module contracts and the pure `@self-engine/db/schema` entry, but never database
@@ -35,3 +36,6 @@ A formal module manifest follows only once the third module exists.
 - Shared logic moves into a shared package instead of being imported sideways.
 - Adding a dependency between two modules is a visible change in `package.json` and the
   dependency-cruiser rules, and reviewers can question it.
+- An import a package needs only in its tests and stories is a devDependency and an entry in
+  `TEST_ONLY_IMPORTS` in `.dependency-cruiser.ts`, never in `ALLOWED_IMPORTS`; its own code may
+  not use it. A test that would close a cycle between packages belongs in a package above both.

@@ -3,7 +3,7 @@
 // crashes until a retry. Free of `electron`, so it can be tested in Node: main.ts passes in
 // `utilityProcess.fork`, `MessageChannelMain`, the clock and the check of our own page.
 
-import type { HealthFailure } from "@self-engine/contracts";
+import type { HealthFailure } from "@self-engine/data-protocol";
 import {
   FAILED_CHANNEL,
   GONE_CHANNEL,
