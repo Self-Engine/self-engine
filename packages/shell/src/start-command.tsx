@@ -1,7 +1,7 @@
 import type { I18n } from "@lingui/core";
 import { msg } from "@lingui/core/macro";
 import { useLingui } from "@lingui/react/macro";
-import type { PortAccess } from "@self-engine/data-client/react";
+import type { DataAccess } from "@self-engine/data-client/react";
 import { notifyError } from "@self-engine/ui";
 import { createContext, type ReactNode, useContext, useMemo, useState } from "react";
 import { fullCommandId, type PersonCommand } from "./commands.ts";
@@ -33,21 +33,21 @@ function createStartOnce(): StartOnce {
 
 interface StartContext {
   readonly startOnce: StartOnce;
-  /** The Port access every Command is given (D261). */
-  readonly data: PortAccess;
+  /** The Port access and notice seam every Command is given (D261). */
+  readonly data: DataAccess;
 }
 
 const StartContext = createContext<StartContext | null>(null);
 
 /**
  * Once per Shell: a Command counts as running however a person started it, and every Command is
- * given the Shell's Port access.
+ * given the Shell's Port access and notice seam.
  */
 export function StartOnceProvider({
   data,
   children,
 }: {
-  readonly data: PortAccess;
+  readonly data: DataAccess;
   readonly children: ReactNode;
 }) {
   const [startOnce] = useState(createStartOnce);

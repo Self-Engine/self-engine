@@ -1,7 +1,7 @@
 import { ROUTING, visibleLocation } from "../shell-routing.tsx";
 import { Badge } from "@mantine/core";
 import { BrandMark } from "@self-engine/icons/brand-mark";
-import { usePortAccess } from "@self-engine/data-client/react";
+import { useDataAccess } from "@self-engine/data-client/react";
 import { useSetting } from "@self-engine/settings/react";
 import { Shell } from "@self-engine/shell";
 import { Outlet, createRootRoute, useRouterState } from "@tanstack/react-router";
@@ -31,8 +31,9 @@ function RootLayout() {
   const navbar = useSetting(settingsStore, SHELL_SETTINGS.navbar);
   const moduleSidebarWidth = useSetting(settingsStore, SHELL_SETTINGS.moduleSidebarWidth);
   const moduleSidebarCollapsed = useSetting(settingsStore, SHELL_SETTINGS.moduleSidebarCollapsed);
-  // The Commands reach the Data Process through the access the page's `DataProvider` was given.
-  const data = usePortAccess();
+  // The Commands reach the Data Process, and show their notices, through what the page's
+  // `DataProvider` was given.
+  const data = useDataAccess();
 
   const shell = (
     <Shell

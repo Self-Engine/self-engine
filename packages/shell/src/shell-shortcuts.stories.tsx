@@ -16,7 +16,7 @@ import {
   onWindows,
   SETTINGS,
   shellMeta,
-  storyPortAccess,
+  storyData,
   storyRouting,
 } from "./shell-story-helpers.tsx";
 import { registeredBindingIds } from "./shortcut-bindings.tsx";
@@ -104,8 +104,8 @@ export const AnOpenShortcutWorksInAModuleWithoutCommands: Story = {
     await bindingsArrived();
     await pressEverywhere();
     await expect(startedOpen).toHaveBeenCalledOnce();
-    // Every Command is given the Shell's Port access, an open one as well (D261).
-    await waitFor(() => expect(givenData).toHaveBeenLastCalledWith(storyPortAccess));
+    // Every Command is given the Shell's Port access and notice seam, an open one as well (D261).
+    await waitFor(() => expect(givenData).toHaveBeenLastCalledWith(storyData));
   },
 };
 

@@ -20,6 +20,20 @@ export interface PortAccess {
   onReconnected(listener: () => void): () => void;
 }
 
+/**
+ * A Port access with no Data Process behind it: every call fails at once, no Table Change and no
+ * reconnect ever come, and no entry is known. The web app uses it while it has no Data Process,
+ * so nothing waits behind the state it shows instead (D263); a test or story uses it where no
+ * call is meant to reach a Port, and Fixed Answers build on it.
+ */
+export const NO_DATA_PROCESS: PortAccess = {
+  call: (module, entry) =>
+    Promise.reject(new Error(`No Data Process answers ${module}.${entry} on this page`)),
+  describeEntry: () => undefined,
+  onTablesChanged: () => () => undefined,
+  onReconnected: () => () => undefined,
+};
+
 /** One procedure of the client, reached by its module and entry name. */
 type Procedure = (input: unknown, options: { signal?: AbortSignal }) => Promise<unknown>;
 

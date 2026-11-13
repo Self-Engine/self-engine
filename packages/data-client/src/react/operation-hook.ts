@@ -3,8 +3,7 @@ import { msg } from "@lingui/core/macro";
 import { ORPCError } from "@orpc/client";
 import { useMutation } from "@tanstack/react-query";
 import { useCallback } from "react";
-import type { PortAccess } from "./port-access.ts";
-import { showNotice, useDataContext } from "./provider.ts";
+import { type DataAccess, useDataContext } from "./provider.ts";
 
 /** Shown when the entry an Operation changes no longer exists, unless the module replaces it. */
 export const NOT_FOUND_NOTICE = msg`This entry no longer exists.`;
@@ -12,10 +11,14 @@ export const NOT_FOUND_NOTICE = msg`This entry no longer exists.`;
 /** Shown when an Operation failed for a reason the module did not declare. */
 export const UNEXPECTED_NOTICE = msg`Something went wrong, and the change was not saved.`;
 
-/** What a module shows for one conflict reason: a translated text at a field of the input. */
+/**
+ * What a module shows for one conflict reason: a translated text at a field of the input. A reason
+ * that no field can show, such as one of undo, states `field: null`: the building block then shows
+ * the text as a notice itself (D264).
+ */
 export interface ConflictText<Field extends string> {
   readonly text: MessageDescriptor;
-  readonly field: Field;
+  readonly field: Field | null;
 }
 
 /** The input fields a conflict may point at. */
@@ -39,7 +42,7 @@ export type OperationHandling<Input, Reason extends string> = ([Reason] extends 
  * What an Operation ended with, as a value; the hook throws for none of them (D251).
  * - `success`: the entry's answer. Queries reload through the Table Change of the commit.
  * - `conflict`: a declared reason with the module's text and field, to show at that field. No
- *   notice.
+ *   notice; for a reason whose field is `null`, the notice with the text was shown instead.
  * - `notFound`: the entry is gone. A notice told the user, unless the module replaced it.
  * - `unexpected`: anything else; a general notice told the user.
  */
@@ -50,7 +53,7 @@ export type OperationResult<Output, Reason extends string, Field extends string>
       : {
           readonly status: "conflict";
           readonly reason: Reason;
-          readonly field: Field;
+          readonly field: Field | null;
           readonly text: MessageDescriptor;
         })
   | { readonly status: "notFound" }
@@ -80,7 +83,7 @@ type AnyResult = OperationResult<unknown, string, string>;
 
 /** Calls the entry and sorts its answer into the four results. */
 async function callOperation(
-  access: PortAccess,
+  access: DataAccess["access"],
   module: string,
   entry: string,
   input: unknown,
@@ -108,18 +111,18 @@ function conflictOf(data: unknown, handling: Handling): AnyResult | undefined {
 }
 
 /**
- * Calls the Operation and announces its "not found" and unexpected results, as both the hook and
- * the function form do; a conflict is left to the caller.
+ * Calls the Operation and announces its "not found" and unexpected results and a conflict without
+ * a field, as both the hook and the function form do; any other conflict is left to the caller.
  */
 async function runOperation(
-  access: PortAccess,
-  notify: (notice: MessageDescriptor) => void,
+  { access, notify }: DataAccess,
   module: string,
   entry: string,
   input: unknown,
   handling: Handling,
 ): Promise<AnyResult> {
   const result = await callOperation(access, module, entry, input, handling);
+  if (result.status === "conflict" && result.field === null) notify(result.text);
   if (result.status === "unexpected") notify(UNEXPECTED_NOTICE);
   if (result.status === "notFound") {
     if (handling.notFound === undefined) notify(NOT_FOUND_NOTICE);
@@ -138,12 +141,12 @@ export function operationHook<Input, Output, Reason extends string>(
   handling: Handling,
 ): OperationHook<Input, Output, Reason> {
   return function useOperationEntry() {
-    const { access, notify } = useDataContext();
+    const data = useDataContext();
     const { mutateAsync, isPending } = useMutation({
       mutationKey: [module, entry],
       // The library passes its own context as a second argument, which the Port's call would
       // take for its options; only the input goes on.
-      mutationFn: (input: Input) => runOperation(access, notify, module, entry, input, handling),
+      mutationFn: (input: Input) => runOperation(data, module, entry, input, handling),
     });
     const run = useCallback(
       (input: Input) =>
@@ -156,11 +159,11 @@ export function operationHook<Input, Output, Reason extends string>(
 
 /**
  * An Operation as a function, for code outside React such as a Command (D261). It takes the Port
- * access its caller was given, the same one the app gives `DataProvider`, and returns and
- * announces what the hook would; its notices go to the feedback system.
+ * access and notice seam its caller was given, the ones the app gives `DataProvider`
+ * (`useDataAccess`), and returns and announces what the hook would, through that seam.
  */
 export type OperationFunction<Input, Output, Reason extends string> = (
-  access: PortAccess,
+  data: DataAccess,
   input: Input,
 ) => Promise<OperationResult<Output, Reason, FieldOf<Input>>>;
 
@@ -170,8 +173,8 @@ export function operationFunction<Input, Output, Reason extends string>(
   entry: string,
   handling: Handling,
 ): OperationFunction<Input, Output, Reason> {
-  return (access, input) =>
-    runOperation(access, showNotice, module, entry, input, handling) as Promise<
+  return (data, input) =>
+    runOperation(data, module, entry, input, handling) as Promise<
       OperationResult<Output, Reason, FieldOf<Input>>
     >;
 }

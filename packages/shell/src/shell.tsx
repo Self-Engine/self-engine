@@ -1,4 +1,4 @@
-import type { PortAccess } from "@self-engine/data-client/react";
+import type { DataAccess } from "@self-engine/data-client/react";
 import {
   SHELL_START_AFTER_WINDOW_BUTTONS_PX,
   SHELL_TOP_STRIP_HEIGHT,
@@ -864,8 +864,11 @@ export interface ShellProps extends Omit<
   readonly settings: ShellContribution;
   readonly activeModule: ShellContribution | undefined;
   readonly activeView: ShellView | undefined;
-  /** The Port access every Command is given (D261): the app's `usePortAccess()`, or a stand-in. */
-  readonly data: PortAccess;
+  /**
+   * The Port access and notice seam every Command is given (D261): the app's `useDataAccess()`,
+   * or a stand-in.
+   */
+  readonly data: DataAccess;
 }
 
 export function Shell({

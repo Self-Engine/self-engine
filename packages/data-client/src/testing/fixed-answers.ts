@@ -1,7 +1,7 @@
 import { ORPCError } from "@orpc/client";
 import type { AnyContractProcedure, AnySchema, InferSchemaInput } from "@orpc/contract";
 import type { ConflictReasonOf, EntryName, ModuleContract } from "../react/contract-types.ts";
-import type { PortAccess } from "../react/port-access.ts";
+import { NO_DATA_PROCESS, type PortAccess } from "../react/port-access.ts";
 
 /**
  * What one Port entry answers in a story or component test (D255):
@@ -80,6 +80,8 @@ export function fixedAnswers<Of extends Contracts>(
     }
   }
   return {
+    // Without the Query-to-tables list nothing reloads, and no Query hook is reported (D255).
+    ...NO_DATA_PROCESS,
     call(module, entry) {
       const answer = checked.get(`${module}.${entry}`);
       if (answer !== undefined) return answer();
@@ -87,10 +89,6 @@ export function fixedAnswers<Of extends Contracts>(
       report(problem);
       return Promise.reject(new Error(problem));
     },
-    // Without the Query-to-tables list nothing reloads, and no Query hook is reported (D255).
-    describeEntry: () => undefined,
-    onTablesChanged: () => () => undefined,
-    onReconnected: () => () => undefined,
   };
 }
 

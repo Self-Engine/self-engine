@@ -23,8 +23,9 @@ import { createAppRouter } from "./app-router.ts";
 import { ROUTING } from "./shell-routing.tsx";
 import { loadStoryApp } from "./story-app.tsx";
 
-/** These Views call no Port entry, so any call fails the story. */
+/** These Views call no Port entry and show no notice, so any call fails the story. */
 const noAnswers = fixedAnswers({}, {});
+const noData = { access: noAnswers, notify: fn() };
 
 const rendered = fn();
 const SelectedClient = memo(function SelectedClient() {
@@ -57,7 +58,7 @@ function SearchStory({ children = <SearchControls /> }: { readonly children?: Re
           settings={settings}
           activeModule={undefined}
           activeView={undefined}
-          data={noAnswers}
+          data={noData}
           routing={ROUTING}
         >
           {children}

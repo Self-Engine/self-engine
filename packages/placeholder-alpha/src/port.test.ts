@@ -6,7 +6,7 @@
 
 import type { MessageDescriptor } from "@lingui/core";
 import { createDataConnection, type DataConnection } from "@self-engine/data-client";
-import { DataProvider, type PortAccess, portAccessOf } from "@self-engine/data-client/react";
+import { type DataAccess, DataProvider, portAccessOf } from "@self-engine/data-client/react";
 import { startTestDataProcess } from "@self-engine/data-process/testing";
 import { createElement, type ReactNode } from "react";
 import { createRoot } from "react-dom/client";
@@ -15,6 +15,7 @@ import { placeholderAlpha } from "./data/index.ts";
 import {
   ALL_ENTRIES,
   createEntry,
+  createSampleEntry,
   useDeleteEntry,
   useEntries,
   useRenameEntry,
@@ -63,7 +64,7 @@ async function renderOverPort() {
   cleanups.push(() => connection.disconnect());
   connection.connect(process.openPort());
   await untilReady(connection);
-  const access: PortAccess = portAccessOf(connection);
+  const access = portAccessOf(connection);
 
   let hooks: Hooks | undefined;
   const waiting = new Set<() => void>();
@@ -73,17 +74,13 @@ async function renderOverPort() {
     return null;
   }
   const notices: MessageDescriptor[] = [];
+  // What a Command is given: the same access and notice seam as the provider (D261).
+  const data: DataAccess = { access, notify: (notice) => notices.push(notice) };
   const root = createRoot(document.createElement("div"));
   cleanups.push(() => root.unmount());
-  root.render(
-    createElement(
-      DataProvider,
-      { access, notify: (notice) => notices.push(notice) },
-      createElement(Probe),
-    ),
-  );
+  root.render(createElement(DataProvider, { access, notify: data.notify }, createElement(Probe)));
   return {
-    access,
+    data,
     notices,
     until(matches: (hooks: Hooks) => boolean): Promise<Hooks> {
       return new Promise((resolve) => {
@@ -108,14 +105,14 @@ test("the list starts empty and follows every Operation without a refetch by han
   expect(names(empty)).toEqual([]);
 
   // The sample-entry Command's way in: the function form over the access it is given (D261).
-  const studio = await createEntry(rendered.access, { name: "Studio work" });
+  const studio = await createEntry(rendered.data, { name: "Studio work" });
   if (studio.status !== "success") throw new Error("Studio work was not created");
   await rendered.until((hooks) => names(hooks)?.length === 1);
-  await createEntry(rendered.access, { name: "Garden work" });
+  await createEntry(rendered.data, { name: "Garden work" });
   const both = await rendered.until((hooks) => names(hooks)?.length === 2);
   expect(names(both)).toEqual(["Studio work", "Garden work"]);
 
-  expect(await createEntry(rendered.access, { name: "Garden work" })).toMatchObject({
+  expect(await createEntry(rendered.data, { name: "Garden work" })).toMatchObject({
     status: "conflict",
     field: "name",
   });
@@ -141,12 +138,29 @@ test("the list starts empty and follows every Operation without a refetch by han
 test("undo meets a name taken meanwhile as a conflict with the module's text", async () => {
   const rendered = await renderOverPort();
   const ready = await rendered.until((hooks) => hooks.list.status === "content");
-  const first = await createEntry(rendered.access, { name: "A" });
+  const first = await createEntry(rendered.data, { name: "A" });
   if (first.status !== "success") throw new Error("A was not created");
   await ready.remove.run({ id: first.data.id });
-  await createEntry(rendered.access, { name: "A" });
+  await createEntry(rendered.data, { name: "A" });
   const again = await rendered.until((hooks) => names(hooks)?.length === 1);
 
   const restored = await again.restore.run({ id: first.data.id });
-  expect(restored).toMatchObject({ status: "conflict", reason: "name_taken", field: "id" });
+  expect(restored).toMatchObject({ status: "conflict", reason: "name_taken", field: null });
+  // No field can show it, so the building block shows the module's text as a notice (D264).
+  expect(rendered.notices.map((notice) => notice.message)).toEqual([
+    "The entry could not come back: another entry has its name now.",
+  ]);
+});
+
+test("the sample-entry Command meets a taken name with a notice through the seam it is given", async () => {
+  const rendered = await renderOverPort();
+  await createSampleEntry(rendered.data, { name: "Sample entry" });
+
+  expect(await createSampleEntry(rendered.data, { name: "Sample entry" })).toMatchObject({
+    status: "conflict",
+    field: null,
+  });
+  expect(rendered.notices.map((notice) => notice.message)).toEqual([
+    "An entry with this name already exists.",
+  ]);
 });

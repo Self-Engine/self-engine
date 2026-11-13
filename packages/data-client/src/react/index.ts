@@ -8,7 +8,12 @@ export type {
   OperationResult,
   OperationState,
 } from "./operation-hook.ts";
-export { type PortAccess, portAccessOf } from "./port-access.ts";
+export { NO_DATA_PROCESS, type PortAccess, portAccessOf } from "./port-access.ts";
 export { type PortHooks, portHooks } from "./port-hooks.ts";
-export { DataProvider, type DataProviderProps, usePortAccess } from "./provider.ts";
+export {
+  type DataAccess,
+  DataProvider,
+  type DataProviderProps,
+  useDataAccess,
+} from "./provider.ts";
 export type { QueryHook, QueryState } from "./query-hook.ts";

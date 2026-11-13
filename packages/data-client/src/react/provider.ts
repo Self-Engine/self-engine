@@ -18,12 +18,21 @@ import { noticeFailedReload } from "./reload-notice.ts";
 /** Answers no View shows are dropped after this long (D250). */
 export const UNUSED_ANSWER_LIFETIME_MS = 5 * 60 * 1000;
 
-interface DataContext {
+/**
+ * What code outside React needs to call an Operation, such as a Command (D261): the Port access
+ * and the one seam every notice of the building block goes through, both the ones the nearest
+ * `DataProvider` was given. A story or test that substitutes them collects the notices too.
+ */
+export interface DataAccess {
+  /** How calls reach the Data Process. */
   readonly access: PortAccess;
-  /** Reports, once per entry, a Query hook whose entry the Data Process calls an Operation. */
-  readonly checkQuery: (module: string, entry: string) => void;
   /** Shows a notice of the building block, such as an Operation's unexpected error (D251). */
   readonly notify: (notice: MessageDescriptor) => void;
+}
+
+interface DataContext extends DataAccess {
+  /** Reports, once per entry, a Query hook whose entry the Data Process calls an Operation. */
+  readonly checkQuery: (module: string, entry: string) => void;
 }
 
 const Context = createContext<DataContext | undefined>(undefined);
@@ -36,11 +45,12 @@ export function useDataContext(): DataContext {
 }
 
 /**
- * The Port access of the nearest `DataProvider`, for what calls an Operation outside React, such
- * as the Shell's Commands (D261): the app and a story hand it on from here.
+ * The Port access and notice seam of the nearest `DataProvider`, for what calls an Operation
+ * outside React, such as the Shell's Commands (D261): the app and a story hand it on from here.
+ * It stays the same object while the provider's access does.
  */
-export function usePortAccess(): PortAccess {
-  return useDataContext().access;
+export function useDataAccess(): DataAccess {
+  return useDataContext();
 }
 
 /**
