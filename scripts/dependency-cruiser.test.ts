@@ -1015,4 +1015,19 @@ describe("data-side module composition", () => {
       ruleNames(await cruise([fromCode, extraPackage("packages/data-process")], options)),
     ).toEqual(["package-direction:data-client", "renderer-stays-off-the-database"]);
   });
+  it.each(["src/react/provider.test.tsx", "src/react/provider.stories.tsx"])(
+    "lets the data client's %s import the test Data Process, as its other tests may",
+    async (file) => {
+      const client = declaring(
+        extraPackage("packages/data-client", { [file]: 'import "@self-engine/data-process";\n' }),
+        "@self-engine/data-process",
+      );
+      expect(
+        await cruise([client, extraPackage("packages/data-process")], {
+          allowedImports: ALLOWED_IMPORTS,
+          testOnlyImports: TEST_ONLY_IMPORTS,
+        }),
+      ).toEqual([]);
+    },
+  );
 });

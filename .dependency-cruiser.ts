@@ -68,13 +68,17 @@ const ICON_LIBRARIES = [
 /** The npm packages the app contract may import: it stays pure (D187). */
 const CONTRACT_LIBRARIES = ["zod", "@orpc/contract"];
 
+/** Test and story files may also import what `devDependencies` declares. */
+const DEV_ONLY_FILE = String.raw`\.(?:test|stories)\.[cm]?[jt]sx?$`;
+
 /**
  * Code that runs in the renderer: the web app, the Component Catalog, the data client and the
- * desktop bridge. The data client's tests are exempt: they start the real data process core.
+ * desktop bridge. The data client's test and story files are exempt: they start the real data
+ * process core.
  */
 const RENDERER = {
   path: "^(?:apps/(?:web|component-catalog)|packages/(?:data-client|desktop-bridge))/",
-  pathNot: String.raw`^packages/data-client/.*\.test\.ts$`,
+  pathNot: `^packages/data-client/.*${DEV_ONLY_FILE}`,
 };
 
 /**
@@ -84,9 +88,6 @@ const RENDERER = {
  * `electron` itself, as `devDependencies`.
  */
 const BUNDLING_APPS = ["apps/desktop"];
-
-/** Test and story files may also import what `devDependencies` declares. */
-const DEV_ONLY_FILE = String.raw`\.(?:test|stories)\.[cm]?[jt]sx?$`;
 
 function alternatives(names: readonly string[]): string {
   return names.map((name) => name.replaceAll(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|");
