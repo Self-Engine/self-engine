@@ -15,7 +15,7 @@ import { expect, userEvent, waitFor, within } from "storybook/test";
 import { createAppRouter } from "./app-router.ts";
 import { AppLanguage } from "./app-language.tsx";
 import { settingsStore } from "./settings-store.ts";
-import { openPalette, paletteGone } from "./story-app.tsx";
+import { loadStoryApp, openPalette, paletteGone } from "./story-app.tsx";
 
 const i18n = createI18n();
 /** The rows of `placeholder-alpha`, which some stories show. */
@@ -73,7 +73,7 @@ const meta = {
   parameters: { layout: "fullscreen" },
   loaders: [
     async () => {
-      await settingsStore.load();
+      await loadStoryApp();
       await activateLanguage(i18n, "en");
     },
   ],

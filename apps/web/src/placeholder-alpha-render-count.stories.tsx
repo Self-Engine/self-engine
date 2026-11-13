@@ -13,8 +13,7 @@ import {
 } from "@self-engine/ui/story-render-counts";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { expect } from "storybook/test";
-import { settingsStore } from "./settings-store.ts";
-import { AppAt } from "./story-app.tsx";
+import { AppAt, loadStoryApp } from "./story-app.tsx";
 
 const ROWS = 1000;
 const RENAMED = 500;
@@ -57,7 +56,12 @@ const meta = {
   component: AppAt,
   parameters: { layout: "fullscreen" },
   // A new Port for every render, so that a second run starts before the rename again.
-  loaders: [async () => ({ port: aRenameOfOneEntry(), settings: await settingsStore.load() })],
+  loaders: [
+    async () => {
+      await loadStoryApp();
+      return { port: aRenameOfOneEntry() };
+    },
+  ],
   render: (args, { loaded }) => <AppAt {...args} access={loaded["port"].access} />,
   args: { address: "/placeholder-alpha/overview", access: placeholderAlphaAnswers() },
 } satisfies Meta<typeof AppAt>;

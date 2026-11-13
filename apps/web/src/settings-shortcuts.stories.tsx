@@ -1,7 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { expect, userEvent, within } from "storybook/test";
-import { settingsStore } from "./settings-store.ts";
-import { AppAt, openPalette, paletteGone, storyRouter } from "./story-app.tsx";
+import { loadStoryApp, AppAt, openPalette, paletteGone, storyRouter } from "./story-app.tsx";
 import { placeholderAlphaAnswers } from "@self-engine/placeholder-alpha/testing";
 
 const SHORTCUTS = "/settings/shortcuts";
@@ -11,7 +10,7 @@ const meta = {
   title: "App/Settings area/Shortcuts",
   component: AppAt,
   parameters: { layout: "fullscreen" },
-  loaders: [() => settingsStore.load()],
+  loaders: [loadStoryApp],
   args: { address: SHORTCUTS, access: placeholderAlphaAnswers() },
 } satisfies Meta<typeof AppAt>;
 export default meta;

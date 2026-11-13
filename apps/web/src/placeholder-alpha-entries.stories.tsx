@@ -11,8 +11,8 @@ import { LOADER_DELAY_MS } from "@self-engine/ui";
 import { holdTimers } from "@self-engine/ui/story-timers";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { expect, screen, userEvent, waitFor, within } from "storybook/test";
-import { settingsStore } from "./settings-store.ts";
 import {
+  loadStoryApp,
   AppAt,
   editInAddress,
   modKeyIsLeftToTheBrowser,
@@ -29,7 +29,7 @@ const meta = {
   title: "App/Placeholder Alpha entries",
   component: AppAt,
   parameters: { layout: "fullscreen" },
-  loaders: [() => settingsStore.load()],
+  loaders: [loadStoryApp],
   args: { address: OVERVIEW, access: placeholderAlphaAnswers() },
 } satisfies Meta<typeof AppAt>;
 export default meta;

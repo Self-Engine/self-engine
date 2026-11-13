@@ -25,6 +25,8 @@ import {
   type ViewSearch,
 } from "./index.ts";
 
+import { loadStoryShell } from "./story-interactions.ts";
+
 export type Canvas = ReturnType<typeof within>;
 
 /**
@@ -183,6 +185,7 @@ export const storyPortAccess: PortAccess = {
 /** What every Story file of the Shell spreads into its `meta`, next to its own `title`. */
 export const shellMeta = {
   component: Shell,
+  loaders: [loadStoryShell],
   parameters: { layout: "fullscreen", viewport: { options: VIEWPORTS } },
   args: {
     activeModule: ENTRIES[1],

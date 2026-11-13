@@ -1,8 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { expect, spyOn, userEvent, within } from "storybook/test";
 import { version } from "../package.json";
-import { settingsStore } from "./settings-store.ts";
-import { AppAt, openPalette, paletteGone, storyRouter } from "./story-app.tsx";
+import { loadStoryApp, AppAt, openPalette, paletteGone, storyRouter } from "./story-app.tsx";
 import { placeholderAlphaAnswers } from "@self-engine/placeholder-alpha/testing";
 
 const ABOUT = "/settings/about";
@@ -14,7 +13,7 @@ const meta = {
   title: "App/Settings area/About",
   component: AppAt,
   parameters: { layout: "fullscreen" },
-  loaders: [() => settingsStore.load()],
+  loaders: [loadStoryApp],
   args: { address: ABOUT, access: placeholderAlphaAnswers() },
 } satisfies Meta<typeof AppAt>;
 export default meta;
