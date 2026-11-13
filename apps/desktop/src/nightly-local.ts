@@ -9,7 +9,6 @@
 // takes effect on the next run.
 
 import type { Clock } from "@self-engine/time";
-import { systemClock } from "@self-engine/time/system-clock";
 import { spawnSync } from "node:child_process";
 import { copyFileSync, mkdirSync, renameSync, rmSync } from "node:fs";
 import { homedir } from "node:os";
@@ -26,6 +25,7 @@ import {
   runInherited,
   withoutSigningInputs,
 } from "./package-channel.ts";
+import { systemSources } from "./system-sources.ts";
 
 const NIGHTLY = channelIdentity("nightly");
 
@@ -147,7 +147,7 @@ if (import.meta.main) {
       desktopDir: DESKTOP_DIR,
       homeDir: homedir(),
       env: process.env,
-      now: systemClock,
+      now: systemSources().clock,
       query: (command, args, cwd) => {
         const { status, stdout, stderr } = spawnSync(command, args, { cwd, encoding: "utf8" });
         return { status, stdout, stderr };

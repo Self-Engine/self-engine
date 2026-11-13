@@ -22,10 +22,11 @@ and still allowed `new Date(ms)`, and `.getDate()` on that gives the day in the 
    the milliseconds of a UUIDv7 from the clock's Instant through `epochMsOf`.
 2. **The system clock has an entry of its own, `@self-engine/time/system-clock`, and only code in
    `apps/` loads it.** The dependency-cruiser rule `system-clock-only-in-apps` rejects an import
-   of that entry from anywhere else; the tests of `time` reach it by relative path. Today the
-   desktop app assembles it twice: at the start of the _Data Process_, which hands it to the data
-   files, the _Backups_ and the _Storage_ context, and in `pnpm nightly:local`, which stamps
-   the version of a Nightly built on the owner's machine.
+   of that entry from anywhere else; the tests of `time` reach it by relative path. The desktop
+   app assembles it in one place, `systemSources`, together with the random source of ids. The
+   _Data Process_ takes both from there and hands them to the data files, the _Backups_ and the
+   _Storage_ context; `pnpm nightly:local` takes the clock to stamp the version of a Nightly
+   built on the owner's machine.
 3. **A test uses `fixedClock` and writes Instants as text with `requireInstant`**, both from
    `@self-engine/time/testing`. `createTestSources` in `db` moves its clock by whole milliseconds
    with `advanceInstantByMilliseconds`, never by days.
