@@ -1,7 +1,7 @@
 ---
 status: accepted
 date: 2026-11-12
-decisions: D219, D220, D221, D222, D223, D224, D225, D226, D227, D228, D229, D230
+decisions: D219, D220, D221, D222, D223, D224, D225, D226, D227, D228, D229, D230, D286
 ---
 
 # Row maps are the single source of storage types
@@ -25,7 +25,9 @@ without runtime parsing.
   are not found. Deleted data leaves a port only through an explicit operation.
 - Every index on a synchronized table starts with `space_id`. Unique indexes are partial on
   `WHERE deleted_at IS NULL`, never inline `UNIQUE`, so deleted names can be reused. Local Tables
-  and the primary key's automatic index are exempt. `checkConventions` enforces these rules.
+  and the primary key's automatic index are exempt. `checkConventions` enforces these rules,
+  and on every synchronized table the foreign key from `space_id` to `spaces(id)`
+  ([ADR 0028](0028-every-row-belongs-to-a-space-the-context-supplies-and-the-database-knows.md)).
 - `Instant` comes from `time`: canonical UTC text with three fractional digits and years
   1000–9999. Each entity has its own UUIDv7 id brand, shared by row maps, foreign keys and
   contracts through `idSchema`. A timestamp is the `Instant` the context's clock returns;

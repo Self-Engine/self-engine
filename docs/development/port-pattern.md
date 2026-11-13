@@ -44,16 +44,28 @@ Apply [ADR 0019](../adr/0019-row-maps-are-the-single-source-of-storage-types.md)
 
 - A module lists only its own migrations, including when it consumes another module.
 - A migration reads and writes only its own module’s tables. A foreign key may reference another
-  module; it belongs in a link table.
+  module; it belongs in a link table. The key to `spaces` below is not such a link: `spaces` is
+  no module, and every synchronized table has that key
+  ([ADR 0028](../adr/0028-every-row-belongs-to-a-space-the-context-supplies-and-the-database-knows.md)).
 - Add a new forward migration to change a schema. A merged migration is immutable.
-- Synchronized tables carry the convention columns. Their indexes begin with `space_id`;
-  unique indexes are partial on `WHERE deleted_at IS NULL`. The primary key’s automatic
-  index is exempt, as are Local Tables.
+- Synchronized tables carry the convention columns `id`, `created_at`, `updated_at`,
+  `deleted_at` and `space_id`. Copy this line for `space_id` exactly:
+
+  ```sql
+  space_id TEXT NOT NULL REFERENCES spaces(id) DEFERRABLE INITIALLY DEFERRED
+  ```
+
+  No `ON UPDATE` or `ON DELETE` action, and no key over several columns in its place. In the
+  row map, `space_id` uses `spaceIdSchema` from `@self-engine/storage`.
+
+- Indexes on synchronized tables begin with `space_id`; unique indexes are partial on
+  `WHERE deleted_at IS NULL`. The primary key’s automatic index is exempt, as are Local Tables.
 - Local Tables have the `local_` prefix and their own shape. Shared synchronized-row helpers
   do not accept them. Nothing synchronized may depend on a Local Table.
 
 Done when `checkAgreement(migrations, rowMap)` and `checkConventions(database)` return no
-violations, as in the notes tests.
+violations, as in the notes tests. `checkConventions` names a synchronized table whose
+`space_id` lacks the key to `spaces(id)`, refers elsewhere, carries an action or is not deferred.
 
 ## 3. Implement the data entry
 
@@ -76,8 +88,10 @@ contract key and module name accompany the existing transaction. Queries receive
 only their owned tables. These functions neither open transactions nor announce tables.
 
 Use `context.now`, the frozen `context.clock`, and `context.newId(entityIdSchema)` rather than
-fetching time or ids yourself. Time is sampled once per call’s transaction. The Space is the
-fixed personal Space until #108.
+fetching time or ids yourself. Time is sampled once per call’s transaction. `context.spaceId`
+is the Space of the call: the Personal Space that the Data Process made sure of at its start and
+handed to every module's frame. No contract input carries a Space, and a module never creates
+or looks up one.
 
 For synchronized rows, use `sharedEntry(tx, context).live(table)` for a Space-filtered,
 non-deleted select, and `.lookup(table, id)` for one live row or `NOT_FOUND`. Use
@@ -190,8 +204,14 @@ Pass modules the consumer builds on as `dependencies`, for example `[notes]` for
 Use `createTestContext` (built on `createTestSources`) and
 `createTestDatabase(module, dependencies?)` for additional tests; the caller closes that database.
 
-The kit uses fresh in-memory SQLite and the dependencies’ migrations followed by the
-module’s own migrations. For every entry it replays the example with seeded live owned rows
+A module's tests write no code for Spaces. `createTestDatabase` runs the migration of `spaces`
+and creates the Space of `createTestContext`, so rows the seed and the examples write refer to a
+Space the database knows. The kit creates the further Space rows it seeds into or moves rows
+to. Inside `storage`, a test that writes into another Space first calls `createSpaceRows` from
+`@self-engine/spaces/testing`, which also holds the fixed Space ids.
+
+The kit uses fresh in-memory SQLite with the migration of `spaces`, the dependencies’
+migrations and the module’s own migrations. For every entry it replays the example with seeded live owned rows
 soft-deleted, and with seeded owned rows moved to another Space. Each must behave as if those
 rows were absent: the same output or the same not-found error. Rows explicitly seeded as
 deleted remain available to restore examples in the deletion comparison. Operations also run
@@ -231,7 +251,8 @@ Done when the kit returns no violations and business tests cover behavior beyond
 Add the data entry under its contract namespace to the desktop app's module list,
 [`apps/desktop/src/data-modules.ts`](../../apps/desktop/src/data-modules.ts), which the app
 passes to the Data Process; the core knows no module, so a module's tests may start it without a
-cycle between packages. That single list builds both migrations and the router; module namespaces
+cycle between packages. That single list builds both migrations and the router; the Data Process
+adds the migration of `spaces` itself, so `spaces` is never on the list. Module namespaces
 must not be `health`, `tablesChanged` or `backups`, which are reserved procedures of
 `@self-engine/data-protocol`; compose the matching module contract in the app-wide contracts
 package. The list is typed against the app contract, and a test compares the mounted namespace
