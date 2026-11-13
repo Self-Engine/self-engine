@@ -22,19 +22,18 @@ Every grilling opens with the sort: before the first question, show the owner ev
 - **With the owner:** a stored data format, an interface between packages, a pattern other modules will copy, a recorded decision you would change (each is a [working assumption](../../AGENTS.md#decisions)), and anything the correctness of the domain rests on, such as time or money.
 - **Later, with a proposal:** every other question, each with the answer you would choose.
 
-The owner moves questions between the lists. Then grill the first list in full depth. The second list goes into the spec: a package grilling sorts it again, and a builder may choose differently from a proposal and says so in the pull request.
+The owner moves questions between the lists. Then grill the first list in full depth. The second list goes into the spec: a package grilling sorts it again, and a builder may choose differently from a proposal and says so in the package's pull request.
 
 ## Who may build
 
-`ready-for-agent` means an agent may build the issue now. A package gets it without a grilling only if all three hold:
+`ready-for-agent` means an agent may build the issue now. A package gets it without a grilling only if both hold:
 
 - It has checkable acceptance criteria.
-- It sets no pattern other modules follow.
 - It leaves no question open that belongs [with the owner](#sorting-the-questions).
 
 Every other package gets `needs-grilling`. Slices cut from a spec are always `ready-for-agent`.
 
-If you find a design question while building that belongs [with the owner](#sorting-the-questions), stop, write the question as a comment on the issue, and swap the label to `needs-grilling`. Decide every other question yourself and name it in the pull request.
+If you find a design question while building that belongs [with the owner](#sorting-the-questions), stop, write the question as a comment on the issue, and swap the label to `needs-grilling`. Decide every other question yourself and name it in the package's pull request.
 
 ## The overview
 
