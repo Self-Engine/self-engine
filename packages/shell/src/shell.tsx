@@ -989,9 +989,11 @@ function ModuleEditDrawer({ module }: { readonly module: ShellContribution | und
       const { edit: _edit, ...rest } = search;
       return rest;
     });
+  // Bound to the opening drawn now: a save that ends after the person left this entry closes
+  // nothing, so it cannot close another entry past its unsaved-changes guard.
+  const { opening } = exits;
   const done = () => {
-    exits.letNextExitPass();
-    close();
+    if (exits.letNextExitPass(opening)) close();
   };
   return (
     <Drawer
