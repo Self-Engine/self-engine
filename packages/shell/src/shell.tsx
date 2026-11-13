@@ -176,6 +176,13 @@ const EDIT_DRAWER_STYLES = {
 const FLOATING_EDIT_DRAWER = { size: 460, offset: GAP, radius: "lg" } as const;
 const PHONE_EDIT_DRAWER = { size: "100%", offset: 0, radius: 0 } as const;
 
+/**
+ * Notices start top center one gap below the content header, at every step and whether an Edit
+ * Drawer is open or not, so a notice never jumps (#230, D267). The drawer's title and close button
+ * end above that line, its first field starts below it.
+ */
+const NOTICE_CLEARANCE = `:root{${NOTICE_CLEARANCE_VARIABLE}:${rem(GAP + SHELL_TOP_STRIP_HEIGHT + GAP)}}`;
+
 const NAVIGATION_DRAWER_STYLES = {
   ...DRAWER_STYLES,
   content: { ...DRAWER_BELOW_STRIP_SCROLLS_STYLE, backgroundColor: roleColor("navSurface") },
@@ -693,7 +700,7 @@ function ShellFrame({
 
   return (
     <ShellRoutingContext value={routing}>
-      {isPhone && <style>{`:root{${NOTICE_CLEARANCE_VARIABLE}:${rem(BOTTOM_BAR_HEIGHT)}}`}</style>}
+      <style>{NOTICE_CLEARANCE}</style>
       <AppShell
         data-layout-step={step}
         {...(isPhone && { footer: { height: BOTTOM_BAR_HEIGHT } })}

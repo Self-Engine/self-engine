@@ -9,12 +9,21 @@ import type { CSSProperties, ReactNode } from "react";
 
 const NOTICE_MS = 8000;
 
-/** The height of a bar fixed to the bottom of the window. Whoever draws such a bar sets it. */
+/**
+ * Where the notices start, from the top of the window: below what sits there and must stay
+ * clickable. Whoever draws it sets it; without it, Mantine's own distance applies.
+ */
 export const NOTICE_CLEARANCE_VARIABLE = "--self-engine-notice-clearance";
 
-/** Only the bottom-right container is in use, and the margin lifts it. */
-const CLEAR_OF_THE_BOTTOM_BAR: CSSProperties = {
-  marginBottom: `var(${NOTICE_CLEARANCE_VARIABLE}, 0rem)`,
+const MANTINE_TOP = "var(--mantine-spacing-md)";
+
+/**
+ * Only the top-center container is in use. Mantine sets its `top`, so the margin adds what is
+ * missing to reach the clearance. A margin and not `top`: the style reaches the bottom containers
+ * too, and a `top` would stretch those over the window.
+ */
+const CLEAR_OF_THE_TOP: CSSProperties = {
+  marginTop: `calc(var(${NOTICE_CLEARANCE_VARIABLE}, ${MANTINE_TOP}) - ${MANTINE_TOP})`,
 };
 
 /** Below the theme and above the routes, once per app: what it shows outlives a navigation. */
@@ -31,8 +40,12 @@ export function FeedbackHost({ children }: { readonly children: ReactNode }) {
       <MantineThemeProvider inherit theme={translatedNoticeClose}>
         <Notifications
           autoClose={NOTICE_MS}
-          position="bottom-right"
-          style={CLEAR_OF_THE_BOTTOM_BAR}
+          // Only the latest notice shows in full; the others fan out while the pointer is on them.
+          layout="stacked"
+          position="top-center"
+          style={CLEAR_OF_THE_TOP}
+          // A line fills up until the notice closes, so the time left to undo shows.
+          withAutoCloseProgress
         />
       </MantineThemeProvider>
       {children}

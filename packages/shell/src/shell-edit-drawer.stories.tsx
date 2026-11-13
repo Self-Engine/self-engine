@@ -1,7 +1,9 @@
+import { Button, Group, Stack, TextInput } from "@mantine/core";
 import { notifyUndoable } from "@self-engine/ui";
+import { clearNotices } from "@self-engine/ui/story-notices";
 import type { Meta } from "@storybook/react-vite";
 import { useState } from "react";
-import { expect, screen, userEvent, waitFor, within } from "storybook/test";
+import { expect, fn, screen, userEvent, waitFor, within } from "storybook/test";
 import {
   type EditDrawerProps,
   Shell,
@@ -17,7 +19,7 @@ import {
   type Story,
   shellMeta,
   storyRouting,
-  type VIEWPORTS,
+  VIEWPORTS,
 } from "./shell-story-helpers.tsx";
 
 const meta = {
@@ -95,28 +97,6 @@ export const MovingToAModuleWithoutADrawerStillPlaysTheExit: Story = {
     await nextFrame();
     await expect(dialog.isConnected).toBe(true);
     await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
-  },
-};
-
-const noticeRouting = storyRouting();
-
-export const ANoticeSitsAboveTheBottomBarAndTheDrawer: Story = {
-  ...atViewport("phone"),
-  args: { activeModule: MODULE_WITH_DRAWER, children: <OpenEditor />, routing: noticeRouting },
-  play: async ({ canvas }) => {
-    const bottomBar = screen.getByRole("contentinfo");
-    await openDialog(canvas);
-    notifyUndoable({ message: "Entry deleted", undo: () => undefined });
-    const notice = (await screen.findByText("Entry deleted")).closest("[role=alert]")!;
-    await waitFor(async () => {
-      const { bottom, left, top, width } = notice.getBoundingClientRect();
-      await expect(bottom).toBeLessThanOrEqual(bottomBar.getBoundingClientRect().top);
-      await expect(notice.contains(document.elementFromPoint(left + width / 2, top + 4))).toBe(
-        true,
-      );
-    });
-    await userEvent.click(within(notice as HTMLElement).getByRole("button", { name: "Undo" }));
-    await waitFor(() => expect(screen.queryByText("Entry deleted")).toBeNull());
   },
 };
 
@@ -242,3 +222,157 @@ export const TallContentScrollsBelowTheTitle: Story = {
     await expect(heading.getBoundingClientRect().top).toBe(top);
   },
 };
+
+/** The shape of a module's drawer: a field on top, its actions pinned to the bottom. */
+function EntryWithActions() {
+  return (
+    <Stack flex={1}>
+      <TextInput label="Name" />
+      <Group justify="flex-end" mt="auto">
+        <Button me="auto" variant="subtle">
+          Delete
+        </Button>
+        <Button variant="default">Cancel</Button>
+        <Button>Save</Button>
+      </Group>
+    </Stack>
+  );
+}
+
+const MODULE_WITH_ACTIONS: ShellContribution = {
+  ...ENTRIES[1]!,
+  editDrawer: async () => ({ default: EntryWithActions }),
+};
+
+/** A click aimed at the middle of the control reaches the control and nothing laid over it. */
+const expectClickable = async (control: HTMLElement, name: string) => {
+  const { left, top, width, height } = control.getBoundingClientRect();
+  const hit = document.elementFromPoint(left + width / 2, top + height / 2);
+  await expect(control.contains(hit), `${name} is covered`).toBe(true);
+};
+
+const noticeOf = async (message: string) =>
+  (await screen.findByText(message)).closest<HTMLElement>("[role=alert]")!;
+
+/** Until the notice has finished sliding in and lies on top where it rests. */
+const settled = async (notice: HTMLElement) => {
+  await waitFor(async () => {
+    await expect(getComputedStyle(notice).opacity).toBe("1");
+    const { left, top, width, height } = notice.getBoundingClientRect();
+    await expect(
+      notice.contains(document.elementFromPoint(left + width / 2, top + height / 2)),
+    ).toBe(true);
+  });
+};
+
+const overlaps = (a: DOMRect, b: DOMRect) =>
+  a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom;
+
+const expectApart = async (field: HTMLElement[], notices: HTMLElement[]) => {
+  for (const notice of notices) {
+    for (const part of field) {
+      await expect(
+        overlaps(notice.getBoundingClientRect(), part.getBoundingClientRect()),
+        "A notice lies over the field",
+      ).toBe(false);
+    }
+  }
+};
+
+interface DrawerUnderNotices {
+  readonly dialog: ReturnType<typeof within>;
+  readonly latest: HTMLElement;
+  readonly earlier: HTMLElement;
+}
+
+/** Every control of the drawer takes its click with two notices shown; `andThen` checks more. */
+const noticesLeaveTheDrawerClickable = (
+  window: Partial<Story>,
+  andThen?: (shown: DrawerUnderNotices) => Promise<void>,
+): Story => ({
+  ...window,
+  beforeEach: clearNotices,
+  args: { activeModule: MODULE_WITH_ACTIONS, routing: storyRouting({ edit: "entry" }) },
+  play: async () => {
+    const dialog = within(await screen.findByRole("dialog", { name: "Time" }));
+    const save = await dialog.findByRole("button", { name: "Save" });
+    const undoFirst = fn();
+    const undoSecond = fn();
+    notifyUndoable({ message: "First entry deleted", undo: undoFirst });
+    notifyUndoable({ message: "Second entry deleted", undo: undoSecond });
+    const latest = await noticeOf("Second entry deleted");
+    const earlier = await noticeOf("First entry deleted");
+    await settled(latest);
+    await expectClickable(dialog.getByRole("heading", { name: "Time" }), "The title");
+    await expectClickable(dialog.getByRole("button", { name: "Close editor" }), "Close");
+    await expectClickable(dialog.getByRole("button", { name: "Delete" }), "Delete");
+    await expectClickable(dialog.getByRole("button", { name: "Cancel" }), "Cancel");
+    await expectClickable(save, "Save");
+    await andThen?.({ dialog, latest, earlier });
+    // The notices keep their own action.
+    await userEvent.click(within(latest).getByRole("button", { name: "Undo" }));
+    await expect(undoSecond).toHaveBeenCalledOnce();
+    await settled(earlier);
+    await userEvent.click(within(earlier).getByRole("button", { name: "Undo" }));
+    await expect(undoFirst).toHaveBeenCalledOnce();
+    await waitFor(() => expect(screen.queryByRole("alert")).toBeNull());
+  },
+});
+
+/** Still the wide step, in a window wide enough that a centred notice ends before the drawer. */
+const inAWideWindow: Partial<Story> = {
+  parameters: {
+    ...shellMeta.parameters,
+    viewport: {
+      options: {
+        ...VIEWPORTS,
+        roomy: { name: "Roomy", styles: { width: "1440px", height: "800px" } },
+      },
+    },
+  },
+  globals: { viewport: { value: "roomy", isRotated: false } },
+};
+
+/** The notices, fanned out too, lie beside the drawer's first field. */
+export const NoticesLieBesideTheDrawerInAWideWindow = noticesLeaveTheDrawerClickable(
+  inAWideWindow,
+  async ({ dialog, latest, earlier }) => {
+    const field = [dialog.getByRole("textbox", { name: "Name" }), dialog.getByText("Name")];
+    await expectApart(field, [latest, earlier]);
+    await userEvent.hover(latest);
+    await waitFor(() => expect(earlier).not.toHaveAttribute("inert"));
+    await settled(earlier);
+    await expectApart(field, [latest, earlier]);
+  },
+);
+
+/** A notice lies over the field's edge, and a click into the field still reaches it. */
+export const NoticesLeaveTheDrawerClickableAtTheWideStep = noticesLeaveTheDrawerClickable(
+  atViewport("wide"),
+  ({ dialog }) => expectClickable(dialog.getByRole("textbox", { name: "Name" }), "The field"),
+);
+
+/** The drawer fills the width, so a notice lies over its first field. */
+export const NoticesLeaveTheDrawerClickableOnThePhone = noticesLeaveTheDrawerClickable(
+  atViewport("phone"),
+);
+
+/** The same place without a drawer, so a notice does not jump when one opens. */
+const noticesLeaveTheHeaderClickable = (viewport: keyof typeof VIEWPORTS): Story => ({
+  ...atViewport(viewport),
+  beforeEach: clearNotices,
+  play: async () => {
+    notifyUndoable({ message: "First entry deleted", undo: fn() });
+    notifyUndoable({ message: "Second entry deleted", undo: fn() });
+    await settled(await noticeOf("Second entry deleted"));
+    await expectClickable(screen.getByRole("heading", { level: 1, name: "Time" }), "The title");
+    await expectClickable(
+      screen.getByRole("button", { name: /^(Collapse module sidebar|Open module sidebar)$/ }),
+      "The sidebar toggle",
+    );
+    clearNotices();
+  },
+});
+
+export const NoticesLeaveTheHeaderClickableAtTheWideStep = noticesLeaveTheHeaderClickable("wide");
+export const NoticesLeaveTheHeaderClickableOnThePhone = noticesLeaveTheHeaderClickable("phone");
