@@ -24,6 +24,7 @@ import {
   waitForApp,
   DESKTOP_HIDDEN_ENV,
 } from "./desktop-app.ts";
+import { checkElectronTime } from "./time-runtime-check.ts";
 import { DESKTOP_DIR } from "./ensure-electron.ts";
 
 /** Loose on purpose (spec #29): measured 253 ms, so only a regression by a multiple fails. */
@@ -269,7 +270,15 @@ function backupRows(page: Page) {
 
 /** Starts `launch` with a throwaway data folder and runs the checks on it. */
 export function smokeTestApp(launch: DesktopLaunch): Promise<SmokeResult> {
-  return withDesktopApp(launch, (app) => smokeTest(smokeDriver(app)), launchElectron);
+  return withDesktopApp(
+    launch,
+    async (app) => {
+      const result = await smokeTest(smokeDriver(app));
+      await checkElectronTime(app);
+      return result;
+    },
+    launchElectron,
+  );
 }
 
 async function main(): Promise<void> {
