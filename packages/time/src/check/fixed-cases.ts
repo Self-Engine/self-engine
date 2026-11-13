@@ -291,6 +291,22 @@ export const fixedCases: readonly CheckCase[] = [
     expected,
   })),
   {
+    name: "the skipped 02:30 in Berlin on 29 March 2026 shows as 03:30",
+    actual: () => {
+      const berlin = zone("Europe/Berlin");
+      return wallClockTimeOf(instantAt(day("2026-03-29"), time("02:30"), berlin).instant, berlin);
+    },
+    expected: "03:30",
+  },
+  {
+    name: "24 April 2026 in Cairo starts at 01:00 on the clock",
+    actual: () => {
+      const cairo = zone("Africa/Cairo");
+      return wallClockTimeOf(startOfCalendarDay(day("2026-04-24"), cairo), cairo);
+    },
+    expected: "01:00",
+  },
+  {
     name: "24 April 2026 in Cairo lasts 23 hours",
     actual: () => {
       const { start, end } = instantRangeOf(day("2026-04-24"), zone("Africa/Cairo"));
