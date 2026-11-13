@@ -52,9 +52,10 @@ const deleteFromTheList = async (canvas: Canvas, name: string) =>
 
 const undoOffers = () => screen.queryAllByRole("button", { name: "Undo" });
 
+/** Undo on the latest notice, the one in front of the stack; the others lie behind it, inert. */
 const undoLast = async () => {
   const offers = await screen.findAllByRole("button", { name: "Undo" });
-  await userEvent.click(offers.at(-1)!);
+  await userEvent.click(offers.find((offer) => offer.closest("[inert]") === null)!);
 };
 
 const noUndoOffer = () => waitFor(() => expect(undoOffers()).toHaveLength(0));

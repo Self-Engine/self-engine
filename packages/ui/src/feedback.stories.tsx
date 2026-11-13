@@ -219,8 +219,13 @@ export const TwoNoticesAreTakenBackSeparately: Story = {
     notifyUndoable({ message: "First deleted", undo: undoFirst });
     notifyUndoable({ message: "Second deleted", undo: undoSecond });
     const second = await noticeWith("Second deleted");
+    const first = await noticeWith("First deleted");
+    // The earlier notice lies behind the latest until the pointer fans the stack out.
+    await expect(first).toHaveAttribute("inert");
+    await userEvent.hover(second);
+    await waitFor(() => expect(first).not.toHaveAttribute("inert"));
 
-    await userEvent.click(undoButton(await noticeWith("First deleted")));
+    await userEvent.click(undoButton(first));
     await expect(undoFirst).toHaveBeenCalledOnce();
     await expect(undoSecond).not.toHaveBeenCalled();
     await noticeGone("First deleted");
@@ -279,7 +284,8 @@ export const UndoLatestSkipsANoticeThatClosedByItself: Story = {
     await waitFor(() => expect(heldNoticeTimers.size).toBe(1));
     notifyUndoable({ message: "Second deleted", undo: undoSecond });
     await noticeWith("Second deleted");
-    await waitFor(() => expect(heldNoticeTimers.size).toBe(2));
+    // Only the latest notice counts down; the one behind it waits for its turn.
+    await waitFor(() => expect(heldNoticeTimers.size).toBe(1));
 
     [...heldNoticeTimers.values()].at(-1)!();
     await noticeGone("Second deleted");
@@ -310,15 +316,31 @@ export const AnErrorNoticeSaysWhatFailed: Story = {
   },
 };
 
-export const NoticesSitBottomRight: Story = {
+export const NoticesSitTopRight: Story = {
   play: async () => {
     notifyError({ message: "The backup failed." });
     const notice = await noticeWith("The backup failed.");
     await waitFor(async () => {
-      const { right, bottom } = notice.getBoundingClientRect();
+      const { right, top } = notice.getBoundingClientRect();
       await expect(window.innerWidth - right).toBeLessThan(40);
-      await expect(window.innerHeight - bottom).toBeLessThan(40);
+      await expect(top).toBeLessThan(40);
     });
+  },
+};
+
+export const OnlyTheLatestNoticeCountsDown: Story = {
+  beforeEach: holdNoticeTimers,
+  play: async () => {
+    notifyError({ message: "The backup failed." });
+    await noticeWith("The backup failed.");
+    notifyError({ message: "The export failed." });
+    await noticeWith("The export failed.");
+    await waitFor(() => expect(heldNoticeTimers.size).toBe(1));
+    for (const run of heldNoticeTimers.values()) run();
+    await noticeGone("The export failed.");
+    // The one behind comes forward and gets its full time.
+    await waitFor(() => expect(heldNoticeTimers.size).toBe(1));
+    await expect(await noticeWith("The backup failed.")).not.toHaveAttribute("inert");
   },
 };
 
@@ -366,7 +388,7 @@ export const ReducedMotionStillsTheDialogAndTheNotices: Story = {
   play: async () => {
     notifyError({ message: "The backup failed." });
     const notice = await noticeWith("The backup failed.");
-    await expect(notice.style.transitionDuration).toBe("1ms, 1ms, 1ms");
+    await expect(notice.style.transitionDuration).toBe("1ms, 1ms");
 
     const answer = confirm(QUESTION);
     const dialog = await screen.findByRole("dialog", { name: QUESTION.title });

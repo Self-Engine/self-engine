@@ -1692,8 +1692,9 @@ markiert und wird beim Bau gemessen.
   einen Abstand von oben bis zum Ende des Drawer-Kopfs (Mindesthöhe des Mantine-Kopfs plus der
   Rand des schwebenden Drawers, am Telefon ohne Rand); er gilt auch ohne offenen Drawer, damit
   ein Hinweis nicht springt, und hält ihn unter dem Kopf des Inhalts. Der Abstand über der
-  unteren Leiste am Telefon entfällt. Ein Hinweis bleibt 8 Sekunden; Rückgängig bleibt im
-  Hinweis. Eine Story pro Layout-Stufe, hell und dunkel, prüft, dass Titel, Schließen, Löschen,
+  unteren Leiste am Telefon entfällt. Der vorderste Hinweis bleibt 8 Sekunden; die dahinter
+  warten, bis sie vorne sind (drei Hinweise stehen also bis zu 24 Sekunden). Rückgängig bleibt im
+  Hinweis; einen hinteren erreicht der Zeiger, wenn der Stapel aufgefächert ist. Eine Story pro Layout-Stufe, hell und dunkel, prüft, dass Titel, Schließen, Löschen,
   Abbrechen und Speichern bei offenem Hinweis den Klick bekommen. _Preis:_ eine CSS-Variable;
   zur Laufzeit misst Mantine im gestapelten Modus jeden Hinweis einmal (ResizeObserver), sonst
   nichts. _Grenze:_ Ein Hinweis liegt über dem ersten Feld des Drawers; ein Titel über mehr als
