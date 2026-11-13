@@ -5,7 +5,13 @@ import type {
   ModuleContract,
   OutputOf,
 } from "./contract-types.ts";
-import { type OperationHandling, type OperationHook, operationHook } from "./operation-hook.ts";
+import {
+  type OperationFunction,
+  type OperationHandling,
+  type OperationHook,
+  operationFunction,
+  operationHook,
+} from "./operation-hook.ts";
 import { type QueryHook, queryHook } from "./query-hook.ts";
 
 /** The handling an Operation hook needs: required when the entry declares a conflict. */
@@ -30,6 +36,18 @@ export interface PortHooks<Contract extends ModuleContract> {
     OutputOf<Contract, Entry>,
     ConflictReasonOf<Contract, Entry>
   >;
+  /**
+   * The same Operation as a function of the Port access, for code outside React such as a
+   * Command (D261): same handling, same result, same default notices.
+   */
+  run<Entry extends EntryName<Contract>>(
+    entry: Entry,
+    ...handling: HandlingArgument<InputOf<Contract, Entry>, ConflictReasonOf<Contract, Entry>>
+  ): OperationFunction<
+    InputOf<Contract, Entry>,
+    OutputOf<Contract, Entry>,
+    ConflictReasonOf<Contract, Entry>
+  >;
 }
 
 /**
@@ -49,5 +67,6 @@ export function portHooks<Contract extends ModuleContract>(module: string): Port
   return {
     query: (entry) => queryHook(module, entry),
     operation: (entry, handling = {}) => operationHook(module, entry, handling),
+    run: (entry, handling = {}) => operationFunction(module, entry, handling),
   };
 }

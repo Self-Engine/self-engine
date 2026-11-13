@@ -4,7 +4,7 @@ import { ORPCError } from "@orpc/client";
 import { useMutation } from "@tanstack/react-query";
 import { useCallback } from "react";
 import type { PortAccess } from "./port-access.ts";
-import { useDataContext } from "./provider.ts";
+import { showNotice, useDataContext } from "./provider.ts";
 
 /** Shown when the entry an Operation changes no longer exists, unless the module replaces it. */
 export const NOT_FOUND_NOTICE = msg`This entry no longer exists.`;
@@ -108,6 +108,27 @@ function conflictOf(data: unknown, handling: Handling): AnyResult | undefined {
 }
 
 /**
+ * Calls the Operation and announces its "not found" and unexpected results, as both the hook and
+ * the function form do; a conflict is left to the caller.
+ */
+async function runOperation(
+  access: PortAccess,
+  notify: (notice: MessageDescriptor) => void,
+  module: string,
+  entry: string,
+  input: unknown,
+  handling: Handling,
+): Promise<AnyResult> {
+  const result = await callOperation(access, module, entry, input, handling);
+  if (result.status === "unexpected") notify(UNEXPECTED_NOTICE);
+  if (result.status === "notFound") {
+    if (handling.notFound === undefined) notify(NOT_FOUND_NOTICE);
+    else handling.notFound(input as never);
+  }
+  return result;
+}
+
+/**
  * The Operation hook for the entry `entry` of the module mounted as `module` (`portHooks`).
  * It announces "not found" and unexpected errors itself, and leaves a conflict to the form.
  */
@@ -122,15 +143,7 @@ export function operationHook<Input, Output, Reason extends string>(
       mutationKey: [module, entry],
       // The library passes its own context as a second argument, which the Port's call would
       // take for its options; only the input goes on.
-      async mutationFn(input: Input): Promise<AnyResult> {
-        const result = await callOperation(access, module, entry, input, handling);
-        if (result.status === "unexpected") notify(UNEXPECTED_NOTICE);
-        if (result.status === "notFound") {
-          if (handling.notFound === undefined) notify(NOT_FOUND_NOTICE);
-          else (handling.notFound as (input: Input) => void)(input);
-        }
-        return result;
-      },
+      mutationFn: (input: Input) => runOperation(access, notify, module, entry, input, handling),
     });
     const run = useCallback(
       (input: Input) =>
@@ -139,4 +152,26 @@ export function operationHook<Input, Output, Reason extends string>(
     );
     return { run, running: isPending };
   };
+}
+
+/**
+ * An Operation as a function, for code outside React such as a Command (D261). It takes the Port
+ * access its caller was given, the same one the app gives `DataProvider`, and returns and
+ * announces what the hook would; its notices go to the feedback system.
+ */
+export type OperationFunction<Input, Output, Reason extends string> = (
+  access: PortAccess,
+  input: Input,
+) => Promise<OperationResult<Output, Reason, FieldOf<Input>>>;
+
+/** The function form of the Operation `entry` of the module mounted as `module` (`portHooks`). */
+export function operationFunction<Input, Output, Reason extends string>(
+  module: string,
+  entry: string,
+  handling: Handling,
+): OperationFunction<Input, Output, Reason> {
+  return (access, input) =>
+    runOperation(access, showNotice, module, entry, input, handling) as Promise<
+      OperationResult<Output, Reason, FieldOf<Input>>
+    >;
 }

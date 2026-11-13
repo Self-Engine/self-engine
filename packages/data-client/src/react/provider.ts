@@ -9,10 +9,11 @@ import {
   use,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 import type { PortAccess } from "./port-access.ts";
-import { noticeFailedReload } from "./reload-notice.tsx";
+import { noticeFailedReload } from "./reload-notice.ts";
 
 /** Answers no View shows are dropped after this long (D250). */
 export const UNUSED_ANSWER_LIFETIME_MS = 5 * 60 * 1000;
@@ -35,14 +36,22 @@ export function useDataContext(): DataContext {
 }
 
 /**
+ * The Port access of the nearest `DataProvider`, for what calls an Operation outside React, such
+ * as the Shell's Commands (D261): the app and a story hand it on from here.
+ */
+export function usePortAccess(): PortAccess {
+  return useDataContext().access;
+}
+
+/**
  * The query cache of the page (D249, D250). An answer stays valid until a Table Change names one
  * of its tables, so nothing reloads on time, window focus, mount or a network change; only Table
  * Changes and reconnects mark answers, and a marked answer on screen reloads at once. A failed
  * reload tells the user once that the answer kept on screen may be outdated (D257).
  */
-function createQueryCache(): QueryClient {
+function createQueryCache(notify: (notice: MessageDescriptor) => void): QueryClient {
   return new QueryClient({
-    queryCache: new QueryCache({ onError: noticeFailedReload }),
+    queryCache: new QueryCache({ onError: noticeFailedReload(notify) }),
     defaultOptions: {
       queries: {
         staleTime: Infinity,
@@ -91,7 +100,12 @@ export function DataProvider({
   notify = showNotice,
   children,
 }: DataProviderProps): ReactNode {
-  const [cache] = useState(createQueryCache);
+  // The cache lives as long as the provider; its notices follow the latest `notify`.
+  const latestNotify = useRef(notify);
+  useEffect(() => {
+    latestNotify.current = notify;
+  }, [notify]);
+  const [cache] = useState(() => createQueryCache((notice) => latestNotify.current(notice)));
   const context = useMemo<DataContext>(() => {
     const report = reportMisuse ?? defaultReport();
     const reported = new Set<string>();
@@ -143,7 +157,7 @@ function defaultReport(): ((problem: string) => void) | undefined {
 }
 
 /** Shows a notice through the feedback system, translated while it is on screen. */
-function showNotice(notice: MessageDescriptor): void {
+export function showNotice(notice: MessageDescriptor): void {
   notifyError({ message: createElement(NoticeText, { notice }) });
 }
 
