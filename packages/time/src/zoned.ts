@@ -48,20 +48,27 @@ export function calendarDayOf(instant: Instant, timeZone: TimeZone): CalendarDay
 /** The wall-clock time an Instant shows in a zone, cut to the minute. */
 export function wallClockTimeOf(instant: Instant, timeZone: TimeZone): WallClockTime {
   const plainTime = zonedOf(instant, timeZone).toPlainTime();
-  return wallClockTimeSchema.parse(plainTime.toString({ smallestUnit: "minute", roundingMode: "trunc" }));
+  return wallClockTimeSchema.parse(
+    plainTime.toString({ smallestUnit: "minute", roundingMode: "trunc" }),
+  );
 }
 
 /**
  * The Instant of a day and wall-clock time in a zone. A skipped time moves on by the length of
  * the gap; a repeated time yields its earlier Instant and also names the later one.
  */
-export function instantAt(day: CalendarDay, time: WallClockTime, timeZone: TimeZone): ResolvedInstant {
+export function instantAt(
+  day: CalendarDay,
+  time: WallClockTime,
+  timeZone: TimeZone,
+): ResolvedInstant {
   const local = Temporal.PlainDateTime.from(`${day}T${time}`);
   const earlier = local.toZonedDateTime(timeZone, { disambiguation: "earlier" });
   const later = local.toZonedDateTime(timeZone, { disambiguation: "later" });
   if (earlier.epochNanoseconds === later.epochNanoseconds)
     return { case: "unambiguous", instant: instantOf(earlier) };
-  if (!earlier.toPlainDateTime().equals(local)) return { case: "skipped", instant: instantOf(later) };
+  if (!earlier.toPlainDateTime().equals(local))
+    return { case: "skipped", instant: instantOf(later) };
   return { case: "repeated", instant: instantOf(earlier), later: instantOf(later) };
 }
 

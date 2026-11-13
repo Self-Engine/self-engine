@@ -45,7 +45,8 @@ function compareAt(
   // and every answer must show that day and time again.
   const [day, time] = expected.split(" ");
   const resolved = instantAt(calendarDaySchema.parse(day), wallClockTimeSchema.parse(time), zone);
-  const candidates = resolved.case === "repeated" ? [resolved.instant, resolved.later] : [resolved.instant];
+  const candidates =
+    resolved.case === "repeated" ? [resolved.instant, resolved.later] : [resolved.instant];
   const starts = candidates.map((candidate) => Temporal.Instant.from(candidate).epochMilliseconds);
   const holdsInstant = starts.some((start) => start <= epochMs && epochMs < start + MINUTE);
   const showsAgain = starts.every((start) => intlDayAndTime(format, start) === expected);
@@ -54,7 +55,9 @@ function compareAt(
   // whose rest exists: the minute counts as skipped and moves on by the gap.
   const partlySkipped = epochMs >= changeMs && epochMs - changeMs < MINUTE;
   if (resolved.case === "skipped" && partlySkipped) return [];
-  return [`${zone} ${expected}: Intl shows it at ${instant}, time resolves ${JSON.stringify(resolved)}`];
+  return [
+    `${zone} ${expected}: Intl shows it at ${instant}, time resolves ${JSON.stringify(resolved)}`,
+  ];
 }
 
 /**
@@ -90,7 +93,12 @@ export function compareWithIntl(fromYear = 1970, untilYear = 2040): IntlComparis
       for (const offset of OFFSETS) {
         comparisons++;
         mismatches.push(
-          ...compareAt(timeZone, format, cursor.epochMilliseconds, cursor.epochMilliseconds + offset),
+          ...compareAt(
+            timeZone,
+            format,
+            cursor.epochMilliseconds,
+            cursor.epochMilliseconds + offset,
+          ),
         );
       }
     }

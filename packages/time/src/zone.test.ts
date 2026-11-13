@@ -7,8 +7,9 @@ test.each(zoneNameCases)("$name", ({ actual, expected }) => {
   expect(outcome(actual)).toEqual(expected);
 });
 
-test("the device's zone is the zone the process runs in", () => {
-  expect(sameTimeZone(deviceTimeZone(), resolveTimeZone(process.env.TZ!).timeZone)).toBe(true);
+test("the device's zone is the zone Intl reports for the process", () => {
+  const reported = new Intl.DateTimeFormat().resolvedOptions().timeZone;
+  expect(sameTimeZone(deviceTimeZone(), resolveTimeZone(reported).timeZone)).toBe(true);
 });
 
 test("a plain string is no TimeZone", () => {
