@@ -23,8 +23,7 @@ test("ids are unique and ascend within one millisecond, including counter carrie
 
 test("ids and timestamps agree on the moment before and after advancing", () => {
   const sources = createTestSources("2026-11-09T14:07:46.297Z");
-  const idTime = (id: string) =>
-    Number.parseInt(id.replaceAll("-", "").slice(0, 12), 16);
+  const idTime = (id: string) => Number.parseInt(id.replaceAll("-", "").slice(0, 12), 16);
 
   expect(idTime(newId(sources.ids))).toBe(1794233266297);
   sources.advance(1);

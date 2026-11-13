@@ -11,7 +11,8 @@ import {
   type DataProcessOptions,
   startDataProcess,
 } from "@self-engine/data-process";
-import type { Clock, Database } from "@self-engine/db";
+import type { Database } from "@self-engine/db";
+import type { Clock } from "@self-engine/time";
 import { openDatabase } from "@self-engine/db/better-sqlite3";
 import { handoffPage, restartMessage, servingMessage } from "./data-process-messages.ts";
 
@@ -44,7 +45,7 @@ export interface DataFiles {
  * Opens the database file with its Backups. A restore that the last data process staged is put
  * in the file's place first, while nothing has it open (D94).
  */
-export function openDataFiles(databasePath: string, clock: Clock = () => new Date()): DataFiles {
+export function openDataFiles(databasePath: string, clock: Clock): DataFiles {
   applyStagedRestore(databasePath);
   const database = openDatabase(databasePath);
   return {
@@ -53,7 +54,8 @@ export function openDataFiles(databasePath: string, clock: Clock = () => new Dat
       database,
       databasePath,
       directory: backupFolder(databasePath),
-      clock,
+      // TODO #244: Backup still receives Date until its Instant migration.
+      clock: () => new Date(clock()),
     }),
   };
 }

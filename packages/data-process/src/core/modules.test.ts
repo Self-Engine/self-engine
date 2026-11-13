@@ -57,7 +57,7 @@ afterEach(async () => {
 async function start() {
   const process = await startTestDataProcess({
     modules: { fixture },
-    sources: createTestSources(new Date("2026-01-01T00:00:00.000Z")),
+    sources: createTestSources("2026-01-01T00:00:00.000Z"),
   });
   started.push(process);
   return createORPCClient<
