@@ -1,6 +1,6 @@
-import { newId, newTimestamp, type Clock, type IdSources } from "@self-engine/db";
+import { newId, type IdSources } from "@self-engine/db";
 import { idSchema } from "@self-engine/db/schema";
-import type { Instant } from "@self-engine/time";
+import type { Clock, Instant } from "@self-engine/time";
 import type { z } from "zod";
 
 export const spaceIdSchema = idSchema("Space");
@@ -22,11 +22,10 @@ export interface StorageContext {
 
 export function createContext(sources: ContextSources): StorageContext {
   const moment = sources.clock();
-  const milliseconds = moment.getTime();
-  const clock: Clock = () => new Date(milliseconds);
+  const clock: Clock = () => moment;
   const ids: IdSources = { clock, random: sources.ids.random };
   return {
-    now: newTimestamp(clock),
+    now: moment,
     clock,
     spaceId: PERSONAL_SPACE,
     newId: <Schema extends z.ZodType<string>>(_schema: Schema): z.output<Schema> =>

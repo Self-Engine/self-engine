@@ -1,4 +1,6 @@
-import type { Clock, IdSources } from "../core/index.ts";
+import { epochMsOf, instantFromDate, type Clock } from "@self-engine/time";
+import { fixedClock, requireInstant } from "@self-engine/time/testing";
+import type { IdSources } from "../core/index.ts";
 
 /** Shared deterministic sources for a test transaction context. */
 export interface TestSources {
@@ -8,9 +10,9 @@ export interface TestSources {
 }
 
 /** A fixed transaction time, moved only by `advance`. */
-export function createTestSources(start: Date): TestSources {
-  let milliseconds = start.getTime();
-  const clock: Clock = () => new Date(milliseconds);
+export function createTestSources(start: string): TestSources {
+  let current = fixedClock(requireInstant(start));
+  const clock: Clock = () => current();
   let counter = 0;
   const ids: IdSources = {
     clock,
@@ -31,7 +33,7 @@ export function createTestSources(start: Date): TestSources {
     clock,
     ids,
     advance(ms: number): void {
-      milliseconds += ms;
+      current = fixedClock(instantFromDate(new Date(epochMsOf(current()) + ms)));
     },
   };
 }

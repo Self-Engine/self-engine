@@ -41,7 +41,7 @@ test.each<{ isPinned: 0 | 1; expected: boolean }>([
 ])(
   "round-trips a note with stored boolean $isPinned and branded types",
   async ({ isPinned, expected }) => {
-    const sources = createTestSources(new Date("2026-11-12T12:00:00.000Z"));
+    const sources = createTestSources("2026-11-12T12:00:00.000Z");
     const createdAt = newTimestamp(sources.clock);
     sources.advance(1000);
     const updatedAt = newTimestamp(sources.clock);
@@ -83,7 +83,7 @@ test.each<{ isPinned: 0 | 1; expected: boolean }>([
 );
 
 test("live titles are unique within a space and become reusable after soft deletion", async () => {
-  const sources = createTestSources(new Date("2026-11-12T12:00:00.000Z"));
+  const sources = createTestSources("2026-11-12T12:00:00.000Z");
   const now = newTimestamp(sources.clock);
   const row: NoteRow = {
     id: newId<NoteId>(sources.ids),
