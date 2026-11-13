@@ -4,7 +4,7 @@
 // the View shows as its error state. The feedback system is replaced, so no Notice is drawn.
 
 import type { MessageDescriptor } from "@lingui/core";
-import type { TablesChanged } from "@self-engine/contracts";
+import type { TablesChanged } from "@self-engine/data-protocol";
 import type { notesContract } from "@self-engine/storage/testing";
 import { notifyError, type QueryDisplayState } from "@self-engine/ui";
 import { act, createElement, type ReactNode } from "react";

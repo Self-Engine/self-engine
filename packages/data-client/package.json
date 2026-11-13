@@ -14,7 +14,7 @@
     "@lingui/react": "catalog:",
     "@orpc/client": "catalog:",
     "@orpc/contract": "catalog:",
-    "@self-engine/contracts": "workspace:*",
+    "@self-engine/data-protocol": "workspace:*",
     "@self-engine/ui": "workspace:*",
     "@tanstack/react-query": "catalog:",
     "react": "catalog:"

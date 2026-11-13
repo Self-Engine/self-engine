@@ -1,4 +1,4 @@
-import type { TablesChanged } from "@self-engine/contracts";
+import type { TablesChanged } from "@self-engine/data-protocol";
 import type { DataConnection, EntryDescription } from "../data-connection.ts";
 
 /**

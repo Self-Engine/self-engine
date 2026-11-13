@@ -1,17 +1,16 @@
+import { protocolContract } from "@self-engine/data-protocol";
 import { placeholderAlphaContract } from "@self-engine/placeholder-alpha/contracts";
-import { healthContract } from "./health.ts";
-import { tablesChangedContract } from "./tables-changed.ts";
 
 /**
- * Every procedure the data process serves. The cross-module procedures live here; each module's
- * contract is mounted under its name once it has one (D187), so the import direction is
- * `contracts → module`.
+ * Every procedure the data process serves: the protocol's `health` and `tablesChanged`, and each
+ * module's contract mounted under its name (D187), so the import direction is `contracts →
+ * module`. Only the desktop app's module list imports it; the data client and the Data Process
+ * take the protocol from `@self-engine/data-protocol`, which knows no module.
  */
 export const appContract = {
-  health: healthContract,
-  tablesChanged: tablesChangedContract,
+  ...protocolContract,
   placeholderAlpha: placeholderAlphaContract,
 };
 
-/** The renderer imports only this type, so no schema loads at startup (D187). */
+/** The app contract's type, which the module list is checked against. */
 export type AppContract = typeof appContract;

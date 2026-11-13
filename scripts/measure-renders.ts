@@ -6,7 +6,7 @@ import { dirname, resolve } from "node:path";
 import { parseArgs } from "node:util";
 import { createDataConnection, type DataConnection } from "@self-engine/data-client";
 import type { TestDataProcess } from "@self-engine/data-process/testing";
-import type { startRenderDataProcess } from "./render-data-process.ts";
+import type { RenderModules, startRenderDataProcess } from "./render-data-process.ts";
 import { chromium, type Page } from "playwright";
 import { runnerImport } from "vite-plus";
 import { workingTreeHash } from "./verify-stamp.ts";
@@ -133,8 +133,8 @@ async function dataProcessFor(page: Page): Promise<TestDataProcess> {
 }
 
 /** A second client of the same Data Process, which writes as another window would. */
-async function writerFor(process: TestDataProcess): Promise<DataConnection> {
-  const connection = createDataConnection();
+async function writerFor(process: TestDataProcess): Promise<DataConnection<RenderModules>> {
+  const connection = createDataConnection<RenderModules>();
   const ready = new Promise<void>((resolvePromise) => {
     const stop = connection.subscribe(() => {
       if (connection.getState().status !== "ready") return;
@@ -152,7 +152,10 @@ async function writerFor(process: TestDataProcess): Promise<DataConnection> {
  * create and the rename reach the page as a Table Change, which reloads its list: only the
  * measured step, the rename, is a single change.
  */
-async function renameOneOf1000(writer: DataConnection, step: "seed" | "rename"): Promise<void> {
+async function renameOneOf1000(
+  writer: DataConnection<RenderModules>,
+  step: "seed" | "rename",
+): Promise<void> {
   const alpha = writer.client.placeholderAlpha;
   if (step === "seed") {
     // Studio work and Garden work exist already.
@@ -202,7 +205,7 @@ async function main(): Promise<void> {
   });
   let browser;
   let dataProcess: TestDataProcess | undefined;
-  let writer: DataConnection | undefined;
+  let writer: DataConnection<RenderModules> | undefined;
   try {
     await ready;
     browser = await chromium.launch({ headless: true });

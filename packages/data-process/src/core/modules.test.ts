@@ -1,12 +1,10 @@
-import { appContract } from "@self-engine/contracts";
-import { modules } from "./modules.ts";
 import { createORPCClient } from "@orpc/client";
 import { RPCLink } from "@orpc/client/message-port";
 import { oc, type ContractRouterClient } from "@orpc/contract";
-import type { AppContract } from "@self-engine/contracts";
+import type { ProtocolContract } from "@self-engine/data-protocol";
 import { createTestSources } from "@self-engine/db/testing";
 import { defineStorageModule, type FrameReport } from "@self-engine/storage";
-import { afterEach, expect, expectTypeOf, test } from "vite-plus/test";
+import { afterEach, expect, test } from "vite-plus/test";
 import { z } from "zod";
 import { startTestDataProcess, type TestDataProcess } from "../testing/index.ts";
 
@@ -62,9 +60,9 @@ async function start() {
     sources: createTestSources(new Date("2026-01-01T00:00:00.000Z")),
   });
   started.push(process);
-  return createORPCClient<ContractRouterClient<AppContract & { fixture: typeof fixture.contract }>>(
-    new RPCLink({ port: process.openPort() }),
-  );
+  return createORPCClient<
+    ContractRouterClient<ProtocolContract & { fixture: typeof fixture.contract }>
+  >(new RPCLink({ port: process.openPort() }));
 }
 
 test("a module list supplies migrations and calls over a MessageChannel", async () => {
@@ -123,7 +121,7 @@ test("a failed module migration keeps health available and refuses module calls"
   });
   started.push(process);
   const client = createORPCClient<
-    ContractRouterClient<AppContract & { fixture: typeof fixture.contract }>
+    ContractRouterClient<ProtocolContract & { fixture: typeof fixture.contract }>
   >(new RPCLink({ port: process.openPort() }));
   await expect(client.health()).resolves.toEqual({
     state: "migrationFailed",
@@ -173,7 +171,7 @@ test("starts with both an owner module and its consumer registered", async () =>
   started.push(process);
   const client = createORPCClient<
     ContractRouterClient<
-      AppContract & {
+      ProtocolContract & {
         notes: typeof notes.contract;
         links: typeof links.contract;
       }
@@ -195,7 +193,7 @@ test("the opening event names each Query of the mounted modules with the tables 
   const { notes, links } = await import("@self-engine/storage/testing");
   const process = await startTestDataProcess({ modules: { notes, links } });
   started.push(process);
-  const client = createORPCClient<ContractRouterClient<AppContract>>(
+  const client = createORPCClient<ContractRouterClient<ProtocolContract>>(
     new RPCLink({ port: process.openPort() }),
   );
 
@@ -218,49 +216,4 @@ test.each(["health", "tablesChanged"])("startup rejects a module named %s", asyn
   await expect(startTestDataProcess({ modules: { [name]: fixture } })).rejects.toThrow(
     `Module namespace conflicts with built-in procedure: ${name}`,
   );
-});
-
-test("registered app module namespaces match the mounted app contract", () => {
-  type Namespaces = Exclude<keyof AppContract, "health" | "tablesChanged">;
-  expectTypeOf<keyof typeof modules>().toEqualTypeOf<Namespaces>();
-  expect(Object.keys(modules).sort()).toEqual(
-    Object.keys(appContract)
-      .filter((key) => key !== "health" && key !== "tablesChanged")
-      .sort(),
-  );
-});
-
-test("placeholder-alpha is mounted: an Operation is followed by its Table Change and the list Query returns the new row", async () => {
-  const process = await startTestDataProcess({ modules });
-  started.push(process);
-  const client = createORPCClient<ContractRouterClient<AppContract>>(
-    new RPCLink({ port: process.openPort() }),
-  );
-  await expect(client.health()).resolves.toMatchObject({
-    state: "ready",
-    migrations: ["placeholder-alpha/0001"],
-  });
-  const events = await client.tablesChanged();
-  await expect(events.next()).resolves.toEqual({
-    done: false,
-    value: {
-      kind: "opened",
-      queries: { placeholderAlpha: { list: ["placeholder_alpha_entries"] } },
-    },
-  });
-
-  const created = await client.placeholderAlpha.create({ name: "Studio work" });
-
-  await expect(events.next()).resolves.toEqual({
-    done: false,
-    value: { kind: "changed", tables: ["placeholder_alpha_entries"] },
-  });
-  await expect(client.placeholderAlpha.list({})).resolves.toEqual([
-    { id: created.id, name: "Studio work" },
-  ]);
-  await expect(client.placeholderAlpha.create({ name: "Studio work" })).rejects.toMatchObject({
-    code: "CONFLICT",
-    data: { reason: "name_taken" },
-  });
-  await events.return();
 });

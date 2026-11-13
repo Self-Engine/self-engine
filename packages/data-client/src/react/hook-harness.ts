@@ -2,7 +2,7 @@
 // access whose answers, Table Changes and reconnects a test drives by hand (D249). Fake timers
 // stand in for the clock: the query library batches its updates on `setTimeout(0)`.
 
-import type { QueryTables, TablesChanged } from "@self-engine/contracts";
+import type { QueryTables, TablesChanged } from "@self-engine/data-protocol";
 import type { MessageDescriptor } from "@lingui/core";
 import { act, createElement, type ReactNode } from "react";
 import { createRoot, type Root } from "react-dom/client";

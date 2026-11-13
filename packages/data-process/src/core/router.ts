@@ -1,5 +1,5 @@
 import type { AnyRouter } from "@orpc/server";
-import type { Health, QueryTables } from "@self-engine/contracts";
+import { type Health, PROTOCOL_PROCEDURES, type QueryTables } from "@self-engine/data-protocol";
 import { healthProcedure } from "./procedures/health.ts";
 import { tablesChangedProcedure } from "./procedures/tables-changed.ts";
 import { refuseUnlessReady } from "./refuse-unless-ready.ts";
@@ -18,7 +18,7 @@ export interface RouterOptions {
  * state of the start only `health` answers.
  */
 export function createRouter({ health, tablesChanged, queries, moduleRouter }: RouterOptions) {
-  for (const name of ["health", "tablesChanged"]) {
+  for (const name of PROTOCOL_PROCEDURES) {
     if (Object.hasOwn(moduleRouter, name))
       throw new Error(`Module namespace conflicts with built-in procedure: ${name}`);
   }

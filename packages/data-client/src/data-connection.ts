@@ -2,11 +2,11 @@ import { createORPCClient, DynamicLink } from "@orpc/client";
 import { RPCLink, type SupportedMessagePort } from "@orpc/client/message-port";
 import type { ContractRouterClient } from "@orpc/contract";
 import type {
-  AppContract,
   HealthFailure,
+  ProtocolContract,
   QueryTables,
   TablesChanged,
-} from "@self-engine/contracts";
+} from "@self-engine/data-protocol";
 import {
   type ConnectionState,
   type ConnectionStateStore,
@@ -15,8 +15,14 @@ import {
 } from "./connection-state.ts";
 import { type PortSession, watchPort } from "./port-session.ts";
 
-/** The typed client of the app contract. The contract arrives as a type only (D187). */
-export type DataClient = ContractRouterClient<AppContract>;
+/**
+ * The typed client of the protocol and of the module contracts `Modules`, by mount name. The
+ * contracts arrive as types only (D187). The app passes none: Views reach a module through its
+ * hooks, typed from its own Contract; a script or test that calls a module directly names it.
+ */
+export type DataClient<Modules extends object = object> = ContractRouterClient<
+  ProtocolContract & Modules
+>;
 
 /** A port of the platform: a DOM or Node `MessagePort`, or Electron's `MessagePortMain`. */
 export type DataPort = SupportedMessagePort;
@@ -29,13 +35,16 @@ export type EntryDescription =
   | { readonly kind: "query"; readonly reads: readonly string[] }
   | { readonly kind: "operation" };
 
-export interface DataConnection extends Pick<ConnectionStateStore, "getState" | "subscribe"> {
+export interface DataConnection<Modules extends object = object> extends Pick<
+  ConnectionStateStore,
+  "getState" | "subscribe"
+> {
   /**
    * One client for the whole session. It sends every call over the port connected last, so a
    * caller keeps it across a new port. A call before the first port, or while reconnecting,
    * waits for the next one.
    */
-  readonly client: DataClient;
+  readonly client: DataClient<Modules>;
   /** Sends the calls that follow over this port, for example after a reload or a restart. */
   connect(port: DataPort): void;
   /**
@@ -76,7 +85,7 @@ const STOPPED: ConnectionState = { status: "stopped" };
 const OPERATION: EntryDescription = { kind: "operation" };
 
 /** The renderer's connection to the data process, platform-neutral: it only needs a port. */
-export function createDataConnection(): DataConnection {
+export function createDataConnection<Modules extends object = object>(): DataConnection<Modules> {
   const state = createConnectionStateStore(CONNECTING);
   const tablesListeners = new Set<(tables: TablesChanged) => void>();
   let nextLink = pendingLink();

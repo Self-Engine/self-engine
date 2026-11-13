@@ -1,18 +1,8 @@
-import type { AppContract } from "@self-engine/contracts";
-import { placeholderAlpha } from "@self-engine/placeholder-alpha/data";
 import type { ErasedStorageModule } from "@self-engine/storage";
 
+/**
+ * The data entries the Data Process mounts, by mount name. The app passes its list
+ * (`apps/desktop/src/data-modules.ts`); the core knows no module, so a module's tests may start it
+ * without a cycle between packages (ADR 0006).
+ */
 export type DataModules = Readonly<Record<string, ErasedStorageModule>>;
-
-type ModuleContracts = Omit<AppContract, "health" | "tablesChanged">;
-type AppModules = keyof ModuleContracts extends never
-  ? Readonly<Record<string, never>>
-  : {
-      readonly [Key in keyof ModuleContracts]: ErasedStorageModule & {
-        readonly name: Key;
-        readonly contract: ModuleContracts[Key];
-      };
-    };
-
-/** Add a module's data entry here; both migrations and calls come from this list. */
-export const modules = { placeholderAlpha } satisfies AppModules;

@@ -1,5 +1,5 @@
 import { MessageChannel, type MessagePort } from "node:worker_threads";
-import type { TablesChanged } from "@self-engine/contracts";
+import type { TablesChanged } from "@self-engine/data-protocol";
 import type { Database, Migration } from "@self-engine/db";
 import { openDatabase } from "@self-engine/db/better-sqlite3";
 import { createTestSources } from "@self-engine/db/testing";

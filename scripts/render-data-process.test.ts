@@ -1,10 +1,10 @@
 import { createDataConnection } from "@self-engine/data-client";
 import { expect, it } from "vite-plus/test";
-import { startRenderDataProcess } from "./render-data-process.ts";
+import { type RenderModules, startRenderDataProcess } from "./render-data-process.ts";
 
 it("serves placeholder-alpha with its table, empty, over a real port", async () => {
   const process = await startRenderDataProcess();
-  const connection = createDataConnection();
+  const connection = createDataConnection<RenderModules>();
   try {
     const ready = new Promise<void>((resolve) => {
       const stop = connection.subscribe(() => {

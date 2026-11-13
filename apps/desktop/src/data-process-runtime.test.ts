@@ -4,6 +4,7 @@ import { createDataConnection } from "@self-engine/data-client";
 import type { Database, Migration } from "@self-engine/db";
 import { openDatabase } from "@self-engine/db/better-sqlite3";
 import { afterEach, describe, expect, it } from "vite-plus/test";
+import { dataModules } from "./data-modules.ts";
 import { portHandoff, servingHealth } from "./data-process-messages.ts";
 import { type ParentPort, runDataProcess } from "./data-process-runtime.ts";
 
@@ -38,13 +39,10 @@ function start(parentPort: FakeParentPort, migrations?: readonly Migration[]) {
       parentPort,
       database: entry.database,
       checkOutputs: true,
-      ...(migrations === undefined
-        ? {}
-        : {
-            modules: {
-              fixture: { name: "fixture", migrations, contract: {}, rowMap: {}, entries: {} },
-            },
-          }),
+      modules:
+        migrations === undefined
+          ? dataModules
+          : { fixture: { name: "fixture", migrations, contract: {}, rowMap: {}, entries: {} } },
     }),
   };
 }
@@ -57,7 +55,7 @@ afterEach(async () => {
 });
 
 describe("runDataProcess", () => {
-  it("starts from the core module list, applies its migrations and answers health", async () => {
+  it("starts from the app's module list, applies its migrations and answers health", async () => {
     const parentPort = new FakeParentPort();
     const { channel, running } = start(parentPort);
     await running;

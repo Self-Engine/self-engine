@@ -4,7 +4,7 @@
 import { createORPCClient, ORPCError } from "@orpc/client";
 import { RPCLink } from "@orpc/client/message-port";
 import type { ContractRouterClient } from "@orpc/contract";
-import type { AppContract } from "@self-engine/contracts";
+import type { ProtocolContract } from "@self-engine/data-protocol";
 import { createMigrationRunner, type Database, type Migration } from "@self-engine/db";
 import { openDatabase } from "@self-engine/db/better-sqlite3";
 import { sql } from "kysely";
@@ -23,7 +23,7 @@ afterEach(async () => {
 
 async function start(
   options: Parameters<typeof startTestDataProcess>[0],
-): Promise<ContractRouterClient<AppContract>> {
+): Promise<ContractRouterClient<ProtocolContract>> {
   const dataProcess = await startTestDataProcess(options);
   started.push(dataProcess);
   return createORPCClient(new RPCLink({ port: dataProcess.openPort() }));

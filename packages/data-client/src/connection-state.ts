@@ -1,4 +1,4 @@
-import type { HealthFailure } from "@self-engine/contracts";
+import type { HealthFailure } from "@self-engine/data-protocol";
 
 /**
  * Where the renderer's connection to the data process stands. A crashed data process is a state
