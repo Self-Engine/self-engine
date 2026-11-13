@@ -88,7 +88,7 @@ export function blockersOf(body: string): number[] {
   return [...text.matchAll(/#(\d+)/gu)].map((match) => Number(match[1]));
 }
 
-/** The status of a ticket, read from GitHub in the order docs/agents/workflow.md states. */
+/** The status of a ticket, read from GitHub and never kept by hand (D155). The first match wins. */
 export function statusOf(
   issue: Issue,
   context: { readonly hasOpenPullRequest: boolean; readonly hasChildren: boolean },
