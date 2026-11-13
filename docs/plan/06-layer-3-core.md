@@ -14,6 +14,7 @@ Stand: 2026-11-10 · Status: **entschieden** (D143–D154), Spec #103, Issues #1
 | L3.5 | Zeit | Eine Zeitzone als Synced Setting, keine Historie, Tageslogik nie in SQL (D147) |
 | L3.6 | Zeit | Übernahme mit Pflicht-Uhr, Typen bis in die Zeile, Lint-Regeln (D148); `Instant` entsteht vorab in #31 (D223) |
 | L3.7 | Zeit | Ergänzungen aus unabhängiger Prüfung (D149) |
+| – | Zeit | Grilling zu #104: für die neue App geschnitten, Temporal im Inneren, fünf Zeitwerte, strenge Lint-Regel, Prüfung in Electrons Laufzeit (D279–D285, ändern D148 und D149) |
 | L3.8 | Tags | Tabelle `tags`, Brücken gehören den Modulen, weiches Löschen (D150) |
 | L3.9 | Icon, Farbe | Name oder Emoji, Farbsatz-Name, vier neue Farbsätze, kein neues Paket (D151) |
 | L3.10 | Abläufe | Brücken-Pakete über den Modulen, gemeinsame Transaktion, Schutzregeln (D152) |
@@ -41,11 +42,12 @@ Icon-Verzeichnis und reine Einstiege ohne React (D151).
 
 Spec: [#103](https://github.com/Self-Engine/self-engine/issues/103). Jedes Paket außer #107 wird
 vor dem Bau gegrillt und trägt bis dahin `needs-grilling` (D155), danach wird es in Teil-Tickets
-geschnitten. Gebaut wird in Nummernreihenfolge.
+geschnitten. Gebaut wird in der Reihenfolge aus D279: #104, #108, dann Schicht 4 mit Projekten; die
+übrigen Pakete folgen, sobald ein Modul sie braucht.
 
 | Issue | Paket | Entscheidungen | Blocked by |
 |---|---|---|---|
-| #104 | `time` mit Uhr und Lint-Regeln | D148, D149, D223 | – |
+| #104 | `time` mit Uhr und Lint-Regeln | D148, D149, D223, D279–D285 | – |
 | #105 | `money` | D145, D146, D153 | – |
 | #106 | Icon und Farbe an Entitäten | D151 | – |
 | #107 | ADR und Glossar für Brücken | D152 | – |
