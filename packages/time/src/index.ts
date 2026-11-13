@@ -9,3 +9,5 @@ export { isoWeekNumber } from "./calendar.ts";
 export { epochMsOf, instantFromDate } from "./borders.ts";
 export { durationBetween } from "./duration.ts";
 export type { Clock } from "./clock.ts";
+export { deviceTimeZone, resolveTimeZone, sameTimeZone } from "./zone.ts";
+export type { ResolvedTimeZone, TimeZone } from "./zone.ts";
