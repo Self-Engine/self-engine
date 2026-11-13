@@ -1,7 +1,7 @@
 ---
 status: accepted
 date: 2026-11-10
-decisions: D174, D175, D176, D177, D178, D261
+decisions: D174, D175, D176, D177, D178, D261, D265
 ---
 
 # A Command's kind decides who can start it, and its code loads on demand
@@ -20,7 +20,7 @@ Every action of the app has to be reachable from a button, a shortcut, the Comma
    | `open`  | a person or a later agent          | no         | no             | yes                |
    | `input` | a later agent, until a form exists | no         | yes            | none               |
 
-   A Command with both a page and required input does not exist, because nobody could start it. A module's main action is never `input`. The types enforce both, and only a `page` Command gets the address capability in its context. Every Command, of every kind, gets the Port access in its context (`data`, D261): a Command calls an Operation through the Operation's function form, outside React, with the same access the app gives the data building block.
+   A Command with both a page and required input does not exist, because nobody could start it. A module's main action is never `input`. The types enforce both, and only a `page` Command gets the address capability in its context. Every Command, of every kind, gets the Port access and the data building block's notice seam in its context (`data`, D261, D265): a Command calls an Operation through the Operation's function form, outside React, with the same access and notices the app gives the data building block, so a story or test that substitutes them also collects the Operation's notices.
 
 2. **The contribution holds what the palette and shortcuts need at once:** short id, kind, label, default shortcut and `load`. Schema, English description and `run` live in the loaded file, as a View's code does (ADR 0013). The description is for a model, so it is not translated.
 

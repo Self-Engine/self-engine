@@ -143,8 +143,8 @@ emitted chunk graph. Starting at every entry, it follows **static** imports and 
 shared JavaScript chunk once. Dynamic imports, CSS, fonts and other assets are outside this
 JavaScript budget. The report is `apps/web/dist/startup-bundle.json`.
 
-The current baseline is **872,853 raw bytes** across 15 static chunks. The limit is **904 KiB
-(925,696 bytes)**: the measured size plus 6 %, rounded up to whole KiB (D258). Raw emitted bytes
+The current baseline is **873,305 raw bytes** across 15 static chunks. The limit is **905 KiB
+(926,720 bytes)**: the measured size plus 6 %, rounded up to whole KiB (D258). Raw emitted bytes
 avoid a compression-version dependency. A deliberate budget increase must explain the measured
 cost in its PR; splitting filenames or moving code to a shared chunk does not evade it.
 
@@ -152,7 +152,9 @@ The last increase came with #224, when the app mounted the data building block a
 query library. Startup JavaScript went from **832,739 bytes** (14 chunks, at the tip of the
 integration branch before the slice) to **872,853 bytes** (15 chunks), **+40,114 bytes**. The old
 limit of 851,968 bytes would have failed the build. In the built desktop smoke stage, the first
-answer did not take measurably longer (see "Views on the Port" below).
+answer did not take measurably longer (see "Views on the Port" below). The review fixes of #33,
+with `main` merged in (#182, #183), measured **873,305 bytes** (+452); by the same rule the limit
+went from 904 to 905 KiB.
 
 Independently of size, a workspace module declared as a dynamic-import target must stay
 out of static startup chunks. This catches eager imports of contribution Views, Groups,

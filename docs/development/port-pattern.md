@@ -149,7 +149,8 @@ row-map type. It takes the consumer's transaction as `ReadTransaction<DB> | Tran
 generic in `DB`, so a consumer passes its `tx` without a cast.
 `self-engine/no-foreign-row-map` rejects consumers importing foreign row maps
 or accessing an imported foreign module's `.rowMap`, including through `typeof`.
-The app's module list (`apps/desktop/src/data-modules.ts`) may compose the complete list.
+Only the desktop app's module list (`apps/desktop/src/data-modules.ts`) imports every module's
+data entry.
 
 Follow the second template,
 [`note-links/data/index.ts`](../../packages/storage/test/note-links-module/data/index.ts):
@@ -227,13 +228,15 @@ Done when the kit returns no violations and business tests cover behavior beyond
 
 ## 7. Connect the module and verify
 
-Add the data entry under its contract namespace to
-[`data-process/src/core/modules.ts`](../../packages/data-process/src/core/modules.ts).
-That single list builds both migrations and the router; module namespaces must not be
-`health` or `tablesChanged`, which are reserved procedures; compose the matching module contract
-in the app-wide contracts package. The list is typed against the app contract, and a test
-compares the mounted namespace keys. Add dependencies and allowed import directions together.
-Modules import storage, never data-process. Storage itself imports neither Electron nor a
+Add the data entry under its contract namespace to the desktop app's module list,
+[`apps/desktop/src/data-modules.ts`](../../apps/desktop/src/data-modules.ts), which the app
+passes to the Data Process; the core knows no module, so a module's tests may start it without a
+cycle between packages. That single list builds both migrations and the router; module namespaces
+must not be `health` or `tablesChanged`, which are reserved procedures of
+`@self-engine/data-protocol`; compose the matching module contract in the app-wide contracts
+package. The list is typed against the app contract, and a test compares the mounted namespace
+keys. Add dependencies and allowed import directions together. Modules import storage, never
+data-process, except from their tests (`TEST_ONLY_IMPORTS`). Storage itself imports neither Electron nor a
 native driver; the driver and transport remain replaceable, independently of future sync.
 
 The shared frame opens one transaction per call, runs the lower function, validates outputs

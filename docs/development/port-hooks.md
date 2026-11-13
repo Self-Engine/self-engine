@@ -2,7 +2,7 @@
 
 Use this guide when a module’s Views, drawers or Commands read or change its data. It starts
 where [the port guide](port-pattern.md) ends: the module has a Contract, a Storage with
-`reads` on every Query, and is mounted in the app contract and in the Data Process’s module
+`reads` on every Query, and is mounted in the app contract and in the desktop app’s module
 list. [ADR 0021](../adr/0021-the-page-reloads-a-query-after-a-table-change-through-one-building-block.md)
 records the binding parts. The template is
 [`placeholder-alpha`](../../packages/placeholder-alpha/src/): `port.ts` builds its hooks,
@@ -50,7 +50,7 @@ export const createEntry = alphaPort.run("create", nameTaken); // for Commands, 
 - **Import the Contract as a type only** (`import type`). Its schemas then never load in the
   app; only story and test code loads them (step 6).
 - **The string is the mount name**: the module’s key in the app contract and in
-  `data-process/src/core/modules.ts`, the same as `name` in `defineStorageModule`.
+  `apps/desktop/src/data-modules.ts`, the same as `name` in `defineStorageModule`.
 - **Entry names, inputs and answers are typed from the Contract.** A misspelled entry or a
   wrong input does not compile.
 - **Name no tables.** Which tables a Query reads comes from its `reads` on the data side (port
@@ -64,8 +64,15 @@ export const createEntry = alphaPort.run("create", nameTaken); // for Commands, 
   hooks.
 
 The hooks need a `DataProvider` above them. The app mounts one around the router
-(`apps/web/src/main.tsx`), with the real connection’s access (`portAccessOf(dataConnection)`).
-A module never mounts one itself, except in a story or test.
+(`apps/web/src/main.tsx`) with the access `startPageData` returns: in the desktop app the real
+connection’s (`portAccessOf(dataConnection)`). The web app has no Data Process yet: its
+connection stops at startup, the page shows that the data cannot be reached, without a retry,
+and its access is `NO_DATA_PROCESS`, whose every call fails at once (D263). A module never
+mounts a provider itself, except in a story or test.
+
+Every Notice of the building block goes through one seam, the provider’s `notify`: by default
+the feedback system shows it, translated while it is on screen; a story or test passes its own
+to collect them.
 
 ## 2. Read with a Query hook
 
@@ -125,7 +132,7 @@ rejects:
 | `status`     | Fields                    | The building block’s Notice                                   |
 | ------------ | ------------------------- | ------------------------------------------------------------- |
 | `success`    | `data`                    | none                                                          |
-| `conflict`   | `reason`, `field`, `text` | none: show `text` at `field`                                  |
+| `conflict`   | `reason`, `field`, `text` | none: show `text` at `field`; `text` when `field` is `null`   |
 | `notFound`   | none                      | “This entry no longer exists.”, unless the module replaces it |
 | `unexpected` | `error`                   | “Something went wrong, and the change was not saved.”         |
 
@@ -135,9 +142,9 @@ rejects:
 **Conflict texts.** For each conflict reason the Contract entry declares, the hook needs a
 translated text (a `msg` descriptor) and the input field it belongs to. The types demand
 exactly one per reason: a missing or an extra reason does not compile, nor does leaving out the
-handling for an entry with a conflict, nor a `field` that is not a key of the input. An entry
-without a conflict takes no handling (`alphaPort.operation("delete")`). A conflict reason
-arriving without a text counts as unexpected.
+handling for an entry with a conflict, nor a `field` that is not a key of the input, nor leaving
+out `field`. An entry without a conflict takes no handling (`alphaPort.operation("delete")`). A
+conflict reason arriving without a text counts as unexpected.
 
 **A form** shows the conflict at its field and keeps the drawer open
 ([`edit-drawer.tsx`](../../packages/placeholder-alpha/src/edit-drawer.tsx)):
@@ -157,9 +164,23 @@ const save = async () => {
 ```
 
 Translate the text where it is shown (`i18n._(text)`), so it follows a language switch.
-Without a form, as for undo or a Command, show it as an error Notice; `notices.tsx` in the
-template does that with `notifyConflict(result.text)`. A conflict with no field of its own names
-the input’s only field, as `restore` names `id`.
+
+**A conflict without a field.** Where no field can show it, as for undo or a Command without a
+form, state `field: null` (D264). The building block then shows the text as an error Notice
+itself, once, and the result still says `conflict`, with `field: null`:
+
+```ts
+export const useRestoreEntry = alphaPort.operation("restore", {
+  conflicts: {
+    name_taken: {
+      text: msg`The entry could not come back: another entry has its name now.`,
+      field: null,
+    },
+  },
+});
+```
+
+Never show a Notice from the module yourself: what the building block lacks is added there.
 
 **Replacing “not found”.** Pass `notFound: (input) => { … }` in the handling to run instead of
 the default Notice, where the module knows better. The caller still receives
@@ -207,30 +228,29 @@ yours with `pnpm renders` ([performance checks](performance.md#compare-component
 
 ## 5. Call an Operation from a Command
 
-A Command runs outside React and cannot use a hook. Every Command, of every kind, gets the Port
-access in its context as `data`, the same access the app gives `DataProvider`. Build the
-Operation’s function form next to its hook with `run` instead of `operation`; it takes the same
-handling and returns the same result with the same default Notices:
+A Command runs outside React and cannot use a hook. Every Command, of every kind, gets in its
+context as `data` what the app gives `DataProvider`: the Port access and the notice seam
+(`{ access, notify }`, from `useDataAccess()`). Build the Operation’s function form next to its
+hook with `run` instead of `operation`; it takes the same handling and returns the same result,
+with the same default Notices through the same seam:
 
 ```ts
-// port.ts
-export const createEntry = alphaPort.run("create", nameTaken);
+// port.ts: no form to show a taken name at, so the building block shows it (step 3)
+export const createSampleEntry = alphaPort.run("create", {
+  conflicts: { name_taken: { text: nameTaken.conflicts.name_taken.text, field: null } },
+});
 
 // add-sample-entry.ts
 export default defineOpenCommand({
   description: "Adds a sample entry. The name is optional.",
   schema: z.object({ name: z.string().min(1).default("Sample entry") }),
-  run: async ({ name }, { data }) => {
-    const result = await createEntry(data, { name });
-    if (result.status === "conflict") notifyConflict(result.text); // no form to show it at
-    return result;
-  },
+  run: ({ name }, { data }) => createSampleEntry(data, { name }),
 });
 ```
 
-A Command for a later agent returns the result as its value
-([`create-named-entry.ts`](../../packages/placeholder-alpha/src/create-named-entry.ts)). The
-function form’s Notices go straight to the app’s feedback system, not through a `DataProvider`.
+A Command for a later agent returns the result as its value, conflict and field included
+([`create-named-entry.ts`](../../packages/placeholder-alpha/src/create-named-entry.ts) with
+`createEntry`). A story or test that gives a Command its own `data` collects its Notices too.
 
 ## 6. Show each state in a story with Fixed Answers
 
@@ -284,7 +304,11 @@ each conflict at its field, and an entry gone while editing
 ([`placeholder-alpha-entries.stories.tsx`](../../apps/web/src/placeholder-alpha-entries.stories.tsx)).
 
 A Fixed Answer never changes: an Operation returns its answer and changes nothing, and no Table
-Change follows. Stories show states, not flows.
+Change follows. Stories show states, not flows. The one exception is a story that measures what a
+change redraws: `changingAnswers(first, queries)` from the same entry switches to the next Fixed
+Answers and delivers their Table Change in one step, as the render-count gate does (step 4).
+Where no call is meant to reach a Port, pass `NO_DATA_PROCESS` from
+`@self-engine/data-client/react`; do not write an inert access of your own.
 
 ## 7. Test the flow over the real Data Process
 
@@ -298,13 +322,15 @@ const connection = createDataConnection();
 connection.connect(process.openPort());
 // wait until connection.getState().status is "ready", then:
 const access = portAccessOf(connection);
-// render the hooks under <DataProvider access={access} notify={(n) => notices.push(n)}>,
-// run each Operation, and wait for the render whose Query answer shows the change.
+const data = { access, notify: (notice) => notices.push(notice) }; // what a Command gets
+// render the hooks under <DataProvider access={access} notify={data.notify}>, run each
+// Operation, and wait for the render whose Query answer shows the change.
 ```
 
 A module may not import `data-process` from its code. Add it as a devDependency and to the
 module’s entry in `TEST_ONLY_IMPORTS` in `.dependency-cruiser.ts`, which allows it in test and
-story files only. Hook tests run under `// @vitest-environment happy-dom`.
+story files only. That closes no cycle between packages, because the Data Process core knows no
+module; the app passes its module list in. Hook tests run under `// @vitest-environment happy-dom`.
 
 Done when the Views read and write only through the module’s hooks, every state has a story,
 the flow test passes, and `pnpm verify` ends with `VERIFY: PASS`.

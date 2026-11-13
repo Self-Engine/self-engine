@@ -1,7 +1,7 @@
 ---
 status: accepted
 date: 2026-11-13
-decisions: D247, D248, D249, D250, D251, D253, D255, D256, D257, D261
+decisions: D247, D248, D249, D250, D251, D253, D255, D256, D257, D261, D263, D264, D265
 ---
 
 # The page reloads a Query after a Table Change, through one building block
@@ -38,11 +38,19 @@ is spent drawing.
   for page lists comes with the list that draws only what is visible (#137).
 - **Expected errors are values.** An Operation returns success, a conflict with its reason,
   not found, or unexpected, and throws for none of them. The module gives every conflict reason
-  of an entry a translated text and a field; the types demand all of them. The building block
-  announces “not found”, which a module may replace, and unexpected errors.
+  of an entry a translated text and a field, or states `field: null` where no field can show it;
+  the types demand all of them. The building block announces “not found”, which a module may
+  replace, unexpected errors, and the text of a conflict without a field.
 - **Commands reach the Port through their context.** Every Command context carries the Port
-  access the app gives the building block, and the building block offers each Operation as a
-  function of that access, with the same result and the same default Notices as the hook.
+  access the app gives the building block together with its notice seam, and the building block
+  offers each Operation as a function of both, with the same result and the same default Notices
+  as the hook.
+- **One notice seam.** Every Notice of the building block (an Operation’s, a failed reload’s, a
+  conflict without a field) goes through the `notify` of the `DataProvider`, which shows it
+  through the feedback system unless a story or test collects it.
+- **The web app has no Data Process yet.** Without the desktop app the connection stops at
+  startup: the page shows the state the desktop app shows when its data cannot be reached,
+  without the retry, and every call fails at once instead of waiting behind it.
 - **Shared states.** One piece in `ui` maps a Query’s state to the existing loading state
   (after its delay), the error state with retry, or the answer. A failed reload keeps the
   answer and shows a Notice that it may be outdated.
