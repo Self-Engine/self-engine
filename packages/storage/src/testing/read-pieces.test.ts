@@ -185,10 +185,9 @@ async function linksFilteredByTitle(
   context: StorageContext,
   input: { title?: string | undefined },
 ) {
-  let query = sharedEntry<TablesOf<typeof linksRowMap>>(tx, context).live("note_links").selectAll();
+  let query = sharedEntry(tx, context).live("note_links").selectAll();
   if (input.title !== undefined) {
-    // TypeScript loses the assignability to the read piece's parameter once `tx` built a query here.
-    const target = noteTitles(tx as ReadTransaction<{}>, context, "target");
+    const target = noteTitles(tx, context, "target");
     const titled = tx
       .selectFrom(target)
       .select("target.id")

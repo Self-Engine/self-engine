@@ -145,14 +145,17 @@ Done when every list has an explicit kind, and page query plans use an index for
 The owner exports a read piece from `./data` with only fixed released columns and a built-in
 Space filter. [`noteTitles`](../../packages/storage/test/notes-module/data/read-piece.ts)
 returns `id`, `title` and `deletedAt`, including deleted targets. The owner alone supplies its
-row-map type. `self-engine/no-foreign-row-map` rejects consumers importing foreign row maps
+row-map type. It takes the consumer's transaction as `ReadTransaction<DB> | Transaction<DB>`,
+generic in `DB`, so a consumer passes its `tx` without a cast.
+`self-engine/no-foreign-row-map` rejects consumers importing foreign row maps
 or accessing an imported foreign module's `.rowMap`, including through `typeof`.
-The Data Process may compose the complete module list.
+The app's module list (`apps/desktop/src/data-modules.ts`) may compose the complete list.
 
 Follow the second template,
 [`note-links/data/index.ts`](../../packages/storage/test/note-links-module/data/index.ts):
 keep only owned rows in the consuming row map and join `noteTitles(tx, context, "target")`
-in one query. Its left join retains the link when the target is absent or in another Space;
+in one query. `tx` and `sharedEntry(tx, context)` are typed from the row map by the two-step
+definition; write no transaction type and no type argument by hand. Its left join retains the link when the target is absent or in another Space;
 a deleted target retains its title and explicit deletion mark.
 
 An operation that stores a reference to another module's row looks the target up through the
