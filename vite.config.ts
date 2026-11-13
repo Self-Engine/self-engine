@@ -124,7 +124,8 @@ export default defineConfig({
       // The inputs are named: the cache cannot follow the reads of Electron and its processes,
       // and the run writes only to a temporary folder it removes. The bundles, the web build,
       // the launcher with the page's mark name it reads, and the lockfile for the Electron,
-      // Playwright and SQLite versions.
+      // Playwright and SQLite versions. The time check bundles its sources during smoke rather
+      // than the app build, so its sources and bundle adapter are inputs too.
       "verify:smoke": {
         command: "node scripts/desktop-smoke.ts",
         dependsOn: ["ensure-electron"],
@@ -136,6 +137,9 @@ export default defineConfig({
             "packages/desktop-bridge/src/**",
             "scripts/desktop-app.ts",
             "scripts/desktop-smoke.ts",
+            "scripts/time-runtime-check.ts",
+            "packages/time/src/**",
+            "packages/time/package.json",
             "scripts/ensure-electron.ts",
             "pnpm-lock.yaml",
           ],
