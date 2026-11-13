@@ -87,6 +87,36 @@ function entryOf(query: Query): readonly [string, string] | undefined {
   return typeof module === "string" && typeof entry === "string" ? [module, entry] : undefined;
 }
 
+/**
+ * Marks the answers `changed` picks and reloads those on screen (D250). A first load under way
+ * cannot be restarted: the library hands the new reader that same load, whose answer may predate
+ * the change and would clear the mark. Such a Query reads once more after that load arrives.
+ */
+function markChanged(cache: QueryClient, changed: (query: Query) => boolean): void {
+  const firstLoads = cache
+    .getQueryCache()
+    .findAll({ predicate: changed, fetchStatus: "fetching" })
+    .filter((query) => query.state.data === undefined);
+  void cache.invalidateQueries({ predicate: changed });
+  for (const query of firstLoads) readAgainAfter(cache, query);
+}
+
+/** First loads that read again once they arrive; one more read covers every change meanwhile. */
+const readingAgain = new WeakSet<Query>();
+
+function readAgainAfter(cache: QueryClient, query: Query): void {
+  const load = query.promise;
+  if (load === undefined || readingAgain.has(query)) return;
+  readingAgain.add(query);
+  const again = () => {
+    readingAgain.delete(query);
+    // A load that failed left no answer: the View shows its error and offers a retry.
+    if (query.state.status !== "success") return;
+    void cache.invalidateQueries({ queryKey: query.queryKey, exact: true });
+  };
+  load.then(again, again);
+}
+
 export interface DataProviderProps {
   /** How the hooks below reach the Data Process: the app's connection, or a stand-in. */
   readonly access: PortAccess;
@@ -137,19 +167,17 @@ export function DataProvider({
     const stopTables = access.onTablesChanged((tables) => {
       if (tables.length === 0) return;
       const changed = new Set(tables);
-      void cache.invalidateQueries({
-        predicate(query) {
-          const key = entryOf(query);
-          if (key === undefined) return false;
-          const description = access.describeEntry(...key);
-          // Before the list arrived nothing can be ruled out; an Operation reads nothing.
-          if (description === undefined) return true;
-          return description.kind === "query" && description.reads.some((t) => changed.has(t));
-        },
+      markChanged(cache, (query) => {
+        const key = entryOf(query);
+        if (key === undefined) return false;
+        const description = access.describeEntry(...key);
+        // Before the list arrived nothing can be ruled out; an Operation reads nothing.
+        if (description === undefined) return true;
+        return description.kind === "query" && description.reads.some((t) => changed.has(t));
       });
     });
     // Table Changes may have been lost while the connection was down (D250).
-    const stopReconnect = access.onReconnected(() => void cache.invalidateQueries());
+    const stopReconnect = access.onReconnected(() => markChanged(cache, () => true));
     return () => {
       stopTables();
       stopReconnect();
