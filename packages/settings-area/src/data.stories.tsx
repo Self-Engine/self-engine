@@ -72,7 +72,12 @@ const timeOf = ({ takenAt }: { readonly takenAt: string }, locale = "en") =>
     new Date(takenAt),
   );
 
-const noticeWith = (text: string) => screen.findByText(text);
+/** The Notice with this text, once it has slid in: it is in the document before it is visible. */
+async function noticeWith(text: string) {
+  const notice = await screen.findByText(text);
+  await waitFor(() => expect(notice).toBeVisible());
+  return notice;
+}
 
 export const TheBackupsAreListedNewestFirstWithTheirReason: Story = {
   parameters: { answers: { list: { data: SAMPLE_BACKUPS } } },
