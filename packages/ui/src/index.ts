@@ -4,6 +4,8 @@ export {
   type ConfirmOptions,
   FeedbackHost,
   NOTICE_CLEARANCE_VARIABLE,
+  notifyDone,
+  type NotifyDoneOptions,
   notifyError,
   notifyProgress,
   type NotifyProgressOptions,

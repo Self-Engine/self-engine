@@ -399,3 +399,69 @@ test("hook input and answer are typed from the module's Contract", () => {
   notesPort.query("lsit");
   expect(typeof typed).toBe("function");
 });
+
+// A Query whose data no table holds, like the list of Backups: it reads no table, so no Table
+// Change reloads it, and the View does after its own Operation.
+const useReloadNote = notesPort.reload("get");
+
+const getCalls = (port: FakePort) => port.calls.filter((call) => call.entry === "get").length;
+
+test("the reload function reloads every answer of its entry on screen, and no other entry", async () => {
+  const port = fakePort({ notes: { list: [], get: [] } });
+  let title = "Alpha";
+  port.answer(
+    "list",
+    listAnswer(() => [title]),
+  );
+  port.answer("get", (input) => note((input as { id: string }).id, title));
+  const view = await renderHook(port, () => ({
+    list: useNoteList({}),
+    first: useNote({ id: "note-0" }),
+    second: useNote({ id: "note-1" }),
+    reload: useReloadNote(),
+  }));
+  expect(getCalls(port)).toBe(2);
+
+  title = "Beta";
+  port.changeTables(["notes"]);
+  await settle();
+  expect(getCalls(port)).toBe(2);
+
+  act(() => view.current().reload());
+  await settle();
+
+  expect(getCalls(port)).toBe(4);
+  expect(data(view.current().first).title).toBe("Beta");
+  expect(data(view.current().second).title).toBe("Beta");
+  expect(listCalls(port)).toBe(1);
+});
+
+test("a Query off screen is marked by the reload function and called again only when shown", async () => {
+  const port = fakePort({ notes: { get: [] } });
+  port.answer("get", () => note("note-0", "Alpha"));
+  let reload = () => {};
+  function useNoteAndReload() {
+    reload = useReloadNote();
+    return useNote({ id: "note-0" });
+  }
+  const view = await renderHook(port, useNoteAndReload);
+  await view.show(false);
+
+  act(() => reload());
+  await settle();
+  expect(getCalls(port)).toBe(1);
+
+  await view.show(true);
+  expect(getCalls(port)).toBe(2);
+});
+
+test("the reload function stays the same function across renders", async () => {
+  const port = fakePort();
+  port.answer("get", () => note("note-0", "Alpha"));
+  const view = await renderHook(port, () => useReloadNote());
+  const first = view.current();
+
+  await view.redraw();
+
+  expect(view.current()).toBe(first);
+});

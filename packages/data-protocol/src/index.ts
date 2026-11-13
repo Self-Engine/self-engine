@@ -1,3 +1,13 @@
+export {
+  type Backup,
+  type BackupKind,
+  backupKindSchema,
+  type BackupList,
+  backupListSchema,
+  backupSchema,
+  backupsContract,
+  type BackupsContract,
+} from "./backups.ts";
 export { type Health, type HealthFailure, healthContract, healthSchema } from "./health.ts";
 export { PROTOCOL_PROCEDURES, protocolContract, type ProtocolContract } from "./protocol.ts";
 export {

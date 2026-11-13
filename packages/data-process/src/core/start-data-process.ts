@@ -2,6 +2,7 @@ import type { Health, TablesChanged } from "@self-engine/data-protocol";
 import type { Database } from "@self-engine/db";
 import { createFrame, type ContextSources, type FrameOptions } from "@self-engine/storage";
 import type { DataModules } from "./modules.ts";
+import type { PlatformBackups } from "./procedures/backups.ts";
 import { queryTables } from "./query-tables.ts";
 import { createRouter } from "./router.ts";
 import { createPortServer, type DataPort } from "./serve.ts";
@@ -18,6 +19,11 @@ export interface DataProcessOptions {
   readonly report?: FrameOptions["report"];
   /** Called before the migrations run when some are pending, and not when none are (D138). */
   readonly beforeMigrations?: BeforeMigrations;
+  /**
+   * The platform's Backups with the restart a restore ends with, answered as the protocol's
+   * `backups` (D94). Without them every call to `backups` fails.
+   */
+  readonly backups?: PlatformBackups;
 }
 
 export interface DataProcess {
@@ -44,6 +50,7 @@ export async function startDataProcess({
   checkOutputs,
   beforeMigrations,
   report,
+  backups,
 }: DataProcessOptions): Promise<DataProcess> {
   const health = await migrate(
     database,
@@ -66,7 +73,16 @@ export async function startDataProcess({
   return {
     health,
     serve: createPortServer(
-      createRouter({ health, tablesChanged, queries: queryTables(modules), moduleRouter }),
+      createRouter({
+        health,
+        tablesChanged,
+        queries: queryTables(modules),
+        moduleRouter,
+        backups: {
+          backups,
+          reportUnexpected: (entry, error) => report?.({ kind: "unexpected-error", entry, error }),
+        },
+      }),
     ),
     announceTablesChanged: (tables) => tablesChanged.announce(tables),
   };

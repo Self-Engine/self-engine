@@ -70,6 +70,10 @@ _Avoid_: repository, data service
 The implementation of a module’s _Port_ against the stored data. Its lower layer works within an existing transaction; its upper layer checks calls, owns the transaction and announces committed table writes.
 _Avoid_: port (for its implementation), persistence layer
 
+**Backup** (de: _Sicherung_):
+A whole copy of the database, kept as a file in the data folder of the channel. One is taken once a day, before an update changes the stored data, when the user asks, and before a restore, of the data it replaces. It lies on the same device and is not a sync.
+_Avoid_: snapshot, export, dump, archive
+
 **Data Process** (de: _Datenprozess_):
 The process of the desktop app that holds the database and answers the page's calls. The page reaches it directly, not through the main process. When it is lost, the connection is lost, not a call.
 _Avoid_: backend, server, worker, database process

@@ -1,3 +1,4 @@
+import { answersByMount } from "@self-engine/data-client/testing";
 import { APPEARANCE_SETTINGS, appearanceChanges } from "@self-engine/settings-area/settings";
 import { DEFAULT_APPEARANCE } from "@self-engine/theme";
 import type { Meta, StoryObj } from "@storybook/react-vite";
@@ -5,9 +6,17 @@ import { expect, fireEvent, userEvent, waitFor, within } from "storybook/test";
 import { settingsStore } from "./settings-store.ts";
 import { loadStoryApp, AppAt, storyRouter } from "./story-app.tsx";
 import { placeholderAlphaAnswers } from "@self-engine/placeholder-alpha/testing";
+import { backupAnswers } from "@self-engine/settings-area/testing";
 
 const APPEARANCE = "/settings/appearance";
 const LANGUAGE = "/settings/language";
+
+/**
+ * What the Port answers while the settings are shown: the rows of `placeholder-alpha`, and the
+ * Backups, whose rows the View Data and a search show.
+ */
+const settingsAnswers = () =>
+  answersByMount({ placeholderAlpha: placeholderAlphaAnswers(), backups: backupAnswers() });
 
 // The search on the real router: its text is a search parameter of the address, which the Views
 // of the settings share.
@@ -18,7 +27,7 @@ const meta = {
   loaders: [loadStoryApp],
   // The store is the app's one, on the browser's storage, which the next story shares.
   beforeEach: () => () => settingsStore.writeAll(appearanceChanges(DEFAULT_APPEARANCE)),
-  args: { address: APPEARANCE, access: placeholderAlphaAnswers() },
+  args: { address: APPEARANCE, access: settingsAnswers() },
 } satisfies Meta<typeof AppAt>;
 export default meta;
 type Story = StoryObj<typeof meta>;

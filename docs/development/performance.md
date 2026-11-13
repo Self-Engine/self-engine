@@ -304,3 +304,43 @@ command (`node scripts/desktop-smoke.ts`, fresh data folder) on a built `main` (
 branch, the **Data Process first answer** had a median of **205 ms on main** (range 161–379 ms) and
 **179.5 ms on the branch** (range 149–484 ms): no measurable change. The first answer is the
 connection's first `ready`, so it includes loading the larger startup bundle.
+
+## Backups
+
+Measured during #35 on an Apple M3 Pro with Node 26.13.0, on real files in a temporary folder
+(SQLite in write-ahead mode, rows of 1,000 bytes; median of 7 runs, of 5 for a restore).
+[ADR 0024](../adr/0024-a-backup-is-a-whole-copy-beside-the-database-and-the-next-start-puts-a-restore-in-place.md)
+records what a Backup is.
+
+| Database | Take a Backup | Longest pause of the event loop | Restore until its answer | Put in place at the next start |
+| -------- | ------------- | ------------------------------- | ------------------------ | ------------------------------ |
+| 1 MB     | 8 ms          | 7 ms                            | 15 ms                    | 0.8 ms                         |
+| 10 MB    | 18 ms         | 18 ms                           | 44 ms                    | 0.6 ms                         |
+| 100 MB   | 165 ms        | 32 ms                           | 295 ms                   | 1.4 ms                         |
+
+- **Taking a Backup** goes through SQLite's backup in steps, so the Data Process keeps answering:
+  the event loop never paused longer than 32 ms. The time includes pruning the folder.
+- **A restore until its answer** is the check of the Backup's file, its copy beside the database
+  and the Backup of the data it replaces. The restart that follows took about 110 ms in the built
+  desktop app, from the page losing the connection to being ready again. For that whole span,
+  0.13 s at 1 MB to 0.4 s at 100 MB, the database refuses writes: an Operation in it fails and
+  says so, and none is lost.
+- **The hourly check** of a running Data Process, when no Backup is due, reads the folder's names:
+  **0.2 ms**.
+- **At start** the daily Backup is taken after the Data Process serves, so it delays no answer.
+  With 10 alternating runs each of `node scripts/desktop-smoke.ts` (fresh data folder) on a built
+  `main` (`ae1cca2`) and the branch, the **Data Process first answer** had a median of **146 ms on
+  main** (range 136–150 ms) and **143.5 ms on the branch** (range 139–162 ms): no measurable
+  change. A start with pending
+  migrations on a database that has tables waits for one Backup first, the "take" column above; a
+  first start has no tables and takes none.
+- **Bytes.** Measured on a build of `main` at `ae1cca2` and of the branch with it merged. Startup
+  JavaScript went from **839,339 to 839,665 bytes** (+326: the title of the View "Data" and the
+  reload hook), far below the limit, which stays; no schema loads at startup. The hint for a
+  failed automatic Backup uses the error icon the startup already holds: an icon of its own
+  measured +3,266 bytes there. The chunk of the settings area, loaded when the settings are
+  first opened, grew from 48,321 to 54,681 bytes. The data-process bundle grew from **746,275 to
+  763,456 bytes**, the main-process bundle from 216,394 to 229,969 bytes: it reads the
+  protocol's messages, whose package now holds the schemas of `backups`.
+- **Disk.** Each Backup has the size of the database. With one Backup a day the folder holds
+  eleven; it never holds more than 32, four a day for seven days and four weekly.

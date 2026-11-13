@@ -1,5 +1,6 @@
 // Shared by the package's Stories. Not a story file, so the Catalog does not list it.
 
+import { DataProvider, NO_DATA_PROCESS, type PortAccess } from "@self-engine/data-client/react";
 import type { SettingsStore } from "@self-engine/settings";
 import { type ComponentType, useState } from "react";
 import { SettingsPage } from "./area.tsx";
@@ -20,6 +21,11 @@ interface StoryPageOptions {
   readonly commandOwners?: readonly NamedCommandOwner[];
   /** Other rows than the real list. */
   readonly rows?: readonly SettingsRow[];
+  /**
+   * What the rows of the View Data read and call: the Fixed Answers of a story that shows them.
+   * Without it no Data Process answers, as in a story about another View.
+   */
+  readonly access?: PortAccess;
 }
 
 /**
@@ -33,6 +39,7 @@ export function storyViewPage(
     version = STORY_VERSION,
     commandOwners = [],
     rows = settingsRows({ version, commandOwners }),
+    access = NO_DATA_PROCESS,
   }: StoryPageOptions,
 ): ComponentType {
   const { views } = createSettingsArea({
@@ -43,14 +50,16 @@ export function storyViewPage(
   return function StoryViewPage() {
     const [search, setSearch] = useState("");
     return (
-      <SettingsPage
-        onSearch={setSearch}
-        rows={rows}
-        search={search}
-        store={store}
-        view={view}
-        views={views}
-      />
+      <DataProvider access={access}>
+        <SettingsPage
+          onSearch={setSearch}
+          rows={rows}
+          search={search}
+          store={store}
+          view={view}
+          views={views}
+        />
+      </DataProvider>
     );
   };
 }

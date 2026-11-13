@@ -3,7 +3,7 @@ import { RPCLink } from "@orpc/client/message-port";
 import type { ContractRouterClient } from "@orpc/contract";
 import { type AppContract, appContract } from "@self-engine/contracts";
 import { startTestDataProcess, type TestDataProcess } from "@self-engine/data-process/testing";
-import { PROTOCOL_PROCEDURES } from "@self-engine/data-protocol";
+import { PROTOCOL_PROCEDURES, type ProtocolContract } from "@self-engine/data-protocol";
 import { afterEach, expect, expectTypeOf, test } from "vite-plus/test";
 import { dataModules as modules } from "./data-modules.ts";
 
@@ -13,7 +13,7 @@ afterEach(async () => {
 });
 
 test("registered app module namespaces match the mounted app contract", () => {
-  type Namespaces = Exclude<keyof AppContract, "health" | "tablesChanged">;
+  type Namespaces = Exclude<keyof AppContract, keyof ProtocolContract>;
   expectTypeOf<keyof typeof modules>().toEqualTypeOf<Namespaces>();
   expect(Object.keys(modules).sort()).toEqual(
     Object.keys(appContract)
@@ -37,7 +37,10 @@ test("placeholder-alpha is mounted: an Operation is followed by its Table Change
     done: false,
     value: {
       kind: "opened",
-      queries: { placeholderAlpha: { list: ["placeholder_alpha_entries"] } },
+      queries: {
+        placeholderAlpha: { list: ["placeholder_alpha_entries"] },
+        backups: { list: [] },
+      },
     },
   });
 

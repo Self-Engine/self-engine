@@ -9,7 +9,12 @@ import {
   PORT_CHANNEL,
   STOPPED_CHANNEL,
 } from "./data-process-channels.ts";
-import { databasePathFromArgs, handoffPage, servingMessage } from "./data-process-messages.ts";
+import {
+  databasePathFromArgs,
+  handoffPage,
+  restartMessage,
+  servingMessage,
+} from "./data-process-messages.ts";
 import {
   type DataProcessChild,
   type PortFrame,
@@ -23,6 +28,8 @@ interface FakePort {
 class FakeChild extends EventEmitter implements DataProcessChild<FakePort> {
   readonly received: { page: number | undefined; ports: FakePort[] }[] = [];
   killed = false;
+  /** False for a test that lets the exit follow the kill later, as it does in Electron. */
+  exitsOnKill = true;
 
   postMessage(message: unknown, transfer: FakePort[]): void {
     this.received.push({ page: handoffPage(message), ports: transfer });
@@ -31,8 +38,13 @@ class FakeChild extends EventEmitter implements DataProcessChild<FakePort> {
   kill(): boolean {
     this.killed = true;
     // Electron reports a wanted stop as an exit too.
-    this.emit("exit", 0);
+    if (this.exitsOnKill) this.emit("exit", 0);
     return true;
+  }
+
+  /** Asks to be started anew, as after a restore. */
+  askForRestart(): void {
+    this.emit("message", restartMessage());
   }
 
   serve(health: Health = READY): void {
@@ -173,6 +185,90 @@ describe("superviseDataProcess", () => {
       ports: [{ name: "page-2" }],
     });
     expect(latest().received).toEqual([{ page: 1, ports: [{ name: "data-2" }] }]);
+  });
+
+  it("starts the data process anew when it asks for it, tells the page and hands it a fresh port", () => {
+    const { supervisor, children, starts, latest } = supervise();
+    const frame = new FakeFrame();
+    latest().serve();
+    supervisor.handPort(frame);
+    const asking = latest();
+
+    asking.askForRestart();
+    expect(asking.killed).toBe(true);
+    expect(children).toHaveLength(2);
+    expect(starts[1]).toEqual(starts[0]);
+    expect(frame.channels()).toEqual([PORT_CHANNEL, GONE_CHANNEL]);
+
+    latest().serve();
+    expect(frame.received.at(-1)).toEqual({
+      channel: PORT_CHANNEL,
+      message: null,
+      ports: [{ name: "page-2" }],
+    });
+    expect(latest().received).toEqual([{ page: 1, ports: [{ name: "data-2" }] }]);
+  });
+
+  it("starts the next data process only after the one that asked has exited", () => {
+    const { supervisor, children, latest } = supervise();
+    const frame = new FakeFrame();
+    latest().serve();
+    supervisor.handPort(frame);
+    const asking = latest();
+    asking.exitsOnKill = false;
+
+    asking.askForRestart();
+    // The page already waits for its fresh port; the database file is still open over there.
+    expect(frame.channels()).toEqual([PORT_CHANNEL, GONE_CHANNEL]);
+    expect(children).toHaveLength(1);
+
+    asking.emit("exit", 0);
+    expect(children).toHaveLength(2);
+  });
+
+  it("counts no crash for a restart the data process asked for", () => {
+    const { supervisor, children, latest } = supervise();
+    const frame = new FakeFrame();
+    latest().serve();
+    supervisor.handPort(frame);
+
+    for (let restore = 0; restore < 5; restore++) {
+      latest().askForRestart();
+      latest().serve();
+    }
+
+    expect(children).toHaveLength(6);
+    expect(frame.channels()).not.toContain(STOPPED_CHANNEL);
+    expect(frame.channels().at(-1)).toBe(PORT_CHANNEL);
+  });
+
+  it("lets a page that asks during such a restart wait for the fresh port", () => {
+    const { supervisor, latest } = supervise();
+    latest().serve();
+    const asking = latest();
+    asking.exitsOnKill = false;
+    asking.askForRestart();
+    const frame = new FakeFrame();
+
+    supervisor.handPort(frame);
+    expect(frame.received).toEqual([]);
+    expect(asking.received).toEqual([]);
+
+    asking.emit("exit", 0);
+    latest().serve();
+    expect(frame.channels()).toEqual([PORT_CHANNEL]);
+  });
+
+  it("ignores a restart request from a data process that does not serve", () => {
+    const { children, latest } = supervise();
+
+    latest().askForRestart();
+    expect(latest().killed).toBe(false);
+
+    latest().serve({ state: "migrationFailed", migration: "time/0003" });
+    latest().askForRestart();
+    expect(latest().killed).toBe(false);
+    expect(children).toHaveLength(1);
   });
 
   it("restarts a data process that exits before it serves, and answers the waiting page", () => {

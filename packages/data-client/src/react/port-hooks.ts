@@ -12,7 +12,7 @@ import {
   operationFunction,
   operationHook,
 } from "./operation-hook.ts";
-import { type QueryHook, queryHook } from "./query-hook.ts";
+import { type QueryHook, queryHook, type ReloadHook, reloadHook } from "./query-hook.ts";
 
 /** The handling an Operation hook needs: required when the entry declares a conflict. */
 type HandlingArgument<Input, Reason extends string> = [Reason] extends [never]
@@ -48,6 +48,13 @@ export interface PortHooks<Contract extends ModuleContract> {
     OutputOf<Contract, Entry>,
     ConflictReasonOf<Contract, Entry>
   >;
+  /**
+   * The hook whose function reloads the Query `entry` by hand. Only for a Query whose data no
+   * table holds, such as the list of Backups, which are files: no Table Change can say that it
+   * changed, so the View reloads it after its own Operation. A Query over tables never needs it:
+   * the Table Change of the commit reloads it (D250).
+   */
+  reload<Entry extends EntryName<Contract>>(entry: Entry): ReloadHook;
 }
 
 /**
@@ -68,5 +75,6 @@ export function portHooks<Contract extends ModuleContract>(module: string): Port
     query: (entry) => queryHook(module, entry),
     operation: (entry, handling = {}) => operationHook(module, entry, handling),
     run: (entry, handling = {}) => operationFunction(module, entry, handling),
+    reload: (entry) => reloadHook(module, entry),
   };
 }

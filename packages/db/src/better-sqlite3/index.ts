@@ -1,1 +1,1 @@
-export { openDatabase } from "./open-database.ts";
+export { isSoundDatabaseFile, openDatabase } from "./open-database.ts";

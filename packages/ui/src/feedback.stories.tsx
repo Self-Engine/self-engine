@@ -1,10 +1,11 @@
 import { roleColor } from "@self-engine/theme";
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { expect, fn, screen, spyOn, userEvent, waitFor, within } from "storybook/test";
+import { expect, fireEvent, fn, screen, spyOn, userEvent, waitFor, within } from "storybook/test";
 import {
   confirm,
   type ConfirmOptions,
   isConfirmationOpen,
+  notifyDone,
   notifyError,
   notifyProgress,
   notifyUndoable,
@@ -297,6 +298,22 @@ export const UndoLatestSkipsANoticeThatClosedByItself: Story = {
   },
 };
 
+export const AnUndoOfferCanBeWithdrawnByItsCaller: Story = {
+  play: async () => {
+    const undo = fn();
+    const withdraw = notifyUndoable({ message: "Backup restored.", undo });
+    const button = undoButton(await noticeWith("Backup restored."));
+
+    withdraw();
+    // The notice is still on screen while it slides out, and its button with it.
+    await fireEvent.click(button);
+
+    await noticeGone("Backup restored.");
+    undoLatest();
+    await expect(undo).not.toHaveBeenCalled();
+  },
+};
+
 export const UndoLatestLeavesEveryOtherNoticeAlone: Story = {
   play: async () => {
     notifyError({ message: "The backup failed." });
@@ -313,6 +330,17 @@ export const AnErrorNoticeSaysWhatFailed: Story = {
     notifyError({ message: "The backup failed." });
     const notice = await noticeWith("The backup failed.");
     await expect(within(notice).queryByRole("button", { name: "Undo" })).toBeNull();
+  },
+};
+
+export const ADoneNoticeSaysWhatHappenedAndOffersNothing: Story = {
+  play: async () => {
+    notifyDone({ message: "Backup created." });
+    const notice = await screen.findByRole("status");
+    await expect(notice).toHaveTextContent("Backup created.");
+    await expect(within(notice).queryByRole("button", { name: "Undo" })).toBeNull();
+    await userEvent.click(within(notice).getByRole("button", { name: "Close notice" }));
+    await noticeGone("Backup created.");
   },
 };
 

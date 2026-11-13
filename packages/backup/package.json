@@ -1,0 +1,19 @@
+{
+  "name": "@self-engine/backup",
+  "version": "0.0.0",
+  "private": true,
+  "license": "AGPL-3.0-only",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@self-engine/data-protocol": "workspace:*",
+    "@self-engine/db": "workspace:*",
+    "kysely": "catalog:"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "vite-plus": "catalog:"
+  }
+}

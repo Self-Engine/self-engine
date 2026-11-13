@@ -113,6 +113,18 @@ export function notifyError({ message }: NotifyErrorOptions) {
   notifications.show({ message, color: roleColor("error") });
 }
 
+export interface NotifyDoneOptions {
+  readonly message: ReactNode;
+}
+
+/**
+ * Tells the user that what they asked for happened, where nothing on screen shows it by itself
+ * and there is nothing to take back. What can be taken back uses `notifyUndoable`.
+ */
+export function notifyDone({ message }: NotifyDoneOptions) {
+  notifications.show({ message, role: "status" });
+}
+
 export interface NotifyProgressOptions {
   readonly message: ReactNode;
 }
@@ -146,8 +158,11 @@ async function runUndo(undo: NotifyUndoableOptions["undo"]) {
 /** What each open undoable notice would do if taken back, by the id of the notice. */
 const undoOffers = new Map<string, () => void>();
 
-/** Reports something that already happened and offers to take it back. */
-export function notifyUndoable({ message, undo }: NotifyUndoableOptions) {
+/**
+ * Reports something that already happened and offers to take it back. Returns the function that
+ * withdraws the offer, for a caller that learns that it can no longer be taken back.
+ */
+export function notifyUndoable({ message, undo }: NotifyUndoableOptions): () => void {
   let taken = false;
   const takeBack = () => {
     // The notice stays clickable while it slides out, so the second click of a double click lands.
@@ -168,6 +183,11 @@ export function notifyUndoable({ message, undo }: NotifyUndoableOptions) {
     onClose: () => undoOffers.delete(id),
   });
   undoOffers.set(id, takeBack);
+  return () => {
+    // The notice stays clickable while it slides out: its Undo does nothing from now on.
+    taken = true;
+    notifications.hide(id);
+  };
 }
 
 /**

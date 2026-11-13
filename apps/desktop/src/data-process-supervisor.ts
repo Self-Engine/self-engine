@@ -10,7 +10,12 @@ import {
   PORT_CHANNEL,
   STOPPED_CHANNEL,
 } from "./data-process-channels.ts";
-import { dataProcessArgs, portHandoff, servingHealth } from "./data-process-messages.ts";
+import {
+  dataProcessArgs,
+  isRestartRequest,
+  portHandoff,
+  servingHealth,
+} from "./data-process-messages.ts";
 
 /** The part of Electron's `UtilityProcess` the supervisor uses. */
 export interface DataProcessChild<Port> {
@@ -64,7 +69,7 @@ export interface DataProcessSupervisor<Port> {
 const CRASH_LIMIT = 3;
 const CRASH_WINDOW_MS = 60_000;
 
-type Phase = "starting" | "serving" | "failed" | "stopped" | "ended";
+type Phase = "starting" | "serving" | "restarting" | "failed" | "stopped" | "ended";
 
 /** Starts the data process and watches it. */
 export function superviseDataProcess<Port>({
@@ -88,8 +93,10 @@ export function superviseDataProcess<Port>({
     phase = "starting";
     const started = startProcess(dataProcessArgs(databasePath));
     started.on("message", (message) => {
+      if (started !== child) return;
+      if (isRestartRequest(message)) return restartOnRequest();
       const health = servingHealth(message);
-      if (started !== child || health === undefined) return;
+      if (health === undefined) return;
       // A data process in a failure state still answers `health`, so pages get their port.
       failure = health.state === "ready" ? undefined : health;
       phase = failure === undefined ? "serving" : "failed";
@@ -97,9 +104,24 @@ export function superviseDataProcess<Port>({
       waiting.clear();
     });
     started.on("exit", () => {
-      if (started === child && phase !== "ended") crashed();
+      if (started !== child || phase === "ended") return;
+      // The exit it asked for: the next data process starts at once, and no crash is counted.
+      if (phase === "restarting") restart(livePages());
+      else crashed();
     });
     return started;
+  }
+
+  /**
+   * The data process asked to be started anew, after a restore (D94). The pages hear that it is
+   * gone before it is ended, so their next calls wait for the fresh port; the next one starts
+   * only after the exit, because it replaces the database file the old one still has open.
+   */
+  function restartOnRequest(): void {
+    if (phase !== "serving") return;
+    phase = "restarting";
+    for (const frame of livePages()) frame.postMessage(GONE_CHANNEL, null, []);
+    child.kill();
   }
 
   function crashed(): void {
@@ -164,7 +186,7 @@ export function superviseDataProcess<Port>({
       if (phase === "stopped") {
         if (failure === undefined) frame.postMessage(STOPPED_CHANNEL, null, []);
         else frame.postMessage(FAILED_CHANNEL, failure, []);
-      } else if (phase === "starting") waiting.add(frame);
+      } else if (phase === "starting" || phase === "restarting") waiting.add(frame);
       else connect(frame);
     },
     retry() {

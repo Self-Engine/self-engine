@@ -8,7 +8,7 @@ import { act } from "react";
 import { afterEach, beforeEach, expect, test, vi } from "vite-plus/test";
 import { renderHook, settle, type ShownNotices, unmountHook } from "../react/hook-harness.ts";
 import { portHooks } from "../react/index.ts";
-import { fixedAnswers } from "./index.ts";
+import { answersByMount, fixedAnswers } from "./index.ts";
 
 const notesPort = portHooks<typeof notesContract>("notes");
 const useNoteList = notesPort.query("list");
@@ -129,4 +129,26 @@ test("an Operation returns its Fixed Answer and changes nothing", async () => {
   const { result } = await rename(access);
   expect(result).toEqual({ status: "success", data: { ...NOTE, title: "Errands" } });
   await expect(access.call("notes", "list", {})).resolves.toEqual([NOTE]);
+});
+
+test("answers by mount send each call to the access of its mount", async () => {
+  const notes = fixedAnswers(contracts, { notes: { list: { data: [NOTE] } } });
+  const archive = fixedAnswers({ archive: notesContract }, { archive: { list: { data: [] } } });
+  const access = answersByMount({ notes, archive });
+
+  await expect(access.call("notes", "list", {})).resolves.toEqual([NOTE]);
+  await expect(access.call("archive", "list", {})).resolves.toEqual([]);
+});
+
+test("answers by mount fail a call to a mount without an access and name the entry", async () => {
+  const reports: string[] = [];
+  const access = answersByMount(
+    { notes: fixedAnswers(contracts, { notes: { list: { data: [NOTE] } } }) },
+    { report: (problem) => reports.push(problem) },
+  );
+
+  await expect(access.call("backups", "list", {})).rejects.toThrow(
+    "No Fixed Answer for backups.list, which the story called.",
+  );
+  expect(reports).toEqual(["No Fixed Answer for backups.list, which the story called."]);
 });

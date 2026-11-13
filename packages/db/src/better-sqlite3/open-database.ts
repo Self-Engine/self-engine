@@ -40,10 +40,38 @@ export function openDatabase(path: string): Database {
       sqlite.exec(sql);
       return Promise.resolve();
     },
+    backupTo: async (destination) => {
+      await sqlite.backup(destination);
+      // The backup copies the header too, which says WAL: opening the copy would then leave
+      // `-wal` and `-shm` files beside it. One file is the whole backup.
+      const copy = new SqliteDriver(destination, { fileMustExist: true });
+      try {
+        copy.pragma("journal_mode = DELETE");
+      } finally {
+        copy.close();
+      }
+    },
     close: async () => {
       await kysely.destroy();
       // Kysely only closes the connection if a query already went through it.
       if (sqlite.open) sqlite.close();
     },
   };
+}
+
+/**
+ * Whether the file at `path` is a SQLite database that passes SQLite's quick check. It is opened
+ * read-only, so a file that is one file stays one file.
+ */
+export function isSoundDatabaseFile(path: string): boolean {
+  let sqlite: SqliteDriver.Database | undefined;
+  try {
+    sqlite = new SqliteDriver(path, { readonly: true, fileMustExist: true });
+    return sqlite.pragma("quick_check", { simple: true }) === "ok";
+  } catch {
+    // Not a database, or not readable: either way nothing to restore from.
+    return false;
+  } finally {
+    sqlite?.close();
+  }
 }

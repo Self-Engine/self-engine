@@ -16,6 +16,7 @@
   "devDependencies": {
     "@orpc/client": "catalog:",
     "@orpc/contract": "catalog:",
+    "@self-engine/backup": "workspace:*",
     "@self-engine/contracts": "workspace:*",
     "@self-engine/data-client": "workspace:*",
     "@self-engine/data-process": "workspace:*",
@@ -26,6 +27,7 @@
     "@types/node": "catalog:",
     "electron": "catalog:",
     "electron-builder": "catalog:",
+    "kysely": "catalog:",
     "vite-plus": "catalog:"
   }
 }
