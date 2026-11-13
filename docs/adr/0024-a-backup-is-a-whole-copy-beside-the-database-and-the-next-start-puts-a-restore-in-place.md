@@ -1,7 +1,7 @@
 ---
 status: accepted
 date: 2026-11-13
-decisions: D94, D79, D249, D250, D251
+decisions: D94, D79, D249, D250, D251, D270–D277
 ---
 
 # A Backup is a whole copy beside the database, and the next start puts a restore in place
