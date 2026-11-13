@@ -60,7 +60,7 @@ export interface NightlyLocalOptions {
   readonly desktopDir: string;
   readonly homeDir: string;
   readonly env: NodeJS.ProcessEnv;
-  readonly now: Clock;
+  readonly clock: Clock;
   readonly query: Query;
   readonly run: Run;
   readonly packageApp: (request: PackageRequest, env: NodeJS.ProcessEnv) => void;
@@ -96,7 +96,7 @@ function resolveLocalVersion(options: NightlyLocalOptions): string {
     "--commit",
     commit,
     "--started-at",
-    options.now(),
+    options.clock(),
     "--run-number",
     "1",
   ]);
@@ -147,7 +147,7 @@ if (import.meta.main) {
       desktopDir: DESKTOP_DIR,
       homeDir: homedir(),
       env: process.env,
-      now: systemSources().clock,
+      clock: systemSources().clock,
       query: (command, args, cwd) => {
         const { status, stdout, stderr } = spawnSync(command, args, { cwd, encoding: "utf8" });
         return { status, stdout, stderr };

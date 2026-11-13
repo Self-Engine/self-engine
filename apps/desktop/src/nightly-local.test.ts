@@ -100,7 +100,7 @@ describe("buildLocalNightly", () => {
       desktopDir,
       homeDir,
       env: scenario.env ?? { PATH: "/bin" },
-      now: fixedClock(requireInstant("2026-11-09T01:30:00.000Z")),
+      clock: fixedClock(requireInstant("2026-11-09T01:30:00.000Z")),
       print: (line) => printed.push(line),
       query: (command, args) => {
         const line = [command === process.execPath ? "node" : command, ...args].join(" ");
