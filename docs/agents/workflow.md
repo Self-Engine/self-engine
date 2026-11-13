@@ -8,7 +8,7 @@ Finish every step below by [refreshing the overview](#the-overview).
 
 1. **Grill the layer** (`grilling`). Done when every question of the layer has a decision in `docs/plan/00-decisions.md` and the layer has its document in `docs/plan/`.
 2. **Cut work packages** (`to-spec`, `to-tickets`). Done when each package is an issue with `layer:<n>`, a label from [Who may build](#who-may-build), and blockers with smaller numbers only. A layer spec holding the packages as sub-issues carries neither build label. Plan to split a package that would exceed roughly 4,500 new lines.
-3. **Grill the package** (`grilling`), when it has `needs-grilling`. Done when no design question of the package is open and each answer is recorded under the next free D number. Read the highest number from `main`: another branch may have taken yours.
+3. **Grill the package** (`grilling`), when it has `needs-grilling`. Open by naming the recorded decisions for the package that you would change: they are [working assumptions](../../AGENTS.md#decisions). Done when no design question of the package is open and each answer is recorded under the next free D number. Read the highest number from `main`: another branch may have taken yours.
 4. **Land the decisions.** Open a docs pull request right after the grilling, ahead of the build, so the next grilling can see them. Done when it is merged.
 5. **Write the spec** (`to-spec`) into the package issue. Done when the body holds the spec, with its `Problem Statement`.
 6. **Cut slices** (`to-tickets`). Done when each slice is a sub-issue with `## Parent`, `layer:<n>` and `ready-for-agent`, and the package has swapped `needs-grilling` for `ready-for-agent`.
@@ -27,7 +27,7 @@ Build work packages in number order. A slice may have a higher number than a lat
 
 Every other package gets `needs-grilling`. Slices cut from a spec are always `ready-for-agent`.
 
-If you find an open design question while building, stop, write the question as a comment on the issue, and swap the label to `needs-grilling`.
+If you find an open design question while building, stop, write the question as a comment on the issue, and swap the label to `needs-grilling`. A recorded decision you would overturn is such a question.
 
 ## Status
 

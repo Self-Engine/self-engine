@@ -1,6 +1,12 @@
 # OSS-Nachfolger von Self-Engine: Entscheidungslog
 
-Stand: 2026-11-07 · Status: Grilling läuft (Runde 4)
+Fortlaufendes Log seit 2026-11-07: Neue Entscheidungen kommen unter der nächsten freien D-Nummer
+ans Ende.
+
+> **So sind die Einträge zu lesen (D278):** Jeder Eintrag ist eine Arbeitsannahme, die beste
+> Antwort zum Zeitpunkt des Eintrags, oft vor dem Code geschrieben. Wer einen besseren Weg sieht,
+> nennt ihn dem Owner (`AGENTS.md`, Abschnitt „Decisions“). Was der Code heute tut, steht als ADR
+> in `docs/adr/`. Ein überholter Eintrag trägt den Vermerk `_Überholt durch D<n>._`
 
 > Hinweis: Der erste Entwurf in `.temp/oss-plan/` (Self-Engine-Worktree) wurde am
 > 2026-11-07 unbemerkt gelöscht. Diese Datei und der Design-Baum wurden aus dem
@@ -73,7 +79,7 @@ Langfristig Plugins von Dritten. Ersetzt Self-Engine.
 
 - **D15 Nutzer-Generik: Ziel sind eigene Typen (wie Notion-Datenbanken), erster Schritt
   eigene Felder an bestehenden Typen.** Das Datenmodell muss eigene Typen von Anfang an
-  erlauben („Schema als Daten“), gebaut werden zuerst nur eigene Felder.
+  erlauben („Schema als Daten“), gebaut werden zuerst nur eigene Felder. _Überholt durch D20._
 - **D16 Das Datenmodell wird über Recherche und danach einen Wegwerf-Prototyp entschieden.**
   Recherche: wie Anytype, Tana, Logseq (DB), Notion, Capacities u. a. intern speichern
   (`research-data-models.md`). Danach Prototyp: Tabellen pro Entität gegen „typisierte
@@ -192,7 +198,7 @@ Vite. Damit ist ein funktionierender Weg für Electron unter Vite+ belegt.
 - **D40 Stable baut nur einen Commit, der schon als Nightly veröffentlicht wurde** (wie
   t3code).
 - **D41 Nightly automatisch jede Nacht, nur bei Änderungen seit dem letzten Nightly;**
-  manueller Start zusätzlich möglich.
+  manueller Start zusätzlich möglich. _Rhythmus überholt durch D110._
 
 - **D42 (L0.8) Tests:** Vitest über `vp test` für Logik und Daten, Vitest-Browser-Modus für
   Komponenten, Playwright-Electron für Ende-zu-Ende ab Schicht 1.
@@ -786,7 +792,7 @@ Grundlage: [`research-layer-3-core.md`](research-layer-3-core.md).
   wird durch #109 ersetzt, weil es eine echte Space-Zeile aus #108 braucht und jedes Issue nur von
   kleineren Nummern abhängen darf. _Verworfen:_ 13 feine Tickets (dreizehn Grillings, teils für sehr
   kleine Teile), `needs-triage` statt `ready-for-agent` (nach jedem Grilling Umstellung von Hand),
-  #34 behalten (bräche die Reihenfolge).
+  #34 behalten (bräche die Reihenfolge). _Label-Teil überholt durch D155._
 
 ### Runde 23 (2026-11-10): Arbeitsablauf
 
@@ -1803,6 +1809,19 @@ steht die englische Fassung mit allen verworfenen Wegen in ADR 0024, die Messung
   startet, und nicht vor einem verlorenen Gerät: Sie liegt auf derselben Platte. Die offenen
   Fragen dazu stehen in #235.
 
+### Nachtrag (2026-11-14): Gewicht der Entscheidungen
+
+- **D278 Einträge in diesem Log sind Arbeitsannahmen, ADRs beschreiben den Code.** Agenten
+  behandelten jede festgehaltene Entscheidung als unumstößlich, auch solche, die vor dem Code und
+  ohne Prüfung entstanden (Beispiel: D148, die Übernahme von `time` Datei für Datei). Jetzt gilt:
+  Ein Eintrag hier ist die beste Antwort zu seinem Zeitpunkt. Wer beim Grillen oder Bauen einen
+  besseren Weg sieht, nennt dem Owner die Entscheidung, die Alternative und den Preis; der Owner
+  entscheidet. Ein Grilling beginnt mit den Einträgen, die der Agent ändern würde. Ein überholter
+  Eintrag bekommt einen Vermerk, damit auch sein Leser es sieht. Die Regel steht in `AGENTS.md`.
+  _Preis:_ rund 150 Wörter mehr in jedem Agenten-Kontext. _Verworfen:_ Einträge einzeln nach
+  Festigkeit einstufen (über 270 Einträge nachträglich bewerten, und die Einstufung veraltet wie der
+  Eintrag selbst).
+
 ## Fakten
 
 - Self-Engine hat Abo-Infrastruktur über Clerk Billing (`apps/web/src/features/billing`),
@@ -1811,7 +1830,9 @@ steht die englische Fassung mit allen verworfenen Wegen in ADR 0024, die Messung
 
 ### Wiederverwendungs-Audit (Zusammenfassung)
 
-- `packages/time` ist abhängigkeitsfrei mit 96 Zeitzonen-Tests → 1:1 übernehmbar.
+- `packages/time` ist abhängigkeitsfrei mit 96 Zeitzonen-Tests → 1:1 übernehmbar. _Überholt:_ Die
+  unabhängige Prüfung fand später drei Fehler
+  ([`research-layer-3-core.md`](research-layer-3-core.md), Abschnitt 5a).
 - Wertvollste Domänenregeln mit Tests (grob gezählt): time-entry inkl. Overlaps/Split
   (337), time-tracker inkl. Rundung in `time-tracker.shared.ts` (212), payout (143),
   shared-time (91), core `workHelper` (279).
