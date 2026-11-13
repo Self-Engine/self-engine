@@ -143,10 +143,14 @@ emitted chunk graph. Starting at every entry, it follows **static** imports and 
 shared JavaScript chunk once. Dynamic imports, CSS, fonts and other assets are outside this
 JavaScript budget. The report is `apps/web/dist/startup-bundle.json`.
 
-The current baseline is **873,305 raw bytes** across 15 static chunks. The limit is **905 KiB
-(926,720 bytes)**: the measured size plus 6 %, rounded up to whole KiB (D258). Raw emitted bytes
+The current baseline is **839,270 raw bytes** across 16 static chunks. The limit is **869 KiB
+(889,856 bytes)**: the measured size plus 6 %, rounded up to whole KiB (D258). Raw emitted bytes
 avoid a compression-version dependency. A deliberate budget increase must explain the measured
 cost in its PR; splitting filenames or moving code to a shared chunk does not evade it.
+
+The last decrease came with #136, which took Zod's full build out of the startup: from
+**874,050 bytes** (15 chunks, `main` at `ee7a1d1`) to **839,270 bytes** (16 chunks),
+**−34,780 bytes**; the limit went from 905 to 869 KiB. See "Zod at startup" below.
 
 The last increase came with #224, when the app mounted the data building block and with it the
 query library. Startup JavaScript went from **832,739 bytes** (14 chunks, at the tip of the
@@ -163,6 +167,45 @@ set from the bundler's module graph, rather than a list of today's module/View f
 Shared dependencies of lazy modules can still be eager; the lazy entry itself cannot.
 A fixture test builds both lazy and accidentally eager versions and checks the actual
 build fails, including when it is below the byte limit.
+
+### Zod at startup
+
+The app reads its Settings before the first render, and each Setting checks its stored value
+against a Zod schema (D118). Until #136 the declarations imported `zod`, Zod's full build: one
+static chunk of **85,453 bytes**, pulled in by `@self-engine/settings-area/settings` (appearance
+and App Language) and `apps/web/src/shell-settings.ts` (the Shell's layout). It held every schema
+type with its methods, the JSON Schema export and the English error texts, for eleven Settings
+that are a text, a number, a yes or no, one of a list, or one small object.
+
+Since #136 a Setting declares its schema with `zod/mini`, and the settings store checks through
+Zod's core (`zod/v4/core`), which both builds share. So a schema of the full build still works
+for a Setting that only code loaded on demand declares. Startup now holds **about 50 KB of Zod**:
+its core in two chunks (33,796 and 15,282 bytes) and about 1.5 KB of `zod/mini`. The full build's
+own **33,469 bytes** load with the first Command.
+
+Zod's core is still at startup, for two reasons:
+
+- **Settings are checked before the first render.** A stored value the schema rejects shows its
+  default (D118), from the first frame on: the engine throws on an unknown Color Mode. Checking
+  after the first paint would draw an unchecked value first, and a check written by hand beside
+  Zod is what D118 rejected.
+- **A module lands in one chunk, whole.** Commands declare their input with the full build and
+  load on demand, and the full build uses nearly all of the core. The core modules that `zod/mini`
+  needs at startup therefore arrive complete. With no full build anywhere in the page, the same
+  startup measured **802,759 bytes**: 36,511 of the remaining bytes are the price of sharing.
+
+The startup check holds this (`lazyOnly` in `apps/web/vite.config.ts`): a build fails if a module
+of Zod's full build (`zod/v4/classic/`) is in a static startup chunk, and names the startup code
+that imports it. The byte limit alone would not catch it: the full build fits under the 6 %.
+
+**First render:** with 60 alternating starts each of the built desktop app (hidden window, fresh
+data folder, the smoke stage's launch) against the renderer of `main` (`ee7a1d1`) and of the
+branch, the Shell appeared after a median **164.7 ms on main** (range 156–235 ms) and
+**164.4 ms on the branch** (range 154–266 ms), and the first answer came after **141.7 ms**
+(134–211 ms) and **141.4 ms** (132–236 ms): no measurable change. Times count from the start of
+the page load; the Shell's time is read once per frame. A hidden window records no paint entries,
+and the first paint itself is the Start Cache's, which an inline script draws before any module
+loads.
 
 ## Storage port pattern
 

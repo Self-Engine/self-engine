@@ -1,4 +1,4 @@
-import type { z } from "zod";
+import type { $ZodType } from "zod/v4/core";
 
 /** What an entry can hold. */
 export type JsonValue =
@@ -18,14 +18,20 @@ export interface SettingDeclaration<T extends JsonValue> {
   readonly key: string;
   readonly scope: SettingScope;
   readonly default: T;
-  readonly schema: z.ZodType<T>;
+  /**
+   * A schema of `zod/mini`: the app reads Settings before its first render, and Zod's full build
+   * may not load that early (docs/development/performance.md). The type is the one both builds
+   * share, so a Setting that only code loaded on demand declares can reuse a schema of the full
+   * build.
+   */
+  readonly schema: $ZodType<T>;
 }
 
 export function defineSetting<T extends JsonValue>(declaration: {
   readonly key: string;
   readonly scope: SettingScope;
   readonly default: NoInfer<T>;
-  readonly schema: z.ZodType<T>;
+  readonly schema: $ZodType<T>;
 }): SettingDeclaration<T> {
   return declaration;
 }

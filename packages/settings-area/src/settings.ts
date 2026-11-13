@@ -1,5 +1,6 @@
 // The declarations of the Settings this area owns (D202). An entry of its own without interface
-// code, because the app reads these Settings before the first render.
+// code, because the app reads these Settings before the first render. For the same reason the
+// schemas are `zod/mini`: the startup check refuses Zod's full build.
 
 import { type Language, resolveAppLanguage } from "@self-engine/i18n";
 import {
@@ -16,7 +17,7 @@ import {
   DENSITIES,
   FONT_SCALES,
 } from "@self-engine/theme";
-import { z } from "zod";
+import { z } from "zod/mini";
 
 type AppearanceSettings = {
   readonly [Field in keyof Appearance]: SettingDeclaration<Appearance[Field]>;

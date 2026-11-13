@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vite-plus/test";
-import { z } from "zod";
+import { z as fullZod } from "zod";
+import { z } from "zod/mini";
 import { createTestAdapter, settle, type TestAdapter } from "../testing/index.ts";
 import {
   createSettingsStore,
@@ -129,6 +130,29 @@ describe("reading", () => {
     });
 
     expect(store.read(later)).toBe("kept");
+  });
+
+  it("checks against a schema of Zod's full build like one of zod/mini", async () => {
+    const adapter = createTestAdapter({ "test.label": "kept", "test.count": "three" });
+    const store = await loadedStore(adapter);
+    const label = defineSetting({
+      key: "test.label",
+      scope: "synced",
+      default: "unset",
+      schema: fullZod.string().min(1),
+    });
+    const count = defineSetting({
+      key: "test.count",
+      scope: "synced",
+      default: 0,
+      schema: fullZod.number(),
+    });
+
+    expect(store.read(label)).toBe("kept");
+    expect(store.read(count)).toBe(0);
+    expect(() => store.write(label, "")).toThrow(/Invalid value for Setting "test.label"/);
+    store.write(count, 3);
+    expect(store.read(count)).toBe(3);
   });
 });
 
