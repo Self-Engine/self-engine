@@ -72,8 +72,9 @@ before and 155 in 7 commits after; the Shell's share (routes, drawer) does not g
 Measured with `pnpm renders` in the web dev server, headless Chromium, React development mode.
 
 The rule that follows: a row is its own component wrapped in `memo`, receives its row object whole
-and nothing that is new on every render of the list, and gets callbacks from its own hooks. An
-unchanged row only stays undrawn while its object stays the same across a reload (D250).
+and nothing that is new on every render of the list. An unchanged row only stays undrawn while its
+object stays the same across a reload (D250). The rule as built after #224, with Operations in the
+list, is in the [renderer guide](port-hooks.md#4-draw-a-list-so-that-one-changed-row-redraws-one-row).
 
 After the move onto the Port (#224), renaming one of 1,000 entries through the Port draws **23
 components in 4 commits**. The Table Change marks the list, and it redraws twice: once while it

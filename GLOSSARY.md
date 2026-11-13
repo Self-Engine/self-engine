@@ -90,9 +90,21 @@ _Avoid_: local time, date
 A stored row that has not been soft-deleted. Ordinary reads and changes see only live rows in the current space.
 _Avoid_: active row, undeleted record
 
+**Operation** (de: _Operation_):
+An entry of a _Port_ that changes data, all of it or nothing. Its expected failures, such as a conflict or "not found", are part of its answer, not surprises.
+_Avoid_: mutation, command, action, write
+
+**Query** (de: _Abfrage_):
+An entry of a _Port_ that reads data and changes nothing. It names the tables it reads, so its answer stays valid until a _Table Change_ names one of them.
+_Avoid_: fetch, read model, selector
+
 **Row Map** (de: _Zeilen-Map_):
 A module's complete description of its stored tables and the fields of each row. It is the single source of their storage types, separate from the entities a port exposes.
 _Avoid_: entity map, table interface
+
+**Table Change** (de: _Tabellenmeldung_):
+The message of the _Data Process_ that names the tables one committed change wrote, so that every _Query_ reading one of them is answered again. A failed or reading call sends none.
+_Avoid_: invalidation, change event, update event
 
 ### Development
 
@@ -129,8 +141,8 @@ _Avoid_: global setting, account setting
 ### Shell
 
 **Command** (de: _Befehl_):
-One action of the app that can be started by name, such as opening a new entry. Its kind decides who can start it: a person on a page, a person or a later assistant, or only a later assistant. Reading data is not a _Command_.
-_Avoid_: action (for the declared thing), operation, handler
+One action of the app that can be started by name, such as opening a new entry. Its kind decides who can start it: a person on a page, a person or a later assistant, or only a later assistant. Reading data is not a _Command_. A _Command_ may call an _Operation_, but it is not one: "operation" names a _Port_ entry, never a _Command_.
+_Avoid_: action (for the declared thing), operation (for a _Command_), handler
 
 **Command Palette** (de: _Befehlspalette_):
 The search dialog that opens over everything with a _Shortcut_ and lists _Commands_ and _Views_ to start or go to. It searches names only, never the user's data.
