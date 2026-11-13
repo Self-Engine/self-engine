@@ -44,3 +44,11 @@ test("advances a fixture Instant across a UTC day boundary, keeping milliseconds
   expect(advanceInstantByMilliseconds(start, -999)).toBe("2026-11-14T23:59:59.000Z");
   expect(advanceInstantByMilliseconds(start, 0)).toBe(start);
 });
+test.each([
+  ["1000-01-01T00:00:00.000Z", -1],
+  ["9999-12-31T23:59:59.999Z", 1],
+] as const)("rejects advancing %s by %s ms past the supported years", (text, milliseconds) => {
+  expect(() => advanceInstantByMilliseconds(requireInstant(text), milliseconds)).toThrow(
+    RangeError,
+  );
+});

@@ -28,7 +28,7 @@ test.each([
   ["1000-01-01", -1],
   ["9999-12-31", 1],
 ] as const)("rejects day arithmetic outside the year range %s", (from, amount) => {
-  expect(() => addDays(day(from), amount)).toThrow();
+  expect(() => addDays(day(from), amount)).toThrow(RangeError);
 });
 
 test.each([
@@ -48,7 +48,7 @@ test.each([
   ["1000-01-01", -1],
   ["9999-12-31", 1],
 ] as const)("rejects month arithmetic outside the year range %s", (from, amount) => {
-  expect(() => addMonths(day(from), amount)).toThrow();
+  expect(() => addMonths(day(from), amount)).toThrow(RangeError);
 });
 test.each([
   ["2026-12-30", "2027-01-02", 3],
@@ -75,7 +75,7 @@ test.each([
   ["1000-01-01", 0],
   ["9999-12-31", 1],
 ] as const)("rejects weeks whose span exceeds the supported years %j", (from, firstDayOfWeek) => {
-  expect(() => weekOf(day(from), firstDayOfWeek)).toThrow();
+  expect(() => weekOf(day(from), firstDayOfWeek)).toThrow(RangeError);
 });
 test.each([
   ["2026-10-05", 41],

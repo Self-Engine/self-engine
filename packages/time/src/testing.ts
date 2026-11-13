@@ -1,5 +1,6 @@
 import type { Clock } from "./clock.ts";
 import { instantSchema, type Instant } from "./instant.ts";
+import { instantFrom } from "./supported-years.ts";
 
 /** A canonical Instant written as text in a deterministic fixture. */
 export function requireInstant(text: string): Instant {
@@ -13,7 +14,5 @@ export function fixedClock(instant: Instant): Clock {
 
 /** Move a deterministic fixture Instant by whole milliseconds, never by calendar days. */
 export function advanceInstantByMilliseconds(instant: Instant, milliseconds: number): Instant {
-  return instantSchema.parse(
-    Temporal.Instant.from(instant).add({ milliseconds }).toString({ smallestUnit: "millisecond" }),
-  );
+  return instantFrom(Temporal.Instant.from(instant).add({ milliseconds }));
 }

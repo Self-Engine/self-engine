@@ -21,5 +21,5 @@ test.each([
   new Date("0999-12-31T23:59:59.999Z"),
   new Date("+010000-01-01T00:00:00.000Z"),
 ])("rejects invalid or out-of-range foreign Date %s", (date) => {
-  expect(() => instantFromDate(date)).toThrow();
+  expect(() => instantFromDate(date)).toThrow(RangeError);
 });

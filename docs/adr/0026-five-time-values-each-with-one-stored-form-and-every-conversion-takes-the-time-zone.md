@@ -83,8 +83,9 @@ first.
   and `Asia/Kolkata` from another. `sameTimeZone` treats them as one.
 - A name a newer device stored and an older runtime does not know falls back to the device's zone
   on the older one, and the caller is told.
-- At the edges of the supported years a conversion whose answer lies outside them throws a
-  `RangeError`: the first Instant of year 1000 has no day in New York. A skipped day, such as 30 December 2011 in Apia, has an empty range.
+- Every function of `time` whose answer lies outside the supported years throws a `RangeError`:
+  the first Instant of year 1000 has no day in New York, and 31 December 9999 plus one day is no
+  day. A skipped day, such as 30 December 2011 in Apia, has an empty range.
 - Three known limits follow from the decision and stay as they are:
   - **A day that is not one continuous range.** Until 2010 four zones turned the clock back
     across midnight: St. Johns, Goose Bay and Moncton from 00:01 to 23:01 of the day before, and

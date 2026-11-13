@@ -1,4 +1,5 @@
-import { calendarDaySchema, daySpanSchema, type DaySpan, type CalendarDay } from "./values.ts";
+import { calendarDayFrom } from "./supported-years.ts";
+import { daySpanSchema, type DaySpan, type CalendarDay } from "./values.ts";
 
 function requireWhole(amount: number): void {
   if (!Number.isInteger(amount))
@@ -8,14 +9,14 @@ function requireWhole(amount: number): void {
 /** Move by whole calendar days, with no time zone involved. */
 export function addDays(day: CalendarDay, amount: number): CalendarDay {
   requireWhole(amount);
-  return calendarDaySchema.parse(Temporal.PlainDate.from(day).add({ days: amount }).toString());
+  return calendarDayFrom(Temporal.PlainDate.from(day).add({ days: amount }));
 }
 
 /** Move by whole months, constraining the day to the target month's last day. */
 export function addMonths(day: CalendarDay, amount: number): CalendarDay {
   requireWhole(amount);
-  return calendarDaySchema.parse(
-    Temporal.PlainDate.from(day).add({ months: amount }, { overflow: "constrain" }).toString(),
+  return calendarDayFrom(
+    Temporal.PlainDate.from(day).add({ months: amount }, { overflow: "constrain" }),
   );
 }
 
