@@ -1010,8 +1010,9 @@ describe("data-side module composition", () => {
       }),
       "@self-engine/data-process",
     );
+    // The data client runs in the renderer, so its code breaks the renderer's rule as well.
     expect(
       ruleNames(await cruise([fromCode, extraPackage("packages/data-process")], options)),
-    ).toEqual(["package-direction:data-client"]);
+    ).toEqual(["package-direction:data-client", "renderer-stays-off-the-database"]);
   });
 });
