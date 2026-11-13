@@ -28,9 +28,7 @@ export function parseBackupId(
   const [, day, hours, minutes, seconds, milliseconds, kind] = match;
   if (kind === undefined || !KINDS.includes(kind)) return undefined;
   // A date like the 31st of February is no Instant: not an id this app wrote.
-  const takenAt = instantSchema.safeParse(
-    `${day}T${hours}:${minutes}:${seconds}.${milliseconds}Z`,
-  );
+  const takenAt = instantSchema.safeParse(`${day}T${hours}:${minutes}:${seconds}.${milliseconds}Z`);
   if (!takenAt.success) return undefined;
   return { takenAt: takenAt.data, kind: kind as BackupKind };
 }

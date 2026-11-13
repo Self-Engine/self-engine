@@ -73,6 +73,8 @@ export const ALLOWED_IMPORTS: AllowedImports = {
 export const TEST_ONLY_IMPORTS: AllowedImports = {
   // The test Data Process and the `notes` test module, to test the client over the real core.
   "data-client": ["data-process", "storage"],
+  // Instants written as text in the fixtures of the Backups the core answers with.
+  "data-process": ["time"],
   // The test Data Process, to run the module's hooks end to end without the app (#33).
   "placeholder-alpha": ["data-process"],
 };

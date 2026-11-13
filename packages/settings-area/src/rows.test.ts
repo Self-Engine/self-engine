@@ -2,6 +2,8 @@ import { LANGUAGE_TAGS } from "@self-engine/i18n";
 import { createSettingsStore } from "@self-engine/settings";
 import { createTestAdapter } from "@self-engine/settings/testing";
 import { ACCENT_IDS, BUILT_IN_THEMES } from "@self-engine/theme";
+import { resolveTimeZone } from "@self-engine/time";
+import { requireInstant } from "@self-engine/time/testing";
 import { expect, test } from "vite-plus/test";
 import { auditSettingsRows } from "./audit-rows.ts";
 import { auditSettingsArea } from "./audit.ts";
@@ -239,16 +241,12 @@ test.each([
   expect(backupSize(bytes, ENGLISH_NUMBERS)).toBe(shown);
 });
 
-test("a Backup's time is written in the language shown and the time zone of the device", () => {
-  const backup = { takenAt: "2026-11-13T12:30:00.000Z" };
-  const written = (locale: string) =>
-    new Intl.DateTimeFormat(locale, { dateStyle: "medium", timeStyle: "short" }).format(
-      new Date(backup.takenAt),
-    );
+test("a Backup's time is written in the language shown and the zone given", () => {
+  const backup = { takenAt: requireInstant("2026-11-13T23:30:00.000Z") };
+  const berlin = resolveTimeZone("Europe/Berlin").timeZone;
+  const bangkok = resolveTimeZone("Asia/Bangkok").timeZone;
 
-  expect(backupTime(backup, { locale: "en", _: () => "" })).toBe(written("en"));
-  expect(backupTime(backup, { locale: "de", _: () => "" })).toBe(written("de"));
-  // Whatever the zone of the run: an English month name, a German date with dots.
-  expect(written("en")).toMatch(/^Nov 1[34], 2026, /);
-  expect(written("de")).toMatch(/^1[34]\.11\.2026, /);
+  expect(backupTime(backup, { locale: "en", _: () => "" }, berlin)).toBe("Nov 14, 2026, 12:30 AM");
+  expect(backupTime(backup, { locale: "de", _: () => "" }, berlin)).toBe("14.11.2026, 00:30");
+  expect(backupTime(backup, { locale: "de", _: () => "" }, bangkok)).toBe("14.11.2026, 06:30");
 });

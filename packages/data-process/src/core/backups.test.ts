@@ -6,25 +6,26 @@ import { RPCLink } from "@orpc/client/message-port";
 import type { ContractRouterClient } from "@orpc/contract";
 import type { Backup, ProtocolContract } from "@self-engine/data-protocol";
 import type { FrameReport } from "@self-engine/storage";
+import { requireInstant } from "@self-engine/time/testing";
 import { afterEach, expect, test } from "vite-plus/test";
 import { startTestDataProcess, type TestDataProcess } from "../testing/index.ts";
 import type { BackupService } from "./index.ts";
 
 const DAILY: Backup = {
   id: "2026-11-13T12-00-00-000Z-daily",
-  takenAt: "2026-11-13T12:00:00.000Z",
+  takenAt: requireInstant("2026-11-13T12:00:00.000Z"),
   kind: "daily",
   sizeBytes: 4096,
 };
 const MANUAL: Backup = {
   id: "2026-11-13T12-30-00-000Z-manual",
-  takenAt: "2026-11-13T12:30:00.000Z",
+  takenAt: requireInstant("2026-11-13T12:30:00.000Z"),
   kind: "manual",
   sizeBytes: 4096,
 };
 const BEFORE_RESTORE: Backup = {
   id: "2026-11-13T13-00-00-000Z-before-restore",
-  takenAt: "2026-11-13T13:00:00.000Z",
+  takenAt: requireInstant("2026-11-13T13:00:00.000Z"),
   kind: "before-restore",
   sizeBytes: 8192,
 };
