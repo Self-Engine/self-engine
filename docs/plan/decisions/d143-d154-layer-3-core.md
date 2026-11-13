@@ -11,7 +11,7 @@ Grundlage: [`research-layer-3-core.md`](../research-layer-3-core.md).
   153 seiner Dateien importieren `db`, umgekehrt keine, deshalb entstanden Kopien der Rundung in
   `db`. `time` lag als eigenes Paket ganz unten und blieb ohne Kopien. _Verworfen:_ `time`, `money`
   und ein `core` für Spaces und Tags (lädt wieder zum Sammeln ein), ein einziges Paket mit
-  mehreren Einstiegen (Werte lägen über `db`).
+  mehreren Einstiegen (Werte lägen über `db`). _Lage und Port von `spaces` überholt durch D287._
 - **D144 (L3.2) Schicht 3 baut genau einen persönlichen Space, ohne Oberfläche.** Tabelle `spaces`
   mit `kind` (vorerst nur `personal`); die Zeile trägt ihre eigene `id` als `space_id` und besteht
   so die Konventionsprüfung aus #30 ohne Ausnahme. Das Paket `spaces` legt sie beim Start nach den
@@ -23,7 +23,8 @@ Grundlage: [`research-layer-3-core.md`](../research-layer-3-core.md).
   Gerät behält seine ID, ein weiteres mit Offline-Daten schreibt seine `space_id` einmalig in einer
   Transaktion um. _Verworfen:_ `spaceId` in jeder Operation (ein vergessener Filter bliebe
   unbemerkt), feste ID per Migration (kollidiert auf dem Server, jedes Gerät müsste umschreiben),
-  sichtbare Spaces jetzt schon (wird mit Sync und Organisationen entschieden).
+  sichtbare Spaces jetzt schon (wird mit Sync und Organisationen entschieden). _Der eindeutige
+  Index überholt durch D288, der Port von `spaces` durch D287._
 - **D145 (L3.3) Geld wird ganzzahlig gespeichert und einmal gerundet.** Beträge sind `INTEGER` in
   der kleinsten Einheit plus Währung als ISO-4217-Text, geprüft im Code statt per SQL-`CHECK`; in
   TypeScript eine sichere Ganzzahl mit eigenem Typ, ohne `BigInt`. `money` führt einen eigenen
