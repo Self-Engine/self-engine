@@ -44,6 +44,8 @@ export function FeedbackHost({ children }: { readonly children: ReactNode }) {
           layout="stacked"
           position="top-center"
           style={CLEAR_OF_THE_TOP}
+          // A line fills up until the notice closes, so the time left to undo shows.
+          withAutoCloseProgress
         />
       </MantineThemeProvider>
       {children}

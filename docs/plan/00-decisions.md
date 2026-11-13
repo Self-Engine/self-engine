@@ -1690,7 +1690,10 @@ markiert und wird beim Bau gemessen.
   liegen dahinter und fächern sich auf, solange der Zeiger darauf liegt. Der vorderste Hinweis
   bleibt 8 Sekunden; die dahinter warten, bis sie vorne sind (drei Hinweise stehen also bis zu
   24 Sekunden). Rückgängig bleibt im Hinweis; einen hinteren erreicht der Zeiger, wenn der Stapel
-  aufgefächert ist. Ein Hinweis beginnt auf jeder Layout-Stufe an derselben Stelle: eine Lücke
+  aufgefächert ist. Eine Linie am unteren Rand füllt sich, bis der Hinweis schließt
+  (`withAutoCloseProgress` an `Notifications`); sie fehlt bei Hinweisen ohne Ablauf wie dem
+  Fortschritt und ist ausgeblendet, solange ein Hinweis wartet oder der Zeiger darauf liegt.
+  Ein Hinweis beginnt auf jeder Layout-Stufe an derselben Stelle: eine Lücke
   (8 px) unter dem Kopf des Inhalts, bei 64 px, ob ein Drawer offen ist oder nicht, damit er nicht
   springt. Gemessen bei den Referenzbreiten: Der Kopf des Inhalts endet bei 56 px, Titel und
   Schließen-Knopf des Drawers bei 52 px (Telefon 44 px), sein erstes Feld beginnt bei 70 px
