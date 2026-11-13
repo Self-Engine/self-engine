@@ -6,7 +6,8 @@
   "type": "module",
   "exports": {
     ".": "./src/core/index.ts",
-    "./testing": "./src/testing/index.ts"
+    "./testing": "./src/testing/index.ts",
+    "./testing/contracts": "./src/testing/contracts.ts"
   },
   "dependencies": {
     "@orpc/contract": "catalog:",

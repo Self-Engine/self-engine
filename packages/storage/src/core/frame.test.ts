@@ -509,6 +509,7 @@ test("a write attempted inside a query fails and announces nothing", async () =>
       ...notes.entries,
       list: {
         kind: "query" as const,
+        reads: ["notes"],
         async run(
           tx: Parameters<typeof notes.entries.list.run>[0],
           context: Parameters<typeof notes.entries.list.run>[1],

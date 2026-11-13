@@ -28,6 +28,8 @@ export interface FixturePackage {
 export interface FixtureOptions {
   /** The allowed directions between the fixture's packages; none by default. */
   readonly allowedImports?: AllowedImports;
+  /** The directions allowed only from test and story files, as TEST_ONLY_IMPORTS. */
+  readonly testOnlyImports?: AllowedImports;
   /** Empty npm packages at the workspace root that no fixture package declares. */
   readonly npmPackages?: readonly string[];
   /**
@@ -73,7 +75,12 @@ function link(from: string, to: string): void {
  */
 export async function cruiseFixture(
   packages: readonly FixturePackage[],
-  { allowedImports = {}, npmPackages = [], rootDependencies = [] }: FixtureOptions = {},
+  {
+    allowedImports = {},
+    testOnlyImports = {},
+    npmPackages = [],
+    rootDependencies = [],
+  }: FixtureOptions = {},
 ): Promise<Violation[]> {
   // The real path: macOS's tmpdir is behind a symlink, and dependency-cruiser follows
   // symlinks, so the linked workspace packages would land outside the fixture root.
@@ -120,7 +127,7 @@ export async function cruiseFixture(
         else link(join(root, fixture.dir, "node_modules", name), join(root, target));
       }
     }
-    const config = boundaryConfig({ allowedImports, rootDir: root });
+    const config = boundaryConfig({ allowedImports, testOnlyImports, rootDir: root });
     const roots = [...new Set(packages.map((fixture) => fixture.dir.split("/")[0] ?? ""))];
     const { output } = await cruise(roots, {
       ...config.options,

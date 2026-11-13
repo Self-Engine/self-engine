@@ -55,10 +55,21 @@ violations, as in the notes tests.
 ## 3. Implement the data entry
 
 Follow [`notes/data/index.ts`](../../packages/storage/test/notes-module/data/index.ts).
-`defineStorageModule` receives `contract`, `migrations`, `rowMap`, `entries` and the optional
-`conflicts` mapping. Every contract key has an entry marked `kind: "query"` or `kind: "operation"`.
-Its lower function receives `(tx, context, input, entry)`: the checked input and stable contract
-key accompany the existing transaction. Queries receive read-only access; operations may write
+A module is defined in two steps (D260):
+`defineStorageModule({ name, contract, migrations, rowMap, conflicts? }).entries({ … })`.
+The first step fixes the Contract and row map, so the entries take `tx` and `input` from them,
+list builders included; write no types on a lower function’s parameters. `name` is the module’s
+namespace in the app contract; page cursors carry it. `conflicts` is optional. Every contract key has an entry marked `kind: "query"` or `kind: "operation"`.
+A query entry also declares `reads`: every table it takes rows from, including tables reached
+through a released read piece, as `reads: ["note_links", "notes"]` in note-links. The types
+require it. Operations declare nothing; the tables they wrote are announced after commit.
+A Table Change naming one of a query's declared tables makes its answer outdated, so a
+missing table leaves a list showing old data. The contract kit checks the declaration (step 6).
+The Data Process collects every mounted Query's `reads` into one list and sends it to the page
+with the opening event of each Table Change stream; the page learns from it which entries are
+Queries and which tables they read, and never names a table itself.
+Its lower function receives `(tx, context, input, entry, module)`: the checked input, stable
+contract key and module name accompany the existing transaction. Queries receive read-only access; operations may write
 only their owned tables. These functions neither open transactions nor announce tables.
 
 Use `context.now`, the frozen `context.clock`, and `context.newId(entityIdSchema)` rather than
@@ -89,13 +100,15 @@ contract shape, and has the appropriate query/operation marker and conflict mapp
 
 ## 4. Choose each list’s kind
 
-Use the three builders shown together in notes:
+Use the three builders shown together in notes. Each one takes `tx` and `input` from the
+entry’s place in the module, so a page list whose contract input extends `pageInputSchema` gets
+its extra fields typed in `query`:
 
 | Builder                                       | Use and contract                                                                              |
 | --------------------------------------------- | --------------------------------------------------------------------------------------------- |
-| `windowList(run)`                             | A domain window, such as notes’ `from <= created_at < to`; returns the entire matching array. |
-| `smallSetList(run)`                           | A whole set expected to remain small; returns the entire array.                               |
-| `pageList({ row, query, order, map, size? })` | A growing list. Use `pageInputSchema` and `pageSchema(entitySchema)` in the contract.         |
+| `windowList(reads, run)`                      | A domain window, such as notes’ `from <= created_at < to`; returns the entire matching array. |
+| `smallSetList(reads, run)`                    | A whole set expected to remain small; returns the entire array.                               |
+| `pageList({ reads, row, query, order, map })` | A growing list. Use `pageInputSchema` and `pageSchema(entitySchema)` in the contract.         |
 
 For pages, supply the selected row schema, scoped query, fixed order ending in `id`, and
 row mapping. Every sort column must be non-null. One page list has one fixed order;
@@ -104,9 +117,9 @@ Space-prefixed index. Size defaults to 100 and may be set from 1 to 500 in stora
 the renderer. The result has `rows`, `before` and `after`; pass a returned cursor unchanged
 as `{ cursor }` to move in that direction. Total counts belong to #137.
 
-A cursor carries the contract entry’s name, direction and sort values. It is unsigned and
+A cursor carries the module’s name, the contract entry’s name, direction and sort values. It is unsigned and
 survives a Data Process restart; it is an opaque navigation value for the renderer, not an
-authorization token. Malformed cursors or cursors for another entry are rejected. If a cursor page becomes empty,
+authorization token. Malformed cursors and cursors for another entry are rejected, also when another module’s entry has the same name. If a cursor page becomes empty,
 for example after deletion, its opposite-direction cursor still leads back to existing rows.
 
 Page cursor predicates and order clauses use unqualified selected column names. For a join
@@ -129,14 +142,18 @@ Done when every list has an explicit kind, and page query plans use an index for
 The owner exports a read piece from `./data` with only fixed released columns and a built-in
 Space filter. [`noteTitles`](../../packages/storage/test/notes-module/data/read-piece.ts)
 returns `id`, `title` and `deletedAt`, including deleted targets. The owner alone supplies its
-row-map type. `self-engine/no-foreign-row-map` rejects consumers importing foreign row maps
+row-map type. It takes the consumer's transaction as `ReadTransaction<DB> | Transaction<DB>`,
+generic in `DB`, so a consumer passes its `tx` without a cast.
+`self-engine/no-foreign-row-map` rejects consumers importing foreign row maps
 or accessing an imported foreign module's `.rowMap`, including through `typeof`.
-The Data Process may compose the complete module list.
+Only the desktop app's module list (`apps/desktop/src/data-modules.ts`) imports every module's
+data entry.
 
 Follow the second template,
 [`note-links/data/index.ts`](../../packages/storage/test/note-links-module/data/index.ts):
 keep only owned rows in the consuming row map and join `noteTitles(tx, context, "target")`
-in one query. Its left join retains the link when the target is absent or in another Space;
+in one query. `tx` and `sharedEntry(tx, context)` are typed from the row map by the two-step
+definition; write no transaction type and no type argument by hand. Its left join retains the link when the target is absent or in another Space;
 a deleted target retains its title and explicit deletion mark.
 
 An operation that stores a reference to another module's row looks the target up through the
@@ -188,6 +205,15 @@ unique-index mappings and reachable conflict reasons. It repeats every operation
 example on the same database and rejects conflicts or reasons not declared by that entry.
 Extra output fields have their own violation, separate from schema conversions and defaults. Business behavior still needs module-owned tests.
 
+The kit records the tables each query’s SQL takes rows from (FROM, JOIN and subqueries,
+including those a read piece builds) and reports `query reads an undeclared table: <table>`
+for each one missing from `reads`. It sees only the SQL its example ran: a table a query
+reads only under some inputs, such as a join added when a filter is set, is caught only by
+an example that takes that path. Cover such a branch with a second `checkContract` call whose
+example for that entry sets the filter, as the conditional-read test beside the note-links
+kit test does. Declaring a table the example did not read is not a violation. Recording runs
+only in the kit; the frame in the app never records reads.
+
 The kit also fails when a table’s contents changed without being announced. A table is
 announced when a successful write statement targeting it affected at least one row (an absent
 affected-row count uses the returned-row count for a `RETURNING` statement; without `RETURNING`,
@@ -199,13 +225,15 @@ Done when the kit returns no violations and business tests cover behavior beyond
 
 ## 7. Connect the module and verify
 
-Add the data entry under its contract namespace to
-[`data-process/src/core/modules.ts`](../../packages/data-process/src/core/modules.ts).
-That single list builds both migrations and the router; module namespaces must not be
-`health` or `tablesChanged`, which are reserved procedures; compose the matching module contract
-in the app-wide contracts package. The list is typed against the app contract, and a test
-compares the mounted namespace keys. Add dependencies and allowed import directions together.
-Modules import storage, never data-process. Storage itself imports neither Electron nor a
+Add the data entry under its contract namespace to the desktop app's module list,
+[`apps/desktop/src/data-modules.ts`](../../apps/desktop/src/data-modules.ts), which the app
+passes to the Data Process; the core knows no module, so a module's tests may start it without a
+cycle between packages. That single list builds both migrations and the router; module namespaces
+must not be `health` or `tablesChanged`, which are reserved procedures of
+`@self-engine/data-protocol`; compose the matching module contract in the app-wide contracts
+package. The list is typed against the app contract, and a test compares the mounted namespace
+keys. Add dependencies and allowed import directions together. Modules import storage, never
+data-process, except from their tests (`TEST_ONLY_IMPORTS`). Storage itself imports neither Electron nor a
 native driver; the driver and transport remain replaceable, independently of future sync.
 
 The shared frame opens one transaction per call, runs the lower function, validates outputs

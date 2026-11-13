@@ -189,3 +189,20 @@ test("notes passes the storage contract kit", async () => {
     ),
   ).resolves.toEqual([]);
 });
+
+test("the notes lists take their input types from the Contract", async () => {
+  const { notes } = await import("../../test/notes-module/data/index.ts");
+  expectTypeOf<Parameters<typeof notes.entries.window.run>[2]>().toEqualTypeOf<{
+    from: Instant;
+    to: Instant;
+  }>();
+  expectTypeOf<Parameters<typeof notes.entries.list.run>[2]>().toEqualTypeOf<
+    Record<string, never>
+  >();
+  expectTypeOf<Parameters<typeof notes.entries.pages.run>[2]>().toEqualTypeOf<{
+    cursor?: string | undefined;
+  }>();
+  expectTypeOf<Parameters<typeof notes.entries.window.run>[0]>().toEqualTypeOf<
+    Parameters<typeof notes.entries.get.run>[0]
+  >();
+});

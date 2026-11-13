@@ -10,4 +10,5 @@ export {
   type DataClient,
   type DataConnection,
   type DataPort,
+  type EntryDescription,
 } from "./data-connection.ts";

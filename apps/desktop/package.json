@@ -14,9 +14,12 @@
     "better-sqlite3": "catalog:"
   },
   "devDependencies": {
+    "@orpc/client": "catalog:",
+    "@orpc/contract": "catalog:",
     "@self-engine/contracts": "workspace:*",
     "@self-engine/data-client": "workspace:*",
     "@self-engine/data-process": "workspace:*",
+    "@self-engine/data-protocol": "workspace:*",
     "@self-engine/db": "workspace:*",
     "@self-engine/desktop-bridge": "workspace:*",
     "@types/node": "catalog:",

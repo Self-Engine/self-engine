@@ -449,6 +449,10 @@ msgstr "Shortcuts"
 msgid "Show the app light or dark, or follow the system."
 msgstr "Show the app light or dark, or follow the system."
 
+#: packages/data-client/src/react/operation-hook.ts
+msgid "Something went wrong, and the change was not saved."
+msgstr "Something went wrong, and the change was not saved."
+
 #: packages/settings-area/src/rows.tsx
 msgid "Spacing"
 msgstr "Spacing"
@@ -541,7 +545,12 @@ msgstr "Theme for light"
 msgid "This entry could not be loaded."
 msgstr "This entry could not be loaded."
 
+#: packages/data-client/src/react/operation-hook.ts
+msgid "This entry no longer exists."
+msgstr "This entry no longer exists."
+
 #: packages/shell/src/lazy-contribution.tsx
+#: packages/ui/src/query-state-block.tsx
 msgid "This part could not be loaded."
 msgstr "This part could not be loaded."
 
@@ -604,6 +613,10 @@ msgstr "Warm"
 #: packages/shell/src/edit-drawer-exits.tsx
 msgid "What you changed here will be lost."
 msgstr "What you changed here will be lost."
+
+#: packages/data-client/src/react/reload-notice.ts
+msgid "What you see may be outdated: it could not be reloaded."
+msgstr "What you see may be outdated: it could not be reloaded."
 
 #: apps/web/src/data-connection-states.tsx
 msgid "Your data cannot be reached."

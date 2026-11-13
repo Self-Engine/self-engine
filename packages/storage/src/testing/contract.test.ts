@@ -2,9 +2,17 @@ import type { TablesOf } from "@self-engine/db";
 import { noteIdSchema, notesRowMap } from "../../test/notes-module/data/rows.ts";
 import { ContractProcedure, oc } from "@orpc/contract";
 import { expect, test } from "vite-plus/test";
+import {
+  DummyDriver,
+  Kysely,
+  SqliteAdapter,
+  SqliteIntrospector,
+  SqliteQueryCompiler,
+} from "kysely";
 import { z } from "zod";
 import { defineStorageModule } from "../core/index.ts";
 import { checkContract } from "./index.ts";
+import { recordTableReads } from "./table-reads.ts";
 import { notes as referenceNotes } from "../../test/notes-module/data/index.ts";
 
 const announcementNotes = {
@@ -16,11 +24,11 @@ const announcementNotes = {
 };
 
 const good = defineStorageModule({
+  name: "fixture",
   contract: { echo: oc.input(z.object({ text: z.string() })).output(z.string()) },
   migrations: [],
   rowMap: {},
-  entries: { echo: { kind: "query", run: (_tx, _context, input) => input.text } },
-});
+}).entries({ echo: { kind: "query", reads: [], run: (_tx, _context, input) => input.text } });
 const seed = async () => {};
 
 test("the kit names a contract entry without an example", async () => {
@@ -31,11 +39,11 @@ test("the kit names a contract entry without an example", async () => {
 
 test("the kit names an entry that accepts invalid input", async () => {
   const acceptsAnything = defineStorageModule({
+    name: "fixture",
     contract: { loose: oc.input(z.unknown()).output(z.string()) },
     migrations: [],
     rowMap: {},
-    entries: { loose: { kind: "query", run: () => "answer" } },
-  });
+  }).entries({ loose: { kind: "query", reads: [], run: () => "answer" } });
   await expect(checkContract(acceptsAnything, seed, { loose: "valid" })).resolves.toEqual([
     { entry: "loose", rule: "accepts invalid input" },
   ]);
@@ -44,7 +52,7 @@ test("the kit names an entry that accepts invalid input", async () => {
 test("the kit names an entry whose output breaks the contract", async () => {
   const wrongOutput = {
     ...good,
-    entries: { echo: { kind: "query" as const, run: () => 42 as never } },
+    entries: { echo: { kind: "query" as const, reads: [], run: () => 42 as never } },
   };
   await expect(checkContract(wrongOutput, seed, { echo: { text: "Valid" } })).resolves.toEqual([
     { entry: "echo", rule: "output does not match contract" },
@@ -58,11 +66,11 @@ test.each([
   "the kit rejects an output schema with %s, even when the example is unchanged",
   async (_name, output) => {
     const converts = defineStorageModule({
+      name: "fixture",
       contract: { convert: oc.input(z.undefined()).output(z.object({ text: output })) },
       migrations: [],
       rowMap: {},
-      entries: { convert: { kind: "query", run: () => ({ text: "UNCHANGED" }) } },
-    });
+    }).entries({ convert: { kind: "query", reads: [], run: () => ({ text: "UNCHANGED" }) } });
     await expect(checkContract(converts, seed, { convert: undefined })).resolves.toEqual([
       { entry: "convert", rule: "output schema transforms or defaults a value" },
     ]);
@@ -75,11 +83,11 @@ test("a module with a normal contract passes every kit check", async () => {
 
 test("an entry without input passes with an explicit undefined example", async () => {
   const noInput = defineStorageModule({
+    name: "fixture",
     contract: { read: oc.output(z.string()) },
     migrations: [],
     rowMap: {},
-    entries: { read: { kind: "query", run: () => "answer" } },
-  });
+  }).entries({ read: { kind: "query", reads: [], run: () => "answer" } });
   await expect(checkContract(noInput, seed, { read: undefined })).resolves.toEqual([]);
 });
 
@@ -91,6 +99,7 @@ test("the kit names a query that attempts a write", async () => {
       ...notes.entries,
       list: {
         kind: "query" as const,
+        reads: ["notes"],
         async run(
           tx: Parameters<typeof notes.entries.list.run>[0],
           context: Parameters<typeof notes.entries.list.run>[1],
@@ -173,7 +182,7 @@ test("the kit accepts an announcement for an update that rewrites identical valu
             .set({ title: "Seed" })
             .where("title", "=", "Seed")
             .execute();
-          return notes.entries.list.run(tx, context);
+          return notes.entries.list.run(tx, context, {}, "list", "notes");
         },
       },
     },
@@ -201,6 +210,7 @@ test.each(["space", "deleted"] as const)(
         list: {
           ...notes.entries.list,
           kind: "query" as const,
+          reads: ["notes"],
           async run(
             tx: Parameters<typeof notes.entries.list.run>[0],
             context: Parameters<typeof notes.entries.list.run>[1],
@@ -253,6 +263,7 @@ test("the kit names a page query that sorts without an index", async () => {
     contract: { pages: notes.contract.pages },
     entries: {
       pages: pageList({
+        reads: ["notes"],
         row: notesRowMap.notes,
         query: (
           tx: Parameters<typeof notes.entries.pages.run>[0],
@@ -298,7 +309,7 @@ test("the kit names a contract reason no example triggers", async () => {
         CONFLICT: { data: z.object({ reason: z.enum(["already_billed", "locked"]) }) },
       }),
     },
-  });
+  }).entries(good.entries);
   await expect(checkContract(fixture, seed, { echo: { text: "Valid" } })).resolves.toEqual([
     { entry: "echo", rule: "conflict reason not triggered: already_billed" },
     { entry: "echo", rule: "conflict reason not triggered: locked" },
@@ -316,16 +327,15 @@ test.each(["success", "wrong reason", "unexpected", "right reason"] as const)(
           CONFLICT: { data: z.object({ reason: z.literal("already_billed") }) },
         }),
       },
-      entries: {
-        echo: {
-          kind: "operation",
-          run: (_tx, _context, input) => {
-            if (input.text === "normal" || outcome === "success") return input.text;
-            if (outcome === "unexpected") throw new Error("Unexpected");
-            throw new ORPCError("CONFLICT", {
-              data: { reason: outcome === "right reason" ? "already_billed" : "other" },
-            });
-          },
+    }).entries({
+      echo: {
+        kind: "operation",
+        run: (_tx, _context, input) => {
+          if (input.text === "normal" || outcome === "success") return input.text;
+          if (outcome === "unexpected") throw new Error("Unexpected");
+          throw new ORPCError("CONFLICT", {
+            data: { reason: outcome === "right reason" ? "already_billed" : "other" },
+          });
         },
       },
     });
@@ -361,15 +371,14 @@ test("the kit names an undeclared conflict reason next to a triggered declared o
         CONFLICT: { data: z.object({ reason: z.literal("already_billed") }) },
       }),
     },
-    entries: {
-      echo: {
-        kind: "operation",
-        run: (_tx, _context, input) => {
-          if (input.text === "normal") return input.text;
-          throw new ORPCError("CONFLICT", {
-            data: { reason: input.text === "declared" ? "already_billed" : "other" },
-          });
-        },
+  }).entries({
+    echo: {
+      kind: "operation",
+      run: (_tx, _context, input) => {
+        if (input.text === "normal") return input.text;
+        throw new ORPCError("CONFLICT", {
+          data: { reason: input.text === "declared" ? "already_billed" : "other" },
+        });
       },
     },
   });
@@ -389,7 +398,7 @@ test("the kit rejects CONFLICT without a finite list of reason codes", async () 
     contract: {
       echo: good.contract.echo.errors({ CONFLICT: {} }),
     },
-  });
+  }).entries(good.entries);
   await expect(checkContract(fixture, seed, { echo: { text: "Valid" } })).resolves.toEqual([
     { entry: "echo", rule: "CONFLICT must list reason codes" },
   ]);
@@ -399,8 +408,7 @@ test("the kit rejects an array query without an explicit list kind", async () =>
   const fixture = defineStorageModule({
     ...good,
     contract: { loose: oc.input(z.undefined()).output(z.array(z.string())) },
-    entries: { loose: { kind: "query", run: () => [] } },
-  });
+  }).entries({ loose: { kind: "query", reads: [], run: () => [] } });
   await expect(checkContract(fixture, seed, { loose: undefined })).resolves.toEqual([
     { entry: "loose", rule: "array query has no list kind" },
   ]);
@@ -410,16 +418,16 @@ test("the kit rejects a count that includes another Space or deleted rows", asyn
   const fixture = defineStorageModule({
     ...referenceNotes,
     contract: { count: oc.input(z.undefined()).output(z.number()) },
-    entries: {
-      count: {
-        kind: "query",
-        async run(tx) {
-          const row = await tx
-            .selectFrom("notes")
-            .select((eb) => eb.fn.countAll<number>().as("count"))
-            .executeTakeFirst();
-          return row?.count ?? 0;
-        },
+  }).entries({
+    count: {
+      kind: "query",
+      reads: ["notes"],
+      async run(tx) {
+        const row = await tx
+          .selectFrom("notes")
+          .select((eb) => eb.fn.countAll<number>().as("count"))
+          .executeTakeFirst();
+        return row?.count ?? 0;
       },
     },
   });
@@ -441,17 +449,17 @@ test("the kit rejects a by-id lookup of its own deleted row", async () => {
   const fixture = defineStorageModule({
     ...referenceNotes,
     contract: { lookup: oc.input(z.object({ id: noteIdSchema })).output(z.string().nullable()) },
-    entries: {
-      lookup: {
-        kind: "query",
-        async run(tx, _context, input) {
-          const row = await tx
-            .selectFrom("notes")
-            .select("title")
-            .where("id", "=", input.id)
-            .executeTakeFirst();
-          return row?.title ?? null;
-        },
+  }).entries({
+    lookup: {
+      kind: "query",
+      reads: ["notes"],
+      async run(tx, _context, input) {
+        const row = await tx
+          .selectFrom("notes")
+          .select("title")
+          .where("id", "=", input.id)
+          .executeTakeFirst();
+        return row?.title ?? null;
       },
     },
   });
@@ -479,17 +487,17 @@ test("the kit rejects a by-id lookup of another Space's scalar value", async () 
     contract: {
       lookup: oc.input(z.object({ id: noteIdSchema })).output(z.string().nullable()),
     },
-    entries: {
-      lookup: {
-        kind: "query",
-        async run(tx, _context, input) {
-          const row = await tx
-            .selectFrom("notes")
-            .select("title")
-            .where("id", "=", input.id)
-            .executeTakeFirst();
-          return row?.title ?? null;
-        },
+  }).entries({
+    lookup: {
+      kind: "query",
+      reads: ["notes"],
+      async run(tx, _context, input) {
+        const row = await tx
+          .selectFrom("notes")
+          .select("title")
+          .where("id", "=", input.id)
+          .executeTakeFirst();
+        return row?.title ?? null;
       },
     },
   });
@@ -515,35 +523,35 @@ test("the kit catches by-id reads, by-id writes and bulk writes without scoping"
       rename: oc.input(z.object({ id: noteIdSchema, title: z.string() })).output(z.undefined()),
       unpinAll: oc.input(z.undefined()).output(z.undefined()),
     },
-    entries: {
-      get: {
-        kind: "query",
-        async run(tx, _context, input) {
-          const row = await tx
-            .selectFrom("notes")
-            .select("title")
-            .where("id", "=", input.id)
-            .executeTakeFirst();
-          return row?.title ?? null;
-        },
+  }).entries({
+    get: {
+      kind: "query",
+      reads: ["notes"],
+      async run(tx, _context, input) {
+        const row = await tx
+          .selectFrom("notes")
+          .select("title")
+          .where("id", "=", input.id)
+          .executeTakeFirst();
+        return row?.title ?? null;
       },
-      rename: {
-        kind: "operation",
-        async run(tx, _context, input) {
-          await tx
-            .updateTable("notes")
-            .set({ title: input.title })
-            .where("id", "=", input.id)
-            .execute();
-          return undefined;
-        },
+    },
+    rename: {
+      kind: "operation",
+      async run(tx, _context, input) {
+        await tx
+          .updateTable("notes")
+          .set({ title: input.title })
+          .where("id", "=", input.id)
+          .execute();
+        return undefined;
       },
-      unpinAll: {
-        kind: "operation",
-        async run(tx) {
-          await tx.updateTable("notes").set({ is_pinned: 0 }).execute();
-          return undefined;
-        },
+    },
+    unpinAll: {
+      kind: "operation",
+      async run(tx) {
+        await tx.updateTable("notes").set({ is_pinned: 0 }).execute();
+        return undefined;
       },
     },
   });
@@ -592,6 +600,7 @@ test.each(["asc", "desc"] as const)(
       contract: { pages: referenceNotes.contract.pages },
       entries: {
         pages: pageList({
+          reads: ["notes"],
           row: notesRowMap.notes,
           query: (
             tx: Parameters<typeof referenceNotes.entries.pages.run>[0],
@@ -623,6 +632,7 @@ test.each(["asc", "desc"] as const)(
           context,
           {},
           "pages",
+          "notes",
         );
         expect(queries).toHaveLength(3);
         for (const query of queries.slice(1)) {
@@ -703,6 +713,7 @@ test.each([false, true])(
       contract: { pages: referenceNotes.contract.pages },
       entries: {
         pages: pageList({
+          reads: ["notes"],
           row: notesRowMap.notes,
           query: (
             tx: Parameters<typeof referenceNotes.entries.pages.run>[0],
@@ -788,8 +799,11 @@ test("the kit names extra output fields accurately", async () => {
   const fixture = defineStorageModule({
     ...good,
     contract: { echo: oc.input(z.string()).output(z.object({ text: z.string() })) },
-    entries: {
-      echo: { kind: "query", run: (_tx, _context, text) => ({ text, extra: "private" }) },
+  }).entries({
+    echo: {
+      kind: "query",
+      reads: [],
+      run: (_tx, _context, text) => ({ text, extra: "private" }),
     },
   });
   await expect(checkContract(fixture, seed, { echo: "Hello" })).resolves.toEqual([
@@ -816,4 +830,61 @@ test("expression indexes remain distinguishable by their diagnostic names", asyn
     entries: { list: referenceNotes.entries.list },
   };
   await expect(checkContract(fixture, seed, { list: {} })).resolves.toEqual([]);
+});
+
+// The table-read recorder on its own: SQL compiled, never run, so no database is needed.
+interface ReadsSchema {
+  notes: { id: string };
+  note_links: { note_id: string };
+}
+
+function readsOf(build: (db: Kysely<ReadsSchema>) => { compile(): unknown }): readonly string[] {
+  const read = new Set<string>();
+  const db = new Kysely<ReadsSchema>({
+    dialect: {
+      createAdapter: () => new SqliteAdapter(),
+      createDriver: () => new DummyDriver(),
+      createIntrospector: (kysely) => new SqliteIntrospector(kysely),
+      createQueryCompiler: () => new SqliteQueryCompiler(),
+    },
+  }).withPlugin(recordTableReads(read));
+  build(db).compile();
+  return [...read].sort();
+}
+
+test("the kit counts a CTE named like a table as the CTE, and the tables its body reads", () => {
+  expect(
+    readsOf((db) =>
+      db
+        .with("notes", (q) => q.selectFrom("note_links").select("note_id"))
+        .selectFrom("notes")
+        .selectAll(),
+    ),
+  ).toEqual(["note_links"]);
+  expect(
+    readsOf((db) =>
+      db
+        .with("linked", (q) => q.selectFrom("notes").select("id"))
+        .selectFrom("linked")
+        .selectAll(),
+    ),
+  ).toEqual(["notes"]);
+});
+
+test("a CTE name hides a table only inside the query that declares it", () => {
+  expect(
+    readsOf((db) =>
+      db
+        .selectFrom("notes")
+        .select("id")
+        .where(
+          "id",
+          "in",
+          db
+            .with("notes", (q) => q.selectFrom("note_links").select("note_id as id"))
+            .selectFrom("notes")
+            .select("id"),
+        ),
+    ),
+  ).toEqual(["note_links", "notes"]);
 });

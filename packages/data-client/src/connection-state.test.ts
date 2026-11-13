@@ -38,7 +38,7 @@ function untilStatus(connection: DataConnection, status: ConnectionStatus): Prom
   });
 }
 
-test("reports connecting until the first event has arrived, then ready", async () => {
+test("reports connecting until the opening event has arrived, then ready", async () => {
   dataProcess = await startTestDataProcess();
   const connection = newConnection();
   const statuses = recordStatuses(connection);
@@ -112,7 +112,7 @@ test("a subscriber stops hearing changes once it unsubscribes", async () => {
   expect(calls).toBe(0);
 });
 
-test("tables changed reach a listener over every port, without the opening empty event", async () => {
+test("tables changed reach a listener over every port, without the opening event", async () => {
   dataProcess = await startTestDataProcess();
   const connection = newConnection();
   const heard: string[][] = [];

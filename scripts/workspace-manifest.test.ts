@@ -2,7 +2,13 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vite-plus/test";
-import { readManifest, workspaceDependencies, workspacePackages } from "./workspace-manifest.ts";
+import {
+  packageCycles,
+  readManifest,
+  type WorkspacePackage,
+  workspaceDependencies,
+  workspacePackages,
+} from "./workspace-manifest.ts";
 
 let root = "";
 
@@ -80,5 +86,63 @@ describe("workspacePackages", () => {
 
   it("returns nothing for a root without workspace folders", () => {
     expect(workspacePackages(root)).toEqual([]);
+  });
+});
+
+describe("packageCycles", () => {
+  /** A package `name` whose manifest declares `dependencies` and `devDependencies`. */
+  function pkg(
+    name: string,
+    dependencies: readonly string[] = [],
+    devDependencies: readonly string[] = [],
+  ): WorkspacePackage {
+    const declare = (names: readonly string[]) =>
+      Object.fromEntries(names.map((dependency) => [`@self-engine/${dependency}`, "workspace:*"]));
+    return {
+      dir: `packages/${name}`,
+      manifest: {
+        name: `@self-engine/${name}`,
+        exports: {},
+        dependencies: { zod: "catalog:", ...declare(dependencies) },
+        devDependencies: declare(devDependencies),
+      },
+    };
+  }
+
+  it("finds none where every package depends only on packages below it", () => {
+    expect(packageCycles([pkg("a", ["b"]), pkg("b", ["c"]), pkg("c")])).toEqual([]);
+  });
+
+  it("names the packages of a cycle through dependencies", () => {
+    const cycle = [
+      pkg("contracts", ["module"]),
+      pkg("module", ["client"]),
+      pkg("client", ["contracts"]),
+    ];
+    expect(packageCycles([...cycle, pkg("other", ["client"])])).toEqual([
+      ["@self-engine/client", "@self-engine/contracts", "@self-engine/module"],
+    ]);
+  });
+
+  it("counts a devDependency, which pnpm links like a dependency", () => {
+    expect(packageCycles([pkg("process", ["module"]), pkg("module", [], ["process"])])).toEqual([
+      ["@self-engine/module", "@self-engine/process"],
+    ]);
+  });
+
+  it("names each cycle once, and a package that depends on itself", () => {
+    expect(
+      packageCycles([
+        pkg("a", ["b"]),
+        pkg("b", ["a"]),
+        pkg("c", ["d"]),
+        pkg("d", ["c"]),
+        pkg("e", ["e"]),
+      ]),
+    ).toEqual([
+      ["@self-engine/a", "@self-engine/b"],
+      ["@self-engine/c", "@self-engine/d"],
+      ["@self-engine/e"],
+    ]);
   });
 });

@@ -28,6 +28,9 @@ where there is no Electron.
    the `tablesChanged` stream. Module contracts may share `Instant` from `time` and schemas
    from the pure `@self-engine/db/schema` entry; database runtime imports remain forbidden
    ([ADR 0019](0019-row-maps-are-the-single-source-of-storage-types.md)). `@self-engine/data-client` builds the typed client on the page.
+   _Replaced in part by [ADR 0022](0022-the-desktop-app-owns-the-module-list-and-the-data-protocol-what-crosses-modules.md):
+   `@self-engine/data-protocol`, not `contracts`, owns `health` and the `tablesChanged` stream,
+   and the client on the page is built from the protocol alone._
 3. **The main process only starts, watches and hands out ports.** No call passes through it. After
    an unexpected exit it restarts the _Data Process_ and gives the page a fresh port. After three
    unexpected exits within one minute it stops until the person retries.

@@ -3,7 +3,7 @@
 // Both apps import it (ADR 0006: apps share code through packages), the preload in its sandbox
 // and the web app at startup, so it holds no code beyond these few checks.
 
-import type { HealthFailure } from "@self-engine/contracts";
+import type { HealthFailure } from "@self-engine/data-protocol";
 
 /** The release channels; `Channel` in apps/desktop/src/channel.ts must stay assignable to it. */
 export type DesktopChannel = "dev" | "nightly" | "stable";

@@ -449,6 +449,10 @@ msgstr "Tastenkürzel"
 msgid "Show the app light or dark, or follow the system."
 msgstr "Zeigt die App hell oder dunkel oder folgt dem System."
 
+#: packages/data-client/src/react/operation-hook.ts
+msgid "Something went wrong, and the change was not saved."
+msgstr "Etwas ist schiefgelaufen, die Änderung wurde nicht gespeichert."
+
 #: packages/settings-area/src/rows.tsx
 msgid "Spacing"
 msgstr "Abstände"
@@ -541,7 +545,12 @@ msgstr "Theme für Hell"
 msgid "This entry could not be loaded."
 msgstr "Dieser Eintrag konnte nicht geladen werden."
 
+#: packages/data-client/src/react/operation-hook.ts
+msgid "This entry no longer exists."
+msgstr "Diesen Eintrag gibt es nicht mehr."
+
 #: packages/shell/src/lazy-contribution.tsx
+#: packages/ui/src/query-state-block.tsx
 msgid "This part could not be loaded."
 msgstr "Dieser Bereich konnte nicht geladen werden."
 
@@ -604,6 +613,10 @@ msgstr "Warm"
 #: packages/shell/src/edit-drawer-exits.tsx
 msgid "What you changed here will be lost."
 msgstr "Was du hier geändert hast, geht verloren."
+
+#: packages/data-client/src/react/reload-notice.ts
+msgid "What you see may be outdated: it could not be reloaded."
+msgstr "Was du siehst, ist vielleicht veraltet: Es konnte nicht neu geladen werden."
 
 #: apps/web/src/data-connection-states.tsx
 msgid "Your data cannot be reached."

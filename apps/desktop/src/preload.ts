@@ -1,5 +1,5 @@
 import { type DesktopBridge, type PageMessage, pageMessageData } from "@self-engine/desktop-bridge";
-import type { HealthFailure } from "@self-engine/contracts";
+import type { HealthFailure } from "@self-engine/data-protocol";
 import { contextBridge, ipcRenderer } from "electron";
 import { buildIdentity } from "./build-channel.ts";
 import {
