@@ -12,15 +12,19 @@ import { type ReactNode, useEffect, useSyncExternalStore } from "react";
 
 export interface DataConnectionStatesProps {
   readonly connection: Pick<DataConnection, "getState" | "subscribe">;
-  /** Asks the desktop app to start the stopped data process again. */
-  readonly onRetry: () => void;
+  /**
+   * Asks the desktop app to start the stopped data process again. Absent in the browser, which has
+   * no Data Process to start (D263).
+   */
+  readonly onRetry: (() => void) | undefined;
   /** The app, which stays mounted while the connection comes back. */
   readonly children: ReactNode;
 }
 
 /**
  * The app while its connection to the data process stands or comes back; in its place, the
- * reason when the data process cannot serve (spec #29). Only the desktop app renders this.
+ * reason when the data process cannot serve (spec #29). The web app, which has no data process,
+ * shows the stopped state without a retry (D263).
  */
 export function DataConnectionStates({ connection, onRetry, children }: DataConnectionStatesProps) {
   const { t } = useLingui();
@@ -52,8 +56,12 @@ export function DataConnectionStates({ connection, onRetry, children }: DataConn
       return (
         <WholeWindow>
           <ErrorState
-            description={t`The part of Self-Engine that keeps your data stopped after it crashed several times.`}
-            onRetry={onRetry}
+            description={
+              onRetry === undefined
+                ? t`In the browser, Self-Engine has no access to your data yet. Open the desktop app to work with it.`
+                : t`The part of Self-Engine that keeps your data stopped after it crashed several times.`
+            }
+            {...(onRetry && { onRetry })}
             title={t`Your data cannot be reached.`}
           />
         </WholeWindow>

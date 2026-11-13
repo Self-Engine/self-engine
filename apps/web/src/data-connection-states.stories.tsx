@@ -1,6 +1,6 @@
 import { TextInput } from "@mantine/core";
 import { type ConnectionState, createConnectionStateStore } from "@self-engine/data-client";
-import { portAccessOf } from "@self-engine/data-client/react";
+import { NO_DATA_PROCESS } from "@self-engine/data-client/react";
 import { LOADER_DELAY_MS, notifyError } from "@self-engine/ui";
 import { holdTimers } from "@self-engine/ui/story-timers";
 import type { Meta, StoryObj } from "@storybook/react-vite";
@@ -165,24 +165,26 @@ export const TypedTextSurvivesAReconnect: Story = {
 };
 
 /**
- * Outside the desktop app nothing answers, and the app looks as it did before (D196): no
- * connection state, and the module's list waits for its first answer instead of failing (D257).
+ * Outside the desktop app there is no Data Process (D263): the web app shows the state the
+ * desktop app shows when its data cannot be reached, without the retry, which only the desktop
+ * app can carry out. Nothing behind it waits for an answer: the app is not drawn, and every call
+ * would fail at once.
  */
-export const TheWebAppShowsNoConnectionState: Story = {
+export const TheWebAppShowsThatItsDataCannotBeReached: Story = {
   loaders: [loadStoryApp],
   beforeEach: () => {
+    // What `startPageData` does without the desktop app.
     dataConnection.stop();
-    // Back to waiting for a first port, as the web app's connection always is.
+    // Back to waiting for a first port, as the other app stories expect.
     return () => dataConnection.disconnect();
   },
-  render: () => (
-    <AppAt access={portAccessOf(dataConnection)} address="/placeholder-alpha/overview" />
-  ),
+  render: () => <AppAt access={NO_DATA_PROCESS} address="/placeholder-alpha/overview" />,
   play: async ({ canvas }) => {
-    await expect(await canvas.findByRole("navigation", { name: "Modules" })).toBeVisible();
-    await expect(await canvas.findByRole("heading", { name: "Overview" })).toBeVisible();
-    await expect(canvas.queryByRole("alert")).toBeNull();
-    await expect(canvas.queryByRole("button", { name: "New entry" })).toBeVisible();
+    const alert = await canvas.findByRole("alert");
+    await expect(alert).toHaveTextContent("Your data cannot be reached.");
+    await expect(alert).toHaveTextContent("Open the desktop app to work with it.");
+    await expect(canvas.queryByRole("button")).toBeNull();
+    await expect(canvas.queryByRole("navigation", { name: "Modules" })).toBeNull();
   },
 };
 

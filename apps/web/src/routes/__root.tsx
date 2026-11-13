@@ -60,13 +60,13 @@ function RootLayout() {
       <Outlet />
     </Shell>
   );
-  // Only the desktop app has a data process; the web app shows nothing new until it has one (D196).
+  // Without the desktop app the connection is stopped from the start, and nothing can start a
+  // Data Process again, so there is no retry (D263).
   const bridge = window.desktopBridge;
-  if (bridge === undefined) return shell;
   return (
     <DataConnectionStates
       connection={dataConnection}
-      onRetry={() => retryDesktopData(bridge, dataConnection)}
+      onRetry={bridge && (() => retryDesktopData(bridge, dataConnection))}
     >
       {shell}
     </DataConnectionStates>

@@ -1,4 +1,5 @@
 import { createDataConnection, type DataConnection } from "@self-engine/data-client";
+import { NO_DATA_PROCESS, type PortAccess, portAccessOf } from "@self-engine/data-client/react";
 import { CONNECTION_MARK, type DesktopBridge, readPageMessage } from "@self-engine/desktop-bridge";
 
 /** A window message, as far as the handoff reads it. */
@@ -11,10 +12,36 @@ export interface DesktopDataWindow {
 }
 
 /**
- * The page's one connection to the data process. It connects only in the desktop app; on the
- * web its calls wait, as nothing answers them yet (D196).
+ * The page's one connection to the data process. It connects only in the desktop app; on the web
+ * it is stopped from the start, so the page shows that the data cannot be reached (D263).
  */
 export const dataConnection: DataConnection = createDataConnection();
+
+/** A page's window, as far as the start of its data reads it. */
+export type PageDataWindow = DesktopDataWindow & {
+  readonly desktopBridge?: Pick<DesktopBridge, "requestDataPort">;
+};
+
+/**
+ * Starts the page's data and returns the Port access for `DataProvider`. In the desktop app it
+ * marks the connection's states, asks for a port and calls over the connection. Without the
+ * desktop app there is no Data Process (D263): the connection stops, so the page shows the state
+ * that the data cannot be reached, and every call fails at once instead of waiting behind it.
+ */
+export function startPageData(
+  win: PageDataWindow,
+  connection: DataConnection,
+  mark: (name: string, options: { detail: string }) => void,
+): PortAccess {
+  const bridge = win.desktopBridge;
+  if (bridge === undefined) {
+    connection.stop();
+    return NO_DATA_PROCESS;
+  }
+  markConnectionStates(connection, mark);
+  connectDesktopData(win, bridge, connection);
+  return portAccessOf(connection);
+}
 
 /**
  * Listens for the port the preload posts, then asks the desktop app for one. A port arrives

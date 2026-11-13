@@ -8,6 +8,7 @@ import {
   connectDesktopData,
   markConnectionStates,
   retryDesktopData,
+  startPageData,
 } from "./desktop-data.ts";
 
 const ORIGIN = "self-engine-dev://app";
@@ -158,5 +159,43 @@ describe("markConnectionStates", () => {
       [CONNECTION_MARK, "connecting"],
       [CONNECTION_MARK, "stopped"],
     ]);
+  });
+});
+
+describe("startPageData", () => {
+  it("without the desktop app shows that the data cannot be reached, and every call fails at once", async () => {
+    const connection = createDataConnection();
+    const marks: string[] = [];
+
+    const access = startPageData(new FakeWindow(), connection, (_, { detail }) =>
+      marks.push(detail),
+    );
+
+    expect(connection.getState()).toEqual({ status: "stopped" });
+    await expect(access.call("placeholderAlpha", "list", {})).rejects.toThrow("No Data Process");
+    expect(access.describeEntry("placeholderAlpha", "list")).toBeUndefined();
+    // Only the desktop smoke test reads the marks.
+    expect(marks).toEqual([]);
+  });
+
+  it("in the desktop app asks for a port, marks the states and calls over the connection", async () => {
+    const win = Object.assign(new FakeWindow(), {
+      desktopBridge: { requestDataPort: () => requested.push("port") },
+    });
+    const requested: string[] = [];
+    const connection = createDataConnection();
+    const marks: string[] = [];
+
+    const access = startPageData(win, connection, (_, { detail }) => marks.push(detail));
+
+    expect(requested).toEqual(["port"]);
+    expect(marks).toEqual(["connecting"]);
+    expect(connection.getState()).toEqual({ status: "connecting" });
+    // A call waits for the port, until its caller gives up.
+    const reason = new Error("The View was left");
+    const controller = new AbortController();
+    const waiting = access.call("placeholderAlpha", "list", {}, controller.signal);
+    controller.abort(reason);
+    await expect(waiting).rejects.toBe(reason);
   });
 });
