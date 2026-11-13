@@ -1,7 +1,9 @@
+import { Button, Group, Stack, TextInput } from "@mantine/core";
 import { notifyUndoable } from "@self-engine/ui";
+import { clearNotices } from "@self-engine/ui/story-notices";
 import type { Meta } from "@storybook/react-vite";
 import { useState } from "react";
-import { expect, screen, userEvent, waitFor, within } from "storybook/test";
+import { expect, fn, screen, userEvent, waitFor, within } from "storybook/test";
 import {
   type EditDrawerProps,
   Shell,
@@ -13,6 +15,7 @@ import {
 import {
   atViewport,
   ENTRIES,
+  inDark,
   nextFrame,
   type Story,
   shellMeta,
@@ -95,28 +98,6 @@ export const MovingToAModuleWithoutADrawerStillPlaysTheExit: Story = {
     await nextFrame();
     await expect(dialog.isConnected).toBe(true);
     await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
-  },
-};
-
-const noticeRouting = storyRouting();
-
-export const ANoticeSitsAboveTheBottomBarAndTheDrawer: Story = {
-  ...atViewport("phone"),
-  args: { activeModule: MODULE_WITH_DRAWER, children: <OpenEditor />, routing: noticeRouting },
-  play: async ({ canvas }) => {
-    const bottomBar = screen.getByRole("contentinfo");
-    await openDialog(canvas);
-    notifyUndoable({ message: "Entry deleted", undo: () => undefined });
-    const notice = (await screen.findByText("Entry deleted")).closest("[role=alert]")!;
-    await waitFor(async () => {
-      const { bottom, left, top, width } = notice.getBoundingClientRect();
-      await expect(bottom).toBeLessThanOrEqual(bottomBar.getBoundingClientRect().top);
-      await expect(notice.contains(document.elementFromPoint(left + width / 2, top + 4))).toBe(
-        true,
-      );
-    });
-    await userEvent.click(within(notice as HTMLElement).getByRole("button", { name: "Undo" }));
-    await waitFor(() => expect(screen.queryByText("Entry deleted")).toBeNull());
   },
 };
 
@@ -242,3 +223,89 @@ export const TallContentScrollsBelowTheTitle: Story = {
     await expect(heading.getBoundingClientRect().top).toBe(top);
   },
 };
+
+/** The shape of a module's drawer: a field on top, its actions pinned to the bottom. */
+function EntryWithActions() {
+  return (
+    <Stack flex={1}>
+      <TextInput label="Name" />
+      <Group justify="flex-end" mt="auto">
+        <Button me="auto" variant="subtle">
+          Delete
+        </Button>
+        <Button variant="default">Cancel</Button>
+        <Button>Save</Button>
+      </Group>
+    </Stack>
+  );
+}
+
+const MODULE_WITH_ACTIONS: ShellContribution = {
+  ...ENTRIES[1]!,
+  editDrawer: async () => ({ default: EntryWithActions }),
+};
+
+/** A click aimed at the middle of the control reaches the control and nothing laid over it. */
+const expectClickable = async (control: HTMLElement, name: string) => {
+  const { left, top, width, height } = control.getBoundingClientRect();
+  const hit = document.elementFromPoint(left + width / 2, top + height / 2);
+  await expect(control.contains(hit), `${name} is covered`).toBe(true);
+};
+
+const noticeOf = async (message: string) =>
+  (await screen.findByText(message)).closest<HTMLElement>("[role=alert]")!;
+
+/** Until the notice has finished sliding in and lies on top where it rests. */
+const settled = async (notice: HTMLElement) => {
+  await waitFor(async () => {
+    await expect(getComputedStyle(notice).opacity).toBe("1");
+    const { left, top, width, height } = notice.getBoundingClientRect();
+    await expect(
+      notice.contains(document.elementFromPoint(left + width / 2, top + height / 2)),
+    ).toBe(true);
+  });
+};
+
+const noticesLeaveTheDrawerClickable = (viewport: keyof typeof VIEWPORTS): Story => ({
+  ...atViewport(viewport),
+  beforeEach: clearNotices,
+  args: { activeModule: MODULE_WITH_ACTIONS, routing: storyRouting({ edit: "entry" }) },
+  play: async () => {
+    const dialog = within(await screen.findByRole("dialog", { name: "Time" }));
+    const save = await dialog.findByRole("button", { name: "Save" });
+    const undoFirst = fn();
+    const undoSecond = fn();
+    notifyUndoable({ message: "First entry deleted", undo: undoFirst });
+    notifyUndoable({ message: "Second entry deleted", undo: undoSecond });
+    const latest = await noticeOf("Second entry deleted");
+    await settled(latest);
+    await expectClickable(dialog.getByRole("heading", { name: "Time" }), "The title");
+    await expectClickable(dialog.getByRole("button", { name: "Close editor" }), "Close");
+    await expectClickable(dialog.getByRole("button", { name: "Delete" }), "Delete");
+    await expectClickable(dialog.getByRole("button", { name: "Cancel" }), "Cancel");
+    await expectClickable(save, "Save");
+    // The notices keep their own action.
+    await userEvent.click(within(latest).getByRole("button", { name: "Undo" }));
+    await expect(undoSecond).toHaveBeenCalledOnce();
+    const earlier = await noticeOf("First entry deleted");
+    await settled(earlier);
+    await userEvent.click(within(earlier).getByRole("button", { name: "Undo" }));
+    await expect(undoFirst).toHaveBeenCalledOnce();
+    await waitFor(() => expect(screen.queryByRole("alert")).toBeNull());
+  },
+});
+
+export const NoticesLeaveTheDrawerClickableAtTheWideStep = noticesLeaveTheDrawerClickable("wide");
+export const NoticesLeaveTheDrawerClickableAtTheMediumStep =
+  noticesLeaveTheDrawerClickable("medium");
+export const NoticesLeaveTheDrawerClickableAtTheNarrowStep =
+  noticesLeaveTheDrawerClickable("narrow");
+export const NoticesLeaveTheDrawerClickableInTheNarrowestWindow =
+  noticesLeaveTheDrawerClickable("narrowest");
+export const NoticesLeaveTheDrawerClickableOnThePhone = noticesLeaveTheDrawerClickable("phone");
+export const NoticesLeaveTheDrawerClickableInTheDark = inDark(
+  noticesLeaveTheDrawerClickable("narrowest"),
+);
+export const NoticesLeaveTheDrawerClickableOnThePhoneInTheDark = inDark(
+  noticesLeaveTheDrawerClickable("phone"),
+);

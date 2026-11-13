@@ -9,12 +9,15 @@ import type { CSSProperties, ReactNode } from "react";
 
 const NOTICE_MS = 8000;
 
-/** The height of a bar fixed to the bottom of the window. Whoever draws such a bar sets it. */
+/**
+ * How far from the top of the window the notices start, below what sits there and must stay
+ * clickable, such as the header of a drawer. Whoever draws it sets it.
+ */
 export const NOTICE_CLEARANCE_VARIABLE = "--self-engine-notice-clearance";
 
-/** Only the bottom-right container is in use, and the margin lifts it. */
-const CLEAR_OF_THE_BOTTOM_BAR: CSSProperties = {
-  marginBottom: `var(${NOTICE_CLEARANCE_VARIABLE}, 0rem)`,
+/** Only the top-right container is in use, and the margin lowers it. */
+const CLEAR_OF_THE_TOP: CSSProperties = {
+  marginTop: `var(${NOTICE_CLEARANCE_VARIABLE}, 0rem)`,
 };
 
 /** Below the theme and above the routes, once per app: what it shows outlives a navigation. */
@@ -31,8 +34,10 @@ export function FeedbackHost({ children }: { readonly children: ReactNode }) {
       <MantineThemeProvider inherit theme={translatedNoticeClose}>
         <Notifications
           autoClose={NOTICE_MS}
-          position="bottom-right"
-          style={CLEAR_OF_THE_BOTTOM_BAR}
+          // Only the latest notice shows in full; the others fan out while the pointer is on them.
+          layout="stacked"
+          position="top-right"
+          style={CLEAR_OF_THE_TOP}
         />
       </MantineThemeProvider>
       {children}

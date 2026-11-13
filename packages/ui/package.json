@@ -6,6 +6,7 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
+    "./story-notices": "./src/story-notices.ts",
     "./story-timers": "./src/story-timers.ts",
     "./story-render-counts": "./src/story-render-counts.ts"
   },

@@ -1681,6 +1681,25 @@ markiert und wird beim Bau gemessen.
   über den echten Datenprozess aus `data-client` und dem Modul in ein höheres Paket verschieben
   (die Tests lägen weit weg von ihrem Code, und der Kreis über `contracts` bliebe).
 
+### Runde 35 (2026-11-13): Wo Hinweise stehen (#230, ändert D79 und D169)
+
+- **D267 Hinweise stehen oben rechts, gestapelt, unter dem Kopf des Bearbeiten-Drawers (ändert
+  D79, D169).** Unten rechts lagen sie über Speichern und Abbrechen des Drawers und nahmen deren
+  Klicks. Mantine stellt sie jetzt mit `position="top-right"` und `layout="stacked"` (Mantine
+  9.7.5): Nur der neueste Hinweis ist ganz zu sehen, die älteren liegen dahinter und fächern sich
+  auf, solange der Zeiger darauf liegt; dann pausieren alle. Oben rechts allein lag der Hinweis
+  über Titel und Schließen-Knopf des Drawers, deshalb setzt die Hülle auf jeder Layout-Stufe
+  einen Abstand von oben bis zum Ende des Drawer-Kopfs (Mindesthöhe des Mantine-Kopfs plus der
+  Rand des schwebenden Drawers, am Telefon ohne Rand); er gilt auch ohne offenen Drawer, damit
+  ein Hinweis nicht springt, und hält ihn unter dem Kopf des Inhalts. Der Abstand über der
+  unteren Leiste am Telefon entfällt. Ein Hinweis bleibt 8 Sekunden; Rückgängig bleibt im
+  Hinweis. Eine Story pro Layout-Stufe, hell und dunkel, prüft, dass Titel, Schließen, Löschen,
+  Abbrechen und Speichern bei offenem Hinweis den Klick bekommen. _Preis:_ eine CSS-Variable;
+  zur Laufzeit misst Mantine im gestapelten Modus jeden Hinweis einmal (ResizeObserver), sonst
+  nichts. _Grenze:_ Ein Hinweis liegt über dem ersten Feld des Drawers; ein Titel über mehr als
+  zwei Zeilen reichte unter ihn. _Verworfen:_ oben Mitte und unten links (nicht gewählt); unten
+  rechts mit Versatz nur bei offenem Drawer (der Hinweis spränge).
+
 ## Fakten
 
 - Self-Engine hat Abo-Infrastruktur über Clerk Billing (`apps/web/src/features/billing`),
