@@ -1,3 +1,5 @@
+// First: React looks for the render counter once, when it loads.
+import "./render-counter.ts";
 import "@mantine/core/styles.css";
 import "@self-engine/theme/fonts.css";
 

@@ -34,6 +34,7 @@
     "@self-engine/placeholder-alpha": "workspace:*",
     "@self-engine/shell": "workspace:*",
     "@self-engine/theme": "workspace:*",
+    "@self-engine/ui": "workspace:*",
     "@swc/core": "catalog:",
     "@types/node": "catalog:",
     "dependency-cruiser": "catalog:",

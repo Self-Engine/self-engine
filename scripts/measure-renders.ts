@@ -10,13 +10,8 @@ import type { startRenderDataProcess } from "./render-data-process.ts";
 import { chromium, type Page } from "playwright";
 import { runnerImport } from "vite-plus";
 import { workingTreeHash } from "./verify-stamp.ts";
-import {
-  countCommit,
-  compareReports,
-  difference,
-  type RenderCounts,
-  type RenderReport,
-} from "./render-counts.ts";
+import { compareReports, type RenderReport } from "./render-counts.ts";
+import { countCommit, difference, type RenderCounts } from "@self-engine/ui/story-render-counts";
 
 /** Parse the diagnostic command; reject misspelled options before launching anything. */
 export function options(args: string[]) {

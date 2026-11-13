@@ -37,7 +37,8 @@ component name. The JSON records the commit and complete working-tree hash, incl
 uncommitted changes. A comparison shows absolute counts and changes per scenario/component.
 Keep the reports in `.temp/`; commit neither reports nor generated screenshots.
 
-This is a diagnostic comparison, **not a gate**. Use the same Node/Chromium versions,
+This is a diagnostic comparison, **not a gate**; the gate for one changed row is the story
+described under "The render-count gate" below. Use the same Node/Chromium versions,
 viewport and scenarios for both states. Repeat measurements before drawing conclusions:
 async loading, React development mode, Strict Mode and Mantine effects influence the counts.
 These are not production timings, DOM mutation counts, abandoned render attempts, or counts
@@ -47,7 +48,8 @@ Instrumentation is installed through the React DevTools hook in the measurement 
 only. It counts `PerformedWork` for function/forward-ref/simple-memo Fibers and tracks the
 last committed Fiber to exclude reused subtrees with stale flags. This private React
 interface needs checking on React upgrades; a scenario recording no work fails explicitly.
-Storybook and production code do not include the hook.
+The count itself (`@self-engine/ui/story-render-counts`) is shared with the render-count gate.
+Production code does not include the hook.
 
 ## One changed row redraws one row
 
@@ -91,12 +93,47 @@ note rows of five fields, one of them renamed, the comparison takes **0.03 ms at
 0.25 ms at 1,000 and 2.5 ms at 10,000**: linear, a tenth of the spike's 2 ms fetch at 1,000 rows.
 A hook test fails if a reload replaces an unchanged row.
 
+Measured again during #225 for the rows the gate draws: `placeholder-alpha` entries (an id and a
+name), one renamed, every row a new object as it arrives from the Data Process. Apple M3 Pro, the
+query library's `replaceEqualDeep` (5.107.1), each sample a batch of comparisons divided by its
+size (Chromium coarsens its clock to 0.1 ms), median of 30 samples after 5 warm-up samples:
+
+| Rows   | Chromium 158 (renderer) | Node 26.13 |
+| ------ | ----------------------- | ---------- |
+| 100    | 0.016 ms                | 0.02 ms    |
+| 1,000  | **0.15 ms**             | 0.20 ms    |
+| 10,000 | 1.6 ms                  | 2.0–2.3 ms |
+
+A reload of 1,000 rows therefore spends about 0.15 ms keeping the 999 unchanged rows, and in
+return draws one row instead of 1,000.
+
 An answer that no View shows stays in memory for 5 minutes (D250). Held as parsed JSON, 1,000
 such rows take about **226 KiB** of heap, and 10,000 about **2.1 MiB**.
 
 The building block (`@self-engine/data-client/react`) bundles to **35,422 bytes** minified
 (10,855 gzipped), of which the query library is 33,315. Since #224 the app mounts it at startup;
 the startup budget below holds it.
+
+### The render-count gate
+
+The rule is held by a number in `pnpm verify` (D256). The story
+`apps/web/src/placeholder-alpha-render-count.stories.tsx` (stage `stories`) draws the whole app with
+1,000 `placeholder-alpha` entries through the real `Entries`, `EntryList` and `EntryRow`. Its Port
+answers with Fixed Answers; the story then switches the list's answer to the same entries with one
+renamed, delivers the Table Change by hand and lets the list reload. It asserts that exactly
+**one `EntryRow` and one `EntryList`** drew. The number is fixed, not a share of the rows.
+
+- **How it counts.** The Component Catalog installs the counter as React's DevTools hook before
+  React loads: as the first setup file of the story tests and as the first import of the preview.
+  If React connected without it, the story fails with that message rather than counting nothing.
+- **When it stops counting.** The story waits for the commit that shows the renamed row
+  (`commitWhere`, called by React's commit, not asked again and again), then for the work React has
+  scheduled by then (`afterTheCommitsNowDue`, a message task behind React's own). No real clock,
+  no polling.
+- **That it bites.** With `memo` taken off `EntryRow` the story fails with
+  `expected { EntryList: 1, EntryRow: 1000 } to deeply equal { EntryList: 1, EntryRow: 1 }`.
+- **Cost.** The story takes about 0.45 s (ten runs, 440–495 ms, all passing). The whole `stories`
+  stage took a median 14.45 s with it and 14.20 s without it (three runs each, alternating).
 
 ## Startup JavaScript budget
 
