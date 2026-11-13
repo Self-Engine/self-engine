@@ -1,6 +1,6 @@
 export type { Database } from "./database.ts";
-export { newId, newTimestamp } from "./id-and-timestamp.ts";
-export type { IdSources } from "./id-and-timestamp.ts";
+export { newId } from "./new-id.ts";
+export type { IdSources } from "./new-id.ts";
 export { defineMigrations } from "./migration.ts";
 export type { Migration } from "./migration.ts";
 export { MigrationRunError } from "./migration-run-error.ts";

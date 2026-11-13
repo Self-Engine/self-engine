@@ -18,7 +18,7 @@ and still allowed `new Date(ms)`, and `.getDate()` on that gives the day in the 
 
 1. **A _Clock_ is a function that returns an _Instant_, and its type belongs to `time`.** No
    function has a default for it: forgetting the clock is a type error. `db` and `storage` take
-   the type from `time`; `newTimestamp` in `db` returns what its clock returns, and `newId` takes
+   the type from `time`; a timestamp is what the clock returns, and `newId` in `db` takes
    the milliseconds of a UUIDv7 from the clock's Instant through `epochMsOf`.
 2. **The system clock has an entry of its own, `@self-engine/time/system-clock`, and only code in
    `apps/` loads it.** The dependency-cruiser rule `system-clock-only-in-apps` rejects an import

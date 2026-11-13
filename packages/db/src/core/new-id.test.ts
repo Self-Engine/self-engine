@@ -1,22 +1,8 @@
 import { describe, expect, expectTypeOf, test } from "vite-plus/test";
 import { z } from "zod";
 import { idSchema } from "@self-engine/db/schema";
-import { instantSchema, type Clock, type Instant } from "@self-engine/time";
 import { fixedClock, requireInstant } from "@self-engine/time/testing";
-import { newId, newTimestamp, type IdSources } from "./index.ts";
-
-describe("newTimestamp", () => {
-  test.each([
-    ["2026-11-09T14:07:46.297Z", "2026-11-09T14:07:46.297Z"],
-    ["a time whose milliseconds are zero", "2026-11-09T14:07:46.000Z"],
-    ["a time whose whole minute is zero", "2026-11-09T14:00:00.000Z"],
-  ])("writes %s in the one exact format", (_name, expected) => {
-    const timestamp = newTimestamp(fixedClock(requireInstant(expected)));
-    expect(timestamp).toBe(expected);
-    expectTypeOf(timestamp).toEqualTypeOf<Instant>();
-    expect(instantSchema.parse(timestamp)).toBe(timestamp);
-  });
-});
+import { newId, type IdSources } from "./index.ts";
 
 const ZEROS = () => new Uint8Array(16);
 const ONES = () => new Uint8Array(16).fill(0xff);
@@ -56,7 +42,6 @@ describe("newId", () => {
   });
 });
 
-test("timestamp and id creation require explicit clock sources", () => {
-  expectTypeOf(newTimestamp).parameters.toEqualTypeOf<[Clock]>();
+test("id creation requires explicit clock sources", () => {
   expectTypeOf(newId).parameters.toEqualTypeOf<[IdSources]>();
 });

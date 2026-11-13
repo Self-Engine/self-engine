@@ -28,8 +28,8 @@ without runtime parsing.
   and the primary key's automatic index are exempt. `checkConventions` enforces these rules.
 - `Instant` comes from `time`: canonical UTC text with three fractional digits and years
   1000–9999. Each entity has its own UUIDv7 id brand, shared by row maps, foreign keys and
-  contracts through `idSchema`. `newTimestamp` returns `Instant`; `newId<EntityId>` creates the
-  requested brand from the context's sources without a caller cast.
+  contracts through `idSchema`. A timestamp is the `Instant` the context's clock returns;
+  `newId<EntityId>` creates the requested brand from the context's sources without a caller cast.
 - `@self-engine/db/schema` is a pure entry for `idSchema` and `sqliteBoolean`. Contracts may
   import it and `time`; it imports no Kysely, uuid, driver or database runtime.
 - Agreement tests run a module's migrations alone in a fresh database and compare its row map

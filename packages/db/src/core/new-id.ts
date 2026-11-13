@@ -1,4 +1,4 @@
-import { epochMsOf, type Clock, type Instant } from "@self-engine/time";
+import { epochMsOf, type Clock } from "@self-engine/time";
 import { v7 } from "uuid";
 
 /** What a test supplies to get a known id. `random` returns 16 bytes. */
@@ -11,9 +11,4 @@ export interface IdSources {
 export function newId<Id extends string = string>(sources: IdSources): Id {
   // UUID generation establishes validity; the brand records which entity owns this id.
   return v7({ msecs: epochMsOf(sources.clock()), rng: sources.random }) as Id;
-}
-
-/** The current Instant from the explicitly supplied clock. */
-export function newTimestamp(clock: Clock): Instant {
-  return clock();
 }

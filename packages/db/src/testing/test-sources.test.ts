@@ -1,14 +1,14 @@
 import { expect, test } from "vite-plus/test";
-import { newId, newTimestamp } from "../core/index.ts";
+import { newId } from "../core/index.ts";
 import { createTestSources } from "./index.ts";
 
 test("time stays fixed until explicitly advanced", () => {
   const sources = createTestSources("2026-11-09T14:07:46.297Z");
 
-  expect(newTimestamp(sources.clock)).toBe("2026-11-09T14:07:46.297Z");
-  expect(newTimestamp(sources.clock)).toBe("2026-11-09T14:07:46.297Z");
+  expect(sources.clock()).toBe("2026-11-09T14:07:46.297Z");
+  expect(sources.clock()).toBe("2026-11-09T14:07:46.297Z");
   sources.advance(1234);
-  expect(newTimestamp(sources.clock)).toBe("2026-11-09T14:07:47.531Z");
+  expect(sources.clock()).toBe("2026-11-09T14:07:47.531Z");
 });
 
 test("ids are unique and ascend within one millisecond, including counter carries", () => {
@@ -18,7 +18,7 @@ test("ids are unique and ascend within one millisecond, including counter carrie
   expect(new Set(ids).size).toBe(1025);
   expect(ids.toSorted()).toEqual(ids);
   expect(ids.every((id) => id.startsWith("01a1c0a2-f079-7"))).toBe(true);
-  expect(newTimestamp(sources.clock)).toBe("2026-11-09T14:07:46.297Z");
+  expect(sources.clock()).toBe("2026-11-09T14:07:46.297Z");
 });
 
 test("ids and timestamps agree on the moment before and after advancing", () => {
@@ -28,7 +28,7 @@ test("ids and timestamps agree on the moment before and after advancing", () => 
   expect(idTime(newId(sources.ids))).toBe(1794233266297);
   sources.advance(1);
   expect(idTime(newId(sources.ids))).toBe(1794233266298);
-  expect(newTimestamp(sources.clock)).toBe("2026-11-09T14:07:46.298Z");
+  expect(sources.clock()).toBe("2026-11-09T14:07:46.298Z");
 });
 
 test("the same start reproduces the id sequence independently", () => {
