@@ -6,9 +6,9 @@ Finish every step below by [refreshing the overview](#the-overview).
 
 ## The path
 
-1. **Grill the layer** (`grilling`). Done when every question of the layer has a decision in `docs/plan/00-decisions.md` and the layer has its document in `docs/plan/`.
+1. **Grill the layer** (`grilling`). Done when every question of the layer has a decision in the [decision log](../plan/00-decisions.md) and the layer has its document in `docs/plan/`.
 2. **Cut work packages** (`to-spec`, `to-tickets`). Done when each package is an issue with `layer:<n>`, a label from [Who may build](#who-may-build), and blockers with smaller numbers only. A layer spec holding the packages as sub-issues carries neither build label. Plan to split a package that would exceed roughly 4,500 new lines.
-3. **Grill the package** (`grilling`), when it has `needs-grilling`. Open by naming the recorded decisions for the package that you would change: they are [working assumptions](../../AGENTS.md#decisions). Done when no design question of the package is open and each answer is recorded under the next free D number. Read the highest number from `main`: another branch may have taken yours.
+3. **Grill the package** (`grilling`), when it has `needs-grilling`. Read from the [decision log](../plan/00-decisions.md) only the rounds that touch the package, and open by naming the recorded decisions you would change: they are [working assumptions](../../AGENTS.md#decisions). Done when no design question of the package is open and the answers are recorded as a new round, as the log describes.
 4. **Land the decisions.** Open a docs pull request right after the grilling, ahead of the build, so the next grilling can see them. Done when it is merged.
 5. **Write the spec** (`to-spec`) into the package issue. Done when the body holds the spec, with its `Problem Statement`.
 6. **Cut slices** (`to-tickets`). Done when each slice is a sub-issue with `## Parent`, `layer:<n>` and `ready-for-agent`, and the package has swapped `needs-grilling` for `ready-for-agent`.
