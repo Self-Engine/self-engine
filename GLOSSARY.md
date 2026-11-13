@@ -204,6 +204,10 @@ _Avoid_: default locale, fallback language, source locale
 
 ### Stored Data
 
+**Bridge** (de: _Brücke_):
+A part of the app above two or more modules that owns one flow across them and is named for its purpose, such as billing. It keeps the records that link the modules' entries and the _Operations_ of that flow; the modules it joins do not know it. A module that builds on another in one direction needs no _Bridge_.
+_Avoid_: integration, connector, glue module, cross-module service
+
 **Frame** (de: _Aufrufrahmen_):
 The shared boundary around one module call that checks its input, keeps its changes atomic and announces committed changes. It also gives failures a consistent meaning for the caller.
 _Avoid_: handler, wrapper
