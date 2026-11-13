@@ -52,6 +52,7 @@ den Vermerk `_Überholt durch D<n>._`
 | [D268–D277](decisions/d268-d277-startup-size-and-backups.md) | 2026-11-14 | Beim Bau entschieden: Startgröße und Sicherungen | #136, #35 |
 | [D278](decisions/d278-weight-of-decisions.md) | 2026-11-14 | Gewicht der Entscheidungen | – |
 | [D279–D285](decisions/d279-d285-time-package.md) | 2026-11-14 | Paket `time`: Zuschnitt, Temporal, Zeitwerte, Zeitzone, Uhr, Prüfungen | #104 |
+| [D286–D290](decisions/d286-d290-spaces-package.md) | 2026-11-14 | Paket `spaces`: Fremdschlüssel, Lage, ein persönlicher Space, Tabelle, Begriffe | #108 |
 
 D109 und D110 sind doppelt vergeben, in den Runden 18 und 19. Wer eine der beiden nennt, nennt die
 Runde dazu.

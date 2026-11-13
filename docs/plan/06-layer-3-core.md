@@ -9,6 +9,7 @@ Stand: 2026-11-10 · Status: **entschieden** (D143–D154), Spec #103, Issues #1
 |---|---|---|
 | L3.1 | Zuschnitt | Vier Pakete `time`, `money`, `spaces`, `tags`, kein `core`; Richtung nur nach unten (D143) |
 | L3.2 | Spaces | Ein persönlicher Space ohne Oberfläche; `space_id` kommt als Port-Kontext (D144) |
+| – | Spaces | Grilling zu #108: Fremdschlüssel auf `spaces` als geprüfte Regel, Paket unter `storage` ohne Vertrag, ein persönlicher Space über eine Transaktion statt über einen Index, Tabelle und Begriffe (D286–D290, ändern D143 und D144) |
 | L3.3 | Geld | `INTEGER` in der kleinsten Einheit, eigener Katalog, einmal gerundet, keine Kurse (D145) |
 | L3.4 | Geld | Eingabe und Anzeige in `money`, `_minor` im Namen, Zod-Schemas im Paket (D146) |
 | L3.5 | Zeit | Eine Zeitzone als Synced Setting, keine Historie, Tageslogik nie in SQL (D147) |
@@ -28,7 +29,11 @@ Brücken (billing, …)      Abläufe über mehrere Module, eigene Tabellen (D15
   ↓
 Fachmodule, contracts     Schicht 4 ff.; einseitige Importe nur wenn fachlich zwingend
   ↓
-spaces, tags              eigene Tabellen, Port, Migrationen
+tags                      eigene Tabellen, Port, Migrationen
+  ↓
+storage                   Schicht 2: Rahmen, gemeinsamer Einstieg, Contract-Kit
+  ↓
+spaces                    eigene Tabelle und Migration, kein Vertrag (D287)
   ↓
 db                        Schicht 2
   ↓
@@ -51,7 +56,7 @@ geschnitten. Gebaut wird in der Reihenfolge aus D279: #104, #108, dann Schicht 4
 | #105 | `money` | D145, D146, D153 | – |
 | #106 | Icon und Farbe an Entitäten | D151 | – |
 | #107 | ADR und Glossar für Brücken | D152 | – |
-| #108 | `spaces` | D144 | #29, #32 |
+| #108 | `spaces` | D144, D286–D290 | #29, #32 |
 | #109 | Einstellungen in der Datenbank (ersetzt #34) | D62, D113 ff. | #33, #108 |
 | #110 | Eine Zeitzone und die Kern-Einstellungen | D147, D153 | #21, #23, #104, #105, #109 |
 | #111 | `tags` mit Brücken der Module | D150 | #33, #108 |
@@ -59,8 +64,6 @@ geschnitten. Gebaut wird in der Reihenfolge aus D279: #104, #108, dann Schicht 4
 ## Offen
 
 - Name des Zeitmoduls in Schicht 4: `time` ist durch das Wert-Paket belegt.
-- Wie `spaces` höchstens einen persönlichen Space sichert, ohne D227 zu brechen: Ein Index über
-  `kind` beginnt nicht mit `space_id` (klärt #108).
 - Sonderfall doppelter Mitternacht in historischen Zeitzonen; Prüfung auf Hermes (Mobile-Phase).
 - Wie eine Brücken-Aktion in der Oberfläche eines Moduls erscheint (mit der ersten Brücke).
 - Zusammenführen offline angelegter gleicher Tags, Umschreiben der `space_id` (Sync-Phase).
