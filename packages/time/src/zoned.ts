@@ -1,7 +1,7 @@
 import type { Clock } from "./clock.ts";
-import { instantSchema, type Instant } from "./instant.ts";
+import type { Instant } from "./instant.ts";
+import { calendarDayFrom, instantFrom } from "./supported-years.ts";
 import {
-  calendarDaySchema,
   wallClockTimeSchema,
   type CalendarDay,
   type DaySpan,
@@ -24,25 +24,13 @@ export interface InstantRange {
   readonly end: Instant;
 }
 
-function outOfRange(): never {
-  throw new RangeError("Outside the supported years 1000–9999");
-}
-
-function instantOf(exact: Temporal.Instant | Temporal.ZonedDateTime): Instant {
-  const parsed = instantSchema.safeParse(
-    ("toInstant" in exact ? exact.toInstant() : exact).toString({ fractionalSecondDigits: 3 }),
-  );
-  return parsed.success ? parsed.data : outOfRange();
-}
-
 function zonedOf(instant: Instant, timeZone: TimeZone): Temporal.ZonedDateTime {
   return Temporal.Instant.from(instant).toZonedDateTimeISO(timeZone);
 }
 
 /** The calendar day an Instant falls on in a zone. */
 export function calendarDayOf(instant: Instant, timeZone: TimeZone): CalendarDay {
-  const parsed = calendarDaySchema.safeParse(zonedOf(instant, timeZone).toPlainDate().toString());
-  return parsed.success ? parsed.data : outOfRange();
+  return calendarDayFrom(zonedOf(instant, timeZone).toPlainDate());
 }
 
 /** The wall-clock time an Instant shows in a zone, cut to the minute. */
@@ -66,15 +54,19 @@ export function instantAt(
   const earlier = local.toZonedDateTime(timeZone, { disambiguation: "earlier" });
   const later = local.toZonedDateTime(timeZone, { disambiguation: "later" });
   if (earlier.epochNanoseconds === later.epochNanoseconds)
-    return { case: "unambiguous", instant: instantOf(earlier) };
+    return { case: "unambiguous", instant: instantFrom(earlier.toInstant()) };
   if (!earlier.toPlainDateTime().equals(local))
-    return { case: "skipped", instant: instantOf(later) };
-  return { case: "repeated", instant: instantOf(earlier), later: instantOf(later) };
+    return { case: "skipped", instant: instantFrom(later.toInstant()) };
+  return {
+    case: "repeated",
+    instant: instantFrom(earlier.toInstant()),
+    later: instantFrom(later.toInstant()),
+  };
 }
 
 /** The first moment of a day in a zone; not always 00:00. */
 export function startOfCalendarDay(day: CalendarDay, timeZone: TimeZone): Instant {
-  return instantOf(Temporal.PlainDate.from(day).toZonedDateTime(timeZone));
+  return instantFrom(Temporal.PlainDate.from(day).toZonedDateTime(timeZone).toInstant());
 }
 
 /** The Instants of a calendar day or day span: its first moment up to the next day's first. */
@@ -83,7 +75,7 @@ export function instantRangeOf(days: CalendarDay | DaySpan, timeZone: TimeZone):
   const dayAfter = Temporal.PlainDate.from(last).add({ days: 1 });
   return {
     start: startOfCalendarDay(first, timeZone),
-    end: instantOf(dayAfter.toZonedDateTime(timeZone)),
+    end: instantFrom(dayAfter.toZonedDateTime(timeZone).toInstant()),
   };
 }
 

@@ -1,4 +1,5 @@
-import { instantSchema, type Instant } from "../instant.ts";
+import type { Instant } from "../instant.ts";
+import { instantFrom } from "../supported-years.ts";
 import { resolveTimeZone, type TimeZone } from "../zone.ts";
 
 /** Every zone name the runtime lists. */
@@ -35,7 +36,5 @@ export function* clockChangesOf(
 
 /** The Instant of an epoch millisecond in the supported years. */
 export function instantAtMs(epochMs: number): Instant {
-  return instantSchema.parse(
-    Temporal.Instant.fromEpochMilliseconds(epochMs).toString({ fractionalSecondDigits: 3 }),
-  );
+  return instantFrom(Temporal.Instant.fromEpochMilliseconds(epochMs));
 }
