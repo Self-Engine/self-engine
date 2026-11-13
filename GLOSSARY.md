@@ -173,7 +173,7 @@ The outermost bar with one entry per module, either narrow with icons only or wi
 _Avoid_: main menu, sidebar
 
 **Notice** (de: _Hinweis_):
-A short message bottom right that says something happened or failed, stays for eight seconds and can offer to undo. It asks nothing; a question that needs an answer is a confirmation dialog.
+A short message at the top center that says something happened or failed, stays for eight seconds once it is in front of the others and can offer to undo. It asks nothing; a question that needs an answer is a confirmation dialog.
 _Avoid_: toast, snackbar, notification
 
 **Shell** (de: _Hülle_):

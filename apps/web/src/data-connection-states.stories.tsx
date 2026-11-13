@@ -188,7 +188,7 @@ export const TheWebAppShowsThatItsDataCannotBeReached: Story = {
   },
 };
 
-export const ReconnectAndErrorNoticesStackTogether: Story = {
+export const ReconnectAndErrorNoticesShareOneStack: Story = {
   beforeEach: startingAt({ status: "reconnecting" }),
   play: async ({ canvasElement }) => {
     runTheWait();
@@ -198,9 +198,13 @@ export const ReconnectAndErrorNoticesStackTogether: Story = {
     const container = reconnect.closest(".mantine-Notifications-root");
     await expect(container).not.toBeNull();
     await expect(error.closest(".mantine-Notifications-root")).toBe(container);
+    // The latest lies in front; the pointer on the stack fans both out side by side.
+    const errorNotice = error.closest<HTMLElement>('[role="alert"]')!;
+    await expect(reconnect.closest('[role="status"]')).toHaveAttribute("inert");
+    await userEvent.hover(errorNotice);
     await waitFor(async () => {
       const first = reconnect.closest('[role="status"]')!.getBoundingClientRect();
-      const second = error.closest('[role="alert"]')!.getBoundingClientRect();
+      const second = errorNotice.getBoundingClientRect();
       await expect(first.bottom <= second.top || second.bottom <= first.top).toBe(true);
     });
   },

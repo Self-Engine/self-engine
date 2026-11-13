@@ -1,4 +1,3 @@
-import { notifications } from "@mantine/notifications";
 import { roleColor } from "@self-engine/theme";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { expect, fn, screen, spyOn, userEvent, waitFor, within } from "storybook/test";
@@ -12,13 +11,14 @@ import {
   notifyUndoable,
   undoLatest,
 } from "./index.ts";
+import { clearNotices } from "./story-notices.ts";
 import { holdTimers } from "./story-timers.ts";
 
 const meta = {
   title: "UI/Feedback",
   render: () => <></>,
   // The notices live in Mantine's store, which outlives a story.
-  beforeEach: () => notifications.clean(),
+  beforeEach: clearNotices,
 } satisfies Meta;
 export default meta;
 type Story = StoryObj<typeof meta>;
@@ -220,8 +220,13 @@ export const TwoNoticesAreTakenBackSeparately: Story = {
     notifyUndoable({ message: "First deleted", undo: undoFirst });
     notifyUndoable({ message: "Second deleted", undo: undoSecond });
     const second = await noticeWith("Second deleted");
+    const first = await noticeWith("First deleted");
+    // The earlier notice lies behind the latest until the pointer fans the stack out.
+    await expect(first).toHaveAttribute("inert");
+    await userEvent.hover(second);
+    await waitFor(() => expect(first).not.toHaveAttribute("inert"));
 
-    await userEvent.click(undoButton(await noticeWith("First deleted")));
+    await userEvent.click(undoButton(first));
     await expect(undoFirst).toHaveBeenCalledOnce();
     await expect(undoSecond).not.toHaveBeenCalled();
     await noticeGone("First deleted");
@@ -280,7 +285,8 @@ export const UndoLatestSkipsANoticeThatClosedByItself: Story = {
     await waitFor(() => expect(heldNoticeTimers.size).toBe(1));
     notifyUndoable({ message: "Second deleted", undo: undoSecond });
     await noticeWith("Second deleted");
-    await waitFor(() => expect(heldNoticeTimers.size).toBe(2));
+    // Only the latest notice counts down; the one behind it waits for its turn.
+    await waitFor(() => expect(heldNoticeTimers.size).toBe(1));
 
     [...heldNoticeTimers.values()].at(-1)!();
     await noticeGone("Second deleted");
@@ -322,14 +328,14 @@ export const ADoneNoticeSaysWhatHappenedAndOffersNothing: Story = {
   },
 };
 
-export const NoticesSitBottomRight: Story = {
+export const NoticesSitTopCenter: Story = {
   play: async () => {
     notifyError({ message: "The backup failed." });
     const notice = await noticeWith("The backup failed.");
     await waitFor(async () => {
-      const { right, bottom } = notice.getBoundingClientRect();
-      await expect(window.innerWidth - right).toBeLessThan(40);
-      await expect(window.innerHeight - bottom).toBeLessThan(40);
+      const { left, right, top } = notice.getBoundingClientRect();
+      await expect(Math.abs(left - (window.innerWidth - right))).toBeLessThan(2);
+      await expect(top).toBeLessThan(40);
     });
   },
 };
@@ -378,7 +384,7 @@ export const ReducedMotionStillsTheDialogAndTheNotices: Story = {
   play: async () => {
     notifyError({ message: "The backup failed." });
     const notice = await noticeWith("The backup failed.");
-    await expect(notice.style.transitionDuration).toBe("1ms, 1ms, 1ms");
+    await expect(notice.style.transitionDuration).toBe("1ms, 1ms");
 
     const answer = confirm(QUESTION);
     const dialog = await screen.findByRole("dialog", { name: QUESTION.title });
