@@ -7,7 +7,7 @@
   "scripts": {
     "adrs:check": "node scripts/check-adrs.ts",
     "build": "vp run -r build",
-    "check": "vp check",
+    "check": "vp check --fix --deny-warnings && vp run verify:i18n",
     "dev": "node scripts/desktop-dev.ts",
     "ensure:chromium": "node scripts/ensure-chromium.ts",
     "ensure:electron": "node scripts/ensure-electron.ts",

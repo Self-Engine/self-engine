@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vite-plus/test";
@@ -176,6 +177,22 @@ describe("the verify tasks", () => {
         output: [],
       },
     });
+  });
+});
+
+describe("pnpm check", () => {
+  // The quick loop fails on what the gate's lint and i18n stages fail on, so a clean check
+  // does not end in a failing `pnpm verify`.
+  const check = (JSON.parse(readFileSync(rootPackage, "utf8")) as { scripts: { check: string } })
+    .scripts.check;
+
+  it("fails on lint warnings, like the lint stage", () => {
+    expect(config.run?.tasks?.["verify:lint"]).toContain("--deny-warnings");
+    expect(check).toMatch(/^vp check .*--deny-warnings/);
+  });
+
+  it("extracts and checks the translations through the i18n stage's task", () => {
+    expect(check).toContain("vp run verify:i18n");
   });
 });
 

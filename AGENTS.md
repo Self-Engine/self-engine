@@ -13,7 +13,8 @@ A task is done when `pnpm verify` prints `VERIFY: PASS` as its last line
 (warnings fail), typechecks, checks the module boundaries, checks the ADRs, rejects changes to merged migrations, checks the theme CSS, extracts and checks the translations, builds the
 workspace, runs the tests, renders the stories in Chromium (stage `stories`) and starts the built desktop app with a temporary data folder (stage `smoke`); failures show their tail, the full log is `.cache/verify.log`.
 CI runs the same gate, except that its format and i18n stages only check (`CI` set), so commit formatted files and extracted catalogs.
-`pnpm check` is the quick loop while editing; `pnpm verify` is the gate. The flow: commit,
+`pnpm check` is the edit loop: it fixes format, then fails on lint warnings, type errors and
+missing translations, in seconds. Run it until clean before every `pnpm verify`. The flow: commit,
 `pnpm verify`, commit any formatter output and extracted catalogs, push. A hook blocks `git push` and `gh pr create` (also behind
 `sh -c`, shell keywords, or `git -C <other-checkout>`) unless the last pass covered exactly
 HEAD of the checkout being pushed, so any edit after a pass needs another run (unchanged
