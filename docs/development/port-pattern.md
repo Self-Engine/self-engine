@@ -18,7 +18,8 @@ module contracts; a module never imports that package.
 
 The package’s root entry carries what the module shows in the app shell, as defined by
 [ADR 0013](../adr/0013-modules-declare-their-views-as-data-and-one-route-renders-them.md).
-Renderer-side hooks for a port are built in issue #33 and are outside this guide.
+How its Views, drawers and Commands read and change the data through the port is the
+renderer side, in [the second guide](port-hooks.md); start it once step 7 is done.
 
 Copy the shape of [`notes/contracts/index.ts`](../../packages/storage/test/notes-module/contracts/index.ts):
 use Zod schemas and `oc.input(...).output(...).errors(...)`. Share entity id schemas and
@@ -245,8 +246,9 @@ Development builds report unexpected errors and large results to the console. Is
 will replace that reporter with the local error log; until then these reports write no file.
 Special procedures such as streams or long imports with progress can remain hand-written.
 
-For stories and component tests, the helper for fixed answers from the same contract is
-planned in #33 (D196); it is not available yet. Do not register notes or note-links as app modules; `placeholder-alpha` is the mounted example
+For stories and component tests, Fixed Answers from the same contract stand in for the Data
+Process ([renderer guide](port-hooks.md#6-show-each-state-in-a-story-with-fixed-answers)). Do not register notes or note-links as app modules; `placeholder-alpha` is the mounted example
 (`placeholderAlpha` in both lists).
 
 Done when the committed implementation passes `pnpm verify` with `VERIFY: PASS` as its final line.
+Then build the hooks, Views and stories with [the renderer guide](port-hooks.md).

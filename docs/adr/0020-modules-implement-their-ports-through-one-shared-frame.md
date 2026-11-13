@@ -69,8 +69,8 @@ Module authors write domain-specific functions while one frame owns the repeated
 The kit and agreement/convention checks carry more responsibility because packaged output
 validation is deliberately off. The plugin cannot observe trigger writes directly, so the kit’s
 unannounced-change check is essential. Read-piece owners maintain a deliberate stable surface.
-The fixed personal Space remains until #108; renderer hooks and fixed story answers follow in
-#33, and page totals in #137.
+The fixed personal Space remains until #108, and page totals follow in #137. The renderer side,
+hooks and Fixed Answers, is recorded in ADR 0021.
 
 The [module-author guide](../development/port-pattern.md) gives the implementation steps;
 [performance checks](../development/performance.md#storage-port-pattern) record measured costs.

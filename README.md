@@ -23,4 +23,4 @@ The planning documents in [`docs/plan/`](docs/plan/) are in German for now.
 - [`docs/plan/00-decisions.md`](docs/plan/00-decisions.md) — decision log
 - [`docs/plan/01-design-tree.md`](docs/plan/01-design-tree.md) — open and settled questions
 
-For module authors: [add a module’s port](docs/development/port-pattern.md).
+For module authors: [add a module’s port](docs/development/port-pattern.md), then [use it in its Views](docs/development/port-hooks.md).
