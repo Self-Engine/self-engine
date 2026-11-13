@@ -178,8 +178,9 @@ type with its methods, the JSON Schema export and the English error texts, for e
 that are a text, a number, a yes or no, one of a list, or one small object.
 
 Since #136 a Setting declares its schema with `zod/mini`, and the settings store checks through
-Zod's core (`zod/v4/core`), which both builds share. So a schema of the full build still works
-for a Setting that only code loaded on demand declares. Startup now holds **about 50 KB of Zod**:
+Zod's core (`zod/v4/core`), which both builds share (D268, D269). So a schema of the full build
+still works for a Setting that only code loaded on demand declares. Startup now holds **about
+50 KB of Zod**:
 its core in two chunks (33,796 and 15,282 bytes) and about 1.5 KB of `zod/mini`. The full build's
 own **33,469 bytes** load with the first Command.
 

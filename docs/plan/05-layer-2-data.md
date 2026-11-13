@@ -15,7 +15,7 @@ Stand: 2026-11-13 · Status: **entschieden** (D86–D98, D133–D142, D187–D19
 | L2.5 | Abfragen | Kysely + nummerierte SQL-Migrationen, Zod 4 als Quelle, Übereinstimmungstest (D91) |
 | L2.6 | Oberfläche | TanStack Query hinter Modul-Hooks + Ereignis `tablesChanged` (D92) |
 | L2.7 | RPC | oRPC mit Message-Port-Adapter; `utilityProcess` zuerst prüfen, sonst eigene kleine RPC-Schicht (D93) |
-| L2.8 | Sicherung | SQLite-Backup täglich + vor Migration, 7 täglich / 4 wöchentlich, Sichern/Wiederherstellen von Hand (D94) |
+| L2.8 | Sicherung | SQLite-Backup täglich + vor Migration, 7 täglich / 4 wöchentlich, Sichern/Wiederherstellen von Hand (D94, D270–D277) |
 | L2.9 | Tests | Echtes SQLite in `:memory:` statt Fake; Contract-Tests pro Port (D95) |
 | L2.10 | Verschlüsselung | Keine eigene, OS-Festplattenverschlüsselung; E2E bleibt Q21 (D96) |
 | L2.11 | Plattformen | Nur Desktop, Code plattformneutral (D97) |
