@@ -60,9 +60,10 @@ interface EntryFormProps extends EditDrawerProps {
 }
 
 /**
- * Saving creates or renames through an Operation. A taken name is shown at the field and the
- * drawer stays open; "not found" closes it after the building block's notice; an unexpected error
- * keeps it open with the building block's notice (D251).
+ * Saving creates or renames through an Operation, and the name cannot change until it answers. A
+ * taken name is shown at the field and the drawer stays open; "not found" closes it after the
+ * building block's notice; an unexpected error keeps it open with the building block's notice
+ * (D251).
  */
 function EntryForm({ id, entry, onCancel, onDelete, onDone }: EntryFormProps) {
   const { t, i18n } = useLingui();
@@ -88,6 +89,8 @@ function EntryForm({ id, entry, onCancel, onDelete, onDone }: EntryFormProps) {
       <TextInput
         error={conflict && i18n._(conflict)}
         label={t`Name`}
+        // What is typed while the save runs would be lost when the drawer closes.
+        readOnly={running}
         onChange={(event) => {
           setDraft(event.currentTarget.value);
           setConflict(undefined);

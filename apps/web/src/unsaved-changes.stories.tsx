@@ -371,3 +371,37 @@ export const SavingClosesWithoutAsking: Story = {
     await expect(await canvas.findByRole("button", { name: "Studio work" })).toBeVisible();
   },
 };
+
+/** Lets the held `create` of `holdingCreate` answer when the play function says so. */
+let answerCreate: () => void = () => undefined;
+
+/** `access`, but `create` answers only once `answerCreate` is called. */
+function holdingCreate(access: PortAccess): PortAccess {
+  return {
+    async call(module, entry, input, signal) {
+      if (entry === "create") await new Promise<void>((resolve) => (answerCreate = resolve));
+      return access.call(module, entry, input, signal);
+    },
+    describeEntry: (module, entry) => access.describeEntry(module, entry),
+    onTablesChanged: (listener) => access.onTablesChanged(listener),
+    onReconnected: (listener) => access.onReconnected(listener),
+  };
+}
+
+/** What is typed while the save runs would be lost when the drawer closes, so nothing can be. */
+export const TheNameIsLockedWhileItSaves: Story = {
+  args: { address: `${OVERVIEW}?edit=new`, access: holdingCreate(placeholderAlphaAnswers()) },
+  play: async () => {
+    const drawer = within(await screen.findByRole("dialog", { name: "New entry" }));
+    const name = await drawer.findByRole("textbox", { name: "Name" });
+    await userEvent.type(name, "Saved");
+    await userEvent.click(drawer.getByRole("button", { name: "Save" }));
+    await waitFor(() => expect(name).toHaveAttribute("readonly"));
+    await userEvent.type(name, " and more");
+    await expect(name).toHaveValue("Saved");
+
+    answerCreate();
+    await noDrawer("New entry");
+    await expect(address().edit).toBeUndefined();
+  },
+};
