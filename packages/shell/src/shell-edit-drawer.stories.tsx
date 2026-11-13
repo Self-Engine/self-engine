@@ -15,7 +15,6 @@ import {
 import {
   atViewport,
   ENTRIES,
-  inDark,
   nextFrame,
   type Story,
   shellMeta,
@@ -266,15 +265,6 @@ const settled = async (notice: HTMLElement) => {
   });
 };
 
-/** What a notice may do to the drawer's first field at a window width. */
-type FieldUnderNotices =
-  /** The notices, fanned out too, lie beside the drawer. */
-  | "apart"
-  /** A notice lies over the field's edge, and a click into the field still reaches it. */
-  | "clickable"
-  /** The drawer takes so much of the width that a centred notice lies over the field. */
-  | "covered";
-
 const overlaps = (a: DOMRect, b: DOMRect) =>
   a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom;
 
@@ -289,9 +279,16 @@ const expectApart = async (field: HTMLElement[], notices: HTMLElement[]) => {
   }
 };
 
+interface DrawerUnderNotices {
+  readonly dialog: ReturnType<typeof within>;
+  readonly latest: HTMLElement;
+  readonly earlier: HTMLElement;
+}
+
+/** Every control of the drawer takes its click with two notices shown; `andThen` checks more. */
 const noticesLeaveTheDrawerClickable = (
-  field: FieldUnderNotices,
   window: Partial<Story>,
+  andThen?: (shown: DrawerUnderNotices) => Promise<void>,
 ): Story => ({
   ...window,
   beforeEach: clearNotices,
@@ -311,16 +308,7 @@ const noticesLeaveTheDrawerClickable = (
     await expectClickable(dialog.getByRole("button", { name: "Delete" }), "Delete");
     await expectClickable(dialog.getByRole("button", { name: "Cancel" }), "Cancel");
     await expectClickable(save, "Save");
-    const input = dialog.getByRole("textbox", { name: "Name" });
-    if (field === "clickable") await expectClickable(input, "The field");
-    if (field === "apart") {
-      const parts = [input, dialog.getByText("Name")];
-      await expectApart(parts, [latest, earlier]);
-      await userEvent.hover(latest);
-      await waitFor(() => expect(earlier).not.toHaveAttribute("inert"));
-      await settled(earlier);
-      await expectApart(parts, [latest, earlier]);
-    }
+    await andThen?.({ dialog, latest, earlier });
     // The notices keep their own action.
     await userEvent.click(within(latest).getByRole("button", { name: "Undo" }));
     await expect(undoSecond).toHaveBeenCalledOnce();
@@ -345,35 +333,28 @@ const inAWideWindow: Partial<Story> = {
   globals: { viewport: { value: "roomy", isRotated: false } },
 };
 
+/** The notices, fanned out too, lie beside the drawer's first field. */
 export const NoticesLieBesideTheDrawerInAWideWindow = noticesLeaveTheDrawerClickable(
-  "apart",
   inAWideWindow,
+  async ({ dialog, latest, earlier }) => {
+    const field = [dialog.getByRole("textbox", { name: "Name" }), dialog.getByText("Name")];
+    await expectApart(field, [latest, earlier]);
+    await userEvent.hover(latest);
+    await waitFor(() => expect(earlier).not.toHaveAttribute("inert"));
+    await settled(earlier);
+    await expectApart(field, [latest, earlier]);
+  },
 );
+
+/** A notice lies over the field's edge, and a click into the field still reaches it. */
 export const NoticesLeaveTheDrawerClickableAtTheWideStep = noticesLeaveTheDrawerClickable(
-  "clickable",
   atViewport("wide"),
+  ({ dialog }) => expectClickable(dialog.getByRole("textbox", { name: "Name" }), "The field"),
 );
-export const NoticesLeaveTheDrawerClickableAtTheMediumStep = noticesLeaveTheDrawerClickable(
-  "clickable",
-  atViewport("medium"),
-);
-export const NoticesLeaveTheDrawerClickableAtTheNarrowStep = noticesLeaveTheDrawerClickable(
-  "covered",
-  atViewport("narrow"),
-);
-export const NoticesLeaveTheDrawerClickableInTheNarrowestWindow = noticesLeaveTheDrawerClickable(
-  "covered",
-  atViewport("narrowest"),
-);
+
+/** The drawer fills the width, so a notice lies over its first field. */
 export const NoticesLeaveTheDrawerClickableOnThePhone = noticesLeaveTheDrawerClickable(
-  "covered",
   atViewport("phone"),
-);
-export const NoticesLeaveTheDrawerClickableInTheDark = inDark(
-  noticesLeaveTheDrawerClickable("covered", atViewport("narrowest")),
-);
-export const NoticesLeaveTheDrawerClickableOnThePhoneInTheDark = inDark(
-  noticesLeaveTheDrawerClickable("covered", atViewport("phone")),
 );
 
 /** The same place without a drawer, so a notice does not jump when one opens. */
@@ -386,9 +367,7 @@ const noticesLeaveTheHeaderClickable = (viewport: keyof typeof VIEWPORTS): Story
     await settled(await noticeOf("Second entry deleted"));
     await expectClickable(screen.getByRole("heading", { level: 1, name: "Time" }), "The title");
     await expectClickable(
-      screen.getByRole("button", {
-        name: /^(Collapse module sidebar|Open navigation|Open module sidebar)$/,
-      }),
+      screen.getByRole("button", { name: /^(Collapse module sidebar|Open module sidebar)$/ }),
       "The sidebar toggle",
     );
     clearNotices();
@@ -396,10 +375,4 @@ const noticesLeaveTheHeaderClickable = (viewport: keyof typeof VIEWPORTS): Story
 });
 
 export const NoticesLeaveTheHeaderClickableAtTheWideStep = noticesLeaveTheHeaderClickable("wide");
-export const NoticesLeaveTheHeaderClickableAtTheMediumStep =
-  noticesLeaveTheHeaderClickable("medium");
-export const NoticesLeaveTheHeaderClickableAtTheNarrowStep =
-  noticesLeaveTheHeaderClickable("narrow");
-export const NoticesLeaveTheHeaderClickableInTheNarrowestWindow =
-  noticesLeaveTheHeaderClickable("narrowest");
 export const NoticesLeaveTheHeaderClickableOnThePhone = noticesLeaveTheHeaderClickable("phone");

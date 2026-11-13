@@ -1685,33 +1685,15 @@ markiert und wird beim Bau gemessen.
 
 - **D267 Hinweise stehen oben in der Mitte, gestapelt, eine Lücke unter dem Kopf des Inhalts
   (ändert D79, D169).** Unten rechts lagen sie über Speichern und Abbrechen des Drawers und
-  nahmen deren Klicks. Mantine stellt sie jetzt mit `position="top-center"` und
-  `layout="stacked"` (Mantine 9.7.5): Nur der neueste Hinweis ist ganz zu sehen, die älteren
-  liegen dahinter und fächern sich auf, solange der Zeiger darauf liegt. Der vorderste Hinweis
-  bleibt 8 Sekunden; die dahinter warten, bis sie vorne sind (drei Hinweise stehen also bis zu
-  24 Sekunden). Rückgängig bleibt im Hinweis; einen hinteren erreicht der Zeiger, wenn der Stapel
-  aufgefächert ist. Eine Linie am unteren Rand füllt sich, bis der Hinweis schließt
-  (`withAutoCloseProgress` an `Notifications`); sie fehlt bei Hinweisen ohne Ablauf wie dem
-  Fortschritt und ist ausgeblendet, solange ein Hinweis wartet oder der Zeiger darauf liegt.
-  Ein Hinweis beginnt auf jeder Layout-Stufe an derselben Stelle: eine Lücke
-  (8 px) unter dem Kopf des Inhalts, bei 64 px, ob ein Drawer offen ist oder nicht, damit er nicht
-  springt. Gemessen bei den Referenzbreiten: Der Kopf des Inhalts endet bei 56 px, Titel und
-  Schließen-Knopf des Drawers bei 52 px (Telefon 44 px), sein erstes Feld beginnt bei 70 px
-  (Telefon 62 px). Ohne Abstand (Mantines 16 px) lag der Hinweis über dem Titel des Drawers auf
-  jeder Stufe und über Seitenleisten-Knopf oder Ansichtstitel; tiefer als 64 px deckte er nur mehr
-  vom Feld. Ein mittiger Hinweis (440 px) überschneidet den schwebenden Drawer (460 px plus 8 px
-  Rand), solange das Fenster schmaler als 1376 px ist, also bei allen Referenzbreiten:
-  breit (1280) und mittel (1100) liegt er über dem linken Rand von Beschriftung und Feld, ein Klick
-  ins Feld erreicht es noch; schmal (800), schmalste (576) und Telefon (390) liegt er über der
-  Feldmitte. Das ist dort unvermeidbar, ohne Titel oder Schließen-Knopf zu verdecken. Stories
-  prüfen bei jeder Stufe, hell und dunkel, dass Titel, Schließen, Löschen, Abbrechen und
-  Speichern und ohne Drawer der Seitenleisten-Knopf und der Ansichtstitel den Klick bekommen,
-  bei breit und mittel auch das Feld, und bei 1440 px, dass kein Hinweis das Feld berührt, auch
-  aufgefächert. _Preis:_ eine CSS-Variable; im gestapelten Modus misst Mantine jeden Hinweis
-  einmal (ResizeObserver), sonst nichts. _Verworfen:_ oben rechts unter dem Drawer-Kopf (lag
-  bei jeder Stufe über dem ersten Feld und bei breiten Fenstern unnötig über dem Drawer); unten
-  links (nicht gewählt); unten rechts mit Versatz nur bei offenem Drawer (der Hinweis spränge); ein
-  Abstand je Stufe (eine Regel reicht, der Kopf des Inhalts steht überall gleich).
+  nahmen deren Klicks. Mantine stellt sie mit `position="top-center"` und `layout="stacked"`: Nur
+  der neueste ist ganz zu sehen und läuft ab, die älteren warten dahinter und fächern sich unter
+  dem Zeiger auf; eine Linie füllt sich, bis er schließt (`withAutoCloseProgress`). Sie beginnen
+  auf jeder Stufe, mit oder ohne Drawer, 64 px unter dem Fensterrand, eine Lücke unter dem Kopf
+  des Inhalts, so springt nichts. Jedes Bedienelement von Kopf und Drawer bleibt klickbar; unter
+  1376 px Fensterbreite liegt ein Hinweis über dem ersten Feld des Drawers. Stories prüfen das bei
+  1440 px (Feld frei), breit (Feld klickbar) und Telefon, ohne Drawer breit und Telefon.
+  _Preis:_ eine CSS-Variable; Mantine misst jeden Hinweis einmal. _Verworfen:_ oben rechts (lag
+  über dem ersten Feld), unten links, ein Versatz nur bei offenem Drawer (der Hinweis spränge).
 
 ## Fakten
 

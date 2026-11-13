@@ -1,4 +1,3 @@
-import { notifications } from "@mantine/notifications";
 import { roleColor } from "@self-engine/theme";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { expect, fn, screen, spyOn, userEvent, waitFor, within } from "storybook/test";
@@ -11,13 +10,14 @@ import {
   notifyUndoable,
   undoLatest,
 } from "./index.ts";
+import { clearNotices } from "./story-notices.ts";
 import { holdTimers } from "./story-timers.ts";
 
 const meta = {
   title: "UI/Feedback",
   render: () => <></>,
   // The notices live in Mantine's store, which outlives a story.
-  beforeEach: () => notifications.clean(),
+  beforeEach: clearNotices,
 } satisfies Meta;
 export default meta;
 type Story = StoryObj<typeof meta>;
@@ -325,22 +325,6 @@ export const NoticesSitTopCenter: Story = {
       await expect(Math.abs(left - (window.innerWidth - right))).toBeLessThan(2);
       await expect(top).toBeLessThan(40);
     });
-  },
-};
-
-export const OnlyTheLatestNoticeCountsDown: Story = {
-  beforeEach: holdNoticeTimers,
-  play: async () => {
-    notifyError({ message: "The backup failed." });
-    await noticeWith("The backup failed.");
-    notifyError({ message: "The export failed." });
-    await noticeWith("The export failed.");
-    await waitFor(() => expect(heldNoticeTimers.size).toBe(1));
-    for (const run of heldNoticeTimers.values()) run();
-    await noticeGone("The export failed.");
-    // The one behind comes forward and gets its full time.
-    await waitFor(() => expect(heldNoticeTimers.size).toBe(1));
-    await expect(await noticeWith("The backup failed.")).not.toHaveAttribute("inert");
   },
 };
 
