@@ -4,7 +4,7 @@
 
 import { resolve } from "node:path";
 import { describe, expect, it } from "vite-plus/test";
-import boundaryRules, { ALLOWED_IMPORTS } from "../.dependency-cruiser.ts";
+import boundaryRules, { ALLOWED_IMPORTS, TEST_ONLY_IMPORTS } from "../.dependency-cruiser.ts";
 import {
   cruiseFixture,
   type FixturePackage,
@@ -893,7 +893,8 @@ describe("the repo's workspace", () => {
       const declared = workspaceDependencies(manifest, { dev: true }).map((dependency) =>
         dependency.replace(/^@self-engine\//, ""),
       );
-      expect([...(ALLOWED_IMPORTS[name] ?? [])].sort(), name).toEqual(declared);
+      const allowed = [...(ALLOWED_IMPORTS[name] ?? []), ...(TEST_ONLY_IMPORTS[name] ?? [])];
+      expect(allowed.sort(), name).toEqual(declared);
     }
   });
 });
@@ -971,6 +972,25 @@ describe("data-side module composition", () => {
           allowedImports: ALLOWED_IMPORTS,
         }),
       ),
+    ).toEqual(["package-direction:placeholder-alpha"]);
+  });
+  it("lets a module's tests import the test Data Process, and only its tests", async () => {
+    const module = declaring(
+      extraPackage("packages/placeholder-alpha", {
+        "src/port.test.ts": 'import "@self-engine/data-process";\n',
+      }),
+      "@self-engine/data-process",
+    );
+    const options = { allowedImports: ALLOWED_IMPORTS, testOnlyImports: TEST_ONLY_IMPORTS };
+    expect(await cruise([module, extraPackage("packages/data-process")], options)).toEqual([]);
+    const fromCode = declaring(
+      extraPackage("packages/placeholder-alpha", {
+        "src/port.ts": 'import "@self-engine/data-process";\n',
+      }),
+      "@self-engine/data-process",
+    );
+    expect(
+      ruleNames(await cruise([fromCode, extraPackage("packages/data-process")], options)),
     ).toEqual(["package-direction:placeholder-alpha"]);
   });
 });

@@ -1,6 +1,7 @@
 import "@mantine/core/styles.css";
 import "@self-engine/theme/fonts.css";
 
+import { DataProvider, portAccessOf } from "@self-engine/data-client/react";
 import { activateLanguage, createI18n } from "@self-engine/i18n";
 import { appLanguageOf } from "@self-engine/settings-area/settings";
 import { FeedbackHost } from "@self-engine/ui";
@@ -37,7 +38,10 @@ createRoot(container).render(
     <AppLanguage i18n={i18n} initialLanguage={language} store={settingsStore}>
       <AppearanceProvider>
         <FeedbackHost>
-          <RouterProvider router={router} />
+          {/* On the web nothing connects, so Queries wait, as every call does (D196, D257). */}
+          <DataProvider access={portAccessOf(dataConnection)}>
+            <RouterProvider router={router} />
+          </DataProvider>
         </FeedbackHost>
       </AppearanceProvider>
     </AppLanguage>

@@ -1,5 +1,6 @@
 // Shared by the app's Stories. Not a story file, so the Catalog does not list it.
 
+import { DataProvider, type PortAccess } from "@self-engine/data-client/react";
 import { modKey } from "@self-engine/shell/story-interactions";
 import { createMemoryHistory, RouterProvider } from "@tanstack/react-router";
 import { useState } from "react";
@@ -13,13 +14,26 @@ let lastRouter: AppRouter;
 /** The router of the app that `AppAt` last rendered. */
 export const storyRouter = () => lastRouter;
 
-/** The whole app at `address`, on a history that stays in memory. */
-export function AppAt({ address }: { readonly address: string }) {
+export interface AppAtProps {
+  readonly address: string;
+  /**
+   * What the Port answers: Fixed Answers from the story file, which alone may build them (D255),
+   * or the page's real connection.
+   */
+  readonly access: PortAccess;
+}
+
+/** The whole app at `address`, on a history that stays in memory, with its own query cache. */
+export function AppAt({ address, access }: AppAtProps) {
   const [router] = useState(() => {
     lastRouter = createAppRouter(createMemoryHistory({ initialEntries: [address] }));
     return lastRouter;
   });
-  return <RouterProvider router={router} />;
+  return (
+    <DataProvider access={access}>
+      <RouterProvider router={router} />
+    </DataProvider>
+  );
 }
 
 export {

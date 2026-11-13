@@ -1,6 +1,6 @@
 import { definePageCommand } from "@self-engine/shell";
 import { z } from "zod";
-import { NEW_ENTRY_ID } from "./sample-data.ts";
+import { NEW_ENTRY_ID } from "./entry-address.ts";
 
 export default definePageCommand({
   description: "Opens the edit drawer for a new entry on the current page.",

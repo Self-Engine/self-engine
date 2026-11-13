@@ -1,5 +1,6 @@
 import { TextInput } from "@mantine/core";
 import { type ConnectionState, createConnectionStateStore } from "@self-engine/data-client";
+import { portAccessOf } from "@self-engine/data-client/react";
 import { LOADER_DELAY_MS, notifyError } from "@self-engine/ui";
 import { holdTimers } from "@self-engine/ui/story-timers";
 import type { Meta, StoryObj } from "@storybook/react-vite";
@@ -164,7 +165,10 @@ export const TypedTextSurvivesAReconnect: Story = {
   },
 };
 
-/** Outside the desktop app nothing answers, and the app looks as it did before (D196). */
+/**
+ * Outside the desktop app nothing answers, and the app looks as it did before (D196): no
+ * connection state, and the module's list waits for its first answer instead of failing (D257).
+ */
 export const TheWebAppShowsNoConnectionState: Story = {
   loaders: [() => settingsStore.load()],
   beforeEach: () => {
@@ -172,10 +176,14 @@ export const TheWebAppShowsNoConnectionState: Story = {
     // Back to waiting for a first port, as the web app's connection always is.
     return () => dataConnection.disconnect();
   },
-  render: () => <AppAt address="/placeholder-alpha/overview" />,
+  render: () => (
+    <AppAt access={portAccessOf(dataConnection)} address="/placeholder-alpha/overview" />
+  ),
   play: async ({ canvas }) => {
     await expect(await canvas.findByRole("navigation", { name: "Modules" })).toBeVisible();
+    await expect(await canvas.findByRole("heading", { name: "Overview" })).toBeVisible();
     await expect(canvas.queryByRole("alert")).toBeNull();
+    await expect(canvas.queryByRole("button", { name: "New entry" })).toBeVisible();
   },
 };
 

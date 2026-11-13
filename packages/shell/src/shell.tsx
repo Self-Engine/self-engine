@@ -1,3 +1,4 @@
+import type { PortAccess } from "@self-engine/data-client/react";
 import {
   SHELL_START_AFTER_WINDOW_BUTTONS_PX,
   SHELL_TOP_STRIP_HEIGHT,
@@ -863,9 +864,18 @@ export interface ShellProps extends Omit<
   readonly settings: ShellContribution;
   readonly activeModule: ShellContribution | undefined;
   readonly activeView: ShellView | undefined;
+  /** The Port access every Command is given (D261): the app's `usePortAccess()`, or a stand-in. */
+  readonly data: PortAccess;
 }
 
-export function Shell({ contributions, settings, activeModule, activeView, ...props }: ShellProps) {
+export function Shell({
+  contributions,
+  settings,
+  activeModule,
+  activeView,
+  data,
+  ...props
+}: ShellProps) {
   const { i18n } = useLingui();
   const entryOf = (module: ShellContribution): NavigationEntry => ({
     id: module.id,
@@ -879,7 +889,7 @@ export function Shell({ contributions, settings, activeModule, activeView, ...pr
     activeModuleId: activeModule?.id,
   };
   return (
-    <StartOnceProvider>
+    <StartOnceProvider data={data}>
       <CommandPaletteProvider>
         <ShellFrame
           {...props}

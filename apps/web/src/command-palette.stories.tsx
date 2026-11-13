@@ -27,6 +27,7 @@ import {
   QUESTION,
   storyRouter,
 } from "./story-app.tsx";
+import { placeholderAlphaAnswers, STUDIO_WORK } from "@self-engine/placeholder-alpha/testing";
 
 const OVERVIEW = "/placeholder-alpha/overview";
 const BETA = "/placeholder-beta/overview";
@@ -36,7 +37,7 @@ const meta = {
   component: AppAt,
   parameters: { layout: "fullscreen" },
   loaders: [() => settingsStore.load()],
-  args: { address: OVERVIEW },
+  args: { address: OVERVIEW, access: placeholderAlphaAnswers() },
 } satisfies Meta<typeof AppAt>;
 export default meta;
 type Story = StoryObj<typeof meta>;
@@ -234,7 +235,7 @@ export const KeepEditingStopsTheCommandAndItCanBeStartedAgain: Story = {
     await answer("Keep editing");
     await noQuestion();
     await expect(loadNote).not.toHaveBeenCalled();
-    await expect(address()).toEqual({ pathname: OVERVIEW, edit: "studio" });
+    await expect(address()).toEqual({ pathname: OVERVIEW, edit: STUDIO_WORK.id });
     await expect(name).toHaveValue("Studio work changed");
     await waitFor(() => expect(name).toHaveFocus());
     // A second start only reaches the question if the first one has ended.
@@ -242,7 +243,7 @@ export const KeepEditingStopsTheCommandAndItCanBeStartedAgain: Story = {
     await answer("Keep editing");
     await noQuestion();
     await expect(loadNote).not.toHaveBeenCalled();
-    await expect(address()).toEqual({ pathname: OVERVIEW, edit: "studio" });
+    await expect(address()).toEqual({ pathname: OVERVIEW, edit: STUDIO_WORK.id });
   },
 };
 
@@ -277,7 +278,7 @@ export const AQuestionAlreadyOpenAlsoStopsTheCommand: Story = {
     await expect(loadNote).not.toHaveBeenCalled();
     await answer("Keep editing");
     await noQuestion();
-    await expect(address()).toEqual({ pathname: OVERVIEW, edit: "studio" });
+    await expect(address()).toEqual({ pathname: OVERVIEW, edit: STUDIO_WORK.id });
     await startNote();
     await answer("Discard");
     await waitFor(() => expect(address()).toEqual({ pathname: BETA, edit: "note" }));
