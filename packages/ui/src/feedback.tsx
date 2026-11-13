@@ -100,6 +100,18 @@ export function notifyError({ message }: NotifyErrorOptions) {
   notifications.show({ message, color: roleColor("error") });
 }
 
+export interface NotifyDoneOptions {
+  readonly message: ReactNode;
+}
+
+/**
+ * Tells the user that what they asked for happened, where nothing on screen shows it by itself
+ * and there is nothing to take back. What can be taken back uses `notifyUndoable`.
+ */
+export function notifyDone({ message }: NotifyDoneOptions) {
+  notifications.show({ message, role: "status" });
+}
+
 export interface NotifyProgressOptions {
   readonly message: ReactNode;
 }

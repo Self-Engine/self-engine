@@ -32,6 +32,8 @@ export interface DataAccess {
 interface DataContext extends DataAccess {
   /** Reports, once per entry, a Query hook whose entry the Data Process calls an Operation. */
   readonly checkQuery: (module: string, entry: string) => void;
+  /** Marks every answer of the Query `entry`, like a Table Change that names its tables. */
+  readonly reload: (module: string, entry: string) => void;
 }
 
 const Context = createContext<DataContext | undefined>(undefined);
@@ -173,8 +175,14 @@ export function DataProvider({
         reported.add(name);
         report(`The Query hook for ${name} points at an Operation; use an Operation hook.`);
       },
+      reload: (module, entry) => {
+        markChanged(cache, (query) => {
+          const key = entryOf(query);
+          return key !== undefined && key[0] === module && key[1] === entry;
+        });
+      },
     };
-  }, [access]);
+  }, [access, cache]);
 
   useEffect(() => {
     const stopTables = access.onTablesChanged((tables) => {

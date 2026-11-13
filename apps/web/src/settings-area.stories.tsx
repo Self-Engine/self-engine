@@ -1,3 +1,4 @@
+import { answersByMount } from "@self-engine/data-client/testing";
 import {
   activateLanguage,
   type CatalogLoader,
@@ -32,6 +33,7 @@ import { AppearanceProvider } from "./appearance.tsx";
 import { settingsStore } from "./settings-store.ts";
 import { loadStoryApp, AppAt, openPalette, paletteGone, storyRouter } from "./story-app.tsx";
 import { placeholderAlphaAnswers } from "@self-engine/placeholder-alpha/testing";
+import { backupAnswers } from "@self-engine/settings-area/testing";
 
 const i18n = createI18n();
 const APPEARANCE = "/settings/appearance";
@@ -55,6 +57,13 @@ const resetSettings = () =>
     ...appearanceChanges(DEFAULT_APPEARANCE),
     settingChange(APP_LANGUAGE_SETTING, APP_LANGUAGE_SETTING.default),
   ]);
+
+/**
+ * What the Port answers while the settings are shown: the rows of `placeholder-alpha`, and the
+ * Backups, whose rows the View Data and a search show.
+ */
+const settingsAnswers = () =>
+  answersByMount({ placeholderAlpha: placeholderAlphaAnswers(), backups: backupAnswers() });
 
 const meta = {
   title: "App/Settings area",
@@ -93,7 +102,7 @@ const meta = {
   ],
   // The store is the app's one, on the browser's storage, which the next story shares.
   beforeEach: () => resetSettings,
-  args: { address: APPEARANCE, access: placeholderAlphaAnswers() },
+  args: { address: APPEARANCE, access: settingsAnswers() },
 } satisfies Meta<typeof AppAt>;
 export default meta;
 type Story = StoryObj<typeof meta>;

@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { useCallback } from "react";
 import { useDataContext } from "./provider.ts";
 
 /**
@@ -49,5 +50,23 @@ export function queryHook<Input, Output>(module: string, entry: string): QueryHo
       return { status: "reloadFailed", data: result.data, error: result.error, retry };
     }
     return { status: "content", data: result.data };
+  };
+}
+
+/**
+ * A hook that returns the function which reloads a Query by hand. The function stays the same
+ * object while the provider's access does.
+ */
+export type ReloadHook = () => () => void;
+
+/**
+ * The reload hook for the Query `entry` of the module mounted as `module` (`portHooks`). Its
+ * function marks every answer of that entry, whatever its input, exactly as a Table Change that
+ * names its tables would (D250): one on screen reloads at once, one off screen when it is shown.
+ */
+export function reloadHook(module: string, entry: string): ReloadHook {
+  return function useReloadEntry() {
+    const { reload } = useDataContext();
+    return useCallback(() => reload(module, entry), [reload]);
   };
 }

@@ -48,6 +48,26 @@ msgstr "Archive"
 msgid "Background Tint"
 msgstr "Background Tint"
 
+#: packages/settings-area/src/backup-rows.tsx
+msgid "Backup created."
+msgstr "Backup created."
+
+#: packages/settings-area/src/backup-rows.tsx
+msgid "Backup restored."
+msgstr "Backup restored."
+
+#: packages/settings-area/src/backup-rows.tsx
+msgid "Backups"
+msgstr "Backups"
+
+#: packages/settings-area/src/backup-rows.tsx
+msgid "Before a restore"
+msgstr "Before a restore"
+
+#: packages/settings-area/src/backup-rows.tsx
+msgid "Before an update"
+msgstr "Before an update"
+
 #: packages/settings-area/src/theme-rows.tsx
 msgctxt "Accent"
 msgid "Blue"
@@ -152,6 +172,18 @@ msgctxt "Button that copies the version information"
 msgid "Copy"
 msgstr "Copy"
 
+#: packages/settings-area/src/backup-rows.tsx
+msgid "Create backup now"
+msgstr "Create backup now"
+
+#: packages/settings-area/src/backup-rows.tsx
+msgid "Created by you"
+msgstr "Created by you"
+
+#: packages/settings-area/src/backup-rows.tsx
+msgid "Daily backup"
+msgstr "Daily backup"
+
 #: packages/settings-area/src/rows.tsx
 msgctxt "Color Mode"
 msgid "Dark"
@@ -164,6 +196,11 @@ msgstr "Dark mode"
 #: packages/settings-area/src/theme-rows.tsx
 msgid "Dark Theme"
 msgstr "Dark Theme"
+
+#: packages/settings-area/src/index.ts
+msgctxt "View of the settings"
+msgid "Data"
+msgstr "Data"
 
 #: packages/placeholder-alpha/src/edit-drawer.tsx
 #: packages/placeholder-alpha/src/entries.tsx
@@ -385,9 +422,17 @@ msgstr "Platform"
 msgid "Reconnecting to your data…"
 msgstr "Reconnecting to your data…"
 
+#: packages/settings-area/src/backup-rows.tsx
+msgid "Recover"
+msgstr "Recover"
+
 #: packages/settings-area/src/about-rows.tsx
 msgid "Release"
 msgstr "Release"
+
+#: packages/settings-area/src/backup-rows.tsx
+msgid "Replaces all your data with the data of a backup. Your current data is backed up first, so you can go back."
+msgstr "Replaces all your data with the data of a backup. Your current data is backed up first, so you can go back."
 
 #: packages/settings-area/src/about-rows.tsx
 msgid "Report a problem"
@@ -401,17 +446,42 @@ msgstr "Resize module sidebar"
 msgid "Resize navbar"
 msgstr "Resize navbar"
 
+#: packages/settings-area/src/backup-rows.tsx
+msgctxt "Button that restores one backup"
+msgid "Restore"
+msgstr "Restore"
+
+#: packages/settings-area/src/backup-rows.tsx
+msgid "Restore a backup"
+msgstr "Restore a backup"
+
+#: packages/settings-area/src/backup-rows.tsx
+msgid "Restore the backup from {takenAt}"
+msgstr "Restore the backup from {takenAt}"
+
 #: packages/settings-area/src/about-rows.tsx
 msgid "Rights"
 msgstr "Rights"
+
+#: packages/settings-area/src/backup-rows.tsx
+msgid "Roll back"
+msgstr "Roll back"
 
 #: packages/settings-area/src/rows.tsx
 msgid "Row height"
 msgstr "Row height"
 
+#: packages/settings-area/src/backup-rows.tsx
+msgid "Safety copy"
+msgstr "Safety copy"
+
 #: packages/placeholder-alpha/src/edit-drawer.tsx
 msgid "Save"
 msgstr "Save"
+
+#: packages/settings-area/src/backup-rows.tsx
+msgid "Save a copy"
+msgstr "Save a copy"
 
 #: packages/shell/src/shell.tsx
 msgid "Search"
@@ -541,6 +611,14 @@ msgstr "Theme for dark"
 msgid "Theme for light"
 msgstr "Theme for light"
 
+#: packages/settings-area/src/backup-rows.tsx
+msgid "There is no backup yet."
+msgstr "There is no backup yet."
+
+#: packages/settings-area/src/backup-port.ts
+msgid "This backup can no longer be read. Nothing was restored."
+msgstr "This backup can no longer be read. Nothing was restored."
+
 #: packages/data-client/src/react/operation-hook.ts
 msgid "This entry no longer exists."
 msgstr "This entry no longer exists."
@@ -625,6 +703,10 @@ msgstr "Your data comes from a newer version of Self-Engine."
 #: apps/web/src/data-connection-states.tsx
 msgid "Your data could not be updated."
 msgstr "Your data could not be updated."
+
+#: packages/settings-area/src/backup-rows.tsx
+msgid "Your data is backed up once a day and before an update changes it. Every backup of the last 7 days is kept, and one per week for the 4 weeks before."
+msgstr "Your data is backed up once a day and before an update changes it. Every backup of the last 7 days is kept, and one per week for the 4 weeks before."
 
 #: packages/settings-area/src/rows.tsx
 msgid "Zoom"

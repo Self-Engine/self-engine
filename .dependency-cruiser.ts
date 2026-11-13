@@ -44,7 +44,18 @@ export const ALLOWED_IMPORTS: AllowedImports = {
   // reads and writes through the data building block.
   "placeholder-alpha": ["data-client", "db", "icons", "shell", "storage", "time", "ui"],
   "placeholder-beta": ["shell", "icons"],
-  "settings-area": ["i18n", "icons", "settings", "shell", "theme", "ui"],
+  // The rows of the View Data call the protocol's `backups` through the data building block; the
+  // contract arrives as a type, and its schemas load only in the stories' Fixed Answers.
+  "settings-area": [
+    "data-client",
+    "data-protocol",
+    "i18n",
+    "icons",
+    "settings",
+    "shell",
+    "theme",
+    "ui",
+  ],
   // The Port access type only, which every Command is given (D261).
   shell: ["data-client", "icons", "theme", "ui"],
   storage: ["db", "time"],

@@ -1,9 +1,18 @@
+import { answersByMount } from "@self-engine/data-client/testing";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { expect, userEvent, within } from "storybook/test";
 import { loadStoryApp, AppAt, openPalette, paletteGone, storyRouter } from "./story-app.tsx";
 import { placeholderAlphaAnswers } from "@self-engine/placeholder-alpha/testing";
+import { backupAnswers } from "@self-engine/settings-area/testing";
 
 const SHORTCUTS = "/settings/shortcuts";
+
+/**
+ * What the Port answers while the settings are shown: the rows of `placeholder-alpha`, and the
+ * Backups, whose rows the View Data and a search show.
+ */
+const settingsAnswers = () =>
+  answersByMount({ placeholderAlpha: placeholderAlphaAnswers(), backups: backupAnswers() });
 
 // The list over the app's real contributions: nothing in the settings area names a module.
 const meta = {
@@ -11,7 +20,7 @@ const meta = {
   component: AppAt,
   parameters: { layout: "fullscreen" },
   loaders: [loadStoryApp],
-  args: { address: SHORTCUTS, access: placeholderAlphaAnswers() },
+  args: { address: SHORTCUTS, access: settingsAnswers() },
 } satisfies Meta<typeof AppAt>;
 export default meta;
 type Story = StoryObj<typeof meta>;

@@ -5,6 +5,7 @@ import { msg } from "@lingui/core/macro";
 import { LANGUAGE_TAGS, LANGUAGES } from "@self-engine/i18n";
 import { BUILT_IN_THEMES, FONT_SCALES } from "@self-engine/theme";
 import { aboutRows } from "./about-rows.tsx";
+import { BACKUP_ROWS } from "./backup-rows.tsx";
 import type { SettingsRow } from "./row.ts";
 import { APP_LANGUAGE_SETTING, APPEARANCE_SETTINGS, SYSTEM_LANGUAGE } from "./settings.ts";
 import { type NamedCommandOwner, shortcutRows } from "./shortcut-rows.tsx";
@@ -110,6 +111,7 @@ export function settingsRows({
     ...APPEARANCE_ROWS,
     ...LANGUAGE_ROWS,
     ...shortcutRows(commandOwners),
+    ...BACKUP_ROWS,
     ...aboutRows(version),
   ];
 }

@@ -92,6 +92,31 @@ export function fixedAnswers<Of extends Contracts>(
   };
 }
 
+/**
+ * One Port access for a story that shows more than one owner's data, such as the whole app: each
+ * mount is answered by the access its owner's helper built, and a call to any other mount fails
+ * like a call to an entry without an answer.
+ *
+ * ```ts
+ * answersByMount({ notes: notesAnswers(), backups: backupAnswers({ list: { data: [] } }) });
+ * ```
+ */
+export function answersByMount(
+  accesses: Readonly<Record<string, PortAccess>>,
+  { report = (problem) => console.error(problem) }: FixedAnswerOptions = {},
+): PortAccess {
+  return {
+    ...NO_DATA_PROCESS,
+    call(module, entry, input, signal) {
+      const access = Object.hasOwn(accesses, module) ? accesses[module] : undefined;
+      if (access !== undefined) return access.call(module, entry, input, signal);
+      const problem = `No Fixed Answer for ${module}.${entry}, which the story called.`;
+      report(problem);
+      return Promise.reject(new Error(problem));
+    },
+  };
+}
+
 /** Checks `answer` against the entry and returns what each call to it gets. */
 function answerOf(
   name: string,

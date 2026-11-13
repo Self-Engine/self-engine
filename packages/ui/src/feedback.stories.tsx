@@ -6,6 +6,7 @@ import {
   confirm,
   type ConfirmOptions,
   isConfirmationOpen,
+  notifyDone,
   notifyError,
   notifyProgress,
   notifyUndoable,
@@ -307,6 +308,17 @@ export const AnErrorNoticeSaysWhatFailed: Story = {
     notifyError({ message: "The backup failed." });
     const notice = await noticeWith("The backup failed.");
     await expect(within(notice).queryByRole("button", { name: "Undo" })).toBeNull();
+  },
+};
+
+export const ADoneNoticeSaysWhatHappenedAndOffersNothing: Story = {
+  play: async () => {
+    notifyDone({ message: "Backup created." });
+    const notice = await screen.findByRole("status");
+    await expect(notice).toHaveTextContent("Backup created.");
+    await expect(within(notice).queryByRole("button", { name: "Undo" })).toBeNull();
+    await userEvent.click(within(notice).getByRole("button", { name: "Close notice" }));
+    await noticeGone("Backup created.");
   },
 };
 

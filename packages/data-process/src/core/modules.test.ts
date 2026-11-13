@@ -213,8 +213,11 @@ test("the opening event names each Query of the mounted modules and of the proto
   await events.return();
 });
 
-test.each(["health", "tablesChanged", "backups"])("startup rejects a module named %s", async (name) => {
-  await expect(startTestDataProcess({ modules: { [name]: fixture } })).rejects.toThrow(
-    `Module namespace conflicts with built-in procedure: ${name}`,
-  );
-});
+test.each(["health", "tablesChanged", "backups"])(
+  "startup rejects a module named %s",
+  async (name) => {
+    await expect(startTestDataProcess({ modules: { [name]: fixture } })).rejects.toThrow(
+      `Module namespace conflicts with built-in procedure: ${name}`,
+    );
+  },
+);

@@ -136,7 +136,9 @@ export function createBackups({
   let last: Promise<unknown> = Promise.resolve();
   function inTurn<Result>(work: () => Promise<Result>): Promise<Result> {
     const result = last.then(work, work);
-    last = result.catch(() => undefined);
+    last = result.catch(() => {
+      // The caller gets the failure; the next call only waits for this one to end.
+    });
     return result;
   }
 

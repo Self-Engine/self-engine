@@ -1,10 +1,19 @@
+import { answersByMount } from "@self-engine/data-client/testing";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { expect, spyOn, userEvent, within } from "storybook/test";
 import { version } from "../package.json";
 import { loadStoryApp, AppAt, openPalette, paletteGone, storyRouter } from "./story-app.tsx";
 import { placeholderAlphaAnswers } from "@self-engine/placeholder-alpha/testing";
+import { backupAnswers } from "@self-engine/settings-area/testing";
 
 const ABOUT = "/settings/about";
+
+/**
+ * What the Port answers while the settings are shown: the rows of `placeholder-alpha`, and the
+ * Backups, whose rows the View Data and a search show.
+ */
+const settingsAnswers = () =>
+  answersByMount({ placeholderAlpha: placeholderAlphaAnswers(), backups: backupAnswers() });
 
 // The Catalog runs in a browser, so the app in these stories is the web app: the version is the
 // one the build inserted, and there is no channel. The desktop app's About is a story of the
@@ -14,7 +23,7 @@ const meta = {
   component: AppAt,
   parameters: { layout: "fullscreen" },
   loaders: [loadStoryApp],
-  args: { address: ABOUT, access: placeholderAlphaAnswers() },
+  args: { address: ABOUT, access: settingsAnswers() },
 } satisfies Meta<typeof AppAt>;
 export default meta;
 type Story = StoryObj<typeof meta>;

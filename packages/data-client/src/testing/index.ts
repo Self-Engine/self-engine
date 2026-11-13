@@ -3,6 +3,7 @@
 
 export { type ChangingAnswers, changingAnswers } from "./changing-answers.ts";
 export {
+  answersByMount,
   type Contracts,
   type FixedAnswer,
   type FixedAnswerOptions,

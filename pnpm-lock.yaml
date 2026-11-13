@@ -985,6 +985,12 @@ importers:
       '@mantine/core':
         specifier: 'catalog:'
         version: 9.7.5(@mantine/hooks@9.7.5(react@19.3.1))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
+      '@self-engine/data-client':
+        specifier: workspace:*
+        version: link:../data-client
+      '@self-engine/data-protocol':
+        specifier: workspace:*
+        version: link:../data-protocol
       '@self-engine/i18n':
         specifier: workspace:*
         version: link:../i18n

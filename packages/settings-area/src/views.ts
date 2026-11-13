@@ -3,6 +3,7 @@ export const VIEW_IDS = {
   appearance: "appearance",
   language: "language",
   shortcuts: "shortcuts",
+  data: "data",
   about: "about",
 } as const;
 

@@ -60,6 +60,8 @@ export function createSettingsArea({ store, version, commandOwners }: SettingsAr
     view(VIEW_IDS.appearance, msg`Appearance`),
     view(VIEW_IDS.language, msg`Language`),
     view(VIEW_IDS.shortcuts, msg`Shortcuts`),
+    // Arrived with its first rows, the Backups (D198).
+    view(VIEW_IDS.data, msg({ message: "Data", context: "View of the settings" })),
     view(VIEW_IDS.about, msg`About`),
   ];
   return {

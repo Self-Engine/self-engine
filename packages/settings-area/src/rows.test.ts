@@ -5,6 +5,7 @@ import { ACCENT_IDS, BUILT_IN_THEMES } from "@self-engine/theme";
 import { expect, test } from "vite-plus/test";
 import { auditSettingsRows } from "./audit-rows.ts";
 import { auditSettingsArea } from "./audit.ts";
+import { backupSize, backupTime } from "./backup-rows.tsx";
 import { createSettingsArea } from "./index.ts";
 import { settingsRows } from "./rows.tsx";
 import { searchedRows, searchHits } from "./search.ts";
@@ -97,13 +98,22 @@ test("the settings area is the contribution `settings` and opens on Appearance",
   expect(area.views[0].id).toBe("appearance");
 });
 
-test("the settings area has the Views Appearance, Language, Shortcuts and About", () => {
+test("the settings area has the Views Appearance, Language, Shortcuts, Data and About", () => {
   expect(createSettingsArea(inputs()).views.map((view) => view.id)).toEqual([
     "appearance",
     "language",
     "shortcuts",
+    "data",
     "about",
   ]);
+});
+
+test("the View Data arrived with its rows: take a Backup, and restore one", () => {
+  expect(
+    settingsRows({ version: WEB, commandOwners: [] })
+      .filter((row) => row.view === "data")
+      .map((row) => row.id),
+  ).toEqual(["create-backup", "restore-backup"]);
 });
 
 const aboutRowIds = (version: VersionInfo) =>
@@ -201,4 +211,44 @@ test("the App Language is found as German in English and as Englisch in German",
   const english: Translator = { locale: "en", _: (descriptor) => descriptor.message ?? "" };
   expect(foundBy("german", english)).toEqual(["app-language"]);
   expect(foundBy("englisch", { ...english, locale: "de" })).toEqual(["app-language"]);
+});
+
+test.each([
+  ["backup", ["create-backup", "restore-backup"]],
+  ["safety copy", ["create-backup"]],
+  ["recover", ["restore-backup"]],
+  // The reason a Backup was taken is a value its row shows.
+  ["daily backup", ["restore-backup"]],
+])("the rows of the View Data are found by %s", (query, ids) => {
+  const english: Translator = { locale: "en", _: (descriptor) => descriptor.message ?? "" };
+  expect(foundBy(query, english)).toEqual(ids);
+});
+
+const ENGLISH_NUMBERS = {
+  number: (value: number, format?: Intl.NumberFormatOptions) =>
+    new Intl.NumberFormat("en", format).format(value),
+};
+
+test.each([
+  [812_000, "812 kB"],
+  [4096, "4.1 kB"],
+  [2_150_400, "2.2 MB"],
+  [48_300_000, "48 MB"],
+  [3_200_000_000, "3.2 GB"],
+])("a Backup of %i bytes is shown as %s", (bytes, shown) => {
+  expect(backupSize(bytes, ENGLISH_NUMBERS)).toBe(shown);
+});
+
+test("a Backup's time is written in the language shown and the time zone of the device", () => {
+  const backup = { takenAt: "2026-11-13T12:30:00.000Z" };
+  const written = (locale: string) =>
+    new Intl.DateTimeFormat(locale, { dateStyle: "medium", timeStyle: "short" }).format(
+      new Date(backup.takenAt),
+    );
+
+  expect(backupTime(backup, { locale: "en", _: () => "" })).toBe(written("en"));
+  expect(backupTime(backup, { locale: "de", _: () => "" })).toBe(written("de"));
+  // Whatever the zone of the run: an English month name, a German date with dots.
+  expect(written("en")).toMatch(/^Nov 1[34], 2026, /);
+  expect(written("de")).toMatch(/^1[34]\.11\.2026, /);
 });

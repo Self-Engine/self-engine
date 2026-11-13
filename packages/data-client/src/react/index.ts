@@ -16,4 +16,4 @@ export {
   type DataProviderProps,
   useDataAccess,
 } from "./provider.ts";
-export type { QueryHook, QueryState } from "./query-hook.ts";
+export type { QueryHook, QueryState, ReloadHook } from "./query-hook.ts";
