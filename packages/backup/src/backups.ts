@@ -1,7 +1,7 @@
 import { mkdir, readdir, rename, rm, stat } from "node:fs/promises";
 import { join } from "node:path";
 import type { Backup, BackupKind } from "@self-engine/data-protocol";
-import type { Clock, Database } from "@self-engine/db";
+import type { Database } from "@self-engine/db";
 import { isSoundDatabaseFile } from "@self-engine/db/better-sqlite3";
 import { sql } from "kysely";
 import { BACKUP_EXTENSION, backupId, parseBackupId } from "./backup-id.ts";
@@ -15,7 +15,8 @@ export interface BackupsOptions {
   readonly databasePath: string;
   /** The folder that holds the Backups and nothing else. It is created with the first Backup. */
   readonly directory: string;
-  readonly clock: Clock;
+  /** TODO #244: migrate this legacy boundary to the Instant clock. */
+  readonly clock: () => Date;
   readonly retention?: RetentionPolicy;
 }
 

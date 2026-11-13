@@ -14,7 +14,7 @@ export interface DataProcessOptions {
   readonly database: Database;
   /** The data entries to mount: the app's list, or a test's fixtures. */
   readonly modules: DataModules;
-  readonly sources?: ContextSources;
+  readonly sources: ContextSources;
   readonly checkOutputs: boolean;
   readonly report?: FrameOptions["report"];
   /** Called before the migrations run when some are pending, and not when none are (D138). */
@@ -46,7 +46,7 @@ export interface DataProcess {
 export async function startDataProcess({
   database,
   modules,
-  sources = systemSources,
+  sources,
   checkOutputs,
   beforeMigrations,
   report,
@@ -87,9 +87,3 @@ export async function startDataProcess({
     announceTablesChanged: (tables) => tablesChanged.announce(tables),
   };
 }
-
-const clock = () => new Date();
-const systemSources: ContextSources = {
-  clock,
-  ids: { clock, random: () => crypto.getRandomValues(new Uint8Array(16)) },
-};

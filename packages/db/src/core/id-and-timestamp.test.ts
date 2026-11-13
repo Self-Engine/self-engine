@@ -1,8 +1,9 @@
-import { afterEach, beforeEach, describe, expect, expectTypeOf, test, vi } from "vite-plus/test";
+import { describe, expect, expectTypeOf, test } from "vite-plus/test";
 import { z } from "zod";
 import { idSchema } from "@self-engine/db/schema";
-import { instantSchema, type Instant } from "@self-engine/time";
-import { newId, newTimestamp } from "./index.ts";
+import { instantSchema, type Clock, type Instant } from "@self-engine/time";
+import { fixedClock, requireInstant } from "@self-engine/time/testing";
+import { newId, newTimestamp, type IdSources } from "./index.ts";
 
 describe("newTimestamp", () => {
   test.each([
@@ -10,24 +11,10 @@ describe("newTimestamp", () => {
     ["a time whose milliseconds are zero", "2026-11-09T14:07:46.000Z"],
     ["a time whose whole minute is zero", "2026-11-09T14:00:00.000Z"],
   ])("writes %s in the one exact format", (_name, expected) => {
-    const timestamp = newTimestamp(() => new Date(Date.parse(expected)));
+    const timestamp = newTimestamp(fixedClock(requireInstant(expected)));
     expect(timestamp).toBe(expected);
     expectTypeOf(timestamp).toEqualTypeOf<Instant>();
     expect(instantSchema.parse(timestamp)).toBe(timestamp);
-  });
-
-  test("writes UTC for a time given with another offset", () => {
-    expect(newTimestamp(() => new Date("2026-11-09T21:07:46.297+07:00"))).toBe(
-      "2026-11-09T14:07:46.297Z",
-    );
-  });
-
-  test.each([
-    ["after the year 9999", "+010000-01-01T00:00:00.000Z"],
-    ["before the year 1000", "0999-12-31T23:59:59.999Z"],
-    ["before the year 0", "-000001-12-31T23:59:59.999Z"],
-  ])("refuses a time %s, which has no place in the format", (_name, iso) => {
-    expect(() => newTimestamp(() => new Date(iso))).toThrow(iso);
   });
 });
 
@@ -39,7 +26,7 @@ describe("newId", () => {
     const projectId = idSchema("Project");
     type ProjectId = z.output<typeof projectId>;
     const id = newId<ProjectId>({
-      clock: () => new Date("2026-11-09T14:07:46.297Z"),
+      clock: fixedClock(requireInstant("2026-11-09T14:07:46.297Z")),
       random: ZEROS,
     });
     expectTypeOf(id).toEqualTypeOf<ProjectId>();
@@ -47,36 +34,29 @@ describe("newId", () => {
     expect(projectId.parse(id)).toBe(id);
   });
   test("is a UUIDv7 made of the supplied clock and random source", () => {
-    const id = newId({ clock: () => new Date("2026-11-09T14:07:46.297Z"), random: ZEROS });
+    const id = newId({
+      clock: fixedClock(requireInstant("2026-11-09T14:07:46.297Z")),
+      random: ZEROS,
+    });
 
     expect(id).toBe("01a1c0a2-f079-7000-8000-000000000000");
   });
 
   test("sorts by the time of creation, whatever the random part", () => {
-    const earlier = newId({ clock: () => new Date("2026-11-09T14:07:46.297Z"), random: ONES });
-    const later = newId({ clock: () => new Date("2026-11-09T14:07:46.298Z"), random: ZEROS });
+    const earlier = newId({
+      clock: fixedClock(requireInstant("2026-11-09T14:07:46.297Z")),
+      random: ONES,
+    });
+    const later = newId({
+      clock: fixedClock(requireInstant("2026-11-09T14:07:46.298Z")),
+      random: ZEROS,
+    });
 
     expect(earlier < later).toBe(true);
   });
+});
 
-  describe("without supplied sources", () => {
-    beforeEach(() => {
-      vi.useFakeTimers({ now: new Date("2026-11-09T14:07:46.297Z") });
-    });
-
-    afterEach(() => {
-      vi.useRealTimers();
-    });
-
-    test("carries the current time", () => {
-      expect(newId().startsWith("01a1c0a2-f079-7")).toBe(true);
-    });
-
-    test("stays in creation order within one millisecond", () => {
-      const ids = Array.from({ length: 200 }, () => newId());
-
-      expect(ids.toSorted()).toEqual(ids);
-      expect(new Set(ids).size).toBe(200);
-    });
-  });
+test("timestamp and id creation require explicit clock sources", () => {
+  expectTypeOf(newTimestamp).parameters.toEqualTypeOf<[Clock]>();
+  expectTypeOf(newId).parameters.toEqualTypeOf<[IdSources]>();
 });

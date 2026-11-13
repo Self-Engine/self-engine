@@ -142,7 +142,7 @@ test("transaction time is read once, including for branded id generation", async
           const first = await notes.entries.create.run(tx, ctx, input);
           const second = await notes.entries.create.run(tx, ctx, { ...input, title: "Second" });
           expect(second.createdAt).toBe(first.createdAt);
-          expect(ctx.clock().toISOString()).toBe(first.createdAt);
+          expect(ctx.clock()).toBe(first.createdAt);
           return first;
         },
       },

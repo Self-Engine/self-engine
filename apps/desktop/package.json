@@ -24,6 +24,7 @@
     "@self-engine/db": "workspace:*",
     "@self-engine/desktop-bridge": "workspace:*",
     "@self-engine/placeholder-alpha": "workspace:*",
+    "@self-engine/time": "workspace:*",
     "@types/node": "catalog:",
     "electron": "catalog:",
     "electron-builder": "catalog:",
