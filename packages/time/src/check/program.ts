@@ -1,4 +1,5 @@
 import { failedCases } from "./cases.ts";
+import { checkDayContinuity } from "./day-continuity.ts";
 import { fixedCases } from "./fixed-cases.ts";
 import { compareWithIntl } from "./intl-comparison.ts";
 import { zoneNameCases } from "./zone-names.ts";
@@ -9,5 +10,13 @@ export function checkRuntime() {
   const failures = failedCases(cases);
   const { transitions, comparisons, mismatches } = compareWithIntl();
   failures.push(...mismatches);
-  return { cases: cases.length, transitions, comparisons, failures };
+  const continuity = checkDayContinuity();
+  failures.push(...continuity.breaks);
+  return {
+    cases: cases.length,
+    transitions,
+    comparisons,
+    dayContinuityChanges: continuity.clockChanges,
+    failures,
+  };
 }

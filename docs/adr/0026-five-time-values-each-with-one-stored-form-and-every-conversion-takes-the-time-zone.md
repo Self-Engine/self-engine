@@ -48,7 +48,7 @@ first.
      `unambiguous`; `skipped`, where the Instant lies the length of the gap after the given time
      (02:30 in a one-hour gap becomes 03:30); or `repeated`, where `instant` is the first
      occurrence and `later` the second. A minute that a change with an offset in seconds skips
-     only in part, such as Monrovia's in 1972, counts as skipped. `time` never asks: a form
+     only in part, such as Monrovia's in 1972, counts as skipped (see Consequences). `time` never asks: a form
      decides what to do with the case.
    - `startOfCalendarDay` gives a day's first moment, which is not always 00:00.
    - `instantRangeOf` gives the Instants of a _Calendar Day_ or a _Day Span_, half-open: from the
@@ -84,9 +84,18 @@ first.
 - A name a newer device stored and an older runtime does not know falls back to the device's zone
   on the older one, and the caller is told.
 - At the edges of the supported years a conversion whose answer lies outside them throws a
-  `RangeError`: 31 December 9999 has no range, because the day after it is not supported, and the
-  first Instant of year 1000 has no day in New York. A skipped day, such as 30 December 2011 in
-  Apia, has an empty range.
+  `RangeError`: the first Instant of year 1000 has no day in New York. A skipped day, such as 30 December 2011 in Apia, has an empty range.
+- Three known limits follow from the decision and stay as they are:
+  - **A day that is not one continuous range.** Until 2010 four zones turned the clock back
+    across midnight: St. Johns, Goose Bay and Moncton from 00:01 to 23:01 of the day before, and
+    Casey in March 2010. There an Instant's day can have a range that does not hold it: in St.
+    Johns, `1987-10-25T03:00:00.000Z` is 24 October, 23:30, yet the range of 24 October ends at
+    `1987-10-25T02:30:00.000Z`. Each day keeps one range. From 2011 on no zone does this, and the
+    check program of `time` fails in a runtime whose zone data breaks a day again.
+  - **A wall-clock minute that is only partly skipped** does not survive the way there and back.
+    Monrovia skipped from 00:00 to 00:44:30 on 7 January 1972, so 00:44 counts as skipped and
+    `instantAt` moves it on by the gap.
+  - **31 December 9999 has no range**, because the day after it lies outside the supported years.
 - Whether a past entry is shown in the zone it was made in or in the current one is the time
   entry's decision (D147). `time` carries both answers, because every function takes the zone.
 

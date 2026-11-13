@@ -1,6 +1,6 @@
 import fc from "fast-check";
 import { expect, test } from "vite-plus/test";
-import { listedTimeZones } from "./check/intl-comparison.ts";
+import { listedTimeZones } from "./check/clock-changes.ts";
 import {
   addDays,
   calendarDayOf,

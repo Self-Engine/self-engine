@@ -13,7 +13,7 @@ export function runtimeCheckMessage(runtime: string, result: CheckResult): strin
   if (result.failures.length) {
     throw new Error(`Time check ${runtime}: FAIL\n${result.failures.join("\n")}`);
   }
-  return `Time check ${runtime}: PASS (${result.cases} cases, ${result.transitions} transitions, ${result.comparisons} comparisons)`;
+  return `Time check ${runtime}: PASS (${result.cases} cases, ${result.transitions} transitions, ${result.comparisons} comparisons, ${result.dayContinuityChanges} clock changes with continuous days)`;
 }
 
 export async function checkElectronTime(app: ElectronApplication): Promise<void> {

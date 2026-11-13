@@ -1,12 +1,7 @@
-import { instantSchema, type Instant } from "../instant.ts";
 import { calendarDaySchema, wallClockTimeSchema } from "../values.ts";
 import { calendarDayOf, instantAt, wallClockTimeOf } from "../zoned.ts";
-import { resolveTimeZone, type TimeZone } from "../zone.ts";
-
-/** Every zone name the runtime lists. */
-export function listedTimeZones(): string[] {
-  return Intl.supportedValuesOf("timeZone");
-}
+import type { TimeZone } from "../zone.ts";
+import { clockChangesOf, instantAtMs, resolvedListedZones } from "./clock-changes.ts";
 
 export interface IntlComparison {
   readonly transitions: number;
@@ -22,12 +17,6 @@ function intlDayAndTime(format: Intl.DateTimeFormat, epochMs: number): string {
   const parts: Partial<Record<Intl.DateTimeFormatPartTypes, string>> = {};
   for (const part of format.formatToParts(epochMs)) parts[part.type] = part.value;
   return `${parts.year}-${parts.month}-${parts.day} ${parts.hour}:${parts.minute}`;
-}
-
-function instantAtMs(epochMs: number): Instant {
-  return instantSchema.parse(
-    Temporal.Instant.fromEpochMilliseconds(epochMs).toString({ fractionalSecondDigits: 3 }),
-  );
 }
 
 function compareAt(
@@ -65,13 +54,11 @@ function compareAt(
  * the day and wall-clock time of each Instant, and the way back from them.
  */
 export function compareWithIntl(fromYear = 1970, untilYear = 2040): IntlComparison {
-  const until = Temporal.Instant.from(`${untilYear}-01-01T00:00:00Z`);
   const mismatches: string[] = [];
   let transitions = 0;
   let comparisons = 0;
-  for (const name of listedTimeZones()) {
-    const { timeZone, deviceFallback } = resolveTimeZone(name);
-    if (deviceFallback) {
+  for (const { name, timeZone } of resolvedListedZones()) {
+    if (timeZone === null) {
       mismatches.push(`${name}: listed by the runtime, but not resolved`);
       continue;
     }
@@ -84,22 +71,11 @@ export function compareWithIntl(fromYear = 1970, untilYear = 2040): IntlComparis
       hour: "2-digit",
       minute: "2-digit",
     });
-    let cursor: Temporal.ZonedDateTime | null = Temporal.Instant.from(
-      `${fromYear}-01-01T00:00:00Z`,
-    ).toZonedDateTimeISO(timeZone);
-    while ((cursor = cursor.getTimeZoneTransition("next"))) {
-      if (Temporal.Instant.compare(cursor.toInstant(), until) >= 0) break;
+    for (const changeMs of clockChangesOf(timeZone, fromYear, untilYear)) {
       transitions++;
       for (const offset of OFFSETS) {
         comparisons++;
-        mismatches.push(
-          ...compareAt(
-            timeZone,
-            format,
-            cursor.epochMilliseconds,
-            cursor.epochMilliseconds + offset,
-          ),
-        );
+        mismatches.push(...compareAt(timeZone, format, changeMs, changeMs + offset));
       }
     }
   }

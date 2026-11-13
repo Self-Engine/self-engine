@@ -314,6 +314,26 @@ export const fixedCases: readonly CheckCase[] = [
     },
     expected: 23 * 3600,
   },
+  {
+    // Known limit (ADR 0026): until 2010 St. Johns turned the clock back from 00:01 to 23:01 of
+    // the day before, so 24 October 1987 resumed after its range had ended. One range per day
+    // leaves the Instant of 23:30 outside the range of the day it falls on.
+    name: "known limit: 1987-10-25T03:00Z is 24 October, 23:30, in St. Johns, after that day's range",
+    actual: () => {
+      const stJohns = zone("America/St_Johns");
+      const instant = at("1987-10-25T03:00:00.000Z");
+      return [
+        calendarDayOf(instant, stJohns),
+        wallClockTimeOf(instant, stJohns),
+        instantRangeOf(day("1987-10-24"), stJohns),
+      ];
+    },
+    expected: [
+      "1987-10-24",
+      "23:30",
+      { start: "1987-10-24T02:30:00.000Z", end: "1987-10-25T02:30:00.000Z" },
+    ],
+  },
   ...todays.map(([instant, name, expected]) => ({
     name: `today at ${instant} in ${name} is ${expected}`,
     actual: () => today(() => at(instant), zone(name)),
