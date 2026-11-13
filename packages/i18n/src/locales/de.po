@@ -241,6 +241,10 @@ msgstr "Hervorhebungsfarbe"
 msgid "How tightly lists and controls are laid out. The size of the text stays the same."
 msgstr "Wie eng Listen und Bedienelemente angeordnet sind. Die Textgröße bleibt gleich."
 
+#: apps/web/src/data-connection-states.tsx
+msgid "In the browser, Self-Engine has no access to your data yet. Open the desktop app to work with it."
+msgstr "Im Browser hat Self-Engine noch keinen Zugang zu deinen Daten. Öffne die Desktop-App, um mit ihnen zu arbeiten."
+
 #: packages/settings-area/src/theme-rows.tsx
 msgctxt "Accent"
 msgid "Indigo"
