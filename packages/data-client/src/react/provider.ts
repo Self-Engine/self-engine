@@ -10,7 +10,6 @@ import {
   useEffect,
   useMemo,
   useRef,
-  useState,
 } from "react";
 import type { PortAccess } from "./port-access.ts";
 import { noticeFailedReload } from "./reload-notice.ts";
@@ -133,6 +132,9 @@ export interface DataProviderProps {
   readonly children?: ReactNode;
 }
 
+/** Counts the accesses providers were given, to key the tree below each one's cache. */
+let accessGenerations = 0;
+
 /** Gives the tree below one query cache and the Port access (D249). */
 export function DataProvider({
   access,
@@ -140,13 +142,24 @@ export function DataProvider({
   notify = showNotice,
   children,
 }: DataProviderProps): ReactNode {
-  // The cache and the context live as long as the provider and its access; callbacks are read
-  // through refs, so a parent that passes them inline redraws no hook below.
+  // The cache and the context live as long as the provider's access: another access starts with
+  // no answers, so none of the old one shows. Callbacks are read through refs, so a parent that
+  // passes them inline redraws no hook below.
   const latest = useRef({ notify, reportMisuse });
   useEffect(() => {
     latest.current = { notify, reportMisuse };
   }, [notify, reportMisuse]);
-  const [cache] = useState(() => createQueryCache((notice) => latest.current.notify(notice)));
+  // A Query hook stays bound to the cache it first drew with, so the tree below is drawn anew for
+  // another access, keyed by its cache.
+  const { cache, generation } = useMemo(
+    () => ({
+      cache: createQueryCache((notice) => latest.current.notify(notice)),
+      generation: `access-${String(++accessGenerations)}`,
+    }),
+    [access],
+  );
+  // The old access's cache stops its timers and drops its answers once it is replaced.
+  useEffect(() => () => cache.clear(), [cache]);
   const context = useMemo<DataContext>(() => {
     const reported = new Set<string>();
     return {
@@ -186,7 +199,7 @@ export function DataProvider({
 
   return createElement(
     QueryClientProvider,
-    { client: cache },
+    { client: cache, key: generation },
     createElement(Context, { value: context }, children),
   );
 }

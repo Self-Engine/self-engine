@@ -199,6 +199,29 @@ test.each([
   },
 );
 
+test("a provider given another access answers from it, not from the old access's answers", async () => {
+  const before = fakePort();
+  before.answer(
+    "list",
+    listAnswer(() => ["Alpha"]),
+  );
+  const after = fakePort();
+  after.answer(
+    "list",
+    listAnswer(() => ["Beta"]),
+  );
+  const shown = { access: before.access };
+  const list = await renderHook(shown, () => useNoteList({}));
+  expect(data(list.current()).map((row) => row.title)).toEqual(["Alpha"]);
+
+  shown.access = after.access;
+  await list.redraw();
+  await settle();
+
+  expect(listCalls(after)).toBe(1);
+  expect(data(list.current()).map((row) => row.title)).toEqual(["Beta"]);
+});
+
 test("window focus causes no call", async () => {
   const port = fakePort();
   port.answer(
