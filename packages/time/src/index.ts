@@ -3,3 +3,6 @@ export { calendarDaySchema, type CalendarDay } from "./values.ts";
 export { wallClockTimeSchema, type WallClockTime } from "./values.ts";
 export { daySpanSchema, type DaySpan } from "./values.ts";
 export { durationSchema, type Duration } from "./values.ts";
+export { addDays, addMonths, daysBetween } from "./calendar.ts";
+export { weekOf, type FirstDayOfWeek } from "./calendar.ts";
+export { isoWeekNumber } from "./calendar.ts";
