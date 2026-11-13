@@ -1620,6 +1620,27 @@ markiert und wird beim Bau gemessen.
   _Verworfen:_ die Bausteine für Fenster und kleine Mengen streichen und die Einträge als
   Objekt schreiben (`pageList` bliebe ohne Ableitung); den Vertragseintrag an den Baustein geben
   (`tx` bliebe von Hand typisiert).
+- **D261 Jeder Befehl bekommt den Port-Zugang in seinem Kontext (verfeinert D174, D249).** Ein
+  Befehl ruft eine Operation auf, läuft aber außerhalb von React und kann keinen Hook nutzen. Darum
+  trägt der Kontext jeder Art (`page`, `open`, `input`) das Feld `data`: denselben Port-Zugang, den
+  die App dem `DataProvider` gibt (`usePortAccess()`); die Hülle reicht ihn an jeden Start weiter,
+  ein späterer Agent ebenso. Der Baustein bietet neben dem Operations-Hook dessen Form als Funktion
+  (`portHooks(…).run(eintrag, behandlung)` → `(zugang, eingabe) => Ergebnis`), aus demselben Vertrag
+  typisiert, mit demselben Ergebnis und denselben Standard-Benachrichtigungen; Hook und Funktion
+  teilen sich den Code dafür. Stories und Tests geben feste Antworten in dasselbe Feld. Die Hülle
+  typisiert das Feld über einen reinen Typ-Import von `data-client` (Kante in `ALLOWED_IMPORTS` und
+  `package.json`). _Preis:_ ein Feld mehr im Befehls-Kontext; zur Laufzeit nichts. _Verworfen:_ ein
+  globaler Zugang des zuletzt eingehängten Providers (zwei Provider auf einer Seite überschreiben
+  sich, ein Befehl vor dem ersten Provider hätte nichts); Befehle rufen noch keine Operationen
+  (D252 wäre nicht erfüllt, die Frage käme mit dem ersten echten Modul wieder); das Feld als
+  `unknown` mit Prüfung zur Laufzeit.
+- **D262 Die Gruppen von `placeholder-alpha` filtern nicht mehr (verfeinert D252).** Die Kunden
+  „Studio“ und „Garten“ bleiben als Vorlage für eine Suche, die sich die Ansichten eines Moduls
+  teilen (`sharedSearch`); eine Gruppe ändert nur die Adresse und markiert sich. Echte Einträge
+  gehören keinem Kunden, also zeigt die Liste alle. _Preis:_ In der App sieht man nach einem Klick
+  auf eine Gruppe keine andere Liste. _Verworfen:_ nach Namensanfang filtern (eine erfundene Regel
+  über Daten); die Gruppen entfernen (kein Modul zeigte mehr Gruppen, die App-Stories dazu müssten
+  in die Hülle wandern).
 
 ## Fakten
 

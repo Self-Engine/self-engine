@@ -22,8 +22,15 @@ Chromium, runs the real app, and closes both on completion or failure. It measur
 1. Alpha Overview → Archive, including pending routing work.
 2. Opening the Studio entry's edit drawer, including its first lazy load.
 3. Renaming one of 1,000 `placeholder-alpha` entries (`rename-one-of-1000`). The scenario fills
-   the list through the module's store in the page, then renames one entry the same way, so it
-   counts only what the list draws for one changed row.
+   the list through the module's Port, then renames one entry the same way. The rename's Table
+   Change reloads the list, and the count covers everything that redraws for that one changed
+   row.
+
+The page reaches a real Data Process without Electron. A stand-in for the desktop bridge hands it
+a port, as the preload does, and the script relays that port to a test Data Process in Node
+(`scripts/render-data-process.ts`) with `placeholder-alpha` mounted. The Data Process starts empty;
+the script creates Studio work and Garden work before the page loads. With a bridge, the app keeps
+its address in the hash, as in Electron.
 
 Each scenario reports root commits, committed function-component renders and counts by
 component name. The JSON records the commit and complete working-tree hash, including
@@ -66,6 +73,15 @@ The rule that follows: a row is its own component wrapped in `memo`, receives it
 and nothing that is new on every render of the list, and gets callbacks from its own hooks. An
 unchanged row only stays undrawn while its object stays the same across a reload (D250).
 
+After the move onto the Port (#224), renaming one of 1,000 entries through the Port draws **23
+components in 4 commits**. The Table Change marks the list, and it redraws twice: once while it
+reloads and once with the new answer, each time `Entries` and its `QueryStateBlock`. `EntryList`
+draws once, then the renamed `EntryRow` and its Mantine components, plus the page's scroll bar.
+No other row draws, because unchanged rows keep their objects across the reload. Delete with undo
+reaches the rows as one `onDelete` from the list, and that is the same function on every render.
+It comes from one pair of Operation hooks in the list rather than a pair in every row: per-row
+hooks would mean 2,000 mutation observers for 1,000 rows.
+
 ### The Query hook keeps unchanged rows
 
 Measured during #219 on Node 26, Apple M3 Pro, median of 50 runs after 10 warm-up runs. After a
@@ -79,9 +95,8 @@ An answer that no View shows stays in memory for 5 minutes (D250). Held as parse
 such rows take about **226 KiB** of heap, and 10,000 about **2.1 MiB**.
 
 The building block (`@self-engine/data-client/react`) bundles to **35,422 bytes** minified
-(10,855 gzipped), of which the query library is 33,315. Nothing at startup imports it yet, so
-the startup budget below is unchanged; the slice that mounts it in the app (#224) measures it
-against the budget.
+(10,855 gzipped), of which the query library is 33,315. Since #224 the app mounts it at startup;
+the startup budget below holds it.
 
 ## Startup JavaScript budget
 
@@ -90,10 +105,16 @@ emitted chunk graph. Starting at every entry, it follows **static** imports and 
 shared JavaScript chunk once. Dynamic imports, CSS, fonts and other assets are outside this
 JavaScript budget. The report is `apps/web/dist/startup-bundle.json`.
 
-The current compiler-enabled baseline is **799,595 raw bytes** across 25 static chunks.
-The limit is **832 KiB (851,968 bytes)**, about 6% headroom. Raw emitted bytes avoid a
-compression-version dependency. A deliberate budget increase must explain the measured
+The current baseline is **872,853 raw bytes** across 15 static chunks. The limit is **904 KiB
+(925,696 bytes)**: the measured size plus 6 %, rounded up to whole KiB (D258). Raw emitted bytes
+avoid a compression-version dependency. A deliberate budget increase must explain the measured
 cost in its PR; splitting filenames or moving code to a shared chunk does not evade it.
+
+The last increase came with #224, when the app mounted the data building block and with it the
+query library. Startup JavaScript went from **832,739 bytes** (14 chunks, at the tip of the
+integration branch before the slice) to **872,853 bytes** (15 chunks), **+40,114 bytes**. The old
+limit of 851,968 bytes would have failed the build. In the built desktop smoke stage, the first
+answer did not take measurably longer (see "Views on the Port" below).
 
 Independently of size, a workspace module declared as a dynamic-import target must stay
 out of static startup chunks. This catches eager imports of contribution Views, Groups,
@@ -191,3 +212,12 @@ includes creating the table. With 10 alternating runs each on `main` and the bra
 was **185 ms on main** (range 167–223 ms) and **181.5 ms on the branch** (range 164–208 ms): no
 measurable change. The data-process bundle is **745,996 bytes**, up from **727,817** on `main`;
 that difference also holds the earlier slices of #33.
+
+### Views on the Port
+
+Measured during #224, when the Views of `placeholder-alpha` began to read and write through the
+building block and the app began to mount it. With 10 alternating runs each of the smoke stage's
+command (`node scripts/desktop-smoke.ts`, fresh data folder) on a built `main` (`b34c562`) and the
+branch, the **Data Process first answer** had a median of **205 ms on main** (range 161–379 ms) and
+**179.5 ms on the branch** (range 149–484 ms): no measurable change. The first answer is the
+connection's first `ready`, so it includes loading the larger startup bundle.
