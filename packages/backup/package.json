@@ -10,6 +10,7 @@
   "dependencies": {
     "@self-engine/data-protocol": "workspace:*",
     "@self-engine/db": "workspace:*",
+    "@self-engine/time": "workspace:*",
     "kysely": "catalog:"
   },
   "devDependencies": {

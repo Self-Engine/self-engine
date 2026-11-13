@@ -5,12 +5,16 @@
   "license": "AGPL-3.0-only",
   "type": "module",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./testing": "./src/testing.ts",
+    "./system-clock": "./src/system-clock.ts",
+    "./check": "./src/check/program.ts"
   },
   "dependencies": {
     "zod": "catalog:"
   },
   "devDependencies": {
+    "fast-check": "catalog:",
     "vite-plus": "catalog:"
   }
 }

@@ -1,11 +1,15 @@
+import { addDays, calendarDaySchema } from "@self-engine/time";
+import { requireInstant } from "@self-engine/time/testing";
 import { expect, test } from "vite-plus/test";
 import { expiredBackups, isDailyBackupDue } from "./retention.ts";
 
 type Kind = "daily" | "manual" | "before-migration" | "before-restore";
 
+const OCTOBER_31 = calendarDaySchema.parse("2026-10-31");
+
 /** A Backup at noon UTC on a day of November 2026; day 0 is the 31st of October. */
 const on = (day: number, time = "12:00:00.000", kind: Kind = "daily") => ({
-  takenAt: `${new Date(Date.UTC(2026, 10, day)).toISOString().slice(0, 10)}T${time}Z`,
+  takenAt: requireInstant(`${addDays(OCTOBER_31, day)}T${time}Z`),
   kind,
 });
 const days = (backups: readonly { takenAt: string }[]) =>
@@ -126,14 +130,15 @@ test("the numbers of days and weeks can be set", () => {
 });
 
 test("the daily Backup is due when no Backup was taken on this UTC day", () => {
-  const yesterdayLate = [{ takenAt: "2026-11-12T23:59:59.999Z" }];
+  const yesterdayLate = [{ takenAt: requireInstant("2026-11-12T23:59:59.999Z") }];
+  const midnight = requireInstant("2026-11-13T00:00:00.000Z");
 
-  expect(isDailyBackupDue(yesterdayLate, new Date("2026-11-13T00:00:00.000Z"))).toBe(true);
-  expect(isDailyBackupDue([], new Date("2026-11-13T00:00:00.000Z"))).toBe(true);
+  expect(isDailyBackupDue(yesterdayLate, midnight)).toBe(true);
+  expect(isDailyBackupDue([], midnight)).toBe(true);
 });
 
 test("the daily Backup is not due after any Backup of this UTC day", () => {
-  const thisMorning = [{ takenAt: "2026-11-13T00:00:00.000Z" }];
+  const thisMorning = [{ takenAt: requireInstant("2026-11-13T00:00:00.000Z") }];
 
-  expect(isDailyBackupDue(thisMorning, new Date("2026-11-13T23:59:59.999Z"))).toBe(false);
+  expect(isDailyBackupDue(thisMorning, requireInstant("2026-11-13T23:59:59.999Z"))).toBe(false);
 });

@@ -1,3 +1,4 @@
+import { fixedClock, requireInstant } from "@self-engine/time/testing";
 import {
   copyFileSync,
   mkdirSync,
@@ -99,7 +100,7 @@ describe("buildLocalNightly", () => {
       desktopDir,
       homeDir,
       env: scenario.env ?? { PATH: "/bin" },
-      now: () => new Date("2026-11-09T01:30:00.000Z"),
+      clock: fixedClock(requireInstant("2026-11-09T01:30:00.000Z")),
       print: (line) => printed.push(line),
       query: (command, args) => {
         const line = [command === process.execPath ? "node" : command, ...args].join(" ");

@@ -5,6 +5,7 @@ import { dataModules } from "./data-modules.ts";
 import { dataProcessOptions } from "./data-process-options.ts";
 import { databasePathFromArgs } from "./data-process-messages.ts";
 import { openDataFiles, runDataProcess } from "./data-process-runtime.ts";
+import { systemSources } from "./system-sources.ts";
 
 function fail(error: unknown): void {
   console.error("The data process failed to start", error);
@@ -12,9 +13,11 @@ function fail(error: unknown): void {
 }
 
 try {
+  const sources = systemSources();
   runDataProcess({
     parentPort: process.parentPort,
-    ...openDataFiles(databasePathFromArgs(process.argv)),
+    ...openDataFiles(databasePathFromArgs(process.argv), sources.clock),
+    sources,
     modules: dataModules,
     ...dataProcessOptions,
   }).catch(fail);

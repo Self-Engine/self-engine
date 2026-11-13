@@ -1,3 +1,4 @@
+import type { Clock } from "@self-engine/time";
 import { EventEmitter } from "node:events";
 import { mkdtempSync, readdirSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -11,7 +12,7 @@ import type { Database, Migration } from "@self-engine/db";
 import { openDatabase } from "@self-engine/db/better-sqlite3";
 import { createTestSources } from "@self-engine/db/testing";
 import { sql } from "kysely";
-import { afterEach, describe, expect, it } from "vite-plus/test";
+import { afterEach, describe, expect, expectTypeOf, it } from "vite-plus/test";
 import { dataModules } from "./data-modules.ts";
 import { isRestartRequest, portHandoff, servingHealth } from "./data-process-messages.ts";
 import {
@@ -99,6 +100,7 @@ function run(
       parentPort,
       database,
       checkOutputs: true,
+      sources: createTestSources("2026-01-01T00:00:00.000Z"),
       backups: NO_BACKUPS,
       timer: manualTimer(),
       ...options,
@@ -230,7 +232,7 @@ function dataFolder() {
   folders.push(folder);
   const databasePath = join(folder, "self-engine.sqlite");
   // A Friday, at noon UTC.
-  const sources = createTestSources(new Date("2026-11-13T12:00:00.000Z"));
+  const sources = createTestSources("2026-11-13T12:00:00.000Z");
   return {
     databasePath,
     sources,
@@ -540,4 +542,11 @@ describe("the Backups of the data process", () => {
 
     expect(started.parentPort.sent.filter(isRestartRequest)).toEqual([]);
   });
+});
+
+it("opening data files requires the Instant clock and startup requires sources", () => {
+  expectTypeOf(openDataFiles).parameters.toEqualTypeOf<[string, Clock]>();
+  expectTypeOf<DataProcessRuntime>().toExtend<{
+    sources: { clock: Clock };
+  }>();
 });

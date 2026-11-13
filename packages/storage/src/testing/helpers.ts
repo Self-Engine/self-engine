@@ -20,6 +20,6 @@ export async function createTestDatabase(
   }
 }
 
-export function createTestContext(start = new Date("2026-11-12T12:00:00.000Z")) {
+export function createTestContext(start = "2026-11-12T12:00:00.000Z") {
   return createTestSources(start);
 }

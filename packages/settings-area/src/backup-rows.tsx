@@ -8,6 +8,7 @@ import { Alert, Box, Button, Group, Stack, Text } from "@mantine/core";
 import { useDataAccess } from "@self-engine/data-client/react";
 import { ErrorIcon } from "@self-engine/icons";
 import { roleColor } from "@self-engine/theme";
+import { deviceTimeZone, formatInstant, type TimeZone } from "@self-engine/time";
 import { notifyDone, notifyUndoable, QueryStateBlock } from "@self-engine/ui";
 import { memo, useCallback, useState } from "react";
 import {
@@ -50,11 +51,13 @@ export function backupSize(bytes: number, i18n: NumberFormatter): string {
   });
 }
 
-/** When a Backup was taken, in the language shown and the time zone of the device. */
-export function backupTime(backup: Pick<Backup, "takenAt">, { locale }: Translator): string {
-  return new Intl.DateTimeFormat(locale, { dateStyle: "medium", timeStyle: "short" }).format(
-    new Date(backup.takenAt),
-  );
+/** When a Backup was taken, in the language shown and the zone given. */
+export function backupTime(
+  backup: Pick<Backup, "takenAt">,
+  { locale }: Translator,
+  timeZone: TimeZone,
+): string {
+  return formatInstant(backup.takenAt, "dateTime", locale, timeZone);
 }
 
 /** Mantine's alert in the theme's warning roles, which its own `color` cannot name. */
@@ -123,14 +126,21 @@ let withdrawUndoOffer: (() => void) | undefined;
 
 interface BackupLineProps {
   readonly backup: Backup;
+  /** The zone the Backup's time is shown in. */
+  readonly timeZone: TimeZone;
   /** A restore is running: of this Backup, or of another one. */
   readonly restoring: "this" | "another" | undefined;
   readonly onRestore: (backup: Backup) => void;
 }
 
-const BackupLine = memo(function BackupLine({ backup, restoring, onRestore }: BackupLineProps) {
+const BackupLine = memo(function BackupLine({
+  backup,
+  timeZone,
+  restoring,
+  onRestore,
+}: BackupLineProps) {
   const { t, i18n } = useLingui();
-  const takenAt = backupTime(backup, i18n);
+  const takenAt = backupTime(backup, i18n, timeZone);
   return (
     <Group component="li" gap="md" justify="space-between" wrap="nowrap">
       <Stack gap={0}>
@@ -161,6 +171,8 @@ function RestoreBackup({ labelledBy }: SettingsRowControlProps) {
   const reload = useReloadBackups();
   const data = useDataAccess();
   const [restoring, setRestoring] = useState<Backup["id"]>();
+  // TODO #110: the zone the user picked. Until that Setting exists, the device's, read once.
+  const [timeZone] = useState(deviceTimeZone);
   // A restore is not asked about first: what it replaces is backed up, so the Notice offers the
   // way back instead (D79).
   const restore = useCallback(
@@ -212,6 +224,7 @@ function RestoreBackup({ labelledBy }: SettingsRowControlProps) {
                   backup={backup}
                   key={backup.id}
                   onRestore={onRestore}
+                  timeZone={timeZone}
                   restoring={
                     restoring === undefined
                       ? undefined

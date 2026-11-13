@@ -86,10 +86,6 @@ _Avoid_: private table, device table
 The identity of one entity, branded for its kind so a project id cannot stand in for a task id. References to that entity keep the same identity.
 _Avoid_: generic id, shared id brand
 
-**Instant** (de: _Zeitpunkt_):
-An exact moment in UTC, with millisecond precision and a year from 1000 to 9999. It is independent of the person's time zone.
-_Avoid_: local time, date
-
 **Live Row** (de: _nicht gelöschte Zeile_):
 A stored row that has not been soft-deleted. Ordinary reads and changes see only live rows in the current space.
 _Avoid_: active row, undeleted record
@@ -195,6 +191,36 @@ _Avoid_: page, route, screen, tab
 **Window State** (de: _Fensterzustand_):
 A record of where the desktop window was and how big, and whether it was maximized or in full screen, kept per channel so the next start opens the same way. Not a _Setting_.
 _Avoid_: window settings, window preferences, window bounds (for the whole record)
+
+### Time
+
+**Calendar Day** (de: _Kalendertag_):
+A date on the calendar, such as 14 November 2026, without a time of day or a _Time Zone_. It stays the same date wherever the person is.
+_Avoid_: date (on its own), day (for an _Instant_), midnight
+
+**Clock** (de: _Uhr_):
+The source of the current _Instant_, always handed to whatever needs it. The real clock of the device is only one _Clock_; a test uses a fixed one.
+_Avoid_: now (for the source), system time, timer
+
+**Day Span** (de: _Tagesspanne_):
+A run of whole _Calendar Days_ from a first to a last, both included, such as 1 to 30 November.
+_Avoid_: date range, period, interval
+
+**Duration** (de: _Dauer_):
+How long something lasted, in whole seconds and never negative. It is not a _Wall-Clock Time_, even when it is shown as hours and minutes.
+_Avoid_: time (for a length), elapsed time, interval
+
+**Instant** (de: _Zeitpunkt_):
+An exact moment in UTC, with millisecond precision and a year from 1000 to 9999. It is independent of the person's _Time Zone_.
+_Avoid_: local time, date
+
+**Time Zone** (de: _Zeitzone_):
+A region's rules for the time on its clocks, named like Europe/Berlin, including when the clocks change. Two names can denote the same _Time Zone_; a fixed offset such as +02:00 is not one.
+_Avoid_: offset, UTC offset, locale
+
+**Wall-Clock Time** (de: _Uhrzeit_):
+The time of day a clock on the wall shows, in hours and minutes, such as 14:30, without a _Calendar Day_ or _Time Zone_. On the day the clocks change, one may not exist or may occur twice.
+_Avoid_: local time, time (on its own), hour
 
 ### Translation
 

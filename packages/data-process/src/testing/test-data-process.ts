@@ -64,7 +64,7 @@ export async function startTestDataProcess(
           entries: {},
         },
       },
-      sources: options.sources ?? createTestSources(new Date("2026-01-01T00:00:00.000Z")),
+      sources: options.sources ?? createTestSources("2026-01-01T00:00:00.000Z"),
       checkOutputs: options.checkOutputs ?? true,
       ...(options.report === undefined ? {} : { report: options.report }),
       ...(options.beforeMigrations && { beforeMigrations: options.beforeMigrations }),

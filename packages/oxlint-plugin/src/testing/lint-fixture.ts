@@ -3,7 +3,7 @@
 // its package is resolved through vite-plus instead of a hardcoded node_modules layout.
 
 import { spawnSync } from "node:child_process";
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
 import { basename, dirname, join, resolve } from "node:path";
@@ -28,12 +28,13 @@ export function diagnosticsOfFile(lines: readonly string[], fileName: string): s
  * The `self-engine/<rule>` diagnostics Oxlint reports for each of `sources`, one line each, in
  * the order of `sources`. One Oxlint run covers them all, so a long fixture table stays fast.
  */
-export function lintFixtures(rule: string, sources: readonly string[]): string[][] {
+export function lintFixtures(rule: string, sources: readonly string[], folder = ""): string[][] {
   const dir = mkdtempSync(join(tmpdir(), "self-engine-oxlint-"));
   try {
     const config = join(dir, ".oxlintrc.json");
+    mkdirSync(join(dir, folder), { recursive: true });
     const files = sources.map((source, index) => {
-      const file = join(dir, `fixture-${index}.ts`);
+      const file = join(dir, folder, `fixture-${index}.ts`);
       writeFileSync(file, source);
       return file;
     });

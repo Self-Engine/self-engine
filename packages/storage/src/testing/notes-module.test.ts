@@ -9,13 +9,7 @@ import {
   type NoteId,
   type NoteRow,
 } from "../../test/notes-module/data/rows.ts";
-import {
-  createMigrationRunner,
-  newId,
-  newTimestamp,
-  type TablesOf,
-  type Database,
-} from "@self-engine/db";
+import { createMigrationRunner, newId, type TablesOf, type Database } from "@self-engine/db";
 import { checkAgreement, checkConventions, createTestSources } from "@self-engine/db/testing";
 import { openDatabase } from "@self-engine/db/better-sqlite3";
 
@@ -41,10 +35,10 @@ test.each<{ isPinned: 0 | 1; expected: boolean }>([
 ])(
   "round-trips a note with stored boolean $isPinned and branded types",
   async ({ isPinned, expected }) => {
-    const sources = createTestSources(new Date("2026-11-12T12:00:00.000Z"));
-    const createdAt = newTimestamp(sources.clock);
+    const sources = createTestSources("2026-11-12T12:00:00.000Z");
+    const createdAt = sources.clock();
     sources.advance(1000);
-    const updatedAt = newTimestamp(sources.clock);
+    const updatedAt = sources.clock();
     const row: NoteRow = {
       id: newId<NoteId>(sources.ids),
       created_at: createdAt,
@@ -83,8 +77,8 @@ test.each<{ isPinned: 0 | 1; expected: boolean }>([
 );
 
 test("live titles are unique within a space and become reusable after soft deletion", async () => {
-  const sources = createTestSources(new Date("2026-11-12T12:00:00.000Z"));
-  const now = newTimestamp(sources.clock);
+  const sources = createTestSources("2026-11-12T12:00:00.000Z");
+  const now = sources.clock();
   const row: NoteRow = {
     id: newId<NoteId>(sources.ids),
     created_at: now,
@@ -110,7 +104,7 @@ test("live titles are unique within a space and become reusable after soft delet
     })
     .execute();
   sources.advance(1000);
-  const deletedAt = newTimestamp(sources.clock);
+  const deletedAt = sources.clock();
   await queries
     .updateTable("notes")
     .set({ deleted_at: deletedAt, updated_at: deletedAt })

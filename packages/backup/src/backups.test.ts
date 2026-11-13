@@ -33,7 +33,7 @@ beforeEach(() => {
   databasePath = join(folder, "self-engine.sqlite");
   directory = join(folder, "backups");
   // A Friday, at noon UTC.
-  sources = createTestSources(new Date("2026-11-13T12:00:00.000Z"));
+  sources = createTestSources("2026-11-13T12:00:00.000Z");
 });
 
 afterEach(async () => {
@@ -50,7 +50,12 @@ async function start(): Promise<{ database: Database; backups: Backups }> {
   `);
   return {
     database,
-    backups: createBackups({ database, databasePath, directory, clock: sources.clock }),
+    backups: createBackups({
+      database,
+      databasePath,
+      directory,
+      clock: sources.clock,
+    }),
   };
 }
 
@@ -167,7 +172,12 @@ test("the Backup before migrations is taken of a database that has tables", asyn
 
 test("a database without tables gets no Backup before its first migrations", async () => {
   const database = open(databasePath);
-  const backups = createBackups({ database, databasePath, directory, clock: sources.clock });
+  const backups = createBackups({
+    database,
+    databasePath,
+    directory,
+    clock: sources.clock,
+  });
 
   await expect(backups.backUpBeforeMigrations()).resolves.toBeUndefined();
   await expect(backups.list()).resolves.toEqual([]);

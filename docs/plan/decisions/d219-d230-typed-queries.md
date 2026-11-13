@@ -42,6 +42,8 @@
   `newTimestamp` in `db` liefert `Instant`. Name und Form folgen dem, was #104 aus der alten App
   übernimmt (D148); #104 baut das Paket aus, statt etwas zu ersetzen. _Verworfen:_ vorläufig in
   `db` mit Ausnahme in den Modulgrenzen (alles zöge nach #104 um); `string` bis #104 (gegen D188).
+  _`newTimestamp` überholt durch D284: Die Uhr aus `time` liefert den `Instant` selbst, die
+  Funktion ist mit #104 entfallen._
 - **D224 Eine Id-Marke pro Entität.** `idSchema("Project")` prüft UUIDv7 und trägt die Marke
   `ProjectId`. Zeilen-Map, Kysely-Typen (über D219), Abbildung und Vertrag nutzen dieselben
   Schemas, auch für Fremdschlüssel; eine Abfrage auf `projects.id` liefert direkt `ProjectId`. Neue

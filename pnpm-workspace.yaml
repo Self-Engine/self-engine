@@ -95,6 +95,7 @@ catalog:
   vite-plus: 1.5.0
   # Checks stored Settings against their declared schema (ADR 0010).
   zod: 4.6.7
+  fast-check: 4.10.2
 
 overrides:
   "@types/node": "catalog:"

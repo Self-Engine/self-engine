@@ -1,7 +1,7 @@
 ---
 status: accepted
 date: 2026-11-08
-decisions: D10, D21, D36, D266
+decisions: D10, D21, D36, D266, D284
 ---
 
 # Module boundaries are enforced three ways
@@ -24,10 +24,16 @@ Each boundary is enforced by three independent mechanisms:
    cycles between files; a test of every `package.json` forbids cycles between packages,
    devDependencies included (D266).
 
-The database depends on `time` for `Instant`. A module's `./contracts` may import `time`,
-other declared module contracts and the pure `@self-engine/db/schema` entry, but never database
-runtime code. The schema entry stays free of Kysely, uuid and drivers. Dedicated purity rules
-protect these entries; package dependencies and allowed directions still apply (D223–D225).
+`time` depends on no other package. Every package that stores, sends or shows a date takes its
+values from `time`: today `db`, `storage`, `data-protocol`, `backup`, `settings-area` and
+`placeholder-alpha`, and `data-process` in its tests. Only code in `apps/` loads the system
+clock, `@self-engine/time/system-clock`; the dependency-cruiser rule `system-clock-only-in-apps`
+rejects it anywhere else, and a package takes a _Clock_ as an argument (D284).
+
+A module's `./contracts` may import `time`, other declared module contracts and the pure
+`@self-engine/db/schema` entry, but never database runtime code. The schema entry stays free of
+Kysely, uuid and drivers. Dedicated purity rules protect these entries; package dependencies and
+allowed directions still apply (D223–D225).
 
 A formal module manifest follows only once the third module exists.
 

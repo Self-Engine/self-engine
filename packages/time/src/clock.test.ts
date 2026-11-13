@@ -1,0 +1,54 @@
+import { afterEach, expect, expectTypeOf, test, vi } from "vite-plus/test";
+import * as main from "./index.ts";
+import {
+  advanceInstantByMilliseconds,
+  fixedClock,
+  requireInstant,
+} from "@self-engine/time/testing";
+import { systemClock } from "./system-clock.ts";
+import type { Clock, Instant } from "./index.ts";
+
+afterEach(() => vi.useRealTimers());
+
+test("a fixed clock returns the supplied Instant on every read", () => {
+  const value = requireInstant("2026-11-14T07:30:27.297Z");
+  const clock = fixedClock(value);
+  expectTypeOf(clock).toEqualTypeOf<Clock>();
+  expectTypeOf(clock()).toEqualTypeOf<Instant>();
+  expect(clock()).toBe(value);
+  expect(clock()).toBe(value);
+  expectTypeOf(fixedClock).parameters.toEqualTypeOf<[Instant]>();
+});
+test.each(["2026-11-14T07:30:27Z", "0999-12-31T23:59:59.999Z", "2026-02-29T00:00:00.000Z"])(
+  "fixture helper rejects noncanonical Instant %s",
+  (text) => {
+    expect(() => requireInstant(text)).toThrow();
+  },
+);
+test("the main entry exposes neither clock implementation", () => {
+  expect(main).not.toHaveProperty("systemClock");
+  expect(main).not.toHaveProperty("fixedClock");
+  expect(main).not.toHaveProperty("requireInstant");
+});
+test("the system clock reads controlled system time and retains milliseconds", () => {
+  vi.useFakeTimers({ toFake: ["Date"], now: 1794614400297 });
+  expect(systemClock()).toBe("2026-11-14T00:00:00.297Z");
+  vi.setSystemTime(1794614400999);
+  expect(systemClock()).toBe("2026-11-14T00:00:00.999Z");
+  expectTypeOf(systemClock).toEqualTypeOf<Clock>();
+});
+
+test("advances a fixture Instant across a UTC day boundary, keeping milliseconds", () => {
+  const start = requireInstant("2026-11-14T23:59:59.999Z");
+  expect(advanceInstantByMilliseconds(start, 2)).toBe("2026-11-15T00:00:00.001Z");
+  expect(advanceInstantByMilliseconds(start, -999)).toBe("2026-11-14T23:59:59.000Z");
+  expect(advanceInstantByMilliseconds(start, 0)).toBe(start);
+});
+test.each([
+  ["1000-01-01T00:00:00.000Z", -1],
+  ["9999-12-31T23:59:59.999Z", 1],
+] as const)("rejects advancing %s by %s ms past the supported years", (text, milliseconds) => {
+  expect(() => advanceInstantByMilliseconds(requireInstant(text), milliseconds)).toThrow(
+    RangeError,
+  );
+});

@@ -8,6 +8,7 @@
 // This file and `packageChannel` are already loaded when `git pull` runs, so a change to them
 // takes effect on the next run.
 
+import type { Clock } from "@self-engine/time";
 import { spawnSync } from "node:child_process";
 import { copyFileSync, mkdirSync, renameSync, rmSync } from "node:fs";
 import { homedir } from "node:os";
@@ -24,6 +25,7 @@ import {
   runInherited,
   withoutSigningInputs,
 } from "./package-channel.ts";
+import { systemSources } from "./system-sources.ts";
 
 const NIGHTLY = channelIdentity("nightly");
 
@@ -58,7 +60,7 @@ export interface NightlyLocalOptions {
   readonly desktopDir: string;
   readonly homeDir: string;
   readonly env: NodeJS.ProcessEnv;
-  readonly now: () => Date;
+  readonly clock: Clock;
   readonly query: Query;
   readonly run: Run;
   readonly packageApp: (request: PackageRequest, env: NodeJS.ProcessEnv) => void;
@@ -94,7 +96,7 @@ function resolveLocalVersion(options: NightlyLocalOptions): string {
     "--commit",
     commit,
     "--started-at",
-    options.now().toISOString(),
+    options.clock(),
     "--run-number",
     "1",
   ]);
@@ -145,7 +147,7 @@ if (import.meta.main) {
       desktopDir: DESKTOP_DIR,
       homeDir: homedir(),
       env: process.env,
-      now: () => new Date(),
+      clock: systemSources().clock,
       query: (command, args, cwd) => {
         const { status, stdout, stderr } = spawnSync(command, args, { cwd, encoding: "utf8" });
         return { status, stdout, stderr };
