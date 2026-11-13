@@ -70,6 +70,8 @@ export function createBackups({
 }: BackupsOptions): Backups {
   const fileOf = (id: string) => join(directory, `${id}${BACKUP_EXTENSION}`);
   let automaticFailed = false;
+  /** Whether a restore waits for the next start: this database is about to be replaced. */
+  let restoreStaged = false;
 
   async function list(): Promise<Backup[]> {
     const names = await readdir(directory).catch((error: unknown) => {
@@ -97,7 +99,14 @@ export function createBackups({
     // Written under another name first: the folder never lists a Backup that is half written.
     const unfinished = `${file}.partial`;
     await rm(unfinished, { force: true });
-    await database.backupTo(unfinished);
+    try {
+      await database.backupTo(unfinished);
+    } catch (error) {
+      // The next attempt has another name, so it would not clear this one away: on a disk that
+      // is full, each failure would leave up to a whole copy behind.
+      await rm(unfinished, { force: true });
+      throw error;
+    }
     await rename(unfinished, file);
     // The data is protected again, whoever asked for this Backup.
     automaticFailed = false;
@@ -137,21 +146,21 @@ export function createBackups({
     // No write from here on: one that came after the Backup of the replaced data would vanish
     // with the database it went to. The pragma holds for the one connection every call uses.
     await database.executeScript("PRAGMA query_only = ON;");
-    let staged = false;
     try {
       const stage = await stageRestore(fileOf(id), databasePath);
       try {
         const replaced = await take("before-restore");
         await stage.commit();
-        staged = true;
+        restoreStaged = true;
         return { status: "restored", replaced };
       } catch (error) {
         await stage.discard();
         throw error;
       }
     } finally {
-      // Nothing was staged, so this database stays: it takes writes again.
-      if (!staged) await database.executeScript("PRAGMA query_only = OFF;");
+      // No restore is staged, so this database stays: it takes writes again. A restore that
+      // fails after an earlier one was staged leaves that one staged, and the writes refused.
+      if (!restoreStaged) await database.executeScript("PRAGMA query_only = OFF;");
     }
   }
 

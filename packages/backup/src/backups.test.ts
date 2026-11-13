@@ -1,6 +1,6 @@
 // The Backups over real SQLite files in a temporary folder, with a clock the test moves (D94).
 
-import { mkdtempSync, readdirSync, rmSync, writeFileSync } from "node:fs";
+import { chmodSync, mkdtempSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { Database } from "@self-engine/db";
@@ -489,6 +489,68 @@ test("a restore whose Backup of the replaced data fails stages nothing", async (
   await closeAll();
   expect(applyStagedRestore(databasePath)).toBe(false);
   await expect(notes(open(databasePath))).resolves.toEqual(["first", "second"]);
+});
+
+test("a restore that fails after another was staged leaves that one staged and the writes refused", async () => {
+  const { database } = await start();
+  let full = false;
+  const backups = createBackups({
+    database: {
+      ...database,
+      backupTo: (destination) =>
+        full ? Promise.reject(new Error("The disk is full")) : database.backupTo(destination),
+    },
+    databasePath,
+    directory,
+    clock: sources.clock,
+  });
+  const backup = await backups.create();
+  sources.advance(1000);
+  await backups.restore(backup.id);
+  sources.advance(1000);
+  full = true;
+
+  await expect(backups.restore(backup.id)).rejects.toThrow("The disk is full");
+
+  await expect(
+    write(database, "written into a database that is about to be replaced"),
+  ).rejects.toThrow(/readonly/);
+  await closeAll();
+  expect(applyStagedRestore(databasePath)).toBe(true);
+});
+
+test("a restore whose copy cannot be staged leaves no half staged copy behind", async () => {
+  const { database, backups } = await start();
+  const backup = await backups.create();
+  // The copy takes over that it cannot be written, so writing it through to the disk fails.
+  chmodSync(backupFile(backup.id), 0o444);
+
+  await expect(backups.restore(backup.id)).rejects.toThrow();
+
+  expect(readdirSync(folder)).not.toContain("self-engine.sqlite.restore.partial");
+  // This database stays, so it takes writes again.
+  await expect(write(database, "second")).resolves.toBeUndefined();
+});
+
+test("a Backup that fails leaves no half written file behind", async () => {
+  const { database } = await start();
+  const backups = createBackups({
+    database: {
+      ...database,
+      // The copy breaks off halfway, as on a disk that fills.
+      backupTo: (destination) => {
+        writeFileSync(destination, "half");
+        return Promise.reject(new Error("The disk is full"));
+      },
+    },
+    databasePath,
+    directory,
+    clock: sources.clock,
+  });
+
+  await expect(backups.create()).rejects.toThrow("The disk is full");
+
+  expect(readdirSync(directory)).toEqual([]);
 });
 
 test("a Backup that fails does not stop the ones after it", async () => {

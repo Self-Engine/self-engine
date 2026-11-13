@@ -59,7 +59,14 @@ export function backupProcedures({ backups, reportUnexpected }: BackupProcedureO
       if (backups === undefined) throw new Error("This Data Process keeps no Backups");
       return await work(backups);
     } catch (error) {
-      if (!(error instanceof ORPCError)) reportUnexpected(`backups.${entry}`, error);
+      if (!(error instanceof ORPCError)) {
+        try {
+          reportUnexpected(`backups.${entry}`, error);
+        } catch (reportError) {
+          // Reporting cannot change the original failure.
+          void reportError;
+        }
+      }
       throw error;
     }
   }

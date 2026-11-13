@@ -183,7 +183,11 @@ export function notifyUndoable({ message, undo }: NotifyUndoableOptions): () => 
     onClose: () => undoOffers.delete(id),
   });
   undoOffers.set(id, takeBack);
-  return () => notifications.hide(id);
+  return () => {
+    // The notice stays clickable while it slides out: its Undo does nothing from now on.
+    taken = true;
+    notifications.hide(id);
+  };
 }
 
 /**

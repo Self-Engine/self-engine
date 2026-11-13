@@ -48,7 +48,7 @@ function service(parts: Partial<BackupService> = {}): BackupService {
 }
 
 /** Starts the core on these Backups of its platform, or on a platform that keeps none. */
-async function start(backups?: BackupService) {
+async function start(backups?: BackupService, afterReport: () => void = () => {}) {
   const reports: FrameReport[] = [];
   let restarts = 0;
   let restarted = () => {};
@@ -56,7 +56,10 @@ async function start(backups?: BackupService) {
     restarted = resolve;
   });
   const dataProcess = await startTestDataProcess({
-    report: (report) => reports.push(report),
+    report: (report) => {
+      reports.push(report);
+      afterReport();
+    },
     ...(backups && {
       backups: {
         service: backups,
@@ -184,6 +187,18 @@ test("a Backup that fails is reported with its entry, and the call fails", async
       error: expect.objectContaining({ message: "The disk is full" }),
     },
   ]);
+});
+
+test("a Backup that fails is the same failed call when the reporter throws", async () => {
+  const { client, reports } = await start(service(), () => {
+    throw new Error("Reporter failed");
+  });
+
+  await expect(client.backups.create({})).rejects.toMatchObject({
+    code: "INTERNAL_SERVER_ERROR",
+  });
+
+  expect(reports).toMatchObject([{ entry: "backups.create" }]);
 });
 
 test("without Backups from the platform every Backup call fails and says so", async () => {

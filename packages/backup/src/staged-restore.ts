@@ -29,13 +29,20 @@ export interface UnfinishedStage {
  */
 export async function stageRestore(source: string, databasePath: string): Promise<UnfinishedStage> {
   const unfinished = unfinishedStageFile(databasePath);
-  await copyFile(source, unfinished);
-  // The next start trusts a staged file as it is, so its bytes are on the disk before its name.
-  const handle = await open(unfinished, "r+");
   try {
-    await handle.sync();
-  } finally {
-    await handle.close();
+    await copyFile(source, unfinished);
+    // The next start trusts a staged file as it is, so its bytes are on the disk before its name.
+    const handle = await open(unfinished, "r+");
+    try {
+      await handle.sync();
+    } finally {
+      await handle.close();
+    }
+  } catch (error) {
+    // The caller got nothing to discard, and the copy can be as large as the database: it goes
+    // now, not at the next start.
+    await rm(unfinished, { force: true });
+    throw error;
   }
   return {
     commit: () => rename(unfinished, stagedRestoreFile(databasePath)),

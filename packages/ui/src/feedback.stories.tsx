@@ -1,6 +1,6 @@
 import { roleColor } from "@self-engine/theme";
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { expect, fn, screen, spyOn, userEvent, waitFor, within } from "storybook/test";
+import { expect, fireEvent, fn, screen, spyOn, userEvent, waitFor, within } from "storybook/test";
 import {
   confirm,
   type ConfirmOptions,
@@ -302,9 +302,11 @@ export const AnUndoOfferCanBeWithdrawnByItsCaller: Story = {
   play: async () => {
     const undo = fn();
     const withdraw = notifyUndoable({ message: "Backup restored.", undo });
-    await noticeWith("Backup restored.");
+    const button = undoButton(await noticeWith("Backup restored."));
 
     withdraw();
+    // The notice is still on screen while it slides out, and its button with it.
+    await fireEvent.click(button);
 
     await noticeGone("Backup restored.");
     undoLatest();
