@@ -20,7 +20,7 @@ import {
   type Story,
   shellMeta,
   storyRouting,
-  type VIEWPORTS,
+  VIEWPORTS,
 } from "./shell-story-helpers.tsx";
 
 const meta = {
@@ -266,8 +266,34 @@ const settled = async (notice: HTMLElement) => {
   });
 };
 
-const noticesLeaveTheDrawerClickable = (viewport: keyof typeof VIEWPORTS): Story => ({
-  ...atViewport(viewport),
+/** What a notice may do to the drawer's first field at a window width. */
+type FieldUnderNotices =
+  /** The notices, fanned out too, lie beside the drawer. */
+  | "apart"
+  /** A notice lies over the field's edge, and a click into the field still reaches it. */
+  | "clickable"
+  /** The drawer takes so much of the width that a centred notice lies over the field. */
+  | "covered";
+
+const overlaps = (a: DOMRect, b: DOMRect) =>
+  a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom;
+
+const expectApart = async (field: HTMLElement[], notices: HTMLElement[]) => {
+  for (const notice of notices) {
+    for (const part of field) {
+      await expect(
+        overlaps(notice.getBoundingClientRect(), part.getBoundingClientRect()),
+        "A notice lies over the field",
+      ).toBe(false);
+    }
+  }
+};
+
+const noticesLeaveTheDrawerClickable = (
+  field: FieldUnderNotices,
+  window: Partial<Story>,
+): Story => ({
+  ...window,
   beforeEach: clearNotices,
   args: { activeModule: MODULE_WITH_ACTIONS, routing: storyRouting({ edit: "entry" }) },
   play: async () => {
@@ -278,16 +304,26 @@ const noticesLeaveTheDrawerClickable = (viewport: keyof typeof VIEWPORTS): Story
     notifyUndoable({ message: "First entry deleted", undo: undoFirst });
     notifyUndoable({ message: "Second entry deleted", undo: undoSecond });
     const latest = await noticeOf("Second entry deleted");
+    const earlier = await noticeOf("First entry deleted");
     await settled(latest);
     await expectClickable(dialog.getByRole("heading", { name: "Time" }), "The title");
     await expectClickable(dialog.getByRole("button", { name: "Close editor" }), "Close");
     await expectClickable(dialog.getByRole("button", { name: "Delete" }), "Delete");
     await expectClickable(dialog.getByRole("button", { name: "Cancel" }), "Cancel");
     await expectClickable(save, "Save");
+    const input = dialog.getByRole("textbox", { name: "Name" });
+    if (field === "clickable") await expectClickable(input, "The field");
+    if (field === "apart") {
+      const parts = [input, dialog.getByText("Name")];
+      await expectApart(parts, [latest, earlier]);
+      await userEvent.hover(latest);
+      await waitFor(() => expect(earlier).not.toHaveAttribute("inert"));
+      await settled(earlier);
+      await expectApart(parts, [latest, earlier]);
+    }
     // The notices keep their own action.
     await userEvent.click(within(latest).getByRole("button", { name: "Undo" }));
     await expect(undoSecond).toHaveBeenCalledOnce();
-    const earlier = await noticeOf("First entry deleted");
     await settled(earlier);
     await userEvent.click(within(earlier).getByRole("button", { name: "Undo" }));
     await expect(undoFirst).toHaveBeenCalledOnce();
@@ -295,17 +331,75 @@ const noticesLeaveTheDrawerClickable = (viewport: keyof typeof VIEWPORTS): Story
   },
 });
 
-export const NoticesLeaveTheDrawerClickableAtTheWideStep = noticesLeaveTheDrawerClickable("wide");
-export const NoticesLeaveTheDrawerClickableAtTheMediumStep =
-  noticesLeaveTheDrawerClickable("medium");
-export const NoticesLeaveTheDrawerClickableAtTheNarrowStep =
-  noticesLeaveTheDrawerClickable("narrow");
-export const NoticesLeaveTheDrawerClickableInTheNarrowestWindow =
-  noticesLeaveTheDrawerClickable("narrowest");
-export const NoticesLeaveTheDrawerClickableOnThePhone = noticesLeaveTheDrawerClickable("phone");
+/** Still the wide step, in a window wide enough that a centred notice ends before the drawer. */
+const inAWideWindow: Partial<Story> = {
+  parameters: {
+    ...shellMeta.parameters,
+    viewport: {
+      options: {
+        ...VIEWPORTS,
+        roomy: { name: "Roomy", styles: { width: "1440px", height: "800px" } },
+      },
+    },
+  },
+  globals: { viewport: { value: "roomy", isRotated: false } },
+};
+
+export const NoticesLieBesideTheDrawerInAWideWindow = noticesLeaveTheDrawerClickable(
+  "apart",
+  inAWideWindow,
+);
+export const NoticesLeaveTheDrawerClickableAtTheWideStep = noticesLeaveTheDrawerClickable(
+  "clickable",
+  atViewport("wide"),
+);
+export const NoticesLeaveTheDrawerClickableAtTheMediumStep = noticesLeaveTheDrawerClickable(
+  "clickable",
+  atViewport("medium"),
+);
+export const NoticesLeaveTheDrawerClickableAtTheNarrowStep = noticesLeaveTheDrawerClickable(
+  "covered",
+  atViewport("narrow"),
+);
+export const NoticesLeaveTheDrawerClickableInTheNarrowestWindow = noticesLeaveTheDrawerClickable(
+  "covered",
+  atViewport("narrowest"),
+);
+export const NoticesLeaveTheDrawerClickableOnThePhone = noticesLeaveTheDrawerClickable(
+  "covered",
+  atViewport("phone"),
+);
 export const NoticesLeaveTheDrawerClickableInTheDark = inDark(
-  noticesLeaveTheDrawerClickable("narrowest"),
+  noticesLeaveTheDrawerClickable("covered", atViewport("narrowest")),
 );
 export const NoticesLeaveTheDrawerClickableOnThePhoneInTheDark = inDark(
-  noticesLeaveTheDrawerClickable("phone"),
+  noticesLeaveTheDrawerClickable("covered", atViewport("phone")),
 );
+
+/** The same place without a drawer, so a notice does not jump when one opens. */
+const noticesLeaveTheHeaderClickable = (viewport: keyof typeof VIEWPORTS): Story => ({
+  ...atViewport(viewport),
+  beforeEach: clearNotices,
+  play: async () => {
+    notifyUndoable({ message: "First entry deleted", undo: fn() });
+    notifyUndoable({ message: "Second entry deleted", undo: fn() });
+    await settled(await noticeOf("Second entry deleted"));
+    await expectClickable(screen.getByRole("heading", { level: 1, name: "Time" }), "The title");
+    await expectClickable(
+      screen.getByRole("button", {
+        name: /^(Collapse module sidebar|Open navigation|Open module sidebar)$/,
+      }),
+      "The sidebar toggle",
+    );
+    clearNotices();
+  },
+});
+
+export const NoticesLeaveTheHeaderClickableAtTheWideStep = noticesLeaveTheHeaderClickable("wide");
+export const NoticesLeaveTheHeaderClickableAtTheMediumStep =
+  noticesLeaveTheHeaderClickable("medium");
+export const NoticesLeaveTheHeaderClickableAtTheNarrowStep =
+  noticesLeaveTheHeaderClickable("narrow");
+export const NoticesLeaveTheHeaderClickableInTheNarrowestWindow =
+  noticesLeaveTheHeaderClickable("narrowest");
+export const NoticesLeaveTheHeaderClickableOnThePhone = noticesLeaveTheHeaderClickable("phone");

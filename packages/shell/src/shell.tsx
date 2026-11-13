@@ -176,20 +176,12 @@ const EDIT_DRAWER_STYLES = {
 const FLOATING_EDIT_DRAWER = { size: 460, offset: GAP, radius: "lg" } as const;
 const PHONE_EDIT_DRAWER = { size: "100%", offset: 0, radius: 0 } as const;
 
-/** The `min-height` of Mantine's drawer header, which holds the title and the close button. */
-const DRAWER_HEADER_HEIGHT = "calc(3.75rem * var(--mantine-scale))";
-
 /**
- * Notices start top right below where the Edit Drawer's header ends, so they cover neither its
- * title nor its close button (#230). The same at every step, whether a drawer is open or not, so a
- * notice never jumps; it also keeps them below the content header.
+ * Notices start top center one gap below the content header, at every step and whether an Edit
+ * Drawer is open or not, so a notice never jumps (#230, D267). The drawer's title and close button
+ * end above that line, its first field starts below it.
  */
-const noticeClearance = (isPhone: boolean) =>
-  `:root{${NOTICE_CLEARANCE_VARIABLE}:${
-    isPhone
-      ? DRAWER_HEADER_HEIGHT
-      : `calc(${rem(FLOATING_EDIT_DRAWER.offset)} + ${DRAWER_HEADER_HEIGHT})`
-  }}`;
+const NOTICE_CLEARANCE = `:root{${NOTICE_CLEARANCE_VARIABLE}:${rem(GAP + SHELL_TOP_STRIP_HEIGHT + GAP)}}`;
 
 const NAVIGATION_DRAWER_STYLES = {
   ...DRAWER_STYLES,
@@ -708,7 +700,7 @@ function ShellFrame({
 
   return (
     <ShellRoutingContext value={routing}>
-      <style>{noticeClearance(isPhone)}</style>
+      <style>{NOTICE_CLEARANCE}</style>
       <AppShell
         data-layout-step={step}
         {...(isPhone && { footer: { height: BOTTOM_BAR_HEIGHT } })}

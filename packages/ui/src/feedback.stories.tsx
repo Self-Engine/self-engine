@@ -316,13 +316,13 @@ export const AnErrorNoticeSaysWhatFailed: Story = {
   },
 };
 
-export const NoticesSitTopRight: Story = {
+export const NoticesSitTopCenter: Story = {
   play: async () => {
     notifyError({ message: "The backup failed." });
     const notice = await noticeWith("The backup failed.");
     await waitFor(async () => {
-      const { right, top } = notice.getBoundingClientRect();
-      await expect(window.innerWidth - right).toBeLessThan(40);
+      const { left, right, top } = notice.getBoundingClientRect();
+      await expect(Math.abs(left - (window.innerWidth - right))).toBeLessThan(2);
       await expect(top).toBeLessThan(40);
     });
   },

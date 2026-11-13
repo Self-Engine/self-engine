@@ -10,14 +10,20 @@ import type { CSSProperties, ReactNode } from "react";
 const NOTICE_MS = 8000;
 
 /**
- * How far from the top of the window the notices start, below what sits there and must stay
- * clickable, such as the header of a drawer. Whoever draws it sets it.
+ * Where the notices start, from the top of the window: below what sits there and must stay
+ * clickable. Whoever draws it sets it; without it, Mantine's own distance applies.
  */
 export const NOTICE_CLEARANCE_VARIABLE = "--self-engine-notice-clearance";
 
-/** Only the top-right container is in use, and the margin lowers it. */
+const MANTINE_TOP = "var(--mantine-spacing-md)";
+
+/**
+ * Only the top-center container is in use. Mantine sets its `top`, so the margin adds what is
+ * missing to reach the clearance. A margin and not `top`: the style reaches the bottom containers
+ * too, and a `top` would stretch those over the window.
+ */
 const CLEAR_OF_THE_TOP: CSSProperties = {
-  marginTop: `var(${NOTICE_CLEARANCE_VARIABLE}, 0rem)`,
+  marginTop: `calc(var(${NOTICE_CLEARANCE_VARIABLE}, ${MANTINE_TOP}) - ${MANTINE_TOP})`,
 };
 
 /** Below the theme and above the routes, once per app: what it shows outlives a navigation. */
@@ -36,7 +42,7 @@ export function FeedbackHost({ children }: { readonly children: ReactNode }) {
           autoClose={NOTICE_MS}
           // Only the latest notice shows in full; the others fan out while the pointer is on them.
           layout="stacked"
-          position="top-right"
+          position="top-center"
           style={CLEAR_OF_THE_TOP}
         />
       </MantineThemeProvider>
