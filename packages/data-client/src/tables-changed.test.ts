@@ -20,7 +20,7 @@ test("a subscriber receives the opening event first, then the tables an announce
   const events = await connection.client.tablesChanged();
   await expect(events.next()).resolves.toEqual({
     done: false,
-    value: { kind: "opened", queries: { fixture: {} } },
+    value: { kind: "opened", queries: { fixture: {}, backups: { list: [] } } },
   });
 
   dataProcess.announceTablesChanged(["projects", "tasks"]);

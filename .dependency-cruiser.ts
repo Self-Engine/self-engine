@@ -22,6 +22,9 @@ export type AllowedImports = Readonly<Record<string, readonly string[]>>;
  * the two lists match.
  */
 export const ALLOWED_IMPORTS: AllowedImports = {
+  // The desktop's Backups (D94): the `Backup` it answers with comes from the protocol, the copy
+  // itself from the database driver.
+  backup: ["data-protocol", "db"],
   // Composes the protocol and the modules' contracts (D187): `contracts → module`. Only the
   // desktop app's module list imports it.
   contracts: ["data-protocol", "placeholder-alpha"],

@@ -6,3 +6,4 @@ export {
   startDataProcess,
 } from "./start-data-process.ts";
 export type { DataModules } from "./modules.ts";
+export type { BackupService } from "./procedures/backups.ts";

@@ -1,5 +1,6 @@
 import type { AnyRouter } from "@orpc/server";
 import { type Health, PROTOCOL_PROCEDURES, type QueryTables } from "@self-engine/data-protocol";
+import { type BackupProcedureOptions, backupProcedures } from "./procedures/backups.ts";
 import { healthProcedure } from "./procedures/health.ts";
 import { tablesChangedProcedure } from "./procedures/tables-changed.ts";
 import { refuseUnlessReady } from "./refuse-unless-ready.ts";
@@ -11,13 +12,20 @@ export interface RouterOptions {
   readonly tablesChanged: TablesChangedPublisher;
   /** Sent with the opening event of every Table Change stream (D248). */
   readonly queries: QueryTables;
+  readonly backups: BackupProcedureOptions;
 }
 
 /**
  * The procedure tree the data process serves; each procedure lives in `procedures/`. In a failure
  * state of the start only `health` answers.
  */
-export function createRouter({ health, tablesChanged, queries, moduleRouter }: RouterOptions) {
+export function createRouter({
+  health,
+  tablesChanged,
+  queries,
+  backups,
+  moduleRouter,
+}: RouterOptions) {
   for (const name of PROTOCOL_PROCEDURES) {
     if (Object.hasOwn(moduleRouter, name))
       throw new Error(`Module namespace conflicts with built-in procedure: ${name}`);
@@ -26,5 +34,6 @@ export function createRouter({ health, tablesChanged, queries, moduleRouter }: R
     ...moduleRouter,
     health: healthProcedure(health),
     tablesChanged: tablesChangedProcedure(tablesChanged, queries),
+    backups: backupProcedures(backups),
   });
 }

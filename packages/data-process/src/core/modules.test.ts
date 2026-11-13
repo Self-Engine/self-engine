@@ -189,7 +189,7 @@ test("starts with both an owner module and its consumer registered", async () =>
   ]);
 });
 
-test("the opening event names each Query of the mounted modules with the tables it reads", async () => {
+test("the opening event names each Query of the mounted modules and of the protocol with the tables it reads", async () => {
   const { notes, links } = await import("@self-engine/storage/testing");
   const process = await startTestDataProcess({ modules: { notes, links } });
   started.push(process);
@@ -206,13 +206,14 @@ test("the opening event names each Query of the mounted modules with the tables 
       queries: {
         notes: { get: ["notes"], list: ["notes"], window: ["notes"], pages: ["notes"] },
         links: { list: ["note_links", "notes"] },
+        backups: { list: [] },
       },
     },
   });
   await events.return();
 });
 
-test.each(["health", "tablesChanged"])("startup rejects a module named %s", async (name) => {
+test.each(["health", "tablesChanged", "backups"])("startup rejects a module named %s", async (name) => {
   await expect(startTestDataProcess({ modules: { [name]: fixture } })).rejects.toThrow(
     `Module namespace conflicts with built-in procedure: ${name}`,
   );

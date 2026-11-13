@@ -10,6 +10,7 @@ import { type Health, healthSchema } from "@self-engine/data-protocol";
 
 const SERVING = "data-process:serving";
 const PORT_HANDOFF = "data-process:port";
+const RESTART = "data-process:restart";
 
 /**
  * Data process → main process: the database is open, the migrations have run, and ports are
@@ -39,6 +40,20 @@ export function portHandoff(page: number): unknown {
 export function handoffPage(message: unknown): number | undefined {
   if (!isMessage(message, PORT_HANDOFF) || !("page" in message)) return undefined;
   return typeof message.page === "number" ? message.page : undefined;
+}
+
+/**
+ * Data process → main process: start me anew on the same database file. A restore staged a
+ * Backup, and only a start can put it in the database's place (D94). It is no crash: the main
+ * process counts none and starts the next data process at once.
+ */
+export function restartMessage(): unknown {
+  return { type: RESTART };
+}
+
+/** Whether `message` asks for that restart. */
+export function isRestartRequest(message: unknown): boolean {
+  return isMessage(message, RESTART);
 }
 
 function isMessage(message: unknown, type: string): message is { readonly type: string } {

@@ -37,7 +37,10 @@ test("placeholder-alpha is mounted: an Operation is followed by its Table Change
     done: false,
     value: {
       kind: "opened",
-      queries: { placeholderAlpha: { list: ["placeholder_alpha_entries"] } },
+      queries: {
+        placeholderAlpha: { list: ["placeholder_alpha_entries"] },
+        backups: { list: [] },
+      },
     },
   });
 
