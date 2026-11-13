@@ -103,6 +103,8 @@ export async function settle(): Promise<void> {
 export interface Rendered<State> {
   /** The state of the last render. */
   current(): State;
+  /** Draws the provider again with new callbacks, as a parent that renders again does. */
+  redraw(): Promise<void>;
   /** Shows or hides the hook, as a View that is shown or left. */
   show(visible: boolean): Promise<void>;
 }
@@ -130,10 +132,16 @@ export async function renderHook<State>(
   document.body.append(container);
   const root = createRoot(container);
   mounted = { root, container };
+  const { notify, reportMisuse } = options;
+  // New callbacks on every draw, as an app that writes them inline passes them.
   const draw = (visible: boolean) =>
     createElement(
       DataProvider,
-      { access: port.access, ...options },
+      {
+        access: port.access,
+        ...(notify && { notify: (notice: MessageDescriptor) => notify(notice) }),
+        ...(reportMisuse && { reportMisuse: (problem: string) => reportMisuse(problem) }),
+      },
       visible ? createElement(Probe) : null,
     );
   act(() => root.render(draw(true)));
@@ -142,6 +150,10 @@ export async function renderHook<State>(
     current() {
       if (state === undefined) throw new Error("The hook has not rendered");
       return state;
+    },
+    async redraw() {
+      act(() => root.render(draw(true)));
+      await settle();
     },
     async show(visible) {
       act(() => root.render(draw(visible)));

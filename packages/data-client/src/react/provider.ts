@@ -100,19 +100,20 @@ export function DataProvider({
   notify = showNotice,
   children,
 }: DataProviderProps): ReactNode {
-  // The cache lives as long as the provider; its notices follow the latest `notify`.
-  const latestNotify = useRef(notify);
+  // The cache and the context live as long as the provider and its access; callbacks are read
+  // through refs, so a parent that passes them inline redraws no hook below.
+  const latest = useRef({ notify, reportMisuse });
   useEffect(() => {
-    latestNotify.current = notify;
-  }, [notify]);
-  const [cache] = useState(() => createQueryCache((notice) => latestNotify.current(notice)));
+    latest.current = { notify, reportMisuse };
+  }, [notify, reportMisuse]);
+  const [cache] = useState(() => createQueryCache((notice) => latest.current.notify(notice)));
   const context = useMemo<DataContext>(() => {
-    const report = reportMisuse ?? defaultReport();
     const reported = new Set<string>();
     return {
       access,
-      notify,
+      notify: (notice) => latest.current.notify(notice),
       checkQuery: (module, entry) => {
+        const report = latest.current.reportMisuse ?? defaultReport();
         const name = `${module}.${entry}`;
         if (report === undefined || reported.has(name)) return;
         if (access.describeEntry(module, entry)?.kind !== "operation") return;
@@ -120,7 +121,7 @@ export function DataProvider({
         report(`The Query hook for ${name} points at an Operation; use an Operation hook.`);
       },
     };
-  }, [access, reportMisuse, notify]);
+  }, [access]);
 
   useEffect(() => {
     const stopTables = access.onTablesChanged((tables) => {

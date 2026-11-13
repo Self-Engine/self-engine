@@ -8,6 +8,7 @@ import { act } from "react";
 import { afterEach, beforeEach, expect, test, vi } from "vite-plus/test";
 import { type FakePort, fakePort, held, renderHook, settle, unmountHook } from "./hook-harness.ts";
 import { portHooks, type QueryState } from "./index.ts";
+import { useDataContext } from "./provider.ts";
 
 const notesPort = portHooks<typeof notesContract>("notes");
 const useNoteList = notesPort.query("list");
@@ -284,6 +285,33 @@ test("a Query hook that points at an Operation is reported once", async () => {
   await list.show(false);
   await list.show(true);
 
+  expect(problems).toEqual([
+    "The Query hook for notes.create points at an Operation; use an Operation hook.",
+  ]);
+});
+
+test("a provider drawn again with new callbacks keeps its context, so a misuse stays reported once", async () => {
+  const port = fakePort();
+  const create = notesPort.query("create");
+  port.answer("create", () => note("note-0", "Alpha"));
+  const problems: string[] = [];
+  const reportMisuse = (problem: string) => problems.push(problem);
+  const notify = () => {};
+  const context = await renderHook(
+    port,
+    () => {
+      create({ title: "Alpha", isPinned: false });
+      return useDataContext();
+    },
+    { reportMisuse, notify },
+  );
+  const first = context.current();
+
+  await context.redraw();
+  port.reconnect();
+  await settle();
+
+  expect(context.current()).toBe(first);
   expect(problems).toEqual([
     "The Query hook for notes.create points at an Operation; use an Operation hook.",
   ]);
