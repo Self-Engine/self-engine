@@ -73,7 +73,9 @@ Grundlage: [`research-layer-3-core.md`](../research-layer-3-core.md).
   `dayjs` intern nutzen. Dateien mit `.tz.test.ts` laufen zusätzlich in Los Angeles. #91 bleibt wie
   geplant; das `time`-Issue übernimmt als Abnahmekriterium, dass der Helfer in `db` danach auf
   `time` aufsetzt. _Verworfen:_ 1:1 mit optionaler Uhr, #91 auf `time` warten lassen (bräche die
-  Reihenfolge der Issue-Nummern), Temporal statt `Intl` (Polyfill auf Hermes).
+  Reihenfolge der Issue-Nummern), Temporal statt `Intl` (Polyfill auf Hermes). _Übernahme Datei für
+  Datei überholt durch D279, das Verwerfen von Temporal durch D280, die Lint-Regeln durch D284, der
+  Lauf in Los Angeles durch D285._
 - **D149 (L3.7) Ergänzungen zu D148 aus einer unabhängigen Prüfung.** `TimeZone` wird ein geprüfter
   Typ mit Zod-Schema; die Auflösung aus D147 ist der einzige Weg dorthin, führt Aliasse auf einen
   festen Namen zurück und lehnt Offsets ab; die Auswahlliste nutzt immer die eigene Zonenliste.
@@ -89,7 +91,8 @@ Grundlage: [`research-layer-3-core.md`](../research-layer-3-core.md).
   `Intl.DateTimeFormat` ohne `timeZone`. Tests: `fast-check` mit festem Seed, Parser als Tabellen
   gegen die Zod-Schemas, der Test mit der echten Uhr entfällt. Von der Wochenstart-Tabelle werden
   nur `de-DE` und `en-US` übernommen. _Zurückgestellt:_ doppelte Mitternacht in historischen
-  kanadischen Zeitzonen, Prüfung auf Hermes.
+  kanadischen Zeitzonen, Prüfung auf Hermes. _Zweitnamen und eigene Zonenliste überholt durch D282,
+  die Lint-Regeln durch D284._
 - **D150 (L3.8) Tags hängen über Brücken der Module an Einträgen.** Tabelle `tags` mit Titel,
   optionaler Beschreibung und `modules` als JSON-Text mit Modul-IDs (leer heißt überall). Der Titel
   ist pro Space eindeutig, über eine in TypeScript berechnete Spalte `normalized_title` mit
