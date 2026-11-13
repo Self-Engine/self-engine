@@ -322,20 +322,25 @@ records what a Backup is.
   the event loop never paused longer than 32 ms. The time includes pruning the folder.
 - **A restore until its answer** is the check of the Backup's file, its copy beside the database
   and the Backup of the data it replaces. The restart that follows took about 110 ms in the built
-  desktop app, from the page losing the connection to being ready again.
+  desktop app, from the page losing the connection to being ready again. For that whole span,
+  0.13 s at 1 MB to 0.4 s at 100 MB, the database refuses writes: an Operation in it fails and
+  says so, and none is lost.
 - **The hourly check** of a running Data Process, when no Backup is due, reads the folder's names:
   **0.2 ms**.
 - **At start** the daily Backup is taken after the Data Process serves, so it delays no answer.
   With 10 alternating runs each of `node scripts/desktop-smoke.ts` (fresh data folder) on a built
-  `main` (`ee7a1d1`) and the branch, the **Data Process first answer** had a median of **142 ms on
-  main** (range 139–149 ms) and **145 ms on the branch** (range 139–152 ms). A start with pending
+  `main` (`ae1cca2`) and the branch, the **Data Process first answer** had a median of **146 ms on
+  main** (range 136–150 ms) and **143.5 ms on the branch** (range 139–162 ms): no measurable
+  change. A start with pending
   migrations on a database that has tables waits for one Backup first, the "take" column above; a
   first start has no tables and takes none.
-- **Bytes.** Startup JavaScript went from **874,050 to 874,346 bytes** (+296: the title of the
-  View "Data" and the reload hook), far below the limit, which stays. The chunk of the settings
-  area, loaded when the settings are first opened, grew from 48,320 to 52,170 bytes. The
-  data-process bundle grew from **746,275 to 760,933 bytes**, the main-process bundle from
-  216,394 to 228,481 bytes: it reads the protocol's messages, whose package now holds the
-  schemas of `backups`.
-- **Disk.** Each Backup has the size of the database. With one Backup a day the folder holds up
-  to eleven.
+- **Bytes.** Measured on a build of `main` at `ae1cca2` and of the branch with it merged. Startup
+  JavaScript went from **839,339 to 839,665 bytes** (+326: the title of the View "Data" and the
+  reload hook), far below the limit, which stays; no schema loads at startup. The hint for a
+  failed automatic Backup uses the error icon the startup already holds: an icon of its own
+  measured +3,266 bytes there. The chunk of the settings area, loaded when the settings are
+  first opened, grew from 48,321 to 54,681 bytes. The data-process bundle grew from **746,275 to
+  763,456 bytes**, the main-process bundle from 216,394 to 229,969 bytes: it reads the
+  protocol's messages, whose package now holds the schemas of `backups`.
+- **Disk.** Each Backup has the size of the database. With one Backup a day the folder holds
+  eleven; it never holds more than 32, four a day for seven days and four weekly.

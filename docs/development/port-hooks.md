@@ -132,7 +132,7 @@ and call its function after the Operation that changes it
 ([`backup-port.ts`](../../packages/settings-area/src/backup-port.ts)):
 
 ```ts
-export const useBackups = backupsPort.query("list");
+const useBackups = backupsPort.query("list");
 export const useReloadBackups = backupsPort.reload("list"); // () => () => void
 ```
 

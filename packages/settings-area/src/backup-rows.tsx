@@ -6,7 +6,7 @@ import { msg } from "@lingui/core/macro";
 import { Trans, useLingui } from "@lingui/react/macro";
 import { Alert, Box, Button, Group, Stack, Text } from "@mantine/core";
 import { useDataAccess } from "@self-engine/data-client/react";
-import { WarningIcon } from "@self-engine/icons";
+import { ErrorIcon } from "@self-engine/icons";
 import { roleColor } from "@self-engine/theme";
 import { notifyDone, notifyUndoable, QueryStateBlock } from "@self-engine/ui";
 import { memo, useCallback, useState } from "react";
@@ -75,7 +75,8 @@ function AutomaticBackupFailed() {
     // Its own line below the title and the button.
     <Alert
       flex="1 1 100%"
-      icon={<WarningIcon />}
+      // The icon the app already loads at startup: one of its own would add 3.3 KB there.
+      icon={<ErrorIcon />}
       title={<Trans>The last automatic backup failed</Trans>}
       vars={WARNING_VARS}
     >
