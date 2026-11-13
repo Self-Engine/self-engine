@@ -1056,6 +1056,14 @@ describe("the system clock entry", () => {
       ).toEqual(["system-clock-only-in-apps"]);
     },
   );
+  it("rejects loading the public system clock entry even from time itself", async () => {
+    const ownImport = withFiles(time, {
+      "src/clock.test.ts": 'import { systemClock } from "@self-engine/time/system-clock";',
+    });
+    expect(ruleNames(await cruise([ownImport], { allowedImports: { time: [] } }))).toEqual([
+      "system-clock-only-in-apps",
+    ]);
+  });
   it("allows app assembly and internal clock tests", async () => {
     const desktop = declaring(
       app("desktop", {

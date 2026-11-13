@@ -239,10 +239,10 @@ export function boundaryConfig({
     {
       name: "system-clock-only-in-apps",
       comment:
-        "Only apps assemble systemClock from @self-engine/time/system-clock; packages take a Clock argument (D284). Internal time implementations and tests stay inside time.",
+        "Only apps assemble systemClock from @self-engine/time/system-clock; packages take a Clock argument (D284). Internal time tests import the implementation by relative path; cross-package relative imports are forbidden separately.",
       severity: "error",
-      from: { pathNot: ["^apps/", "^packages/time/"] },
-      to: { path: "^packages/time/src/system-clock\\.ts$" },
+      from: { pathNot: "^apps/" },
+      to: { path: "^packages/time/src/system-clock\\.ts$", dependencyTypesNot: ["local"] },
     },
     {
       name: "storage-is-portable",

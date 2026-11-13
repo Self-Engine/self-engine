@@ -5,7 +5,7 @@ import {
   fixedClock,
   requireInstant,
 } from "@self-engine/time/testing";
-import { systemClock } from "@self-engine/time/system-clock";
+import { systemClock } from "./system-clock.ts";
 import type { Clock, Instant } from "./index.ts";
 
 afterEach(() => vi.useRealTimers());
