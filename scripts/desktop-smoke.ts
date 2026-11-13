@@ -2,7 +2,10 @@
 // a throwaway data folder and checks what a broken start would break. The page loads, the
 // data connection gets ready (the data process only answers when its `health` is ready), the
 // first answer comes within FIRST_ANSWER_LIMIT_MS, the page shows the app, and after the data
-// process is killed the page is ready again without a reload and still shows the app.
+// process is killed the page is ready again without a reload and still shows the app. Then a
+// Backup is taken and restored in the settings (D94): the page gets its answer, the data process
+// starts anew on the restored database, and the page is ready again and lists the Backup of what
+// the restore replaced.
 //
 // The checks run against `SmokeApp`, so the packaged app (#146) runs the same ones through
 // desktop-app.ts with another executable: `node scripts/desktop-smoke.ts --executable <path>`.
@@ -10,7 +13,7 @@
 
 import { parseArgs } from "node:util";
 import { CONNECTION_MARK } from "@self-engine/desktop-bridge";
-import type { ElectronApplication } from "playwright";
+import type { ElectronApplication, Page } from "playwright";
 import {
   builtDesktopApp,
   type DesktopLaunch,
@@ -54,6 +57,17 @@ export interface SmokeApp {
   waitForSettled(count: number): Promise<PageMarks>;
   /** Kills the data process the way a crash would. */
   killDataProcess(): Promise<void>;
+  /** Opens the View Data of the settings and counts the Backups it lists, once it has loaded. */
+  openBackups(): Promise<number>;
+  /** Presses "Create backup now". */
+  takeBackup(): Promise<void>;
+  /**
+   * Restores the newest Backup listed. Resolves once the page offers to take the restore back,
+   * which it does only after the restore answered; fails naming what the page says instead.
+   */
+  restoreNewestBackup(): Promise<void>;
+  /** Waits until the View Data lists `count` Backups; fails naming how many it lists. */
+  waitForBackups(count: number): Promise<void>;
 }
 
 export interface SmokeResult {
@@ -100,6 +114,31 @@ export async function smokeTest(app: SmokeApp): Promise<SmokeResult> {
     );
   }
   await app.waitForApp();
+
+  // A restore ends with the data process starting anew, on its own request (D94).
+  const backups = await app.openBackups();
+  await app.takeBackup();
+  await app.waitForBackups(backups + 1);
+  await app.restoreNewestBackup();
+  const restored = await app.waitForSettled(3);
+  if (restored.document !== start.document) {
+    throw new Error(
+      "The page reloaded after a Backup was restored; it must reconnect without one.",
+    );
+  }
+  const sinceRestore = restored.marks.slice(after.marks.indexOf(again) + 1);
+  if (!sinceRestore.some((mark) => mark.status === "reconnecting")) {
+    throw new Error("After a Backup was restored, the data process did not start anew.");
+  }
+  const anew = sinceRestore.find(isSettled);
+  if (anew?.status !== "ready") {
+    throw new Error(
+      `After a Backup was restored, the data connection settled as "${anew?.status}" instead of "ready".`,
+    );
+  }
+  await app.waitForApp();
+  // What the restore replaced is a Backup of its own, and the reconnect reloaded the list (D250).
+  await app.waitForBackups(backups + 2);
   return { firstAnswerMs: first.at };
 }
 
@@ -172,6 +211,59 @@ export function smokeDriver(app: ElectronApplication): SmokeApp {
       if (pid === undefined) throw new Error("The app runs no data process to kill.");
       process.kill(pid, "SIGKILL");
     },
+    // The View Data is found by its structure, not its texts, so the checks pass in any App
+    // Language: its rows are groups, and the one with the list restores (backup-rows.tsx).
+    async openBackups() {
+      const target = await page;
+      await target.evaluate(() => {
+        window.location.hash = "/settings/data";
+      });
+      const { lines } = backupRows(target);
+      await lines.first().waitFor({ timeout: WAIT_TIMEOUT_MS });
+      return lines.count();
+    },
+    async takeBackup() {
+      await backupRows(await page).take.click();
+    },
+    async restoreNewestBackup() {
+      const target = await page;
+      await backupRows(target).lines.first().getByRole("button").click();
+      // Only the Notice of a restore that answered has a second button, its Undo; a failure's
+      // has the close button alone.
+      const notices = target.locator(".mantine-Notification-root");
+      const undoable = notices.filter({
+        has: target.locator("button:not(.mantine-Notification-closeButton)"),
+      });
+      await undoable.waitFor({ timeout: WAIT_TIMEOUT_MS }).catch(async (error: unknown) => {
+        const said = (await notices.allInnerTexts()).join(" | ");
+        throw new Error(
+          `The page did not confirm the restore within ${WAIT_TIMEOUT_MS} ms. It says: ${said || "nothing"}`,
+          { cause: error },
+        );
+      });
+    },
+    async waitForBackups(count) {
+      const { lines } = backupRows(await page);
+      await lines
+        .nth(count - 1)
+        .waitFor({ timeout: WAIT_TIMEOUT_MS })
+        .catch(async (error: unknown) => {
+          throw new Error(
+            `The settings list ${await lines.count()} Backups; ${count} were expected within ${WAIT_TIMEOUT_MS} ms.`,
+            { cause: error },
+          );
+        });
+    },
+  };
+}
+
+/** The two rows of the View Data: the button that takes a Backup, and the lines of the list. */
+function backupRows(page: Page) {
+  const rows = page.getByRole("group");
+  const list = page.getByRole("list");
+  return {
+    take: rows.filter({ hasNot: list }).getByRole("button"),
+    lines: rows.filter({ has: list }).getByRole("listitem"),
   };
 }
 
@@ -198,7 +290,7 @@ async function main(): Promise<void> {
     }
   }
   console.log(
-    `Desktop smoke test passed: first answer after ${Math.round(result.firstAnswerMs)} ms (limit ${FIRST_ANSWER_LIMIT_MS} ms), ready again after the data process was killed.`,
+    `Desktop smoke test passed: first answer after ${Math.round(result.firstAnswerMs)} ms (limit ${FIRST_ANSWER_LIMIT_MS} ms), ready again after the data process was killed and after a Backup was restored.`,
   );
 }
 

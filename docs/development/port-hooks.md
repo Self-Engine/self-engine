@@ -126,6 +126,19 @@ Never reload by hand after an Operation, and never write a table name in the pag
 shows old data after a change, a table is missing from the Query’s `reads`; the contract kit
 should have caught it (port guide, step 6).
 
+**A Query that no table backs** is the one exception. The list of Backups reads files, not
+rows, so no Table Change can say that it changed. Build its reload hook next to the Query hook
+and call its function after the Operation that changes it
+([`backup-port.ts`](../../packages/settings-area/src/backup-port.ts)):
+
+```ts
+export const useBackups = backupsPort.query("list");
+export const useReloadBackups = backupsPort.reload("list"); // () => () => void
+```
+
+The function marks every answer of that entry exactly as a Table Change would, and stays the
+same function across renders. A Query over tables never needs it.
+
 ## 3. Change data with an Operation hook
 
 An Operation hook returns `{ run, running }`. `run(input)` resolves with a result and never
@@ -308,6 +321,14 @@ Cover each state the View has: rows, empty, slow loading (`"loading"` plus
 `holdTimers(LOADER_DELAY_MS)` from `@self-engine/ui/story-timers`), a failed load with retry,
 each conflict at its field, and an entry gone while editing
 ([`placeholder-alpha-entries.stories.tsx`](../../apps/web/src/placeholder-alpha-entries.stories.tsx)).
+
+A story that shows more than one owner’s data, such as the whole app with the settings, joins
+their accesses with `answersByMount` from the same entry: each mount is answered by the access
+its owner’s helper built.
+
+```ts
+answersByMount({ placeholderAlpha: placeholderAlphaAnswers(), backups: backupAnswers() });
+```
 
 A Fixed Answer never changes: an Operation returns its answer and changes nothing, and no Table
 Change follows. Stories show states, not flows. The one exception is a story that measures what a

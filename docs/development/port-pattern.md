@@ -232,7 +232,7 @@ Add the data entry under its contract namespace to the desktop app's module list
 [`apps/desktop/src/data-modules.ts`](../../apps/desktop/src/data-modules.ts), which the app
 passes to the Data Process; the core knows no module, so a module's tests may start it without a
 cycle between packages. That single list builds both migrations and the router; module namespaces
-must not be `health` or `tablesChanged`, which are reserved procedures of
+must not be `health`, `tablesChanged` or `backups`, which are reserved procedures of
 `@self-engine/data-protocol`; compose the matching module contract in the app-wide contracts
 package. The list is typed against the app contract, and a test compares the mounted namespace
 keys. Add dependencies and allowed import directions together. Modules import storage, never

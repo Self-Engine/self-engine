@@ -264,9 +264,8 @@ test("a restored database opens although the replaced one left a write-ahead log
 });
 
 test("a start without a staged restore leaves the database alone", async () => {
-  const { database } = await start();
+  await start();
   await closeAll();
-  void database;
 
   expect(applyStagedRestore(databasePath)).toBe(false);
 
@@ -335,7 +334,7 @@ test("a restore whose Backup of the replaced data fails stages nothing", async (
 });
 
 test("a Backup that fails does not stop the ones after it", async () => {
-  const { database, backups: working } = await start();
+  const { database } = await start();
   let full = true;
   const backups = createBackups({
     database: {
@@ -347,7 +346,6 @@ test("a Backup that fails does not stop the ones after it", async () => {
     directory,
     clock: sources.clock,
   });
-  void working;
 
   await expect(backups.create()).rejects.toThrow("The disk is full");
   full = false;
