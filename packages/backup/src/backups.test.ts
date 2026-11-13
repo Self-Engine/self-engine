@@ -61,7 +61,7 @@ async function notes(database: Database): Promise<string[]> {
   return rows.map(({ body }) => body);
 }
 
-const write = (database: Database, body: string) =>
+const write = async (database: Database, body: string) =>
   database.executeScript(`INSERT INTO notes VALUES ('${body}');`);
 
 const backupFile = (id: string) => join(directory, `${id}.sqlite`);
@@ -86,11 +86,44 @@ test("the list holds every Backup, newest first, and is empty before the first o
   const { backups } = await start();
   await expect(backups.list()).resolves.toEqual([]);
 
-  const first = await backups.create();
+  const first = await backups.backUpIfDue();
   sources.advance(60_000);
   const second = await backups.create();
 
   await expect(backups.list()).resolves.toEqual([second, first]);
+});
+
+test("a second Backup of one kind on one day replaces the first, so a day holds at most four", async () => {
+  const { backups } = await start();
+  await backups.backUpIfDue();
+  await backups.backUpBeforeMigrations();
+  for (let press = 0; press < 5; press++) {
+    sources.advance(60_000);
+    await backups.create();
+  }
+  for (let restores = 0; restores < 3; restores++) {
+    sources.advance(60_000);
+    const [newest] = await backups.list();
+    await backups.restore(newest!.id);
+  }
+
+  expect(
+    (await backups.list()).map(({ kind, takenAt }) => `${kind} ${takenAt.slice(11, 16)}`),
+  ).toEqual(["before-restore 12:08", "manual 12:05", "daily 12:00", "before-migration 12:00"]);
+  expect(readdirSync(directory)).toHaveLength(4);
+});
+
+test("the Backup from before a migration is not deleted by the next Backups of that day", async () => {
+  const { backups } = await start();
+  const beforeMigration = await backups.backUpBeforeMigrations();
+  sources.advance(1000);
+  await backups.backUpIfDue();
+  sources.advance(1000);
+  await backups.create();
+  sources.advance(1000);
+  await backups.create();
+
+  expect((await backups.list()).map(({ id }) => id)).toContain(beforeMigration?.id);
 });
 
 test("the list leaves out files that are no Backups of this app", async () => {
@@ -211,7 +244,7 @@ test("a restore brings back the data of the Backup at the next start and keeps w
 
   const outcome = await backups.restore(backup.id);
 
-  // Until the Data Process starts anew, the database is what it was.
+  // Until the Data Process starts anew, the database is what it was, and reads go on.
   await expect(notes(database)).resolves.toEqual(["first", "second"]);
   expect(outcome).toEqual({
     status: "restored",
@@ -245,6 +278,129 @@ test("a restore can be taken back by restoring the Backup of what it replaced", 
 
   await expect(notes(open(databasePath))).resolves.toEqual(["first", "second"]);
 });
+
+/** The database as the next Data Process finds it: closed, the staged restore put in place. */
+async function startAnew(): Promise<{ database: Database; backups: Backups }> {
+  await closeAll();
+  applyStagedRestore(databasePath);
+  return start();
+}
+
+test("restore, undo and restore again on one day: each restore can still be taken back", async () => {
+  let { database, backups } = await start();
+  const chosen = await backups.create();
+  await write(database, "second");
+  const restoreAndStartAnew = async (id: string) => {
+    sources.advance(60_000);
+    const outcome = await backups.restore(id);
+    if (outcome.status !== "restored") throw new Error(outcome.status);
+    // The Backup the Notice's Undo names is there when the restore answers.
+    expect((await backups.list()).map((backup) => backup.id)).toContain(outcome.replaced.id);
+    ({ database, backups } = await startAnew());
+    return outcome.replaced;
+  };
+
+  const replacedByRestore = await restoreAndStartAnew(chosen.id);
+  await expect(notes(database)).resolves.toEqual(["first"]);
+  // Undo: restores the Backup of what the restore replaced.
+  await restoreAndStartAnew(replacedByRestore.id);
+  await expect(notes(database)).resolves.toEqual(["first", "second"]);
+  const replacedBySecondRestore = await restoreAndStartAnew(chosen.id);
+  await expect(notes(database)).resolves.toEqual(["first"]);
+
+  // One Backup from before a restore is left of the three: the newest, of the data the last
+  // restore replaced. The chosen Backup is still there too.
+  expect((await backups.list()).map(({ id }) => id)).toEqual([
+    replacedBySecondRestore.id,
+    chosen.id,
+  ]);
+  await restoreAndStartAnew(replacedBySecondRestore.id);
+  await expect(notes(database)).resolves.toEqual(["first", "second"]);
+});
+
+test("two restores in a row on one day keep only the Backup of what the second one replaced", async () => {
+  let { database, backups } = await start();
+  const older = await backups.backUpIfDue();
+  await write(database, "second");
+  sources.advance(60_000);
+  const newer = await backups.create();
+  await write(database, "third");
+
+  sources.advance(60_000);
+  const first = await backups.restore(newer.id);
+  ({ database, backups } = await startAnew());
+  sources.advance(60_000);
+  const second = await backups.restore(older!.id);
+  ({ database, backups } = await startAnew());
+
+  // The newest Backup of a kind per day stays: the one from before the first restore, which
+  // held "third", went when the second restore took its own.
+  const kept = (await backups.list()).map(({ id }) => id);
+  expect(kept).toContain(second.status === "restored" ? second.replaced.id : "");
+  expect(kept).not.toContain(first.status === "restored" ? first.replaced.id : "");
+  await expect(notes(database)).resolves.toEqual(["first"]);
+});
+
+test("from the moment a restore is staged the database refuses writes, and still reads", async () => {
+  const { database, backups } = await start();
+  const backup = await backups.create();
+  sources.advance(1000);
+
+  await backups.restore(backup.id);
+
+  await expect(
+    write(database, "written into a database that is about to be replaced"),
+  ).rejects.toThrow(/readonly/);
+  await expect(notes(database)).resolves.toEqual(["first"]);
+  // The Backups go on: they only read the database.
+  sources.advance(1000);
+  await expect(backups.create()).resolves.toMatchObject({ kind: "manual" });
+});
+
+test("a write that waits while a restore runs is refused, not lost", async () => {
+  const { database, backups } = await start();
+  const backup = await backups.create();
+  sources.advance(1000);
+  let written: Promise<void> | undefined;
+  const whileRestoring = createBackups({
+    database: {
+      ...database,
+      // The Backup of the replaced data: a write that arrives now would not be in it.
+      async backupTo(destination) {
+        await database.backupTo(destination);
+        written = write(database, "arrived during the restore");
+        written.catch(() => {
+          // Awaited below.
+        });
+      },
+    },
+    databasePath,
+    directory,
+    clock: sources.clock,
+  });
+
+  const outcome = await whileRestoring.restore(backup.id);
+
+  await expect(written).rejects.toThrow(/readonly/);
+  const replaced = outcome.status === "restored" ? outcome.replaced.id : "";
+  await expect(notes(open(backupFile(replaced)))).resolves.toEqual(["first"]);
+});
+
+test.each([
+  ["a Backup that is gone", () => "2026-01-01T12-00-00-000Z-daily", "notFound"],
+  ["a Backup that cannot be read", (id: string) => id, "unreadable"],
+] as const)(
+  "after a restore of %s the database takes writes again",
+  async (_what, idOf, status) => {
+    const { database, backups } = await start();
+    const backup = await backups.create();
+    if (status === "unreadable") writeFileSync(backupFile(backup.id), "no database".repeat(900));
+
+    await expect(backups.restore(idOf(backup.id))).resolves.toEqual({ status });
+
+    await expect(write(database, "second")).resolves.toBeUndefined();
+  },
+);
 
 test("a restored database opens although the replaced one left a write-ahead log behind", async () => {
   const { database, backups } = await start();
@@ -328,9 +484,11 @@ test("a restore whose Backup of the replaced data fails stages nothing", async (
 
   await expect(failing.restore(backup.id)).rejects.toThrow("The disk is full");
 
+  // This database stays, so it takes writes again.
+  await expect(write(database, "second")).resolves.toBeUndefined();
   await closeAll();
   expect(applyStagedRestore(databasePath)).toBe(false);
-  await expect(notes(open(databasePath))).resolves.toEqual(["first"]);
+  await expect(notes(open(databasePath))).resolves.toEqual(["first", "second"]);
 });
 
 test("a Backup that fails does not stop the ones after it", async () => {
@@ -351,4 +509,65 @@ test("a Backup that fails does not stop the ones after it", async () => {
   full = false;
 
   await expect(backups.create()).resolves.toMatchObject({ kind: "manual" });
+});
+
+/** Backups whose disk is full while `full.now` is true. */
+function onADiskThatFills(database: Database) {
+  const full = { now: true };
+  const backups = createBackups({
+    database: {
+      ...database,
+      backupTo: (destination) =>
+        full.now ? Promise.reject(new Error("The disk is full")) : database.backupTo(destination),
+    },
+    databasePath,
+    directory,
+    clock: sources.clock,
+  });
+  return { full, backups };
+}
+
+test("a daily Backup that fails is remembered until an automatic Backup succeeds", async () => {
+  const { database } = await start();
+  const { full, backups } = onADiskThatFills(database);
+  expect(backups.automaticBackupFailed()).toBe(false);
+
+  await expect(backups.backUpIfDue()).rejects.toThrow("The disk is full");
+  expect(backups.automaticBackupFailed()).toBe(true);
+  // The next hour asks again and fails again.
+  await expect(backups.backUpIfDue()).rejects.toThrow("The disk is full");
+  expect(backups.automaticBackupFailed()).toBe(true);
+
+  full.now = false;
+  await expect(backups.backUpIfDue()).resolves.toMatchObject({ kind: "daily" });
+  expect(backups.automaticBackupFailed()).toBe(false);
+});
+
+test("a Backup taken by hand clears a remembered failure: the data is protected again", async () => {
+  const { database } = await start();
+  const { full, backups } = onADiskThatFills(database);
+  await expect(backups.backUpIfDue()).rejects.toThrow("The disk is full");
+
+  full.now = false;
+  await backups.create();
+
+  expect(backups.automaticBackupFailed()).toBe(false);
+});
+
+test("a Backup by hand that fails is not remembered: its caller is told", async () => {
+  const { database } = await start();
+  const { backups } = onADiskThatFills(database);
+
+  await expect(backups.create()).rejects.toThrow("The disk is full");
+
+  expect(backups.automaticBackupFailed()).toBe(false);
+});
+
+test("a Backup before migrations that fails is remembered too", async () => {
+  const { database } = await start();
+  const { backups } = onADiskThatFills(database);
+
+  await expect(backups.backUpBeforeMigrations()).rejects.toThrow("The disk is full");
+
+  expect(backups.automaticBackupFailed()).toBe(true);
 });

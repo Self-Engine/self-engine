@@ -2,6 +2,8 @@ export {
   type Backup,
   type BackupKind,
   backupKindSchema,
+  type BackupList,
+  backupListSchema,
   backupSchema,
   backupsContract,
   type BackupsContract,

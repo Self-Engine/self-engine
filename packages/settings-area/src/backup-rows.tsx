@@ -4,15 +4,16 @@
 import type { MessageDescriptor } from "@lingui/core";
 import { msg } from "@lingui/core/macro";
 import { Trans, useLingui } from "@lingui/react/macro";
-import { Box, Button, Group, Stack, Text } from "@mantine/core";
+import { Alert, Box, Button, Group, Stack, Text } from "@mantine/core";
 import { useDataAccess } from "@self-engine/data-client/react";
+import { WarningIcon } from "@self-engine/icons";
+import { roleColor } from "@self-engine/theme";
 import { notifyDone, notifyUndoable, QueryStateBlock } from "@self-engine/ui";
 import { memo, useCallback, useState } from "react";
 import {
-  ALL_BACKUPS,
   type Backup,
   restoreBackup,
-  useBackups,
+  useBackupList,
   useCreateBackup,
   useReloadBackups,
   useRestoreBackup,
@@ -56,27 +57,68 @@ export function backupTime(backup: Pick<Backup, "takenAt">, { locale }: Translat
   );
 }
 
+/** Mantine's alert in the theme's warning roles, which its own `color` cannot name. */
+const WARNING_VARS = () => ({
+  root: {
+    "--alert-bg": roleColor("warningSoft"),
+    "--alert-color": roleColor("warningText"),
+    "--alert-bd": "none",
+  },
+});
+
+/**
+ * Shown while the automatic Backups fail (D94): nobody asked for them, so nobody would be told.
+ * It goes when the next Backup succeeds, whoever asked for it.
+ */
+function AutomaticBackupFailed() {
+  return (
+    // Its own line below the title and the button.
+    <Alert
+      flex="1 1 100%"
+      icon={<WarningIcon />}
+      title={<Trans>The last automatic backup failed</Trans>}
+      vars={WARNING_VARS}
+    >
+      <Trans>
+        Your data is not being backed up at the moment. Check that this device has free disk space.
+        The app tries again within the hour, and "Create backup now" tries at once.
+      </Trans>
+    </Alert>
+  );
+}
+
 function CreateBackup({ labelledBy }: SettingsRowControlProps) {
+  const list = useBackupList();
   const { run, running } = useCreateBackup();
   const reload = useReloadBackups();
   const create = async () => {
     const created = await run({});
     // A failure was announced by the building block.
     if (created.status !== "success") return;
+    // The reload also takes the hint away: a Backup that succeeds ends the failure.
     reload();
     notifyDone({ message: <Trans>Backup created.</Trans> });
   };
   return (
-    <Button
-      aria-describedby={labelledBy}
-      loading={running}
-      onClick={() => void create()}
-      variant="default"
-    >
-      <Trans>Create backup now</Trans>
-    </Button>
+    <>
+      <Button
+        aria-describedby={labelledBy}
+        loading={running}
+        onClick={() => void create()}
+        variant="default"
+      >
+        <Trans>Create backup now</Trans>
+      </Button>
+      {"data" in list && list.data.automaticBackupFailed && <AutomaticBackupFailed />}
+    </>
   );
 }
+
+/**
+ * Withdraws the offer to undo the last restore. Kept beside the rows, not in one: the Notice
+ * outlives the row when the View changes.
+ */
+let withdrawUndoOffer: (() => void) | undefined;
 
 interface BackupLineProps {
   readonly backup: Backup;
@@ -113,7 +155,7 @@ const BackupLine = memo(function BackupLine({ backup, restoring, onRestore }: Ba
 });
 
 function RestoreBackup({ labelledBy }: SettingsRowControlProps) {
-  const state = useBackups(ALL_BACKUPS);
+  const state = useBackupList();
   const { run } = useRestoreBackup();
   const reload = useReloadBackups();
   const data = useDataAccess();
@@ -129,7 +171,10 @@ function RestoreBackup({ labelledBy }: SettingsRowControlProps) {
       if (restored.status === "notFound") reload();
       if (restored.status !== "success") return;
       const replaced = restored.data;
-      notifyUndoable({
+      // Of one day only the newest Backup from before a restore is kept, so the Backup that an
+      // earlier restore's Notice would restore may be gone now: its offer goes with it.
+      withdrawUndoOffer?.();
+      withdrawUndoOffer = notifyUndoable({
         message: <Trans>Backup restored.</Trans>,
         // The function form: the undo may be taken after this row has left the screen. Its
         // failures are announced by the building block.
@@ -147,7 +192,7 @@ function RestoreBackup({ labelledBy }: SettingsRowControlProps) {
     // Its own line below the title: a list does not fit beside it.
     <Box flex="1 1 100%">
       <QueryStateBlock state={state}>
-        {(backups) =>
+        {({ backups }) =>
           backups.length === 0 ? (
             <Text c="dimmed" size="sm">
               <Trans>There is no backup yet.</Trans>
@@ -189,7 +234,7 @@ export const BACKUP_ROWS: readonly SettingsRow[] = [
     id: "create-backup",
     view: VIEW_IDS.data,
     title: msg`Backups`,
-    description: msg`Your data is backed up once a day and before an update changes it. Every backup of the last 7 days is kept, and one per week for the 4 weeks before.`,
+    description: msg`Your data is backed up once a day and before an update changes it. Of the last 7 days one backup per day and reason is kept, and one per week for the 4 weeks before.`,
     searchWords: [msg`Save a copy`, msg`Safety copy`],
     values: [],
     control: CreateBackup,

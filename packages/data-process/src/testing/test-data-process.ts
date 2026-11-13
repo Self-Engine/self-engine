@@ -25,9 +25,8 @@ export interface TestDataProcessOptions {
   readonly database?: Database;
   /** Passed to the core: called before the migrations run when some are pending. */
   readonly beforeMigrations?: BeforeMigrations;
-  /** Passed to the core: the Backups it answers as `backups`, and the restart after a restore. */
+  /** Passed to the core: the Backups it answers as `backups`, with the restart after a restore. */
   readonly backups?: DataProcessOptions["backups"];
-  readonly restart?: DataProcessOptions["restart"];
 }
 
 export interface TestDataProcess {
@@ -70,7 +69,6 @@ export async function startTestDataProcess(
       ...(options.report === undefined ? {} : { report: options.report }),
       ...(options.beforeMigrations && { beforeMigrations: options.beforeMigrations }),
       ...(options.backups && { backups: options.backups }),
-      ...(options.restart && { restart: options.restart }),
     });
   } catch (error) {
     if (options.database === undefined) await database.close();

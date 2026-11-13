@@ -12,6 +12,7 @@ import {
   type BackupAnswers,
   backupAnswers,
   DAILY_BACKUP,
+  listOf,
   MANUAL_BACKUP,
   SAMPLE_BACKUPS,
 } from "./testing/index.ts";
@@ -27,13 +28,19 @@ interface Loaded {
   readonly calls: Call[];
 }
 
-/** The Fixed Answers, with every call written down: a story shows what the rows asked for. */
-function recording(access: PortAccess, calls: Call[]): PortAccess {
+/**
+ * The Fixed Answers, with every call written down: a story shows what the rows asked for. With
+ * `afterCreate`, those answer every call from the first `create` on, for the one thing a Fixed
+ * Answer cannot show: a list that differs once a Backup was taken.
+ */
+function recording(access: PortAccess, calls: Call[], afterCreate?: PortAccess): PortAccess {
+  let answering = access;
   return {
     ...access,
     call(module, entry, input, signal) {
       calls.push({ entry, input });
-      return access.call(module, entry, input, signal);
+      if (entry === "create" && afterCreate) answering = afterCreate;
+      return answering.call(module, entry, input, signal);
     },
   };
 }
@@ -51,7 +58,12 @@ const meta = {
       const store = await loadedStoreOn(memoryStorage());
       const calls: Call[] = [];
       const answers = parameters["answers"] as BackupAnswers | undefined;
-      const access = recording(backupAnswers(answers), calls);
+      const afterCreate = parameters["afterCreate"] as BackupAnswers | undefined;
+      const access = recording(
+        backupAnswers(answers),
+        calls,
+        afterCreate && backupAnswers(afterCreate),
+      );
       return { calls, Page: storyViewPage("data", { store, access }) };
     },
   ],
@@ -72,6 +84,16 @@ const timeOf = ({ takenAt }: { readonly takenAt: string }, locale = "en") =>
     new Date(takenAt),
   );
 
+/** A theme role's color as the browser computes it for `element`. */
+function colorOf(element: Element, variable: string): string {
+  const probe = document.createElement("span");
+  probe.style.color = `var(${variable})`;
+  element.append(probe);
+  const { color } = getComputedStyle(probe);
+  probe.remove();
+  return color;
+}
+
 /** The Notice with this text, once it has slid in: it is in the document before it is visible. */
 async function noticeWith(text: string) {
   const notice = await screen.findByText(text);
@@ -80,7 +102,7 @@ async function noticeWith(text: string) {
 }
 
 export const TheBackupsAreListedNewestFirstWithTheirReason: Story = {
-  parameters: { answers: { list: { data: SAMPLE_BACKUPS } } },
+  parameters: { answers: { list: listOf(SAMPLE_BACKUPS) } },
   play: async ({ canvas }) => {
     await expect(canvas.getByText("Backups")).toBeVisible();
     const list = await canvas.findByRole("list", { name: "Restore a backup" });
@@ -99,7 +121,7 @@ export const TheBackupsAreListedNewestFirstWithTheirReason: Story = {
 };
 
 export const WithoutABackupTheRowSaysSo: Story = {
-  parameters: { answers: { list: { data: [] } } },
+  parameters: { answers: { list: listOf([]) } },
   play: async ({ canvas }) => {
     await expect(await canvas.findByText("There is no backup yet.")).toBeVisible();
     await expect(canvas.queryByRole("list")).toBeNull();
@@ -162,6 +184,20 @@ export const ARestoreIsConfirmedAndCanBeTakenBack: Story = {
         input: { id: BEFORE_RESTORE_BACKUP.id },
       }),
     );
+  },
+};
+
+export const ASecondRestoreWithdrawsTheOfferToUndoTheFirst: Story = {
+  play: async ({ canvas }) => {
+    await userEvent.click(await restoreButton(canvas, DAILY_BACKUP));
+    await noticeWith("Backup restored.");
+
+    await userEvent.click(await restoreButton(canvas, MANUAL_BACKUP));
+
+    // The Backup the first Undo would restore went when the second restore took its own: one
+    // offer is left, and it restores what the second restore replaced.
+    await waitFor(() => expect(screen.getAllByRole("button", { name: "Undo" })).toHaveLength(1));
+    await waitFor(() => expect(screen.getAllByText("Backup restored.")).toHaveLength(1));
   },
 };
 
@@ -255,6 +291,86 @@ export const TheSearchFindsTheRowsByWhatTheyDo: Story = {
     await expect(hits.queryByText("Backups")).toBeNull();
     // A hit is the working row, with its list.
     await expect(await restoreButton(hits, DAILY_BACKUP)).toBeEnabled();
+  },
+};
+
+const FAILING = [DAILY_BACKUP] as const;
+
+export const AnAutomaticBackupThatFailedIsShownAsAHint: Story = {
+  parameters: { answers: { list: listOf(FAILING, true) } },
+  play: async ({ canvas }) => {
+    const hint = await canvas.findByRole("alert");
+    await expect(hint).toHaveTextContent("The last automatic backup failed");
+    await expect(hint).toHaveTextContent(
+      'Your data is not being backed up at the moment. Check that this device has free disk space. The app tries again within the hour, and "Create backup now" tries at once.',
+    );
+    // In the theme's warning roles, on a line of its own below the title and the button.
+    const style = getComputedStyle(hint);
+    await expect(style.backgroundColor).toBe(colorOf(hint, "--se-warning-soft"));
+    await expect(
+      getComputedStyle(within(hint).getByText("The last automatic backup failed")).color,
+    ).toBe(colorOf(hint, "--se-warning-text"));
+    const create = canvas.getByRole("button", { name: "Create backup now" });
+    await expect(hint.getBoundingClientRect().top).toBeGreaterThanOrEqual(
+      create.getBoundingClientRect().bottom,
+    );
+    // The Backups that exist stay listed and can be restored.
+    await expect(await restoreButton(canvas, DAILY_BACKUP)).toBeEnabled();
+  },
+};
+
+export const WithoutAFailureThereIsNoHint: Story = {
+  play: async ({ canvas }) => {
+    await canvas.findByRole("list", { name: "Restore a backup" });
+    await expect(canvas.queryByRole("alert")).toBeNull();
+  },
+};
+
+export const TheHintGoesOnceABackupSucceeds: Story = {
+  parameters: {
+    answers: { list: listOf(FAILING, true) },
+    afterCreate: { list: listOf([MANUAL_BACKUP, ...FAILING]) },
+  },
+  play: async ({ canvas }) => {
+    await expect(await canvas.findByRole("alert")).toBeVisible();
+
+    await userEvent.click(canvas.getByRole("button", { name: "Create backup now" }));
+
+    await noticeWith("Backup created.");
+    await waitFor(() => expect(canvas.queryByRole("alert")).toBeNull());
+    await expect(await restoreButton(canvas, MANUAL_BACKUP)).toBeEnabled();
+  },
+};
+
+export const TheHintInGerman: Story = {
+  globals: { language: "de" },
+  parameters: { answers: { list: listOf(FAILING, true) } },
+  play: async ({ canvas }) => {
+    const hint = await canvas.findByRole("alert");
+    await expect(hint).toHaveTextContent("Die letzte automatische Sicherung ist fehlgeschlagen");
+    await expect(hint).toHaveTextContent(
+      "Deine Daten werden im Moment nicht gesichert. Prüfe, ob auf diesem Gerät noch Speicherplatz frei ist. Die App versucht es innerhalb einer Stunde erneut, „Sicherung jetzt erstellen“ sofort.",
+    );
+  },
+};
+
+export const ComingBackToTheRowsReadsTheListAgain: Story = {
+  play: async ({ canvas, loaded }) => {
+    await canvas.findByRole("list", { name: "Restore a backup" });
+    await expect(entries(loaded)).toEqual(["list"]);
+    const search = canvas.getByRole("searchbox", { name: "Search settings" });
+
+    // A search that hides the rows and one that shows them again, as leaving the View and
+    // coming back does: the answer is still kept, and nothing said whether it still holds.
+    await userEvent.type(search, "accent");
+    await waitFor(() =>
+      expect(canvas.queryByRole("list", { name: "Restore a backup" })).toBeNull(),
+    );
+    await userEvent.clear(search);
+
+    await canvas.findByRole("list", { name: "Restore a backup" });
+    await waitFor(() => expect(entries(loaded).length).toBeGreaterThan(1));
+    await expect(new Set(entries(loaded))).toEqual(new Set(["list"]));
   },
 };
 

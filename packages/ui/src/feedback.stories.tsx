@@ -298,6 +298,20 @@ export const UndoLatestSkipsANoticeThatClosedByItself: Story = {
   },
 };
 
+export const AnUndoOfferCanBeWithdrawnByItsCaller: Story = {
+  play: async () => {
+    const undo = fn();
+    const withdraw = notifyUndoable({ message: "Backup restored.", undo });
+    await noticeWith("Backup restored.");
+
+    withdraw();
+
+    await noticeGone("Backup restored.");
+    undoLatest();
+    await expect(undo).not.toHaveBeenCalled();
+  },
+};
+
 export const UndoLatestLeavesEveryOtherNoticeAlone: Story = {
   play: async () => {
     notifyError({ message: "The backup failed." });

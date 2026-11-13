@@ -60,7 +60,7 @@ export function openDataFiles(databasePath: string, clock: Clock = () => new Dat
 
 export interface DataProcessRuntime extends Omit<
   DataProcessOptions,
-  "backups" | "beforeMigrations" | "restart"
+  "backups" | "beforeMigrations"
 > {
   readonly parentPort: ParentPort;
   /** The Backups of `database`, as `openDataFiles` returns both. */
@@ -86,11 +86,10 @@ export async function runDataProcess({
 }: DataProcessRuntime): Promise<void> {
   const dataProcess = await startDataProcess({
     ...options,
-    backups,
+    backups: { service: backups, restart: () => parentPort.postMessage(restartMessage()) },
     async beforeMigrations() {
       await backups.backUpBeforeMigrations();
     },
-    restart: () => parentPort.postMessage(restartMessage()),
   });
   const pagePorts = new Map<number, HandedPort>();
   parentPort.on("message", ({ data, ports }) => {

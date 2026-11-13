@@ -21,6 +21,19 @@ export const backupSchema = z.object({
 
 export type Backup = z.infer<typeof backupSchema>;
 
+/** What the list of Backups answers: the Backups, and whether the automatic ones are failing. */
+export const backupListSchema = z.object({
+  /** Every Backup that is kept, newest first. */
+  backups: z.array(backupSchema),
+  /**
+   * True while the last attempt at an automatic Backup failed and no Backup has succeeded since:
+   * the data is not being backed up, for example because the disk is full.
+   */
+  automaticBackupFailed: z.boolean(),
+});
+
+export type BackupList = z.infer<typeof backupListSchema>;
+
 const nothing = z.object({});
 
 /**
@@ -28,8 +41,8 @@ const nothing = z.object({});
  * beside `health`, on every platform that keeps Backups.
  */
 export const backupsContract = {
-  /** A Query: every Backup that is kept, newest first. No table holds them (D250). */
-  list: oc.input(nothing).output(z.array(backupSchema)),
+  /** A Query: the Backups that are kept and how the automatic ones fare. No table holds them (D250). */
+  list: oc.input(nothing).output(backupListSchema),
   /** Takes a Backup now and answers with it. */
   create: oc.input(nothing).output(backupSchema),
   /**

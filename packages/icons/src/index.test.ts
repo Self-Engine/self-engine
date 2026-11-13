@@ -17,6 +17,7 @@ const ICON_NAMES = [
   "AssistantIcon",
   "SidePanelIcon",
   "ErrorIcon",
+  "WarningIcon",
   "ThemeColorsIcon",
 ] as const;
 

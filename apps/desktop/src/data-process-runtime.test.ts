@@ -3,7 +3,7 @@ import { mkdtempSync, readdirSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { MessageChannel, type MessagePort } from "node:worker_threads";
-import type { Backups } from "@self-engine/backup";
+import { type Backups, createBackups } from "@self-engine/backup";
 import type { AppContract } from "@self-engine/contracts";
 import { createDataConnection } from "@self-engine/data-client";
 import type { ProtocolContract } from "@self-engine/data-protocol";
@@ -43,6 +43,7 @@ const NO_BACKUPS: Backups = {
   create: () => Promise.reject(new Error("This test takes no Backup")),
   backUpBeforeMigrations: () => Promise.resolve(undefined),
   backUpIfDue: () => Promise.resolve(undefined),
+  automaticBackupFailed: () => false,
   restore: () => Promise.resolve({ status: "notFound" }),
 };
 
@@ -70,7 +71,7 @@ function run(
   parentPort: FakeParentPort,
   database: Database,
   options: Pick<DataProcessRuntime, "modules"> &
-    Partial<Pick<DataProcessRuntime, "backups" | "timer">>,
+    Partial<Pick<DataProcessRuntime, "backups" | "timer" | "report">>,
 ) {
   const entry = { database, ports: [] as MessagePort[] };
   opened.push(entry);
@@ -233,16 +234,42 @@ function dataFolder() {
   return {
     databasePath,
     sources,
-    /** One start of the data process, as `data-process.ts` does it. */
-    start(modules: DataProcessRuntime["modules"] = dataModules) {
+    /**
+     * One start of the data process, as `data-process.ts` does it. With `disk`, every Backup is
+     * written to a disk the test fills and empties: while it is full, the copy fails.
+     */
+    start(modules: DataProcessRuntime["modules"] = dataModules, disk?: { full: boolean }) {
       const parentPort = new FakeParentPort();
       const files = openDataFiles(databasePath, sources.clock);
       const timer = manualTimer();
+      const reports: unknown[] = [];
+      const backups =
+        disk === undefined
+          ? files.backups
+          : createBackups({
+              database: {
+                ...files.database,
+                backupTo: (destination) =>
+                  disk.full
+                    ? Promise.reject(new Error("database or disk is full"))
+                    : files.database.backupTo(destination),
+              },
+              databasePath,
+              directory: backupFolder(databasePath),
+              clock: sources.clock,
+            });
       return {
         parentPort,
         timer,
-        ...files,
-        ...run(parentPort, files.database, { modules, backups: files.backups, timer }),
+        reports,
+        database: files.database,
+        backups,
+        ...run(parentPort, files.database, {
+          modules,
+          backups,
+          timer,
+          report: (report) => reports.push(report),
+        }),
       };
     },
   };
@@ -251,6 +278,14 @@ function dataFolder() {
 const NOTES: Migration = {
   name: "fixture/0001",
   sql: "CREATE TABLE fixture_notes (body TEXT PRIMARY KEY) STRICT;",
+};
+/** A migration that works on the rows it finds: every note gets its length. */
+const LENGTHS: Migration = {
+  name: "fixture/0002",
+  sql: `
+    ALTER TABLE fixture_notes ADD COLUMN length INTEGER;
+    UPDATE fixture_notes SET length = length(body);
+  `,
 };
 const TAGS: Migration = {
   name: "fixture/0002",
@@ -382,7 +417,7 @@ describe("the Backups of the data process", () => {
       "Before the Backup",
     ]);
     expect(replaced).toMatchObject({ kind: "before-restore", takenAt: "2026-11-13T12:02:00.000Z" });
-    expect((await pageAgain.backups.list({})).map(({ kind }) => kind)).toEqual([
+    expect((await pageAgain.backups.list({})).backups.map(({ kind }) => kind)).toEqual([
       "before-restore",
       "manual",
       "daily",
@@ -398,6 +433,98 @@ describe("the Backups of the data process", () => {
       "After the Backup",
     ]);
     expect(readdirSync(dirname(folder.databasePath))).not.toContain("self-engine.sqlite.restore");
+  });
+
+  it("restores a Backup from before the newest migration: the next start migrates the restored data", async () => {
+    const folder = dataFolder();
+    const before = folder.start(fixtureModules([NOTES]));
+    await before.running;
+    await before.database.executeScript(
+      "INSERT INTO fixture_notes VALUES ('written before the update');",
+    );
+    folder.sources.advance(60_000);
+    const backup = await before.connect().backups.create({});
+    await before.close();
+    folder.sources.advance(60_000);
+    // The app is updated: this start runs the new migration.
+    const updated = folder.start(fixtureModules([NOTES, LENGTHS]));
+    await updated.running;
+    await updated.database.executeScript(
+      "INSERT INTO fixture_notes VALUES ('written after the update', 24);",
+    );
+    folder.sources.advance(60_000);
+    const asked = new Promise<void>((resolve) => {
+      updated.parentPort.onPost = (message) => {
+        if (isRestartRequest(message)) resolve();
+      };
+    });
+
+    await updated.connect().backups.restore({ id: backup.id });
+    await asked;
+    await updated.close();
+    folder.sources.advance(60_000);
+    const restored = folder.start(fixtureModules([NOTES, LENGTHS]));
+    await restored.running;
+
+    // The Backup held the schema of the older app, so the migration was pending again and ran
+    // on the restored rows.
+    expect(restored.parentPort.sent.map(servingHealth)).toMatchObject([
+      { state: "ready", migrations: ["fixture/0002"] },
+    ]);
+    const { rows } = await sql`SELECT body, length FROM fixture_notes`.execute(
+      restored.database.kysely,
+    );
+    expect(rows).toEqual([{ body: "written before the update", length: 25 }]);
+    // Like every start with pending migrations, it took its Backup first.
+    expect(await restored.backups.list()).toContainEqual(
+      expect.objectContaining({ kind: "before-migration", takenAt: "2026-11-13T12:04:00.000Z" }),
+    );
+  });
+
+  it("tells the page while the daily Backup fails, reports it, and stops once one succeeds", async () => {
+    const folder = dataFolder();
+    const disk = { full: true };
+    const started = folder.start(dataModules, disk);
+    await started.running;
+    const page = started.connect();
+
+    // The failure does not stop the data process: it serves, and the page can ask.
+    await expect(page.backups.list({})).resolves.toEqual({
+      backups: [],
+      automaticBackupFailed: true,
+    });
+    expect(started.reports).toEqual([
+      {
+        kind: "unexpected-error",
+        entry: "backups.daily",
+        error: expect.objectContaining({ message: "database or disk is full" }),
+      },
+    ]);
+
+    disk.full = false;
+    // The next hour asks again.
+    started.timer.intervals[0]?.callback();
+
+    await expect(page.backups.list({})).resolves.toMatchObject({
+      backups: [{ kind: "daily" }],
+      automaticBackupFailed: false,
+    });
+  });
+
+  it("stops the start when the Backup before migrations fails, and runs no migration", async () => {
+    const folder = dataFolder();
+    const first = folder.start(fixtureModules([NOTES]));
+    await first.running;
+    await first.backups.list();
+    await first.close();
+    folder.sources.advance(60_000);
+
+    const second = folder.start(fixtureModules([NOTES, TAGS]), { full: true });
+
+    await expect(second.running).rejects.toThrow("database or disk is full");
+    // It never says that it serves: `data-process.ts` logs the failure and exits.
+    expect(second.parentPort.sent).toEqual([]);
+    await expect(tableNames(second.database)).resolves.toEqual(["fixture_notes"]);
   });
 
   it("answers a restore of a Backup that is gone with `not found` and asks for no restart", async () => {

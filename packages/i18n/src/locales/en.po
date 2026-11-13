@@ -583,6 +583,10 @@ msgstr "The language could not be loaded. Your choice is kept for the next start
 msgid "The language the app is shown in. \"System\" follows the language of this device."
 msgstr "The language the app is shown in. \"System\" follows the language of this device."
 
+#: packages/settings-area/src/backup-rows.tsx
+msgid "The last automatic backup failed"
+msgstr "The last automatic backup failed"
+
 #: packages/placeholder-beta/src/overview.tsx
 msgid "The minimal module View."
 msgstr "The minimal module View."
@@ -705,8 +709,12 @@ msgid "Your data could not be updated."
 msgstr "Your data could not be updated."
 
 #: packages/settings-area/src/backup-rows.tsx
-msgid "Your data is backed up once a day and before an update changes it. Every backup of the last 7 days is kept, and one per week for the 4 weeks before."
-msgstr "Your data is backed up once a day and before an update changes it. Every backup of the last 7 days is kept, and one per week for the 4 weeks before."
+msgid "Your data is backed up once a day and before an update changes it. Of the last 7 days one backup per day and reason is kept, and one per week for the 4 weeks before."
+msgstr "Your data is backed up once a day and before an update changes it. Of the last 7 days one backup per day and reason is kept, and one per week for the 4 weeks before."
+
+#: packages/settings-area/src/backup-rows.tsx
+msgid "Your data is not being backed up at the moment. Check that this device has free disk space. The app tries again within the hour, and \"Create backup now\" tries at once."
+msgstr "Your data is not being backed up at the moment. Check that this device has free disk space. The app tries again within the hour, and \"Create backup now\" tries at once."
 
 #: packages/settings-area/src/rows.tsx
 msgid "Zoom"

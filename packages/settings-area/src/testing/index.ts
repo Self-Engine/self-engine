@@ -39,6 +39,11 @@ export const BEFORE_MIGRATION_BACKUP: Backup = {
   sizeBytes: 812_000,
 };
 
+/** What `list` answers for these Backups; the automatic ones succeed unless the story says so. */
+export function listOf(backups: readonly Backup[], automaticBackupFailed = false) {
+  return { data: { backups: [...backups], automaticBackupFailed } };
+}
+
 /** One Backup of each kind, newest first, as the Data Process lists them. */
 export const SAMPLE_BACKUPS: readonly Backup[] = [
   BEFORE_RESTORE_BACKUP,
@@ -52,7 +57,7 @@ export const SAMPLE_BACKUPS: readonly Backup[] = [
  * nothing: the list stays as it is, and no restart of the Data Process follows a restore.
  */
 export const SUCCEEDING: BackupAnswers = {
-  list: { data: [MANUAL_BACKUP, DAILY_BACKUP, BEFORE_MIGRATION_BACKUP] },
+  list: listOf([MANUAL_BACKUP, DAILY_BACKUP, BEFORE_MIGRATION_BACKUP]),
   create: { data: MANUAL_BACKUP },
   restore: { data: BEFORE_RESTORE_BACKUP },
 };

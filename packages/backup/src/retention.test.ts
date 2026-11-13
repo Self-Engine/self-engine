@@ -1,9 +1,12 @@
 import { expect, test } from "vite-plus/test";
 import { expiredBackups, isDailyBackupDue } from "./retention.ts";
 
+type Kind = "daily" | "manual" | "before-migration" | "before-restore";
+
 /** A Backup at noon UTC on a day of November 2026; day 0 is the 31st of October. */
-const on = (day: number, time = "12:00:00.000") => ({
+const on = (day: number, time = "12:00:00.000", kind: Kind = "daily") => ({
   takenAt: `${new Date(Date.UTC(2026, 10, day)).toISOString().slice(0, 10)}T${time}Z`,
+  kind,
 });
 const days = (backups: readonly { takenAt: string }[]) =>
   backups.map(({ takenAt }) => takenAt.slice(0, 10));
@@ -38,8 +41,46 @@ test("up to seven days of Backups, nothing expires", () => {
   expect(expiredBackups([])).toEqual([]);
 });
 
-test("every Backup of a kept day stays, so one taken by hand outlives the daily one beside it", () => {
-  const backups = [on(30, "06:00:00.000"), on(30, "09:30:00.000"), on(30, "18:45:00.000")];
+test("of a kept day the newest Backup of each kind stays: at most four", () => {
+  const daily = on(30, "06:00:00.000", "daily");
+  const beforeMigration = on(30, "06:00:01.000", "before-migration");
+  const firstByHand = on(30, "09:30:00.000", "manual");
+  const secondByHand = on(30, "09:31:00.000", "manual");
+  const thirdByHand = on(30, "18:45:00.000", "manual");
+  const firstBeforeRestore = on(30, "10:00:00.000", "before-restore");
+  const secondBeforeRestore = on(30, "10:05:00.000", "before-restore");
+
+  expect(
+    expiredBackups([
+      daily,
+      beforeMigration,
+      firstByHand,
+      secondByHand,
+      thirdByHand,
+      firstBeforeRestore,
+      secondBeforeRestore,
+    ]),
+  ).toEqual([firstBeforeRestore, secondByHand, firstByHand]);
+});
+
+test("the Backup from before a migration is not deleted by a later Backup of another kind that day", () => {
+  const beforeMigration = on(30, "06:00:00.000", "before-migration");
+  const later = [
+    on(30, "06:00:05.000", "daily"),
+    on(30, "09:30:00.000", "manual"),
+    on(30, "10:00:00.000", "before-restore"),
+  ];
+
+  expect(expiredBackups([beforeMigration, ...later])).toEqual([]);
+});
+
+test("a kind is kept per day: the same kind on the next day deletes nothing", () => {
+  const backups = [
+    on(29, "23:59:00.000", "manual"),
+    on(30, "00:01:00.000", "manual"),
+    on(29, "23:58:00.000", "before-restore"),
+    on(30, "00:02:00.000", "before-restore"),
+  ];
 
   expect(expiredBackups(backups)).toEqual([]);
 });
@@ -47,9 +88,10 @@ test("every Backup of a kept day stays, so one taken by hand outlives the daily 
 test("of a week before the kept days only its newest Backup stays", () => {
   const kept = Array.from({ length: 7 }, (_, index) => on(24 + index));
   const monday = on(16, "08:00:00.000");
-  const wednesdayMorning = on(18, "08:00:00.000");
-  const wednesdayEvening = on(18, "20:00:00.000");
+  const wednesdayMorning = on(18, "08:00:00.000", "before-migration");
+  const wednesdayEvening = on(18, "20:00:00.000", "manual");
 
+  // Whatever their kinds: a week keeps one Backup.
   expect(expiredBackups([...kept, monday, wednesdayMorning, wednesdayEvening])).toEqual([
     wednesdayMorning,
     monday,

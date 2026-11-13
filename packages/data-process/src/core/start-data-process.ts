@@ -2,7 +2,7 @@ import type { Health, TablesChanged } from "@self-engine/data-protocol";
 import type { Database } from "@self-engine/db";
 import { createFrame, type ContextSources, type FrameOptions } from "@self-engine/storage";
 import type { DataModules } from "./modules.ts";
-import type { BackupService } from "./procedures/backups.ts";
+import type { PlatformBackups } from "./procedures/backups.ts";
 import { queryTables } from "./query-tables.ts";
 import { createRouter } from "./router.ts";
 import { createPortServer, type DataPort } from "./serve.ts";
@@ -20,15 +20,10 @@ export interface DataProcessOptions {
   /** Called before the migrations run when some are pending, and not when none are (D138). */
   readonly beforeMigrations?: BeforeMigrations;
   /**
-   * The platform's Backups, answered as the protocol's `backups` (D94). Without them every call
-   * to `backups` fails.
+   * The platform's Backups with the restart a restore ends with, answered as the protocol's
+   * `backups` (D94). Without them every call to `backups` fails.
    */
-  readonly backups?: BackupService;
-  /**
-   * Starts the Data Process anew on the same database file, which puts a restored Backup in
-   * place. Called after a restore, once its answer is on the way to the page.
-   */
-  readonly restart?: () => void;
+  readonly backups?: PlatformBackups;
 }
 
 export interface DataProcess {
@@ -56,7 +51,6 @@ export async function startDataProcess({
   beforeMigrations,
   report,
   backups,
-  restart = () => undefined,
 }: DataProcessOptions): Promise<DataProcess> {
   const health = await migrate(
     database,
@@ -86,7 +80,6 @@ export async function startDataProcess({
         moduleRouter,
         backups: {
           backups,
-          restart,
           reportUnexpected: (entry, error) => report?.({ kind: "unexpected-error", entry, error }),
         },
       }),

@@ -41,8 +41,17 @@ export interface Backups {
   /** Takes the daily Backup unless a Backup of any kind was taken today (UTC): else `undefined`. */
   backUpIfDue(): Promise<Backup | undefined>;
   /**
+   * Whether the last attempt at an automatic Backup, the daily one or the one before migrations,
+   * failed and no Backup has succeeded since. Kept in memory only: the next Data Process starts
+   * with `false` and tries again.
+   */
+  automaticBackupFailed(): boolean;
+  /**
    * Stages the Backup `id` to replace the database at the next start of the Data Process, after
-   * backing up what it replaces: `replaced` is that Backup, so a restore can be taken back.
+   * backing up what it replaces: `replaced` is that Backup, so a restore can be taken back. From
+   * the moment the restore begins the database refuses every write, and after a restore that
+   * was staged it does so until this process ends: nothing can be written into a database that
+   * is about to be replaced. A restore that fails lets writes through again.
    */
   restore(id: string): Promise<RestoreOutcome>;
 }
@@ -60,6 +69,7 @@ export function createBackups({
   retention = RETENTION,
 }: BackupsOptions): Backups {
   const fileOf = (id: string) => join(directory, `${id}${BACKUP_EXTENSION}`);
+  let automaticFailed = false;
 
   async function list(): Promise<Backup[]> {
     const names = await readdir(directory).catch((error: unknown) => {
@@ -89,8 +99,20 @@ export function createBackups({
     await rm(unfinished, { force: true });
     await database.backupTo(unfinished);
     await rename(unfinished, file);
+    // The data is protected again, whoever asked for this Backup.
+    automaticFailed = false;
     await prune(id);
     return { id, takenAt: takenAt.toISOString(), kind, sizeBytes: (await stat(file)).size };
+  }
+
+  /** An automatic Backup: nobody waits for its answer, so its failure is remembered. */
+  async function automatic(work: () => Promise<Backup | undefined>): Promise<Backup | undefined> {
+    try {
+      return await work();
+    } catch (error) {
+      automaticFailed = true;
+      throw error;
+    }
   }
 
   /**
@@ -112,15 +134,24 @@ export function createBackups({
       return { status: "notFound" };
     }
     if (!isSoundDatabaseFile(fileOf(id))) return { status: "unreadable" };
-    const stage = await stageRestore(fileOf(id), databasePath);
+    // No write from here on: one that came after the Backup of the replaced data would vanish
+    // with the database it went to. The pragma holds for the one connection every call uses.
+    await database.executeScript("PRAGMA query_only = ON;");
+    let staged = false;
     try {
-      // Last before the restore counts, so what it replaces is in this Backup to the last write.
-      const replaced = await take("before-restore");
-      await stage.commit();
-      return { status: "restored", replaced };
-    } catch (error) {
-      await stage.discard();
-      throw error;
+      const stage = await stageRestore(fileOf(id), databasePath);
+      try {
+        const replaced = await take("before-restore");
+        await stage.commit();
+        staged = true;
+        return { status: "restored", replaced };
+      } catch (error) {
+        await stage.discard();
+        throw error;
+      }
+    } finally {
+      // Nothing was staged, so this database stays: it takes writes again.
+      if (!staged) await database.executeScript("PRAGMA query_only = OFF;");
     }
   }
 
@@ -146,9 +177,16 @@ export function createBackups({
     list: () => inTurn(list),
     create: () => inTurn(() => take("manual")),
     backUpBeforeMigrations: () =>
-      inTurn(async () => ((await hasTables()) ? take("before-migration") : undefined)),
+      inTurn(() =>
+        automatic(async () => ((await hasTables()) ? take("before-migration") : undefined)),
+      ),
     backUpIfDue: () =>
-      inTurn(async () => (isDailyBackupDue(await list(), clock()) ? take("daily") : undefined)),
+      inTurn(() =>
+        automatic(async () =>
+          isDailyBackupDue(await list(), clock()) ? take("daily") : undefined,
+        ),
+      ),
+    automaticBackupFailed: () => automaticFailed,
     restore: (id) => inTurn(() => restore(id)),
   };
 }
