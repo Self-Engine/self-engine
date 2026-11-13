@@ -1,6 +1,9 @@
 // The Settings in memory. The app loads them once before its first render and reads them
 // synchronously from then on (ADR 0010).
 
+// Zod's core, which `zod/mini` and the full build share: the store loads before the first render,
+// and the full build may not (docs/development/performance.md).
+import { safeParse } from "zod/v4/core";
 import type { ReportedSettingEntry, SettingEntry, SettingsAdapter } from "./adapter.ts";
 import {
   type JsonValue,
@@ -129,7 +132,7 @@ export function createSettingsStore({ adapters, onError }: SettingsStoreOptions)
 
   function validated({ setting, value }: SettingChange): SettingChange {
     assertLoaded(setting.key);
-    const result = setting.schema.safeParse(value);
+    const result = safeParse(setting.schema, value);
     if (!result.success) {
       throw new Error(`Invalid value for Setting "${setting.key}"`, { cause: result.error });
     }
@@ -188,7 +191,7 @@ export function createSettingsStore({ adapters, onError }: SettingsStoreOptions)
       if (stored === undefined) return setting.default;
       const cached = parsed.get(setting);
       if (cached?.stored === stored) return cached.value as T;
-      const result = setting.schema.safeParse(stored);
+      const result = safeParse(setting.schema, stored);
       const value = result.success ? result.data : setting.default;
       parsed.set(setting, { stored, value });
       return value;

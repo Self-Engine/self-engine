@@ -1,9 +1,15 @@
-import { mkdtempSync, writeFileSync, rmSync } from "node:fs";
+import { mkdirSync, mkdtempSync, writeFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { build } from "vite-plus";
 import { expect, it } from "vite-plus/test";
-import { inspectStartup, startupBundle, type StartupChunk } from "../startup-bundle.ts";
+import {
+  inspectStartup,
+  type LazyOnlyDependency,
+  startupBundle,
+  type StartupChunk,
+  type StartupRules,
+} from "../startup-bundle.ts";
 
 function chunk(fileName: string, options: Partial<StartupChunk> = {}): StartupChunk {
   return { fileName, isEntry: false, imports: [], code: "abc", modules: {}, ...options };
@@ -19,7 +25,7 @@ it("counts shared startup chunks once, using bytes, and ignores deferred Views",
         chunk("view.js", { code: "too big", modules: { "/view.tsx": {} } }),
       ],
       new Set(["/view.tsx"]),
-      8,
+      { maxBytes: 8 },
     ),
   ).toEqual({
     bytes: 8,
@@ -37,34 +43,112 @@ it("rejects a View entering a shared startup chunk even below the size limit", (
       chunk("shared.js", { modules: { "/view.tsx": {} } }),
     ],
     new Set(["/view.tsx"]),
-    100,
+    { maxBytes: 100 },
   );
   expect(result.problems).toEqual(["Lazy module entered the startup bundle: /view.tsx"]);
 });
 
-it("rejects oversized startup code and incomplete graphs", () => {
-  expect(inspectStartup([chunk("main.js", { isEntry: true })], new Set(), 2).problems).toEqual([
-    "Startup JavaScript is 3 bytes; limit is 2 bytes",
+const HEAVY: LazyOnlyDependency = {
+  name: "The heavy build",
+  path: "/node_modules/heavy/full/",
+  instead: "use its light build.",
+};
+
+/** `heavy` as a package: its entry re-exports the full build, which shares a core with the light one. */
+const HEAVY_IMPORTERS: Readonly<Record<string, readonly string[]>> = {
+  "/node_modules/heavy/full/schemas.js": ["/node_modules/heavy/index.js"],
+  "/node_modules/heavy/index.js": ["/app/settings.ts", "/app/shell.ts", "/app/command.ts"],
+  "/node_modules/heavy/core/parse.js": [
+    "/node_modules/heavy/full/schemas.js",
+    "/node_modules/heavy/light/schemas.js",
+  ],
+};
+const heavyImporters = (id: string) => HEAVY_IMPORTERS[id] ?? [];
+
+it("rejects a lazy-only dependency in a startup chunk and names the startup code that imports it", () => {
+  const result = inspectStartup(
+    [
+      chunk("main.js", {
+        isEntry: true,
+        imports: ["vendor.js"],
+        modules: { "/app/shell.ts": {}, "/app/settings.ts": {} },
+      }),
+      chunk("vendor.js", {
+        modules: {
+          "/node_modules/heavy/full/schemas.js": {},
+          "/node_modules/heavy/core/parse.js": {},
+        },
+      }),
+      chunk("command.js", { modules: { "/app/command.ts": {} } }),
+    ],
+    new Set(),
+    { maxBytes: 100, lazyOnly: [HEAVY] },
+    heavyImporters,
+  );
+  expect(result.problems).toEqual([
+    "The heavy build entered the startup bundle, imported by /app/settings.ts, /app/shell.ts: use its light build.",
   ]);
-  expect(() => inspectStartup([], new Set(), 2)).toThrow("No startup entry");
+});
+
+it("accepts a lazy-only dependency that loads on demand while the core it shares loads at startup", () => {
+  const result = inspectStartup(
+    [
+      chunk("main.js", {
+        isEntry: true,
+        imports: ["core.js"],
+        modules: { "/app/settings.ts": {}, "/node_modules/heavy/light/schemas.js": {} },
+      }),
+      chunk("core.js", { modules: { "/node_modules/heavy/core/parse.js": {} } }),
+      chunk("command.js", {
+        imports: ["core.js"],
+        modules: { "/app/command.ts": {}, "/node_modules/heavy/full/schemas.js": {} },
+      }),
+    ],
+    new Set(),
+    { maxBytes: 100, lazyOnly: [HEAVY] },
+    heavyImporters,
+  );
+  expect(result.problems).toEqual([]);
+});
+
+it("rejects oversized startup code and incomplete graphs", () => {
+  expect(
+    inspectStartup([chunk("main.js", { isEntry: true })], new Set(), { maxBytes: 2 }).problems,
+  ).toEqual(["Startup JavaScript is 3 bytes; limit is 2 bytes"]);
+  expect(() => inspectStartup([], new Set(), { maxBytes: 2 })).toThrow("No startup entry");
   expect(() =>
-    inspectStartup([chunk("main.js", { isEntry: true, imports: ["missing.js"] })], new Set(), 100),
+    inspectStartup([chunk("main.js", { isEntry: true, imports: ["missing.js"] })], new Set(), {
+      maxBytes: 100,
+    }),
   ).toThrow("Missing startup chunk");
 });
 
-it("fails a real production build if a dynamically loaded View is also imported eagerly", async () => {
+/** A throwaway project: `write` adds a file, `run` builds it from `main.js` under `rules`. */
+function fixtureProject() {
   const root = mkdtempSync(join(tmpdir(), "startup-bundle-"));
-  const run = (limit = 10_000) =>
-    build({
-      root,
-      configFile: false,
-      logLevel: "silent",
-      plugins: [startupBundle(limit)],
-      build: { write: false, minify: false, rolldownOptions: { input: join(root, "main.js") } },
-    });
+  return {
+    write(file: string, code: string) {
+      mkdirSync(dirname(join(root, file)), { recursive: true });
+      writeFileSync(join(root, file), code);
+    },
+    run: (rules: StartupRules) =>
+      build({
+        root,
+        configFile: false,
+        logLevel: "silent",
+        plugins: [startupBundle(rules)],
+        build: { write: false, minify: false, rolldownOptions: { input: join(root, "main.js") } },
+      }),
+    remove: () => rmSync(root, { recursive: true, force: true }),
+  };
+}
+
+it("fails a real production build if a dynamically loaded View is also imported eagerly", async () => {
+  const project = fixtureProject();
+  const run = (maxBytes = 10_000) => project.run({ maxBytes });
   try {
-    writeFileSync(join(root, "view.js"), 'export const value = "view";');
-    writeFileSync(join(root, "main.js"), 'globalThis.loadView = () => import("./view.js");');
+    project.write("view.js", 'export const value = "view";');
+    project.write("main.js", 'globalThis.loadView = () => import("./view.js");');
     const built = await run();
     if (Array.isArray(built) || !("output" in built)) throw new Error("Expected one build output");
     const reportAsset = built.output.find((item) => item.fileName === "startup-bundle.json");
@@ -81,12 +165,49 @@ it("fails a real production build if a dynamically loaded View is also imported 
       ),
     );
     await expect(run(1)).rejects.toThrow("Startup JavaScript");
-    writeFileSync(
-      join(root, "main.js"),
+    project.write(
+      "main.js",
       'import { value } from "./view.js"; console.log(value); globalThis.loadView = () => import("./view.js");',
     );
     await expect(run()).rejects.toThrow("Lazy module entered the startup bundle");
   } finally {
-    rmSync(root, { recursive: true, force: true });
+    project.remove();
+  }
+});
+
+it("fails a real production build if startup code imports a lazy-only dependency", async () => {
+  const project = fixtureProject();
+  const run = () => project.run({ maxBytes: 10_000, lazyOnly: [HEAVY] });
+  const loadCommand = 'globalThis.loadCommand = () => import("./command.js");';
+  try {
+    project.write("node_modules/heavy/core/parse.js", "export const parse = (value) => value;");
+    project.write(
+      "node_modules/heavy/full/schemas.js",
+      'import { parse } from "../core/parse.js"; export const full = (value) => parse([value]);',
+    );
+    project.write("node_modules/heavy/index.js", 'export { full } from "./full/schemas.js";');
+    project.write(
+      "node_modules/heavy/light.js",
+      'import { parse } from "./core/parse.js"; export const light = (value) => parse(value);',
+    );
+    project.write(
+      "command.js",
+      'import { full } from "./node_modules/heavy/index.js"; export default full("command");',
+    );
+    // The light build at startup and the full one on demand share the core: allowed.
+    project.write(
+      "main.js",
+      `import { light } from "./node_modules/heavy/light.js"; console.log(light("main")); ${loadCommand}`,
+    );
+    await run();
+    project.write(
+      "main.js",
+      `import { full } from "./node_modules/heavy/index.js"; console.log(full("main")); ${loadCommand}`,
+    );
+    await expect(run()).rejects.toThrow(
+      /The heavy build entered the startup bundle, imported by \S*main\.js: use its light build\./,
+    );
+  } finally {
+    project.remove();
   }
 });

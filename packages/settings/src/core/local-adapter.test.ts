@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vite-plus/test";
-import { z } from "zod";
+import { z } from "zod/mini";
 import { createTestAdapter, describeAdapterContract, settle } from "../testing/index.ts";
 import {
   createLocalSettingsAdapter,
