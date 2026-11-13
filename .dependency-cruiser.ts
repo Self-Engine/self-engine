@@ -237,6 +237,14 @@ export function boundaryConfig({
     },
     ...declaredWorkspaceRules(rootDir),
     {
+      name: "system-clock-only-in-apps",
+      comment:
+        "Only apps assemble systemClock from @self-engine/time/system-clock; packages take a Clock argument (D284). Internal time implementations and tests stay inside time.",
+      severity: "error",
+      from: { pathNot: ["^apps/", "^packages/time/"] },
+      to: { path: "^packages/time/src/system-clock\\.ts$" },
+    },
+    {
       name: "storage-is-portable",
       comment:
         "Storage uses db's platform-neutral interface; Electron and native drivers belong in platform bindings (D233).",

@@ -1030,3 +1030,42 @@ describe("data-side module composition", () => {
     },
   );
 });
+
+describe("the system clock entry", () => {
+  const time: FixturePackage = {
+    dir: "packages/time",
+    exports: { ".": "./src/index.ts", "./system-clock": "./src/system-clock.ts" },
+    files: {
+      "src/index.ts": "export {};",
+      "src/system-clock.ts": "export const systemClock = () => '';",
+    },
+  };
+  it.each(["src/index.ts", "src/clock.test.ts", "src/clock.stories.tsx"])(
+    "rejects a package import in %s",
+    async (file) => {
+      const consumer = declaring(
+        extraPackage("packages/consumer", {
+          [file]: 'import { systemClock } from "@self-engine/time/system-clock";',
+        }),
+        "@self-engine/time",
+      );
+      expect(
+        ruleNames(
+          await cruise([time, consumer], { allowedImports: { time: [], consumer: ["time"] } }),
+        ),
+      ).toEqual(["system-clock-only-in-apps"]);
+    },
+  );
+  it("allows app assembly and internal clock tests", async () => {
+    const desktop = declaring(
+      app("desktop", {
+        "src/main.ts": 'import { systemClock } from "@self-engine/time/system-clock";',
+      }),
+      "@self-engine/time",
+    );
+    const testedTime = withFiles(time, {
+      "src/clock.test.ts": 'import { systemClock } from "./system-clock.ts";',
+    });
+    expect(await cruise([testedTime, desktop], { allowedImports: { time: [] } })).toEqual([]);
+  });
+});

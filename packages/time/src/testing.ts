@@ -10,3 +10,10 @@ export function requireInstant(text: string): Instant {
 export function fixedClock(instant: Instant): Clock {
   return () => instant;
 }
+
+/** Move a deterministic fixture Instant by whole milliseconds, never by calendar days. */
+export function advanceInstantByMilliseconds(instant: Instant, milliseconds: number): Instant {
+  return instantSchema.parse(
+    Temporal.Instant.from(instant).add({ milliseconds }).toString({ smallestUnit: "millisecond" }),
+  );
+}

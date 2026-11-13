@@ -1,6 +1,10 @@
 import { afterEach, expect, expectTypeOf, test, vi } from "vite-plus/test";
 import * as main from "./index.ts";
-import { fixedClock, requireInstant } from "@self-engine/time/testing";
+import {
+  advanceInstantByMilliseconds,
+  fixedClock,
+  requireInstant,
+} from "@self-engine/time/testing";
 import { systemClock } from "@self-engine/time/system-clock";
 import type { Clock, Instant } from "./index.ts";
 
@@ -32,4 +36,11 @@ test("the system clock reads controlled system time and retains milliseconds", (
   vi.setSystemTime(1794614400999);
   expect(systemClock()).toBe("2026-11-14T00:00:00.999Z");
   expectTypeOf(systemClock).toEqualTypeOf<Clock>();
+});
+
+test("advances a fixture Instant across a UTC day boundary, keeping milliseconds", () => {
+  const start = requireInstant("2026-11-14T23:59:59.999Z");
+  expect(advanceInstantByMilliseconds(start, 2)).toBe("2026-11-15T00:00:00.001Z");
+  expect(advanceInstantByMilliseconds(start, -999)).toBe("2026-11-14T23:59:59.000Z");
+  expect(advanceInstantByMilliseconds(start, 0)).toBe(start);
 });
