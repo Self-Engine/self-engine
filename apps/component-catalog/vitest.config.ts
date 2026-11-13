@@ -14,6 +14,8 @@ export default defineConfig({
   optimizeDeps: { force: true },
   test: {
     name: "stories",
+    // Before Storybook's own setup file loads React: the render-count gate reads the commits (D256).
+    setupFiles: [resolve(import.meta.dirname, ".storybook/render-counter.ts")],
     browser: {
       enabled: true,
       headless: true,
