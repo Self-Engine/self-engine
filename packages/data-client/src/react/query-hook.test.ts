@@ -171,6 +171,57 @@ test("a reconnect marks an answer off screen, which reloads when shown", async (
   expect(listCalls(port)).toBe(2);
 });
 
+test.each([
+  ["a Table Change that names its table", (port: FakePort) => port.changeTables(["notes"])],
+  ["a reconnect", (port: FakePort) => port.reconnect()],
+])(
+  "%s during a Query's first load makes it read again once that load arrives",
+  async (_, change) => {
+    const port = fakePort();
+    const first = held<ReturnType<ReturnType<typeof listAnswer>>>();
+    port.answer("list", () => first.promise);
+    const list = await renderHook(port, () => useNoteList({}));
+    expect(list.current()).toMatchObject({ status: "loading" });
+
+    // The write commits while the first read is under way; its answer may predate the write.
+    change(port);
+    change(port);
+    await settle();
+    port.answer(
+      "list",
+      listAnswer(() => ["Beta"]),
+    );
+    first.resolve([note("note-0", "Alpha")]);
+    await settle();
+
+    expect(listCalls(port)).toBe(2);
+    expect(data(list.current()).map((row) => row.title)).toEqual(["Beta"]);
+  },
+);
+
+test("a provider given another access answers from it, not from the old access's answers", async () => {
+  const before = fakePort();
+  before.answer(
+    "list",
+    listAnswer(() => ["Alpha"]),
+  );
+  const after = fakePort();
+  after.answer(
+    "list",
+    listAnswer(() => ["Beta"]),
+  );
+  const shown = { access: before.access };
+  const list = await renderHook(shown, () => useNoteList({}));
+  expect(data(list.current()).map((row) => row.title)).toEqual(["Alpha"]);
+
+  shown.access = after.access;
+  await list.redraw();
+  await settle();
+
+  expect(listCalls(after)).toBe(1);
+  expect(data(list.current()).map((row) => row.title)).toEqual(["Beta"]);
+});
+
 test("window focus causes no call", async () => {
   const port = fakePort();
   port.answer(

@@ -1,7 +1,7 @@
 ---
 status: accepted
 date: 2026-11-12
-decisions: D90, D93, D97, D187, D190, D192, D263, D266
+decisions: D90, D93, D97, D187, D190, D192, D263
 ---
 
 # The database runs in a Data Process the page reaches directly
@@ -23,14 +23,14 @@ where there is no Electron.
 2. **The page talks to the _Data Process_ directly over a `MessagePort` with oRPC.** For each
    request the main process creates a `MessageChannelMain` and gives one end to each side. A port
    cannot cross the context bridge, so the preload forwards it into the page with a window message.
-   The page accepts that message only from its own origin. `@self-engine/data-protocol` owns only
-   what crosses modules, `health` and the `tablesChanged` stream, and knows no module;
-   `@self-engine/contracts` composes the one app contract from it and the modules' contracts. The
-   _Data Process_ core takes the app's module list from the desktop app (D266), so no package
-   below a module depends on one. Module contracts may share `Instant` from `time` and schemas
+   The page accepts that message only from its own origin. `@self-engine/contracts` composes the
+   one app contract from the modules' contracts and owns only what crosses modules: `health` and
+   the `tablesChanged` stream. Module contracts may share `Instant` from `time` and schemas
    from the pure `@self-engine/db/schema` entry; database runtime imports remain forbidden
-   ([ADR 0019](0019-row-maps-are-the-single-source-of-storage-types.md)). `@self-engine/data-client` builds the client on the page from the protocol alone; a module's
-   entries are typed by its hooks from its own contract.
+   ([ADR 0019](0019-row-maps-are-the-single-source-of-storage-types.md)). `@self-engine/data-client` builds the typed client on the page.
+   _Replaced in part by [ADR 0022](0022-the-desktop-app-owns-the-module-list-and-the-data-protocol-what-crosses-modules.md):
+   `@self-engine/data-protocol`, not `contracts`, owns `health` and the `tablesChanged` stream,
+   and the client on the page is built from the protocol alone._
 3. **The main process only starts, watches and hands out ports.** No call passes through it. After
    an unexpected exit it restarts the _Data Process_ and gives the page a fresh port. After three
    unexpected exits within one minute it stops until the person retries.

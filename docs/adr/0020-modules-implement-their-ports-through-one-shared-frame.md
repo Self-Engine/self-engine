@@ -58,6 +58,8 @@ changes atomically without opening a transaction for each call.
 - One data-side module list in `data-process` builds migrations and router together. Modules
   depend on storage, never data-process. Storage contains neither Electron nor a native driver,
   keeping transport, driver and future sync changes behind the ports.
+  _Replaced in part by [ADR 0022](0022-the-desktop-app-owns-the-module-list-and-the-data-protocol-what-crosses-modules.md):
+  the module list lives in the desktop app, which hands it to the `data-process` core._
 - One contract-kit call per module uses real in-memory SQLite, its migrations, a seed and
   valid examples for every entry, plus conflict examples. The kit derives invalid inputs;
   accepting every derived candidate fails. It checks shared invariants, not business behavior.
@@ -76,6 +78,8 @@ The [module-author guide](../development/port-pattern.md) gives the implementati
 [performance checks](../development/performance.md#storage-port-pattern) record measured costs.
 This completes the port pattern anticipated by ADR 0019 and moves its notes template from db
 to storage. The data-side module list replaces the desktop-side composition anticipated by D135.
+[ADR 0022](0022-the-desktop-app-owns-the-module-list-and-the-data-protocol-what-crosses-modules.md)
+moves that list back into the desktop app, so the `data-process` core knows no module.
 
 ## Considered Options
 

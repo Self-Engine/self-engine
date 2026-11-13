@@ -2,9 +2,17 @@ import type { TablesOf } from "@self-engine/db";
 import { noteIdSchema, notesRowMap } from "../../test/notes-module/data/rows.ts";
 import { ContractProcedure, oc } from "@orpc/contract";
 import { expect, test } from "vite-plus/test";
+import {
+  DummyDriver,
+  Kysely,
+  SqliteAdapter,
+  SqliteIntrospector,
+  SqliteQueryCompiler,
+} from "kysely";
 import { z } from "zod";
 import { defineStorageModule } from "../core/index.ts";
 import { checkContract } from "./index.ts";
+import { recordTableReads } from "./table-reads.ts";
 import { notes as referenceNotes } from "../../test/notes-module/data/index.ts";
 
 const announcementNotes = {
@@ -822,4 +830,61 @@ test("expression indexes remain distinguishable by their diagnostic names", asyn
     entries: { list: referenceNotes.entries.list },
   };
   await expect(checkContract(fixture, seed, { list: {} })).resolves.toEqual([]);
+});
+
+// The table-read recorder on its own: SQL compiled, never run, so no database is needed.
+interface ReadsSchema {
+  notes: { id: string };
+  note_links: { note_id: string };
+}
+
+function readsOf(build: (db: Kysely<ReadsSchema>) => { compile(): unknown }): readonly string[] {
+  const read = new Set<string>();
+  const db = new Kysely<ReadsSchema>({
+    dialect: {
+      createAdapter: () => new SqliteAdapter(),
+      createDriver: () => new DummyDriver(),
+      createIntrospector: (kysely) => new SqliteIntrospector(kysely),
+      createQueryCompiler: () => new SqliteQueryCompiler(),
+    },
+  }).withPlugin(recordTableReads(read));
+  build(db).compile();
+  return [...read].sort();
+}
+
+test("the kit counts a CTE named like a table as the CTE, and the tables its body reads", () => {
+  expect(
+    readsOf((db) =>
+      db
+        .with("notes", (q) => q.selectFrom("note_links").select("note_id"))
+        .selectFrom("notes")
+        .selectAll(),
+    ),
+  ).toEqual(["note_links"]);
+  expect(
+    readsOf((db) =>
+      db
+        .with("linked", (q) => q.selectFrom("notes").select("id"))
+        .selectFrom("linked")
+        .selectAll(),
+    ),
+  ).toEqual(["notes"]);
+});
+
+test("a CTE name hides a table only inside the query that declares it", () => {
+  expect(
+    readsOf((db) =>
+      db
+        .selectFrom("notes")
+        .select("id")
+        .where(
+          "id",
+          "in",
+          db
+            .with("notes", (q) => q.selectFrom("note_links").select("note_id as id"))
+            .selectFrom("notes")
+            .select("id"),
+        ),
+    ),
+  ).toEqual(["note_links", "notes"]);
 });

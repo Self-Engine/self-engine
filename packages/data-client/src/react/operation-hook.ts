@@ -2,7 +2,7 @@ import type { MessageDescriptor } from "@lingui/core";
 import { msg } from "@lingui/core/macro";
 import { ORPCError } from "@orpc/client";
 import { useMutation } from "@tanstack/react-query";
-import { useCallback } from "react";
+import { useCallback, useState } from "react";
 import { type DataAccess, useDataContext } from "./provider.ts";
 
 /** Shown when the entry an Operation changes no longer exists, unless the module replaces it. */
@@ -142,18 +142,28 @@ export function operationHook<Input, Output, Reason extends string>(
 ): OperationHook<Input, Output, Reason> {
   return function useOperationEntry() {
     const data = useDataContext();
-    const { mutateAsync, isPending } = useMutation({
+    const { mutateAsync } = useMutation({
       mutationKey: [module, entry],
       // The library passes its own context as a second argument, which the Port's call would
       // take for its options; only the input goes on.
       mutationFn: (input: Input) => runOperation(data, module, entry, input, handling),
     });
+    // The library's pending flag follows only the latest call, so overlapping calls are counted
+    // here: `running` stays true until every call of this hook has its result, and a call of
+    // another component on the same entry does not lock this one.
+    const [outstanding, setOutstanding] = useState(0);
     const run = useCallback(
-      (input: Input) =>
-        mutateAsync(input) as Promise<OperationResult<Output, Reason, FieldOf<Input>>>,
+      async (input: Input) => {
+        setOutstanding((count) => count + 1);
+        try {
+          return (await mutateAsync(input)) as OperationResult<Output, Reason, FieldOf<Input>>;
+        } finally {
+          setOutstanding((count) => count - 1);
+        }
+      },
       [mutateAsync],
     );
-    return { run, running: isPending };
+    return { run, running: outstanding > 0 };
   };
 }
 

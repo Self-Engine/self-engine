@@ -10,7 +10,6 @@ import {
   useEffect,
   useMemo,
   useRef,
-  useState,
 } from "react";
 import type { PortAccess } from "./port-access.ts";
 import { noticeFailedReload } from "./reload-notice.ts";
@@ -87,6 +86,36 @@ function entryOf(query: Query): readonly [string, string] | undefined {
   return typeof module === "string" && typeof entry === "string" ? [module, entry] : undefined;
 }
 
+/**
+ * Marks the answers `changed` picks and reloads those on screen (D250). A first load under way
+ * cannot be restarted: the library hands the new reader that same load, whose answer may predate
+ * the change and would clear the mark. Such a Query reads once more after that load arrives.
+ */
+function markChanged(cache: QueryClient, changed: (query: Query) => boolean): void {
+  const firstLoads = cache
+    .getQueryCache()
+    .findAll({ predicate: changed, fetchStatus: "fetching" })
+    .filter((query) => query.state.data === undefined);
+  void cache.invalidateQueries({ predicate: changed });
+  for (const query of firstLoads) readAgainAfter(cache, query);
+}
+
+/** First loads that read again once they arrive; one more read covers every change meanwhile. */
+const readingAgain = new WeakSet<Query>();
+
+function readAgainAfter(cache: QueryClient, query: Query): void {
+  const load = query.promise;
+  if (load === undefined || readingAgain.has(query)) return;
+  readingAgain.add(query);
+  const again = () => {
+    readingAgain.delete(query);
+    // A load that failed left no answer: the View shows its error and offers a retry.
+    if (query.state.status !== "success") return;
+    void cache.invalidateQueries({ queryKey: query.queryKey, exact: true });
+  };
+  load.then(again, again);
+}
+
 export interface DataProviderProps {
   /** How the hooks below reach the Data Process: the app's connection, or a stand-in. */
   readonly access: PortAccess;
@@ -103,6 +132,9 @@ export interface DataProviderProps {
   readonly children?: ReactNode;
 }
 
+/** Counts the accesses providers were given, to key the tree below each one's cache. */
+let accessGenerations = 0;
+
 /** Gives the tree below one query cache and the Port access (D249). */
 export function DataProvider({
   access,
@@ -110,13 +142,24 @@ export function DataProvider({
   notify = showNotice,
   children,
 }: DataProviderProps): ReactNode {
-  // The cache and the context live as long as the provider and its access; callbacks are read
-  // through refs, so a parent that passes them inline redraws no hook below.
+  // The cache and the context live as long as the provider's access: another access starts with
+  // no answers, so none of the old one shows. Callbacks are read through refs, so a parent that
+  // passes them inline redraws no hook below.
   const latest = useRef({ notify, reportMisuse });
   useEffect(() => {
     latest.current = { notify, reportMisuse };
   }, [notify, reportMisuse]);
-  const [cache] = useState(() => createQueryCache((notice) => latest.current.notify(notice)));
+  // A Query hook stays bound to the cache it first drew with, so the tree below is drawn anew for
+  // another access, keyed by its cache.
+  const { cache, generation } = useMemo(
+    () => ({
+      cache: createQueryCache((notice) => latest.current.notify(notice)),
+      generation: `access-${String(++accessGenerations)}`,
+    }),
+    [access],
+  );
+  // The old access's cache stops its timers and drops its answers once it is replaced.
+  useEffect(() => () => cache.clear(), [cache]);
   const context = useMemo<DataContext>(() => {
     const reported = new Set<string>();
     return {
@@ -137,19 +180,17 @@ export function DataProvider({
     const stopTables = access.onTablesChanged((tables) => {
       if (tables.length === 0) return;
       const changed = new Set(tables);
-      void cache.invalidateQueries({
-        predicate(query) {
-          const key = entryOf(query);
-          if (key === undefined) return false;
-          const description = access.describeEntry(...key);
-          // Before the list arrived nothing can be ruled out; an Operation reads nothing.
-          if (description === undefined) return true;
-          return description.kind === "query" && description.reads.some((t) => changed.has(t));
-        },
+      markChanged(cache, (query) => {
+        const key = entryOf(query);
+        if (key === undefined) return false;
+        const description = access.describeEntry(...key);
+        // Before the list arrived nothing can be ruled out; an Operation reads nothing.
+        if (description === undefined) return true;
+        return description.kind === "query" && description.reads.some((t) => changed.has(t));
       });
     });
     // Table Changes may have been lost while the connection was down (D250).
-    const stopReconnect = access.onReconnected(() => void cache.invalidateQueries());
+    const stopReconnect = access.onReconnected(() => markChanged(cache, () => true));
     return () => {
       stopTables();
       stopReconnect();
@@ -158,7 +199,7 @@ export function DataProvider({
 
   return createElement(
     QueryClientProvider,
-    { client: cache },
+    { client: cache, key: generation },
     createElement(Context, { value: context }, children),
   );
 }

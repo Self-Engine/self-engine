@@ -70,6 +70,32 @@ test("a successful Operation returns its data, and the hook reports running unti
   expect(notices).toEqual([]);
 });
 
+test("the hook reports running while any of its calls is outstanding, and only its own", async () => {
+  const port = fakePort();
+  const first = held<ReturnType<typeof note>>();
+  const second = held<ReturnType<typeof note>>();
+  const answers = [first, second];
+  port.answer("update", () => answers.shift()?.promise);
+  const rename = await renderHook(port, () => ({ mine: useRenameNote(), other: useRenameNote() }));
+
+  act(() => {
+    void rename.current().mine.run(RENAME);
+    void rename.current().mine.run(RENAME);
+  });
+  await settle();
+  expect(rename.current().mine.running).toBe(true);
+  expect(rename.current().other.running).toBe(false);
+
+  // The later call ends first; the earlier one still runs.
+  second.resolve(note("note-0", "Beta"));
+  await settle();
+  expect(rename.current().mine.running).toBe(true);
+
+  first.resolve(note("note-0", "Beta"));
+  await settle();
+  expect(rename.current().mine.running).toBe(false);
+});
+
 /** Runs the Operation once and lets its answer in. */
 async function runOnce<Result>(
   rendered: { current(): { run(input: typeof RENAME): Promise<Result> } },
