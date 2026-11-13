@@ -8,7 +8,7 @@ import { afterEach, expect, expectTypeOf, test } from "vite-plus/test";
 import { notes } from "../../test/notes-module/data/index.ts";
 import { ORPCError, createRouterClient } from "@orpc/server";
 import { noteIdSchema, type NoteId } from "../../test/notes-module/data/rows.ts";
-import { SECOND_SPACE_ID } from "@self-engine/spaces/testing";
+import { createSpaceRows, SECOND_SPACE_ID } from "@self-engine/spaces/testing";
 import {
   createFrame,
   createContext,
@@ -172,6 +172,7 @@ test("every call's context carries the Space the frame was given, and nothing el
   expectTypeOf<ContextSources>().toHaveProperty("spaceId").toEqualTypeOf<SpaceId>();
   const database = await createTestDatabase(notes);
   cleanups.push(() => database.close());
+  await createSpaceRows(database.kysely, [{ id: SECOND_SPACE_ID }]);
   const sources = { ...createTestContext(), spaceId: SECOND_SPACE_ID };
   const seen: SpaceId[] = [];
   const module = {

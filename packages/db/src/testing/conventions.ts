@@ -3,8 +3,8 @@ import type { Database } from "../core/index.ts";
 
 import type { SchemaViolation } from "./violation.ts";
 
-import { columnsOf, tablesOf } from "./introspect.ts";
-import type { ColumnRow } from "./introspect.ts";
+import { columnsOf, foreignKeyListOf, tablesOf } from "./introspect.ts";
+import type { ColumnRow, ForeignKeyRow } from "./introspect.ts";
 
 const TIMESTAMP_COLUMNS = ["created_at", "updated_at", "deleted_at"];
 
@@ -122,6 +122,56 @@ function foreignKeyRules(table: string, createTable: string): string[] {
   ]);
 }
 
+/**
+ * Every row of a table that is not a Local Table belongs to a Space the database knows (D286):
+ * `space_id` refers to `spaces(id)` in one form,
+ * `space_id TEXT NOT NULL REFERENCES spaces(id) DEFERRABLE INITIALLY DEFERRED`. The deferral is
+ * checked with every foreign key above; here the parent and the actions. A key over several
+ * columns that includes `space_id` is a different key and does not count. `spaces` is held to
+ * this like any table: its row refers to itself.
+ */
+async function spaceKeyRules(
+  database: Database,
+  table: string,
+  columns: readonly ColumnRow[],
+): Promise<string[]> {
+  // A missing space_id is reported once, by the rule of the required columns.
+  if (isLocalTable(table) || !columns.some(({ name }) => name === "space_id")) return [];
+  const keys = await foreignKeyListOf(database, table);
+  const fromSpaceId = keys.filter(
+    (key) => key.from === "space_id" && keys.filter(({ id }) => id === key.id).length === 1,
+  );
+  // SQLite resolves table and column names in any case.
+  const isSpacesId = (key: ForeignKeyRow) =>
+    key.table.toLowerCase() === "spaces" && key.to?.toLowerCase() === "id";
+  const toSpaces = fromSpaceId.filter(isSpacesId);
+  const elsewhere = fromSpaceId
+    .filter((key) => !isSpacesId(key))
+    .map(
+      (key) =>
+        `space_id must refer to spaces(id), not to ${key.table}${key.to === null ? "" : `(${key.to})`}`,
+    );
+  // SQLite records an explicit NO ACTION and none alike, so both pass.
+  const actions = toSpaces.flatMap((key) =>
+    [
+      ["ON UPDATE", key.on_update],
+      ["ON DELETE", key.on_delete],
+    ]
+      .filter(([, action]) => action !== "NO ACTION")
+      .map(
+        ([clause, action]) =>
+          `foreign key from space_id to spaces must not have ${clause} ${action}`,
+      ),
+  );
+  return [
+    ...(toSpaces.length === 0 && elsewhere.length === 0
+      ? ["space_id must refer to spaces(id)"]
+      : []),
+    ...elsewhere,
+    ...actions,
+  ];
+}
+
 interface IndexRow {
   readonly name: string;
   readonly origin: string;
@@ -185,10 +235,12 @@ export async function checkConventions(database: Database): Promise<SchemaViolat
   const rows = await tablesOf(database);
   const violations: SchemaViolation[] = [];
   for (const { name, strict, sql: createTable } of rows) {
+    const columns = await columnsOf(database, name);
     const rules = [
       ...(strict === 1 ? [] : ["must be STRICT"]),
-      ...columnRules(name, await columnsOf(database, name)),
+      ...columnRules(name, columns),
       ...foreignKeyRules(name, createTable),
+      ...(await spaceKeyRules(database, name, columns)),
       ...(await indexRules(database, name, createTable)),
     ];
     violations.push(...rules.map((rule) => ({ table: name, rule })));

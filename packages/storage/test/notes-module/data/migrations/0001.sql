@@ -3,7 +3,7 @@ CREATE TABLE notes (
   created_at TEXT NOT NULL,
   updated_at TEXT NOT NULL,
   deleted_at TEXT,
-  space_id TEXT NOT NULL,
+  space_id TEXT NOT NULL REFERENCES spaces(id) DEFERRABLE INITIALLY DEFERRED,
   title TEXT NOT NULL,
   is_pinned INTEGER NOT NULL CHECK (is_pinned IN (0, 1))
 ) STRICT;

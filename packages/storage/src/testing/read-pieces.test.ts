@@ -1,5 +1,5 @@
 import { createRouterClient } from "@orpc/server";
-import { SECOND_SPACE_ID } from "@self-engine/spaces/testing";
+import { createSpaceRows, SECOND_SPACE_ID } from "@self-engine/spaces/testing";
 import { expect, test } from "vite-plus/test";
 import type { TablesOf } from "@self-engine/db";
 import {
@@ -85,6 +85,7 @@ test("a link keeps its deleted note title and an explicit deleted mark", async (
 test("a target that later lands in another Space is not joined or available to the title filter", async () => {
   const database = await createTestDatabase(links, [notes]);
   try {
+    await createSpaceRows(database.kysely, [{ id: SECOND_SPACE_ID }]);
     const sources = createTestContext();
     const noteClient = createRouterClient(
       createFrame(notes, { database, sources, checkOutputs: true }),
@@ -110,6 +111,7 @@ test("a target that later lands in another Space is not joined or available to t
 test("creating a link answers not found for a missing, deleted or foreign-Space target", async () => {
   const database = await createTestDatabase(links, [notes]);
   try {
+    await createSpaceRows(database.kysely, [{ id: SECOND_SPACE_ID }]);
     const sources = createTestContext();
     const noteClient = createRouterClient(
       createFrame(notes, { database, sources, checkOutputs: true }),

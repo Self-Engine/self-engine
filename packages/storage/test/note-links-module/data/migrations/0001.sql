@@ -3,7 +3,7 @@ CREATE TABLE note_links (
   created_at TEXT NOT NULL,
   updated_at TEXT NOT NULL,
   deleted_at TEXT,
-  space_id TEXT NOT NULL,
+  space_id TEXT NOT NULL REFERENCES spaces(id) DEFERRABLE INITIALLY DEFERRED,
   note_id TEXT NOT NULL REFERENCES notes(id),
   label TEXT NOT NULL
 ) STRICT;

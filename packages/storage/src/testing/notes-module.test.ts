@@ -1,5 +1,5 @@
 import type { Instant } from "@self-engine/time";
-import { afterEach, beforeEach, expect, expectTypeOf, test } from "vite-plus/test";
+import { afterEach, beforeEach, describe, expect, expectTypeOf, test } from "vite-plus/test";
 import {
   noteIdSchema,
   notesMigrations,
@@ -9,15 +9,20 @@ import {
   type NoteId,
   type NoteRow,
 } from "../../test/notes-module/data/rows.ts";
-import { createMigrationRunner, newId, type TablesOf, type Database } from "@self-engine/db";
+import { newId, type TablesOf, type Database } from "@self-engine/db";
 import { checkAgreement, checkConventions, createTestSources } from "@self-engine/db/testing";
-import { openDatabase } from "@self-engine/db/better-sqlite3";
+import {
+  createSpaceRows,
+  FIRST_SPACE_ID,
+  SECOND_SPACE_ID,
+  THIRD_SPACE_ID,
+} from "@self-engine/spaces/testing";
+import { createTestDatabase } from "./helpers.ts";
 
 let database: Database;
 
 beforeEach(async () => {
-  database = openDatabase(":memory:");
-  await createMigrationRunner(database, notesMigrations).run();
+  database = await createTestDatabase({ migrations: notesMigrations });
 });
 
 afterEach(async () => {
@@ -44,7 +49,7 @@ test.each<{ isPinned: 0 | 1; expected: boolean }>([
       created_at: createdAt,
       updated_at: updatedAt,
       deleted_at: null,
-      space_id: newId<NoteRow["space_id"]>(sources.ids),
+      space_id: FIRST_SPACE_ID,
       title: "A typed note",
       is_pinned: isPinned,
     };
@@ -84,7 +89,7 @@ test("live titles are unique within a space and become reusable after soft delet
     created_at: now,
     updated_at: now,
     deleted_at: null,
-    space_id: newId<NoteRow["space_id"]>(sources.ids),
+    space_id: FIRST_SPACE_ID,
     title: "Reusable title",
     is_pinned: 0,
   };
@@ -95,12 +100,13 @@ test("live titles are unique within a space and become reusable after soft delet
     /UNIQUE constraint failed: notes.space_id, notes.title/,
   );
   // The same title in another space never conflicts.
+  await createSpaceRows(database.kysely, [{ id: SECOND_SPACE_ID }]);
   await queries
     .insertInto("notes")
     .values({
       ...row,
       id: newId<NoteId>(sources.ids),
-      space_id: newId<NoteRow["space_id"]>(sources.ids),
+      space_id: SECOND_SPACE_ID,
     })
     .execute();
   sources.advance(1000);
@@ -126,6 +132,53 @@ test("live titles are unique within a space and become reusable after soft delet
     .where("id", "=", row.id)
     .executeTakeFirst();
   expect(original).toEqual({ deleted_at: "2026-11-12T12:00:01.000Z" });
+});
+
+describe("the foreign key to spaces (D286)", () => {
+  function noteIn(spaceId: NoteRow["space_id"]): NoteRow {
+    const sources = createTestSources("2026-11-12T12:00:00.000Z");
+    const now = sources.clock();
+    return {
+      id: newId<NoteId>(sources.ids),
+      created_at: now,
+      updated_at: now,
+      deleted_at: null,
+      space_id: spaceId,
+      title: "Somewhere",
+      is_pinned: 0,
+    };
+  }
+
+  test("fails a transaction that writes a row whose Space the database does not hold, at its end", async () => {
+    const queries = database.kysely.withTables<TablesOf<typeof notesRowMap>>();
+    let written = false;
+
+    await expect(
+      queries.transaction().execute(async (tx) => {
+        await tx.insertInto("notes").values(noteIn(THIRD_SPACE_ID)).execute();
+        // The key is deferred: the statement passes, the commit does not.
+        written = true;
+      }),
+    ).rejects.toThrow("FOREIGN KEY constraint failed");
+    expect(written).toBe(true);
+    await expect(queries.selectFrom("notes").selectAll().execute()).resolves.toEqual([]);
+  });
+
+  test("lets a transaction write the Space after the row that refers to it", async () => {
+    const queries = database.kysely.withTables<TablesOf<typeof notesRowMap>>();
+    const note = noteIn(THIRD_SPACE_ID);
+
+    await database.kysely.transaction().execute(async (transaction) => {
+      await transaction
+        .withTables<TablesOf<typeof notesRowMap>>()
+        .insertInto("notes")
+        .values(note)
+        .execute();
+      await createSpaceRows(transaction, [{ id: THIRD_SPACE_ID }]);
+    });
+
+    await expect(queries.selectFrom("notes").selectAll().execute()).resolves.toEqual([note]);
+  });
 });
 
 test("notes passes the storage contract kit", async () => {

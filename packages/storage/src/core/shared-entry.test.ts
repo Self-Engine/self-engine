@@ -1,6 +1,6 @@
 import type { TablesOf } from "@self-engine/db";
 import { createRouterClient } from "@orpc/server";
-import { SECOND_SPACE_ID } from "@self-engine/spaces/testing";
+import { createSpaceRows, SECOND_SPACE_ID } from "@self-engine/spaces/testing";
 import { expect, test } from "vite-plus/test";
 import { notes } from "../../test/notes-module/data/index.ts";
 import { createFrame } from "./index.ts";
@@ -96,6 +96,7 @@ test("another Space's row is absent from lookup and every single-row change", as
   const { noteIdSchema } = await import("../../test/notes-module/data/rows.ts");
   const database = await createTestDatabase(notes);
   try {
+    await createSpaceRows(database.kysely, [{ id: SECOND_SPACE_ID }]);
     const sources = createTestContext();
     const context = {
       ...createContext(sources),

@@ -30,7 +30,7 @@ test("placeholder-alpha is mounted: an Operation is followed by its Table Change
   );
   await expect(client.health()).resolves.toMatchObject({
     state: "ready",
-    migrations: ["placeholder-alpha/0001", "spaces/0001"],
+    migrations: ["placeholder-alpha/0001", "placeholder-alpha/0002", "spaces/0001"],
   });
   const events = await client.tablesChanged();
   await expect(events.next()).resolves.toEqual({

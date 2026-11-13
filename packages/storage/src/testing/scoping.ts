@@ -8,7 +8,7 @@ import {
   type RowMap,
   type StorageContext,
 } from "../core/index.ts";
-import { SECOND_SPACE_ID, THIRD_SPACE_ID } from "@self-engine/spaces/testing";
+import { createSpaceRows, SECOND_SPACE_ID, THIRD_SPACE_ID } from "@self-engine/spaces/testing";
 import { createTestContext, createTestDatabase } from "./helpers.ts";
 import { tableContents } from "./table-contents.ts";
 import type { ContractViolation } from "./violation.ts";
@@ -40,6 +40,8 @@ export async function seedScoping<Rows extends RowMap>(
     [THIRD_SPACE_ID, deleted, true],
   ] as const) {
     await database.kysely.transaction().execute(async (transaction) => {
+      // The rows seeded here refer to their Space, so it must exist before the commit (D286).
+      await createSpaceRows(transaction, [{ id: spaceId }]);
       await seed(transaction.withTables<TablesOf<Rows>>(), { ...context, spaceId });
       const tx =
         transaction.withTables<
@@ -90,6 +92,8 @@ export async function checkEntryScoping<Contract extends StorageContract, Rows e
         const context = createContext(sources);
         const hidden = new Map<string, readonly string[]>();
         await database.kysely.transaction().execute(async (transaction) => {
+          // Rows moved to another Space refer to it. Both runs hold it, so only the rows differ.
+          await createSpaceRows(transaction, [{ id: SECOND_SPACE_ID }]);
           await seed(transaction.withTables<TablesOf<Rows>>(), context);
           const tx =
             transaction.withTables<
