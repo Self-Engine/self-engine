@@ -122,12 +122,12 @@ should have caught it (port guide, step 6).
 An Operation hook returns `{ run, running }`. `run(input)` resolves with a result and never
 rejects:
 
-| `status`     | Fields                    | The building block’s Notice                                                    |
-| ------------ | ------------------------- | ------------------------------------------------------------------------------ |
-| `success`    | `data`                    | none                                                                           |
-| `conflict`   | `reason`, `field`, `text` | none: show `text` at `field`                                                   |
-| `notFound`   | none                      | “This entry no longer exists.”, unless the module replaces it                  |
-| `unexpected` | `error`                   | “Something went wrong, and the change was not saved.”                          |
+| `status`     | Fields                    | The building block’s Notice                                   |
+| ------------ | ------------------------- | ------------------------------------------------------------- |
+| `success`    | `data`                    | none                                                          |
+| `conflict`   | `reason`, `field`, `text` | none: show `text` at `field`                                  |
+| `notFound`   | none                      | “This entry no longer exists.”, unless the module replaces it |
+| `unexpected` | `error`                   | “Something went wrong, and the change was not saved.”         |
 
 `running` is true from the call until the result; use it to lock the submit button. After
 `success`, do nothing about the lists: the Table Change of the commit reloads them.
@@ -238,13 +238,13 @@ Stories and component tests run without a Data Process. `fixedAnswers` from
 `@self-engine/data-client/testing` builds a Port access in which each entry returns what the
 story fixes for it:
 
-| Answer               | What the View gets                                                    |
-| -------------------- | --------------------------------------------------------------------- |
-| `{ data }`           | The data, checked against the entry’s output schema.                  |
-| `"loading"`          | No answer, ever: the story holds the loading state as long as it runs. |
-| `"unexpected"`       | A failed call.                                                        |
-| `{ conflict: "…" }`  | The entry’s conflict with that reason.                                |
-| `"notFound"`         | The entry’s “not found”.                                              |
+| Answer              | What the View gets                                                     |
+| ------------------- | ---------------------------------------------------------------------- |
+| `{ data }`          | The data, checked against the entry’s output schema.                   |
+| `"loading"`         | No answer, ever: the story holds the loading state as long as it runs. |
+| `"unexpected"`      | A failed call.                                                         |
+| `{ conflict: "…" }` | The entry’s conflict with that reason.                                 |
+| `"notFound"`        | The entry’s “not found”.                                               |
 
 Each answer is checked when `fixedAnswers` is called, and the story fails naming the entry and,
 for data, the field: data the output schema rejects, a reason the entry does not declare,
@@ -272,7 +272,9 @@ wraps it in `<DataProvider access={access}>`:
 ```tsx
 export const ATakenNameIsShownAtTheFieldAndTheDrawerStaysOpen: Story = {
   args: { access: placeholderAlphaAnswers({ rename: { conflict: "name_taken" } }) },
-  play: async () => { /* rename, then the field shows "An entry with this name already exists." */ },
+  play: async () => {
+    /* rename, then the field shows "An entry with this name already exists." */
+  },
 };
 ```
 
