@@ -70,7 +70,9 @@ Electron's Node 24 with ICU 78.2.
 - Safari 27.2 and Hermes have no `Temporal`. Web and mobile need a replacement loaded at start,
   and that runtime must pass the check program first; the check program is runtime-neutral for
   that reason.
-- The smoke stage bundles and runs the check program twice, which adds about a second to it.
+- The smoke stage bundles the check program and runs it twice, which added 2.5 s to it on the
+  owner's Mac; the D285 estimate was about one second. The stage replays from its cache while the
+  built app, the sources of `time` and the lockfile are unchanged.
 - The process time zone cannot leak into a result, because no function of `time` reads it except
   `deviceTimeZone`, and no other code can reach `Date` or `Temporal`. A second test run in a
   second zone would catch nothing more.
