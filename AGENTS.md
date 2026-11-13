@@ -3,8 +3,22 @@
 Self-Engine: a local-first productivity app for freelancers (projects, time, finance, calendar,
 habits). Electron desktop first, local SQLite, React + Mantine, German and English. pnpm
 monorepo on Vite+ (`vp`): apps in `apps/`, one package per module in `packages/`, repo tooling
-in `scripts/`. Binding decisions live in [`docs/adr/`](docs/adr/); `docs/plan/` is the German
-planning history.
+in `scripts/`.
+
+## Decisions
+
+The project is young: most decisions were recorded before the code they describe existed, to
+give the build a direction. Read each by its kind:
+
+- An **ADR** in [`docs/adr/`](docs/adr/) states what the code does today. Build to it, and
+  replace it with a new ADR when the code should work differently.
+- A **D-numbered decision** in `docs/plan/` (German), including where an issue repeats it, is a
+  **working assumption**: the best answer when it was written.
+
+Weigh every recorded decision you build on against what the code, the research and your own
+knowledge say now. When you see a better way, tell the owner before you build on the decision:
+name it, your alternative, and what the change costs. The owner decides. A decision gains no
+weight from being written down or from being repeated in several places.
 
 ## Task Completion
 

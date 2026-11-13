@@ -9,7 +9,7 @@ How the engineering skills should consume this repo's domain documentation when 
 - **`GLOSSARY.md`** at the repo root: the glossary of domain terms.
 - **`docs/adr/`**: read ADRs that touch the area you're about to work in.
 
-`docs/plan/` holds the German planning history (decisions D1…D53). Once a decision has an ADR, the ADR is the source of truth; `docs/plan/` is history and is never edited to match new decisions.
+`docs/plan/` holds the German decision log (`00-decisions.md`, one D number per decision) and one document per layer. Its entries are [working assumptions](../../AGENTS.md#decisions). Once a decision has an ADR, the ADR is the source of truth. A decision that replaces an older one is appended under its own number, and the older entry gets the note `_Überholt durch D<n>._` so that a reader of the old entry sees it.
 
 If the glossary has no entry yet, **proceed silently**. The `/domain-modeling` skill (reached via `/grill-with-docs` and `/improve-codebase-architecture`) adds terms when they actually get resolved, usually when the module that owns them is built.
 
@@ -20,8 +20,9 @@ If the glossary has no entry yet, **proceed silently**. The `/domain-modeling` s
 ├── GLOSSARY.md                    ← domain glossary
 ├── docs/
 │   ├── adr/                       ← 0001-<decision-as-a-sentence>.md, …
-│   ├── agents/                    ← this file, issue-tracker.md, triage-labels.md
-│   └── plan/                      ← planning history (German)
+│   ├── agents/                    ← this file, workflow.md, issue-tracker.md, triage-labels.md
+│   ├── development/               ← guides for ports, renderer hooks and performance
+│   └── plan/                      ← decision log and layer documents (German)
 ├── apps/                          ← desktop (and later web, mobile)
 ├── packages/                      ← one package per module, plus shared packages
 └── scripts/                       ← repo tooling, each script with a test
