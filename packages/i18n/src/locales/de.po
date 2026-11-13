@@ -27,6 +27,10 @@ msgstr "Beispieleintrag hinzufügen"
 msgid "All clients"
 msgstr "Alle Kunden"
 
+#: packages/placeholder-alpha/src/port.ts
+msgid "An entry with this name already exists."
+msgstr "Ein Eintrag mit diesem Namen existiert bereits."
+
 #: packages/settings-area/src/rows.tsx
 msgid "App Language"
 msgstr "App-Sprache"
@@ -203,10 +207,6 @@ msgstr "Eintrag nicht gefunden"
 msgid "Expand module sidebar"
 msgstr "Modul-Sidebar ausklappen"
 
-#: packages/placeholder-alpha/src/sample-data.ts
-msgid "Flaky work"
-msgstr "Wackelige Arbeit"
-
 #: packages/settings-area/src/rows.tsx
 msgid "Font scale"
 msgstr "Schriftgröße"
@@ -219,13 +219,9 @@ msgstr "Schriftgrad"
 msgid "From Theme"
 msgstr "Vom Theme"
 
-#: packages/placeholder-alpha/src/sample-data.ts
+#: packages/placeholder-alpha/src/groups.tsx
 msgid "Garden"
 msgstr "Garten"
-
-#: packages/placeholder-alpha/src/sample-data.ts
-msgid "Garden work"
-msgstr "Gartenarbeit"
 
 #: packages/settings-area/src/shortcut-rows.tsx
 msgctxt "Shortcuts that belong to no module"
@@ -462,13 +458,9 @@ msgctxt "Channel"
 msgid "Stable"
 msgstr "Stable"
 
-#: packages/placeholder-alpha/src/sample-data.ts
+#: packages/placeholder-alpha/src/groups.tsx
 msgid "Studio"
 msgstr "Studio"
-
-#: packages/placeholder-alpha/src/sample-data.ts
-msgid "Studio work"
-msgstr "Studioarbeit"
 
 #: packages/settings-area/src/rows.tsx
 msgctxt "App Language"
@@ -500,6 +492,10 @@ msgstr "Die Aktion konnte nicht ausgeführt werden. Bitte versuche es erneut."
 #: packages/settings-area/src/theme-rows.tsx
 msgid "The colors of the app. When the app follows the system, light and dark each have their own Theme."
 msgstr "Die Farben der App. Folgt die App dem System, haben Hell und Dunkel je ein eigenes Theme."
+
+#: packages/placeholder-alpha/src/port.ts
+msgid "The entry could not come back: another entry has its name now."
+msgstr "Der Eintrag konnte nicht zurückkommen: Ein anderer Eintrag trägt jetzt seinen Namen."
 
 #: packages/settings-area/src/theme-rows.tsx
 msgid "The highlight color for buttons, active items and links. \"From Theme\" uses the color a Theme brings, if it brings one."
@@ -540,10 +536,6 @@ msgstr "Theme für Dunkel"
 #: packages/settings-area/src/theme-rows.tsx
 msgid "Theme for light"
 msgstr "Theme für Hell"
-
-#: packages/placeholder-alpha/src/edit-drawer.tsx
-msgid "This entry could not be loaded."
-msgstr "Dieser Eintrag konnte nicht geladen werden."
 
 #: packages/data-client/src/react/operation-hook.ts
 msgid "This entry no longer exists."
@@ -614,7 +606,7 @@ msgstr "Warm"
 msgid "What you changed here will be lost."
 msgstr "Was du hier geändert hast, geht verloren."
 
-#: packages/data-client/src/react/reload-notice.tsx
+#: packages/data-client/src/react/reload-notice.ts
 msgid "What you see may be outdated: it could not be reloaded."
 msgstr "Was du siehst, ist vielleicht veraltet: Es konnte nicht neu geladen werden."
 

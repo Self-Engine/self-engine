@@ -2,6 +2,7 @@
 // imports the query library. Nothing at startup imports this entry.
 export type {
   ConflictText,
+  OperationFunction,
   OperationHandling,
   OperationHook,
   OperationResult,
@@ -9,5 +10,5 @@ export type {
 } from "./operation-hook.ts";
 export { type PortAccess, portAccessOf } from "./port-access.ts";
 export { type PortHooks, portHooks } from "./port-hooks.ts";
-export { DataProvider, type DataProviderProps } from "./provider.ts";
+export { DataProvider, type DataProviderProps, usePortAccess } from "./provider.ts";
 export type { QueryHook, QueryState } from "./query-hook.ts";

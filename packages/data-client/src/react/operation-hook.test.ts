@@ -17,7 +17,7 @@ import {
   type ShownNotices,
   unmountHook,
 } from "./hook-harness.ts";
-import { portHooks } from "./index.ts";
+import { portHooks, usePortAccess } from "./index.ts";
 import { NOT_FOUND_NOTICE, UNEXPECTED_NOTICE } from "./operation-hook.ts";
 
 // The feedback system is replaced, so no notice is drawn; the other tests collect notices instead.
@@ -218,4 +218,65 @@ test("without a collector, the notices go to the feedback system as error notice
   await runOnce(rename);
 
   expect(vi.mocked(notifyError)).toHaveBeenCalledOnce();
+});
+
+// The same Operation as a function, for code outside React such as a Command (D261): it takes the
+// Port access the caller was given, and answers and notifies as the hook does.
+const renameNote = notesPort.run("update", {
+  conflicts: { title_taken: { text: TITLE_TAKEN, field: "title" } },
+});
+
+test("the function form returns the same results as the hook, over the access it is given", async () => {
+  const port = fakePort();
+  port.answer("update", (input) => note("note-0", (input as typeof RENAME).title));
+  expect(await renameNote(port.access, RENAME)).toEqual({
+    status: "success",
+    data: note("note-0", "Beta"),
+  });
+  port.answer("update", () =>
+    Promise.reject(new ORPCError("CONFLICT", { data: { reason: "title_taken" } })),
+  );
+  expect(await renameNote(port.access, RENAME)).toEqual({
+    status: "conflict",
+    reason: "title_taken",
+    field: "title",
+    text: TITLE_TAKEN,
+  });
+  expect(port.calls).toHaveLength(2);
+  expect(vi.mocked(notifyError)).not.toHaveBeenCalled();
+});
+
+test.each([
+  ['"not found"', new ORPCError("NOT_FOUND"), { status: "notFound" }],
+  ["an unexpected error", new ORPCError("INTERNAL_SERVER_ERROR"), { status: "unexpected" }],
+])(
+  "the function form announces %s through the feedback system, as the hook does",
+  async (_case, error, result) => {
+    vi.mocked(notifyError).mockClear();
+    const port = fakePort();
+    port.answer("update", () => Promise.reject(error));
+    expect(await renameNote(port.access, RENAME)).toMatchObject(result);
+    expect(vi.mocked(notifyError)).toHaveBeenCalledOnce();
+  },
+);
+
+test("the function form is typed from the Contract like the hook", () => {
+  const typed = async () => {
+    const result = await renameNote(fakePort().access, RENAME);
+    if (result.status === "conflict") {
+      const field: "id" | "title" = result.field;
+      void field;
+    }
+    // @ts-expect-error `update` needs a title.
+    void renameNote(fakePort().access, { id: RENAME.id });
+  };
+  // @ts-expect-error An entry that declares a conflict needs its texts.
+  notesPort.run("create");
+  expect(typeof typed).toBe("function");
+});
+
+test("the provider gives code below it the Port access it was given, to hand to a function form", async () => {
+  const port = fakePort();
+  const access = await renderHook(port, () => usePortAccess());
+  expect(access.current()).toBe(port.access);
 });

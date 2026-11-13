@@ -13,6 +13,7 @@ import type { ComponentType } from "react";
 import { z } from "zod";
 import { settingsStore } from "./settings-store.ts";
 import { AppAt, held, storyRouter } from "./story-app.tsx";
+import { placeholderAlphaAnswers, STUDIO_WORK } from "@self-engine/placeholder-alpha/testing";
 
 type Canvas = ReturnType<typeof within>;
 type EditDrawerLoad = NonNullable<ShellContribution["editDrawer"]>;
@@ -23,7 +24,7 @@ const meta = {
   component: AppAt,
   parameters: { layout: "fullscreen" },
   loaders: [() => settingsStore.load()],
-  args: { address: "/placeholder-alpha/overview" },
+  args: { address: "/placeholder-alpha/overview", access: placeholderAlphaAnswers() },
 } satisfies Meta<typeof AppAt>;
 export default meta;
 type Story = StoryObj<typeof meta>;
@@ -114,7 +115,7 @@ export const GroupsRenderErrorStaysInTheSidebar: Story = {
 };
 
 export const DrawerLoadFailureStaysInItsFrame: Story = {
-  args: { address: "/placeholder-alpha/overview?edit=studio" },
+  args: { address: `/placeholder-alpha/overview?edit=${STUDIO_WORK.id}` },
   beforeEach: () =>
     expectingReportedErrors(spyOnModule.editDrawer().mockRejectedValueOnce(offline)),
   play: async ({ canvas, canvasElement }) => {
@@ -124,7 +125,7 @@ export const DrawerLoadFailureStaysInItsFrame: Story = {
     await expectShellIntact(canvas);
     await userEvent.click(dialog.getByRole("button", { name: "Try again" }));
     await expect(await dialog.findByRole("button", { name: "Cancel" })).toBeVisible();
-    await expect(dialog.getByText("studio")).toBeVisible();
+    await expect(dialog.getByText(STUDIO_WORK.id)).toBeVisible();
     await expect(dialog.queryByRole("alert")).toBeNull();
   },
 };
@@ -169,7 +170,7 @@ const DrawerStandIn: ComponentType = () => <p>Drawer stand-in</p>;
 let heldDrawer: ReturnType<typeof held<Awaited<ReturnType<EditDrawerLoad>>>>;
 
 export const SlowDrawerCodeShowsTheLoadingState: Story = {
-  args: { address: "/placeholder-alpha/overview?edit=studio" },
+  args: { address: `/placeholder-alpha/overview?edit=${STUDIO_WORK.id}` },
   beforeEach: () => {
     heldDrawer = held();
     const load = spyOnModule.editDrawer().mockReturnValue(heldDrawer.promise);
@@ -238,7 +239,9 @@ export const SlowActionStillOpensWhenTheViewStays: Story = {
   play: async ({ canvas, canvasElement }) => {
     await userEvent.click(await canvas.findByRole("button", { name: "New entry" }));
     await userEvent.click(canvas.getByRole("link", { name: "Garden" }));
-    await expect(await canvas.findByText("Garden work")).toBeVisible();
+    await waitFor(() =>
+      expect(canvas.getByRole("link", { name: "Garden" })).toHaveAttribute("aria-current", "true"),
+    );
     heldCommandStaying.finish(openEditor);
     await expectEditorShows(canvasElement, "new");
     await expect(storyRouter().state.location.search).toMatchObject({

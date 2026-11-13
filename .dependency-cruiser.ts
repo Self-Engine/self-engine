@@ -33,14 +33,25 @@ export const ALLOWED_IMPORTS: AllowedImports = {
   // Timestamp generation returns the shared Instant brand (D223).
   db: ["time"],
   icons: ["theme"],
-  // Its contracts and data entries (D252); the root entry stays with the shell and the UI.
-  "placeholder-alpha": ["db", "icons", "shell", "storage", "time", "ui"],
+  // Its contracts and data entries (D252); the root entry stays with the shell and the UI, and
+  // reads and writes through the data building block.
+  "placeholder-alpha": ["data-client", "db", "icons", "shell", "storage", "time", "ui"],
   "placeholder-beta": ["shell", "icons"],
   "settings-area": ["i18n", "icons", "settings", "shell", "theme", "ui"],
-  shell: ["icons", "theme", "ui"],
+  // The Port access type only, which every Command is given (D261).
+  shell: ["data-client", "icons", "theme", "ui"],
   storage: ["db", "time"],
   time: [],
   ui: ["icons", "theme"],
+};
+
+/**
+ * Further packages a package may import from its test and story files only, never from its own
+ * code. They count as allowed for the check against `package.json` like ALLOWED_IMPORTS.
+ */
+export const TEST_ONLY_IMPORTS: AllowedImports = {
+  // The test Data Process, to run the module's hooks end to end without the app (#33).
+  "placeholder-alpha": ["data-process"],
 };
 
 /** Only `@self-engine/icons` may import these; Tabler and the rest would be a second library. */
@@ -79,15 +90,30 @@ function alternatives(names: readonly string[]): string {
   return names.map((name) => name.replaceAll(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|");
 }
 
-/** One rule per package in `allowed`: no workspace package outside its list. */
-function allowedDirectionRules(allowed: AllowedImports): IForbiddenRuleType[] {
-  return Object.entries(allowed).map(([name, targets]) => ({
-    name: `package-direction:${name}`,
-    comment: `packages/${name} may import only ${["itself", ...targets].join(", ")} (ALLOWED_IMPORTS in .dependency-cruiser.ts).`,
-    severity: "error",
-    from: { path: `^packages/(?:${alternatives([name])})/` },
-    to: { path: "^packages/", pathNot: `^packages/(?:${alternatives([name, ...targets])})/` },
-  }));
+/**
+ * One rule per package in `allowed`: no workspace package outside its list. A package with
+ * test-only imports gets a second rule for its test and story files, which may import those too.
+ */
+function allowedDirectionRules(
+  allowed: AllowedImports,
+  testOnly: AllowedImports,
+): IForbiddenRuleType[] {
+  return Object.entries(allowed).flatMap(([name, targets]): IForbiddenRuleType[] => {
+    const forTests = testOnly[name] ?? [];
+    const rule = (suffix: string, path: string, list: readonly string[], pathNot?: string) => ({
+      name: `package-direction:${name}${suffix}`,
+      comment: `packages/${name} may import only ${["itself", ...list].join(", ")}${suffix ? " from its tests and stories" : ""} (ALLOWED_IMPORTS and TEST_ONLY_IMPORTS in .dependency-cruiser.ts).`,
+      severity: "error" as const,
+      from: pathNot === undefined ? { path } : { path, pathNot },
+      to: { path: "^packages/", pathNot: `^packages/(?:${alternatives([name, ...list])})/` },
+    });
+    const prefix = `^packages/(?:${alternatives([name])})/`;
+    if (forTests.length === 0) return [rule("", prefix, targets)];
+    return [
+      rule("", prefix, targets, DEV_ONLY_FILE),
+      rule(":tests", `${prefix}.*${DEV_ONLY_FILE}`, [...targets, ...forTests]),
+    ];
+  });
 }
 
 /**
@@ -161,14 +187,20 @@ function corePurityRule({
 export interface BoundaryOptions {
   /** The allowed directions between packages, see ALLOWED_IMPORTS. */
   readonly allowedImports: AllowedImports;
+  /** The directions allowed only from test and story files, see TEST_ONLY_IMPORTS. */
+  readonly testOnlyImports?: AllowedImports;
   /** The workspace root, whose `apps/*` and `packages/*` manifests are read. */
   readonly rootDir: string;
 }
 
 /** The boundary rules for the workspace at `rootDir`. */
-export function boundaryConfig({ allowedImports, rootDir }: BoundaryOptions): IConfiguration {
+export function boundaryConfig({
+  allowedImports,
+  testOnlyImports = {},
+  rootDir,
+}: BoundaryOptions): IConfiguration {
   const forbidden: IForbiddenRuleType[] = [
-    ...allowedDirectionRules(allowedImports),
+    ...allowedDirectionRules(allowedImports, testOnlyImports),
     {
       name: "package-direction:unlisted",
       comment:
@@ -382,4 +414,8 @@ export function boundaryConfig({ allowedImports, rootDir }: BoundaryOptions): IC
   };
 }
 
-export default boundaryConfig({ allowedImports: ALLOWED_IMPORTS, rootDir: import.meta.dirname });
+export default boundaryConfig({
+  allowedImports: ALLOWED_IMPORTS,
+  testOnlyImports: TEST_ONLY_IMPORTS,
+  rootDir: import.meta.dirname,
+});

@@ -31,6 +31,7 @@ import { AppLanguage } from "./app-language.tsx";
 import { AppearanceProvider } from "./appearance.tsx";
 import { settingsStore } from "./settings-store.ts";
 import { AppAt, openPalette, paletteGone, storyRouter } from "./story-app.tsx";
+import { placeholderAlphaAnswers } from "@self-engine/placeholder-alpha/testing";
 
 const i18n = createI18n();
 const APPEARANCE = "/settings/appearance";
@@ -92,7 +93,7 @@ const meta = {
   ],
   // The store is the app's one, on the browser's storage, which the next story shares.
   beforeEach: () => resetSettings,
-  args: { address: APPEARANCE },
+  args: { address: APPEARANCE, access: placeholderAlphaAnswers() },
 } satisfies Meta<typeof AppAt>;
 export default meta;
 type Story = StoryObj<typeof meta>;

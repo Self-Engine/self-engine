@@ -3,6 +3,7 @@
 // failed reload, however many hooks show that answer, and never for a failed first load, which
 // the View shows as its error state. The feedback system is replaced, so no Notice is drawn.
 
+import type { MessageDescriptor } from "@lingui/core";
 import type { TablesChanged } from "@self-engine/contracts";
 import type { notesContract } from "@self-engine/storage/testing";
 import { notifyError, type QueryDisplayState } from "@self-engine/ui";
@@ -10,6 +11,7 @@ import { act, createElement, type ReactNode } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, expect, expectTypeOf, test, vi } from "vite-plus/test";
 import { DataProvider, type PortAccess, portHooks, type QueryState } from "./index.ts";
+import { RELOAD_FAILED_NOTICE } from "./reload-notice.ts";
 
 vi.mock("@self-engine/ui", () => ({ notifyError: vi.fn() }));
 
@@ -80,7 +82,11 @@ async function settle(): Promise<void> {
 }
 
 /** Shows `count` hooks on the same Query, as two Views of one list would, and their states. */
-async function show(access: PortAccess, count: number): Promise<ListState[]> {
+async function show(
+  access: PortAccess,
+  count: number,
+  notify?: (notice: MessageDescriptor) => void,
+): Promise<ListState[]> {
   const states: ListState[] = [];
   function Probe({ index }: { readonly index: number }): ReactNode {
     states[index] = useNoteList({});
@@ -93,7 +99,8 @@ async function show(access: PortAccess, count: number): Promise<ListState[]> {
   const probes = Array.from({ length: count }, (_, index) =>
     createElement(Probe, { key: index, index }),
   );
-  act(() => mounted.render(createElement(DataProvider, { access }, ...probes)));
+  const props = notify === undefined ? { access } : { access, notify };
+  act(() => mounted.render(createElement(DataProvider, props, ...probes)));
   await settle();
   return states;
 }
@@ -136,6 +143,18 @@ test("a failed first load shows no Notice: the View shows its error state", asyn
   port.answers(fails);
   const [state] = await show(port.access, 1);
   expect(state?.status).toBe("loadFailed");
+  expect(notifyError).not.toHaveBeenCalled();
+});
+
+test("the Notice goes where the provider sends its other notices", async () => {
+  const port = fakePort();
+  port.answers(() => [{ id: "note-0" }]);
+  const notices: MessageDescriptor[] = [];
+  await show(port.access, 1, (notice) => notices.push(notice));
+  port.answers(fails);
+  act(() => port.changeTables(["notes"]));
+  await settle();
+  expect(notices).toEqual([RELOAD_FAILED_NOTICE]);
   expect(notifyError).not.toHaveBeenCalled();
 });
 
