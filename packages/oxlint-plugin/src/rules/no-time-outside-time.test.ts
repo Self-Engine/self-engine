@@ -105,3 +105,20 @@ test("rejects global-qualified APIs without confusing similarly named object pro
     ),
   ).toEqual([1, 1, 1, 1, 1]);
 });
+
+test("rejects forbidden APIs taken by assignment destructuring", () => {
+  const sources = [
+    "let now; ({ now } = Date);",
+    "let DateTimeFormat; ({ DateTimeFormat } = Intl);",
+    "let Temporal; ({ Temporal } = globalThis);",
+    "let format; ({ toLocaleDateString: format } = date);",
+  ];
+  const results = lintFixtures("no-time-outside-time", sources, "packages/example/src");
+  expect(results.map((hits) => hits.length)).toEqual([1, 1, 1, 1]);
+  expect(results.flat().every((hit) => hit.includes("@self-engine/time"))).toBe(true);
+});
+
+test("allows assignment destructuring of unrelated objects", () => {
+  const sources = ["let now; ({ now } = performance);", "let a; ({ a } = Intl);"];
+  expect(lintFixtures("no-time-outside-time", sources, "packages/example/src")).toEqual([[], []]);
+});

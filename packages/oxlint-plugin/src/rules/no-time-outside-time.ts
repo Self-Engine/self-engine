@@ -61,6 +61,16 @@ export default defineRule({
             "Use addDays, instantAt or formatInstant from @self-engine/time instead of a date library (D284).",
         });
     }
+    /** A forbidden API taken out of its object by destructuring, in a declaration or assignment. */
+    function destructured(target: ESTree.Node, source: ESTree.Node): void {
+      if (target.type !== "ObjectPattern") return;
+      for (const property of target.properties) {
+        if (property.type !== "Property") continue;
+        const name = propertyName(property.key, property.computed);
+        const hint = name === undefined ? undefined : message(source, name);
+        if (hint !== undefined) context.report({ node: property.key, message: hint });
+      }
+    }
     return {
       ImportDeclaration(node) {
         library(node.source, node.source.value);
@@ -102,13 +112,10 @@ export default defineRule({
         if (hint !== undefined) context.report({ node, message: hint });
       },
       VariableDeclarator(node) {
-        if (node.id.type !== "ObjectPattern" || node.init == null) return;
-        for (const property of node.id.properties) {
-          if (property.type !== "Property") continue;
-          const name = propertyName(property.key, property.computed);
-          const hint = name === undefined ? undefined : message(node.init, name);
-          if (hint !== undefined) context.report({ node: property.key, message: hint });
-        }
+        if (node.init != null) destructured(node.id, node.init);
+      },
+      AssignmentExpression(node) {
+        destructured(node.left, node.right);
       },
     };
   },

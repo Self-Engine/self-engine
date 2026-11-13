@@ -4,6 +4,11 @@ import { requireInstant } from "./testing.ts";
 
 const zone = (name: string) => resolveTimeZone(name).timeZone;
 
+// The words and digits are asserted exactly; which kind of space the runtime's language data puts
+// between them (a narrow no-break space before "PM" in some versions) is not ours to pin.
+const shown = (...args: Parameters<typeof formatInstant>): string =>
+  formatInstant(...args).replace(/\s/gu, " ");
+
 test.each([
   // A November afternoon: Berlin is an hour east of UTC, New York five hours west.
   ["en", "Europe/Berlin", "2026-11-13T12:30:00.000Z", "Nov 13, 2026, 1:30 PM"],
@@ -17,23 +22,21 @@ test.each([
   ["de", "Europe/Berlin", "2026-03-29T00:59:59.999Z", "29.03.2026, 01:59"],
   ["de", "America/New_York", "2026-03-29T00:59:59.999Z", "28.03.2026, 20:59"],
 ] as const)("dateTime in %s, %s: %s is %s", (locale, name, instant, expected) => {
-  expect(formatInstant(requireInstant(instant), "dateTime", locale, zone(name))).toBe(expected);
+  expect(shown(requireInstant(instant), "dateTime", locale, zone(name))).toBe(expected);
 });
 
 test("the zone decides the text, not the device's zone", () => {
   const instant = requireInstant("2026-11-13T23:30:00.000Z");
 
-  expect(formatInstant(instant, "dateTime", "de", zone("Asia/Bangkok"))).toBe("14.11.2026, 06:30");
-  expect(formatInstant(instant, "dateTime", "de", zone("Pacific/Honolulu"))).toBe(
-    "13.11.2026, 13:30",
-  );
+  expect(shown(instant, "dateTime", "de", zone("Asia/Bangkok"))).toBe("14.11.2026, 06:30");
+  expect(shown(instant, "dateTime", "de", zone("Pacific/Honolulu"))).toBe("13.11.2026, 13:30");
 });
 
 test("a formatter is kept per locale, zone and format: a second call gives the same text", () => {
   const instant = requireInstant("2026-11-13T12:30:00.000Z");
   const berlin = zone("Europe/Berlin");
 
-  expect(formatInstant(instant, "dateTime", "de", berlin)).toBe("13.11.2026, 13:30");
-  expect(formatInstant(instant, "dateTime", "en", berlin)).toBe("Nov 13, 2026, 1:30 PM");
-  expect(formatInstant(instant, "dateTime", "de", berlin)).toBe("13.11.2026, 13:30");
+  expect(shown(instant, "dateTime", "de", berlin)).toBe("13.11.2026, 13:30");
+  expect(shown(instant, "dateTime", "en", berlin)).toBe("Nov 13, 2026, 1:30 PM");
+  expect(shown(instant, "dateTime", "de", berlin)).toBe("13.11.2026, 13:30");
 });
