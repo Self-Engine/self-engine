@@ -804,12 +804,16 @@ describe("the renderer", () => {
       "src/data/index.ts": "export const storage = 1;\n",
     },
   };
+  const spaces: FixturePackage = {
+    dir: "packages/spaces",
+    files: { "src/index.ts": "export const ensurePersonalSpace = 1;\n" },
+  };
   const renderers = [
     (files: Record<string, string>) => app("web", files),
     (files: Record<string, string>) => app("component-catalog", files),
     (files: Record<string, string>) => extraPackage("packages/data-client", files),
   ];
-  const ALLOW = { "data-client": ["contracts", "data-process", "db", "time"] };
+  const ALLOW = { "data-client": ["contracts", "data-process", "db", "spaces", "time"] };
 
   it.each(renderers.map((make) => [make({}).dir, make] as const))(
     "%s imports the app contract as a type",
@@ -862,11 +866,14 @@ describe("the renderer", () => {
     ],
     ["the database connection", "@self-engine/db/better-sqlite3", []],
     ["a module's ./data entry", "@self-engine/time/data", []],
+    ["the Space package", "@self-engine/spaces", []],
   ])("fails an import of %s", async (_, specifier, alsoBroken) => {
     const packageName = specifier.split("/").slice(0, 2).join("/");
     for (const make of renderers) {
       const renderer = declaring(make({ "src/data.ts": `import "${specifier}";\n` }), packageName);
-      const found = await cruise([dataProcess, db, time, renderer], { allowedImports: ALLOW });
+      const found = await cruise([dataProcess, db, spaces, time, renderer], {
+        allowedImports: ALLOW,
+      });
       expect(ruleNames(found), renderer.dir).toEqual([
         "renderer-stays-off-the-database",
         ...alsoBroken,
@@ -964,6 +971,40 @@ describe("the storage package", () => {
       ]);
     },
   );
+});
+
+describe("the spaces package", () => {
+  it("may import db and time, and storage may import it", async () => {
+    const spaces = declaring(
+      extraPackage("packages/spaces", {
+        "src/index.ts": 'import "@self-engine/db";\nimport "@self-engine/time";\n',
+      }),
+      "@self-engine/db",
+      "@self-engine/time",
+    );
+    const storage = declaring(
+      extraPackage("packages/storage", { "src/index.ts": 'import "@self-engine/spaces";\n' }),
+      "@self-engine/spaces",
+    );
+    expect(
+      await cruise([spaces, storage, extraPackage("packages/db"), extraPackage("packages/time")], {
+        allowedImports: ALLOWED_IMPORTS,
+      }),
+    ).toEqual([]);
+  });
+  it.each(["storage", "data-process", "placeholder-alpha"])("cannot import %s", async (target) => {
+    const spaces = declaring(
+      extraPackage("packages/spaces", { "src/index.ts": `import "@self-engine/${target}";\n` }),
+      `@self-engine/${target}`,
+    );
+    expect(
+      ruleNames(
+        await cruise([spaces, extraPackage(`packages/${target}`)], {
+          allowedImports: ALLOWED_IMPORTS,
+        }),
+      ),
+    ).toEqual(["package-direction:spaces"]);
+  });
 });
 
 describe("data-side module composition", () => {

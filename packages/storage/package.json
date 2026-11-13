@@ -13,6 +13,7 @@
     "@orpc/contract": "catalog:",
     "@orpc/server": "catalog:",
     "@self-engine/db": "workspace:*",
+    "@self-engine/spaces": "workspace:*",
     "@self-engine/time": "workspace:*",
     "kysely": "catalog:",
     "zod": "catalog:"

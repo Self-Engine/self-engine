@@ -60,7 +60,9 @@ export const ALLOWED_IMPORTS: AllowedImports = {
   ],
   // The Port access type only, which every Command is given (D261).
   shell: ["data-client", "icons", "theme", "ui"],
-  storage: ["db", "time"],
+  // The Space below Storage (D287): its table, its id and the Personal Space of a database.
+  spaces: ["db", "time"],
+  storage: ["db", "spaces", "time"],
   time: [],
   ui: ["icons", "theme"],
 };
@@ -320,10 +322,10 @@ export function boundaryConfig({
     {
       name: "renderer-stays-off-the-database",
       comment:
-        "Only the data process opens the database. The renderer reaches it through `@self-engine/data-client`, never through the data process core, the database connection (`@self-engine/db/better-sqlite3`) or a module's `./data` entry.",
+        "Only the data process opens the database. The renderer reaches it through `@self-engine/data-client`, never through the data process core, the database connection (`@self-engine/db/better-sqlite3`), `@self-engine/spaces` or a module's `./data` entry.",
       severity: "error",
       from: RENDERER,
-      to: { path: "^packages/(?:data-process/|db/src/better-sqlite3/|[^/]+/src/data/)" },
+      to: { path: "^packages/(?:data-process/|db/src/better-sqlite3/|spaces/|[^/]+/src/data/)" },
     },
     {
       name: "icons-only-through-catalog",

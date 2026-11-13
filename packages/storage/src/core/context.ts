@@ -1,10 +1,9 @@
 import { newId, type IdSources } from "@self-engine/db";
-import { idSchema } from "@self-engine/db/schema";
+import { spaceIdSchema, type SpaceId } from "@self-engine/spaces";
 import type { Clock, Instant } from "@self-engine/time";
 import type { z } from "zod";
 
-export const spaceIdSchema = idSchema("Space");
-export type SpaceId = z.output<typeof spaceIdSchema>;
+// The fixed Space of every call until the Data Process hands in the Personal Space it found (#251).
 export const PERSONAL_SPACE = spaceIdSchema.parse("00000000-0000-7000-8000-000000000001");
 
 export interface ContextSources {

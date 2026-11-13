@@ -2,6 +2,7 @@ import { pageSchema, pageInputSchema } from "../../../src/core/index.ts";
 import { oc } from "@orpc/contract";
 import { instantSchema } from "@self-engine/time";
 import { idSchema } from "@self-engine/db/schema";
+import { spaceIdSchema } from "@self-engine/spaces";
 import { z } from "zod";
 export const noteIdSchema = idSchema("Note");
 export const noteSchema = z.object({
@@ -15,7 +16,7 @@ const conflict = { data: z.object({ reason: z.literal("title_taken") }) };
 const byId = z.object({ id: noteIdSchema });
 const storedNote = z.object({
   id: noteIdSchema,
-  space_id: idSchema("Space"),
+  space_id: spaceIdSchema,
   created_at: instantSchema,
   updated_at: instantSchema,
   deleted_at: instantSchema.nullable(),
