@@ -71,7 +71,8 @@ Electron's Node 24 with ICU 78.2.
   and that runtime must pass the check program first; the check program is runtime-neutral for
   that reason.
 - The smoke stage bundles the check program and runs it twice, which added 2.5 s to it on the
-  owner's Mac; the D285 estimate was about one second. The stage replays from its cache while the
+  owner's Mac, and 3.1 s once the check of day continuity joined it; the D285 estimate was about
+  one second. The stage replays from its cache while the
   built app, the sources of `time` and the lockfile are unchanged.
 - The process time zone cannot leak into a result, because no function of `time` reads it except
   `deviceTimeZone`, and no other code can reach `Date` or `Temporal`. A second test run in a
