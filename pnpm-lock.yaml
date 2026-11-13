@@ -708,6 +708,9 @@ importers:
       '@self-engine/db':
         specifier: workspace:*
         version: link:../db
+      '@self-engine/spaces':
+        specifier: workspace:*
+        version: link:../spaces
       '@self-engine/storage':
         specifier: workspace:*
         version: link:../storage

@@ -1,4 +1,5 @@
 import { createRouterClient } from "@orpc/server";
+import { SECOND_SPACE_ID } from "@self-engine/spaces/testing";
 import { expect, test } from "vite-plus/test";
 import type { TablesOf } from "@self-engine/db";
 import {
@@ -96,7 +97,7 @@ test("a target that later lands in another Space is not joined or available to t
     await database.kysely
       .withTables<{ notes: { id: string; space_id: string } }>()
       .updateTable("notes")
-      .set({ space_id: "00000000-0000-7000-8000-000000000002" })
+      .set({ space_id: SECOND_SPACE_ID })
       .where("id", "=", note.id)
       .execute();
     expect(await client.list({})).toEqual([{ ...link, noteTitle: null, noteDeletedAt: null }]);
@@ -110,7 +111,6 @@ test("creating a link answers not found for a missing, deleted or foreign-Space 
   const database = await createTestDatabase(links, [notes]);
   try {
     const sources = createTestContext();
-    const { spaceIdSchema } = await import("../core/index.ts");
     const noteClient = createRouterClient(
       createFrame(notes, { database, sources, checkOutputs: true }),
     );
@@ -124,7 +124,7 @@ test("creating a link answers not found for a missing, deleted or foreign-Space 
         tx.withTables(),
         {
           ...createContext(sources),
-          spaceId: spaceIdSchema.parse("00000000-0000-7000-8000-000000000002"),
+          spaceId: SECOND_SPACE_ID,
         },
         { title: "Private target", isPinned: false },
       ),

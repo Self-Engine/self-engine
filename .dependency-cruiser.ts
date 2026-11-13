@@ -31,8 +31,9 @@ export const ALLOWED_IMPORTS: AllowedImports = {
   // The building block tells the user through `ui`'s feedback system. It takes the protocol from
   // `data-protocol`, which knows no module, so no cycle runs through a module (ADR 0006).
   "data-client": ["data-protocol", "ui"],
-  // The core knows no module: the app passes its module list in.
-  "data-process": ["data-protocol", "db", "storage"],
+  // The core knows no module: the app passes its module list in. It runs the migration of
+  // `spaces` and makes sure of the Personal Space at every start (D287).
+  "data-process": ["data-protocol", "db", "spaces", "storage"],
   // `health`, the Table Change stream and the Backups; a Backup's Instant comes from `time`.
   "data-protocol": ["time"],
   // The preload and the page share it; the failure states come from the protocol.

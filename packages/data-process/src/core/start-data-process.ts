@@ -1,12 +1,14 @@
+import { type AnyRouter, os } from "@orpc/server";
 import type { Health, TablesChanged } from "@self-engine/data-protocol";
 import type { Database } from "@self-engine/db";
-import { createFrame, type ContextSources, type FrameOptions } from "@self-engine/storage";
+import type { SpaceSources } from "@self-engine/spaces";
+import { createFrame, type ErasedStorageModule, type FrameOptions } from "@self-engine/storage";
 import type { DataModules } from "./modules.ts";
 import type { PlatformBackups } from "./procedures/backups.ts";
 import { queryTables } from "./query-tables.ts";
 import { createRouter } from "./router.ts";
 import { createPortServer, type DataPort } from "./serve.ts";
-import { type BeforeMigrations, migrate } from "./startup.ts";
+import { type BeforeMigrations, startUp } from "./startup.ts";
 import { createTablesChangedPublisher } from "./tables-changed.ts";
 
 export interface DataProcessOptions {
@@ -14,7 +16,11 @@ export interface DataProcessOptions {
   readonly database: Database;
   /** The data entries to mount: the app's list, or a test's fixtures. */
   readonly modules: DataModules;
-  readonly sources: ContextSources;
+  /**
+   * The clock and the id source of every call, and of the Personal Space when the first start
+   * creates it. The Space of a call is not a source the app passes: the start finds it.
+   */
+  readonly sources: SpaceSources;
   readonly checkOutputs: boolean;
   readonly report?: FrameOptions["report"];
   /** Called before the migrations run when some are pending, and not when none are (D138). */
@@ -39,9 +45,25 @@ export interface DataProcess {
 }
 
 /**
- * The platform-neutral core of the data process: runs the pending migrations first, so their
- * outcome is known before the first call is answered, then serves the app contract on each
- * port it receives. It knows nothing of Electron (D97).
+ * A module's entries when the start ended in a failure state and found no Space for a frame:
+ * `refuseUnlessReady` refuses each call before this handler could run.
+ */
+function unserved(module: ErasedStorageModule): AnyRouter {
+  return Object.fromEntries(
+    Object.keys(module.contract).map((entry) => [
+      entry,
+      os.handler(() => {
+        throw new Error(`${module.name}.${entry} has no frame in a failure state`);
+      }),
+    ]),
+  );
+}
+
+/**
+ * The platform-neutral core of the data process: runs the pending migrations and makes sure of
+ * the Personal Space first, so their outcome is known before the first call is answered, then
+ * serves the app contract on each port it receives. Every module's frame gets that Space, and
+ * each call's context carries it (D195, D287). It knows nothing of Electron (D97).
  */
 export async function startDataProcess({
   database,
@@ -52,22 +74,25 @@ export async function startDataProcess({
   report,
   backups,
 }: DataProcessOptions): Promise<DataProcess> {
-  const health = await migrate(
+  const { health, space } = await startUp(
     database,
     Object.values(modules).flatMap((module) => module.migrations),
+    sources,
     beforeMigrations,
   );
   const tablesChanged = createTablesChangedPublisher();
   const moduleRouter = Object.fromEntries(
     Object.entries(modules).map(([name, module]) => [
       name,
-      createFrame(module, {
-        database,
-        sources,
-        checkOutputs,
-        ...(report === undefined ? {} : { report }),
-        announce: (tables) => tablesChanged.announce([...tables]),
-      }),
+      space === undefined
+        ? unserved(module)
+        : createFrame(module, {
+            database,
+            sources: { clock: sources.clock, ids: sources.ids, spaceId: space.id },
+            checkOutputs,
+            ...(report === undefined ? {} : { report }),
+            announce: (tables) => tablesChanged.announce([...tables]),
+          }),
     ]),
   );
   return {

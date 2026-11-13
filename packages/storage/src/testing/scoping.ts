@@ -5,10 +5,10 @@ import {
   createFrame,
   type StorageContract,
   type StorageModule,
-  spaceIdSchema,
   type RowMap,
   type StorageContext,
 } from "../core/index.ts";
+import { SECOND_SPACE_ID, THIRD_SPACE_ID } from "@self-engine/spaces/testing";
 import { createTestContext, createTestDatabase } from "./helpers.ts";
 import { tableContents } from "./table-contents.ts";
 import type { ContractViolation } from "./violation.ts";
@@ -35,11 +35,10 @@ export async function seedScoping<Rows extends RowMap>(
   const tables = scopedTables(rowMap);
   const foreign = new Set<string>();
   const deleted = new Set<string>();
-  for (const [space, ids, remove] of [
-    ["00000000-0000-7000-8000-000000000002", foreign, false],
-    ["00000000-0000-7000-8000-000000000003", deleted, true],
+  for (const [spaceId, ids, remove] of [
+    [SECOND_SPACE_ID, foreign, false],
+    [THIRD_SPACE_ID, deleted, true],
   ] as const) {
-    const spaceId = spaceIdSchema.parse(space);
     await database.kysely.transaction().execute(async (transaction) => {
       await seed(transaction.withTables<TablesOf<Rows>>(), { ...context, spaceId });
       const tx =
@@ -111,9 +110,7 @@ export async function checkEntryScoping<Contract extends StorageContract, Rows e
               await tx
                 .updateTable(table)
                 .set(
-                  mode === "deleted"
-                    ? { deleted_at: context.now }
-                    : { space_id: "00000000-0000-7000-8000-000000000002" },
+                  mode === "deleted" ? { deleted_at: context.now } : { space_id: SECOND_SPACE_ID },
                 )
                 .where("id", "in", ids)
                 .execute();

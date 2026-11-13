@@ -14,7 +14,7 @@ afterEach(async () => {
 });
 
 describe("a typed call over a message port", () => {
-  test("health answers ready with the SQLite version and no migrations", async () => {
+  test("health answers ready with the SQLite version and the migration of spaces alone", async () => {
     dataProcess = await startTestDataProcess();
     const connection = createDataConnection();
     connection.connect(dataProcess.openPort());
@@ -22,7 +22,7 @@ describe("a typed call over a message port", () => {
     await expect(connection.client.health()).resolves.toEqual({
       state: "ready",
       sqliteVersion: expect.stringMatching(/^3\.\d+\.\d+$/),
-      migrations: [],
+      migrations: ["spaces/0001"],
     });
   });
 
@@ -37,7 +37,7 @@ describe("a typed call over a message port", () => {
 
     await expect(connection.client.health()).resolves.toMatchObject({
       state: "ready",
-      migrations: ["fixture/0001"],
+      migrations: ["fixture/0001", "spaces/0001"],
     });
   });
 

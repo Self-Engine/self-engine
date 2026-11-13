@@ -1,5 +1,6 @@
 import type { TablesOf } from "@self-engine/db";
 import { createRouterClient } from "@orpc/server";
+import { SECOND_SPACE_ID } from "@self-engine/spaces/testing";
 import { expect, test } from "vite-plus/test";
 import { notes } from "../../test/notes-module/data/index.ts";
 import { createFrame } from "./index.ts";
@@ -91,14 +92,14 @@ test("the shared entry rejects Local Tables, even with convention-shaped columns
 });
 
 test("another Space's row is absent from lookup and every single-row change", async () => {
-  const { createContext, sharedWrites, spaceIdSchema } = await import("./index.ts");
+  const { createContext, sharedWrites } = await import("./index.ts");
   const { noteIdSchema } = await import("../../test/notes-module/data/rows.ts");
   const database = await createTestDatabase(notes);
   try {
     const sources = createTestContext();
     const context = {
       ...createContext(sources),
-      spaceId: spaceIdSchema.parse("00000000-0000-7000-8000-000000000002"),
+      spaceId: SECOND_SPACE_ID,
     };
     const id = context.newId(noteIdSchema);
     await database.kysely.transaction().execute((tx) =>
