@@ -112,6 +112,8 @@ What reloads, and when, is the building block’s job, the same for every module
   meet the changed tables reloads at once. One off screen is only marked and reloads when it is
   shown again, showing its previous answer meanwhile.
 - After the connection to the Data Process is lost and comes back, every answer is marked.
+- A Table Change or reconnect that arrives during a Query's first load makes it read once more
+  after that load: the first answer may predate the change.
 - Window focus, the network state and elapsed time reload nothing. An answer no View shows is
   dropped after 5 minutes.
 - Answers are kept by module, entry and input. Two Views that call the same hook with equal
@@ -136,7 +138,9 @@ rejects:
 | `notFound`   | none                      | “This entry no longer exists.”, unless the module replaces it |
 | `unexpected` | `error`                   | “Something went wrong, and the change was not saved.”         |
 
-`running` is true from the call until the result; use it to lock the submit button. After
+`running` is true while any call of this hook instance waits for its result; use it to lock the
+submit button and the fields, since what is typed during a save is lost when the drawer closes.
+A call through the same entry in another component does not set it. After
 `success`, do nothing about the lists: the Table Change of the commit reloads them.
 
 **Conflict texts.** For each conflict reason the Contract entry declares, the hook needs a
@@ -159,11 +163,13 @@ const save = async () => {
   else if (result.status === "conflict") setConflict(result.text);
   // unexpected: the Notice is shown, the drawer stays open with the input
 };
-// <TextInput error={conflict && i18n._(conflict)} … />
+// <TextInput error={conflict && i18n._(conflict)} readOnly={rename.running} … />
 // <Button disabled={draft === ""} loading={rename.running} onClick={() => void save()}>
 ```
 
 Translate the text where it is shown (`i18n._(text)`), so it follows a language switch.
+`onDone` after a save that ends once the person has left this entry closes nothing, so it never
+closes another entry's drawer.
 
 **A conflict without a field.** Where no field can show it, as for undo or a Command without a
 form, state `field: null` (D264). The building block then shows the text as an error Notice
