@@ -91,8 +91,9 @@ Grundlage: [`research-layer-3-core.md`](../research-layer-3-core.md).
   `Intl.DateTimeFormat` ohne `timeZone`. Tests: `fast-check` mit festem Seed, Parser als Tabellen
   gegen die Zod-Schemas, der Test mit der echten Uhr entfällt. Von der Wochenstart-Tabelle werden
   nur `de-DE` und `en-US` übernommen. _Zurückgestellt:_ doppelte Mitternacht in historischen
-  kanadischen Zeitzonen, Prüfung auf Hermes. _Zweitnamen und eigene Zonenliste überholt durch D282,
-  die Lint-Regeln durch D284._
+  kanadischen Zeitzonen, Prüfung auf Hermes. _Zweitnamen, eigene Zonenliste und das Zod-Schema
+  für `TimeZone` überholt durch D282 (der Typ entsteht nur über die Auflösungsfunktion), die
+  Lint-Regeln durch D284._
 - **D150 (L3.8) Tags hängen über Brücken der Module an Einträgen.** Tabelle `tags` mit Titel,
   optionaler Beschreibung und `modules` als JSON-Text mit Modul-IDs (leer heißt überall). Der Titel
   ist pro Space eindeutig, über eine in TypeScript berechnete Spalte `normalized_title` mit
