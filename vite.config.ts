@@ -67,7 +67,10 @@ export default defineConfig({
       },
       {
         files: ["packages/**", "apps/**"],
-        rules: { "self-engine/no-query-or-throw": "error" },
+        rules: {
+          "self-engine/no-query-or-throw": "error",
+          "self-engine/no-time-outside-time": "error",
+        },
       },
     ],
   },
