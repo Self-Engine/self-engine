@@ -1,9 +1,5 @@
 import { type Clock } from "@self-engine/time";
-import {
-  advanceInstantByMilliseconds,
-  fixedClock,
-  requireInstant,
-} from "@self-engine/time/testing";
+import { advanceInstantByMilliseconds, requireInstant } from "@self-engine/time/testing";
 import type { IdSources } from "../core/index.ts";
 
 /** Shared deterministic sources for a test transaction context. */
@@ -15,8 +11,8 @@ export interface TestSources {
 
 /** A fixed transaction time, moved only by `advance`. */
 export function createTestSources(start: string): TestSources {
-  let current = fixedClock(requireInstant(start));
-  const clock: Clock = () => current();
+  let current = requireInstant(start);
+  const clock: Clock = () => current;
   let counter = 0;
   const ids: IdSources = {
     clock,
@@ -37,7 +33,7 @@ export function createTestSources(start: string): TestSources {
     clock,
     ids,
     advance(ms: number): void {
-      current = fixedClock(advanceInstantByMilliseconds(current(), ms));
+      current = advanceInstantByMilliseconds(current, ms);
     },
   };
 }
