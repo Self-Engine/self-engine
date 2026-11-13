@@ -2,13 +2,21 @@
 // that have a Backup, the newest Backup of each kind stays, so a day holds at most four: its
 // daily one, the newest taken by hand, the newest from before a migration and the newest from
 // before a restore. Before those days, the newest Backup of each of four weeks stays. Days and
-// weeks are counted in UTC, so the rule needs no time zone and gives the same answer on every
-// device. It never asks what time it is: only the Backups that exist decide, so a device that
+// weeks are counted in UTC, not in the zone the user picked, so the rule gives the same answer
+// on every device and after every change of zone. It never asks what time it is: only the Backups that exist decide, so a device that
 // was off for months loses none.
 
-/** What the rule needs of a Backup: when it was taken, as a UTC instant. */
+import {
+  type CalendarDay,
+  calendarDayOf,
+  type Instant,
+  resolveTimeZone,
+  weekOf,
+} from "@self-engine/time";
+
+/** What the rule needs of a Backup: the Instant it was taken. */
 interface Dated {
-  readonly takenAt: string;
+  readonly takenAt: Instant;
 }
 
 /** A Backup with the reason it was taken, which the rule keeps apart within a day. */
@@ -25,17 +33,16 @@ export interface RetentionPolicy {
 
 export const RETENTION: RetentionPolicy = { days: 7, weeks: 4 };
 
-const DAY_MS = 86_400_000;
+const UTC = resolveTimeZone("UTC").timeZone;
 
-/** The UTC day of an instant, counted from 1970-01-01. */
-function dayOf(instant: string | Date): number {
-  const milliseconds = typeof instant === "string" ? Date.parse(instant) : instant.getTime();
-  return Math.floor(milliseconds / DAY_MS);
+/** The UTC day of an Instant. */
+function dayOf(instant: Instant): CalendarDay {
+  return calendarDayOf(instant, UTC);
 }
 
-/** The week of a day, Monday to Sunday: 1970-01-01 was a Thursday. */
-function weekOf(day: number): number {
-  return Math.floor((day + 3) / 7);
+/** The week of a day, Monday to Sunday, named by its Monday. */
+function weekStartOf(day: CalendarDay): CalendarDay {
+  return weekOf(day, 1).first;
 }
 
 /**
@@ -50,13 +57,16 @@ export function expiredBackups<Backup extends DatedKind>(
   backups: readonly Backup[],
   { days, weeks }: RetentionPolicy = RETENTION,
 ): Backup[] {
-  const newestFirst = backups.toSorted((a, b) => Date.parse(b.takenAt) - Date.parse(a.takenAt));
-  const keptDays = new Set<number>();
+  // Instants sort as text in time order.
+  const newestFirst = backups.toSorted((a, b) =>
+    a.takenAt === b.takenAt ? 0 : a.takenAt < b.takenAt ? 1 : -1,
+  );
+  const keptDays = new Set<CalendarDay>();
   for (const backup of newestFirst) {
     if (keptDays.size < days) keptDays.add(dayOf(backup.takenAt));
   }
   const keptKinds = new Set<string>();
-  const keptWeeks = new Set<number>();
+  const keptWeeks = new Set<CalendarDay>();
   const expired: Backup[] = [];
   for (const backup of newestFirst) {
     const day = dayOf(backup.takenAt);
@@ -67,7 +77,7 @@ export function expiredBackups<Backup extends DatedKind>(
       else keptKinds.add(dayAndKind);
       continue;
     }
-    const week = weekOf(day);
+    const week = weekStartOf(day);
     if (!keptWeeks.has(week) && keptWeeks.size < weeks) keptWeeks.add(week);
     else expired.push(backup);
   }
@@ -75,7 +85,7 @@ export function expiredBackups<Backup extends DatedKind>(
 }
 
 /** Whether no Backup was taken on the UTC day of `now` yet: the daily one is due. */
-export function isDailyBackupDue(backups: readonly Dated[], now: Date): boolean {
+export function isDailyBackupDue(backups: readonly Dated[], now: Instant): boolean {
   const today = dayOf(now);
   return !backups.some((backup) => dayOf(backup.takenAt) === today);
 }

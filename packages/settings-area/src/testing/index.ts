@@ -8,6 +8,7 @@ import {
   fixedAnswers,
 } from "@self-engine/data-client/testing";
 import { type Backup, backupsContract } from "@self-engine/data-protocol";
+import { requireInstant } from "@self-engine/time/testing";
 
 const contracts = { backups: backupsContract };
 
@@ -16,25 +17,25 @@ export type BackupAnswers = NonNullable<FixedAnswers<typeof contracts>["backups"
 
 export const BEFORE_RESTORE_BACKUP: Backup = {
   id: "2026-11-13T12-45-00-000Z-before-restore",
-  takenAt: "2026-11-13T12:45:00.000Z",
+  takenAt: requireInstant("2026-11-13T12:45:00.000Z"),
   kind: "before-restore",
   sizeBytes: 2_150_400,
 };
 export const MANUAL_BACKUP: Backup = {
   id: "2026-11-13T12-30-00-000Z-manual",
-  takenAt: "2026-11-13T12:30:00.000Z",
+  takenAt: requireInstant("2026-11-13T12:30:00.000Z"),
   kind: "manual",
   sizeBytes: 2_150_400,
 };
 export const DAILY_BACKUP: Backup = {
   id: "2026-11-13T07-00-00-000Z-daily",
-  takenAt: "2026-11-13T07:00:00.000Z",
+  takenAt: requireInstant("2026-11-13T07:00:00.000Z"),
   kind: "daily",
   sizeBytes: 2_097_152,
 };
 export const BEFORE_MIGRATION_BACKUP: Backup = {
   id: "2026-11-02T09-15-00-000Z-before-migration",
-  takenAt: "2026-11-02T09:15:00.000Z",
+  takenAt: requireInstant("2026-11-02T09:15:00.000Z"),
   kind: "before-migration",
   sizeBytes: 812_000,
 };

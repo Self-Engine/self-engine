@@ -1,4 +1,5 @@
 import { oc } from "@orpc/contract";
+import { instantSchema } from "@self-engine/time";
 import { z } from "zod";
 
 /**
@@ -13,8 +14,8 @@ export type BackupKind = z.infer<typeof backupKindSchema>;
 export const backupSchema = z.object({
   /** Names the Backup among those kept. Not a row id: Backups are files, not rows. */
   id: z.string(),
-  /** When it was taken, as a UTC instant. */
-  takenAt: z.iso.datetime(),
+  /** The Instant it was taken. */
+  takenAt: instantSchema,
   kind: backupKindSchema,
   sizeBytes: z.number().int().nonnegative(),
 });

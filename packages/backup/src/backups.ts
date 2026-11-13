@@ -3,6 +3,7 @@ import { join } from "node:path";
 import type { Backup, BackupKind } from "@self-engine/data-protocol";
 import type { Database } from "@self-engine/db";
 import { isSoundDatabaseFile } from "@self-engine/db/better-sqlite3";
+import type { Clock } from "@self-engine/time";
 import { sql } from "kysely";
 import { BACKUP_EXTENSION, backupId, parseBackupId } from "./backup-id.ts";
 import { expiredBackups, isDailyBackupDue, RETENTION, type RetentionPolicy } from "./retention.ts";
@@ -15,8 +16,8 @@ export interface BackupsOptions {
   readonly databasePath: string;
   /** The folder that holds the Backups and nothing else. It is created with the first Backup. */
   readonly directory: string;
-  /** TODO #244: migrate this legacy boundary to the Instant clock. */
-  readonly clock: () => Date;
+  /** When a Backup is taken, and which day it is for the daily one. */
+  readonly clock: Clock;
   readonly retention?: RetentionPolicy;
 }
 
@@ -112,7 +113,7 @@ export function createBackups({
     // The data is protected again, whoever asked for this Backup.
     automaticFailed = false;
     await prune(id);
-    return { id, takenAt: takenAt.toISOString(), kind, sizeBytes: (await stat(file)).size };
+    return { id, takenAt, kind, sizeBytes: (await stat(file)).size };
   }
 
   /** An automatic Backup: nobody waits for its answer, so its failure is remembered. */

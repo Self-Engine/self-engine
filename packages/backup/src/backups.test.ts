@@ -54,8 +54,7 @@ async function start(): Promise<{ database: Database; backups: Backups }> {
       database,
       databasePath,
       directory,
-      // TODO #244: remove the legacy Backup Date conversion.
-      clock: () => new Date(sources.clock()),
+      clock: sources.clock,
     }),
   };
 }
@@ -177,8 +176,7 @@ test("a database without tables gets no Backup before its first migrations", asy
     database,
     databasePath,
     directory,
-    // TODO #244: remove the legacy Backup Date conversion.
-    clock: () => new Date(sources.clock()),
+    clock: sources.clock,
   });
 
   await expect(backups.backUpBeforeMigrations()).resolves.toBeUndefined();
@@ -388,8 +386,7 @@ test("a write that waits while a restore runs is refused, not lost", async () =>
     },
     databasePath,
     directory,
-    // TODO #244: remove the legacy Backup Date conversion.
-    clock: () => new Date(sources.clock()),
+    clock: sources.clock,
   });
 
   const outcome = await whileRestoring.restore(backup.id);
@@ -492,8 +489,7 @@ test("a restore whose Backup of the replaced data fails stages nothing", async (
     },
     databasePath,
     directory,
-    // TODO #244: remove the legacy Backup Date conversion.
-    clock: () => new Date(sources.clock()),
+    clock: sources.clock,
   });
 
   await expect(failing.restore(backup.id)).rejects.toThrow("The disk is full");
@@ -516,8 +512,7 @@ test("a restore that fails after another was staged leaves that one staged and t
     },
     databasePath,
     directory,
-    // TODO #244: remove the legacy Backup Date conversion.
-    clock: () => new Date(sources.clock()),
+    clock: sources.clock,
   });
   const backup = await backups.create();
   sources.advance(1000);
@@ -560,8 +555,7 @@ test("a Backup that fails leaves no half written file behind", async () => {
     },
     databasePath,
     directory,
-    // TODO #244: remove the legacy Backup Date conversion.
-    clock: () => new Date(sources.clock()),
+    clock: sources.clock,
   });
 
   await expect(backups.create()).rejects.toThrow("The disk is full");
@@ -580,8 +574,7 @@ test("a Backup that fails does not stop the ones after it", async () => {
     },
     databasePath,
     directory,
-    // TODO #244: remove the legacy Backup Date conversion.
-    clock: () => new Date(sources.clock()),
+    clock: sources.clock,
   });
 
   await expect(backups.create()).rejects.toThrow("The disk is full");
@@ -601,8 +594,7 @@ function onADiskThatFills(database: Database) {
     },
     databasePath,
     directory,
-    // TODO #244: remove the legacy Backup Date conversion.
-    clock: () => new Date(sources.clock()),
+    clock: sources.clock,
   });
   return { full, backups };
 }

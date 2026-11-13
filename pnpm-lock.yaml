@@ -603,6 +603,9 @@ importers:
       '@self-engine/db':
         specifier: workspace:*
         version: link:../db
+      '@self-engine/time':
+        specifier: workspace:*
+        version: link:../time
       kysely:
         specifier: 'catalog:'
         version: 0.29.8
@@ -718,6 +721,9 @@ importers:
       '@orpc/contract':
         specifier: 'catalog:'
         version: 1.16.2
+      '@self-engine/time':
+        specifier: workspace:*
+        version: link:../time
       '@types/node':
         specifier: 24.19.2
         version: 24.19.2
@@ -733,6 +739,9 @@ importers:
       '@orpc/contract':
         specifier: 'catalog:'
         version: 1.16.2
+      '@self-engine/time':
+        specifier: workspace:*
+        version: link:../time
       zod:
         specifier: 'catalog:'
         version: 4.6.7
@@ -1015,6 +1024,9 @@ importers:
       '@self-engine/theme':
         specifier: workspace:*
         version: link:../theme
+      '@self-engine/time':
+        specifier: workspace:*
+        version: link:../time
       '@self-engine/ui':
         specifier: workspace:*
         version: link:../ui

@@ -7,6 +7,7 @@ import type {
   Duration,
   FirstDayOfWeek,
   Instant,
+  InstantFormat,
   InstantRange,
   ResolvedInstant,
   ResolvedTimeZone,
@@ -44,6 +45,10 @@ test("the public functions use only package values and require all arguments", (
     (days: CalendarDay | DaySpan, timeZone: TimeZone) => InstantRange
   >();
   expectTypeOf(time.today).toEqualTypeOf<(clock: Clock, timeZone: TimeZone) => CalendarDay>();
+  expectTypeOf(time.formatInstant).toEqualTypeOf<
+    (instant: Instant, format: InstantFormat, locale: string, timeZone: TimeZone) => string
+  >();
+  expectTypeOf<InstantFormat>().toEqualTypeOf<"dateTime">();
   expect(Object.keys(time).sort()).toEqual(
     [
       "addDays",
@@ -63,6 +68,7 @@ test("the public functions use only package values and require all arguments", (
       "durationBetween",
       "durationSchema",
       "epochMsOf",
+      "formatInstant",
       "instantFromDate",
       "instantSchema",
       "isoWeekNumber",

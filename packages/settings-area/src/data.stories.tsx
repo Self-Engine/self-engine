@@ -1,4 +1,5 @@
 import type { PortAccess } from "@self-engine/data-client/react";
+import { deviceTimeZone, formatInstant, type Instant } from "@self-engine/time";
 import { LOADER_DELAY_MS } from "@self-engine/ui";
 import { clearNotices } from "@self-engine/ui/story-notices";
 import { holdTimers } from "@self-engine/ui/story-timers";
@@ -79,10 +80,8 @@ const callsOf = (loaded: unknown) => (loaded as Loaded).calls;
 const entries = (loaded: unknown) => callsOf(loaded).map(({ entry }) => entry);
 
 /** A Backup's time as the page writes it: in the language shown and this device's time zone. */
-const timeOf = ({ takenAt }: { readonly takenAt: string }, locale = "en") =>
-  new Intl.DateTimeFormat(locale, { dateStyle: "medium", timeStyle: "short" }).format(
-    new Date(takenAt),
-  );
+const timeOf = ({ takenAt }: { readonly takenAt: Instant }, locale = "en") =>
+  formatInstant(takenAt, "dateTime", locale, deviceTimeZone());
 
 /** A theme role's color as the browser computes it for `element`. */
 function colorOf(element: Element, variable: string): string {
@@ -160,7 +159,7 @@ export const ABackupThatFailsIsAnnounced: Story = {
   },
 };
 
-const restoreButton = (canvas: ReturnType<typeof within>, backup: { readonly takenAt: string }) =>
+const restoreButton = (canvas: ReturnType<typeof within>, backup: { readonly takenAt: Instant }) =>
   canvas.findByRole("button", { name: `Restore the backup from ${timeOf(backup)}` });
 
 export const ARestoreIsConfirmedAndCanBeTakenBack: Story = {

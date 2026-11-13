@@ -54,8 +54,7 @@ export function openDataFiles(databasePath: string, clock: Clock): DataFiles {
       database,
       databasePath,
       directory: backupFolder(databasePath),
-      // TODO #244: Backup still receives Date until its Instant migration.
-      clock: () => new Date(clock()),
+      clock,
     }),
   };
 }
