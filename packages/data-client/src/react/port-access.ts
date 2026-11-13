@@ -39,13 +39,12 @@ export function portAccessOf(connection: DataConnection): PortAccess {
     describeEntry: (module, entry) => connection.describeEntry(module, entry),
     onTablesChanged: (listener) => connection.onTablesChanged(listener),
     onReconnected(listener) {
-      // The connection holds a Query-to-tables list once a port got ready, and keeps it after.
-      const wasReady = () => connection.describeEntry("", "") !== undefined;
-      // Any state but ready after a ready one lost the stream: reconnecting, stopped or failed.
-      let lost = connection.getState().status !== "ready" && wasReady();
+      // A port got ready once exactly when the Query-to-tables list arrived. Any state but ready
+      // after that lost the stream: reconnecting, stopped or failed.
+      let lost = connection.getState().status !== "ready" && connection.hasQueryList();
       return connection.subscribe(() => {
         if (connection.getState().status !== "ready") {
-          lost = wasReady();
+          lost = connection.hasQueryList();
           return;
         }
         if (!lost) return;

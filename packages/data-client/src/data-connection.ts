@@ -76,6 +76,11 @@ export interface DataConnection<Modules extends object = object> extends Pick<
    * a new port's opening event replaces it before the state turns ready.
    */
   describeEntry(module: string, entry: string): EntryDescription | undefined;
+  /**
+   * Whether the Query-to-tables list has arrived: a port got ready once. It stays true while the
+   * connection reconnects, stops or fails, because the list is kept.
+   */
+  hasQueryList(): boolean;
 }
 
 const CONNECTING: ConnectionState = { status: "connecting" };
@@ -162,6 +167,7 @@ export function createDataConnection<Modules extends object = object>(): DataCon
       tablesListeners.add(entry);
       return () => tablesListeners.delete(entry);
     },
+    hasQueryList: () => queries !== undefined,
     describeEntry(module, entry) {
       if (queries === undefined) return undefined;
       const reads = Object.hasOwn(queries, module) ? queries[module] : undefined;
