@@ -11,7 +11,14 @@ import {
   type ShellContribution,
   type ShellProps,
 } from "./index.ts";
-import { onMac, onWindows, SETTINGS, shellMeta, storyRouting } from "./shell-story-helpers.tsx";
+import {
+  onMac,
+  onWindows,
+  SETTINGS,
+  shellMeta,
+  storyData,
+  storyRouting,
+} from "./shell-story-helpers.tsx";
 import { registeredBindingIds } from "./shortcut-bindings.tsx";
 
 const body = { description: "A stand-in.", schema: z.object({}), run: () => undefined };
@@ -19,7 +26,11 @@ const page = { id: "new", kind: "page", label: { id: "story-New", message: "New"
 
 const startedInFirst = fn(async () => ({ default: definePageCommand(body) }));
 const startedInSecond = fn(async () => ({ default: definePageCommand(body) }));
-const startedOpen = fn(async () => ({ default: defineOpenCommand(body) }));
+/** The Port access the open Command was given, to show that the Shell hands on its own. */
+const givenData = fn();
+const startedOpen = fn(async () => ({
+  default: defineOpenCommand({ ...body, run: (_input, { data }) => givenData(data) }),
+}));
 
 const load = async () => ({ default: () => null });
 const views = [
@@ -66,7 +77,9 @@ const meta = {
     activeView: views[0],
   },
   beforeEach: () => {
-    for (const started of [startedInFirst, startedInSecond, startedOpen]) started.mockClear();
+    for (const started of [startedInFirst, startedInSecond, startedOpen, givenData]) {
+      started.mockClear();
+    }
     return onWindows();
   },
 } satisfies Meta<ShellProps>;
@@ -91,6 +104,8 @@ export const AnOpenShortcutWorksInAModuleWithoutCommands: Story = {
     await bindingsArrived();
     await pressEverywhere();
     await expect(startedOpen).toHaveBeenCalledOnce();
+    // Every Command is given the Shell's Port access and notice seam, an open one as well (D261).
+    await waitFor(() => expect(givenData).toHaveBeenLastCalledWith(storyData));
   },
 };
 

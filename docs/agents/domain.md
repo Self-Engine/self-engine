@@ -48,4 +48,5 @@ If your output contradicts an existing ADR, surface it explicitly rather than si
 > _Contradicts ADR-0003 (one table per module entity), but worth reopening because…_
 
 Before adding or changing a module’s port, contract entry, or released read piece, follow
-[the port guide](../development/port-pattern.md).
+[the port guide](../development/port-pattern.md). Before reading or changing a module’s data
+from its Views or Commands, follow [the renderer guide](../development/port-hooks.md).

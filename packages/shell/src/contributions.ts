@@ -25,7 +25,10 @@ export interface EditDrawerProps {
   readonly id: string;
   /** Asks first when `useUnsavedChanges` reports changes. */
   readonly onCancel: () => void;
-  /** Closes without asking, after a successful save or delete. A failed save calls neither. */
+  /**
+   * Closes without asking, after a successful save or delete. A failed save calls neither. Called
+   * after the person left this entry, it closes nothing.
+   */
   readonly onDone: () => void;
 }
 

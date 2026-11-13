@@ -32,6 +32,7 @@ export {
   type InputCommand,
   type OpenCommand,
   type PageCommand,
+  type DataCommandContext,
   type PageCommandContext,
   type PersonCommand,
   type RegisteredCommand,

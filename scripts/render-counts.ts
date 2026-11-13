@@ -1,52 +1,7 @@
-/** React's DevTools commit hook counts committed function-component work, not DOM mutations.
- * Aborted renders are excluded. This intentionally uses React's private Fiber flags; review
- * it when upgrading React. It never enters the shipped application. */
-export interface Fiber {
-  readonly alternate?: Fiber | null;
-  readonly tag: number;
-  readonly flags: number;
-  readonly type?: { readonly displayName?: string; readonly name?: string } | null;
-  readonly child: Fiber | null;
-  readonly sibling: Fiber | null;
-}
-export interface RenderCounts {
-  commits: number;
-  components: Record<string, number>;
-}
+// The comparison of `pnpm renders`. The count itself is shared with the render-count gate
+// story: `@self-engine/ui/story-render-counts`.
 
-/** Count committed function-component work, excluding reused bailout subtrees. */
-export function countCommit(
-  root: Fiber,
-  counts: RenderCounts,
-  previous: WeakMap<Fiber, Fiber>,
-): void {
-  counts.commits++;
-  const visit = (fiber: Fiber | null): void => {
-    if (fiber === null) return;
-    // FunctionComponent, ForwardRef, SimpleMemoComponent; PerformedWork = 1.
-    const last =
-      previous.get(fiber) ?? (fiber.alternate ? previous.get(fiber.alternate) : undefined);
-    if (last !== fiber && [0, 11, 15].includes(fiber.tag) && (fiber.flags & 1) !== 0) {
-      const name = fiber.type?.displayName || fiber.type?.name || "Anonymous";
-      counts.components[name] = (counts.components[name] ?? 0) + 1;
-    }
-    previous.set(fiber, fiber);
-    if (fiber.alternate) previous.set(fiber.alternate, fiber);
-    visit(fiber.child);
-    visit(fiber.sibling);
-  };
-  visit(root);
-}
-
-/** Isolate work committed between two cumulative snapshots. */
-export function difference(after: RenderCounts, before: RenderCounts): RenderCounts {
-  const components: Record<string, number> = {};
-  for (const [name, count] of Object.entries(after.components)) {
-    const delta = count - (before.components[name] ?? 0);
-    if (delta !== 0) components[name] = delta;
-  }
-  return { commits: after.commits - before.commits, components };
-}
+import type { RenderCounts } from "@self-engine/ui/story-render-counts";
 
 export interface RenderReport {
   readonly version: 1;

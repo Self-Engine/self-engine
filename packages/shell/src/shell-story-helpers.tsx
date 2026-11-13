@@ -6,6 +6,7 @@ import {
 // Shared by the Shell's Stories, which are split by concern. Not a story file, so the Catalog
 // does not list it.
 
+import { type DataAccess, NO_DATA_PROCESS } from "@self-engine/data-client/react";
 import { ProjectsIcon, SettingsIcon, TimeIcon } from "@self-engine/icons";
 import { BrandMark } from "@self-engine/icons/brand-mark";
 import type { Meta, StoryObj } from "@storybook/react-vite";
@@ -173,6 +174,9 @@ export function storyRouting(initial: ViewSearch = {}): ShellRouting & {
 
 const routing = storyRouting();
 
+/** What the Shell hands its Commands in Stories: no Data Process answers, and notices are collected. */
+export const storyData: DataAccess = { access: NO_DATA_PROCESS, notify: fn() };
+
 /** What every Story file of the Shell spreads into its `meta`, next to its own `title`. */
 export const shellMeta = {
   component: Shell,
@@ -183,6 +187,7 @@ export const shellMeta = {
     activeView: { id: "overview", title: { id: "story-Time", message: "Time" }, load },
     children: <p>Page content</p>,
     contributions: ENTRIES,
+    data: storyData,
     onModuleSidebarCollapsedCommit: fn(),
     onModuleSidebarWidthCommit: fn(),
     onNavbarCommit: fn(),

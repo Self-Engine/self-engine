@@ -1,10 +1,10 @@
 import { defineInputCommand } from "@self-engine/shell";
 import { z } from "zod";
-import { saveEntry } from "./entry-store.ts";
-import { NEW_ENTRY_ID } from "./sample-data.ts";
+import { createEntry } from "./port.ts";
 
 export default defineInputCommand({
-  description: "Creates an entry with the given name.",
+  description:
+    "Creates an entry with the given name. Answers with the entry, or with a conflict when the name is taken.",
   schema: z.object({ name: z.string().min(1) }),
-  run: ({ name }) => saveEntry(NEW_ENTRY_ID, name),
+  run: ({ name }, { data }) => createEntry(data, { name }),
 });

@@ -1,19 +1,30 @@
 import type { MessageDescriptor } from "@lingui/core";
+import type { DataAccess } from "@self-engine/data-client/react";
 import type { input as SchemaInput, output as SchemaOutput, ZodType } from "zod";
 import type { WriteViewSearch } from "./routing.tsx";
 
 /** Decides who can start a Command, see ADR 0015. */
 export type CommandKind = "page" | "open" | "input";
 
-/** The address capability, for a Command that a person starts on a page. */
-export interface PageCommandContext {
+/** What every Command is given, whoever starts it. */
+export interface DataCommandContext {
+  /**
+   * The Port access and the building block's notice seam, the ones the app gives the data
+   * building block (D261). A Command calls an Operation through the Operation's function form
+   * with it, so the Operation's notices take the same way as from a hook.
+   */
+  readonly data: DataAccess;
+}
+
+/** The address capability as well, for a Command that a person starts on a page. */
+export interface PageCommandContext extends DataCommandContext {
   /** Writes to the page the Command was started on, and does nothing once the user has left it. */
   readonly writeSearch: WriteViewSearch;
 }
 
 export type CommandContext<Kind extends CommandKind> = Kind extends "page"
   ? PageCommandContext
-  : Readonly<Record<never, never>>;
+  : DataCommandContext;
 
 declare const checkedKind: unique symbol;
 

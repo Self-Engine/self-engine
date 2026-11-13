@@ -995,25 +995,24 @@ describe("data-side module composition", () => {
       ),
     ).toEqual(["package-direction:placeholder-alpha"]);
   });
-  it("lets the data client's tests import the test Data Process, and only its tests", async () => {
-    const client = declaring(
-      extraPackage("packages/data-client", {
-        "src/query-tables.test.ts": 'import "@self-engine/data-process";\n',
+  it("lets a module's tests import the test Data Process, and only its tests", async () => {
+    const module = declaring(
+      extraPackage("packages/placeholder-alpha", {
+        "src/port.test.ts": 'import "@self-engine/data-process";\n',
       }),
       "@self-engine/data-process",
     );
     const options = { allowedImports: ALLOWED_IMPORTS, testOnlyImports: TEST_ONLY_IMPORTS };
-    expect(await cruise([client, extraPackage("packages/data-process")], options)).toEqual([]);
+    expect(await cruise([module, extraPackage("packages/data-process")], options)).toEqual([]);
     const fromCode = declaring(
-      extraPackage("packages/data-client", {
-        "src/data-connection.ts": 'import "@self-engine/data-process";\n',
+      extraPackage("packages/placeholder-alpha", {
+        "src/port.ts": 'import "@self-engine/data-process";\n',
       }),
       "@self-engine/data-process",
     );
-    // The data client runs in the renderer, so its code breaks the renderer's rule as well.
     expect(
       ruleNames(await cruise([fromCode, extraPackage("packages/data-process")], options)),
-    ).toEqual(["package-direction:data-client", "renderer-stays-off-the-database"]);
+    ).toEqual(["package-direction:placeholder-alpha"]);
   });
   it.each(["src/react/provider.test.tsx", "src/react/provider.stories.tsx"])(
     "lets the data client's %s import the test Data Process, as its other tests may",

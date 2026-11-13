@@ -1,4 +1,7 @@
+import { DataProvider } from "@self-engine/data-client/react";
 import { activateLanguage, createI18n } from "@self-engine/i18n";
+import { placeholderAlphaAnswers, STUDIO_WORK } from "@self-engine/placeholder-alpha/testing";
+
 import { APP_LANGUAGE_SETTING } from "@self-engine/settings-area/settings";
 import {
   createHashHistory,
@@ -15,6 +18,8 @@ import { settingsStore } from "./settings-store.ts";
 import { loadStoryApp, openPalette, paletteGone } from "./story-app.tsx";
 
 const i18n = createI18n();
+/** The rows of `placeholder-alpha`, which some stories show. */
+const access = placeholderAlphaAnswers();
 const ENGLISH_SYSTEM = () => ["en"];
 const resetLanguage = () => settingsStore.write(APP_LANGUAGE_SETTING, APP_LANGUAGE_SETTING.default);
 
@@ -37,7 +42,10 @@ function AppStory({ address, hash = false }: AppStoryProps) {
   useEffect(() => () => history.destroy(), [history]);
   return (
     <>
-      <RouterProvider key={generation} router={router} />
+      {/* A reload starts with an empty query cache, as the page does. */}
+      <DataProvider access={access} key={generation}>
+        <RouterProvider router={router} />
+      </DataProvider>
       <button
         style={{ position: "fixed", bottom: 56, right: 16, zIndex: 500 }}
         onClick={() => history.back()}
@@ -221,27 +229,40 @@ export const PaletteLabelsFollowTheLanguage: Story = {
   },
 };
 
+/** The drawer on Studio work; after a reload its list loads first, so this waits. */
+const drawerShowsStudio = (page: ReturnType<typeof within>) =>
+  waitFor(() => expect(page.getByRole("dialog")).toHaveTextContent(STUDIO_WORK.id));
+
+/** A group only changes the address (D262): its link is marked, and every entry stays listed. */
+async function groupIsCurrent(canvas: ReturnType<typeof within>, name: string) {
+  await waitFor(() =>
+    expect(canvas.getByRole("link", { name })).toHaveAttribute("aria-current", "true"),
+  );
+  await expect(canvas.getByText("Studio work")).toBeVisible();
+  await expect(canvas.getByText("Garden work")).toBeVisible();
+}
+
 export const GroupFilters: Story = {
   args: { address: "/placeholder-alpha/overview?client=studio&page=2&edit=sample" },
   play: async ({ canvas }) => {
     await expect(await canvas.findByText("Studio work")).toBeVisible();
-    await expect(canvas.queryByText("Garden work")).toBeNull();
+    await groupIsCurrent(canvas, "Studio");
     const archive = canvas.getByRole("link", { name: "Archive" });
     await expect(archive.getAttribute("href")?.split("#").at(-1)).toBe(
       "/placeholder-alpha/archive?client=studio",
     );
     await userEvent.click(archive);
     await expect(await canvas.findByRole("heading", { name: "Archive", level: 1 })).toBeVisible();
-    await expect(canvas.getByText("Studio work")).toBeVisible();
+    await groupIsCurrent(canvas, "Studio");
     await userEvent.click(await canvas.findByRole("link", { name: "Garden" }));
-    await expect(await canvas.findByText("Garden work")).toBeVisible();
-    await expect(canvas.queryByText("Studio work")).toBeNull();
+    await groupIsCurrent(canvas, "Garden");
     await userEvent.click(canvas.getByRole("button", { name: "Back in history" }));
-    await expect(await canvas.findByText("Studio work")).toBeVisible();
+    await groupIsCurrent(canvas, "Studio");
     await userEvent.click(await canvas.findByRole("link", { name: "Garden" }));
-    await expect(await canvas.findByText("Garden work")).toBeVisible();
+    await groupIsCurrent(canvas, "Garden");
     await userEvent.click(canvas.getByRole("button", { name: "Reload router" }));
     await expect(await canvas.findByText("Garden work")).toBeVisible();
+    await groupIsCurrent(canvas, "Garden");
     await userEvent.click(canvas.getByRole("link", { name: "Placeholder Beta" }));
     await expectBeta(canvas);
     await expect(
@@ -253,7 +274,7 @@ export const GroupFilters: Story = {
     ).toBe("/placeholder-alpha/overview");
     await userEvent.click(canvas.getByRole("link", { name: "Placeholder Alpha" }));
     await expect(await canvas.findByText("Studio work")).toBeVisible();
-    await expect(canvas.getByText("Garden work")).toBeVisible();
+    await groupIsCurrent(canvas, "All clients");
   },
 };
 export const HashGroupFilters: Story = {
@@ -275,7 +296,7 @@ export const EditDrawer: Story = {
     const page = within(canvasElement.ownerDocument.body);
     await userEvent.click(await canvas.findByRole("button", { name: "Studio work" }));
     await expect(await page.findByRole("dialog", { name: "Studio work" })).toHaveTextContent(
-      "studio",
+      STUDIO_WORK.id,
     );
     await userEvent.click(page.getByRole("button", { name: "Close editor" }));
     await waitFor(() => expect(page.queryByRole("dialog")).toBeNull());
@@ -283,9 +304,9 @@ export const EditDrawer: Story = {
     await expect(await canvas.findByRole("button", { name: "Studio work" })).toBeVisible();
     await expect(page.queryByRole("dialog")).toBeNull();
     await userEvent.click(canvas.getByRole("button", { name: "Back in history" }));
-    await expect(await page.findByRole("dialog")).toHaveTextContent("studio");
+    await drawerShowsStudio(page);
     await userEvent.click(canvas.getByRole("button", { name: "Reload router" }));
-    await expect(await page.findByRole("dialog")).toHaveTextContent("studio");
+    await drawerShowsStudio(page);
     await userEvent.click(canvas.getByRole("link", { name: "Archive" }));
     await expect(await canvas.findByRole("heading", { name: "Archive", level: 1 })).toBeVisible();
     await waitFor(() => expect(page.queryByRole("dialog")).toBeNull());
@@ -294,19 +315,19 @@ export const EditDrawer: Story = {
 export const HashEditDrawer: Story = { ...EditDrawer, args: { ...EditDrawer.args, hash: true } };
 
 export const EditDeepLink: Story = {
-  args: { address: "/placeholder-alpha/archive?edit=studio" },
+  args: { address: `/placeholder-alpha/archive?edit=${STUDIO_WORK.id}` },
   play: async ({ canvas, canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     await expect(await page.findByRole("dialog", { name: "Studio work" })).toHaveTextContent(
-      "studio",
+      STUDIO_WORK.id,
     );
     await userEvent.click(canvas.getByRole("button", { name: "Reload router" }));
-    await expect(await page.findByRole("dialog")).toHaveTextContent("studio");
+    await drawerShowsStudio(page);
     await userEvent.click(canvas.getByRole("link", { name: "Placeholder Beta" }));
     await expectBeta(canvas);
     await waitFor(() => expect(page.queryByRole("dialog")).toBeNull());
     await userEvent.click(canvas.getByRole("button", { name: "Back in history" }));
-    await expect(await page.findByRole("dialog")).toHaveTextContent("studio");
+    await drawerShowsStudio(page);
   },
 };
 export const HashEditDeepLink: Story = {
@@ -336,8 +357,7 @@ export const PrimaryAction: Story = {
     await expect(await page.findByRole("dialog", { name: "New entry" })).toHaveTextContent("new");
     await userEvent.click(page.getByRole("button", { name: "Close editor" }));
     await waitFor(() => expect(page.queryByRole("dialog")).toBeNull());
-    await expect(canvas.getByText("Studio work")).toBeVisible();
-    await expect(canvas.queryByText("Garden work")).toBeNull();
+    await groupIsCurrent(canvas, "Studio");
     await userEvent.click(canvas.getByRole("link", { name: "Placeholder Beta" }));
     await expectBeta(canvas);
     await expect(canvas.queryByRole("button", { name: "New entry" })).toBeNull();

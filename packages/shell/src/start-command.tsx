@@ -1,8 +1,9 @@
 import type { I18n } from "@lingui/core";
 import { msg } from "@lingui/core/macro";
 import { useLingui } from "@lingui/react/macro";
+import type { DataAccess } from "@self-engine/data-client/react";
 import { notifyError } from "@self-engine/ui";
-import { createContext, type ReactNode, useContext, useState } from "react";
+import { createContext, type ReactNode, useContext, useMemo, useState } from "react";
 import { fullCommandId, type PersonCommand } from "./commands.ts";
 import { useShellRouting } from "./routing.tsx";
 import { runCommand } from "./run-command.ts";
@@ -30,12 +31,28 @@ function createStartOnce(): StartOnce {
   };
 }
 
-const StartOnceContext = createContext<StartOnce | null>(null);
+interface StartContext {
+  readonly startOnce: StartOnce;
+  /** The Port access and notice seam every Command is given (D261). */
+  readonly data: DataAccess;
+}
 
-/** Once per Shell: a Command counts as running however a person started it. */
-export function StartOnceProvider({ children }: { readonly children: ReactNode }) {
+const StartContext = createContext<StartContext | null>(null);
+
+/**
+ * Once per Shell: a Command counts as running however a person started it, and every Command is
+ * given the Shell's Port access and notice seam.
+ */
+export function StartOnceProvider({
+  data,
+  children,
+}: {
+  readonly data: DataAccess;
+  readonly children: ReactNode;
+}) {
   const [startOnce] = useState(createStartOnce);
-  return <StartOnceContext value={startOnce}>{children}</StartOnceContext>;
+  const context = useMemo(() => ({ startOnce, data }), [startOnce, data]);
+  return <StartContext value={context}>{children}</StartContext>;
 }
 
 /**
@@ -48,16 +65,17 @@ export function useStartCommand() {
   const routing = useShellRouting();
   const address = routing.useAddress();
   const goToView = routing.useGoToView();
-  const startOnce = useContext(StartOnceContext);
-  if (startOnce === null) throw new Error("Starting a Command needs the Shell");
+  const start = useContext(StartContext);
+  if (start === null) throw new Error("Starting a Command needs the Shell");
+  const { startOnce, data } = start;
 
   return (moduleId: string, command: PersonCommand, goFirstTo?: string) =>
     startOnce(fullCommandId(moduleId, command.id), async () => {
       try {
         if (goFirstTo !== undefined && !(await goToView(goFirstTo))) return;
         const result = await (command.kind === "page"
-          ? runCommand(command, {}, { writeSearch: address.scopedWriteSearch() })
-          : runCommand(command, {}, {}));
+          ? runCommand(command, {}, { writeSearch: address.scopedWriteSearch(), data })
+          : runCommand(command, {}, { data }));
         if (!result.ok) reportFailedStart(i18n, result.error);
       } catch (error) {
         // The move asks the leave guards, which are a module's code and may throw.

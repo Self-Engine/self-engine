@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { createHashHistory, RouterProvider } from "@tanstack/react-router";
 import { contribution as alpha } from "@self-engine/placeholder-alpha";
+import { DataProvider, type PortAccess } from "@self-engine/data-client/react";
 import type { PageCommand } from "@self-engine/shell";
 import { useEffect, useState } from "react";
 import { expect, screen, spyOn, userEvent, waitFor, within } from "storybook/test";
@@ -16,13 +17,14 @@ import {
   pressWithMod,
   QUESTION,
 } from "./story-app.tsx";
+import { placeholderAlphaAnswers, STUDIO_WORK } from "@self-engine/placeholder-alpha/testing";
 
 type Canvas = ReturnType<typeof within>;
 
 let openRouter: ReturnType<typeof createAppRouter>;
 
 /** Hash history as in Electron: only a real history entry can prove Back and Forward. */
-function AppAt({ address }: { readonly address: string }) {
+function AppAt({ address, access }: { readonly address: string; readonly access: PortAccess }) {
   const [history] = useState(() => {
     const created = createHashHistory();
     created.replace(address);
@@ -33,7 +35,11 @@ function AppAt({ address }: { readonly address: string }) {
     return openRouter;
   });
   useEffect(() => () => history.destroy(), [history]);
-  return <RouterProvider router={router} />;
+  return (
+    <DataProvider access={access}>
+      <RouterProvider router={router} />
+    </DataProvider>
+  );
 }
 
 const OVERVIEW = "/placeholder-alpha/overview";
@@ -49,7 +55,7 @@ const meta = {
     window.history.replaceState(null, "", window.location.pathname);
     return () => window.history.replaceState(null, "", original);
   },
-  args: { address: OVERVIEW },
+  args: { address: OVERVIEW, access: placeholderAlphaAnswers() },
 } satisfies Meta<typeof AppAt>;
 export default meta;
 type Story = StoryObj<typeof meta>;
@@ -64,11 +70,11 @@ export const BackAsksAndDiscardGoesBack: Story = {
     await editStudio(canvas);
     window.history.back();
     await asked();
-    await expect(address().edit).toBe("studio");
+    await expect(address().edit).toBe(STUDIO_WORK.id);
     await answer("Discard");
     await noDrawer("Studio work");
     await waitFor(() => expect(address()).toEqual({ pathname: OVERVIEW, edit: undefined }));
-    await expect(window.location.hash).not.toContain("edit=studio");
+    await expect(window.location.hash).not.toContain(`edit=${STUDIO_WORK.id}`);
   },
 };
 
@@ -79,8 +85,8 @@ export const BackAndKeepEditingLeavesTheAddressAndTheDraft: Story = {
     await asked();
     await answer("Keep editing");
     await noQuestion();
-    await waitFor(() => expect(window.location.hash).toContain("edit=studio"));
-    await expect(address().edit).toBe("studio");
+    await waitFor(() => expect(window.location.hash).toContain(`edit=${STUDIO_WORK.id}`));
+    await expect(address().edit).toBe(STUDIO_WORK.id);
     await expect(name).toHaveValue("Studio work changed");
     await waitFor(() => expect(name).toHaveFocus());
   },
@@ -102,7 +108,7 @@ export const ForwardAsksAndDiscardGoesForward: Story = {
     await editStudioWithAnEntryAhead(canvas);
     window.history.forward();
     await asked();
-    await expect(address().edit).toBe("studio");
+    await expect(address().edit).toBe(STUDIO_WORK.id);
     await answer("Discard");
     await noDrawer("Studio work");
     await waitFor(() => expect(address().edit).toBeUndefined());
@@ -114,8 +120,8 @@ export const TheAddressStaysOnTheEntryWhileTheQuestionIsOpen: Story = {
     await editStudio(canvas);
     window.history.back();
     await asked();
-    await waitFor(() => expect(window.location.hash).toContain("edit=studio"));
-    await expect(address().edit).toBe("studio");
+    await waitFor(() => expect(window.location.hash).toContain(`edit=${STUDIO_WORK.id}`));
+    await expect(address().edit).toBe(STUDIO_WORK.id);
     await answer("Keep editing");
     await noQuestion();
   },
@@ -143,10 +149,14 @@ async function traverseWhileAsked(press: () => void) {
 
 const historyIndex = () => openRouter.history.location.state.__TSR_index;
 
-/** Filters the list first, so that two history entries lie behind the open drawer. */
+/** A group only changes the address (D262): its link is marked once the address holds it. */
+const groupIsCurrent = (canvas: Canvas, name: string) =>
+  waitFor(() => expect(canvas.getByRole("link", { name })).toHaveAttribute("aria-current", "true"));
+
+/** Picks a group first, so that two history entries lie behind the open drawer. */
 async function editStudioWithTwoEntriesBehind(canvas: Canvas) {
   await userEvent.click(await canvas.findByRole("link", { name: "Studio" }));
-  await waitFor(() => expect(canvas.queryByRole("button", { name: "Garden work" })).toBeNull());
+  await groupIsCurrent(canvas, "Studio");
   return editStudio(canvas);
 }
 
@@ -156,12 +166,12 @@ export const BackTwiceAndDiscardGoesBackOneStep: Story = {
     window.history.back();
     await asked();
     await traverseWhileAsked(() => window.history.back());
-    await waitFor(() => expect(window.location.hash).toContain("edit=studio"));
-    await expect(address().edit).toBe("studio");
+    await waitFor(() => expect(window.location.hash).toContain(`edit=${STUDIO_WORK.id}`));
+    await expect(address().edit).toBe(STUDIO_WORK.id);
     await answer("Discard");
     await noDrawer("Studio work");
     await waitFor(() => expect(address().edit).toBeUndefined());
-    await expect(window.location.hash).not.toContain("edit=studio");
+    await expect(window.location.hash).not.toContain(`edit=${STUDIO_WORK.id}`);
     await expect(window.location.hash).toContain("client=studio");
   },
 };
@@ -174,8 +184,8 @@ export const BackTwiceAndKeepEditingLeavesBackWorking: Story = {
     await traverseWhileAsked(() => window.history.back());
     await answer("Keep editing");
     await noQuestion();
-    await waitFor(() => expect(window.location.hash).toContain("edit=studio"));
-    await expect(address().edit).toBe("studio");
+    await waitFor(() => expect(window.location.hash).toContain(`edit=${STUDIO_WORK.id}`));
+    await expect(address().edit).toBe(STUDIO_WORK.id);
     await expect(name).toHaveValue("Studio work changed");
     // The next Back is an ordinary one: it asks again and is not swallowed.
     window.history.back();
@@ -196,7 +206,7 @@ export const BackThenForwardAndDiscardGoesBack: Story = {
     const landed = traversals(1);
     window.history.forward();
     await landed;
-    await expect(address().edit).toBe("studio");
+    await expect(address().edit).toBe(STUDIO_WORK.id);
     await answer("Discard");
     await noDrawer("Studio work");
     await waitFor(() => expect(address().edit).toBeUndefined());
@@ -208,7 +218,7 @@ export const BackThenForwardAndDiscardGoesBack: Story = {
 async function editStudioWithAHandTypedEntryBehind(canvas: Canvas) {
   await canvas.findByRole("button", { name: "Studio work" });
   window.location.hash = `${OVERVIEW}?client=studio`;
-  await waitFor(() => expect(canvas.queryByRole("button", { name: "Garden work" })).toBeNull());
+  await groupIsCurrent(canvas, "Studio");
   await expect(window.history.state).toBeNull();
   return editStudio(canvas);
 }
@@ -220,14 +230,14 @@ export const BackOntoAnEntryWithoutAnIndexStillAsks: Story = {
     await asked();
     await answer("Keep editing");
     await noQuestion();
-    await waitFor(() => expect(window.location.hash).toContain("edit=studio"));
+    await waitFor(() => expect(window.location.hash).toContain(`edit=${STUDIO_WORK.id}`));
     await expect(name).toHaveValue("Studio work changed");
     window.history.back();
     await asked();
     await answer("Discard");
     await noDrawer("Studio work");
     await waitFor(() => expect(address().edit).toBeUndefined());
-    await expect(window.location.hash).not.toContain("edit=studio");
+    await expect(window.location.hash).not.toContain(`edit=${STUDIO_WORK.id}`);
     await expect(window.location.hash).toContain("client=studio");
   },
 };
@@ -239,7 +249,7 @@ export const ACommandThatWouldSwapTheEntryAsks: Story = {
     await asked();
     await answer("Keep editing");
     await noQuestion();
-    await expect(address().edit).toBe("studio");
+    await expect(address().edit).toBe(STUDIO_WORK.id);
     await expect(name).toHaveValue("Studio work changed");
     await userEvent.click(canvas.getByRole("button", { name: "New entry" }));
     await answer("Discard");
@@ -281,7 +291,7 @@ export const AShortcutThatWouldSwapTheEntryAsksAndKeepEditingKeepsIt: Story = {
     await expect(newEntry).toHaveBeenCalledOnce();
     await answer("Keep editing");
     await noQuestion();
-    await expect(address().edit).toBe("studio");
+    await expect(address().edit).toBe(STUDIO_WORK.id);
     await expect(name).toHaveValue("Studio work changed");
     await waitFor(() => expect(name).toHaveFocus());
   },
@@ -318,9 +328,9 @@ export const AFilterChangeThatKeepsTheEntryOpenDoesNotAsk: Story = {
   play: async ({ canvas }) => {
     const { name } = await editStudio(canvas);
     await userEvent.click(canvas.getByRole("link", { name: "Garden" }));
-    await waitFor(() => expect(canvas.queryByRole("button", { name: "Studio work" })).toBeNull());
+    await groupIsCurrent(canvas, "Garden");
     await expect(screen.queryByRole("dialog", { name: QUESTION })).toBeNull();
-    await expect(address().edit).toBe("studio");
+    await expect(address().edit).toBe(STUDIO_WORK.id);
     await expect(name).toHaveValue("Studio work changed");
   },
 };
@@ -345,7 +355,8 @@ export const CancelWithChangesAsks: Story = {
   },
 };
 
-export const SavingClosesWithoutAskingAndTheListShowsIt: Story = {
+/** The list stays as it is: a Fixed Answer changes nothing (D255); the Port test shows the reload. */
+export const SavingClosesWithoutAsking: Story = {
   args: { address: `${OVERVIEW}?edit=new` },
   play: async ({ canvas }) => {
     const drawer = within(await screen.findByRole("dialog", { name: "New entry" }));
@@ -357,6 +368,40 @@ export const SavingClosesWithoutAskingAndTheListShowsIt: Story = {
     await noDrawer("New entry");
     await expect(address().edit).toBeUndefined();
     await expect(screen.queryByRole("dialog", { name: QUESTION })).toBeNull();
-    await expect(await canvas.findByRole("button", { name: "Saved from a story" })).toBeVisible();
+    await expect(await canvas.findByRole("button", { name: "Studio work" })).toBeVisible();
+  },
+};
+
+/** Lets the held `create` of `holdingCreate` answer when the play function says so. */
+let answerCreate: () => void = () => undefined;
+
+/** `access`, but `create` answers only once `answerCreate` is called. */
+function holdingCreate(access: PortAccess): PortAccess {
+  return {
+    async call(module, entry, input, signal) {
+      if (entry === "create") await new Promise<void>((resolve) => (answerCreate = resolve));
+      return access.call(module, entry, input, signal);
+    },
+    describeEntry: (module, entry) => access.describeEntry(module, entry),
+    onTablesChanged: (listener) => access.onTablesChanged(listener),
+    onReconnected: (listener) => access.onReconnected(listener),
+  };
+}
+
+/** What is typed while the save runs would be lost when the drawer closes, so nothing can be. */
+export const TheNameIsLockedWhileItSaves: Story = {
+  args: { address: `${OVERVIEW}?edit=new`, access: holdingCreate(placeholderAlphaAnswers()) },
+  play: async () => {
+    const drawer = within(await screen.findByRole("dialog", { name: "New entry" }));
+    const name = await drawer.findByRole("textbox", { name: "Name" });
+    await userEvent.type(name, "Saved");
+    await userEvent.click(drawer.getByRole("button", { name: "Save" }));
+    await waitFor(() => expect(name).toHaveAttribute("readonly"));
+    await userEvent.type(name, " and more");
+    await expect(name).toHaveValue("Saved");
+
+    answerCreate();
+    await noDrawer("New entry");
+    await expect(address().edit).toBeUndefined();
   },
 };

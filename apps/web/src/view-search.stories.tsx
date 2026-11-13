@@ -14,12 +14,18 @@ import {
   useViewSearch,
   useWriteViewSearch,
 } from "@self-engine/shell";
+import { DataProvider } from "@self-engine/data-client/react";
+import { fixedAnswers } from "@self-engine/data-client/testing";
 import { memo, type ReactNode, useState } from "react";
 import { contribution as alpha } from "@self-engine/placeholder-alpha";
 import { modules, settings } from "./modules.ts";
 import { createAppRouter } from "./app-router.ts";
 import { ROUTING } from "./shell-routing.tsx";
 import { loadStoryApp } from "./story-app.tsx";
+
+/** These Views call no Port entry and show no notice, so any call fails the story. */
+const noAnswers = fixedAnswers({}, {});
+const noData = { access: noAnswers, notify: fn() };
 
 const rendered = fn();
 const SelectedClient = memo(function SelectedClient() {
@@ -52,6 +58,7 @@ function SearchStory({ children = <SearchControls /> }: { readonly children?: Re
           settings={settings}
           activeModule={undefined}
           activeView={undefined}
+          data={noData}
           routing={ROUTING}
         >
           {children}
@@ -150,7 +157,11 @@ function DrawerIsolationStory() {
       createMemoryHistory({ initialEntries: ["/placeholder-alpha/overview?client=studio"] }),
     );
   });
-  return <RouterProvider router={router} />;
+  return (
+    <DataProvider access={noAnswers}>
+      <RouterProvider router={router} />
+    </DataProvider>
+  );
 }
 export const DrawerIsolation: Story = {
   loaders: [loadStoryApp],

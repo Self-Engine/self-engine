@@ -68,7 +68,7 @@ describe("runDataProcess", () => {
 
     await expect(connection.client.health()).resolves.toMatchObject({
       state: "ready",
-      migrations: [],
+      migrations: ["placeholder-alpha/0001"],
     });
   });
 

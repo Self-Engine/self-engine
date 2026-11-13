@@ -24,7 +24,7 @@ export type AllowedImports = Readonly<Record<string, readonly string[]>>;
 export const ALLOWED_IMPORTS: AllowedImports = {
   // Composes the protocol and the modules' contracts (D187): `contracts → module`. Only the
   // desktop app's module list imports it.
-  contracts: ["data-protocol"],
+  contracts: ["data-protocol", "placeholder-alpha"],
   // The building block tells the user through `ui`'s feedback system. It takes the protocol from
   // `data-protocol`, which knows no module, so no cycle runs through a module (ADR 0006).
   "data-client": ["data-protocol", "ui"],
@@ -37,10 +37,13 @@ export const ALLOWED_IMPORTS: AllowedImports = {
   // Timestamp generation returns the shared Instant brand (D223).
   db: ["time"],
   icons: ["theme"],
-  "placeholder-alpha": ["shell", "icons", "ui"],
+  // Its contracts and data entries (D252); the root entry stays with the shell and the UI, and
+  // reads and writes through the data building block.
+  "placeholder-alpha": ["data-client", "db", "icons", "shell", "storage", "time", "ui"],
   "placeholder-beta": ["shell", "icons"],
   "settings-area": ["i18n", "icons", "settings", "shell", "theme", "ui"],
-  shell: ["icons", "theme", "ui"],
+  // The Port access type only, which every Command is given (D261).
+  shell: ["data-client", "icons", "theme", "ui"],
   storage: ["db", "time"],
   time: [],
   ui: ["icons", "theme"],
@@ -54,6 +57,8 @@ export const ALLOWED_IMPORTS: AllowedImports = {
 export const TEST_ONLY_IMPORTS: AllowedImports = {
   // The test Data Process and the `notes` test module, to test the client over the real core.
   "data-client": ["data-process", "storage"],
+  // The test Data Process, to run the module's hooks end to end without the app (#33).
+  "placeholder-alpha": ["data-process"],
 };
 
 /** Only `@self-engine/icons` may import these; Tabler and the rest would be a second library. */

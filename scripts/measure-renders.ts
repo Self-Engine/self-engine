@@ -4,15 +4,14 @@ import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { createServer } from "node:net";
 import { dirname, resolve } from "node:path";
 import { parseArgs } from "node:util";
-import { chromium } from "playwright";
+import { createDataConnection, type DataConnection } from "@self-engine/data-client";
+import type { TestDataProcess } from "@self-engine/data-process/testing";
+import type { RenderModules, startRenderDataProcess } from "./render-data-process.ts";
+import { chromium, type Page } from "playwright";
+import { runnerImport } from "vite-plus";
 import { workingTreeHash } from "./verify-stamp.ts";
-import {
-  countCommit,
-  compareReports,
-  difference,
-  type RenderCounts,
-  type RenderReport,
-} from "./render-counts.ts";
+import { compareReports, type RenderReport } from "./render-counts.ts";
+import { countCommit, difference, type RenderCounts } from "@self-engine/ui/story-render-counts";
 
 /** Parse the diagnostic command; reject misspelled options before launching anything. */
 export function options(args: string[]) {
@@ -25,6 +24,9 @@ export function options(args: string[]) {
     strict: true,
   }).values;
 }
+
+/** The scenarios of one report; a baseline must have exactly these to be compared. */
+export const SCENARIOS = ["change-view", "open-edit-drawer", "rename-one-of-1000"] as const;
 
 /** Read a compatible baseline before allocating a port or starting the app. */
 export function readBaseline(path: string): RenderReport {
@@ -60,7 +62,7 @@ export function readBaseline(path: string): RenderReport {
       enumerable: true,
     });
   }
-  if (Object.keys(scenarios).sort().join() !== ["change-view", "open-edit-drawer"].sort().join()) {
+  if (Object.keys(scenarios).sort().join() !== [...SCENARIOS].sort().join()) {
     throw new Error(`Incompatible render report scenarios: ${path}`);
   }
   return { version: 1, revision: parsed.revision, scenarios };
@@ -77,6 +79,92 @@ async function freePort(): Promise<number> {
   if (!address || typeof address === "string") throw new Error("No TCP port allocated");
   await new Promise<void>((resolvePromise) => server.close(() => resolvePromise()));
   return address.port;
+}
+
+/**
+ * A stand-in for the desktop app's preload (`DesktopBridge`), installed before the page loads: the
+ * page asks for a port as in the desktop app, and gets one whose messages the script relays to a
+ * test Data Process in Node. So the page reads and writes through the real Port (D252), with no
+ * Electron. The stable channel on Linux adds no badge and no room for window buttons.
+ */
+export const BRIDGE_STAND_IN = `
+  const channel = new MessageChannel();
+  channel.port2.onmessage = (event) => globalThis.__seToDataProcess(event.data);
+  globalThis.__seFromDataProcess = (data) => channel.port2.postMessage(data);
+  globalThis.desktopBridge = {
+    platform: "linux",
+    channel: "stable",
+    version: undefined,
+    async requestDataPort() {
+      await globalThis.__seOpenDataPort();
+      window.postMessage({ type: "self-engine:data-process", kind: "port" }, location.origin, [
+        channel.port1,
+      ]);
+    },
+    retryDataProcess() {},
+  };
+`;
+
+/**
+ * Relays the stand-in's port to a test Data Process with `placeholder-alpha` mounted. Each page
+ * load asks for a port of its own, as a reload in the desktop app does.
+ */
+async function dataProcessFor(page: Page): Promise<TestDataProcess> {
+  const { module } = await runnerImport<{ startRenderDataProcess: typeof startRenderDataProcess }>(
+    resolve(import.meta.dirname, "render-data-process.ts"),
+    { configFile: false, logLevel: "error" },
+  );
+  const process = await module.startRenderDataProcess();
+  let port: ReturnType<TestDataProcess["openPort"]> | undefined;
+  await page.exposeFunction("__seOpenDataPort", () => {
+    port?.close();
+    const opened = process.openPort();
+    opened.on("message", (data: unknown) => {
+      void page
+        .evaluate((message) => Reflect.get(globalThis, "__seFromDataProcess")(message), data)
+        .catch(() => {
+          // A message for a page that is being left has nowhere to go, and its port is replaced.
+        });
+    });
+    port = opened;
+  });
+  await page.exposeFunction("__seToDataProcess", (data: unknown) => port?.postMessage(data));
+  return process;
+}
+
+/** A second client of the same Data Process, which writes as another window would. */
+async function writerFor(process: TestDataProcess): Promise<DataConnection<RenderModules>> {
+  const connection = createDataConnection<RenderModules>();
+  const ready = new Promise<void>((resolvePromise) => {
+    const stop = connection.subscribe(() => {
+      if (connection.getState().status !== "ready") return;
+      stop();
+      resolvePromise();
+    });
+  });
+  connection.connect(process.openPort());
+  await ready;
+  return connection;
+}
+
+/**
+ * Fill `placeholder-alpha` up to 1,000 entries through its Port, or rename one of them. Every
+ * create and the rename reach the page as a Table Change, which reloads its list: only the
+ * measured step, the rename, is a single change.
+ */
+async function renameOneOf1000(
+  writer: DataConnection<RenderModules>,
+  step: "seed" | "rename",
+): Promise<void> {
+  const alpha = writer.client.placeholderAlpha;
+  if (step === "seed") {
+    // Studio work and Garden work exist already.
+    for (let number = 3; number <= 1000; number++) await alpha.create({ name: `Entry ${number}` });
+    return;
+  }
+  const target = (await alpha.list({})).find(({ name }) => name === "Entry 500");
+  if (!target) throw new Error("Entry 500 was not created");
+  await alpha.rename({ id: target.id, name: "Renamed entry" });
 }
 
 /** Measure the real app and always release its browser and dev server. */
@@ -116,6 +204,8 @@ async function main(): Promise<void> {
     });
   });
   let browser;
+  let dataProcess: TestDataProcess | undefined;
+  let writer: DataConnection<RenderModules> | undefined;
   try {
     await ready;
     browser = await chromium.launch({ headless: true });
@@ -129,6 +219,12 @@ async function main(): Promise<void> {
       errors.push(error.message);
       console.error(error.message);
     });
+    dataProcess = await dataProcessFor(page);
+    writer = await writerFor(dataProcess);
+    for (const name of ["Studio work", "Garden work"]) {
+      await writer.client.placeholderAlpha.create({ name });
+    }
+    await page.addInitScript({ content: BRIDGE_STAND_IN });
     // Install before React loads. Only this browser process sees the instrumentation.
     await page.addInitScript({
       content: `
@@ -158,7 +254,9 @@ async function main(): Promise<void> {
           ),
       );
     };
-    await page.goto(`http://127.0.0.1:${port}/placeholder-alpha/overview`);
+    // With a desktop bridge the app keeps its address in the hash, as in Electron.
+    const overview = `http://127.0.0.1:${port}/#/placeholder-alpha/overview`;
+    await page.goto(overview);
     await page
       .getByRole("button", { name: "Studio work", exact: true })
       .waitFor()
@@ -180,9 +278,19 @@ async function main(): Promise<void> {
     scenarios["change-view"] = difference(await read(), before);
     before = await read();
     await page.getByRole("button", { name: "Studio work", exact: true }).click();
-    await page.getByRole("dialog", { name: "Editor", exact: true }).waitFor();
+    await page.getByRole("dialog", { name: "Studio work", exact: true }).waitFor();
     await settle();
     scenarios["open-edit-drawer"] = difference(await read(), before);
+    await page.goto(overview);
+    await page.getByRole("button", { name: "Studio work", exact: true }).waitFor();
+    await renameOneOf1000(writer, "seed");
+    await page.getByRole("button", { name: "Entry 1000", exact: true }).waitFor();
+    await settle();
+    before = await read();
+    await renameOneOf1000(writer, "rename");
+    await page.getByRole("button", { name: "Renamed entry", exact: true }).waitFor();
+    await settle();
+    scenarios["rename-one-of-1000"] = difference(await read(), before);
     if (errors.length) throw new Error(`Application errors:\n${errors.join("\n")}`);
     if (Object.values(scenarios).some((scenario) => Object.keys(scenario.components).length === 0))
       throw new Error(
@@ -207,6 +315,8 @@ async function main(): Promise<void> {
     );
   } finally {
     await browser?.close();
+    writer?.disconnect();
+    await dataProcess?.close();
     if (server.pid && server.exitCode === null) process.kill(-server.pid, "SIGTERM");
   }
 }

@@ -1635,9 +1635,26 @@ markiert und wird beim Bau gemessen.
   sich, ein Befehl vor dem ersten Provider hätte nichts); Befehle rufen noch keine Operationen
   (D252 wäre nicht erfüllt, die Frage käme mit dem ersten echten Modul wieder); das Feld als
   `unknown` mit Prüfung zur Laufzeit.
+- **D262 Die Gruppen von `placeholder-alpha` filtern nicht mehr (verfeinert D252).** Die Kunden
+  „Studio“ und „Garten“ bleiben als Vorlage für eine Suche, die sich die Ansichten eines Moduls
+  teilen (`sharedSearch`); eine Gruppe ändert nur die Adresse und markiert sich. Echte Einträge
+  gehören keinem Kunden, also zeigt die Liste alle. _Preis:_ In der App sieht man nach einem Klick
+  auf eine Gruppe keine andere Liste. _Verworfen:_ nach Namensanfang filtern (eine erfundene Regel
+  über Daten); die Gruppen entfernen (kein Modul zeigte mehr Gruppen, die App-Stories dazu müssten
+  in die Hülle wandern).
 
-### Runde 34 (2026-11-13): Befunde der Code-Prüfung zu #33 (verfeinert D187, D251, D261)
+### Runde 34 (2026-11-13): Befunde der Code-Prüfung zu #33 (verfeinert D187, D196, D251, D257, D261)
 
+- **D263 Die Web-App ohne Datenprozess zeigt den Zustand „Daten nicht erreichbar“ (verfeinert
+  D196, D257).** Ohne Desktop-Brücke wird die Verbindung beim Start gestoppt; die Seite zeigt
+  denselben Zustand wie die Desktop-App, wenn der Datenprozess nach mehreren Abstürzen steht,
+  aber ohne „Erneut versuchen“ (im Browser kann nichts einen Datenprozess starten) und mit einem
+  eigenen Satz, dass der Browser noch keinen Zugang zu den Daten hat. Der Port-Zugang der
+  Web-App ist `NO_DATA_PROCESS`: Jeder Aufruf scheitert sofort, nichts wartet still dahinter.
+  „Wie bisher“ in der Spezifikation war ein Irrtum: Auf `main` zeigte die Web-App nur die
+  Einträge im Speicher, die #33 entfernt. _Preis:_ ein übersetzter Satz mehr; zur Laufzeit
+  nichts. _Verworfen:_ ewig laden (Liste im Spinner, Speichern-Knopf und Befehl ohne Antwort);
+  die App ohne Daten zeigen (jede Ansicht zeigte ihren Fehlerzustand, ohne zu sagen, warum).
 - **D264 Ein Konfliktgrund ohne Feld sagt das ausdrücklich (verfeinert D251).** Die Typen
   verlangen weiter für jeden Grund Text und Feld; ein Modul darf `field: null` schreiben, wenn
   kein Feld den Konflikt zeigen kann (Rückgängig, ein Befehl ohne Formular). Dann zeigt der

@@ -1,6 +1,6 @@
 # Schicht 2: Datenschicht
 
-Stand: 2026-11-13 · Status: **entschieden** (D86–D98, D133–D142, D187–D196, D219–D259) · Recherche:
+Stand: 2026-11-13 · Status: **entschieden** (D86–D98, D133–D142, D187–D196, D219–D262) · Recherche:
 [`research-layer-2-data.md`](research-layer-2-data.md)
 
 ## Entschieden
@@ -49,6 +49,8 @@ Stand: 2026-11-13 · Status: **entschieden** (D86–D98, D133–D142, D187–D19
 | L2.39 | Fehler und Zustände | Erwartete Fehler sind Rückgabewerte, Konflikte gehen ans Feld; Abfragen zeigen `LoadingState` und `ErrorState` (D251, D257) |
 | L2.40 | Umfang von #33 | `placeholder-alpha` mit echter Tabelle; Seiten-Hook erst in #137; zwei Reste aus #32; Start-Grenze nach Messung plus 6 % (D252, D253, D258, D259) |
 | L2.41 | Prüfen und Begriffe | Feste Antworten gegen das Schema; Zeichen-Test mit genau einer Zeile; vier Glossar-Begriffe (D254–D256) |
+| L2.42 | Zeichnen | Ursache aus dem Durchstich gefunden (#215): Die Zeilen standen direkt im `map` der Liste. Jede Zeile ist eine eigene `memo`-Komponente, bekommt ihre Zeile als Ganzes und sonst nur gleichbleibende Werte; ein Test im Gate hält eine Zeile pro Änderung (D256) |
+| L2.43 | Nachtrag zum Bau von #33 | Speicher-Modul in zwei Schritten; Befehle bekommen den Port-Zugang im Kontext; die Gruppen von `placeholder-alpha` filtern nicht (D260–D262). Festgehalten in ADR 0021 und im [Leitfaden für die Oberfläche](../development/port-hooks.md) |
 
 ## Aufbau
 
@@ -69,7 +71,6 @@ löst dasselbe `tablesChanged` aus (D89).
 
 ## Offen
 
-- Warum im Durchstich jede Zeile neu gezeichnet wurde (erste Aufgabe in #33, D194)
 - Effect für Sync und Import (Sync-Phase, D190); Prüfung fremder Zeilen (Sync-Phase, D188)
 - Migrationen im Build von Mobile (D191)
 - Wie ein Modul in der Oberfläche etwas in die Seite eines anderen einhängt (Schicht 4, D241)

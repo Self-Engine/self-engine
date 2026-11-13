@@ -1,3 +1,4 @@
+import type { DataAccess } from "@self-engine/data-client/react";
 import {
   SHELL_START_AFTER_WINDOW_BUTTONS_PX,
   SHELL_TOP_STRIP_HEIGHT,
@@ -863,9 +864,21 @@ export interface ShellProps extends Omit<
   readonly settings: ShellContribution;
   readonly activeModule: ShellContribution | undefined;
   readonly activeView: ShellView | undefined;
+  /**
+   * The Port access and notice seam every Command is given (D261): the app's `useDataAccess()`,
+   * or a stand-in.
+   */
+  readonly data: DataAccess;
 }
 
-export function Shell({ contributions, settings, activeModule, activeView, ...props }: ShellProps) {
+export function Shell({
+  contributions,
+  settings,
+  activeModule,
+  activeView,
+  data,
+  ...props
+}: ShellProps) {
   const { i18n } = useLingui();
   const entryOf = (module: ShellContribution): NavigationEntry => ({
     id: module.id,
@@ -879,7 +892,7 @@ export function Shell({ contributions, settings, activeModule, activeView, ...pr
     activeModuleId: activeModule?.id,
   };
   return (
-    <StartOnceProvider>
+    <StartOnceProvider data={data}>
       <CommandPaletteProvider>
         <ShellFrame
           {...props}
@@ -976,9 +989,11 @@ function ModuleEditDrawer({ module }: { readonly module: ShellContribution | und
       const { edit: _edit, ...rest } = search;
       return rest;
     });
+  // Bound to the opening drawn now: a save that ends after the person left this entry closes
+  // nothing, so it cannot close another entry past its unsaved-changes guard.
+  const { opening } = exits;
   const done = () => {
-    exits.letNextExitPass();
-    close();
+    if (exits.letNextExitPass(opening)) close();
   };
   return (
     <Drawer

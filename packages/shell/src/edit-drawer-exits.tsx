@@ -48,10 +48,16 @@ export function useEditDrawerExits(openEntryKey: string | undefined) {
   const [questionOpen, setQuestionOpen] = useState(false);
   const finished = useRef(false);
   const closeButton = useRef<HTMLButtonElement>(null);
+  // Counts each change of what the drawer has open, closing included, so that a save which ends
+  // after its drawer was left knows it no longer speaks for what is open now.
+  const [opening, setOpening] = useState({ key: openEntryKey, count: 0 });
+  if (opening.key !== openEntryKey) setOpening({ key: openEntryKey, count: opening.count + 1 });
+  const openNow = useRef(opening.count);
 
   useEffect(() => {
     finished.current = false;
-  }, [openEntryKey]);
+    openNow.current = opening.count;
+  }, [opening.count]);
 
   const register = useCallback(
     (check: UnsavedCheck) => {
@@ -93,10 +99,16 @@ export function useEditDrawerExits(openEntryKey: string | undefined) {
   );
   useLeaveGuard(guard, openEntryKey !== undefined);
 
-  /** After a successful save or delete: nothing is left to lose. */
-  const letNextExitPass = useCallback(() => {
+  /**
+   * After a successful save or delete in the opening `openedAs` names: nothing is left to lose,
+   * so the next exit passes. An opening that is no longer the open one lets nothing pass, and
+   * the result says so: its drawer was left, and closing would close what is open now.
+   */
+  const letNextExitPass = useCallback((openedAs: number) => {
+    if (openedAs !== openNow.current) return false;
     finished.current = true;
+    return true;
   }, []);
 
-  return { register, questionOpen, letNextExitPass, closeButton };
+  return { register, questionOpen, opening: opening.count, letNextExitPass, closeButton };
 }

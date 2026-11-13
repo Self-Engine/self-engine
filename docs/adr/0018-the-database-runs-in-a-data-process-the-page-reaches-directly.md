@@ -1,7 +1,7 @@
 ---
 status: accepted
 date: 2026-11-12
-decisions: D90, D93, D97, D187, D190, D192
+decisions: D90, D93, D97, D187, D190, D192, D263
 ---
 
 # The database runs in a Data Process the page reaches directly
@@ -51,8 +51,9 @@ where there is no Electron.
   answer and a reconnect after the _Data Process_ is killed.
 - The data client loads at startup, because data is part of the first screen. Its bytes count
   against the startup budget.
-- The web app has no _Data Process_ yet. It keeps running without one until a web driver runs the
-  same core in a worker.
+- The web app has no _Data Process_ yet. Until a web driver runs the same core in a worker, it
+  shows that the data cannot be reached, without a retry, and every call fails at once (D263,
+  [ADR 0021](0021-the-page-reloads-a-query-after-a-table-change-through-one-building-block.md)).
 
 ## Considered Options
 

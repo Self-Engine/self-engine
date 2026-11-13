@@ -327,6 +327,53 @@ export const AFailedSaveLeavesTheDraftOpen = withDraft(
   moduleWith(async () => ({ default: EditorWhoseSaveFails })),
 );
 
+/** Lets the save of `EditorWhoseSaveWaits` end when the play function says so. */
+let endWaitingSave: () => void = () => undefined;
+
+function EditorWhoseSaveWaits({ onCancel, onDone }: EditDrawerProps) {
+  const [draft, setDraft] = useState("");
+  useUnsavedChanges(() => draft !== "");
+  const save = async () => {
+    await new Promise<void>((resolve) => {
+      endWaitingSave = resolve;
+    });
+    onDone();
+  };
+  return (
+    <>
+      <input aria-label="Draft" onChange={(event) => setDraft(event.target.value)} value={draft} />
+      <button onClick={() => void save()}>Save draft</button>
+      <button onClick={onCancel}>Cancel draft</button>
+    </>
+  );
+}
+
+export const ASaveThatEndsAfterItsDrawerWasLeftClosesNothing = withDraft(
+  async (canvas, routing) => {
+    const left = await openDrawer(canvas);
+    await userEvent.type(left.draft, "x");
+    await userEvent.click(left.drawer.getByRole("button", { name: "Save draft" }));
+    await EXITS.moduleCancel(left);
+    await asked();
+    await answer("Discard");
+    await drawerGone();
+
+    routing.address.writeSearch((search) => ({ ...search, edit: "another" }));
+    const drawer = within(await screen.findByRole("dialog", { name: "Time" }));
+    await userEvent.type(await drawer.findByRole("textbox", { name: "Draft" }), "y");
+    endWaitingSave();
+    await nextFrame();
+
+    await expect(routing.address.search()).toEqual({ edit: "another" });
+    await expect(drawer.getByRole("textbox", { name: "Draft" })).toHaveValue("y");
+    await userEvent.click(drawer.getByRole("button", { name: "Cancel draft" }));
+    await asked();
+    await answer("Discard");
+    await drawerGone();
+  },
+  moduleWith(async () => ({ default: EditorWhoseSaveWaits })),
+);
+
 function CheckThatSaysYes() {
   useUnsavedChanges(() => true);
   return <p>Second check</p>;
