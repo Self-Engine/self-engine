@@ -2,11 +2,11 @@ import { createORPCClient, ORPCError } from "@orpc/client";
 import type { RPCLink } from "@orpc/client/message-port";
 import type { ContractRouterClient } from "@orpc/contract";
 import type {
-  AppContract,
   HealthFailure,
+  ProtocolContract,
   QueryTables,
   TablesChanged,
-} from "@self-engine/contracts";
+} from "@self-engine/data-protocol";
 
 export interface PortSessionEvents {
   /** The stream's opening event arrived with the Query-to-tables list: the port answers. */
@@ -30,7 +30,7 @@ export interface PortSession {
  * closed port and a data process that went away.
  */
 export function watchPort(link: RPCLink<object>, events: PortSessionEvents): PortSession {
-  const client: ContractRouterClient<AppContract> = createORPCClient(link);
+  const client: ContractRouterClient<ProtocolContract> = createORPCClient(link);
   const stopped = new AbortController();
   void (async () => {
     try {

@@ -10,9 +10,8 @@
   },
   "dependencies": {
     "@orpc/server": "catalog:",
-    "@self-engine/contracts": "workspace:*",
+    "@self-engine/data-protocol": "workspace:*",
     "@self-engine/db": "workspace:*",
-    "@self-engine/placeholder-alpha": "workspace:*",
     "@self-engine/storage": "workspace:*",
     "kysely": "catalog:"
   },

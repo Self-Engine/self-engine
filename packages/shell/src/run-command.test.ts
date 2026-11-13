@@ -1,4 +1,4 @@
-import type { PortAccess } from "@self-engine/data-client/react";
+import { type DataAccess, NO_DATA_PROCESS } from "@self-engine/data-client/react";
 import { notifyError } from "@self-engine/ui";
 import { afterEach, describe, expect, test, vi } from "vite-plus/test";
 import { z } from "zod";
@@ -11,13 +11,8 @@ const schema = z.object({ name: z.string().min(1) });
 const description = "Creates a thing.";
 const named = { name: "Studio" };
 
-/** The Port access a Command is given; these Commands never call it. */
-const data: PortAccess = {
-  call: () => Promise.reject(new Error("No Port in this test")),
-  describeEntry: () => undefined,
-  onTablesChanged: () => () => undefined,
-  onReconnected: () => () => undefined,
-};
+/** What a Command is given; these Commands never call a Port nor show a notice. */
+const data: DataAccess = { access: NO_DATA_PROCESS, notify: () => undefined };
 
 function inputCommand(run: (input: { name: string }) => unknown) {
   const definition = defineInputCommand({ description, schema, run });

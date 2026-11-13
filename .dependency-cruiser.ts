@@ -22,14 +22,18 @@ export type AllowedImports = Readonly<Record<string, readonly string[]>>;
  * the two lists match.
  */
 export const ALLOWED_IMPORTS: AllowedImports = {
-  // Composes the modules' contracts once they have some (D187): `contracts → module`.
-  contracts: ["placeholder-alpha"],
-  // The data process test harness and the `notes` test module only in the client's tests
-  // (devDependencies). The building block tells the user through `ui`'s feedback system.
-  "data-client": ["contracts", "data-process", "storage", "ui"],
-  "data-process": ["contracts", "db", "placeholder-alpha", "storage"],
-  // The preload and the page share it; the failure states come from the contract.
-  "desktop-bridge": ["contracts"],
+  // Composes the protocol and the modules' contracts (D187): `contracts → module`. Only the
+  // desktop app's module list imports it.
+  contracts: ["data-protocol", "placeholder-alpha"],
+  // The building block tells the user through `ui`'s feedback system. It takes the protocol from
+  // `data-protocol`, which knows no module, so no cycle runs through a module (ADR 0006).
+  "data-client": ["data-protocol", "ui"],
+  // The core knows no module: the app passes its module list in.
+  "data-process": ["data-protocol", "db", "storage"],
+  // `health` and the Table Change stream: imports nothing of the workspace.
+  "data-protocol": [],
+  // The preload and the page share it; the failure states come from the protocol.
+  "desktop-bridge": ["data-protocol"],
   // Timestamp generation returns the shared Instant brand (D223).
   db: ["time"],
   icons: ["theme"],
@@ -47,9 +51,12 @@ export const ALLOWED_IMPORTS: AllowedImports = {
 
 /**
  * Further packages a package may import from its test and story files only, never from its own
- * code. They count as allowed for the check against `package.json` like ALLOWED_IMPORTS.
+ * code: the one place to declare a test-only import (a devDependency of the package). They count
+ * as allowed for the check against `package.json` like ALLOWED_IMPORTS.
  */
 export const TEST_ONLY_IMPORTS: AllowedImports = {
+  // The test Data Process and the `notes` test module, to test the client over the real core.
+  "data-client": ["data-process", "storage"],
   // The test Data Process, to run the module's hooks end to end without the app (#33).
   "placeholder-alpha": ["data-process"],
 };
@@ -257,9 +264,9 @@ export function boundaryConfig({
     {
       name: "contracts-is-pure",
       comment:
-        "The app contract (`@self-engine/contracts`) loads in the renderer and the data process, so it holds only Zod schemas and oRPC contracts (D187): no database code, no Node built-in, nothing from Electron.",
+        "The app contract (`@self-engine/contracts`) and the protocol (`@self-engine/data-protocol`) load in the renderer and the data process, so they hold only Zod schemas and oRPC contracts (D187): no database code, no Node built-in, nothing from Electron.",
       severity: "error",
-      from: { path: "^packages/contracts/" },
+      from: { path: "^packages/(?:contracts|data-protocol)/" },
       to: {
         dependencyTypesNot: ["local"],
         pathNot: `^packages/|(^|/)node_modules/(?:${alternatives(CONTRACT_LIBRARIES)})/`,
@@ -278,10 +285,10 @@ export function boundaryConfig({
     {
       name: "renderer-imports-the-contract-as-a-type",
       comment:
-        "The renderer imports the app contract as a type only (`import type`), so no schema loads at startup and inputs are validated in the data process alone (D187, D188).",
+        "The renderer imports the app contract and the protocol as types only (`import type`), so no schema loads at startup and inputs are validated in the data process alone (D187, D188).",
       severity: "error",
       from: RENDERER,
-      to: { path: "^packages/contracts/", dependencyTypesNot: ["type-only"] },
+      to: { path: "^packages/(?:contracts|data-protocol)/", dependencyTypesNot: ["type-only"] },
     },
     {
       name: "renderer-stays-off-the-database",

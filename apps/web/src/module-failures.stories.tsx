@@ -11,8 +11,7 @@ import {
 } from "@self-engine/shell";
 import type { ComponentType } from "react";
 import { z } from "zod";
-import { settingsStore } from "./settings-store.ts";
-import { AppAt, held, storyRouter } from "./story-app.tsx";
+import { loadStoryApp, AppAt, held, storyRouter } from "./story-app.tsx";
 import { placeholderAlphaAnswers, STUDIO_WORK } from "@self-engine/placeholder-alpha/testing";
 
 type Canvas = ReturnType<typeof within>;
@@ -23,7 +22,7 @@ const meta = {
   title: "App/Module failures and slow work",
   component: AppAt,
   parameters: { layout: "fullscreen" },
-  loaders: [() => settingsStore.load()],
+  loaders: [loadStoryApp],
   args: { address: "/placeholder-alpha/overview", access: placeholderAlphaAnswers() },
 } satisfies Meta<typeof AppAt>;
 export default meta;

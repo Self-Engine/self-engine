@@ -1,4 +1,4 @@
-import type { TablesChanged } from "@self-engine/contracts";
+import type { TablesChanged } from "@self-engine/data-protocol";
 import type { DataConnection, EntryDescription } from "../data-connection.ts";
 
 /**
@@ -20,6 +20,20 @@ export interface PortAccess {
   onReconnected(listener: () => void): () => void;
 }
 
+/**
+ * A Port access with no Data Process behind it: every call fails at once, no Table Change and no
+ * reconnect ever come, and no entry is known. The web app uses it while it has no Data Process,
+ * so nothing waits behind the state it shows instead (D263); a test or story uses it where no
+ * call is meant to reach a Port, and Fixed Answers build on it.
+ */
+export const NO_DATA_PROCESS: PortAccess = {
+  call: (module, entry) =>
+    Promise.reject(new Error(`No Data Process answers ${module}.${entry} on this page`)),
+  describeEntry: () => undefined,
+  onTablesChanged: () => () => undefined,
+  onReconnected: () => () => undefined,
+};
+
 /** One procedure of the client, reached by its module and entry name. */
 type Procedure = (input: unknown, options: { signal?: AbortSignal }) => Promise<unknown>;
 
@@ -39,13 +53,12 @@ export function portAccessOf(connection: DataConnection): PortAccess {
     describeEntry: (module, entry) => connection.describeEntry(module, entry),
     onTablesChanged: (listener) => connection.onTablesChanged(listener),
     onReconnected(listener) {
-      // The connection holds a Query-to-tables list once a port got ready, and keeps it after.
-      const wasReady = () => connection.describeEntry("", "") !== undefined;
-      // Any state but ready after a ready one lost the stream: reconnecting, stopped or failed.
-      let lost = connection.getState().status !== "ready" && wasReady();
+      // A port got ready once exactly when the Query-to-tables list arrived. Any state but ready
+      // after that lost the stream: reconnecting, stopped or failed.
+      let lost = connection.getState().status !== "ready" && connection.hasQueryList();
       return connection.subscribe(() => {
         if (connection.getState().status !== "ready") {
-          lost = wasReady();
+          lost = connection.hasQueryList();
           return;
         }
         if (!lost) return;

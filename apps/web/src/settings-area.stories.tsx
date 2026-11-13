@@ -30,7 +30,7 @@ import { expect, screen, userEvent, waitFor, within } from "storybook/test";
 import { AppLanguage } from "./app-language.tsx";
 import { AppearanceProvider } from "./appearance.tsx";
 import { settingsStore } from "./settings-store.ts";
-import { AppAt, openPalette, paletteGone, storyRouter } from "./story-app.tsx";
+import { loadStoryApp, AppAt, openPalette, paletteGone, storyRouter } from "./story-app.tsx";
 import { placeholderAlphaAnswers } from "@self-engine/placeholder-alpha/testing";
 
 const i18n = createI18n();
@@ -66,7 +66,7 @@ const meta = {
     // The start of `main.tsx`: load the store, resolve the stored language, show nothing before
     // its catalog is there.
     async ({ parameters }) => {
-      await settingsStore.load();
+      await loadStoryApp();
       systemLanguages = ["en-US"];
       const stored = parameters["storedLanguage"] as string | undefined;
       if (stored !== undefined) settingsStore.write(APP_LANGUAGE_SETTING, stored);

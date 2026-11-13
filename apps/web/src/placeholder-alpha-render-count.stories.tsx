@@ -3,7 +3,7 @@
 // a share: a list whose rows break the row rule draws all 1,000 (docs/development/performance.md,
 // "One changed row redraws one row").
 
-import type { PortAccess } from "@self-engine/data-client/react";
+import { changingAnswers } from "@self-engine/data-client/testing";
 import { placeholderAlphaAnswers, sampleEntries } from "@self-engine/placeholder-alpha/testing";
 import {
   afterTheCommitsNowDue,
@@ -13,8 +13,7 @@ import {
 } from "@self-engine/ui/story-render-counts";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { expect } from "storybook/test";
-import { settingsStore } from "./settings-store.ts";
-import { AppAt } from "./story-app.tsx";
+import { AppAt, loadStoryApp } from "./story-app.tsx";
 
 const ROWS = 1000;
 const RENAMED = 500;
@@ -23,8 +22,8 @@ const RENAMED_ENTRIES = ENTRIES.map((entry, index) =>
   index === RENAMED - 1 ? { ...entry, name: "Renamed entry" } : { ...entry },
 );
 
-/** What the Data Process's Query-to-tables list says about the list (D248). */
-const LIST_READS = { kind: "query", reads: ["placeholder_alpha_entries"] } as const;
+/** What the Data Process's Query-to-tables list says about `placeholder-alpha` (D248). */
+const QUERIES = { placeholderAlpha: { list: ["placeholder_alpha_entries"] } };
 
 /**
  * A Port whose list answers 1,000 entries until the story delivers the Table Change of a rename,
@@ -32,24 +31,10 @@ const LIST_READS = { kind: "query", reads: ["placeholder_alpha_entries"] } as co
  * the Contract; like the Data Process, the second answer hands every row over as a new object.
  */
 function aRenameOfOneEntry() {
-  const listeners = new Set<(tables: string[]) => void>();
-  let answers = placeholderAlphaAnswers({ list: { data: ENTRIES } });
+  const port = changingAnswers(placeholderAlphaAnswers({ list: { data: ENTRIES } }), QUERIES);
   const renamed = placeholderAlphaAnswers({ list: { data: RENAMED_ENTRIES } });
-  const access: PortAccess = {
-    call: (module, entry, input, signal) => answers.call(module, entry, input, signal),
-    describeEntry: (module, entry) =>
-      module === "placeholderAlpha" && entry === "list" ? LIST_READS : undefined,
-    onTablesChanged: (listener) => {
-      listeners.add(listener);
-      return () => listeners.delete(listener);
-    },
-    onReconnected: () => () => undefined,
-  };
-  const rename = () => {
-    answers = renamed;
-    for (const listener of listeners) listener(["placeholder_alpha_entries"]);
-  };
-  return { access, rename };
+  const rename = () => port.change(renamed, ["placeholder_alpha_entries"]);
+  return { access: port.access, rename };
 }
 
 const meta = {
@@ -57,7 +42,12 @@ const meta = {
   component: AppAt,
   parameters: { layout: "fullscreen" },
   // A new Port for every render, so that a second run starts before the rename again.
-  loaders: [async () => ({ port: aRenameOfOneEntry(), settings: await settingsStore.load() })],
+  loaders: [
+    async () => {
+      await loadStoryApp();
+      return { port: aRenameOfOneEntry() };
+    },
+  ],
   render: (args, { loaded }) => <AppAt {...args} access={loaded["port"].access} />,
   args: { address: "/placeholder-alpha/overview", access: placeholderAlphaAnswers() },
 } satisfies Meta<typeof AppAt>;

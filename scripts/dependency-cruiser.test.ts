@@ -11,7 +11,7 @@ import {
   ruleNames,
   withFiles,
 } from "./testing/cruise-fixture.ts";
-import { workspaceDependencies, workspacePackages } from "./workspace-manifest.ts";
+import { packageCycles, workspaceDependencies, workspacePackages } from "./workspace-manifest.ts";
 
 /** `packages/module` may import `packages/shared`, not the other way round. */
 const ALLOWED = { module: ["shared"] };
@@ -835,6 +835,23 @@ describe("the renderer", () => {
     },
   );
 
+  it("fails a value import of the protocol, which loads its schemas too", async () => {
+    const protocol: FixturePackage = {
+      dir: "packages/data-protocol",
+      files: { "src/index.ts": "export const protocolContract = {};\n" },
+    };
+    const client = declaring(
+      extraPackage("packages/data-client", {
+        "src/client.ts": 'import { protocolContract } from "@self-engine/data-protocol";\n',
+      }),
+      "@self-engine/data-protocol",
+    );
+    const allow = { "data-client": ["data-protocol"] };
+    expect(ruleNames(await cruise([protocol, client], { allowedImports: allow }))).toEqual([
+      "renderer-imports-the-contract-as-a-type",
+    ]);
+  });
+
   it.each([
     ["the data process core", "@self-engine/data-process", []],
     // A testing entry outside tests and stories breaks a second rule.
@@ -885,6 +902,10 @@ describe("the repo's workspace", () => {
       expect(folders).toContain(name);
       for (const target of allowed) expect(folders).toContain(target);
     }
+  });
+
+  it("has no cycle between packages, devDependencies included (ADR 0006)", () => {
+    expect(packageCycles(packages)).toEqual([]);
   });
 
   it("allows exactly the workspace dependencies each package declares, so both change together", () => {

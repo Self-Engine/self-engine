@@ -1,4 +1,4 @@
-import type { QueryTables } from "@self-engine/contracts";
+import type { QueryTables } from "@self-engine/data-protocol";
 import { implementer } from "../implementer.ts";
 import type { TablesChangedPublisher } from "../tables-changed.ts";
 

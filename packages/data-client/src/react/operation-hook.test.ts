@@ -6,7 +6,6 @@
 import { msg } from "@lingui/core/macro";
 import { ORPCError } from "@orpc/client";
 import type { notesContract } from "@self-engine/storage/testing";
-import { notifyError } from "@self-engine/ui";
 import { act } from "react";
 import { afterEach, beforeEach, expect, test, vi } from "vite-plus/test";
 import {
@@ -17,11 +16,8 @@ import {
   type ShownNotices,
   unmountHook,
 } from "./hook-harness.ts";
-import { portHooks, usePortAccess } from "./index.ts";
+import { type DataAccess, portHooks, useDataAccess } from "./index.ts";
 import { NOT_FOUND_NOTICE, UNEXPECTED_NOTICE } from "./operation-hook.ts";
-
-// The feedback system is replaced, so no notice is drawn; the other tests collect notices instead.
-vi.mock("@self-engine/ui", () => ({ notifyError: vi.fn() }));
 
 const notesPort = portHooks<typeof notesContract>("notes");
 const TITLE_TAKEN = msg`A note with this title already exists.`;
@@ -178,7 +174,7 @@ test("the Operation's input, result and conflict texts are typed from the module
     }
     if (result.status === "conflict") {
       const reason: "title_taken" = result.reason;
-      const field: "id" | "title" = result.field;
+      const field: "id" | "title" | null = result.field;
       void [reason, field];
     }
     // @ts-expect-error `update` needs a title.
@@ -197,6 +193,12 @@ test("the Operation's input, result and conflict texts are typed from the module
     conflicts: { title_taken: { text: TITLE_TAKEN, field: "name" } },
   });
   notesPort.operation("create", {
+    // @ts-expect-error Every reason states its field, `null` when it has none.
+    conflicts: { title_taken: { text: TITLE_TAKEN } },
+  });
+  // A reason without a field of its own states so.
+  notesPort.operation("create", { conflicts: { title_taken: { text: TITLE_TAKEN, field: null } } });
+  notesPort.operation("create", {
     conflicts: {
       title_taken: { text: TITLE_TAKEN, field: "title" },
       // @ts-expect-error `create` declares no reason `other`.
@@ -208,75 +210,120 @@ test("the Operation's input, result and conflict texts are typed from the module
   expect(typeof typed).toBe("function");
 });
 
-test("without a collector, the notices go to the feedback system as error notices", async () => {
-  const port = fakePort();
-  port.answer("update", () => {
-    throw new ORPCError("NOT_FOUND");
-  });
-  const rename = await renderHook(port, () => useRenameNote());
-
-  await runOnce(rename);
-
-  expect(vi.mocked(notifyError)).toHaveBeenCalledOnce();
-});
-
 // The same Operation as a function, for code outside React such as a Command (D261): it takes the
-// Port access the caller was given, and answers and notifies as the hook does.
+// Port access and the notice seam the caller was given, and answers and notifies as the hook does.
 const renameNote = notesPort.run("update", {
   conflicts: { title_taken: { text: TITLE_TAKEN, field: "title" } },
 });
 
+/** What a Command is given: the fake Port's access, and a list that collects the notices. */
+function commandData(port: { readonly access: DataAccess["access"] }) {
+  const notices: ShownNotices = [];
+  const data: DataAccess = { access: port.access, notify: (notice) => notices.push(notice) };
+  return { data, notices };
+}
+
 test("the function form returns the same results as the hook, over the access it is given", async () => {
   const port = fakePort();
+  const { data, notices } = commandData(port);
   port.answer("update", (input) => note("note-0", (input as typeof RENAME).title));
-  expect(await renameNote(port.access, RENAME)).toEqual({
+  expect(await renameNote(data, RENAME)).toEqual({
     status: "success",
     data: note("note-0", "Beta"),
   });
   port.answer("update", () =>
     Promise.reject(new ORPCError("CONFLICT", { data: { reason: "title_taken" } })),
   );
-  expect(await renameNote(port.access, RENAME)).toEqual({
+  expect(await renameNote(data, RENAME)).toEqual({
     status: "conflict",
     reason: "title_taken",
     field: "title",
     text: TITLE_TAKEN,
   });
   expect(port.calls).toHaveLength(2);
-  expect(vi.mocked(notifyError)).not.toHaveBeenCalled();
+  expect(notices).toEqual([]);
 });
 
 test.each([
-  ['"not found"', new ORPCError("NOT_FOUND"), { status: "notFound" }],
-  ["an unexpected error", new ORPCError("INTERNAL_SERVER_ERROR"), { status: "unexpected" }],
+  ['"not found"', new ORPCError("NOT_FOUND"), { status: "notFound" }, NOT_FOUND_NOTICE],
+  [
+    "an unexpected error",
+    new ORPCError("INTERNAL_SERVER_ERROR"),
+    { status: "unexpected" },
+    UNEXPECTED_NOTICE,
+  ],
 ])(
-  "the function form announces %s through the feedback system, as the hook does",
-  async (_case, error, result) => {
-    vi.mocked(notifyError).mockClear();
+  "the function form announces %s through the notice seam it is given, as the hook does",
+  async (_case, error, result, notice) => {
     const port = fakePort();
+    const { data, notices } = commandData(port);
     port.answer("update", () => Promise.reject(error));
-    expect(await renameNote(port.access, RENAME)).toMatchObject(result);
-    expect(vi.mocked(notifyError)).toHaveBeenCalledOnce();
+    expect(await renameNote(data, RENAME)).toMatchObject(result);
+    expect(notices).toEqual([notice]);
   },
 );
 
+// A conflict without a field to show it at, such as undo's: the module says so with `field: null`,
+// and the building block shows the text as a notice itself.
+const GONE_TITLE = msg`The note could not come back: another note has its title now.`;
+const restoreHandling = { conflicts: { title_taken: { text: GONE_TITLE, field: null } } } as const;
+const TAKEN = new ORPCError("CONFLICT", { data: { reason: "title_taken" } });
+
+test("a conflict whose reason has no field returns the conflict and shows its text once", async () => {
+  const useRestoreNote = notesPort.operation("update", restoreHandling);
+  const port = fakePort();
+  port.answer("update", () => Promise.reject(TAKEN));
+  const notices: ShownNotices = [];
+  const restore = await renderHook(port, () => useRestoreNote(), {
+    notify: (notice) => notices.push(notice),
+  });
+
+  expect(await runOnce(restore)).toEqual({
+    status: "conflict",
+    reason: "title_taken",
+    field: null,
+    text: GONE_TITLE,
+  });
+  expect(notices).toEqual([GONE_TITLE]);
+});
+
+test("the function form shows a conflict without a field through its notice seam too", async () => {
+  const restoreNote = notesPort.run("update", restoreHandling);
+  const port = fakePort();
+  const { data, notices } = commandData(port);
+  port.answer("update", () => Promise.reject(TAKEN));
+
+  expect(await restoreNote(data, RENAME)).toMatchObject({ status: "conflict", field: null });
+  expect(notices).toEqual([GONE_TITLE]);
+});
+
 test("the function form is typed from the Contract like the hook", () => {
   const typed = async () => {
-    const result = await renameNote(fakePort().access, RENAME);
+    const data = commandData(fakePort()).data;
+    const result = await renameNote(data, RENAME);
     if (result.status === "conflict") {
-      const field: "id" | "title" = result.field;
+      const field: "id" | "title" | null = result.field;
       void field;
     }
     // @ts-expect-error `update` needs a title.
-    void renameNote(fakePort().access, { id: RENAME.id });
+    void renameNote(data, { id: RENAME.id });
+    // @ts-expect-error The function form takes the notice seam with the access.
+    void renameNote(fakePort().access, RENAME);
   };
   // @ts-expect-error An entry that declares a conflict needs its texts.
   notesPort.run("create");
   expect(typeof typed).toBe("function");
 });
 
-test("the provider gives code below it the Port access it was given, to hand to a function form", async () => {
+test("the provider gives code below it its access and notice seam, to hand to a function form", async () => {
   const port = fakePort();
-  const access = await renderHook(port, () => usePortAccess());
-  expect(access.current()).toBe(port.access);
+  const notices: ShownNotices = [];
+  const data = await renderHook(port, () => useDataAccess(), {
+    notify: (notice) => notices.push(notice),
+  });
+  port.answer("update", () => Promise.reject(new ORPCError("NOT_FOUND")));
+
+  expect(data.current().access).toBe(port.access);
+  await renameNote(data.current(), RENAME);
+  expect(notices).toEqual([NOT_FOUND_NOTICE]);
 });

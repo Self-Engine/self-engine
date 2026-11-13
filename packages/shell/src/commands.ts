@@ -1,5 +1,5 @@
 import type { MessageDescriptor } from "@lingui/core";
-import type { PortAccess } from "@self-engine/data-client/react";
+import type { DataAccess } from "@self-engine/data-client/react";
 import type { input as SchemaInput, output as SchemaOutput, ZodType } from "zod";
 import type { WriteViewSearch } from "./routing.tsx";
 
@@ -9,10 +9,11 @@ export type CommandKind = "page" | "open" | "input";
 /** What every Command is given, whoever starts it. */
 export interface DataCommandContext {
   /**
-   * The Port access, the same one the app gives the data building block (D261). A Command calls
-   * an Operation through the Operation's function form with it.
+   * The Port access and the building block's notice seam, the ones the app gives the data
+   * building block (D261). A Command calls an Operation through the Operation's function form
+   * with it, so the Operation's notices take the same way as from a hook.
    */
-  readonly data: PortAccess;
+  readonly data: DataAccess;
 }
 
 /** The address capability as well, for a Command that a person starts on a page. */

@@ -3,7 +3,7 @@ import { DEFAULT_APPEARANCE } from "@self-engine/theme";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { expect, fireEvent, userEvent, waitFor, within } from "storybook/test";
 import { settingsStore } from "./settings-store.ts";
-import { AppAt, storyRouter } from "./story-app.tsx";
+import { loadStoryApp, AppAt, storyRouter } from "./story-app.tsx";
 import { placeholderAlphaAnswers } from "@self-engine/placeholder-alpha/testing";
 
 const APPEARANCE = "/settings/appearance";
@@ -15,7 +15,7 @@ const meta = {
   title: "App/Settings area/Search",
   component: AppAt,
   parameters: { layout: "fullscreen" },
-  loaders: [() => settingsStore.load()],
+  loaders: [loadStoryApp],
   // The store is the app's one, on the browser's storage, which the next story shares.
   beforeEach: () => () => settingsStore.writeAll(appearanceChanges(DEFAULT_APPEARANCE)),
   args: { address: APPEARANCE, access: placeholderAlphaAnswers() },

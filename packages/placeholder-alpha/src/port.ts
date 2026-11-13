@@ -24,17 +24,25 @@ export const useCreateEntry = alphaPort.operation("create", nameTaken);
 export const useRenameEntry = alphaPort.operation("rename", nameTaken);
 export const useDeleteEntry = alphaPort.operation("delete");
 /**
- * Undo has no form to show a conflict at: when another entry took the name meanwhile, the text is
- * shown as a notice, and the field is the input's only one (D251).
+ * Undo has no form to show a conflict at: when another entry took the name meanwhile, there is no
+ * field, and the building block shows the text as a notice (D264).
  */
 export const useRestoreEntry = alphaPort.operation("restore", {
   conflicts: {
     name_taken: {
       text: msg`The entry could not come back: another entry has its name now.`,
-      field: "id",
+      field: null,
     },
   },
 });
 
-/** `create` for the Commands, which run outside React and are given the Port access (D261). */
+/**
+ * `create` for the Commands, which run outside React and are given the Port access (D261). The
+ * Command for a later agent answers with the conflict and its field.
+ */
 export const createEntry = alphaPort.run("create", nameTaken);
+
+/** `create` for the sample-entry Command, which has no form: a taken name becomes a notice. */
+export const createSampleEntry = alphaPort.run("create", {
+  conflicts: { name_taken: { text: nameTaken.conflicts.name_taken.text, field: null } },
+});

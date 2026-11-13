@@ -1,7 +1,7 @@
-import type { Health, TablesChanged } from "@self-engine/contracts";
+import type { Health, TablesChanged } from "@self-engine/data-protocol";
 import type { Database } from "@self-engine/db";
 import { createFrame, type ContextSources, type FrameOptions } from "@self-engine/storage";
-import { modules as appModules, type DataModules } from "./modules.ts";
+import type { DataModules } from "./modules.ts";
 import { queryTables } from "./query-tables.ts";
 import { createRouter } from "./router.ts";
 import { createPortServer, type DataPort } from "./serve.ts";
@@ -11,8 +11,8 @@ import { createTablesChangedPublisher } from "./tables-changed.ts";
 export interface DataProcessOptions {
   /** The opened database; the platform opens it with its own driver. */
   readonly database: Database;
-  /** Tests may replace the app module list with fixture data entries. */
-  readonly modules?: DataModules;
+  /** The data entries to mount: the app's list, or a test's fixtures. */
+  readonly modules: DataModules;
   readonly sources?: ContextSources;
   readonly checkOutputs: boolean;
   readonly report?: FrameOptions["report"];
@@ -39,7 +39,7 @@ export interface DataProcess {
  */
 export async function startDataProcess({
   database,
-  modules = appModules,
+  modules,
   sources = systemSources,
   checkOutputs,
   beforeMigrations,

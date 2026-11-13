@@ -18,12 +18,21 @@ import { noticeFailedReload } from "./reload-notice.ts";
 /** Answers no View shows are dropped after this long (D250). */
 export const UNUSED_ANSWER_LIFETIME_MS = 5 * 60 * 1000;
 
-interface DataContext {
+/**
+ * What code outside React needs to call an Operation, such as a Command (D261): the Port access
+ * and the one seam every notice of the building block goes through, both the ones the nearest
+ * `DataProvider` was given. A story or test that substitutes them collects the notices too.
+ */
+export interface DataAccess {
+  /** How calls reach the Data Process. */
   readonly access: PortAccess;
-  /** Reports, once per entry, a Query hook whose entry the Data Process calls an Operation. */
-  readonly checkQuery: (module: string, entry: string) => void;
   /** Shows a notice of the building block, such as an Operation's unexpected error (D251). */
   readonly notify: (notice: MessageDescriptor) => void;
+}
+
+interface DataContext extends DataAccess {
+  /** Reports, once per entry, a Query hook whose entry the Data Process calls an Operation. */
+  readonly checkQuery: (module: string, entry: string) => void;
 }
 
 const Context = createContext<DataContext | undefined>(undefined);
@@ -36,11 +45,12 @@ export function useDataContext(): DataContext {
 }
 
 /**
- * The Port access of the nearest `DataProvider`, for what calls an Operation outside React, such
- * as the Shell's Commands (D261): the app and a story hand it on from here.
+ * The Port access and notice seam of the nearest `DataProvider`, for what calls an Operation
+ * outside React, such as the Shell's Commands (D261): the app and a story hand it on from here.
+ * It stays the same object while the provider's access does.
  */
-export function usePortAccess(): PortAccess {
-  return useDataContext().access;
+export function useDataAccess(): DataAccess {
+  return useDataContext();
 }
 
 /**
@@ -100,19 +110,20 @@ export function DataProvider({
   notify = showNotice,
   children,
 }: DataProviderProps): ReactNode {
-  // The cache lives as long as the provider; its notices follow the latest `notify`.
-  const latestNotify = useRef(notify);
+  // The cache and the context live as long as the provider and its access; callbacks are read
+  // through refs, so a parent that passes them inline redraws no hook below.
+  const latest = useRef({ notify, reportMisuse });
   useEffect(() => {
-    latestNotify.current = notify;
-  }, [notify]);
-  const [cache] = useState(() => createQueryCache((notice) => latestNotify.current(notice)));
+    latest.current = { notify, reportMisuse };
+  }, [notify, reportMisuse]);
+  const [cache] = useState(() => createQueryCache((notice) => latest.current.notify(notice)));
   const context = useMemo<DataContext>(() => {
-    const report = reportMisuse ?? defaultReport();
     const reported = new Set<string>();
     return {
       access,
-      notify,
+      notify: (notice) => latest.current.notify(notice),
       checkQuery: (module, entry) => {
+        const report = latest.current.reportMisuse ?? defaultReport();
         const name = `${module}.${entry}`;
         if (report === undefined || reported.has(name)) return;
         if (access.describeEntry(module, entry)?.kind !== "operation") return;
@@ -120,7 +131,7 @@ export function DataProvider({
         report(`The Query hook for ${name} points at an Operation; use an Operation hook.`);
       },
     };
-  }, [access, reportMisuse, notify]);
+  }, [access]);
 
   useEffect(() => {
     const stopTables = access.onTablesChanged((tables) => {

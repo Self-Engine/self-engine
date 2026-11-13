@@ -78,6 +78,22 @@ test("before the first opening event the client cannot tell", async () => {
 
   expect(connection.getState().status).toBe("connecting");
   expect(connection.describeEntry("tasks", "list")).toBeUndefined();
+  expect(connection.hasQueryList()).toBe(false);
+});
+
+test("the client says whether the list has arrived, and keeps it while it reconnects", async () => {
+  const process = await start({ tasks });
+  const connection = newConnection();
+  const port = process.openPort();
+  connection.connect(port);
+  await untilReady(connection);
+  expect(connection.hasQueryList()).toBe(true);
+
+  port.close();
+  connection.disconnect();
+
+  expect(connection.getState().status).toBe("reconnecting");
+  expect(connection.hasQueryList()).toBe(true);
 });
 
 test("after a reconnect on a new port the client holds the list of the new connection", async () => {

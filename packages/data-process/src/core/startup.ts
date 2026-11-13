@@ -1,4 +1,4 @@
-import type { Health } from "@self-engine/contracts";
+import type { Health } from "@self-engine/data-protocol";
 import {
   createMigrationRunner,
   type Database,

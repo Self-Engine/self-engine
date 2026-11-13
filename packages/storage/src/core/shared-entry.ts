@@ -9,6 +9,7 @@ import type {
   Updateable,
 } from "kysely";
 import type { StorageContext } from "./context.ts";
+import type { ReadTransaction } from "./module.ts";
 
 interface Convention {
   id: string;
@@ -38,7 +39,11 @@ function writableFields(fields: object) {
     ),
   );
 }
-type ReadAccess<DB> = Pick<Kysely<DB>, "selectFrom">;
+/**
+ * What a lower function reads through: a Query's read transaction or an Operation's write one.
+ * Both name their row types, so `sharedEntry(tx, context)` infers them without written types.
+ */
+type ReadAccess<DB> = ReadTransaction<DB> | Transaction<DB>;
 
 /** One place for Space and live-row scoping; compound queries remain ordinary Kysely. */
 export function sharedEntry<DB>(tx: ReadAccess<DB>, context: StorageContext) {

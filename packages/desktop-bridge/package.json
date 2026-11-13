@@ -8,7 +8,7 @@
     ".": "./src/index.ts"
   },
   "dependencies": {
-    "@self-engine/contracts": "workspace:*"
+    "@self-engine/data-protocol": "workspace:*"
   },
   "devDependencies": {
     "vite-plus": "catalog:"
