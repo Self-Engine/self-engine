@@ -258,8 +258,7 @@ function dataFolder() {
               },
               databasePath,
               directory: backupFolder(databasePath),
-              // TODO #244: remove the legacy Backup Date conversion.
-              clock: () => new Date(sources.clock()),
+              clock: sources.clock,
             });
       return {
         parentPort,

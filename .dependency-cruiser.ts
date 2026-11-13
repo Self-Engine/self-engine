@@ -23,8 +23,8 @@ export type AllowedImports = Readonly<Record<string, readonly string[]>>;
  */
 export const ALLOWED_IMPORTS: AllowedImports = {
   // The desktop's Backups (D94): the `Backup` it answers with comes from the protocol, the copy
-  // itself from the database driver.
-  backup: ["data-protocol", "db"],
+  // itself from the database driver, its Instants and days from `time`.
+  backup: ["data-protocol", "db", "time"],
   // Composes the protocol and the modules' contracts (D187): `contracts → module`. Only the
   // desktop app's module list imports it.
   contracts: ["data-protocol", "placeholder-alpha"],
@@ -33,8 +33,8 @@ export const ALLOWED_IMPORTS: AllowedImports = {
   "data-client": ["data-protocol", "ui"],
   // The core knows no module: the app passes its module list in.
   "data-process": ["data-protocol", "db", "storage"],
-  // `health` and the Table Change stream: imports nothing of the workspace.
-  "data-protocol": [],
+  // `health`, the Table Change stream and the Backups; a Backup's Instant comes from `time`.
+  "data-protocol": ["time"],
   // The preload and the page share it; the failure states come from the protocol.
   "desktop-bridge": ["data-protocol"],
   // Timestamp generation returns the shared Instant brand (D223).
@@ -45,7 +45,8 @@ export const ALLOWED_IMPORTS: AllowedImports = {
   "placeholder-alpha": ["data-client", "db", "icons", "shell", "storage", "time", "ui"],
   "placeholder-beta": ["shell", "icons"],
   // The rows of the View Data call the protocol's `backups` through the data building block; the
-  // contract arrives as a type, and its schemas load only in the stories' Fixed Answers.
+  // contract arrives as a type, and its schemas load only in the stories' Fixed Answers. Their
+  // Instants are shown through `time`'s display formats.
   "settings-area": [
     "data-client",
     "data-protocol",
@@ -54,6 +55,7 @@ export const ALLOWED_IMPORTS: AllowedImports = {
     "settings",
     "shell",
     "theme",
+    "time",
     "ui",
   ],
   // The Port access type only, which every Command is given (D261).

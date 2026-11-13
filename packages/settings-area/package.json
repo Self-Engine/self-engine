@@ -21,6 +21,7 @@
     "@self-engine/settings": "workspace:*",
     "@self-engine/shell": "workspace:*",
     "@self-engine/theme": "workspace:*",
+    "@self-engine/time": "workspace:*",
     "@self-engine/ui": "workspace:*",
     "react": "catalog:",
     "zod": "catalog:"
