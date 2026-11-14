@@ -31,6 +31,14 @@ msgstr "{minimum, plural, other {At least #.}}"
 msgid "{minimum, plural, other {More than #.}}"
 msgstr "{minimum, plural, other {More than #.}}"
 
+#: packages/projects/src/picker/index.tsx
+msgid "{title} (archived)"
+msgstr "{title} (archived)"
+
+#: packages/projects/src/picker/index.tsx
+msgid "{title} (deleted)"
+msgstr "{title} (deleted)"
+
 #: apps/web/src/data-connection-states.tsx
 msgid "A newer version already applied the update {migration}, which this version does not know. Open your data with the newer version."
 msgstr "A newer version already applied the update {migration}, which this version does not know. Open your data with the newer version."
@@ -248,6 +256,10 @@ msgstr "Clapperboard"
 #: packages/ui/src/entry-pickers/emoji-tab.tsx
 msgid "Clear search"
 msgstr "Clear search"
+
+#: packages/projects/src/picker/index.tsx
+msgid "Clear the choice"
+msgstr "Clear the choice"
 
 #: packages/placeholder-alpha/src/groups.tsx
 msgid "Clients"
@@ -825,6 +837,10 @@ msgctxt "Channel"
 msgid "Nightly"
 msgstr "Nightly"
 
+#: packages/projects/src/picker/index.tsx
+msgid "No active projects"
+msgstr "No active projects"
+
 #: packages/projects/src/archive.tsx
 msgid "No archived projects"
 msgstr "No archived projects"
@@ -1344,6 +1360,10 @@ msgstr "The minimal module View."
 #: apps/web/src/data-connection-states.tsx
 msgid "The part of Self-Engine that keeps your data stopped after it crashed several times."
 msgstr "The part of Self-Engine that keeps your data stopped after it crashed several times."
+
+#: packages/projects/src/picker/index.tsx
+msgid "The projects could not be loaded."
+msgstr "The projects could not be loaded."
 
 #: packages/settings-area/src/about-rows.tsx
 msgid "The release line this app belongs to."

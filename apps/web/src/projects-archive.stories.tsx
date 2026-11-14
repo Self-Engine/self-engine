@@ -2,6 +2,7 @@
 // archiving moves a project here is shown by the Edit Drawer's stories and the module's Port test.
 
 import {
+  OLD_SHOP,
   type ProjectsAnswers,
   projectsAnswers,
   projectsStoryPort,
@@ -49,7 +50,7 @@ export const AnArchivedProjectOpensInTheEditDrawer: Story = {
     await userEvent.click(await canvas.findByRole("button", { name: "Old shop" }));
     const drawer = within(await screen.findByRole("dialog", { name: "Old shop" }));
     await expect(await drawer.findByRole("textbox", { name: "Title" })).toHaveValue("Old shop");
-    await expect(editInAddress(storyRouter())).toBe("01a1cfa1-0b00-7000-8000-000000000008");
+    await expect(editInAddress(storyRouter())).toBe(OLD_SHOP.id);
   },
 };
 

@@ -7,7 +7,11 @@ import {
   type FixedAnswers,
   fixedAnswers,
 } from "@self-engine/data-client/testing";
-import { projectsContract } from "../contracts/index.ts";
+import {
+  type ProjectReference,
+  projectReferenceSchema,
+  projectsContract,
+} from "../contracts/index.ts";
 import { type PortCall, type ProjectsStoryPort, storyPortOf } from "./story-port.ts";
 
 const contracts = { projects: projectsContract };
@@ -43,14 +47,14 @@ export const DOCTORS = project(4, { title: "Ärzte", color: "red" });
 export const WORK = project(5, { title: "Arbeit" });
 export const CAR = project(6, { title: "Auto" });
 /** Archived, with an icon and a color. */
-export const OLD_SHOP = project(8, {
+export const OLD_SHOP = project(10, {
   title: "Old shop",
   icon: "house",
   color: "orange",
   archivedAt: "2026-03-01T09:00:00.000Z",
 });
 /** Archived, without icon and color; created first and sorted after "Old shop". */
-export const TAX_2025 = project(9, { title: "Tax 2025", archivedAt: "2026-02-01T09:00:00.000Z" });
+export const TAX_2025 = project(11, { title: "Tax 2025", archivedAt: "2026-02-01T09:00:00.000Z" });
 
 /**
  * The answers of a story where every Operation succeeds, the active list holds six projects and the
@@ -88,3 +92,24 @@ export function projectsStoryPort(
 ): ProjectsStoryPort<ProjectsAnswers> {
   return storyPortOf((answers) => projectsAnswers(answers), first, afterCall);
 }
+
+/** Another project titled "Website": only its mark tells it apart in the picker. */
+export const WEBSITE_TWIN = project(8, { title: "Website", icon: "🌐", color: "orange" });
+
+/** A project as a module above refers to it (D330), with its archive and deletion marks. */
+export function projectReference(
+  of: typeof WEBSITE,
+  marks: { archivedAt?: string; deletedAt?: string } = {},
+): ProjectReference {
+  return projectReferenceSchema.parse({
+    id: of.id,
+    title: of.title,
+    icon: of.icon,
+    color: of.color,
+    archivedAt: marks.archivedAt ?? of.archivedAt,
+    deletedAt: marks.deletedAt ?? null,
+  });
+}
+
+/** A project that was archived: absent from the active list. */
+export const OLD_SITE = project(9, { title: "Old site", icon: "house", color: "grape" });

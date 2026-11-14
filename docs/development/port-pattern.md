@@ -252,6 +252,48 @@ caller as an internal error. The lookup is one primary-key read per write. Filte
 columns in that same query. Declare allowed package dependencies in both `package.json` and
 `ALLOWED_IMPORTS` in `.dependency-cruiser.ts`.
 
+### Refer to a project
+
+A module above `projects` refers to a project through the project reference (D330): `id`,
+`title`, `icon`, `color`, `archivedAt` and `deletedAt`. These six fields are released; `projects`
+renames none of them without touching every module above. `projects` releases the reference
+twice:
+
+- **The Read Piece** `projectReferences(tx, context, alias)` from `@self-engine/projects/data`.
+  Join it in the module's own Query, as
+  [the `project-entries` test module](../../packages/projects/test/project-entries-module/data/index.ts)
+  does, and sort or filter by its fields there. It is scoped to the current Space and keeps an
+  archived and a deleted project with their marks, so an entry never loses its project. It takes
+  `ReadTransaction<DB>`, which a write transaction satisfies too. Declare `projects` in the
+  Query's `reads`.
+- **The schema** `projectReferenceSchema` from `@self-engine/projects/contracts`. Build it into
+  the module's own answers, such as `project: projectReferenceSchema.nullable()`, `null` where
+  the left join found no project in this Space. It is strict and accepts exactly what the Read
+  Piece gives.
+
+**Hiding archived projects is display, not a rule.** An Operation that stores a project's id
+looks it up through the Read Piece with `deletedAt` `null` and answers `NOT_FOUND` for a deleted
+or unknown project only. It accepts an archived one: an import of old entries, an entry a device
+wrote offline while another archived the project, and every edit that sends the project along
+must not fail. Never filter that lookup on `archivedAt`.
+
+**The form hands the reference to the picker.** A form of the module binds the project picker
+from `@self-engine/projects/picker` to the draft field that holds the id, and gives it the stored
+entry's reference as `current`:
+
+```tsx
+<ProjectField form={form} name="projectId" current={entry.project} label={t`Project`} />
+```
+
+The picker loads the active projects itself, with the Query of the View "Active", and never asks
+for a single id. While `current` is chosen it shows it, with "archived" or "deleted" where it is
+no longer active; once the user chooses another project it is no longer offered. A form that
+forgets `current` shows an archived or deleted choice as empty. An untouched picker sends nothing
+in an edit. Give `clearable` when the module's field is optional. Import the picker only from a
+form that loads on demand: the web app's startup check fails when startup code imports it.
+[The picker's stories](../../packages/projects/src/picker/project-picker.stories.tsx) show a test
+form of a module above.
+
 The bridge runner is not built yet; it comes with the first bridge. The intended runner
 will call modules’ lower functions inside one transaction and announce all changed tables
 together after commit. No exported runner currently makes that composition available.
