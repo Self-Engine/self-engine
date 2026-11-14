@@ -9,7 +9,7 @@ import {
 } from "./catalog.ts";
 import { composite, mixOklab } from "./color.ts";
 import { type Density, type FontScale, type LayoutValues, resolveLayout } from "./layout.ts";
-import { type ColorSetScope, colorSetScopeCss, colorSetScopes } from "./color-set-scope.ts";
+import { type ColorSetScopes, colorSetScopeCss, colorSetScopes } from "./color-set-scope.ts";
 import { neutralPalette } from "./neutral-palette.ts";
 import {
   type ColorSetColors,
@@ -69,7 +69,7 @@ export interface ColorModeValues {
   /** The palettes for Mantine's `theme.colors`, by key. */
   readonly palettes: Readonly<Record<string, Palette>>;
   /** Every Color Set as a scope for Module Colors and the colors of entries, by name. */
-  readonly colorSetScopes: Readonly<Record<string, ColorSetScope>>;
+  readonly colorSetScopes: ColorSetScopes;
   /** The rules that turn `data-color-set` into the `--se-color-set*` variables. */
   readonly colorSetScopeCss: string;
 }

@@ -3,6 +3,7 @@ import { entryIconSchema, type IconName } from "@self-engine/icons/names";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useState } from "react";
 import { expect, fn, screen, userEvent, waitFor, within } from "storybook/test";
+import { afterTheCommitsNowDue, difference, renderCounts } from "../story-render-counts.ts";
 import { EntryIconPicker } from "./index.ts";
 
 const meta = {
@@ -177,15 +178,69 @@ export const AnUnknownStoredIconShowsAsNothingChosen: Story = {
       const form = within(canvas.getByTestId(stored));
       await expect(trigger(form)).toHaveAccessibleName("Icon No icon");
       await userEvent.click(trigger(form));
-      const { grid, picker } = await opened();
+      const { grid } = await opened();
       await expect(within(grid).queryAllByRole("option", { selected: true })).toHaveLength(0);
-      // Clearing is a choice too, and nothing is chosen here, so there is nothing to clear.
-      await expect(picker.getByRole("button", { name: "No icon" })).toBeDisabled();
+      // Looking is not a choice: the stored value stays until the user acts.
       await userEvent.keyboard("{Escape}");
       await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
       await expect(form.getByTestId("stored")).toHaveTextContent(stored);
     }
     await expect(answers).not.toHaveBeenCalled();
+  },
+};
+
+export const ClearsAnUnknownStoredIconButNotAnEmoji: Story = {
+  render: () => (
+    <Stack>
+      {["a-picture-from-a-newer-version", "🌱", "empty"].map((stored) => (
+        <div data-testid={stored} key={stored}>
+          <Form answer={answers} stored={stored === "empty" ? null : stored} />
+        </div>
+      ))}
+    </Stack>
+  ),
+  play: async ({ canvas }) => {
+    answers.mockClear();
+    // An emoji is cleared in the emoji field, and an empty value has nothing to clear.
+    for (const stored of ["🌱", "empty"]) {
+      await userEvent.click(trigger(within(canvas.getByTestId(stored))));
+      const { picker } = await opened();
+      await expect(picker.getByRole("button", { name: "No icon" })).toBeDisabled();
+      await userEvent.keyboard("{Escape}");
+      await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+    }
+    await expect(answers).not.toHaveBeenCalled();
+
+    // A name this version does not know is still stored, so it can be cleared.
+    const unknown = within(canvas.getByTestId("a-picture-from-a-newer-version"));
+    await userEvent.click(trigger(unknown));
+    const { picker } = await opened();
+    await userEvent.click(picker.getByRole("button", { name: "No icon" }));
+    await expect(answers).toHaveBeenLastCalledWith(null);
+    await expect(unknown.getByTestId("stored")).toHaveTextContent("nothing");
+  },
+};
+
+/** The name the render count gives the grid's pictures. */
+const PICTURE = "PictureOption";
+
+export const AMoveOfTheFocusRedrawsTwoPictures: Story = {
+  render: () => <Form answer={answers} stored="house" />,
+  play: async ({ canvas }) => {
+    await userEvent.click(trigger(canvas));
+    const { grid, search } = await opened();
+    await waitFor(() => expect(search).toHaveFocus());
+    await userEvent.keyboard("{ArrowDown}");
+    const chosen = within(grid).getByRole("option", { name: "House" });
+    await expect(chosen).toHaveFocus();
+    await afterTheCommitsNowDue();
+    const before = renderCounts();
+
+    // The focus leaves one picture and reaches the next: those two redraw, the other 105 do not.
+    await userEvent.keyboard("{ArrowRight}");
+    await expect(chosen).not.toHaveFocus();
+    await afterTheCommitsNowDue();
+    await expect(difference(renderCounts(), before).components[PICTURE]).toBe(2);
   },
 };
 

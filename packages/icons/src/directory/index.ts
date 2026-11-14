@@ -1,8 +1,10 @@
 // The directory of pictures: every icon name of the list with the picture it shows (D293). It is
 // typed against the list, so a name without a picture, or a picture under no name, is a type
-// error. The directory holds 107 Phosphor icons, so it never loads at startup: only the mark of
-// `@self-engine/ui/entry-mark` imports it, in a View that loads on demand, and the startup check
-// of the web app fails when startup code reaches it. The interface keeps importing its own icons
+// error. The directory holds 107 Phosphor icons, so it never loads at startup: only `ui` imports
+// it (the boundary rule `icon-directory-only-in-ui`), through the mark of
+// `@self-engine/ui/entry-mark` and the icon picker of `@self-engine/ui/entry-pickers`, each in a
+// View or drawer that loads on demand, and the startup check of the web app fails when startup
+// code reaches it. The interface keeps importing its own icons
 // one by one from the main entry. A directory for React Native comes with the mobile app, typed
 // against the same list.
 

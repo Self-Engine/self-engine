@@ -14,7 +14,6 @@ import {
   formatContrastFailure,
   FROM_THEME,
   type Hex,
-  type ColorSetScope,
   resolveAppearance,
   type Theme,
   type ThemeColors,
@@ -273,11 +272,14 @@ describe("Color Set text, as Module Colors and the marks of entries draw it", ()
       { ...DEFAULT_APPEARANCE, colorMode: "light" },
       BUILT_IN_THEMES,
     );
-    const teal = light.colorSetScopes["teal"] as ColorSetScope;
+    const { teal } = light.colorSetScopes;
     const issues = checkContrast({
       roles: light.roles,
-      colorSetScopes: { probe: { ...teal, "--se-color-set-soft": teal["--se-color-set-text"] } },
+      colorSetScopes: {
+        ...light.colorSetScopes,
+        teal: { ...teal, "--se-color-set-soft": teal["--se-color-set-text"] },
+      },
     });
-    expect(issues.map((issue) => issue.pair)).toEqual(["probe color set text on its soft fill"]);
+    expect(issues.map((issue) => issue.pair)).toEqual(["teal color set text on its soft fill"]);
   });
 });

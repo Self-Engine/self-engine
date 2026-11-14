@@ -122,8 +122,10 @@ not know must not break its lists.
 9. **Three pickers in `ui`.** `EntryIconPicker` chooses a name from the directory and searches the
    labels in the user's language. `EntryEmojiInput` accepts exactly one emoji and points to the
    emoji keyboard of the operating system. `EntryColorPicker` offers "no color" first, then the
-   Color Sets in the order of the list. Each can clear its value, and each shows a stored value it
-   cannot show as nothing chosen, leaving it stored until the user chooses.
+   Color Sets in the order of the list. Each shows a stored value it cannot show as nothing
+   chosen, leaving it stored until the user acts, and each can clear what it stands for: "No
+   icon" clears any stored text but an emoji, a name from a newer version included; the emoji
+   field clears an emoji; "no color" clears any stored color.
 
 10. **Every icon of the app is drawn in the duotone weight.** `catalogIcon` draws it for the icons
     of the interface and those of entries. A caller still cannot choose a weight.

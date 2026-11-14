@@ -1,8 +1,8 @@
 // Choosing the icon of an entry from the 107 pictures of the directory (D291, D293): a button that
 // shows the current icon and opens a Mantine `Popover` with a search over the labels and a grid of
-// the pictures. The grid draws only while the popover is open, and each picture is a row of its
-// own that redraws only when its own state changes, so a search or a move of the focus redraws
-// what changed and not all 107.
+// the pictures. The grid draws only while the popover is open, and each picture is a component of
+// its own that takes only plain values and redraws only when one of them changes, so a search or
+// a move of the focus redraws what changed and not all 107.
 
 import { useLingui } from "@lingui/react/macro";
 import {
@@ -19,14 +19,15 @@ import {
   VisuallyHidden,
 } from "@mantine/core";
 import { ICON_DIRECTORY, ICON_LABELS } from "@self-engine/icons/directory";
-import { ICON_NAMES, type IconName, resolveEntryIcon } from "@self-engine/icons/names";
+import { ICON_NAMES, type IconName, isIconName, resolveEntryIcon } from "@self-engine/icons/names";
 import { roleColor } from "@self-engine/theme";
 import { type KeyboardEvent, memo, useId, useMemo, useRef, useState } from "react";
 
 export interface EntryIconPickerProps {
   /**
    * The stored `icon`. An icon name shows as chosen; an emoji, a name the directory does not know
-   * or any other text shows as "no icon" and stays stored until the user chooses.
+   * or any other text shows as "no icon" and stays stored until the user chooses. "No icon" clears
+   * any stored text but an emoji, which the emoji field clears.
    */
   readonly value: string | null | undefined;
   /** An icon name, which `entryIconSchema` accepts, or `null` when the user clears the icon. */
@@ -49,21 +50,21 @@ interface Picture {
   readonly searched: string;
 }
 
-/** One picture of the grid. Its own component in `memo`, so a move redraws two, not 107. */
+/**
+ * One picture of the grid. Its own component in `memo` with plain values only, so a move of the
+ * focus redraws two, not 107: the grid handles the clicks and the focus for every picture, and no
+ * handler that changes with each render reaches a picture.
+ */
 const PictureOption = memo(function PictureOption({
   name,
   label,
   selected,
   tabStop,
-  onChoose,
-  onFocusName,
 }: {
   readonly name: IconName;
   readonly label: string;
   readonly selected: boolean;
   readonly tabStop: boolean;
-  readonly onChoose: (name: IconName) => void;
-  readonly onFocusName: (name: IconName) => void;
 }) {
   const Icon = ICON_DIRECTORY[name];
   return (
@@ -71,12 +72,6 @@ const PictureOption = memo(function PictureOption({
       aria-label={label}
       aria-selected={selected}
       data-name={name}
-      onClick={() => {
-        onChoose(name);
-      }}
-      onFocus={() => {
-        onFocusName(name);
-      }}
       role="option"
       style={{
         alignItems: "center",
@@ -102,6 +97,13 @@ const GRID_STYLE = {
   gap: rem(2),
   gridTemplateColumns: "repeat(auto-fill, minmax(var(--se-row-height), 1fr))",
 } as const;
+
+/** The picture an event of the grid happened on, by its `data-name`, if any. */
+function pictureOf(target: EventTarget): IconName | undefined {
+  if (!(target instanceof Element)) return undefined;
+  const name = target.closest<HTMLElement>('[role="option"]')?.dataset["name"];
+  return name !== undefined && isIconName(name) ? name : undefined;
+}
 
 /** How the grid moves the focus: Left and Right by one picture, Up and Down by a row. */
 function nextIndex(key: string, at: number, count: number, columns: number): number | undefined {
@@ -136,6 +138,8 @@ export function EntryIconPicker({ value, onChange, label }: EntryIconPickerProps
   const titleId = useId();
   const resolved = resolveEntryIcon(value);
   const chosen = resolved.kind === "icon" ? resolved.name : undefined;
+  // Any stored text but an emoji can be cleared here, a name from a newer version included.
+  const clearable = typeof value === "string" && value !== "" && resolved.kind !== "emoji";
 
   // Labels in the active language, folded once per language rather than on every keystroke.
   const pictures = useMemo<readonly Picture[]>(
@@ -241,6 +245,14 @@ export function EntryIconPicker({ value, onChange, label }: EntryIconPickerProps
             <ScrollArea.Autosize mah={rem(264)} type="auto">
               <div
                 aria-label={t`Icons`}
+                onClick={(event) => {
+                  const name = pictureOf(event.target);
+                  if (name !== undefined) choose(name);
+                }}
+                onFocus={(event) => {
+                  const name = pictureOf(event.target);
+                  if (name !== undefined) setFocused(name);
+                }}
                 onKeyDown={onGridKeyDown}
                 ref={gridRef}
                 role="listbox"
@@ -251,8 +263,6 @@ export function EntryIconPicker({ value, onChange, label }: EntryIconPickerProps
                     key={picture.name}
                     label={picture.label}
                     name={picture.name}
-                    onChoose={choose}
-                    onFocusName={setFocused}
                     selected={picture.name === chosen}
                     tabStop={picture.name === tabStop}
                   />
@@ -266,7 +276,7 @@ export function EntryIconPicker({ value, onChange, label }: EntryIconPickerProps
             </ScrollArea.Autosize>
             <Group justify="flex-end">
               <Button
-                disabled={chosen === undefined}
+                disabled={!clearable}
                 onClick={() => {
                   choose(null);
                 }}

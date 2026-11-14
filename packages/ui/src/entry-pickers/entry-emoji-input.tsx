@@ -5,7 +5,7 @@
 
 import { useLingui } from "@lingui/react/macro";
 import { TextInput } from "@mantine/core";
-import { resolveEntryIcon } from "@self-engine/icons/names";
+import { isSingleEmoji } from "@self-engine/icons/names";
 import { useState } from "react";
 
 export interface EntryEmojiInputProps {
@@ -23,10 +23,16 @@ export interface EntryEmojiInputProps {
   readonly label?: string;
 }
 
-/** The emoji a stored `icon` holds, or an empty text. */
+/** The emoji a stored `icon` holds, or an empty text. An icon name is never an emoji. */
 function shownEmoji(value: string | null | undefined): string {
-  const resolved = resolveEntryIcon(value);
-  return resolved.kind === "emoji" ? resolved.emoji : "";
+  return typeof value === "string" && isSingleEmoji(value) ? value : "";
+}
+
+/** What a typed text answers: the emoji, `null` for an empty field, or nothing for other text. */
+function answerOf(text: string): string | null | undefined {
+  const trimmed = text.trim();
+  if (trimmed === "") return null;
+  return isSingleEmoji(trimmed) ? trimmed : undefined;
 }
 
 /** A field for one emoji. Typing anything else shows an error and leaves the value as it was. */
@@ -37,8 +43,7 @@ export function EntryEmojiInput({ value, onChange, label }: EntryEmojiInputProps
   const [draft, setDraft] = useState({ text: shownEmoji(value), of: value });
   if (draft.of !== value) setDraft({ text: shownEmoji(value), of: value });
   const text = draft.of === value ? draft.text : shownEmoji(value);
-  const trimmed = text.trim();
-  const valid = trimmed === "" || resolveEntryIcon(trimmed).kind === "emoji";
+  const valid = answerOf(text) !== undefined;
   return (
     <TextInput
       autoComplete="off"
@@ -47,13 +52,7 @@ export function EntryEmojiInput({ value, onChange, label }: EntryEmojiInputProps
       label={label ?? t`Emoji`}
       onChange={(event) => {
         const next = event.currentTarget.value;
-        const nextTrimmed = next.trim();
-        const answer =
-          nextTrimmed === ""
-            ? null
-            : resolveEntryIcon(nextTrimmed).kind === "emoji"
-              ? nextTrimmed
-              : undefined;
+        const answer = answerOf(next);
         // The text belongs to the value it answers, so the answer does not reset it.
         setDraft({ text: next, of: answer === undefined ? value : answer });
         if (answer !== undefined) onChange(answer);
