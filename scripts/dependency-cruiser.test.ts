@@ -368,6 +368,47 @@ describe("the theme core", () => {
   });
 });
 
+describe("the theme names entry", () => {
+  const theme = (
+    dependencies: string[],
+    names: string,
+    core = "export const core = 1;\n",
+  ): FixturePackage => ({
+    dir: "packages/theme",
+    dependencies,
+    exports: {
+      ".": "./src/core/index.ts",
+      "./mantine": "./src/mantine/index.ts",
+      "./names": "./src/names/index.ts",
+    },
+    files: {
+      "src/core/index.ts": core,
+      "src/mantine/index.ts": "export const provider = 1;\n",
+      "src/names/index.ts": names,
+    },
+  });
+
+  it.each(["react", "react-dom", "@mantine/core", "culori"])(
+    "fails an import of %s",
+    async (name) => {
+      const found = await cruise([theme([name], `import "${name}";\n`)]);
+      expect(ruleNames(found)).toEqual(["theme-names-is-pure"]);
+    },
+  );
+
+  it.each(["core", "mantine"])("fails a relative import of the %s entry", async (entry) => {
+    const found = await cruise([theme([], `import "../${entry}/index.ts";\n`)]);
+    expect(ruleNames(found)).toEqual(["theme-names-is-pure"]);
+  });
+
+  it("passes Zod, and the core importing the names", async () => {
+    const found = await cruise([
+      theme(["zod"], 'import "zod";\n', 'import "../names/index.ts";\n'),
+    ]);
+    expect(found).toEqual([]);
+  });
+});
+
 describe("the translation core", () => {
   const i18n = (dependencies: string[], files: Record<string, string>): FixturePackage => ({
     dir: "packages/i18n",

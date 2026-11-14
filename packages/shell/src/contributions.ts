@@ -1,7 +1,7 @@
 import type { PersonCommand, ShellCommand } from "./commands.ts";
 import type { MessageDescriptor } from "@lingui/core";
 import type { IconProps } from "@self-engine/icons";
-import type { ColorSetId } from "@self-engine/theme";
+import type { ColorSetName } from "@self-engine/theme";
 import type { ComponentType } from "react";
 
 /** What the page of a View is told. A page that belongs to one View needs none of it. */
@@ -36,7 +36,7 @@ interface ContributionMetadata {
   readonly id: string;
   readonly name: MessageDescriptor;
   readonly icon: ComponentType<Pick<IconProps, "size">>;
-  readonly color: ColorSetId;
+  readonly color: ColorSetName;
   /** The first View is the module's default. */
   readonly views: readonly [ShellView, ...ShellView[]];
   readonly groups?: () => Promise<{ readonly default: ComponentType }>;

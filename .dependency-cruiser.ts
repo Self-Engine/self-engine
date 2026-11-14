@@ -264,6 +264,14 @@ export function boundaryConfig({
         "The theme core (`@self-engine/theme`) runs without React or Mantine, so it can serve React Native and tests. Those imports belong in `@self-engine/theme/mantine`.",
     }),
     corePurityRule({
+      folder: "theme",
+      entry: "names",
+      binding: "(?:core|mantine)",
+      npmPattern: "react|react-dom|@mantine/[^/]+|culori",
+      comment:
+        "The Color Set names (`@self-engine/theme/names`) load in Contracts, the Data Process and a later mobile app, so they stay free of React, Mantine and the color calculation (D293). The core may import them, not the other way round.",
+    }),
+    corePurityRule({
       folder: "settings",
       binding: "react",
       npmPattern: "react|react-dom",
