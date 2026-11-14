@@ -27,6 +27,13 @@ describe.each(ICON_NAMES)("%s", (name) => {
     expect(markup).toMatch(/^<svg [^>]*fill="currentColor"/);
   });
 
+  it("is drawn in the duotone weight, its fill layer in the same color", () => {
+    // Phosphor's duotone weight lays a shape at a fifth of the opacity under the line drawing;
+    // no other weight has it.
+    expect(markup).toMatch(/<path [^>]*opacity="0\.2"/);
+    expect(markup).not.toMatch(/<path [^>]*(fill|stroke)=/);
+  });
+
   it("is 1.125rem by default, grown by the font scale", () => {
     expect(markup).toMatch(
       /^<svg [^>]*style="[^"]*width:calc\(1\.125rem \* var\(--mantine-scale\)\)/,
@@ -74,7 +81,7 @@ describe("the props of an icon", () => {
     const fill: Props = { fill: "red" };
     // @ts-expect-error The surrounding element decides the color.
     const stroke: Props = { stroke: "red" };
-    // @ts-expect-error Every icon has the regular weight.
+    // @ts-expect-error Every icon has the duotone weight.
     const weight: Props = { weight: "bold" };
     expect([color, fill, stroke, weight]).toHaveLength(4);
   });
