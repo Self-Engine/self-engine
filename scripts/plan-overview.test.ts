@@ -3,12 +3,15 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vite-plus/test";
 
 import {
+  actorOf,
   blockersOf,
+  dependencyGraph,
   buildOverview,
   escapeHtml,
   historyOf,
   parentOf,
   renderPage,
+  scriptJson,
   statusOf,
   summaryOf,
   type Issue,
@@ -46,6 +49,60 @@ describe("blockersOf", () => {
     ["Mentions #4 but has no blockers", []],
   ])("reads %j", (body, expected) => {
     expect(blockersOf(body)).toEqual(expected);
+  });
+});
+
+describe("dependencyGraph", () => {
+  it("orders open issues into waves and counts what each one frees", () => {
+    const graph = dependencyGraph([
+      { number: 1, blockers: [] },
+      { number: 2, blockers: [1, 99] },
+      { number: 3, blockers: [2] },
+      { number: 4, blockers: [] },
+    ]);
+    expect(graph.get(1)).toEqual({ wave: 0, frees: 2, waitsOn: [], unblocks: [2] });
+    expect(graph.get(2)).toMatchObject({ wave: 1, frees: 1, waitsOn: [1] });
+    expect(graph.get(3)).toMatchObject({ wave: 2, frees: 0 });
+    expect(graph.get(4)).toMatchObject({ wave: 0, frees: 0 });
+  });
+
+  it("finishes a package after its open slices", () => {
+    const graph = dependencyGraph([
+      { number: 10, blockers: [] },
+      { number: 11, blockers: [], parent: 10 },
+      { number: 12, blockers: [11], parent: 10 },
+      { number: 13, blockers: [10] },
+    ]);
+    expect(graph.get(10)).toMatchObject({ wave: 2, waitsOn: [11, 12], unblocks: [13] });
+    expect(graph.get(11)?.frees).toBe(3);
+    expect(graph.get(13)?.wave).toBe(3);
+  });
+
+  it("stops growing on a cycle", () => {
+    const graph = dependencyGraph([
+      { number: 1, blockers: [2] },
+      { number: 2, blockers: [1] },
+    ]);
+    expect(graph.get(1)?.wave).toBeLessThanOrEqual(50);
+    expect(graph.get(1)?.frees).toBe(1);
+  });
+});
+
+describe("actorOf", () => {
+  it("names who acts next", () => {
+    expect(actorOf("grill")).toBe("owner");
+    expect(actorOf("review")).toBe("owner");
+    expect(actorOf("buildable")).toBe("agent");
+    expect(actorOf("cut")).toBe("slices");
+    expect(actorOf("built")).toBeUndefined();
+  });
+});
+
+describe("scriptJson", () => {
+  it("cannot close the script block it sits in", () => {
+    const json = scriptJson({ title: "</script><b>" });
+    expect(json).not.toContain("</script>");
+    expect(JSON.parse(json)).toEqual({ title: "</script><b>" });
   });
 });
 
@@ -141,6 +198,20 @@ describe("buildOverview", () => {
       { number: 4, title: "Issue 4", status: "buildable" },
     ]);
     expect(one?.rows[1]?.details?.labels).toEqual(["needs-grilling"]);
+  });
+
+  it("puts packages and slices into the work tree with their place in the graph", () => {
+    const { graph } = buildOverview(issues, new Map(), ROADMAP);
+    expect(graph.map((node) => node.number)).toEqual([1, 2, 3, 4, 5]);
+    expect(graph.find((node) => node.number === 2)).toMatchObject({ parent: 1, layer: "1" });
+    expect(graph.find((node) => node.number === 1)?.actor).toBeUndefined();
+    expect(graph.find((node) => node.number === 3)).toMatchObject({
+      actor: "owner",
+      wave: 1,
+      waitsOn: [4],
+    });
+    expect(graph.find((node) => node.number === 4)).toMatchObject({ actor: "agent", frees: 1 });
+    expect(graph.find((node) => node.number === 5)?.layer).toBe("none");
   });
 
   it("counts the statuses of each layer", () => {
@@ -239,6 +310,19 @@ describe("renderPage", () => {
     expect(page).toContain('aria-controls="d-1"');
     expect(page).toContain("A &lt;b&gt; form.");
     expect(page).toContain('<span class="kc num">0/1</span>');
+  });
+
+  it("embeds the work tree as data", () => {
+    const overview = buildOverview(
+      [issue(1, { title: "</script>", labels: ["layer:1", "ready-for-agent"] })],
+      new Map(),
+      ROADMAP,
+    );
+    const page = renderPage(overview, "now");
+    const json = /<script type="application\/json" id="wt-data">(.*?)<\/script>/su.exec(page)?.[1];
+    expect(JSON.parse(json ?? "null")).toMatchObject({
+      nodes: [{ number: 1, title: "</script>", actor: "agent", wave: 0 }],
+    });
   });
 
   it("draws the history when issues have dates", () => {
