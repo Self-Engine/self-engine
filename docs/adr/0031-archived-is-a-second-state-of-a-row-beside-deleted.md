@@ -32,10 +32,10 @@ must not produce an error or a conflict about nothing.
      deleting an archived row and restoring it brings it back archived.
   2. **Archiving locks nothing.** It is an ordinary change: it sets `updated_at` to the call's
      Instant, and the frame announces the table, so the Queries reading it are answered again.
-     An archived row can be updated, deleted and restored like an active one.
+     An archived row can be updated, deleted and restored like any other Live Row.
   3. **Archiving twice changes nothing.** Archiving an archived row keeps the first Instant,
-     writes nothing, announces nothing and answers with the row; unarchiving an active row does
-     the same. An unknown or deleted id, and a row of another Space, is `NOT_FOUND`.
+     writes nothing, announces nothing and answers with the row; unarchiving a Live Row that is
+     not archived does the same. An unknown or deleted id, and a row of another Space, is `NOT_FOUND`.
 - In a Contract the Operations are `archive` and `unarchive`. `restore` stays the undo of a
   delete.
 - A query entry declares `active: true` when its answer must hold no archived row. The contract
@@ -43,7 +43,8 @@ must not produce an error or a conflict about nothing.
   fails the Query when one of their ids is still in its answer. Declaring it on a module without
   an archivable table fails too. The declaration sits on the entry, beside `reads`, so every run
   of the kit checks it and no test can drop it.
-- The test module `cards` of `storage` proves the building block until `projects` uses it.
+- The test module `cards` of `storage` proves the building block inside `storage`; `projects`
+  is the first module that uses it.
 
 ## Consequences
 

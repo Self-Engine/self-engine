@@ -23,29 +23,45 @@ List the entry’s fields once and derive the create and edit inputs with `entry
 `@self-engine/db/schema` ([port guide](port-pattern.md#1-set-up-the-entries-and-contract)):
 
 ```ts
-const projectFields = entryFields(projectIdSchema, {
-  title: z.string().trim().min(1).max(200),
-  description: z.string().trim().max(2000).nullable(),
-  icon: iconInputSchema.nullable(),
-  color: colorInputSchema.nullable(),
+import { entryIconSchema } from "@self-engine/icons/names";
+import { colorSetNameSchema } from "@self-engine/theme/names";
+
+export const projectFields = entryFields(projectIdSchema, {
+  title: z.string().trim().min(1).max(TITLE_MAX),
+  description: z
+    .string()
+    .trim()
+    .max(DESCRIPTION_MAX)
+    .transform((text) => (text === "" ? null : text))
+    .nullable(),
+  icon: z.nullable(entryIconSchema),
+  color: z.nullable(colorSetNameSchema),
 });
-const descriptionDiffers = (input: { title?: string; description?: string | null }) =>
-  input.title === undefined || input.description == null || input.description !== input.title;
-const descriptionRule = {
-  path: ["description"],
-  params: { reason: "description_matches_title" },
-};
-const createInput = projectFields.create.refine(descriptionDiffers, descriptionRule);
-const editInput = projectFields.edit.refine(descriptionDiffers, descriptionRule);
-export const projectTiedFields = [["title", "description"]] as const;
+// create: oc.input(projectFields.create) and edit: oc.input(projectFields.edit)
 ```
 
-Use the pure icon/color schemas of `ui` (ADR 0029). A field whose schema accepts `null` is
-optional. A rule across fields names its affected field and reason. For an edit, export tied
-field groups beside that rule; the derived edit input accepts exactly the subsets the form
-sends, and the rule checks a group when it is present. The same schema runs in the Data
-Process. Never reimplement the predicate in the form. Both inputs are strict: a field the
-Draft holds but the input does not take is an input error, not dropped.
+Take the icon and color schemas from the pure `names` entries of `icons` and `theme`
+(ADR 0029), which load no pictures and no theme. A field whose schema accepts `null` is
+optional. Both inputs are strict: a field the Draft holds but the input does not take is an
+input error, not dropped.
+
+`projects` has no rule across fields. When an entry needs one, it names its affected field
+and reason and refines both derived inputs; for an edit, export the tied field groups beside
+it. The test module `memos` of `storage`
+([its Contract](../../packages/storage/test/memos-module/contracts/index.ts)) has one:
+
+```ts
+export const bodyDiffers = ({ title, body }: { title?: string; body?: string | null }) =>
+  title === undefined || body === undefined || body !== title;
+export const bodyRule = { path: ["body"], params: { reason: "body_matches_title" } };
+export const memoTiedFields = [["title", "body"]] as const;
+const createInput = memoFields.create.refine(bodyDiffers, bodyRule);
+const editInput = memoFields.edit.refine(bodyDiffers, bodyRule);
+```
+
+The derived edit input accepts exactly the subsets the form sends, and the rule checks a group
+when it is present. The same schema runs in the Data Process. Never reimplement the predicate
+in the form.
 
 Build hooks with `portHooks<typeof contract>(mountName)` as in [the hooks guide](port-hooks.md).
 Give every Conflict reason its `msg` descriptor and field there; use `field: null` for a
@@ -56,7 +72,6 @@ Conflict no field can show. A taken title is checked by the Operation, not while
 Inside a lazy drawer, with its `onCancel` and `onDone` props:
 
 ```tsx
-import { msg } from "@lingui/core/macro";
 import { useLingui } from "@lingui/react/macro";
 import {
   ColorField,
@@ -66,21 +81,17 @@ import {
   TextField,
   useOperationForm,
 } from "@self-engine/forms";
-import { projectContract } from "./contracts/index.ts";
+import { projectsContract } from "./contracts/index.ts";
 import { useCreateProject } from "./port.ts";
 
 function CreateProjectForm({ onCancel, onDone }: EditDrawerProps) {
   const { t } = useLingui();
   useEditDrawerTitle(t`New project`);
   const form = useOperationForm({
-    entry: projectContract.create,
+    entry: projectsContract.create,
     operation: useCreateProject(),
     draft: { title: "", description: "", icon: null, color: null },
     emptyTextFields: ["description"],
-    texts: {
-      fields: { title: msg`Give this project a title of at most 200 characters.` },
-      reasons: { description_matches_title: msg`The description must differ from the title.` },
-    },
     onDone,
   });
   return (
@@ -100,8 +111,11 @@ whitespace-only text as `null`, "empty", for comparison and submission; every ot
 hands on `""` as typed. Trimming other text belongs in the Contract. Stored string
 values can include names unknown to the current input schema, such as a newer icon.
 
-The helper supplies translated violation texts; `texts.fields` replaces a field’s generic
-text, and `texts.reasons` names special rules. A reason takes precedence over a field text.
+The helper supplies translated violation texts, which is all `projects` needs. A module with
+texts of its own passes `texts`: `texts.fields` replaces a field’s generic text, and
+`texts.reasons` names special rules, such as
+``{ reasons: { body_matches_title: msg`The body must differ from the title.` } }`` for the rule
+of `memos` above. A reason takes precedence over a field text.
 Descriptors follow an open-form language switch. The types do not find a missing reason text;
 a story does, at runtime: the field shows the fallback and an error is logged, which the
 console-error gate rejects. Exercise every reason in a story.
@@ -119,18 +133,17 @@ Use a separate edit component to keep hook calls unconditional:
 
 ```tsx
 const form = useOperationForm({
-  entry: projectContract.update,
-  operation: useUpdateProject(),
+  entry: projectsContract.edit,
+  operation: useEditProject(),
   draft: {
-    id: entry.id,
-    title: entry.title,
-    description: entry.description,
-    icon: entry.icon,
-    color: entry.color,
+    id: project.id,
+    title: project.title,
+    description: project.description,
+    icon: project.icon,
+    color: project.color,
   },
-  edit: { identity: { id: entry.id }, tiedFields: projectFieldGroups, deleted },
+  edit: { identity: { id: project.id }, deleted },
   emptyTextFields: ["description"],
-  texts: projectFormTexts,
   onDone,
 });
 ```
@@ -142,7 +155,7 @@ Do not keep another Draft, starting value, Conflict text or changed flag in the 
 
 Create sends all fields. Edit sends identity plus changed fields; every group touched by a
 change travels together (including overlapping groups). `edit.tiedFields` must name every group
-a rule of the Contract ties. A forgotten group sends one field of the rule without the other,
+a rule of the Contract ties (`projects` has none; `memos` would pass `memoTiedFields`). A forgotten group sends one field of the rule without the other,
 and the rule reports at a field the edit does not submit, with a message wrong for what that
 field shows; Save then logs an error naming that field, so a story fails. Missing means
 untouched, `null` means clear, and a value means set. Thus changing only a title does not send

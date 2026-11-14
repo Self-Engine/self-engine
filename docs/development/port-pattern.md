@@ -171,7 +171,7 @@ as [`cards/data/index.ts`](../../packages/storage/test/cards-module/data/index.t
 - Archive sets `archived_at` and `updated_at` to `context.now`; unarchive empties `archived_at`
   and sets `updated_at`. Both are ordinary changes that announce the table, and they lock
   nothing: an archived row can still be updated, deleted and restored.
-- Archiving an archived row, or unarchiving an active one, answers with the row as it is, keeps
+- Archiving an archived row, or unarchiving one that is not archived, answers with the row as it is, keeps
   the first Instant and writes nothing, so nothing is announced.
 - Both answer `NOT_FOUND` for an unknown or deleted id and for a row of another Space.
 - Archived and deleted are independent: `softDelete` and `restore` leave `archived_at`, so a
@@ -355,12 +355,15 @@ Extra output fields have their own violation, separate from schema conversions a
 For an Operation marked `edit: true` the kit checks the edit pattern on a seeded database
 ([ADR 0032](../adr/0032-every-edit-names-what-changes-and-its-inputs-come-from-one-field-list.md)).
 The input's required keys are the identity, its optional keys the fields, and the example sets
-every field of a seeded entry. An edit with only the identity must answer, write nothing and
-announce nothing, and an id no seed produced must be not found. After the example, the kit
+every field of a seeded entry. An edit with only the identity must answer with the entry as it
+stands, write nothing, announce nothing and leave `updated_at`; after the example its answer
+must equal the example's, though the clock has moved on. An id no seed produced must be not
+found. After the example, the kit
 sends each field alone, first as `null` where the input allows it, then as the example's value:
 that field must be cleared or set, and every other field must keep its value. The kit test of
 [`memos`](../../packages/storage/src/testing/edits.test.ts) shows a passing module and one for
-each failure.
+each failure. The kit finds an edit only by its flag: an edit Operation without `edit: true` is
+not checked against the pattern.
 
 The kit records the tables each query’s SQL takes rows from (FROM, JOIN and subqueries,
 including those a read piece builds) and reports `query reads an undeclared table: <table>`
@@ -383,8 +386,9 @@ Declare every Query that must answer without archived rows as active, by adding
 For each one the kit seeds a fresh database, archives every seeded Live Row of the module's own
 archivable tables and fails with `active query returns an archived row` when one of those ids
 is still in the answer, at any depth. A module without an archivable table that declares an
-active Query fails with `active query has no archivable table`. Seed at least one live row, or
-the check has nothing to archive.
+active Query fails with `active query has no archivable table`. Seed at least one Live Row
+that is not archived: without one the check has nothing to archive and fails with
+`active query has no seeded Live Row to archive`.
 
 Done when the kit returns no violations and business tests cover behavior beyond these rules.
 
