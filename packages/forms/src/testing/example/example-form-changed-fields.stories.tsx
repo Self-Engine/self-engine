@@ -2,7 +2,7 @@ import { useState } from "react";
 import { TextInput } from "@mantine/core";
 import { DataProvider } from "@self-engine/data-client/react";
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { expect, screen, userEvent, waitFor, within } from "storybook/test";
+import { expect, screen, spyOn, userEvent, waitFor, within } from "storybook/test";
 import {
   ColorField,
   EditDrawerForm,
@@ -21,20 +21,27 @@ function EditExample({
   onCancel,
   unknownIcon = false,
   unfinished = false,
+  forgottenTie = false,
 }: {
   readonly onCancel: () => void;
   readonly unknownIcon?: boolean;
   readonly unfinished?: boolean;
+  /** Deliberately broken: a stored circle in teal, and the edit names no tied fields. */
+  readonly forgottenTie?: boolean;
 }) {
   const [saved, setSaved] = useState(false);
   const form = useOperationForm({
     entry: exampleContract.update,
     operation: useUpdateExample(),
-    draft: { ...CREATED, icon: unknownIcon ? "future-icon" : null },
+    draft: forgottenTie
+      ? { ...CREATED, icon: "circle", color: "teal" }
+      : { ...CREATED, icon: unknownIcon ? "future-icon" : null },
     onSuccess: () => setSaved(true),
     texts: exampleEditTexts,
     emptyTextFields: ["description"],
-    edit: { identity: { id: CREATED.id }, tiedFields: exampleTiedFields },
+    edit: forgottenTie
+      ? { identity: { id: CREATED.id } }
+      : { identity: { id: CREATED.id }, tiedFields: exampleTiedFields },
   });
   const field = useFieldBinding(form, "description");
   const [text, setText] = useState("Paint the walls.");
@@ -173,6 +180,44 @@ export const TiedFieldsTravelTogether: Story = {
         input: { id: "example-1", icon: null, color: "teal" },
       },
     ]);
+  },
+};
+export const AForgottenTieIsReportedAsAProgrammingError: Story = {
+  render: (_args, { loaded }) => (
+    <DataProvider access={loaded.port.access}>
+      <StoryDrawer>
+        {({ onCancel }) => <EditExample forgottenTie onCancel={onCancel} />}
+      </StoryDrawer>
+    </DataProvider>
+  ),
+  play: async ({ loaded }) => {
+    const canvas = within(await screen.findByRole("dialog", { name: "Example" }));
+    await userEvent.click(await canvas.findByRole("button", { name: /^Icon/ }));
+    const dialog = await screen.findByRole("dialog", { name: "Choose an icon" });
+    await userEvent.click(
+      within(within(dialog).getByRole("listbox", { name: "Icons" })).getByRole("option", {
+        name: "Star",
+      }),
+    );
+    await waitFor(() =>
+      expect(screen.queryByRole("dialog", { name: "Choose an icon" })).toBeNull(),
+    );
+    // Only this deliberate failure consumes the error; ordinary stories fail on console.error.
+    const reported = spyOn(console, "error").mockImplementation(() => undefined);
+    try {
+      // The edit sends the star without the color it is tied to, so the rule fails at a field
+      // that shows teal: the message there is wrong, and the missing tie is named.
+      await userEvent.click(canvas.getByRole("button", { name: "Save" }));
+      await expect(canvas.getByRole("radiogroup", { name: "Color" })).toHaveAccessibleDescription(
+        "Choose a color for the star.",
+      );
+      await expect(reported).toHaveBeenCalledWith(
+        'The input schema reports "color", but this edit does not submit it: name the fields its rule ties in edit.tiedFields.',
+      );
+      await expect(loaded.port.calls).toEqual([]);
+    } finally {
+      reported.mockRestore();
+    }
   },
 };
 export const UnfinishedTextAsksBeforeClosing: Story = {

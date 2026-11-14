@@ -55,7 +55,10 @@ export interface OperationFormOptions<
   readonly edit?: {
     /** Required routing keys (usually { id }); never counted as editable fields. */
     readonly identity: Partial<InputOfEntry<Entry>>;
-    /** Groups named beside the Contract rule; overlapping groups travel together. */
+    /**
+     * Groups named beside the Contract rule; overlapping groups travel together. Name every group
+     * a rule ties: a violation at a field the edit does not submit is reported as an error.
+     */
     readonly tiedFields?: readonly (readonly (keyof InputOfEntry<Entry> & string)[])[];
     /**
      * The entry was deleted elsewhere (D324): the form keeps what it shows, tells the user and
@@ -319,7 +322,7 @@ function createForm(latest: () => Latest): MadeForm {
       const blocked = new Set([...found.keys(), ...unfinished.shown().keys()]);
       if (blocked.size > 0) {
         checkingEveryChange = true;
-        reportFieldsMissing(found, elements);
+        reportMisplaced(found, elements, latest().options.edit === undefined ? undefined : input());
         const first = firstOnScreen(blocked, elements);
         if (first !== undefined) focusInto(first);
         return;
@@ -426,18 +429,26 @@ function focusInto(field: HTMLElement): void {
 }
 
 /**
- * A violation at a name no field shows would block the save without a word, so it is reported:
- * a story fails on it (ADR 0012).
+ * Programming errors of a module, reported so that a story fails on them (ADR 0012): a violation
+ * at a name no field shows blocks the save without a word, and one at a field an edit does not
+ * `submitted` comes from a rule whose tied fields `edit.tiedFields` misses, and its message is
+ * wrong for what the field shows.
  */
-function reportFieldsMissing(
+function reportMisplaced(
   found: ReadonlyMap<string, MessageDescriptor>,
   elements: ReadonlyMap<string, HTMLElement>,
+  submitted: Values | undefined,
 ): void {
   for (const field of found.keys()) {
-    if (elements.has(field)) continue;
-    console.error(
-      `The input schema reports "${field}", but the form shows no field of that name: the save is blocked without a message.`,
-    );
+    if (!elements.has(field)) {
+      console.error(
+        `The input schema reports "${field}", but the form shows no field of that name: the save is blocked without a message.`,
+      );
+    } else if (submitted !== undefined && !Object.hasOwn(submitted, field.split(".")[0] ?? "")) {
+      console.error(
+        `The input schema reports "${field}", but this edit does not submit it: name the fields its rule ties in edit.tiedFields.`,
+      );
+    }
   }
 }
 
