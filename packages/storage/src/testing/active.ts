@@ -24,7 +24,8 @@ function archivableTables(rowMap: RowMap) {
 /**
  * A Query declared `active` answers from Live Rows that are not archived. The kit archives every
  * seeded Live Row of the module's archivable tables and fails the Query if its answer still
- * contains one of them, at any depth, by its `id`.
+ * contains one of them, at any depth, by its `id`. A seed without such a Live Row fails the Query,
+ * since the check would prove nothing.
  */
 export async function checkActiveQuery<Contract extends StorageContract, Rows extends RowMap>(
   module: StorageModule<Contract, Rows>,
@@ -40,6 +41,7 @@ export async function checkActiveQuery<Contract extends StorageContract, Rows ex
     const sources = createTestContext();
     const context = createContext(sources);
     const archived = new Set<string>();
+    let archivedLive = 0n;
     await database.kysely.transaction().execute(async (transaction) => {
       await seed(transaction.withTables<TablesOf<Rows>>(), context);
       const tx =
@@ -47,12 +49,13 @@ export async function checkActiveQuery<Contract extends StorageContract, Rows ex
           Record<string, { id: string; deleted_at: string | null; archived_at: string | null }>
         >();
       for (const table of tables) {
-        await tx
+        const [result] = await tx
           .updateTable(table)
           .set({ archived_at: context.now })
           .where("deleted_at", "is", null)
           .where("archived_at", "is", null)
           .execute();
+        archivedLive += result?.numUpdatedRows ?? 0n;
         const rows = await tx
           .selectFrom(table)
           .select("id")
@@ -61,6 +64,8 @@ export async function checkActiveQuery<Contract extends StorageContract, Rows ex
         for (const row of rows) archived.add(row.id);
       }
     });
+    // Without a Live Row to archive, the answer could not show an archived one.
+    if (archivedLive === 0n) return [{ entry, rule: "active query has no seeded Live Row to archive" }];
     const router: Record<string, AnyProcedure> = createFrame(module, {
       database,
       sources,

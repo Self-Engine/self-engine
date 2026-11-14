@@ -72,3 +72,18 @@ test("the kit fails a Query declared active in a module without an archivable ta
     ),
   ).resolves.toEqual([{ entry: "list", rule: "active query has no archivable table" }]);
 });
+
+test("the kit fails an active Query whose seed leaves no Live Row to archive", async () => {
+  const activeOnly = {
+    ...cards,
+    contract: { active: cards.contract.active },
+    entries: { active: cards.entries.active },
+  };
+  const shelvedOnly: Seed<typeof cards.rowMap> = async (tx, context) => {
+    const shelved = await cards.entries.create.run(tx, context, { title: "Shelved" });
+    await cards.entries.archive.run(tx, context, { id: shelved.id });
+  };
+  await expect(checkContract(activeOnly, shelvedOnly, { active: {} })).resolves.toEqual([
+    { entry: "active", rule: "active query has no seeded Live Row to archive" },
+  ]);
+});
