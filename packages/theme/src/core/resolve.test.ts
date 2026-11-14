@@ -20,6 +20,7 @@ import {
   type ThemeCatalog,
   type ThemeColors,
 } from "./index.ts";
+import { COLOR_SET_NAMES } from "../names/index.ts";
 
 const resolved = resolveAppearance(DEFAULT_APPEARANCE, BUILT_IN_THEMES);
 const neutralDark = (BUILT_IN_THEMES["neutral"] as Theme).colors.dark as ThemeColors;
@@ -193,6 +194,11 @@ describe("the Accent", () => {
     expect(Object.keys(COLOR_SETS).toSorted()).toEqual(
       [...ACCENT_IDS, "green", "pink", "red", "cyan", "lime", "yellow"].toSorted(),
     );
+  });
+
+  it("holds a Color Set for every name of the list and none without a name", () => {
+    expect(Object.keys(COLOR_SETS)).toEqual([...COLOR_SET_NAMES]);
+    expectTypeOf<keyof typeof COLOR_SETS>().toEqualTypeOf<ColorSetName>();
   });
 
   it("types the built-in Accents as Color Set ids, so a typo fails the typecheck", () => {

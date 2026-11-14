@@ -1,5 +1,4 @@
 import { describe, expect, expectTypeOf, it } from "vite-plus/test";
-import { COLOR_SETS } from "../core/index.ts";
 import {
   COLOR_SET_NAMES,
   type ColorSetName,
@@ -25,11 +24,6 @@ const TWELVE = [
 describe("the Color Set names", () => {
   it("are the twelve color names of the old app, around the color wheel from red", () => {
     expect(COLOR_SET_NAMES).toEqual(TWELVE);
-  });
-
-  it("name exactly the Color Sets of the catalog", () => {
-    expect(Object.keys(COLOR_SETS).toSorted()).toEqual(TWELVE.toSorted());
-    expectTypeOf<keyof typeof COLOR_SETS>().toEqualTypeOf<ColorSetName>();
   });
 });
 
