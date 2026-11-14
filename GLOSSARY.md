@@ -91,8 +91,16 @@ The identity of one entity, branded for its kind so a project id cannot stand in
 _Avoid_: generic id, shared id brand
 
 **Live Row** (de: _nicht gelöschte Zeile_):
-A stored row that has not been soft-deleted. Ordinary reads and changes see only live rows in the current _Space_.
+A stored row that has not been soft-deleted. Ordinary reads and changes see only live rows in the current _Space_. An archived row is still a _Live Row_; one that is also not archived is _active_ (see _Archive_).
 _Avoid_: active row, undeleted record
+
+**Archive** (de: _Archivieren_):
+To set an entry aside that is finished but kept, such as a completed project: it leaves the lists of active entries and the pickers and appears in its module's archive View. It is an ordinary change that locks nothing, independent of deleting, and archiving an archived entry changes nothing. An entry that is live and not archived is _active_. Not a _Backup_, which copies the whole database.
+_Avoid_: hide, close, deactivate
+
+**Unarchive** (de: _Reaktivieren_):
+To bring an archived entry back among the active ones. Unarchiving an active entry changes nothing. The undo of a delete is _restore_, never _unarchive_.
+_Avoid_: restore, reopen, reactivate
 
 **Operation** (de: _Operation_):
 An entry of a _Port_ that changes data, all of it or nothing. Its expected failures, such as a conflict or "not found", are part of its answer, not surprises.

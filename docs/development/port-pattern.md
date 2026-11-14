@@ -72,6 +72,12 @@ Apply [ADR 0019](../adr/0019-row-maps-are-the-single-source-of-storage-types.md)
 - Local Tables have the `local_` prefix and their own shape. Shared synchronized-row helpers
   do not accept them. Nothing synchronized may depend on a Local Table.
 
+- A synchronized table becomes archivable with one more convention column, `archived_at TEXT`:
+  nullable, no `DEFAULT`, `instantSchema.nullable()` in the row map
+  ([ADR 0031](../adr/0031-archived-is-a-second-state-of-a-row-beside-deleted.md)). The
+  [`cards`](../../packages/storage/test/cards-module/data/migrations/0001.sql) test module shows
+  it. Add it with a forward migration; every existing row starts active.
+
 Done when `checkAgreement(migrations, rowMap)` and `checkConventions(database)` return no
 violations, as in the notes tests. `checkConventions` names a synchronized table whose
 `space_id` lacks the key to `spaces(id)` or refers elsewhere, and any foreign key that carries an
@@ -110,6 +116,22 @@ non-deleted select, and `.lookup(table, id)` for one live row or `NOT_FOUND`. Us
 non-literal objects, and runtime writes discard injected convention fields. Update and
 soft delete require a live row; restore requires a deleted row. Unknown ids and ids in another
 Space are not found; restoring a live row is also not found.
+
+On an archivable table, `sharedEntry(tx, context).active(table)` selects the Live Rows that are
+not archived; `live(table)` and `lookup` keep archived rows, because an archived row is a Live
+Row. `sharedWrites` adds `archive(table, id)` and `unarchive(table, id)`, typed for archivable
+tables only; `insert` and `update` never set `archived_at`. Write no archive logic of your own,
+as [`cards/data/index.ts`](../../packages/storage/test/cards-module/data/index.ts) shows:
+
+- Archive sets `archived_at` and `updated_at` to `context.now`; unarchive empties `archived_at`
+  and sets `updated_at`. Both are ordinary changes that announce the table, and they lock
+  nothing: an archived row can still be updated, deleted and restored.
+- Archiving an archived row, or unarchiving an active one, answers with the row as it is, keeps
+  the first Instant and writes nothing, so nothing is announced.
+- Both answer `NOT_FOUND` for an unknown or deleted id and for a row of another Space.
+- Archived and deleted are independent: `softDelete` and `restore` leave `archived_at`, so a
+  deleted archived row comes back archived.
+- Name the Operations `archive` and `unarchive`; `restore` stays the undo of a delete.
 
 For joins, aggregates and multi-row changes, use ordinary Kysely builders and explicitly
 apply Space and live-row filters where required. Raw SQL and raw executors in storage are
@@ -253,6 +275,14 @@ affected-row count uses the returned-row count for a `RETURNING` statement; with
 a missing count is conservatively treated as a write). Rewriting identical values can
 therefore announce a table without changing its contents. A trigger writing another table
 cannot ship unnoticed: the kit detects the unannounced changed table.
+
+Declare every Query that must answer without archived rows as active, by adding
+`active: true` to its entry, as `cards` does with `{ ...smallSetList(reads, run), active: true }`.
+For each one the kit seeds a fresh database, archives every seeded Live Row of the module's own
+archivable tables and fails with `active query returns an archived row` when one of those ids
+is still in the answer, at any depth. A module without an archivable table that declares an
+active Query fails with `active query has no archivable table`. Seed at least one live row, or
+the check has nothing to archive.
 
 Done when the kit returns no violations and business tests cover behavior beyond these rules.
 
