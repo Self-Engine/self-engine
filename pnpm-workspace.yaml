@@ -52,6 +52,9 @@ catalog:
   "@orpc/server": 1.16.2
   # Only packages/icons may depend on it (#18).
   "@phosphor-icons/react": 2.1.10
+  # The interface a form reads a Contract's input schema through (D317); types only. The version
+  # oRPC brings.
+  "@standard-schema/spec": 1.1.0
   # The Component Catalog (apps/component-catalog). Every Storybook package moves together.
   "@storybook/addon-vitest": 10.6.6
   "@storybook/react-vite": 10.6.6

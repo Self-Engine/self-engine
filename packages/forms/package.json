@@ -12,14 +12,15 @@
     "@lingui/react": "catalog:",
     "@mantine/core": "catalog:",
     "@mantine/form": "catalog:",
+    "@orpc/contract": "catalog:",
     "@self-engine/data-client": "workspace:*",
     "@self-engine/shell": "workspace:*",
     "@self-engine/ui": "workspace:*",
+    "@standard-schema/spec": "catalog:",
     "react": "catalog:",
     "zod": "catalog:"
   },
   "devDependencies": {
-    "@orpc/contract": "catalog:",
     "@self-engine/i18n": "workspace:*",
     "@storybook/react-vite": "catalog:",
     "@types/node": "catalog:",

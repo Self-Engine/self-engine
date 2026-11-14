@@ -230,6 +230,9 @@ catalogs:
     '@rolldown/plugin-babel':
       specifier: 0.3.1
       version: 0.3.1
+    '@standard-schema/spec':
+      specifier: 1.1.0
+      version: 1.1.0
     '@storybook/addon-vitest':
       specifier: 10.6.6
       version: 10.6.6
@@ -814,6 +817,9 @@ importers:
       '@mantine/form':
         specifier: 'catalog:'
         version: 9.8.0(react@19.3.1)
+      '@orpc/contract':
+        specifier: 'catalog:'
+        version: 1.16.2
       '@self-engine/data-client':
         specifier: workspace:*
         version: link:../data-client
@@ -823,6 +829,9 @@ importers:
       '@self-engine/ui':
         specifier: workspace:*
         version: link:../ui
+      '@standard-schema/spec':
+        specifier: 'catalog:'
+        version: 1.1.0
       react:
         specifier: 'catalog:'
         version: 19.3.1
@@ -830,9 +839,6 @@ importers:
         specifier: 'catalog:'
         version: 4.6.7
     devDependencies:
-      '@orpc/contract':
-        specifier: 'catalog:'
-        version: 1.16.2
       '@self-engine/i18n':
         specifier: workspace:*
         version: link:../i18n

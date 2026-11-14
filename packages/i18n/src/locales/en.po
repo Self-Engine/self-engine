@@ -7,6 +7,30 @@ msgstr ""
 "X-Generator: @lingui/cli\n"
 "Language: en\n"
 
+#: packages/forms/src/violation-texts.ts
+msgid "{maximum, plural, one {At most # character.} other {At most # characters.}}"
+msgstr "{maximum, plural, one {At most # character.} other {At most # characters.}}"
+
+#: packages/forms/src/violation-texts.ts
+msgid "{maximum, plural, other {At most #.}}"
+msgstr "{maximum, plural, other {At most #.}}"
+
+#: packages/forms/src/violation-texts.ts
+msgid "{maximum, plural, other {Less than #.}}"
+msgstr "{maximum, plural, other {Less than #.}}"
+
+#: packages/forms/src/violation-texts.ts
+msgid "{minimum, plural, one {At least # character.} other {At least # characters.}}"
+msgstr "{minimum, plural, one {At least # character.} other {At least # characters.}}"
+
+#: packages/forms/src/violation-texts.ts
+msgid "{minimum, plural, other {At least #.}}"
+msgstr "{minimum, plural, other {At least #.}}"
+
+#: packages/forms/src/violation-texts.ts
+msgid "{minimum, plural, other {More than #.}}"
+msgstr "{minimum, plural, other {More than #.}}"
+
 #: apps/web/src/data-connection-states.tsx
 msgid "A newer version already applied the update {migration}, which this version does not know. Open your data with the newer version."
 msgstr "A newer version already applied the update {migration}, which this version does not know. Open your data with the newer version."
@@ -436,6 +460,10 @@ msgstr "Emoji preview"
 msgid "Emojis"
 msgstr "Emojis"
 
+#: packages/forms/src/violation-texts.ts
+msgid "Enter a whole number."
+msgstr "Enter a whole number."
+
 #: packages/placeholder-alpha/src/entries.tsx
 msgid "Entries you create appear here."
 msgstr "Entries you create appear here."
@@ -591,6 +619,10 @@ msgstr "In the browser, Self-Engine has no access to your data yet. Open the des
 msgctxt "Color"
 msgid "Indigo"
 msgstr "Indigo"
+
+#: packages/forms/src/violation-texts.ts
+msgid "Invalid value."
+msgstr "Invalid value."
 
 #: packages/shell/src/edit-drawer-exits.tsx
 msgid "Keep editing"
@@ -1259,6 +1291,10 @@ msgstr "This backup can no longer be read. Nothing was restored."
 #: packages/data-client/src/react/operation-hook.ts
 msgid "This entry no longer exists."
 msgstr "This entry no longer exists."
+
+#: packages/forms/src/violation-texts.ts
+msgid "This field is required."
+msgstr "This field is required."
 
 #: packages/shell/src/lazy-contribution.tsx
 #: packages/ui/src/query-state-block.tsx

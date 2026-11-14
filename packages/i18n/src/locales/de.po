@@ -7,6 +7,30 @@ msgstr ""
 "X-Generator: @lingui/cli\n"
 "Language: de\n"
 
+#: packages/forms/src/violation-texts.ts
+msgid "{maximum, plural, one {At most # character.} other {At most # characters.}}"
+msgstr "{maximum, plural, one {Höchstens # Zeichen.} other {Höchstens # Zeichen.}}"
+
+#: packages/forms/src/violation-texts.ts
+msgid "{maximum, plural, other {At most #.}}"
+msgstr "{maximum, plural, other {Höchstens #.}}"
+
+#: packages/forms/src/violation-texts.ts
+msgid "{maximum, plural, other {Less than #.}}"
+msgstr "{maximum, plural, other {Weniger als #.}}"
+
+#: packages/forms/src/violation-texts.ts
+msgid "{minimum, plural, one {At least # character.} other {At least # characters.}}"
+msgstr "{minimum, plural, one {Mindestens # Zeichen.} other {Mindestens # Zeichen.}}"
+
+#: packages/forms/src/violation-texts.ts
+msgid "{minimum, plural, other {At least #.}}"
+msgstr "{minimum, plural, other {Mindestens #.}}"
+
+#: packages/forms/src/violation-texts.ts
+msgid "{minimum, plural, other {More than #.}}"
+msgstr "{minimum, plural, other {Mehr als #.}}"
+
 #: apps/web/src/data-connection-states.tsx
 msgid "A newer version already applied the update {migration}, which this version does not know. Open your data with the newer version."
 msgstr "Eine neuere Version hat bereits das Update {migration} angewendet, das diese Version nicht kennt. Öffne deine Daten mit der neueren Version."
@@ -436,6 +460,10 @@ msgstr "Emoji-Vorschau"
 msgid "Emojis"
 msgstr "Emojis"
 
+#: packages/forms/src/violation-texts.ts
+msgid "Enter a whole number."
+msgstr "Gib eine ganze Zahl ein."
+
 #: packages/placeholder-alpha/src/entries.tsx
 msgid "Entries you create appear here."
 msgstr "Einträge, die du anlegst, erscheinen hier."
@@ -591,6 +619,10 @@ msgstr "Im Browser hat Self-Engine noch keinen Zugang zu deinen Daten. Öffne di
 msgctxt "Color"
 msgid "Indigo"
 msgstr "Indigo"
+
+#: packages/forms/src/violation-texts.ts
+msgid "Invalid value."
+msgstr "Ungültiger Wert."
 
 #: packages/shell/src/edit-drawer-exits.tsx
 msgid "Keep editing"
@@ -1259,6 +1291,10 @@ msgstr "Diese Sicherung lässt sich nicht mehr lesen. Es wurde nichts wiederherg
 #: packages/data-client/src/react/operation-hook.ts
 msgid "This entry no longer exists."
 msgstr "Diesen Eintrag gibt es nicht mehr."
+
+#: packages/forms/src/violation-texts.ts
+msgid "This field is required."
+msgstr "Dieses Feld ist erforderlich."
 
 #: packages/shell/src/lazy-contribution.tsx
 #: packages/ui/src/query-state-block.tsx
