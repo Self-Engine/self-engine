@@ -68,8 +68,8 @@ export function EmojiTab({ data, onChoose, autoFocus, query, onQueryChange }: Em
       onSearchChange={onQueryChange}
       searchValue={query}
       onEmojiSelect={(emoji) => {
-        // Every emoji of the data passes the rule (a test holds that); this keeps the answer
-        // strict should a later version of the data hold one that does not.
+        // `loadEmojiData` offers only what the rule accepts; this keeps the answer strict for
+        // any other list a caller hands in.
         if (isSingleEmoji(emoji.emoji)) onChoose(emoji.emoji);
       }}
       withUnsupportedDetection

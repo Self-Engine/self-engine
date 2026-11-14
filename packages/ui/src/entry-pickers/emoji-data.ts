@@ -3,8 +3,14 @@
 // build makes one chunk per language, and it loads only when the Emoji tab first opens (#268).
 // Only the data file is read: the adapter takes the names of the categories from Mantine's own
 // list whatever the messages say, and the field gives the translated names to the picker.
+//
+// The list is cut to what the emoji rule accepts here. The rule reads Unicode's properties from
+// the engine it runs in, so an engine older than the data rejects the newest emojis: Electron 45
+// knows Unicode 17 and the data reaches Emoji 18. An emoji the field could not answer is not
+// offered.
 
-import { type EmojiPickerData, emojibaseAdapter } from "@mantine/emoji";
+import { type EmojiPickerData, type EmojiPickerEmoji, emojibaseAdapter } from "@mantine/emoji";
+import { isSingleEmoji } from "@self-engine/icons/names";
 
 /** The languages emojibase-data names the emojis in, of those the app offers. */
 export type EmojiLanguage = "de" | "en";
@@ -15,6 +21,27 @@ export function emojiLanguageOf(locale: string): EmojiLanguage {
 }
 
 const NO_MESSAGES = { groups: [] };
+
+/**
+ * The list without the emojis a rule rejects, in any of their skin tones, so that every emoji
+ * the picker shows can be answered.
+ */
+export function onlyAccepted(
+  data: EmojiPickerData,
+  accepts: (emoji: string) => boolean,
+): EmojiPickerData {
+  const emojis: Record<string, EmojiPickerEmoji> = {};
+  for (const [id, emoji] of Object.entries(data.emojis)) {
+    if (accepts(emoji.emoji) && (emoji.skins ?? []).every(accepts)) emojis[id] = emoji;
+  }
+  return {
+    categories: data.categories.map((category) => ({
+      ...category,
+      emojis: category.emojis.filter((id) => Object.hasOwn(emojis, id)),
+    })),
+    emojis,
+  };
+}
 
 const LOADERS: Readonly<Record<EmojiLanguage, () => Promise<{ default: unknown }>>> = {
   de: () => import("emojibase-data/de/data.json"),
@@ -29,7 +56,10 @@ export function loadEmojiData(language: EmojiLanguage): Promise<EmojiPickerData>
   if (data === undefined) {
     data = LOADERS[language]().then(
       ({ default: emojis }) =>
-        emojibaseAdapter(emojis as Parameters<typeof emojibaseAdapter>[0], NO_MESSAGES),
+        onlyAccepted(
+          emojibaseAdapter(emojis as Parameters<typeof emojibaseAdapter>[0], NO_MESSAGES),
+          isSingleEmoji,
+        ),
       (error: unknown) => {
         // A failed load is tried again at the next opening instead of being kept.
         loaded.delete(language);
