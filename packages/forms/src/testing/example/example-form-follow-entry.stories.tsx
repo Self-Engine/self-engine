@@ -5,8 +5,9 @@
 
 import { Button } from "@mantine/core";
 import { DataProvider } from "@self-engine/data-client/react";
+import { commitWhere } from "@self-engine/ui/story-render-counts";
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { useState } from "react";
+import { useDeferredValue, useState } from "react";
 import { expect, screen, userEvent, waitFor, within } from "storybook/test";
 import {
   ColorField,
@@ -67,6 +68,8 @@ function EntryForm({ entry, deleted: gone, onCancel, onDelete }: EntryFormProps)
       <IconField form={form} label="Icon" name="icon" />
       <ColorField form={form} label="Color" name="color" />
       {saved && <output>Saved</output>}
+      {/* What the form was given, drawn in the same commit: the stories read when it changes. */}
+      <span data-given-title={entry.title} hidden />
     </EditDrawerForm>
   );
 }
@@ -81,11 +84,14 @@ function EditDrawer({
   onCancel,
   onDone,
   remove,
+  deferred = false,
 }: {
   readonly id: string;
   readonly onCancel: () => void;
   readonly onDone: () => void;
   readonly remove: () => void;
+  /** Hands the form a new entry in a deferred draw, as React does with `useDeferredValue`. */
+  readonly deferred?: boolean;
 }) {
   const list = useExampleEntries({});
   const found =
@@ -95,7 +101,9 @@ function EditDrawer({
   const [last, setLast] = useState(found);
   if (found !== undefined && found !== last) setLast(found);
   const [deletedHere, setDeletedHere] = useState(false);
-  const entry = found ?? last;
+  const latestEntry = found ?? last;
+  const deferredEntry = useDeferredValue(latestEntry);
+  const entry = deferred ? deferredEntry : latestEntry;
   if (entry === undefined) return list.status === "loading" ? null : <p>Entry not found</p>;
   return (
     <EntryForm
@@ -111,14 +119,15 @@ function EditDrawer({
   );
 }
 
-const meta = {
-  title: "Forms/Example form/Follow entry",
-  loaders: [loadStoryShell, () => ({ port: changingPort(storedAs({})) })],
-  render: (_args, { loaded }) => (
+/** The Edit Drawer of the stories; `deferred` hands the form each new entry in a deferred draw. */
+const drawerOf =
+  (deferred: boolean): NonNullable<Meta["render"]> =>
+  (_args, { loaded }) => (
     <DataProvider access={loaded.port.access}>
       <StoryDrawer>
         {({ id, onCancel, onDone }) => (
           <EditDrawer
+            deferred={deferred}
             id={id}
             onCancel={onCancel}
             onDone={onDone}
@@ -127,7 +136,12 @@ const meta = {
         )}
       </StoryDrawer>
     </DataProvider>
-  ),
+  );
+
+const meta = {
+  title: "Forms/Example form/Follow entry",
+  loaders: [loadStoryShell, () => ({ port: changingPort(storedAs({})) })],
+  render: drawerOf(false),
 } satisfies Meta;
 export default meta;
 type Story = StoryObj<typeof meta>;
@@ -210,6 +224,21 @@ export const TheFieldTypedInKeepsItsCaretAndText: Story = {
     await expect(title).toHaveValue("Kitchen and hall");
     await userEvent.keyboard(",");
     await expect(title).toHaveValue("Kitchen, and hall");
+  },
+};
+
+export const NoFrameShowsTheOldValue: Story = {
+  render: drawerOf(true),
+  play: async ({ loaded }) => {
+    const { title } = await openForm();
+    const given = screen
+      .getByRole("dialog", { name: "Example" })
+      .querySelector<HTMLElement>("[data-given-title]");
+    loaded.port.change(storedAs({ title: "Kitchen and hall" }));
+    // Resumes in the task of the commit that hands the form the new entry, before any paint.
+    await commitWhere(() => given?.dataset["givenTitle"] === "Kitchen and hall");
+    const shown = title.value;
+    await expect(shown).toBe("Kitchen and hall");
   },
 };
 

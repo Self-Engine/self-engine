@@ -2,7 +2,7 @@ import type { MessageDescriptor } from "@lingui/core";
 import { useForm, type UseFormReturnType } from "@mantine/form";
 import type { AnyContractProcedure, InferSchemaInput } from "@orpc/contract";
 import type { OperationResult, OperationState } from "@self-engine/data-client/react";
-import { useEffect, useRef, useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import { checkDraft, type FormTexts, type InputSchema } from "./check.ts";
 import { FieldListeners } from "./field-listeners.ts";
 import { FieldMessages } from "./field-messages.ts";
@@ -181,7 +181,8 @@ export function useOperationForm<Entry extends AnyContractProcedure, Result exte
   // Read when the user acts, never while drawing: the latest Operation state and callback.
   const latest = useRef<Latest>({ draft, options } as unknown as Latest);
   const [{ form, follow }] = useState(() => createForm(() => latest.current));
-  useEffect(() => {
+  // Before the browser paints: no frame shows a field's old value beside the new entry (D324).
+  useLayoutEffect(() => {
     latest.current = { draft, options } as unknown as Latest;
     follow();
   });
@@ -190,7 +191,7 @@ export function useOperationForm<Entry extends AnyContractProcedure, Result exte
 
 interface MadeForm {
   readonly form: OperationForm<never>;
-  /** Follows the stored entry of an edit after a draw (D324). */
+  /** Follows the stored entry of an edit after a draw, before it is painted (D324). */
   readonly follow: () => void;
 }
 
