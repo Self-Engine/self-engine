@@ -180,19 +180,74 @@ startup code reaches it. Startup JavaScript went from **843,143** to **843,206 b
 the slice, from the shared name of the Color Set scope. Drawing a mark costs one icon render; the
 first View that draws one pays the chunk's load once.
 
-The pickers of an entry's icon, emoji and color (`@self-engine/ui/entry-pickers`, #261) load the
-same way: an edit drawer, which loads on demand, imports them. Startup JavaScript stayed at
-**843,206 bytes** (16 chunks) before and after the slice. In a trial build that loaded the pickers
-and the mark on demand, the pickers' own chunk measured **26,353 bytes** (11,010 gzipped) beside
-the shared directory chunk of **342,249 bytes**. The 214 icon labels sit in the language catalogs,
+The pickers of an entry's icon and color (`@self-engine/ui/entry-pickers`, #261) load the same
+way: an edit drawer, which loads on demand, imports them. Startup JavaScript stayed at **843,206
+bytes** (16 chunks) before and after the slice. The 214 icon labels sit in the language catalogs,
 which load before the first render outside this budget: the German catalog chunk went from
-**7,144 to 10,053 bytes**, the English one from **6,313 to 9,124**. The icon grid draws only while
-its popover is open. Measured in the story runner (Chromium, React in development mode, median of
-25 runs): opening it with all 107 pictures took **39 ms** (at most 44.5), narrowing them to those
-matching "ba" **4.5 ms**, and showing all 107 again **22 ms**; a production build is faster.
-These times were taken while every icon was drawn in the duotone weight, which adds a second
-shape to each picture; the regular weight drawn now (D298) has only the line drawing. They were
-not measured again.
+**7,144 to 10,053 bytes**, the English one from **6,313 to 9,124**.
+
+### The icon field
+
+The icon field (`EntryIconPicker`, #264) holds the icon grid and the Emoji tab, Mantine's
+`EmojiPicker` with the emoji list of `emojibase-data`. The tab's code and the list load with a
+dynamic import when the Emoji tab first opens, the list as one chunk per language, and the startup
+check names `@mantine/emoji` and `emojibase-data` in `lazyOnly`.
+
+**Sizes**, from `pnpm --filter @self-engine/web build` (gzipped as Vite reports it). No app code
+imports the field yet, so the sizes of its chunks come from a trial build in which the edit drawer
+of `placeholder-alpha`, which loads on demand, imported `@self-engine/ui/entry-pickers` with a
+dynamic import; the trial was not committed.
+
+| What                                                          |   Bytes |   Gzipped |
+| ------------------------------------------------------------- | ------: | --------: |
+| The field's chunk: both pickers and the directory of pictures | 360,350 |  96.95 kB |
+| The Emoji tab's code: Mantine's picker and its virtual list   |  52,114 |  17.70 kB |
+| The Emoji tab's stylesheet                                    |   4,003 |   0.97 kB |
+| The emoji list in English                                     | 785,619 |  97.53 kB |
+| The emoji list in German                                      | 800,550 | 103.06 kB |
+
+Startup JavaScript is **843,398 bytes** (16 chunks) both on the commit before the field and with
+it, since nothing at startup imports it. In the trial build it is **846,390 bytes** (20 chunks)
+before the field and **847,132 bytes** (23 chunks) with it, +742 in three more chunks: the
+bundler splits modules that startup code shares with the field's chunks into chunks of their own.
+The startup check passes in both, so the directory, the emoji picker and its data stay out. The catalogs, which load before the first render, are now 10,530 bytes (German) and 9,595
+(English).
+
+**Times**, measured with a story written for the measurement and not kept: the stories' runner
+(`vp test run --root apps/component-catalog`), Chromium headless shell 158 through Playwright
+1.65, React in development mode, on an Apple M3 Pro. The story clicks and types through the DOM,
+and each figure runs from the event to the moment the page holds the result (seen by a
+`MutationObserver`) and to the next frame drawn after it (`requestAnimationFrame`, then a
+timeout). Each figure is the median of 25 runs after 3 warm-up runs, in each of 7 page loads; the
+table gives the median of the seven medians, with their range. The first opening of the Emoji tab
+happens once per page load, so its figure is the median of the 7 page loads. A production build
+is faster.
+
+| What                                                                 |             Page holds it | Next frame |
+| -------------------------------------------------------------------- | ------------------------: | ---------: |
+| Opening the icon grid with all 107 pictures                          |    33.6 ms (21.8 to 37.5) |    37.6 ms |
+| Narrowing it to the 5 pictures matching "ba"                         |                    3.6 ms |     8.9 ms |
+| Showing all 107 again                                                |                   16.5 ms |    18.3 ms |
+| The first opening of the Emoji tab, until the first emojis are drawn | 310.9 ms (294.6 to 419.3) |   313.9 ms |
+| A later opening of the Emoji tab, the list already loaded            |                   20.0 ms |    21.8 ms |
+| Filtering the emoji grid by "ba"                                     |                   15.4 ms |    17.3 ms |
+| Emptying the search of the emoji grid                                |                   14.5 ms |    16.3 ms |
+
+The parts of the first opening, measured apart in the same browser (median of 25 runs, the
+detection of 10): parsing the English or German list (`JSON.parse`, which is how the built chunk
+holds it) **1.0 ms**, Mantine's `emojibaseAdapter` **0.3 ms**, cutting the list to what the emoji
+rule accepts (`onlyAccepted`) **0.4 ms**, and Mantine's detection of the emojis the device cannot
+draw, two drawings on a canvas per emoji for 1,914 emojis, **54 ms**; Mantine keeps that answer
+per emoji for the rest of the session, so a later opening does not pay it. The rest of the first
+opening, about 250 ms, is loading the tab's code and the list from the development server and the
+first render; the built app reads the chunks from local files. In this Chromium (Unicode 17) the
+list offers 1,914 emojis in 3,564 characters, of which the detection hid 3. The emoji grid is a
+virtual list: it draws the rows in view, not all 1,914 emojis.
+
+Each keystroke in either search also checks whether the term is exactly one emoji (D302), without
+the emoji list. That check measured, in Node 26.13 (median of 9 runs of a million calls), **11 ns** for a
+word such as "house" or "Glühbirne", **21 ns** for 😀 and **43 ns** for the joined family emoji
+👨‍👩‍👧‍👦.
 
 The color picker and the Accent row of the Settings share one building block, the swatch radio
 group (`@self-engine/ui/swatch-radio-group`). It is an entry of its own and not part of `ui`'s main
