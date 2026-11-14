@@ -39,6 +39,8 @@ export interface SwatchRadioGroupProps<V> {
   readonly onChange: (value: V) => void;
   /** The id of the element that names the group, such as a row's title. */
   readonly labelledBy: string;
+  /** The id of the element that describes the group, such as a message of a form's check. */
+  readonly describedBy?: string | undefined;
 }
 
 /** The circle grows with the font scale, like the controls around it. */
@@ -52,12 +54,19 @@ export function SwatchRadioGroup<V>({
   value,
   onChange,
   labelledBy,
+  describedBy,
 }: SwatchRadioGroupProps<V>) {
   // What `Radio.Card` moves the arrow keys by.
   const groupName = useId();
   const tabStop = radioTabStop(choices, value);
   return (
-    <Group aria-labelledby={labelledBy} gap={rem(4)} role="radiogroup">
+    <Group
+      aria-describedby={describedBy}
+      aria-invalid={describedBy === undefined ? undefined : true}
+      aria-labelledby={labelledBy}
+      gap={rem(4)}
+      role="radiogroup"
+    >
       {choices.map((choice) => {
         const chosen = choice.value === value;
         return (
