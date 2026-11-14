@@ -28,7 +28,7 @@ export const ALLOWED_IMPORTS: AllowedImports = {
   backup: ["data-protocol", "db", "time"],
   // Composes the protocol and the modules' contracts (D187): `contracts → module`. Only the
   // desktop app's module list imports it.
-  contracts: ["data-protocol", "placeholder-alpha", "projects"],
+  contracts: ["data-protocol", "projects"],
   // The building block tells the user through `ui`'s feedback system. It takes the protocol from
   // `data-protocol`, which knows no module, so no cycle runs through a module (ADR 0006).
   "data-client": ["data-protocol", "ui"],

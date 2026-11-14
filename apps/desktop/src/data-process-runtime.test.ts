@@ -1,6 +1,6 @@
 import type { Clock } from "@self-engine/time";
 import { EventEmitter } from "node:events";
-import { mkdtempSync, readdirSync, rmSync } from "node:fs";
+import { existsSync, mkdtempSync, readdirSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { MessageChannel, type MessagePort } from "node:worker_threads";
@@ -9,6 +9,8 @@ import type { AppContract } from "@self-engine/contracts";
 import { createDataConnection } from "@self-engine/data-client";
 import type { ProtocolContract } from "@self-engine/data-protocol";
 import type { Database, Migration } from "@self-engine/db";
+import type { placeholderAlphaContract } from "@self-engine/placeholder-alpha/contracts";
+import { placeholderAlpha } from "@self-engine/placeholder-alpha/data";
 import { openDatabase } from "@self-engine/db/better-sqlite3";
 import { createTestSources } from "@self-engine/db/testing";
 import { sql } from "kysely";
@@ -84,10 +86,10 @@ function run(
   return {
     channel,
     /** A connection of a page, handed over like the main process does. */
-    connect(page = 1) {
+    connect<Modules extends object = Omit<AppContract, keyof ProtocolContract>>(page = 1) {
       const { port1, port2 } = channel();
       parentPort.send(portHandoff(page), [port1]);
-      const connection = createDataConnection<Omit<AppContract, keyof ProtocolContract>>();
+      const connection = createDataConnection<Modules>();
       connection.connect(port2);
       return connection.client;
     },
@@ -136,12 +138,7 @@ describe("runDataProcess", () => {
 
     await expect(connection.client.health()).resolves.toMatchObject({
       state: "ready",
-      migrations: [
-        "placeholder-alpha/0001",
-        "placeholder-alpha/0002",
-        "projects/0001",
-        "spaces/0001",
-      ],
+      migrations: ["projects/0001", "spaces/0001"],
     });
   });
 
@@ -401,10 +398,10 @@ describe("the Backups of the data process", () => {
     const first = folder.start();
     await first.running;
     const page = first.connect();
-    await page.placeholderAlpha.create({ name: "Before the Backup" });
+    await page.projects.create({ title: "Before the Backup" });
     folder.sources.advance(60_000);
     const backup = await page.backups.create({});
-    await page.placeholderAlpha.create({ name: "After the Backup" });
+    await page.projects.create({ title: "After the Backup" });
     folder.sources.advance(60_000);
     const asked = new Promise<void>((resolve) => {
       first.parentPort.onPost = (message) => {
@@ -420,7 +417,7 @@ describe("the Backups of the data process", () => {
     await second.running;
     const pageAgain = second.connect();
 
-    expect((await pageAgain.placeholderAlpha.list({})).map(({ name }) => name)).toEqual([
+    expect((await pageAgain.projects.active({})).map(({ title }) => title)).toEqual([
       "Before the Backup",
     ]);
     expect(replaced).toMatchObject({ kind: "before-restore", takenAt: "2026-11-13T12:02:00.000Z" });
@@ -435,11 +432,51 @@ describe("the Backups of the data process", () => {
     await second.close();
     const third = folder.start();
     await third.running;
-    expect((await third.connect().placeholderAlpha.list({})).map(({ name }) => name)).toEqual([
+    expect((await third.connect().projects.active({})).map(({ title }) => title)).toEqual([
       "Before the Backup",
       "After the Backup",
     ]);
     expect(readdirSync(dirname(folder.databasePath))).not.toContain("self-engine.sqlite.restore");
+  });
+
+  it("refuses a dev database from before projects replaced the placeholders, keeps it untouched, and starts on a new one once it is removed (D315)", async () => {
+    const folder = dataFolder();
+    // The module list before #306: placeholder-alpha beside projects.
+    const before = folder.start({ placeholderAlpha, projects: dataModules.projects });
+    await before.running;
+    await before
+      .connect<{ placeholderAlpha: typeof placeholderAlphaContract }>()
+      .placeholderAlpha.create({ name: "Studio work" });
+    folder.sources.advance(60_000);
+    await before.close();
+
+    const after = folder.start();
+    await after.running;
+    // The database recorded migrations the module list no longer has, as if a newer app had
+    // written it. Nothing is removed (#214), and the page shows the failure state, no data.
+    expect(after.parentPort.sent.map(servingHealth)).toEqual([
+      { state: "databaseNewer", migration: "placeholder-alpha/0001" },
+    ]);
+    const { rows } = await sql`SELECT name FROM placeholder_alpha_entries`.execute(
+      after.database.kysely,
+    );
+    expect(rows).toEqual([{ name: "Studio work" }]);
+    await after.close();
+
+    // The step: remove the dev data folder's database and its Backups, which hold the same
+    // migrations, and start again.
+    for (const name of readdirSync(dirname(folder.databasePath))) {
+      rmSync(join(dirname(folder.databasePath), name), { recursive: true });
+    }
+    expect(existsSync(backupFolder(folder.databasePath))).toBe(false);
+    const again = folder.start();
+    await again.running;
+    expect(again.parentPort.sent.map(servingHealth)).toMatchObject([
+      { state: "ready", migrations: ["projects/0001", "spaces/0001"] },
+    ]);
+    await expect(again.connect().projects.create({ title: "Website" })).resolves.toMatchObject({
+      title: "Website",
+    });
   });
 
   it("restores a Backup from before the newest migration: the next start migrates the restored data", async () => {

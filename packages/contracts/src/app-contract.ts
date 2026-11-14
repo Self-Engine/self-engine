@@ -1,5 +1,4 @@
 import { protocolContract } from "@self-engine/data-protocol";
-import { placeholderAlphaContract } from "@self-engine/placeholder-alpha/contracts";
 import { projectsContract } from "@self-engine/projects/contracts";
 
 /**
@@ -10,7 +9,6 @@ import { projectsContract } from "@self-engine/projects/contracts";
  */
 export const appContract = {
   ...protocolContract,
-  placeholderAlpha: placeholderAlphaContract,
   projects: projectsContract,
 };
 

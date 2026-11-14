@@ -176,7 +176,8 @@ async function main(): Promise<void> {
   let log = "";
   const server = spawn("pnpm", ["--filter", "@self-engine/web", "dev"], {
     cwd: root,
-    env: { ...process.env, PORT: String(port) },
+    // The placeholder modules left the app (D315); the dev server mounts the stories' list.
+    env: { ...process.env, PORT: String(port), SELF_ENGINE_STORY_MODULES: "1" },
     detached: true,
     stdio: ["ignore", "pipe", "pipe"],
   });

@@ -7,8 +7,10 @@ import { createMemoryHistory, RouterProvider } from "@tanstack/react-router";
 import { useState } from "react";
 import { expect, screen, userEvent, waitFor, within } from "storybook/test";
 import { createAppRouter } from "./app-router.ts";
-import { contributions } from "./modules.ts";
 import { settingsStore } from "./settings-store.ts";
+import { storyModules } from "./story-modules.ts";
+
+export { storyModules };
 
 /**
  * Finish fetching the app's lazy code before a Story starts interacting. On a cold dev server,
@@ -22,7 +24,7 @@ export async function loadStoryApp() {
     settingsStore.load(),
     loadStoryShell(),
     ...LANGUAGE_TAGS.map(loadAppCatalog),
-    ...contributions.flatMap((module) => [
+    ...storyModules.contributions.flatMap((module) => [
       ...module.views.map((view) => view.load()),
       module.groups?.(),
       module.editDrawer?.(),
@@ -50,7 +52,7 @@ export interface AppAtProps {
 /** The whole app at `address`, on a history that stays in memory, with its own query cache. */
 export function AppAt({ address, access }: AppAtProps) {
   const [router] = useState(() => {
-    lastRouter = createAppRouter(createMemoryHistory({ initialEntries: [address] }));
+    lastRouter = createAppRouter(createMemoryHistory({ initialEntries: [address] }), storyModules);
     return lastRouter;
   });
   return (

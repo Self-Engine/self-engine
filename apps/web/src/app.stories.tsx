@@ -15,7 +15,7 @@ import { expect, userEvent, waitFor, within } from "storybook/test";
 import { createAppRouter } from "./app-router.ts";
 import { AppLanguage } from "./app-language.tsx";
 import { settingsStore } from "./settings-store.ts";
-import { loadStoryApp, openPalette, paletteGone } from "./story-app.tsx";
+import { loadStoryApp, openPalette, paletteGone, storyModules } from "./story-app.tsx";
 
 const i18n = createI18n();
 /** The rows of `placeholder-alpha`, which some stories show. */
@@ -36,7 +36,7 @@ function AppStory({ address, hash = false }: AppStoryProps) {
     return history;
   });
   const [{ router, generation }, setRouter] = useState(() => ({
-    router: createAppRouter(history),
+    router: createAppRouter(history, storyModules),
     generation: 0,
   }));
   useEffect(() => () => history.destroy(), [history]);
@@ -56,7 +56,7 @@ function AppStory({ address, hash = false }: AppStoryProps) {
         style={{ position: "fixed", bottom: 16, right: 16, zIndex: 500 }}
         onClick={() =>
           setRouter(({ generation }) => ({
-            router: createAppRouter(history),
+            router: createAppRouter(history, storyModules),
             generation: generation + 1,
           }))
         }

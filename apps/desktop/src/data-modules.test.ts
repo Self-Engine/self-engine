@@ -22,7 +22,7 @@ test("registered app module namespaces match the mounted app contract", () => {
   );
 });
 
-test("placeholder-alpha is mounted: an Operation is followed by its Table Change and the list Query returns the new row", async () => {
+test("the app mounts projects and no placeholder: its migrations and Queries are the only ones beside the protocol's (D315)", async () => {
   const process = await startTestDataProcess({ modules });
   started.push(process);
   const client = createORPCClient<ContractRouterClient<AppContract>>(
@@ -30,12 +30,7 @@ test("placeholder-alpha is mounted: an Operation is followed by its Table Change
   );
   await expect(client.health()).resolves.toMatchObject({
     state: "ready",
-    migrations: [
-      "placeholder-alpha/0001",
-      "placeholder-alpha/0002",
-      "projects/0001",
-      "spaces/0001",
-    ],
+    migrations: ["projects/0001", "spaces/0001"],
   });
   const events = await client.tablesChanged();
   await expect(events.next()).resolves.toEqual({
@@ -43,25 +38,10 @@ test("placeholder-alpha is mounted: an Operation is followed by its Table Change
     value: {
       kind: "opened",
       queries: {
-        placeholderAlpha: { list: ["placeholder_alpha_entries"] },
         projects: { active: ["projects"], archived: ["projects"] },
         backups: { list: [] },
       },
     },
-  });
-
-  const created = await client.placeholderAlpha.create({ name: "Studio work" });
-
-  await expect(events.next()).resolves.toEqual({
-    done: false,
-    value: { kind: "changed", tables: ["placeholder_alpha_entries"] },
-  });
-  await expect(client.placeholderAlpha.list({})).resolves.toEqual([
-    { id: created.id, name: "Studio work" },
-  ]);
-  await expect(client.placeholderAlpha.create({ name: "Studio work" })).rejects.toMatchObject({
-    code: "CONFLICT",
-    data: { reason: "name_taken" },
   });
   await events.return();
 });

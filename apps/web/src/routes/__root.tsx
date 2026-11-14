@@ -4,19 +4,19 @@ import { BrandMark } from "@self-engine/icons/brand-mark";
 import { useDataAccess } from "@self-engine/data-client/react";
 import { useSetting } from "@self-engine/settings/react";
 import { Shell } from "@self-engine/shell";
-import { Outlet, createRootRoute, useRouterState } from "@tanstack/react-router";
+import { Outlet, createRootRouteWithContext, useRouterState } from "@tanstack/react-router";
+import type { AppRouterContext } from "../app-router.ts";
 import { DataConnectionStates } from "../data-connection-states.tsx";
 import { dataConnection, retryDesktopData } from "../desktop-data.ts";
 import { channelBadge, reservesWindowButtons } from "../env.ts";
 import { settingsStore } from "../settings-store.ts";
-import { modules, settings, findModule } from "../modules.ts";
 import { NotFound, ViewLoadError } from "../route-states.tsx";
 import { SHELL_SETTINGS } from "../shell-settings.ts";
 
 // The name of the product, which is not translated.
 const LOGO = { mark: <BrandMark />, name: "Self-Engine" };
 
-export const Route = createRootRoute({
+export const Route = createRootRouteWithContext<AppRouterContext>()({
   component: RootLayout,
   notFoundComponent: NotFound,
   errorComponent: ViewLoadError,
@@ -25,8 +25,9 @@ export const Route = createRootRoute({
 function RootLayout() {
   const { pathname } = useRouterState({ select: visibleLocation });
   const badge = channelBadge(window);
+  const { modules } = Route.useRouteContext();
   const [, moduleId, viewId] = pathname.split("/");
-  const activeModule = findModule(moduleId ?? "");
+  const activeModule = modules.find(moduleId ?? "");
   const activeView = activeModule?.views.find((view) => view.id === viewId);
   const navbar = useSetting(settingsStore, SHELL_SETTINGS.navbar);
   const moduleSidebarWidth = useSetting(settingsStore, SHELL_SETTINGS.moduleSidebarWidth);
@@ -40,7 +41,7 @@ function RootLayout() {
       activeModule={activeModule}
       activeView={activeView}
       channelBadge={badge && <Badge variant="light">{badge}</Badge>}
-      contributions={modules}
+      contributions={modules.modules}
       data={data}
       logo={LOGO}
       moduleSidebarCollapsed={moduleSidebarCollapsed}
@@ -55,7 +56,7 @@ function RootLayout() {
       onNavbarCommit={(next) => settingsStore.write(SHELL_SETTINGS.navbar, next)}
       routing={ROUTING}
       reserveWindowButtons={reservesWindowButtons(window)}
-      settings={settings}
+      settings={modules.settings}
     >
       <Outlet />
     </Shell>

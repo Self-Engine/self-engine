@@ -6,6 +6,7 @@ import { defineConfig } from "vite-plus";
 
 import { startupBundle } from "./startup-bundle.ts";
 import { STARTUP_RULES } from "./startup-rules.ts";
+import { STORY_MODULES_ENV, storyModuleList } from "./story-module-list.ts";
 
 const host = "127.0.0.1";
 const port = Number(process.env.PORT ?? 5733);
@@ -13,6 +14,8 @@ const port = Number(process.env.PORT ?? 5733);
 export default defineConfig({
   plugins: [
     startupBundle(STARTUP_RULES),
+    // `pnpm renders` measures the placeholder modules in the dev server (scripts/measure-renders.ts).
+    storyModuleList(process.env[STORY_MODULES_ENV] === "1"),
     linguiPlugin(),
     tanstackRouter({ target: "react", autoCodeSplitting: true }),
     react(),

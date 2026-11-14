@@ -643,9 +643,6 @@ importers:
       '@self-engine/data-protocol':
         specifier: workspace:*
         version: link:../data-protocol
-      '@self-engine/placeholder-alpha':
-        specifier: workspace:*
-        version: link:../placeholder-alpha
       '@self-engine/projects':
         specifier: workspace:*
         version: link:../projects
