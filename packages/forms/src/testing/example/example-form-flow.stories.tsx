@@ -13,6 +13,7 @@ import {
 } from "../../index.ts";
 import { exampleContract } from "./contract.ts";
 import { useCreateExample } from "./port.ts";
+import { StoryDrawer, loadStoryShell } from "./drawer-story.tsx";
 import { recordingPort } from "./story-port.ts";
 
 function Flow({
@@ -54,26 +55,29 @@ function Flow({
 function Caller({ port, done, outside }: Loaded) {
   const [closed, setClosed] = useState(false);
   const [escaped, setEscaped] = useState(false);
+  const content = (
+    <Stack
+      onKeyDown={(event) => {
+        if (event.key === "Escape" && !event.defaultPrevented) setEscaped(true);
+      }}
+    >
+      {escaped && <output>Escape reached the Shell</output>}
+      {closed ? (
+        <output>Closed</output>
+      ) : (
+        <Flow
+          outside={outside ?? false}
+          done={() => {
+            done();
+            setClosed(true);
+          }}
+        />
+      )}
+    </Stack>
+  );
   return (
     <DataProvider access={port.access}>
-      <Stack
-        onKeyDown={(event) => {
-          if (event.key === "Escape" && !event.defaultPrevented) setEscaped(true);
-        }}
-      >
-        {escaped && <output>Escape reached the Shell</output>}
-        {closed ? (
-          <output>Closed</output>
-        ) : (
-          <Flow
-            outside={outside ?? false}
-            done={() => {
-              done();
-              setClosed(true);
-            }}
-          />
-        )}
-      </Stack>
+      {outside ? content : <StoryDrawer>{() => content}</StoryDrawer>}
     </DataProvider>
   );
 }
@@ -84,15 +88,16 @@ interface Loaded {
 }
 const meta = {
   title: "Forms/Example form/Flow",
-  loaders: [(): Loaded => ({ port: recordingPort(), done: fn() })],
+  loaders: [loadStoryShell, (): Loaded => ({ port: recordingPort(), done: fn() })],
   render: (_args, { loaded }) => <Caller {...(loaded as Loaded)} />,
 } satisfies Meta;
 export default meta;
 type Story = StoryObj<typeof meta>;
 
 export const SuccessClosesOnce: Story = {
-  play: async ({ canvasElement, loaded }) => {
-    const canvas = within(canvasElement);
+  play: async ({ loaded }) => {
+    const canvas = within(document.body);
+    await canvas.findByRole("textbox", { name: "Title" });
     await expect(canvas.getByRole("button", { name: /^(Save|Send)$/ })).toBeEnabled();
     await expect(canvas.getByRole("button", { name: "Cancel" })).toBeVisible();
     await expect(canvas.getByRole("button", { name: "Archive" })).toBeVisible();
@@ -112,8 +117,9 @@ export const ConflictStaysUntilItsFieldChanges: Story = {
   loaders: [
     (): Loaded => ({ port: recordingPort({ create: { conflict: "title_taken" } }), done: fn() }),
   ],
-  play: async ({ canvasElement, loaded }) => {
-    const canvas = within(canvasElement);
+  play: async ({ loaded }) => {
+    const canvas = within(document.body);
+    await canvas.findByRole("textbox", { name: "Title" });
     const title = canvas.getByRole("textbox", { name: "Title" });
     await userEvent.click(canvas.getByRole("button", { name: /^(Save|Send)$/ }));
     await expect(await canvas.findByText("This title is already in use.")).toBeVisible();
@@ -129,8 +135,9 @@ export const ConflictStaysUntilItsFieldChanges: Story = {
 
 export const NotFoundCloses: Story = {
   loaders: [(): Loaded => ({ port: recordingPort({ create: "notFound" }), done: fn() })],
-  play: async ({ canvasElement, loaded }) => {
-    const canvas = within(canvasElement);
+  play: async ({ loaded }) => {
+    const canvas = within(document.body);
+    await canvas.findByRole("textbox", { name: "Title" });
     await userEvent.click(canvas.getByRole("button", { name: /^(Save|Send)$/ }));
     await expect(await canvas.findByText("Closed")).toBeVisible();
     await expect((loaded as Loaded).done).toHaveBeenCalledTimes(1);
@@ -139,8 +146,9 @@ export const NotFoundCloses: Story = {
 
 export const UnexpectedKeepsTheInput: Story = {
   loaders: [(): Loaded => ({ port: recordingPort({ create: "unexpected" }), done: fn() })],
-  play: async ({ canvasElement, loaded }) => {
-    const canvas = within(canvasElement);
+  play: async ({ loaded }) => {
+    const canvas = within(document.body);
+    await canvas.findByRole("textbox", { name: "Title" });
     await userEvent.type(canvas.getByRole("textbox", { name: "Title" }), " again");
     await userEvent.click(canvas.getByRole("button", { name: /^(Save|Send)$/ }));
     await waitFor(() =>
@@ -154,11 +162,13 @@ export const UnexpectedKeepsTheInput: Story = {
 
 export const RunningLocksFieldsAndAllActions: Story = {
   loaders: [(): Loaded => ({ port: recordingPort({ create: "loading" }), done: fn() })],
-  play: async ({ canvasElement, loaded }) => {
-    const canvas = within(canvasElement);
+  play: async ({ loaded }) => {
+    const canvas = within(document.body);
+    await canvas.findByRole("textbox", { name: "Title" });
     const title = canvas.getByRole("textbox", { name: "Title" });
     await userEvent.click(canvas.getByRole("button", { name: /^(Save|Send)$/ }));
-    for (const button of canvas.getAllByRole("button")) await expect(button).toBeDisabled();
+    for (const button of within(title.closest("form")!).getAllByRole("button"))
+      await expect(button).toBeDisabled();
     for (const field of canvas.getAllByRole("textbox")) await expect(field).toBeDisabled();
     await userEvent.click(canvas.getByRole("button", { name: /^(Save|Send)$/ }));
     await userEvent.type(title, "changed{Enter}");
@@ -170,8 +180,9 @@ export const RunningLocksFieldsAndAllActions: Story = {
 };
 
 export const EnterInTheTitleSubmits: Story = {
-  play: async ({ canvasElement, loaded }) => {
-    const canvas = within(canvasElement);
+  play: async ({ loaded }) => {
+    const canvas = within(document.body);
+    await canvas.findByRole("textbox", { name: "Title" });
     await userEvent.type(canvas.getByRole("textbox", { name: "Title" }), "{Enter}");
     await expect(await canvas.findByText("Closed")).toBeVisible();
     await expect((loaded as Loaded).port.calls).toHaveLength(1);
@@ -179,14 +190,17 @@ export const EnterInTheTitleSubmits: Story = {
 };
 
 export const MultilineAndPickerKeepEnter: Story = {
-  play: async ({ canvasElement, loaded }) => {
-    const canvas = within(canvasElement);
+  play: async ({ loaded }) => {
+    const canvas = within(document.body);
+    await canvas.findByRole("textbox", { name: "Title" });
     const description = canvas.getByRole("textbox", { name: "Description" });
     await userEvent.type(description, "{Enter}Second line");
     await expect(description).toHaveValue("Paint the walls.\nSecond line");
     await userEvent.keyboard("{Escape}");
-    await expect(description).toHaveFocus();
-    await expect(canvas.getByText("Escape reached the Shell")).toBeVisible();
+    await waitFor(() =>
+      expect(screen.getByRole("dialog", { name: "Discard changes?" })).toBeVisible(),
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Keep editing" }));
     await userEvent.click(canvas.getByRole("button", { name: /^Icon/ }));
     const dialog = within(await screen.findByRole("dialog", { name: "Choose an icon" }));
     const search = dialog.getByRole("searchbox", { name: "Search icons" });
@@ -200,8 +214,9 @@ export const MultilineAndPickerKeepEnter: Story = {
 };
 
 export const ControlEnterSubmitsFromMultiline: Story = {
-  play: async ({ canvasElement, loaded }) => {
-    const canvas = within(canvasElement);
+  play: async ({ loaded }) => {
+    const canvas = within(document.body);
+    await canvas.findByRole("textbox", { name: "Title" });
     await userEvent.click(canvas.getByRole("textbox", { name: "Description" }));
     await userEvent.keyboard("{Control>}{Enter}{/Control}");
     await expect(await canvas.findByText("Closed")).toBeVisible();
@@ -210,8 +225,9 @@ export const ControlEnterSubmitsFromMultiline: Story = {
 };
 
 export const CommandEnterSubmitsFromAnAction: Story = {
-  play: async ({ canvasElement, loaded }) => {
-    const canvas = within(canvasElement);
+  play: async ({ loaded }) => {
+    const canvas = within(document.body);
+    await canvas.findByRole("textbox", { name: "Title" });
     await userEvent.tab();
     await userEvent.click(canvas.getByRole("button", { name: "Archive" }));
     await userEvent.keyboard("{Meta>}{Enter}{/Meta}");
@@ -222,8 +238,9 @@ export const CommandEnterSubmitsFromAnAction: Story = {
 
 export const OutsideTheDrawer: Story = {
   loaders: [(): Loaded => ({ port: recordingPort(), done: fn(), outside: true })],
-  play: async ({ canvasElement, loaded }) => {
-    const canvas = within(canvasElement);
+  play: async ({ loaded }) => {
+    const canvas = within(document.body);
+    await canvas.findByRole("textbox", { name: "Title" });
     await expect(canvas.queryByRole("button", { name: "Cancel" })).not.toBeInTheDocument();
     await userEvent.click(canvas.getByRole("button", { name: "Send" }));
     await expect(await canvas.findByText("Closed")).toBeVisible();
@@ -261,15 +278,17 @@ export const OutsideRunning: Story = {
 };
 export const GermanActions: Story = {
   globals: { language: "de" },
-  play: async ({ canvasElement }) => {
-    const canvas = within(canvasElement);
+  play: async () => {
+    const canvas = within(document.body);
+    await canvas.findByRole("textbox", { name: "Title" });
     await expect(canvas.getByRole("button", { name: "Speichern" })).toBeVisible();
     await expect(canvas.getByRole("button", { name: "Abbrechen" })).toBeVisible();
   },
 };
 export const CancelReportsTheExit: Story = {
-  play: async ({ canvasElement, loaded }) => {
-    const canvas = within(canvasElement);
+  play: async ({ loaded }) => {
+    const canvas = within(document.body);
+    await canvas.findByRole("textbox", { name: "Title" });
     await userEvent.click(canvas.getByRole("button", { name: "Cancel" }));
     await expect(await canvas.findByText("Closed")).toBeVisible();
     await expect((loaded as Loaded).port.calls).toEqual([]);
@@ -278,8 +297,9 @@ export const CancelReportsTheExit: Story = {
 
 export const SavingFromAnOpenPickerLocksItToo: Story = {
   loaders: [(): Loaded => ({ port: recordingPort({ create: "loading" }), done: fn() })],
-  play: async ({ canvasElement, loaded }) => {
-    const canvas = within(canvasElement);
+  play: async ({ loaded }) => {
+    const canvas = within(document.body);
+    await canvas.findByRole("textbox", { name: "Title" });
     await userEvent.click(canvas.getByRole("button", { name: /^Icon/ }));
     const dialog = within(await screen.findByRole("dialog", { name: "Choose an icon" }));
     const search = dialog.getByRole("searchbox", { name: "Search icons" });
