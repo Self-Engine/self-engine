@@ -18,6 +18,7 @@ Stand: 2026-11-10 · Status: **entschieden** (D143–D154), Spec #103, Issues #1
 | – | Zeit | Grilling zu #104: für die neue App geschnitten, Temporal im Inneren, fünf Zeitwerte, strenge Lint-Regel, Prüfung in Electrons Laufzeit (D279–D285, ändern D148 und D149) |
 | L3.8 | Tags | Tabelle `tags`, Brücken gehören den Modulen, weiches Löschen (D150) |
 | L3.9 | Icon, Farbe | Name oder Emoji, Farbsatz-Name, vier neue Farbsätze, kein neues Paket (D151) |
+| – | Icon, Farbe | Grilling zu #106: Werte, Anzeige und Auswahl in einem Paket, ein Icon-Name je Bild und der Import übersetzt, ein Vorrat ohne React für Web und Mobile, Vertragsmuster, helle Füllungen mit dunkler Schrift, Marke in zwei Formen, alle Icons duotone (D291–D297, ändern D151) |
 | L3.10 | Abläufe | Brücken-Pakete über den Modulen, gemeinsame Transaktion, Schutzregeln (D152) |
 | L3.11 | Einstellungen | Region aus der Sprache, Wochenstart, Standardwährung, Deklaration in `contracts` (D153) |
 | L3.12 | Zuschnitt in Issues | Acht Arbeitspakete, jedes wird einzeln gegrillt (D154) |
@@ -54,7 +55,7 @@ geschnitten. Gebaut wird in der Reihenfolge aus D279: #104, #108, dann Schicht 4
 |---|---|---|---|
 | #104 | `time` mit Uhr und Lint-Regeln | D148, D149, D223, D279–D285 | – |
 | #105 | `money` | D145, D146, D153 | – |
-| #106 | Icon und Farbe an Entitäten | D151 | – |
+| #106 | Icon und Farbe an Entitäten | D151, D291–D297 | – |
 | #107 | ADR und Glossar für Brücken | D152 | – |
 | #108 | `spaces` | D144, D286–D290 | #29, #32 |
 | #109 | Einstellungen in der Datenbank (ersetzt #34) | D62, D113 ff. | #33, #108 |
