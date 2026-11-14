@@ -19,6 +19,7 @@ Stand: 2026-11-10 · Status: **entschieden** (D143–D154), Spec #103, Issues #1
 | L3.8 | Tags | Tabelle `tags`, Brücken gehören den Modulen, weiches Löschen (D150) |
 | L3.9 | Icon, Farbe | Name oder Emoji, Farbsatz-Name, vier neue Farbsätze, kein neues Paket (D151) |
 | – | Icon, Farbe | Grilling zu #106: Werte, Anzeige und Auswahl in einem Paket, ein Icon-Name je Bild und der Import übersetzt, ein Vorrat ohne React für Web und Mobile, Vertragsmuster, helle Füllungen mit dunkler Schrift, Marke in zwei Formen, alle Icons regular (D291–D298, ändern D151; D298 ändert D297) |
+| – | Icon, Farbe | Grilling zu #264: ein Feld für Icon und Emoji mit zwei Reitern, Mantines Emoji-Auswahl, ein Suchbegriff über beide Reiter, ein einzelnes Emoji im Suchfeld wird übernommen (D299–D302, ändern die Auswahl aus D291) |
 | L3.10 | Abläufe | Brücken-Pakete über den Modulen, gemeinsame Transaktion, Schutzregeln (D152) |
 | L3.11 | Einstellungen | Region aus der Sprache, Wochenstart, Standardwährung, Deklaration in `contracts` (D153) |
 | – | Einstellungen | Grilling zu Schicht 4: Standard-Stundensatz gehört zur Abrechnung, Rundung zur Zeiterfassung nach Schicht 4; #110 wird ohne die Standardwährung gebaut (D305, D309, D316, ändern D153) |
@@ -58,6 +59,7 @@ geschnitten. Gebaut wird in der Reihenfolge aus D279: #104, #108, dann Schicht 4
 | #104 | `time` mit Uhr und Lint-Regeln | D148, D149, D223, D279–D285 | – |
 | #105 | `money` | D145, D146, D153 | – |
 | #106 | Icon und Farbe an Entitäten | D151, D291–D297, [ADR 0029](../adr/0029-an-entrys-icon-and-color-are-names-written-strictly-read-unchanged-and-drawn-by-one-mark.md) | – |
+| #264 | Ein Feld für Icon und Emoji, mit Emoji-Auswahl | D299–D302 | – |
 | #107 | ADR und Glossar für Brücken | D152 | – |
 | #108 | `spaces` | D144, D286–D290 | #29, #32 |
 | #109 | Einstellungen in der Datenbank (ersetzt #34) | D62, D113 ff. | #33, #108 |
