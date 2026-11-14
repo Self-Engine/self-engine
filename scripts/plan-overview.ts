@@ -92,6 +92,28 @@ export interface LayerView {
   readonly statusCounts: Readonly<Record<Status, number>>;
 }
 
+/** Who has to act on an open issue next. */
+export type Actor = "owner" | "agent" | "slices";
+
+/** A work package or slice in the work tree, with its place in the open dependency graph. */
+export interface GraphNode {
+  readonly number: number;
+  readonly title: string;
+  readonly status: Status;
+  /** The roadmap layer the package sits in; slices take their package's layer. */
+  readonly layer: string;
+  /** The package of a slice. */
+  readonly parent?: number;
+  /** The rest is set for open issues only. */
+  readonly actor?: Actor;
+  /** 0 when nothing open is in the way, otherwise one more than the latest open prerequisite. */
+  readonly wave?: number;
+  /** How many open issues wait on this one, directly or further down the chain. */
+  readonly frees?: number;
+  readonly waitsOn?: readonly number[];
+  readonly unblocks?: readonly number[];
+}
+
 export interface Overview {
   readonly layers: readonly LayerView[];
   readonly counts: Readonly<Record<Status, number>>;
@@ -99,6 +121,8 @@ export interface Overview {
   readonly nextSteps: readonly string[];
   /** One entry per day from the first created issue to the last event, gaps filled. */
   readonly history: readonly Day[];
+  /** Every package and slice, packages before their slices. */
+  readonly graph: readonly GraphNode[];
 }
 
 /** The issue a `## Parent` section names, if it has one. */
@@ -188,6 +212,87 @@ export function historyOf(issues: readonly Issue[]): Day[] {
     history.push({ day, created: created.get(day) ?? 0, built: built.get(day) ?? 0 });
   }
   return history;
+}
+
+export function actorOf(status: Status): Actor | undefined {
+  switch (status) {
+    case "grill":
+    case "triage":
+    case "review":
+      return "owner";
+    case "cut":
+      return "slices";
+    case "specified":
+    case "buildable":
+      return "agent";
+    case "built":
+    case "planned":
+      return undefined;
+  }
+}
+
+const MAX_WAVE = 50;
+
+/**
+ * Orders open issues into waves. An issue waits on its open blockers, and a package also waits on
+ * its open slices, because it is finished only when they are. A cycle stops growing at MAX_WAVE.
+ */
+export function dependencyGraph(
+  items: readonly {
+    readonly number: number;
+    readonly blockers: readonly number[];
+    readonly parent?: number;
+  }[],
+): Map<number, { wave: number; frees: number; waitsOn: number[]; unblocks: number[] }> {
+  const open = new Set(items.map((item) => item.number));
+  const waitsOn = new Map(items.map((item) => [item.number, new Set<number>()]));
+  for (const item of items) {
+    for (const blocker of item.blockers) {
+      if (open.has(blocker) && blocker !== item.number) waitsOn.get(item.number)?.add(blocker);
+    }
+    if (item.parent !== undefined && open.has(item.parent))
+      waitsOn.get(item.parent)?.add(item.number);
+  }
+  const unblocks = new Map(items.map((item) => [item.number, [] as number[]]));
+  for (const [number, before] of waitsOn)
+    for (const blocker of before) unblocks.get(blocker)?.push(number);
+  const wave = new Map(items.map((item) => [item.number, 0]));
+  for (let changed = true, rounds = 0; changed && rounds < MAX_WAVE; rounds += 1) {
+    changed = false;
+    for (const [number, before] of waitsOn) {
+      for (const blocker of before) {
+        const next = Math.min((wave.get(blocker) ?? 0) + 1, MAX_WAVE);
+        if (next > (wave.get(number) ?? 0)) {
+          wave.set(number, next);
+          changed = true;
+        }
+      }
+    }
+  }
+  const reach = (start: number): number => {
+    const seen = new Set([start]);
+    const stack = [start];
+    for (let current = stack.pop(); current !== undefined; current = stack.pop()) {
+      for (const next of unblocks.get(current) ?? []) {
+        if (!seen.has(next)) {
+          seen.add(next);
+          stack.push(next);
+        }
+      }
+    }
+    return seen.size - 1;
+  };
+  return new Map(
+    items.map((item) => [
+      item.number,
+      {
+        wave: wave.get(item.number) ?? 0,
+        frees: reach(item.number),
+        waitsOn: [...(waitsOn.get(item.number) ?? [])].sort((a, b) => a - b),
+        unblocks: (unblocks.get(item.number) ?? []).sort((a, b) => a - b),
+      },
+    ]),
+  );
 }
 
 function emptyCounts(): Record<Status, number> {
@@ -354,7 +459,53 @@ export function buildOverview(
     ...(toBuild === undefined ? [] : [`Baubar ohne Blocker: ${describe(toBuild)}.`]),
   ];
 
-  return { layers: views, counts, total: sorted.length, nextSteps, history: historyOf(sorted) };
+  return {
+    layers: views,
+    counts,
+    total: sorted.length,
+    nextSteps,
+    history: historyOf(sorted),
+    graph: graphOf(packages, childrenOf, status, (issue) =>
+      known.has(layerIdOf(issue) ?? "") ? (layerIdOf(issue) ?? "none") : "none",
+    ),
+  };
+}
+
+function graphOf(
+  packages: readonly Issue[],
+  childrenOf: ReadonlyMap<number, readonly Issue[]>,
+  status: (issue: Issue) => Status,
+  layerOf: (issue: Issue) => string,
+): GraphNode[] {
+  const entries = packages.flatMap((pkg) => [
+    { issue: pkg, layer: layerOf(pkg) },
+    ...(childrenOf.get(pkg.number) ?? []).map((slice) => ({
+      issue: slice,
+      layer: layerOf(pkg),
+      parent: pkg.number,
+    })),
+  ]);
+  const open = entries.filter((entry) => entry.issue.state === "OPEN");
+  const graph = dependencyGraph(
+    open.map((entry) => ({
+      number: entry.issue.number,
+      blockers: blockersOf(entry.issue.body),
+      ...("parent" in entry ? { parent: entry.parent } : {}),
+    })),
+  );
+  return entries.map((entry) => {
+    const current = status(entry.issue);
+    const place = graph.get(entry.issue.number);
+    const actor = actorOf(current);
+    return {
+      number: entry.issue.number,
+      title: entry.issue.title,
+      status: current,
+      layer: entry.layer,
+      ...("parent" in entry ? { parent: entry.parent } : {}),
+      ...(place === undefined ? {} : { ...place, ...(actor === undefined ? {} : { actor }) }),
+    };
+  });
 }
 
 function describe(issue: Issue): string {
@@ -702,6 +853,124 @@ function renderCharts(overview: Overview): string {
   </div>${overview.history.length === 0 ? "" : renderHistoryTable(overview.history)}</div>`;
 }
 
+/** JSON for an inline script block; `<` is escaped so no title can close the block. */
+export function scriptJson(value: unknown): string {
+  return JSON.stringify(value).replace(/</gu, "\\u003c");
+}
+
+const TREE_MODES: readonly (readonly [string, string])[] = [
+  ["todo", "Wo etwas zu tun ist"],
+  ["owner", "Wartet auf dich"],
+  ["now", "Agent kann jetzt bauen"],
+  ["all", "Alles"],
+];
+
+function renderWorkTree(overview: Overview): string {
+  const modes = TREE_MODES.map(
+    ([key, label], index) =>
+      `<button type="button" data-mode="${key}" aria-pressed="${index === 0}">${label}</button>`,
+  ).join("");
+  const data = {
+    layers: overview.layers.map((layer) => ({ id: layer.id, name: layer.name })),
+    nodes: overview.graph,
+    labels: STATUS_LABELS,
+  };
+  return `<div class="wt">
+  <h2 class="gap">Wer ist wo dran</h2>
+  <p class="muted wt-intro">Schicht → Arbeitspaket → Teil-Ticket. An jedem offenen Issue steht, wer handeln muss, ob es jetzt geht und wie viele Issues dahinter warten. Klick klappt einen Ast auf oder zu, bei einem Arbeitspaket ohne Teil-Tickets öffnet er seine Details in der Tabelle. Hover zeigt, worauf ein Issue wartet (orange) und was es freigibt (grün).</p>
+  <div class="filters wt-modes" role="group" aria-label="Baum filtern">${modes}</div>
+  <div class="wt-box"><svg class="wt-svg" role="tree" aria-label="Arbeitsbaum"></svg></div>
+  <div class="wt-legend"><span><b class="wt-key owner">Du</b>entscheidest oder prüfst</span><span><b class="wt-key agent">Agent</b>kann bauen</span><span><b class="wt-key slices">sammelt</b>fertig, wenn die Teil-Tickets fertig sind</span><span><b class="wt-key frees">gibt 3 frei</b>so viele Issues warten dahinter</span></div>
+  <script type="application/json" id="wt-data">${scriptJson(data)}</script>
+</div>`;
+}
+
+const TREE_SCRIPT = `
+(() => {
+const data = JSON.parse(document.getElementById("wt-data").textContent);
+const svg = document.querySelector(".wt-svg");
+const NS = "http://www.w3.org/2000/svg";
+const ROW = 23, LABEL = 38;
+// Packages carry badges, so the slice column starts further out.
+const X = [0, 270, 540, 1010];
+const ACTOR = { owner: "Du", agent: "Agent", slices: "sammelt" };
+const byNumber = new Map(data.nodes.map((node) => [node.number, node]));
+const make = (tag, attrs, text) => { const e = document.createElementNS(NS, tag); for (const [k, v] of Object.entries(attrs)) e.setAttribute(k, v); if (text !== undefined) e.textContent = text; return e; };
+const short = (text) => text.length > LABEL ? text.slice(0, LABEL - 1) + "…" : text;
+let mode = "todo";
+const collapsed = new Set();
+const isMatch = (node) => node.actor !== undefined && (mode === "owner" ? node.actor === "owner" : mode === "now" ? node.actor === "agent" && node.wave === 0 : true);
+function tree() {
+  const issue = (node) => ({ key: node.number, node, kids: data.nodes.filter((child) => child.parent === node.number).map(issue) });
+  const root = { key: "root", name: "Self-Engine", kids: data.layers.map((layer) => ({ key: "L" + layer.id, name: layer.name, kids: data.nodes.filter((node) => node.parent === undefined && node.layer === layer.id).map(issue) })) };
+  const count = (t) => { t.kids.forEach(count); const own = t.node ? [t.node] : []; t.issues = [...own, ...t.kids.flatMap((k) => k.issues)]; t.total = t.issues.length; t.built = t.issues.filter((n) => n.status === "built").length; t.hit = t.issues.some(isMatch); };
+  const prune = (t) => { t.kids = t.kids.filter((k) => k.issues.length > 0 && (mode === "all" || k.issues.some((n) => n.actor !== undefined))); t.kids.forEach(prune); };
+  count(root); prune(root);
+  return root;
+}
+function reset() {
+  collapsed.clear();
+  const walk = (t, depth) => { if (t.kids.length && depth >= 2) collapsed.add(t.key); if ((mode === "owner" || mode === "now") && t.hit) collapsed.delete(t.key); if ((mode === "owner" || mode === "now") && !t.hit && depth >= 1 && t.kids.length) collapsed.add(t.key); t.kids.forEach((k) => walk(k, depth + 1)); };
+  walk(tree(), 0);
+}
+function draw() {
+  const root = tree();
+  let row = 0, depthMax = 0;
+  const place = (t, depth) => { t.x = X[depth]; depthMax = Math.max(depthMax, depth); const open = t.kids.length && !collapsed.has(t.key); if (open) { t.kids.forEach((k) => place(k, depth + 1)); t.y = (t.kids[0].y + t.kids[t.kids.length - 1].y) / 2; } else { t.y = row++ * ROW; } };
+  place(root, 0);
+  svg.replaceChildren();
+  svg.setAttribute("width", X[depthMax] + 560); svg.setAttribute("height", row * ROW + 24);
+  const g = make("g", { transform: "translate(16,14)" }); svg.append(g);
+  const links = make("g", {}), arcs = make("g", {}), nodes = make("g", {}); g.append(links, arcs, nodes);
+  const shown = new Map();
+  const visit = (t) => {
+    if (t.node) shown.set(t.node.number, t);
+    const open = t.kids.length && !collapsed.has(t.key);
+    if (open) t.kids.forEach((k) => { const mx = (t.x + k.x) / 2; links.append(make("path", { class: "wt-link", d: "M" + t.x + "," + t.y + "C" + mx + "," + t.y + " " + mx + "," + k.y + " " + k.x + "," + k.y })); visit(k); });
+    const node = t.node;
+    const dim = (mode === "owner" || mode === "now") && !t.hit;
+    const n = make("g", { class: "wt-node" + (t.total && t.built === t.total ? " done" : "") + (dim ? " dim" : ""), transform: "translate(" + t.x + "," + t.y + ")", tabindex: "0", role: "treeitem" });
+    if (t.kids.length) n.setAttribute("aria-expanded", String(!collapsed.has(t.key)));
+    n.append(make("circle", { r: node ? (node.parent === undefined ? 6 : 4) : 7, class: node ? "s-" + node.status : "wt-group" + (t.kids.length && collapsed.has(t.key) ? " closed" : "") }));
+    const text = make("text", { x: 11, dy: "0.35em" }, node ? "#" + node.number + " " + short(node.title) : t.name);
+    if (t.total > 1 || (t.kids.length && collapsed.has(t.key))) text.append(make("tspan", { class: "wt-count", dx: 8 }, t.built + "/" + t.total + (collapsed.has(t.key) ? " ▸" : "")));
+    if (node && node.actor && node.actor !== "slices") text.append(make("tspan", { class: "wt-actor " + node.actor, dx: 8 }, ACTOR[node.actor] + (node.wave === 0 ? " · jetzt" : "")));
+    if (node && node.frees) text.append(make("tspan", { class: "wt-frees", dx: 6 }, "gibt " + node.frees + " frei"));
+    n.append(text);
+    if (node) { n.dataset.tip = node.title; n.dataset.sub = "#" + node.number + " · " + data.labels[node.status] + (node.actor ? " · " + (node.wave === 0 ? "jetzt möglich" : "Welle " + (node.wave + 1)) + (node.frees ? " · gibt " + node.frees + " frei" : "") : ""); }
+    const act = () => {
+      if (t.kids.length) { collapsed.has(t.key) ? collapsed.delete(t.key) : collapsed.add(t.key); draw(); svg.querySelector('[data-key="' + t.key + '"]')?.focus(); return; }
+      if (!node) return;
+      const toggle = document.querySelector('button.open[aria-controls="d-' + node.number + '"]');
+      if (!toggle) { window.open("https://github.com/${REPO}/issues/" + node.number, "_blank"); return; }
+      const all = document.querySelector('.filters:not(.wt-modes) button[data-f="all"]'); if (toggle.closest(".hidden")) all?.click();
+      if (toggle.getAttribute("aria-expanded") !== "true") toggle.click();
+      toggle.scrollIntoView({ behavior: "smooth", block: "center" }); toggle.focus({ preventScroll: true });
+    };
+    n.dataset.key = t.key;
+    n.addEventListener("click", act);
+    n.addEventListener("keydown", (event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); act(); } });
+    if (node && node.actor) { const show = () => drawArcs(node); n.addEventListener("pointerenter", show); n.addEventListener("focus", show); n.addEventListener("pointerleave", () => arcs.replaceChildren()); n.addEventListener("blur", () => arcs.replaceChildren()); }
+    nodes.append(n);
+  };
+  visit(root);
+  function drawArcs(node) {
+    arcs.replaceChildren();
+    const me = shown.get(node.number); if (!me) return;
+    const line = (other, cls) => { const o = shown.get(other); if (!o) return; const bend = 70 + Math.abs(o.y - me.y) * 0.15; arcs.append(make("path", { class: "wt-arc " + cls, d: "M" + (o.x - 8) + "," + o.y + "C" + (o.x - bend) + "," + o.y + " " + (me.x - bend) + "," + me.y + " " + (me.x - 8) + "," + me.y })); };
+    (node.waitsOn || []).forEach((n) => line(n, "before")); (node.unblocks || []).forEach((n) => line(n, "after"));
+  }
+}
+document.querySelector(".wt-modes").addEventListener("click", (event) => {
+  const button = event.target.closest("button"); if (!button) return;
+  mode = button.dataset.mode;
+  button.parentElement.querySelectorAll("button").forEach((other) => other.setAttribute("aria-pressed", String(other === button)));
+  reset(); draw();
+});
+reset(); draw();
+})();
+`;
+
 function renderLayer(layer: LayerView): string {
   const meta = [
     layer.decisions,
@@ -783,19 +1052,20 @@ export function renderPage(overview: Overview, generatedAt: string): string {
     .filter((layer) => layer.id !== "none")
     .map(renderStop)
     .join("")}</div></div>
+  ${renderWorkTree(overview)}
   ${renderCharts(overview)}
   <div class="tools"><div class="filters" role="group" aria-label="Zeilen filtern">${filters}</div><button type="button" class="expand" aria-pressed="false">Alle Details aufklappen</button></div>
   <div class="layers">${overview.layers.map(renderLayer).join("\n")}</div>
 </div>
 <div id="tip" class="tip" role="tooltip" hidden></div>
-<script>${FILTER_SCRIPT}${DETAILS_SCRIPT}${TOOLTIP_SCRIPT}</script>
+<script>${FILTER_SCRIPT}${DETAILS_SCRIPT}${TOOLTIP_SCRIPT}${TREE_SCRIPT}</script>
 </body>
 </html>
 `;
 }
 
 const FILTER_SCRIPT = `
-const group = document.querySelector(".filters");
+const group = document.querySelector(".filters:not(.wt-modes)");
 const matches = (filter, status) => filter === "all" || (filter === "open" ? status !== "built" : filter.split(" ").includes(status) || (filter === "grill" && status === "planned"));
 group.addEventListener("click", (event) => {
   const button = event.target.closest("button");
@@ -947,6 +1217,32 @@ section.layer { background: var(--panel); border: 1px solid var(--line); border-
 .chip.triage { color: var(--triage); }
 .free { color: var(--built); font-weight: 500; }
 .hidden { display: none !important; }
+.wt { display: grid; gap: 10px; }
+.wt > h2.gap { margin-bottom: 0; }
+.wt-intro { max-width: 90ch; font-size: 13px; }
+.wt-box { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; overflow: auto; max-height: 720px; padding: 6px 0; }
+.wt-svg { display: block; }
+.wt-link { fill: none; stroke: var(--line); stroke-width: 1.2; }
+.wt-node { cursor: pointer; outline: none; }
+.wt-node text { fill: var(--ink); font-size: 12.5px; }
+.wt-node.done text { fill: var(--muted); }
+.wt-node.dim { opacity: .3; }
+.wt-node:hover text, .wt-node:focus-visible text { fill: var(--accent); }
+.wt-node:focus-visible circle { stroke: var(--accent); stroke-width: 3; }
+.wt-node circle.wt-group { fill: var(--panel); stroke: var(--accent); stroke-width: 2; }
+.wt-node circle.wt-group.closed { stroke: var(--ink); }
+.wt-node circle.s-built { fill: var(--built); } .wt-node circle.s-review { fill: var(--review); }
+.wt-node circle.s-cut, .wt-node circle.s-specified { fill: var(--cut); } .wt-node circle.s-buildable { fill: var(--buildable); }
+.wt-node circle.s-grill, .wt-node circle.s-planned { fill: var(--grill); } .wt-node circle.s-triage { fill: var(--triage); }
+.wt-count { fill: var(--muted); font: 11px var(--mono); }
+.wt-actor { font-size: 11px; font-weight: 600; }
+.wt-actor.owner { fill: var(--grill); } .wt-actor.agent { fill: var(--buildable); }
+.wt-frees { fill: var(--built); font-size: 11px; }
+.wt-arc { fill: none; stroke-width: 1.8; stroke-dasharray: 4 3; }
+.wt-arc.before { stroke: var(--grill); } .wt-arc.after { stroke: var(--built); }
+.wt-legend { display: flex; flex-wrap: wrap; gap: 4px 18px; font-size: 12px; color: var(--muted); }
+.wt-key { font-size: 11px; font-weight: 600; margin-right: 5px; }
+.wt-key.owner { color: var(--grill); } .wt-key.agent { color: var(--buildable); } .wt-key.slices { color: var(--cut); } .wt-key.frees { color: var(--built); font-weight: 400; }
 .tools { display: flex; flex-wrap: wrap; gap: 6px 16px; justify-content: space-between; align-items: center; }
 .tools > button, .tbl summary { font: 500 13px var(--sans); color: var(--ink); background: var(--panel); border: 1px solid var(--line); border-radius: 5px; padding: 5px 11px; cursor: pointer; }
 .tools > button[aria-pressed="true"] { border-color: var(--accent); }

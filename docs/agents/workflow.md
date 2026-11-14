@@ -37,7 +37,7 @@ If you find a design question while building that belongs [with the owner](#sort
 
 ## The overview
 
-The [overview page](https://claude.ai/artifact/W1AwNvTBPy7Se9Bc2bNA4q) (artifact `eadf2537-2bc0-463a-8042-be244bd96fea`) shows the status of every ticket in the plan. The status is read from GitHub, never kept by hand: `statusOf` in `scripts/plan-overview.ts` holds the rules.
+The [overview page](https://claude.ai/artifact/W1AwNvTBPy7Se9Bc2bNA4q) (artifact `eadf2537-2bc0-463a-8042-be244bd96fea`) shows the status of every ticket in the plan. The status is read from GitHub, never kept by hand: `statusOf` in `scripts/plan-overview.ts` holds the rules. Its work tree shows who acts next on each open issue (`actorOf`) and in which wave it can start, from the open blockers and slices (`dependencyGraph`).
 
 Refresh the page after merging a package's pull request, and when the owner asks: run `pnpm plan:overview`, then publish `.temp/plan-overview.html` to that artifact. Layers without issues come from `docs/plan/roadmap.json`; update it when a layer gets its name or decisions.
 
