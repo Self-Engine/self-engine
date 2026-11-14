@@ -397,7 +397,7 @@ describe("checkConventions", () => {
       ],
       ["another constraint after it", "project_id TEXT REFERENCES projects (id) NOT NULL"],
       ["no parent columns", "project_id TEXT REFERENCES projects"],
-      ["only actions", "project_id TEXT REFERENCES projects (id) ON DELETE CASCADE"],
+      ["only an action", "project_id TEXT REFERENCES projects (id) ON DELETE NO ACTION"],
       [
         "a table constraint without deferral",
         "project_id TEXT, FOREIGN KEY (project_id) REFERENCES projects (id)",
@@ -421,11 +421,11 @@ describe("checkConventions", () => {
       ["lower case", "project_id TEXT references projects (id) deferrable initially deferred"],
       [
         "actions before the deferral",
-        "project_id TEXT REFERENCES projects (id) ON DELETE SET NULL ON UPDATE NO ACTION MATCH FULL DEFERRABLE INITIALLY DEFERRED",
+        "project_id TEXT REFERENCES projects (id) ON DELETE NO ACTION ON UPDATE NO ACTION MATCH FULL DEFERRABLE INITIALLY DEFERRED",
       ],
       [
         "a deferred table constraint",
-        "project_id TEXT, FOREIGN KEY (project_id) REFERENCES projects (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED",
+        "project_id TEXT, FOREIGN KEY (project_id) REFERENCES projects (id) ON DELETE NO ACTION DEFERRABLE INITIALLY DEFERRED",
       ],
       [
         "a comment inside the clause",
@@ -495,6 +495,152 @@ describe("checkConventions", () => {
           rule: "foreign key to notes must be DEFERRABLE INITIALLY DEFERRED",
         },
       ]);
+    });
+
+    // Rows are only soft-deleted (D172) and a parent is deleted only while no live row refers to
+    // it (D306), so an action would delete or rewrite rows behind the Operations.
+    describe("action", () => {
+      const ACTIONS = ["CASCADE", "SET NULL", "SET DEFAULT", "RESTRICT"];
+      const CASES = ["ON DELETE", "ON UPDATE"].flatMap((clause) =>
+        ACTIONS.map((action) => [`${clause} ${action}`]),
+      );
+
+      test.each(CASES)("reports %s on a deferred key", async (action) => {
+        await database.executeScript(`
+          CREATE TABLE notes (
+            ${SYNCED_COLUMNS},
+            project_id TEXT REFERENCES projects (id) ${action} DEFERRABLE INITIALLY DEFERRED
+          ) STRICT;
+        `);
+
+        await expect(checkConventions(database)).resolves.toEqual([
+          {
+            table: "notes",
+            rule: `foreign key from project_id to projects must not have ${action}`,
+          },
+        ]);
+      });
+
+      test.each(CASES)("reports %s on a table constraint", async (action) => {
+        await database.executeScript(`
+          CREATE TABLE notes (
+            ${SYNCED_COLUMNS},
+            project_id TEXT,
+            FOREIGN KEY (project_id) REFERENCES projects (id) ${action} DEFERRABLE INITIALLY DEFERRED
+          ) STRICT;
+        `);
+
+        await expect(checkConventions(database)).resolves.toEqual([
+          {
+            table: "notes",
+            rule: `foreign key from project_id to projects must not have ${action}`,
+          },
+        ]);
+      });
+
+      test.each([
+        ["no action", ""],
+        ["an explicit NO ACTION on delete", "ON DELETE NO ACTION"],
+        ["an explicit NO ACTION on update", "ON UPDATE NO ACTION"],
+        ["an explicit NO ACTION on both", "ON UPDATE NO ACTION ON DELETE NO ACTION"],
+      ])("accepts %s", async (_name, action) => {
+        await database.executeScript(`
+          CREATE TABLE notes (
+            ${SYNCED_COLUMNS},
+            project_id TEXT REFERENCES projects (id) ${action} DEFERRABLE INITIALLY DEFERRED
+          ) STRICT;
+        `);
+
+        await expect(checkConventions(database)).resolves.toEqual([]);
+      });
+
+      test("reports both actions of one key, on update first", async () => {
+        await database.executeScript(`
+          CREATE TABLE notes (
+            ${SYNCED_COLUMNS},
+            project_id TEXT REFERENCES projects (id)
+              ON DELETE SET NULL ON UPDATE CASCADE DEFERRABLE INITIALLY DEFERRED
+          ) STRICT;
+        `);
+
+        await expect(checkConventions(database)).resolves.toEqual([
+          {
+            table: "notes",
+            rule: "foreign key from project_id to projects must not have ON UPDATE CASCADE",
+          },
+          {
+            table: "notes",
+            rule: "foreign key from project_id to projects must not have ON DELETE SET NULL",
+          },
+        ]);
+      });
+
+      test("reports every key with an action, in the order they are declared", async () => {
+        await database.executeScript(`
+          CREATE TABLE notes (
+            ${SYNCED_COLUMNS},
+            project_id TEXT REFERENCES projects (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
+            folder_id TEXT REFERENCES folders (id) DEFERRABLE INITIALLY DEFERRED,
+            "Owner" TEXT REFERENCES "People" ("id") ON DELETE SET NULL DEFERRABLE INITIALLY DEFERRED
+          ) STRICT;
+        `);
+
+        await expect(checkConventions(database)).resolves.toEqual([
+          {
+            table: "notes",
+            rule: "foreign key from project_id to projects must not have ON DELETE CASCADE",
+          },
+          {
+            table: "notes",
+            rule: "foreign key from Owner to People must not have ON DELETE SET NULL",
+          },
+        ]);
+      });
+
+      test("reports a key over several columns once, naming its columns", async () => {
+        await database.executeScript(`
+          CREATE TABLE notes (
+            ${SYNCED_COLUMNS},
+            project_id TEXT,
+            FOREIGN KEY (space_id, project_id) REFERENCES projects (space_id, id)
+              ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED
+          ) STRICT;
+        `);
+
+        await expect(checkConventions(database)).resolves.toEqual([
+          {
+            table: "notes",
+            rule: "foreign key from (space_id, project_id) to projects must not have ON DELETE CASCADE",
+          },
+        ]);
+      });
+
+      test("is reported with the deferral when the key is not deferred", async () => {
+        await database.executeScript(`
+          CREATE TABLE notes (
+            ${SYNCED_COLUMNS},
+            project_id TEXT REFERENCES projects (id) ON DELETE CASCADE
+          ) STRICT;
+        `);
+
+        await expect(checkConventions(database)).resolves.toEqual([
+          NOT_DEFERRED,
+          {
+            table: "notes",
+            rule: "foreign key from project_id to projects must not have ON DELETE CASCADE",
+          },
+        ]);
+      });
+
+      test.each(CASES)("is allowed on a Local Table: %s", async (action) => {
+        await database.executeScript(`
+          CREATE TABLE local_figures (
+            note_id TEXT REFERENCES notes (id) ${action} DEFERRABLE INITIALLY DEFERRED
+          ) STRICT;
+        `);
+
+        await expect(checkConventions(database)).resolves.toEqual([]);
+      });
     });
 
     describe("between a normal table and a Local Table", () => {
