@@ -14,6 +14,7 @@
 
 import { useLingui } from "@lingui/react/macro";
 import {
+  Box,
   Button,
   Center,
   Group,
@@ -112,6 +113,9 @@ const PictureOption = memo(function PictureOption({
         color: selected ? roleColor("accentText") : roleColor("text"),
         display: "flex",
         justifyContent: "center",
+        // The focus ring lies inside the picture, as Mantine draws it on an emoji: the scroll area
+        // would cut one around it at each edge of the grid.
+        outlineOffset: FOCUS_RING_INSET,
       }}
       tabIndex={tabStop ? 0 : -1}
       title={label}
@@ -120,6 +124,9 @@ const PictureOption = memo(function PictureOption({
     </UnstyledButton>
   );
 });
+
+/** Mantine's focus ring is 2 px wide; drawn this far inside, it ends at the picture's edge. */
+const FOCUS_RING_INSET = rem(-2);
 
 /** The grid's cells follow the Density and the font scale: a cell is as high as a row. */
 const GRID_STYLE = {
@@ -155,11 +162,33 @@ function nextIndex(key: string, at: number, count: number, columns: number): num
   }
 }
 
-/** The width of the popover: Mantine's emoji grid at its defaults, 9 columns of 32 px. */
-const POPOVER_WIDTH = rem(320);
+/** The columns of the emoji grid: Mantine's own number, which the popover's width is made for. */
+const EMOJI_COLUMNS = 9;
 
-/** The height of a tab's content below its search: the icon grid at most, the loader exactly. */
-const PANEL_HEIGHT = rem(264);
+/**
+ * The popover's padding: `xs`, the inset Mantine's emoji picker keeps inside its own edge. The
+ * scroll areas reach over the padding to the popover's border, keep it as their inset and put
+ * their scrollbar into it, as the picker does inside its own edge. So both grids line up with the
+ * search fields, and a scrollbar lies beside the last column rather than over it.
+ */
+const POPOVER_PADDING = "xs";
+const PADDING = `var(--mantine-spacing-${POPOVER_PADDING})`;
+
+/**
+ * The width of the popover: the width Mantine gives its emoji picker, by its own formula, from
+ * `EMOJI_COLUMNS` buttons of size `sm` (32 px at the 100 % font scale) and its inset on each side,
+ * plus the popover's border of 1 px in place of the picker's own. With the inset as the popover's
+ * padding, the emoji grid fills the popover's content exactly.
+ */
+const POPOVER_WIDTH = `calc(${EMOJI_COLUMNS} * ${rem(32)} + ${PADDING} * 2 + 2px)`;
+
+/**
+ * The height of a tab's content, under the tabs and above "No icon": the same on both tabs and in
+ * every state, so the popover keeps one size while it is open. Each tab's grid takes the room its
+ * search and, under "Emoji", the categories and the preview leave: at the 100 % font scale about
+ * the 300 px Mantine gives the emoji grid on its own.
+ */
+const PANEL_HEIGHT = rem(420);
 
 /** The line a tab shows in place of its content: no match, or emojis that could not load. */
 function EmptyNote({ children }: { readonly children: string }) {
@@ -231,7 +260,7 @@ function IconsTab({
   };
 
   return (
-    <Stack gap="xs">
+    <Stack gap="xs" h="100%">
       <TextInput
         aria-label={t`Search icons`}
         data-autofocus
@@ -244,7 +273,13 @@ function IconsTab({
         type="search"
         value={query}
       />
-      <ScrollArea.Autosize mah={PANEL_HEIGHT} type="auto">
+      <ScrollArea
+        mx={`-${POPOVER_PADDING}`}
+        px={POPOVER_PADDING}
+        scrollbarSize={PADDING}
+        style={{ flex: 1, minHeight: 0 }}
+        type="auto"
+      >
         <div
           aria-label={t`Icons`}
           onClick={(event) => {
@@ -271,7 +306,7 @@ function IconsTab({
           ))}
         </div>
         {found.length === 0 && <EmptyNote>{t`No icon matches the search.`}</EmptyNote>}
-      </ScrollArea.Autosize>
+      </ScrollArea>
     </Stack>
   );
 }
@@ -329,19 +364,23 @@ function EmojiPanel({
   if (loaded === "failed") return <EmptyNote>{t`The emojis could not be loaded.`}</EmptyNote>;
   if (loaded?.locale !== locale)
     return (
-      <Center h={PANEL_HEIGHT}>
+      <Center h="100%">
         <Loader aria-label={t`Loading the emojis`} size="sm" />
       </Center>
     );
   const { EmojiTab, data } = loaded;
   return (
-    <EmojiTab
-      autoFocus={autoFocus}
-      data={data}
-      onChoose={onChoose}
-      onQueryChange={onQueryChange}
-      query={query}
-    />
+    <Box h="100%" mx={`-${POPOVER_PADDING}`}>
+      <EmojiTab
+        autoFocus={autoFocus}
+        columns={EMOJI_COLUMNS}
+        data={data}
+        onChoose={onChoose}
+        onQueryChange={onQueryChange}
+        query={query}
+        scrollbarSize={PADDING}
+      />
+    </Box>
   );
 }
 
@@ -461,7 +500,7 @@ export function EntryIconPicker({ value, onChange, label, error }: EntryIconPick
           onCompositionStart={() => {
             composing.current = true;
           }}
-          p="xs"
+          p={POPOVER_PADDING}
         >
           <VisuallyHidden id={titleId}>{t`Choose an icon`}</VisuallyHidden>
           <Stack gap="xs">
@@ -479,10 +518,10 @@ export function EntryIconPicker({ value, onChange, label, error }: EntryIconPick
                 <Tabs.Tab value="icons">{t`Icons`}</Tabs.Tab>
                 <Tabs.Tab value="emoji">{t`Emoji`}</Tabs.Tab>
               </Tabs.List>
-              <Tabs.Panel value="icons">
+              <Tabs.Panel h={PANEL_HEIGHT} value="icons">
                 <IconsTab chosen={chosen} onChoose={choose} onQueryChange={search} query={query} />
               </Tabs.Panel>
-              <Tabs.Panel value="emoji">
+              <Tabs.Panel h={PANEL_HEIGHT} value="emoji">
                 {/* The search takes the focus when the popover opens on this tab, as the
                     search of the Icons tab does. A switch of the tab mounts the panel anew, and
                     then the focus stays on the tab, so the arrows go on switching it. */}

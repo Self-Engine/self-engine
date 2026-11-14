@@ -7,7 +7,13 @@
 
 import "@mantine/emoji/styles.css";
 import { useLingui } from "@lingui/react/macro";
-import { EmojiPicker, type EmojiPickerData, type EmojiPickerLabels } from "@mantine/emoji";
+import { type MantineSize, useProps } from "@mantine/core";
+import {
+  EmojiPicker,
+  type EmojiPickerData,
+  type EmojiPickerLabels,
+  type EmojiPickerProps,
+} from "@mantine/emoji";
 import { useMemo } from "react";
 
 export { emojiLanguageOf, loadEmojiData } from "./emoji-data.ts";
@@ -22,11 +28,52 @@ export interface EmojiTabProps {
   /** The search term, shared with the Icons tab (D301); Mantine's own field shows it. */
   readonly query: string;
   readonly onQueryChange: (query: string) => void;
+  /** The emoji grid's columns, which the field's width is made for. */
+  readonly columns: number;
+  /** The width of the grid's scrollbar, as the field's own grid has it. */
+  readonly scrollbarSize: string;
 }
 
+/** What `useProps` merges the theme's defaults into: no props of our own. */
+const NO_PROPS: { readonly size?: MantineSize } = {};
+
+/**
+ * The picker as part of the field rather than a frame of its own: no border, radius or background
+ * of its own, as high as the tab, and its search field at the top, where the Icons tab has its
+ * own. The grid takes the height the search, the categories and the preview leave.
+ */
+const PICKER_STYLES = {
+  root: {
+    backgroundColor: "transparent",
+    border: 0,
+    borderRadius: 0,
+    height: "100%",
+    width: "auto",
+  },
+  search: { paddingTop: 0 },
+  categoryLabel: { backgroundColor: "transparent" },
+} satisfies NonNullable<EmojiPickerProps["styles"]>;
+
 /** The emoji grid with its search, categories, skin tones and preview, in the app's language. */
-export function EmojiTab({ data, onChoose, autoFocus, query, onQueryChange }: EmojiTabProps) {
+export function EmojiTab({
+  data,
+  onChoose,
+  autoFocus,
+  query,
+  onQueryChange,
+  columns,
+  scrollbarSize,
+}: EmojiTabProps) {
   const { t } = useLingui();
+  // The search field takes the size the theme gives every input, as the Icons tab's does: in the
+  // compact Density a smaller one. The picker would give it the size of its emojis.
+  const { size: inputSize } = useProps("Input", { size: "sm" }, NO_PROPS);
+  const searchInputProps = useMemo(() => ({ size: inputSize ?? "sm" }), [inputSize]);
+  // Mantine gives the grid a fixed height; here it grows into the room the tab leaves.
+  const scrollAreaProps = useMemo(
+    () => ({ scrollbarSize, style: { flex: 1, height: "auto", minHeight: 0 } }),
+    [scrollbarSize],
+  );
   // Kept per language: the picker hands its texts to every emoji in the grid through a context.
   const labels = useMemo<Required<EmojiPickerLabels>>(
     () => ({
@@ -64,6 +111,7 @@ export function EmojiTab({ data, onChoose, autoFocus, query, onQueryChange }: Em
     <EmojiPicker
       autoFocus={autoFocus}
       categoryLabels={categoryLabels}
+      columns={columns}
       data={data}
       labels={labels}
       onSearchChange={onQueryChange}
@@ -73,6 +121,9 @@ export function EmojiTab({ data, onChoose, autoFocus, query, onQueryChange }: Em
       onEmojiSelect={(emoji) => {
         onChoose(emoji.emoji);
       }}
+      scrollAreaProps={scrollAreaProps}
+      searchInputProps={searchInputProps}
+      styles={PICKER_STYLES}
       withUnsupportedDetection
     />
   );
