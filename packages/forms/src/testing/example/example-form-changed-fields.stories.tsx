@@ -1,4 +1,3 @@
-import { msg } from "@lingui/core/macro";
 import { useState } from "react";
 import { TextInput } from "@mantine/core";
 import { DataProvider } from "@self-engine/data-client/react";
@@ -15,6 +14,7 @@ import {
 import { exampleContract, exampleTiedFields } from "./contract.ts";
 import { useCreateExample, useUpdateExample } from "./port.ts";
 import { StoryDrawer, loadStoryShell } from "./drawer-story.tsx";
+import { exampleEditTexts } from "./example-form.tsx";
 import { CREATED, recordingPort } from "./story-port.ts";
 
 function EditExample({
@@ -32,7 +32,7 @@ function EditExample({
     operation: useUpdateExample(),
     draft: { ...CREATED, icon: unknownIcon ? "future-icon" : null },
     onSuccess: () => setSaved(true),
-    texts: { reasons: { star_needs_color: msg`Choose a color for the star.` } },
+    texts: exampleEditTexts,
     emptyTextFields: ["description"],
     edit: { identity: { id: CREATED.id }, tiedFields: exampleTiedFields },
   });

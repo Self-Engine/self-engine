@@ -19,6 +19,11 @@ import { useCreateExample } from "./port.ts";
 
 export type ExampleEntry = z.output<typeof exampleEntrySchema>;
 
+/** The texts of the example's edit form: the reasons of the update's rules. */
+export const exampleEditTexts = {
+  reasons: { star_needs_color: msg`Choose a color for the star.` },
+};
+
 export interface ExampleFormProps {
   /** Called once the entry was created, with the Operation's answer. */
   readonly onSuccess: (entry: ExampleEntry) => void;

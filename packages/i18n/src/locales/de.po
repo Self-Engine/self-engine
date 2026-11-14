@@ -203,6 +203,10 @@ msgctxt "Icon"
 msgid "Check mark"
 msgstr "Häkchen"
 
+#: packages/forms/src/testing/example/example-form.tsx
+msgid "Choose a color for the star."
+msgstr "Wähle eine Farbe für den Stern."
+
 #: packages/ui/src/entry-pickers/entry-icon-picker.tsx
 msgid "Choose an icon"
 msgstr "Icon wählen"

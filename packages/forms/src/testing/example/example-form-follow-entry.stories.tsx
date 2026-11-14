@@ -23,7 +23,7 @@ import {
 } from "../../index.ts";
 import { exampleTiedFields, exampleContract } from "./contract.ts";
 import { loadStoryShell, StoryDrawer } from "./drawer-story.tsx";
-import type { ExampleEntry } from "./example-form.tsx";
+import { type ExampleEntry, exampleEditTexts } from "./example-form.tsx";
 import { useExampleEntries, useUpdateExample } from "./port.ts";
 import { CREATED, type ChangingPort, changingPort } from "./story-port.ts";
 
@@ -53,6 +53,7 @@ function EntryForm({ entry, deleted: gone, onCancel, onDelete }: EntryFormProps)
     draft: entry,
     edit: { identity: { id: entry.id }, tiedFields: exampleTiedFields, deleted: gone },
     emptyTextFields: ["description"],
+    texts: exampleEditTexts,
     onSuccess: () => setSaved(true),
   });
   return (
@@ -343,5 +344,34 @@ export const TheMessageInGerman: Story = {
     );
     await expect(canvas.getByRole("button", { name: "Speichern" })).toBeDisabled();
     await expect(loaded.port.calls).toEqual([]);
+  },
+};
+
+export const AStarWithoutAColorIsReportedAtTheColor: Story = {
+  play: async ({ loaded }) => {
+    const { canvas, save } = await openForm();
+    const color = canvas.getByRole("radiogroup", { name: "Color" });
+    await userEvent.click(canvas.getByRole("button", { name: /^Icon/ }));
+    const dialog = await screen.findByRole("dialog", { name: "Choose an icon" });
+    await userEvent.click(
+      within(within(dialog).getByRole("listbox", { name: "Icons" })).getByRole("option", {
+        name: "Star",
+      }),
+    );
+    await waitFor(() =>
+      expect(screen.queryByRole("dialog", { name: "Choose an icon" })).toBeNull(),
+    );
+    // The rule ties the color to the icon: the stored "no color" is checked and sent with it.
+    await userEvent.click(save);
+    await expect(color).toHaveAccessibleDescription("Choose a color for the star.");
+    await expect(loaded.port.calls).toEqual([]);
+
+    await userEvent.click(within(color).getByRole("radio", { name: "Teal" }));
+    await expect(color).not.toHaveAccessibleDescription("Choose a color for the star.");
+    await userEvent.click(save);
+    await expect(await canvas.findByText("Saved")).toBeVisible();
+    await expect(loaded.port.calls).toEqual([
+      { entry: "update", input: { id: "example-1", icon: "star", color: "teal" } },
+    ]);
   },
 };
