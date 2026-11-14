@@ -1,7 +1,7 @@
 ---
 status: accepted
 date: 2026-11-12
-decisions: D187, D188, D189, D190, D195, D231, D232, D233, D234, D235, D236, D237, D238, D239, D240, D241, D260
+decisions: D187, D188, D189, D190, D195, D231, D232, D233, D234, D235, D236, D237, D238, D239, D240, D241, D260, D287
 ---
 
 # Modules implement their ports through one shared frame
@@ -71,7 +71,9 @@ Module authors write domain-specific functions while one frame owns the repeated
 The kit and agreement/convention checks carry more responsibility because packaged output
 validation is deliberately off. The plugin cannot observe trigger writes directly, so the kit’s
 unannounced-change check is essential. Read-piece owners maintain a deliberate stable surface.
-The fixed personal Space remains until #108, and page totals follow in #137. The renderer side,
+The Space of the context is the Personal Space the Data Process makes sure of at its start
+([ADR 0028](0028-every-row-belongs-to-a-space-the-context-supplies-and-the-database-knows.md)),
+and page totals follow in #137. The renderer side,
 hooks and Fixed Answers, is recorded in ADR 0021.
 
 The [module-author guide](../development/port-pattern.md) gives the implementation steps;

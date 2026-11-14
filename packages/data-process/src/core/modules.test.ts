@@ -69,7 +69,8 @@ test("a module list supplies migrations and calls over a MessageChannel", async 
   const client = await start();
   await expect(client.health()).resolves.toMatchObject({
     state: "ready",
-    migrations: ["fixture/0001"],
+    // The migration of `spaces` runs with every module list (D287).
+    migrations: ["fixture/0001", "spaces/0001"],
   });
   await expect(client.fixture.add("Invoice")).resolves.toBe("Invoice");
   await expect(client.fixture.list()).resolves.toEqual(["Invoice"]);

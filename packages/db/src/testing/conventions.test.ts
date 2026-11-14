@@ -4,12 +4,15 @@ import { createMigrationRunner } from "../core/index.ts";
 import type { Database } from "../core/index.ts";
 import { checkConventions } from "./index.ts";
 
+// The one form of the foreign key to `spaces` that the check accepts (D286).
+const SPACE_ID = "space_id TEXT NOT NULL REFERENCES spaces(id) DEFERRABLE INITIALLY DEFERRED";
+
 const SYNCED_COLUMNS = `
   id TEXT PRIMARY KEY,
   created_at TEXT NOT NULL,
   updated_at TEXT NOT NULL,
   deleted_at TEXT,
-  space_id TEXT NOT NULL
+  ${SPACE_ID}
 `;
 
 let database: Database;
@@ -226,62 +229,62 @@ describe("checkConventions", () => {
     test.each([
       [
         "id is missing",
-        "note TEXT, created_at TEXT NOT NULL, updated_at TEXT NOT NULL, deleted_at TEXT, space_id TEXT NOT NULL",
+        `note TEXT, created_at TEXT NOT NULL, updated_at TEXT NOT NULL, deleted_at TEXT, ${SPACE_ID}`,
         ID_RULE,
       ],
       [
         "id is not TEXT",
-        "id INTEGER PRIMARY KEY, created_at TEXT NOT NULL, updated_at TEXT NOT NULL, deleted_at TEXT, space_id TEXT NOT NULL",
+        `id INTEGER PRIMARY KEY, created_at TEXT NOT NULL, updated_at TEXT NOT NULL, deleted_at TEXT, ${SPACE_ID}`,
         ID_RULE,
       ],
       [
         "id is not the primary key",
-        "id TEXT, created_at TEXT PRIMARY KEY NOT NULL, updated_at TEXT NOT NULL, deleted_at TEXT, space_id TEXT NOT NULL",
+        `id TEXT, created_at TEXT PRIMARY KEY NOT NULL, updated_at TEXT NOT NULL, deleted_at TEXT, ${SPACE_ID}`,
         ID_RULE,
       ],
       [
         "id is only part of the primary key",
-        "id TEXT, created_at TEXT NOT NULL, updated_at TEXT NOT NULL, deleted_at TEXT, space_id TEXT NOT NULL, PRIMARY KEY (id, space_id)",
+        `id TEXT, created_at TEXT NOT NULL, updated_at TEXT NOT NULL, deleted_at TEXT, ${SPACE_ID}, PRIMARY KEY (id, space_id)`,
         ID_RULE,
       ],
       [
         "created_at is missing",
-        "id TEXT PRIMARY KEY, updated_at TEXT NOT NULL, deleted_at TEXT, space_id TEXT NOT NULL",
+        `id TEXT PRIMARY KEY, updated_at TEXT NOT NULL, deleted_at TEXT, ${SPACE_ID}`,
         CREATED_RULE,
       ],
       [
         "created_at is not TEXT",
-        "id TEXT PRIMARY KEY, created_at INTEGER NOT NULL, updated_at TEXT NOT NULL, deleted_at TEXT, space_id TEXT NOT NULL",
+        `id TEXT PRIMARY KEY, created_at INTEGER NOT NULL, updated_at TEXT NOT NULL, deleted_at TEXT, ${SPACE_ID}`,
         CREATED_RULE,
       ],
       [
         "created_at is nullable",
-        "id TEXT PRIMARY KEY, created_at TEXT, updated_at TEXT NOT NULL, deleted_at TEXT, space_id TEXT NOT NULL",
+        `id TEXT PRIMARY KEY, created_at TEXT, updated_at TEXT NOT NULL, deleted_at TEXT, ${SPACE_ID}`,
         CREATED_RULE,
       ],
       [
         "updated_at is missing",
-        "id TEXT PRIMARY KEY, created_at TEXT NOT NULL, deleted_at TEXT, space_id TEXT NOT NULL",
+        `id TEXT PRIMARY KEY, created_at TEXT NOT NULL, deleted_at TEXT, ${SPACE_ID}`,
         UPDATED_RULE,
       ],
       [
         "updated_at is nullable",
-        "id TEXT PRIMARY KEY, created_at TEXT NOT NULL, updated_at TEXT, deleted_at TEXT, space_id TEXT NOT NULL",
+        `id TEXT PRIMARY KEY, created_at TEXT NOT NULL, updated_at TEXT, deleted_at TEXT, ${SPACE_ID}`,
         UPDATED_RULE,
       ],
       [
         "deleted_at is missing",
-        "id TEXT PRIMARY KEY, created_at TEXT NOT NULL, updated_at TEXT NOT NULL, space_id TEXT NOT NULL",
+        `id TEXT PRIMARY KEY, created_at TEXT NOT NULL, updated_at TEXT NOT NULL, ${SPACE_ID}`,
         DELETED_RULE,
       ],
       [
         "deleted_at is non-null",
-        "id TEXT PRIMARY KEY, created_at TEXT NOT NULL, updated_at TEXT NOT NULL, deleted_at TEXT NOT NULL, space_id TEXT NOT NULL",
+        `id TEXT PRIMARY KEY, created_at TEXT NOT NULL, updated_at TEXT NOT NULL, deleted_at TEXT NOT NULL, ${SPACE_ID}`,
         DELETED_RULE,
       ],
       [
         "deleted_at is not TEXT",
-        "id TEXT PRIMARY KEY, created_at TEXT NOT NULL, updated_at TEXT NOT NULL, deleted_at INTEGER, space_id TEXT NOT NULL",
+        `id TEXT PRIMARY KEY, created_at TEXT NOT NULL, updated_at TEXT NOT NULL, deleted_at INTEGER, ${SPACE_ID}`,
         DELETED_RULE,
       ],
       [
@@ -291,7 +294,7 @@ describe("checkConventions", () => {
       ],
       [
         "space_id is nullable",
-        "id TEXT PRIMARY KEY, created_at TEXT NOT NULL, updated_at TEXT NOT NULL, deleted_at TEXT, space_id TEXT",
+        "id TEXT PRIMARY KEY, created_at TEXT NOT NULL, updated_at TEXT NOT NULL, deleted_at TEXT, space_id TEXT REFERENCES spaces(id) DEFERRABLE INITIALLY DEFERRED",
         SPACE_RULE,
       ],
     ])("reports a table where %s", async (_name, columns, rule) => {
@@ -302,7 +305,7 @@ describe("checkConventions", () => {
 
     test("accepts a column type written in lower case", async () => {
       await database.executeScript(
-        "CREATE TABLE notes (id text PRIMARY KEY, created_at text NOT NULL, updated_at text NOT NULL, deleted_at text, space_id text NOT NULL) STRICT;",
+        "CREATE TABLE notes (id text PRIMARY KEY, created_at text NOT NULL, updated_at text NOT NULL, deleted_at text, space_id text NOT NULL references spaces(id) deferrable initially deferred) STRICT;",
       );
 
       await expect(checkConventions(database)).resolves.toEqual([]);
@@ -351,7 +354,7 @@ describe("checkConventions", () => {
       ],
     ])("reports an SQL DEFAULT on %s", async (column, timestamps) => {
       await database.executeScript(
-        `CREATE TABLE notes (id TEXT PRIMARY KEY, ${timestamps}, space_id TEXT NOT NULL) STRICT;`,
+        `CREATE TABLE notes (id TEXT PRIMARY KEY, ${timestamps}, ${SPACE_ID}) STRICT;`,
       );
 
       await expect(checkConventions(database)).resolves.toEqual([
@@ -547,6 +550,183 @@ describe("checkConventions", () => {
 
         await expect(checkConventions(database)).resolves.toEqual([]);
       });
+    });
+  });
+
+  describe("the foreign key of space_id", () => {
+    const TIMESTAMPS = `
+      id TEXT PRIMARY KEY,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL,
+      deleted_at TEXT
+    `;
+    const NO_KEY = { table: "notes", rule: "space_id must refer to spaces(id)" };
+
+    async function violationsOf(spaceId: string) {
+      await database.executeScript(`CREATE TABLE notes (${TIMESTAMPS}, ${spaceId}) STRICT;`);
+      return checkConventions(database);
+    }
+
+    test("reports a table whose space_id has no foreign key", async () => {
+      await expect(violationsOf("space_id TEXT NOT NULL")).resolves.toEqual([NO_KEY]);
+    });
+
+    test.each([
+      [
+        "another table",
+        "space_id TEXT NOT NULL REFERENCES projects(id) DEFERRABLE INITIALLY DEFERRED",
+        "projects(id)",
+      ],
+      [
+        "another column of spaces",
+        "space_id TEXT NOT NULL REFERENCES spaces(kind) DEFERRABLE INITIALLY DEFERRED",
+        "spaces(kind)",
+      ],
+      [
+        "spaces without naming its column",
+        "space_id TEXT NOT NULL REFERENCES spaces DEFERRABLE INITIALLY DEFERRED",
+        "spaces",
+      ],
+    ])("reports a space_id that refers to %s", async (_name, spaceId, target) => {
+      await expect(violationsOf(spaceId)).resolves.toEqual([
+        { table: "notes", rule: `space_id must refer to spaces(id), not to ${target}` },
+      ]);
+    });
+
+    test("reports a second key on space_id that refers to another table", async () => {
+      await expect(
+        violationsOf(
+          `${SPACE_ID}, FOREIGN KEY (space_id) REFERENCES projects(id) DEFERRABLE INITIALLY DEFERRED`,
+        ),
+      ).resolves.toEqual([
+        { table: "notes", rule: "space_id must refer to spaces(id), not to projects(id)" },
+      ]);
+    });
+
+    test.each([
+      ["no deferral clause", "space_id TEXT NOT NULL REFERENCES spaces(id)"],
+      ["only DEFERRABLE", "space_id TEXT NOT NULL REFERENCES spaces(id) DEFERRABLE"],
+      [
+        "a table constraint without deferral",
+        "space_id TEXT NOT NULL, FOREIGN KEY (space_id) REFERENCES spaces(id)",
+      ],
+    ])("reports a key to spaces with %s", async (_name, spaceId) => {
+      await expect(violationsOf(spaceId)).resolves.toEqual([
+        { table: "notes", rule: "foreign key to spaces must be DEFERRABLE INITIALLY DEFERRED" },
+      ]);
+    });
+
+    test.each([
+      ["ON DELETE CASCADE"],
+      ["ON UPDATE CASCADE"],
+      ["ON DELETE SET NULL"],
+      ["ON UPDATE SET DEFAULT"],
+      ["ON DELETE RESTRICT"],
+    ])("reports a key to spaces with %s", async (action) => {
+      await expect(
+        violationsOf(
+          `space_id TEXT NOT NULL REFERENCES spaces(id) ${action} DEFERRABLE INITIALLY DEFERRED`,
+        ),
+      ).resolves.toEqual([
+        { table: "notes", rule: `foreign key from space_id to spaces must not have ${action}` },
+      ]);
+    });
+
+    test("reports both actions of one key", async () => {
+      await expect(
+        violationsOf(
+          "space_id TEXT NOT NULL REFERENCES spaces(id) ON UPDATE CASCADE ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED",
+        ),
+      ).resolves.toEqual([
+        {
+          table: "notes",
+          rule: "foreign key from space_id to spaces must not have ON UPDATE CASCADE",
+        },
+        {
+          table: "notes",
+          rule: "foreign key from space_id to spaces must not have ON DELETE CASCADE",
+        },
+      ]);
+    });
+
+    test.each([
+      ["the column form", SPACE_ID],
+      [
+        "a table constraint",
+        "space_id TEXT NOT NULL, FOREIGN KEY (space_id) REFERENCES spaces(id) DEFERRABLE INITIALLY DEFERRED",
+      ],
+      [
+        "quoted names in another case",
+        'space_id TEXT NOT NULL REFERENCES "SPACES"("ID") DEFERRABLE INITIALLY DEFERRED',
+      ],
+      // SQLite stores no difference between an explicit NO ACTION and none.
+      [
+        "an explicit NO ACTION",
+        "space_id TEXT NOT NULL REFERENCES spaces(id) ON DELETE NO ACTION DEFERRABLE INITIALLY DEFERRED",
+      ],
+      [
+        "a further key that only includes space_id",
+        `${SPACE_ID}, project_id TEXT, FOREIGN KEY (space_id, project_id) REFERENCES projects(space_id, id) DEFERRABLE INITIALLY DEFERRED`,
+      ],
+    ])("accepts %s", async (_name, spaceId) => {
+      await expect(violationsOf(spaceId)).resolves.toEqual([]);
+    });
+
+    test("does not take a key that only includes space_id for the key to spaces", async () => {
+      await expect(
+        violationsOf(
+          "space_id TEXT NOT NULL, project_id TEXT, FOREIGN KEY (space_id, project_id) REFERENCES spaces(id, kind) DEFERRABLE INITIALLY DEFERRED",
+        ),
+      ).resolves.toEqual([NO_KEY]);
+    });
+
+    test("is not asked of a Local Table", async () => {
+      await database.executeScript(
+        "CREATE TABLE local_figures (space_id TEXT NOT NULL, total INTEGER) STRICT;",
+      );
+
+      await expect(checkConventions(database)).resolves.toEqual([]);
+    });
+
+    test("is not reported again when space_id is missing", async () => {
+      await database.executeScript(`CREATE TABLE notes (${TIMESTAMPS}) STRICT;`);
+
+      await expect(checkConventions(database)).resolves.toEqual([
+        { table: "notes", rule: "must have space_id as non-null TEXT" },
+      ]);
+    });
+
+    test("is met by spaces itself, whose row refers to itself (D289)", async () => {
+      await database.executeScript(`
+        CREATE TABLE spaces (
+          id TEXT PRIMARY KEY NOT NULL,
+          created_at TEXT NOT NULL,
+          updated_at TEXT NOT NULL,
+          deleted_at TEXT,
+          space_id TEXT NOT NULL REFERENCES spaces(id) DEFERRABLE INITIALLY DEFERRED
+            CHECK (space_id = id),
+          kind TEXT NOT NULL
+        ) STRICT;
+      `);
+
+      await expect(checkConventions(database)).resolves.toEqual([]);
+    });
+
+    test("holds spaces to the same form, since there is no list of exceptions", async () => {
+      await database.executeScript(`
+        CREATE TABLE spaces (
+          ${TIMESTAMPS},
+          space_id TEXT NOT NULL REFERENCES spaces(id) ON DELETE CASCADE
+        ) STRICT;
+      `);
+
+      await expect(checkConventions(database)).resolves.toEqual([
+        { table: "spaces", rule: "foreign key to spaces must be DEFERRABLE INITIALLY DEFERRED" },
+        {
+          table: "spaces",
+          rule: "foreign key from space_id to spaces must not have ON DELETE CASCADE",
+        },
+      ]);
     });
   });
 

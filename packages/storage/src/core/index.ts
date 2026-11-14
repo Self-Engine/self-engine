@@ -8,14 +8,9 @@ export {
   type StorageContract,
   type RowMap,
 } from "./module.ts";
-export {
-  createContext,
-  PERSONAL_SPACE,
-  spaceIdSchema,
-  type SpaceId,
-  type StorageContext,
-  type ContextSources,
-} from "./context.ts";
+export { createContext, type StorageContext, type ContextSources } from "./context.ts";
+// The id of a Space is `spaces`' own; modules take it from here for their row maps (D287).
+export { spaceIdSchema, type SpaceId } from "@self-engine/spaces";
 export { sharedEntry, sharedWrites } from "./shared-entry.ts";
 
 export {

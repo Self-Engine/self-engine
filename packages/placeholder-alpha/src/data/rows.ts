@@ -1,5 +1,5 @@
 import { defineMigrations, type TablesOf } from "@self-engine/db";
-import { idSchema } from "@self-engine/db/schema";
+import { spaceIdSchema } from "@self-engine/storage";
 import { instantSchema } from "@self-engine/time";
 import { z } from "zod";
 import { entryIdSchema, type entrySchema } from "../contracts/index.ts";
@@ -15,7 +15,7 @@ export const entriesRowMap = {
     created_at: instantSchema,
     updated_at: instantSchema,
     deleted_at: instantSchema.nullable(),
-    space_id: idSchema("Space"),
+    space_id: spaceIdSchema,
     name: z.string(),
   }),
 };

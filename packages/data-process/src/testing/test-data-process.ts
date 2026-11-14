@@ -3,7 +3,7 @@ import type { TablesChanged } from "@self-engine/data-protocol";
 import type { Database, Migration } from "@self-engine/db";
 import { openDatabase } from "@self-engine/db/better-sqlite3";
 import { createTestSources } from "@self-engine/db/testing";
-import type { ContextSources } from "@self-engine/storage";
+import type { SpaceSources } from "@self-engine/spaces";
 import {
   type BeforeMigrations,
   type DataModules,
@@ -13,7 +13,8 @@ import {
 
 export interface TestDataProcessOptions {
   readonly modules?: DataModules;
-  readonly sources?: ContextSources;
+  /** The clock and ids of every call and of the Personal Space; the start finds the Space. */
+  readonly sources?: SpaceSources;
   readonly checkOutputs?: boolean;
   readonly report?: DataProcessOptions["report"];
   /** Migration-only fixture for startup tests; module call tests supply modules instead. */

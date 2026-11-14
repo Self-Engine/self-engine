@@ -708,6 +708,9 @@ importers:
       '@self-engine/db':
         specifier: workspace:*
         version: link:../db
+      '@self-engine/spaces':
+        specifier: workspace:*
+        version: link:../spaces
       '@self-engine/storage':
         specifier: workspace:*
         version: link:../storage
@@ -1117,6 +1120,28 @@ importers:
         specifier: 1.5.0
         version: 1.5.0(@types/node@24.19.2)(@vitest/browser-playwright@5.1.0)(@vitest/ui@5.1.0)(esbuild@0.28.2)(happy-dom@21.0.4)(jiti@2.7.0)(playwright@1.65.0)(typescript@7.0.2)
 
+  packages/spaces:
+    dependencies:
+      '@self-engine/db':
+        specifier: workspace:*
+        version: link:../db
+      '@self-engine/time':
+        specifier: workspace:*
+        version: link:../time
+      kysely:
+        specifier: 'catalog:'
+        version: 0.29.8
+      zod:
+        specifier: 'catalog:'
+        version: 4.6.7
+    devDependencies:
+      '@types/node':
+        specifier: 24.19.2
+        version: 24.19.2
+      vite-plus:
+        specifier: 1.5.0
+        version: 1.5.0(@types/node@24.19.2)(@vitest/browser-playwright@5.1.0)(@vitest/ui@5.1.0)(esbuild@0.28.2)(happy-dom@21.0.4)(jiti@2.7.0)(playwright@1.65.0)(typescript@7.0.2)
+
   packages/storage:
     dependencies:
       '@orpc/contract':
@@ -1128,6 +1153,9 @@ importers:
       '@self-engine/db':
         specifier: workspace:*
         version: link:../db
+      '@self-engine/spaces':
+        specifier: workspace:*
+        version: link:../spaces
       '@self-engine/time':
         specifier: workspace:*
         version: link:../time

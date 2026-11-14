@@ -2,7 +2,8 @@
 import { instantSchema } from "@self-engine/time";
 import { z } from "zod";
 import { defineMigrations, type TablesOf } from "@self-engine/db";
-import { idSchema, sqliteBoolean } from "@self-engine/db/schema";
+import { sqliteBoolean } from "@self-engine/db/schema";
+import { spaceIdSchema } from "@self-engine/spaces";
 
 export const notesMigrations = defineMigrations(
   "notes",
@@ -19,7 +20,7 @@ export const notesRowMap = {
     created_at: instantSchema,
     updated_at: instantSchema,
     deleted_at: instantSchema.nullable(),
-    space_id: idSchema("Space"),
+    space_id: spaceIdSchema,
     title: z.string(),
     is_pinned: sqliteBoolean,
   }),

@@ -12,6 +12,7 @@
     "@orpc/server": "catalog:",
     "@self-engine/data-protocol": "workspace:*",
     "@self-engine/db": "workspace:*",
+    "@self-engine/spaces": "workspace:*",
     "@self-engine/storage": "workspace:*",
     "kysely": "catalog:"
   },

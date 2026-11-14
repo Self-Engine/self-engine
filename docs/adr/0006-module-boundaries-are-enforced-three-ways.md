@@ -1,7 +1,7 @@
 ---
 status: accepted
 date: 2026-11-08
-decisions: D10, D21, D36, D266, D284
+decisions: D10, D21, D36, D266, D284, D287
 ---
 
 # Module boundaries are enforced three ways
@@ -29,6 +29,12 @@ values from `time`: today `db`, `storage`, `data-protocol`, `backup`, `settings-
 `placeholder-alpha`, and `data-process` in its tests. Only code in `apps/` loads the system
 clock, `@self-engine/time/system-clock`; the dependency-cruiser rule `system-clock-only-in-apps`
 rejects it anywhere else, and a package takes a _Clock_ as an argument (D284).
+
+`spaces` is a package between `db` and `storage`, not a module, and imports only `db` and `time`.
+Only `storage` and `data-process` import it; the rule `renderer-stays-off-the-database` keeps it
+out of the page. Modules take the id schema of a _Space_ from `storage`
+([ADR 0028](0028-every-row-belongs-to-a-space-the-context-supplies-and-the-database-knows.md),
+D287).
 
 A module's `./contracts` may import `time`, other declared module contracts and the pure
 `@self-engine/db/schema` entry, but never database runtime code. The schema entry stays free of

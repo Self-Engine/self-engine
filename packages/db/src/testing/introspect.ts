@@ -30,6 +30,28 @@ export async function tablesOf(database: Database): Promise<readonly TableRow[]>
   );
 }
 
+/** One column pair of a foreign key, as `foreign_key_list` reports it; `to` is null without a parent column. */
+export interface ForeignKeyRow {
+  readonly id: number;
+  readonly table: string;
+  readonly from: string;
+  readonly to: string | null;
+  readonly on_update: string;
+  readonly on_delete: string;
+}
+
+export async function foreignKeyListOf(
+  database: Database,
+  table: string,
+): Promise<readonly ForeignKeyRow[]> {
+  const { rows } = await sql<ForeignKeyRow>`
+    SELECT id, "table", "from", "to", on_update, on_delete
+    FROM pragma_foreign_key_list(${table})
+    ORDER BY id, seq
+  `.execute(database.kysely);
+  return rows;
+}
+
 export async function columnsOf(database: Database, table: string): Promise<readonly ColumnRow[]> {
   const { rows } = await sql<ColumnRow>`
     SELECT name, type, "notnull", dflt_value, pk FROM pragma_table_xinfo(${table})

@@ -87,7 +87,7 @@ The identity of one entity, branded for its kind so a project id cannot stand in
 _Avoid_: generic id, shared id brand
 
 **Live Row** (de: _nicht gelöschte Zeile_):
-A stored row that has not been soft-deleted. Ordinary reads and changes see only live rows in the current space.
+A stored row that has not been soft-deleted. Ordinary reads and changes see only live rows in the current _Space_.
 _Avoid_: active row, undeleted record
 
 **Operation** (de: _Operation_):
@@ -242,6 +242,14 @@ _Avoid_: integration, connector, glue module, cross-module service
 The shared boundary around one module call that checks its input, keeps its changes atomic and announces committed changes. It also gives failures a consistent meaning for the caller.
 _Avoid_: handler, wrapper
 
+**Personal Space** (de: _persönlicher Space_):
+The _Space_ that holds one person's own data. A database has exactly one, created at the first start and never shown.
+_Avoid_: default space, user space, private space
+
 **Read Piece** (de: _Lesebaustein_):
-A module’s deliberately released view of its own data for other modules to combine with their records, scoped to the current Space. Deleted targets remain visible with an explicit deletion mark.
+A module’s deliberately released view of its own data for other modules to combine with their records, scoped to the current _Space_. Deleted targets remain visible with an explicit deletion mark.
 _Avoid_: foreign table, shared row map
+
+**Space** (de: _Space_):
+The owner of data. Every synced row belongs to exactly one Space, and a row refers only to rows of its own Space. A Space is not something the user picks to sort entries, such as a folder or a filter.
+_Avoid_: workspace, tenant, account, organization

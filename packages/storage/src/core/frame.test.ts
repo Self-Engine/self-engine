@@ -8,7 +8,15 @@ import { afterEach, expect, expectTypeOf, test } from "vite-plus/test";
 import { notes } from "../../test/notes-module/data/index.ts";
 import { ORPCError, createRouterClient } from "@orpc/server";
 import { noteIdSchema, type NoteId } from "../../test/notes-module/data/rows.ts";
-import { createFrame, createContext, type FrameReport, type StorageModule } from "./index.ts";
+import { createSpaceRows, SECOND_SPACE_ID } from "@self-engine/spaces/testing";
+import {
+  createFrame,
+  createContext,
+  type ContextSources,
+  type FrameReport,
+  type SpaceId,
+  type StorageModule,
+} from "./index.ts";
 import { createTestContext, createTestDatabase } from "../testing/index.ts";
 
 const cleanups: (() => void | Promise<void>)[] = [];
@@ -158,6 +166,40 @@ test("transaction time is read once, including for branded id generation", async
     ["2026-11-12T12:00:01.000Z", "2026-11-12T12:00:01.000Z"],
   ]);
   expect(reads).toBe(2); // one for the operation and one for the query
+});
+
+test("every call's context carries the Space the frame was given, and nothing else does", async () => {
+  expectTypeOf<ContextSources>().toHaveProperty("spaceId").toEqualTypeOf<SpaceId>();
+  const database = await createTestDatabase(notes);
+  cleanups.push(() => database.close());
+  await createSpaceRows(database.kysely, [{ id: SECOND_SPACE_ID }]);
+  const sources = { ...createTestContext(), spaceId: SECOND_SPACE_ID };
+  const seen: SpaceId[] = [];
+  const module = {
+    ...notes,
+    entries: {
+      ...notes.entries,
+      create: {
+        kind: "operation" as const,
+        async run(...args: Parameters<typeof notes.entries.create.run>) {
+          seen.push(args[1].spaceId);
+          return notes.entries.create.run(...args);
+        },
+      },
+    },
+  };
+  const client = createRouterClient(createFrame(module, { database, sources, checkOutputs: true }));
+
+  const note = await client.create({ title: "Mine", isPinned: false });
+
+  expect(seen).toEqual([SECOND_SPACE_ID]);
+  const rows = await database.kysely
+    .withTables<{ notes: { id: string; space_id: string } }>()
+    .selectFrom("notes")
+    .select(["id", "space_id"])
+    .execute();
+  expect(rows).toEqual([{ id: note.id, space_id: SECOND_SPACE_ID }]);
+  await expect(client.list({})).resolves.toEqual([note]);
 });
 
 test("output validation rejects and rolls back with checks on, and passes with checks off", async () => {
