@@ -190,7 +190,8 @@ export const AnInvalidTitleIsReportedAtItsFieldBeforeAnyCall: Story = {
     await waitFor(() => expect(form.title).toHaveAccessibleDescription("At most 200 characters."));
     await userEvent.click(form.save());
     await expect(port.calls).toEqual([]);
-    await expect(screen.getByRole("dialog", { name: "Website" })).toBeVisible();
+    // Under a loaded run the drawer's transition can lag; a drawer that closed would never return.
+    await waitFor(() => expect(screen.getByRole("dialog", { name: "Website" })).toBeVisible());
   },
 };
 
