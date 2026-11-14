@@ -54,8 +54,8 @@ describe.each(ICON_NAMES)("%s", (name) => {
 });
 
 describe("the catalog", () => {
-  it("exports exactly the starter icons", () => {
-    expect(Object.keys(catalog).toSorted()).toEqual(ICON_NAMES.toSorted());
+  it("exports exactly the starter icons, beside the length of a named size", () => {
+    expect(Object.keys(catalog).toSorted()).toEqual([...ICON_NAMES, "iconLength"].toSorted());
   });
 
   it("shows a different picture for every meaning", () => {

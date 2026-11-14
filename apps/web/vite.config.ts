@@ -5,26 +5,14 @@ import react, { reactCompilerPreset } from "@vitejs/plugin-react";
 import { defineConfig } from "vite-plus";
 
 import { startupBundle } from "./startup-bundle.ts";
+import { STARTUP_RULES } from "./startup-rules.ts";
 
 const host = "127.0.0.1";
 const port = Number(process.env.PORT ?? 5733);
 
 export default defineConfig({
   plugins: [
-    startupBundle({
-      // Baseline 839,270 raw JS bytes (#136); measured plus 6 %, rounded up to whole KiB (D258).
-      maxBytes: 869 * 1024,
-      lazyOnly: [
-        {
-          // What `import … from "zod"` loads: 85 KB at startup, 35 KB more than the parts that
-          // `zod/mini` needs (#136).
-          name: "Zod's full build",
-          path: "/node_modules/zod/v4/classic/",
-          instead:
-            'declare a schema that startup code reads, such as a Setting\'s, with "zod/mini".',
-        },
-      ],
-    }),
+    startupBundle(STARTUP_RULES),
     linguiPlugin(),
     tanstackRouter({ target: "react", autoCodeSplitting: true }),
     react(),

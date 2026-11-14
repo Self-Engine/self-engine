@@ -20,7 +20,7 @@ export {
   formatContrastFailure,
 } from "./contrast.ts";
 export { FONT_FAMILY } from "./font.ts";
-export type { ModuleColor } from "./module-colors.ts";
+export { colorSetColor, type ColorSetScope } from "./color-set-scope.ts";
 export {
   DENSITIES,
   type Density,

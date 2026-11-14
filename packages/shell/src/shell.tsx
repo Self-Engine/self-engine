@@ -360,7 +360,7 @@ function EntryLink({ entry, active, appearance }: EntryLinkProps) {
         aria-current={active ? "page" : undefined}
         aria-label={iconsOnly ? entry.label : undefined}
         component={Link}
-        data-module-color={entry.color}
+        data-color-set={entry.color}
         label={iconsOnly ? undefined : entry.label}
         leftSection={<Icon size={iconsOnly ? "xl" : appearance === "labelled" ? "lg" : "md"} />}
         to={entry.to}
@@ -788,7 +788,7 @@ function ShellFrame({
           >
             <Splitter.Pane
               {...moduleSidebarResize.paneProps}
-              data-module-color={activeColor}
+              data-color-set={activeColor}
               style={MODULE_SIDEBAR_PANE_STYLE}
             >
               {moduleSidebarShown && (
@@ -802,7 +802,7 @@ function ShellFrame({
             </Splitter.Pane>
             <Splitter.Pane
               defaultSize={100}
-              data-module-color={activeColor}
+              data-color-set={activeColor}
               style={CONTENT_PANE_STYLE}
             >
               <ContentHeader
@@ -937,7 +937,7 @@ function ModuleViews({
   const closeOverlay = useCloseOverlayOnPick();
   if (!module) return null;
   return (
-    <Stack gap="xs" data-module-color={module.color}>
+    <Stack gap="xs" data-color-set={module.color}>
       <Stack component="nav" aria-label={t`Module Sidebar`} gap="xs">
         {module.primaryAction && (
           <PrimaryAction moduleId={module.id} command={module.primaryAction} />

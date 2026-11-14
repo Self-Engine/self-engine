@@ -33,4 +33,4 @@ export const SidePanelIcon = catalogIcon(SidebarSimpleIcon);
 export const ErrorIcon = catalogIcon(WarningCircleIcon);
 export const ThemeColorsIcon = catalogIcon(PaletteIcon);
 
-export type { IconProps } from "./catalog-icon.ts";
+export { type CatalogIcon, type IconProps, type IconSize, iconLength } from "./catalog-icon.ts";
