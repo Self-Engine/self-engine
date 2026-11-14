@@ -120,7 +120,7 @@ Grilling und wurde nicht neu gezählt. Die Entscheidungen bleiben, wie sie sind.
   Familie. _Preis:_ keiner bei der Größe, jedes Phosphor-Icon bringt alle Strichstärken mit. Jeder
   Bildschirm ändert sich; Icons ohne umschlossene Fläche wie Plus und X sehen gleich aus. Die
   Änderung kommt als eigene kleine Änderung vor den Slices, damit man sie in der App für sich
-  ansieht.
+  ansieht. _Überholt durch D298._
 
 ## Abnahmekriterien von #106
 

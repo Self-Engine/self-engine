@@ -1,7 +1,7 @@
 ---
 status: accepted
 date: 2026-11-14
-decisions: D151, D291, D292, D293, D294, D295, D296, D297
+decisions: D151, D291, D292, D293, D294, D295, D296, D297, D298
 ---
 
 # An entry's icon and color are names, written strictly, read unchanged and drawn by one mark
@@ -127,8 +127,10 @@ not know must not break its lists.
    icon" clears any stored text but an emoji, a name from a newer version included; the emoji
    field clears an emoji; "no color" clears any stored color.
 
-10. **Every icon of the app is drawn in the duotone weight.** `catalogIcon` draws it for the icons
-    of the interface and those of entries. A caller still cannot choose a weight.
+10. **Every icon of the app is drawn in the regular weight.** `catalogIcon` draws it for the icons
+    of the interface and the pictures of the directory, so an entry's mark is regular too. A
+    caller still cannot choose a weight; a place that should be duotone gets an option on the
+    catalog when it is built (D298 changes D297).
 
 ## Consequences
 

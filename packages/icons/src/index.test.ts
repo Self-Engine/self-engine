@@ -1,3 +1,4 @@
+import { PlusIcon } from "@phosphor-icons/react/dist/csr/Plus";
 import { type ComponentProps, createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, expectTypeOf, it } from "vite-plus/test";
@@ -27,10 +28,10 @@ describe.each(ICON_NAMES)("%s", (name) => {
     expect(markup).toMatch(/^<svg [^>]*fill="currentColor"/);
   });
 
-  it("is drawn in the duotone weight, its fill layer in the same color", () => {
-    // Phosphor's duotone weight lays a shape at a fifth of the opacity under the line drawing;
-    // no other weight has it.
-    expect(markup).toMatch(/<path [^>]*opacity="0\.2"/);
+  it("is drawn in the regular weight, all in the same color", () => {
+    // Only Phosphor's duotone weight lays a shape at a fifth of the opacity under the line
+    // drawing; the regular weight is the line drawing alone.
+    expect(markup).not.toMatch(/opacity=/);
     expect(markup).not.toMatch(/<path [^>]*(fill|stroke)=/);
   });
 
@@ -58,6 +59,12 @@ describe("the catalog", () => {
     expect(Object.keys(catalog).toSorted()).toEqual([...ICON_NAMES, "iconLength"].toSorted());
   });
 
+  it("draws the picture of Phosphor's regular weight", () => {
+    const picture = (markup: string) => markup.replace(/^<svg [^>]*>/, "");
+    const regular = renderToStaticMarkup(createElement(PlusIcon, { weight: "regular" }));
+    expect(picture(renderToStaticMarkup(createElement(catalog.AddIcon)))).toBe(picture(regular));
+  });
+
   it("shows a different picture for every meaning", () => {
     const pictures = ICON_NAMES.map((name) =>
       renderToStaticMarkup(createElement(catalog[name])).replace(/^<svg [^>]*>/, ""),
@@ -81,7 +88,7 @@ describe("the props of an icon", () => {
     const fill: Props = { fill: "red" };
     // @ts-expect-error The surrounding element decides the color.
     const stroke: Props = { stroke: "red" };
-    // @ts-expect-error Every icon has the duotone weight.
+    // @ts-expect-error Every icon has the regular weight.
     const weight: Props = { weight: "bold" };
     expect([color, fill, stroke, weight]).toHaveLength(4);
   });
