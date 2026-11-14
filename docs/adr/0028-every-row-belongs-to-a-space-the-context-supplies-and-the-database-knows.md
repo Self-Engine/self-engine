@@ -101,8 +101,14 @@ data. The first real module would have copied the missing key into every table o
 
 ## Consequences
 
-- A row cannot belong to a Space the database does not know. A rewrite of `space_id` or an
-  import that misses a table fails as a whole when it commits, and nothing is written.
+- A row cannot belong to a Space the database does not know. A transaction that would leave
+  such a row fails as a whole when it commits, and nothing is written. That covers the rewrite
+  on a second device (D144), which changes the id of the Space row itself: a table it misses
+  still refers to the id that is gone. It also covers an import that writes rows for a Space it
+  did not create.
+- The key checks that the Space exists, not that a rewrite is complete. A rewrite that creates a
+  new Space row and keeps the old one can miss a table without an error, because the rows of
+  that table still refer to a Space the database knows.
 - A second device can keep the first device's id or rewrite its own, because the id is random
   and no two devices share it.
 - The cost, measured on a file in a temp directory: making sure of the Personal Space takes
