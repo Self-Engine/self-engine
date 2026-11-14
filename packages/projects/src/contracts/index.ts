@@ -40,6 +40,7 @@ export const projectSchema = z.object({
   color: z.string().nullable(),
   archivedAt: instantSchema.nullable(),
 });
+export type Project = z.output<typeof projectSchema>;
 
 const byId = z.strictObject({ id: projectIdSchema });
 

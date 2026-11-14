@@ -2,7 +2,7 @@ import { defineMigrations, type TablesOf } from "@self-engine/db";
 import { spaceIdSchema } from "@self-engine/storage";
 import { instantSchema } from "@self-engine/time";
 import { z } from "zod";
-import { projectIdSchema, type projectSchema } from "../contracts/index.ts";
+import { projectIdSchema, type Project } from "../contracts/index.ts";
 
 export const projectsMigrations = defineMigrations(
   "projects",
@@ -24,7 +24,6 @@ export const projectsRowMap = {
   }),
 };
 export type ProjectRow = TablesOf<typeof projectsRowMap>["projects"];
-export type Project = z.output<typeof projectSchema>;
 
 // Do not parse the row here: agreement is checked in tests, not on every query.
 export const toProject = (row: ProjectRow): Project => ({

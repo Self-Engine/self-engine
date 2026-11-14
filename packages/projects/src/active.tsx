@@ -3,7 +3,7 @@ import { Button } from "@mantine/core";
 import { ProjectsIcon } from "@self-engine/icons";
 import { useWriteViewSearch } from "@self-engine/shell";
 import { EmptyState, QueryStateBlock } from "@self-engine/ui";
-import { NEW_PROJECT_ID } from "./project-address.ts";
+import { openNewProject } from "./project-address.ts";
 import { ProjectList } from "./project-list.tsx";
 import { ACTIVE_PROJECTS, useActiveProjects } from "./port.ts";
 
@@ -22,11 +22,7 @@ export default function Active() {
           projects={projects}
           empty={
             <EmptyState
-              action={
-                <Button onClick={() => write((search) => ({ ...search, edit: NEW_PROJECT_ID }))}>
-                  {t`New project`}
-                </Button>
-              }
+              action={<Button onClick={() => openNewProject(write)}>{t`New project`}</Button>}
               description={t`Create your first project with "New project". It appears here.`}
               icon={ProjectsIcon}
               title={t`No projects yet`}
