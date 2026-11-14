@@ -25,6 +25,17 @@ export const projects = defineStorageModule({
     ),
     active: true,
   },
+  archived: smallSetList(["projects"], async (tx, context) =>
+    (
+      await sharedEntry(tx, context)
+        .live("projects")
+        .where("projects.archived_at", "is not", null)
+        .selectAll()
+        .orderBy("created_at")
+        .orderBy("id")
+        .execute()
+    ).map(toProject),
+  ),
   create: {
     kind: "operation",
     async run(tx, context, input) {
@@ -50,6 +61,18 @@ export const projects = defineStorageModule({
           color: input.color,
         }),
       );
+    },
+  },
+  archive: {
+    kind: "operation",
+    async run(tx, context, input) {
+      return toProject(await sharedWrites(tx, context).archive("projects", input.id));
+    },
+  },
+  unarchive: {
+    kind: "operation",
+    async run(tx, context, input) {
+      return toProject(await sharedWrites(tx, context).unarchive("projects", input.id));
     },
   },
   delete: {

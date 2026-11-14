@@ -12,9 +12,15 @@ export type Project = z.output<typeof projectSchema>;
 /** The input of the active projects: they have no filters. */
 export const ACTIVE_PROJECTS = {};
 
+/** The input of the archived projects: they have no filters either. */
+export const ARCHIVED_PROJECTS = {};
+
 export const useActiveProjects = projectsPort.query("active");
+export const useArchivedProjects = projectsPort.query("archived");
 export const useCreateProject = projectsPort.operation("create");
 export const useEditProject = projectsPort.operation("edit");
+export const useArchiveProject = projectsPort.operation("archive");
+export const useUnarchiveProject = projectsPort.operation("unarchive");
 export const useDeleteProject = projectsPort.operation("delete");
 export const useRestoreProject = projectsPort.operation("restore");
 

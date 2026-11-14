@@ -17,7 +17,13 @@ import { createRoot } from "react-dom/client";
 import { afterEach, expect, test } from "vite-plus/test";
 import { projects } from "./data/index.ts";
 import { contribution } from "./index.ts";
-import { ACTIVE_PROJECTS, createProject, useActiveProjects } from "./port.ts";
+import {
+  ACTIVE_PROJECTS,
+  ARCHIVED_PROJECTS,
+  createProject,
+  useActiveProjects,
+  useArchivedProjects,
+} from "./port.ts";
 
 declare global {
   var IS_REACT_ACT_ENVIRONMENT: boolean | undefined;
@@ -45,7 +51,7 @@ function untilReady(connection: DataConnection): Promise<void> {
 
 type List = ReturnType<typeof useActiveProjects>;
 
-/** The test Data Process with `projects`, and two readers of "Active" for two open Views. */
+/** The test Data Process with `projects`, two readers of "Active" for two open Views, and one of "Archive". */
 async function renderOverPort() {
   const process = await startTestDataProcess({ modules: { projects } });
   cleanups.push(() => process.close());
@@ -64,9 +70,15 @@ async function renderOverPort() {
   };
 
   const lists: [List | undefined, List | undefined] = [undefined, undefined];
+  let archive: List | undefined;
   const waiting = new Set<() => void>();
   function Reader({ index }: { readonly index: 0 | 1 }): ReactNode {
     lists[index] = useActiveProjects(ACTIVE_PROJECTS);
+    for (const check of waiting) check();
+    return null;
+  }
+  function ArchiveReader(): ReactNode {
+    archive = useArchivedProjects(ARCHIVED_PROJECTS);
     for (const check of waiting) check();
     return null;
   }
@@ -81,6 +93,7 @@ async function renderOverPort() {
   const readers = [
     createElement(Reader, { index: 0, key: 0 }),
     createElement(Reader, { index: 1, key: 1 }),
+    createElement(ArchiveReader, { key: "archive" }),
   ];
   const i18n = setupI18n({ locale: "en", messages: { en: {} } });
   root.render(
@@ -106,6 +119,20 @@ async function renderOverPort() {
           if (!matches(first) || !matches(second)) return;
           waiting.delete(check);
           resolve(first);
+        };
+        waiting.add(check);
+        check();
+      });
+    },
+    /** Resolves once both readers of "Active" show `active` and the reader of "Archive" `archived`. */
+    untilLists(active: (list: List) => boolean, archived: (list: List) => boolean): Promise<void> {
+      return new Promise((resolve) => {
+        const check = () => {
+          const [first, second] = lists;
+          if (first === undefined || second === undefined || archive === undefined) return;
+          if (!active(first) || !active(second) || !archived(archive)) return;
+          waiting.delete(check);
+          resolve();
         };
         waiting.add(check);
         check();
@@ -324,4 +351,79 @@ test("a project comes back even when another project carries its title by now", 
   });
   const both = await rendered.until((list) => titles(list)?.length === 2);
   expect(titles(both)).toEqual(["Tax", "Tax"]);
+});
+
+const titled =
+  (...expected: string[]) =>
+  (list: List) =>
+    JSON.stringify(titles(list)) === JSON.stringify(expected);
+
+test("archiving moves a project from Active to Archive in every open View, and unarchiving moves it back", async () => {
+  const rendered = await renderOverPort();
+  const created = await createProject(rendered.data, { title: "Website", icon: "house" });
+  if (created.status !== "success") throw new Error("Not created");
+  const { id } = created.data;
+  await rendered.untilLists(titled("Website"), titled());
+
+  const archived = await callPort(rendered.data, "archive", { id });
+  expect(archived).toEqual({
+    data: { ...created.data, archivedAt: expect.any(String) },
+  });
+  await rendered.untilLists(titled(), titled("Website"));
+
+  const unarchived = await callPort(rendered.data, "unarchive", { id });
+  expect(unarchived).toEqual({ data: created.data });
+  await rendered.untilLists(titled("Website"), titled());
+});
+
+test("archiving an archived project and unarchiving an active one answer with it and change nothing", async () => {
+  const rendered = await renderOverPort();
+  const created = await createProject(rendered.data, { title: "Website" });
+  if (created.status !== "success") throw new Error("Not created");
+  const { id } = created.data;
+
+  expect(await callPort(rendered.data, "unarchive", { id })).toEqual({ data: created.data });
+  const archived = await callPort(rendered.data, "archive", { id });
+  expect(await callPort(rendered.data, "archive", { id })).toEqual(archived);
+  await rendered.untilLists(titled(), titled("Website"));
+});
+
+test("an archived project is edited like an active one and stays archived", async () => {
+  const rendered = await renderOverPort();
+  const created = await createProject(rendered.data, { title: "Website" });
+  if (created.status !== "success") throw new Error("Not created");
+  const { id } = created.data;
+  const archived = await callPort(rendered.data, "archive", { id });
+
+  expect(await callPort(rendered.data, "edit", { id, title: "Shop" })).toEqual({
+    data: { ...(archived.data as object), title: "Shop" },
+  });
+  await rendered.untilLists(titled(), titled("Shop"));
+});
+
+test("a deleted archived project comes back archived", async () => {
+  const rendered = await renderOverPort();
+  const created = await createProject(rendered.data, { title: "Website" });
+  if (created.status !== "success") throw new Error("Not created");
+  const { id } = created.data;
+  const archived = await callPort(rendered.data, "archive", { id });
+  await rendered.untilLists(titled(), titled("Website"));
+
+  expect(await callPort(rendered.data, "delete", { id })).toEqual(archived);
+  await rendered.untilLists(titled(), titled());
+  expect(await callPort(rendered.data, "restore", { id })).toEqual(archived);
+  await rendered.untilLists(titled(), titled("Website"));
+});
+
+test("archive and unarchive answer not found for an unknown or a deleted project", async () => {
+  const rendered = await renderOverPort();
+  const created = await createProject(rendered.data, { title: "Website" });
+  if (created.status !== "success") throw new Error("Not created");
+  const { id } = created.data;
+  await callPort(rendered.data, "delete", { id });
+  const unknown = "01a1cfa1-0b00-7000-8000-000000000099";
+  for (const entry of ["archive", "unarchive"]) {
+    expect(await callPort(rendered.data, entry, { id })).toEqual({ error: "NOT_FOUND" });
+    expect(await callPort(rendered.data, entry, { id: unknown })).toEqual({ error: "NOT_FOUND" });
+  }
 });

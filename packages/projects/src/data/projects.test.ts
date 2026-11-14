@@ -7,8 +7,10 @@ import { projectIdSchema } from "../contracts/index.ts";
 import { projects } from "./index.ts";
 import { projectsMigrations, projectsRowMap } from "./rows.ts";
 
-// The kit's test context hands out these ids in order: the seed's Website, Tax, then its deleted one.
+// The kit's test context hands out these ids in order: the seed's Website, its archived Tax, then
+// its deleted one.
 const websiteId = projectIdSchema.parse("01a1cfa1-0a00-7000-8000-000000000000");
+const archivedId = projectIdSchema.parse("01a1cfa1-0a00-7000-8000-000000000001");
 const deletedId = projectIdSchema.parse("01a1cfa1-0a00-7000-8000-000000000002");
 
 test("the projects table follows the conventions and agrees with its row map", async () => {
@@ -34,12 +36,14 @@ test("projects passes the storage contract kit", async () => {
           icon: "house",
           color: "teal",
         });
-        await entries.create.run(tx, context, { title: "Tax" });
+        const tax = await entries.create.run(tx, context, { title: "Tax" });
+        await entries.archive.run(tx, context, { id: tax.id });
         const removed = await entries.create.run(tx, context, { title: "Old tax" });
         await entries.delete.run(tx, context, { id: removed.id });
       },
       {
         active: {},
+        archived: {},
         create: { title: "Garden", description: null, icon: "🌱", color: null },
         edit: {
           id: websiteId,
@@ -48,6 +52,8 @@ test("projects passes the storage contract kit", async () => {
           icon: "🌱",
           color: "lime",
         },
+        archive: { id: websiteId },
+        unarchive: { id: archivedId },
         delete: { id: websiteId },
         restore: { id: deletedId },
       },

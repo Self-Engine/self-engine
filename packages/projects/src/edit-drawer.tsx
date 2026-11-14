@@ -14,59 +14,83 @@ import { ErrorState, QueryStateBlock } from "@self-engine/ui";
 import type { ReactNode } from "react";
 import { useState } from "react";
 import { projectsContract } from "./contracts/index.ts";
-import { useDeleteWithUndo } from "./delete-with-undo.tsx";
 import { NEW_PROJECT_ID } from "./project-address.ts";
 import {
   ACTIVE_PROJECTS,
+  ARCHIVED_PROJECTS,
   type Project,
   useActiveProjects,
+  useArchivedProjects,
   useCreateProject,
   useEditProject,
 } from "./port.ts";
+import { useArchiveWithUndo, useDeleteWithUndo, useUnarchiveWithUndo } from "./with-undo.tsx";
 
 /**
  * The Edit Drawer of `projects`. It loads on demand with the Contract, whose input schema the form
- * checks with (D317). A stored project is found in the list Query: there is no Query for one id.
+ * checks with (D317). A stored project is found in the two list Queries, "Active" and "Archive":
+ * there is no Query for one id.
  */
 export default function EditDrawer(props: EditDrawerProps) {
   if (props.id === NEW_PROJECT_ID) return <CreateForm {...props} />;
   return <StoredProjectDrawer {...props} />;
 }
 
+const withId = (projects: readonly Project[], id: string) =>
+  projects.find((project) => project.id === id);
+
 function StoredProjectDrawer(props: EditDrawerProps) {
+  const active = useActiveProjects(ACTIVE_PROJECTS);
+  const archived = useArchivedProjects(ARCHIVED_PROJECTS);
   return (
-    <QueryStateBlock state={useActiveProjects(ACTIVE_PROJECTS)}>
-      {(projects) => (
-        <FoundProject {...props} found={projects.find((project) => project.id === props.id)} />
+    <QueryStateBlock state={active}>
+      {(activeProjects) => (
+        <QueryStateBlock state={archived}>
+          {(archivedProjects) => (
+            <FoundProject
+              {...props}
+              found={withId(activeProjects, props.id) ?? withId(archivedProjects, props.id)}
+            />
+          )}
+        </QueryStateBlock>
       )}
     </QueryStateBlock>
   );
 }
 
+/** A named Operation of the action slot, which closes the drawer and offers undo in a Notice. */
+type Leave = (id: Project["id"]) => Promise<void>;
+
 /**
  * Keeps the last project it found, so that one deleted elsewhere stays readable with the warning
- * (D324), and one deleted here stays through the closing transition without it (#132).
+ * (D324). Once "Archive", "Unarchive" or "Delete" was chosen here, it keeps that project as it was
+ * through the closing transition (#132): the project moves between the two lists, or leaves both,
+ * and the closing drawer shows neither "not found", the warning nor the other button.
  */
 function FoundProject({
   found,
   ...props
 }: EditDrawerProps & { readonly found: Project | undefined }) {
   const remove = useDeleteWithUndo();
+  const archive = useArchiveWithUndo();
+  const unarchive = useUnarchiveWithUndo();
   const [last, setLast] = useState(found);
-  if (found !== undefined && found !== last) setLast(found);
-  const [deletedHere, setDeletedHere] = useState(false);
-  const project = found ?? last;
+  const [leaving, setLeaving] = useState(false);
+  if (!leaving && found !== undefined && found !== last) setLast(found);
+  const project = leaving ? last : (found ?? last);
   if (project === undefined) return <NotFound {...props} />;
+  const leave = (operation: Leave) => () => {
+    setLeaving(true);
+    void operation(project.id);
+    props.onDone();
+  };
   return (
     <EditForm
       {...props}
       project={project}
-      deleted={found === undefined && !deletedHere}
-      onDelete={() => {
-        setDeletedHere(true);
-        void remove(project.id);
-        props.onDone();
-      }}
+      deleted={found === undefined && !leaving}
+      onArchive={leave(project.archivedAt === null ? archive : unarchive)}
+      onDelete={leave(remove)}
     />
   );
 }
@@ -105,12 +129,14 @@ function CreateForm({ onCancel, onDone }: EditDrawerProps) {
 function EditForm({
   project,
   deleted,
+  onArchive,
   onDelete,
   onCancel,
   onDone,
 }: EditDrawerProps & {
   readonly project: Project;
   readonly deleted: boolean;
+  readonly onArchive: () => void;
   readonly onDelete: () => void;
 }) {
   const { t } = useLingui();
@@ -134,9 +160,18 @@ function EditForm({
       form={form}
       onCancel={onCancel}
       actions={
-        <Button onClick={onDelete} variant="subtle">
-          {t`Delete`}
-        </Button>
+        // Named Operations, never fields (D322, D323): archiving locks nothing, so an archived
+        // project is edited and deleted here like an active one.
+        <>
+          <Button onClick={onArchive} variant="subtle">
+            {project.archivedAt === null
+              ? t({ message: "Archive", context: "Archive a project" })
+              : t`Unarchive`}
+          </Button>
+          <Button onClick={onDelete} variant="subtle">
+            {t`Delete`}
+          </Button>
+        </>
       }
     />
   );

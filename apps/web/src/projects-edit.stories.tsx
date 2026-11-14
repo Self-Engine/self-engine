@@ -4,6 +4,7 @@
 // module's Port test and the contract kit.
 
 import {
+  OLD_SHOP,
   type PortCall,
   type ProjectsAnswers,
   type ProjectsStoryPort,
@@ -29,6 +30,16 @@ type StoredProject = Omit<typeof WEBSITE, "description" | "icon"> & {
 const listOf = (...projects: readonly StoredProject[]): ProjectsAnswers => ({
   active: { data: projects.map((project) => ({ ...project })) },
 });
+/** Both lists: the active projects, then the archived ones. */
+const listsOf = (
+  active: readonly StoredProject[],
+  archived: readonly StoredProject[],
+): ProjectsAnswers => ({
+  active: { data: active.map((project) => ({ ...project })) },
+  archived: { data: archived.map((project) => ({ ...project })) },
+});
+const ARCHIVED_AT = "2026-11-12T12:00:00.000Z";
+const ARCHIVE = "/projects/archive";
 
 let port = projectsStoryPort();
 
@@ -52,8 +63,8 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-const titlesShown = async (canvas: Canvas) =>
-  within(await canvas.findByRole("list", { name: "Active projects" }))
+const titlesShown = async (canvas: Canvas, name = "Active projects") =>
+  within(await canvas.findByRole("list", { name }))
     .getAllByRole("button")
     .map((row) => row.lastElementChild?.textContent);
 
@@ -285,5 +296,161 @@ export const TheStoredProjectsDrawerInGerman: Story = {
     await expect(drawer.getByRole("button", { name: "Speichern" })).toBeDisabled();
     // The drawer can still be sliding in.
     await waitFor(() => expect(drawer.getByRole("button", { name: "Löschen" })).toBeVisible());
+    await expect(drawer.getByRole("button", { name: "Archivieren" })).toBeVisible();
+  },
+};
+
+/** What "not found" and the warning of a project deleted elsewhere say. */
+const FLASHES = ["Project not found", "This entry was deleted"];
+
+export const ArchiveClosesTheDrawerAndUndoBringsTheProjectBack: Story = {
+  beforeEach: keepNoticesOpen,
+  render: (args) => (
+    <AppAt
+      address={args.address}
+      access={storyPort(listsOf([WEBSITE, ...OTHERS], []), (call, of) => {
+        const archived = { ...WEBSITE, archivedAt: ARCHIVED_AT };
+        if (call.entry === "archive") of.change(listsOf(OTHERS, [archived]));
+        if (call.entry === "unarchive") of.change(listsOf([WEBSITE, ...OTHERS], []));
+      })}
+    />
+  ),
+  play: async ({ canvas }) => {
+    const form = await openFromTheList(canvas);
+    await expect(form.drawer.queryByRole("button", { name: "Unarchive" })).toBeNull();
+    const flash = watchFor([...FLASHES, "Unarchive"]);
+    try {
+      await userEvent.click(form.drawer.getByRole("button", { name: "Archive" }));
+      await noDrawer();
+      await waitFor(async () => expect(await titlesShown(canvas)).toEqual(["Tax"]));
+      await expect(flash.seen()).toBeUndefined();
+    } finally {
+      flash.stop();
+    }
+    await expect(await screen.findByText("Project archived")).toBeVisible();
+
+    await undoLast();
+    await waitFor(async () => expect(await titlesShown(canvas)).toEqual(["Tax", "Website"]));
+    await expect(port.calls).toEqual([
+      { entry: "archive", input: { id: WEBSITE.id } },
+      { entry: "unarchive", input: { id: WEBSITE.id } },
+    ]);
+    await expect(screen.queryByRole("dialog")).toBeNull();
+  },
+};
+
+const OLD_SHOP_ACTIVE = { ...OLD_SHOP, archivedAt: null };
+
+export const UnarchiveClosesTheDrawerAndUndoArchivesAgain: Story = {
+  args: { address: ARCHIVE },
+  beforeEach: keepNoticesOpen,
+  render: (args) => (
+    <AppAt
+      address={args.address}
+      access={storyPort(listsOf(OTHERS, [OLD_SHOP]), (call, of) => {
+        if (call.entry === "unarchive") of.change(listsOf([...OTHERS, OLD_SHOP_ACTIVE], []));
+        if (call.entry === "archive") of.change(listsOf(OTHERS, [OLD_SHOP]));
+      })}
+    />
+  ),
+  play: async ({ canvas }) => {
+    const form = await openFromTheList(canvas, OLD_SHOP.title);
+    await expect(form.drawer.queryByRole("button", { name: "Archive" })).toBeNull();
+    const flash = watchFor(FLASHES);
+    try {
+      await userEvent.click(form.drawer.getByRole("button", { name: "Unarchive" }));
+      await noDrawer();
+      await canvas.findByText("No archived projects");
+      await expect(flash.seen()).toBeUndefined();
+    } finally {
+      flash.stop();
+    }
+    await expect(await screen.findByText("Project unarchived")).toBeVisible();
+
+    await undoLast();
+    await waitFor(async () =>
+      expect(await titlesShown(canvas, "Archived projects")).toEqual(["Old shop"]),
+    );
+    await expect(port.calls).toEqual([
+      { entry: "unarchive", input: { id: OLD_SHOP.id } },
+      { entry: "archive", input: { id: OLD_SHOP.id } },
+    ]);
+  },
+};
+
+export const AnArchivedProjectIsEditedAndSavedAndStaysArchived: Story = {
+  args: { address: ARCHIVE },
+  render: (args) => (
+    <AppAt
+      address={args.address}
+      access={storyPort(listsOf(OTHERS, [OLD_SHOP]), (call, of) => {
+        if (call.entry === "edit") of.change(listsOf(OTHERS, [{ ...OLD_SHOP, title: "Shop" }]));
+      })}
+    />
+  ),
+  play: async ({ canvas }) => {
+    const form = await openFromTheList(canvas, OLD_SHOP.title);
+    await expect(form.title).toHaveValue("Old shop");
+    await expect(form.save()).toBeDisabled();
+    await waitFor(() =>
+      expect(form.drawer.getByRole("button", { name: "Unarchive" })).toBeVisible(),
+    );
+    await expect(form.drawer.getByRole("button", { name: "Delete" })).toBeVisible();
+    await userEvent.clear(form.title);
+    await userEvent.type(form.title, "Shop");
+    await userEvent.click(form.save());
+    await noDrawer();
+    await expect(port.calls).toEqual([
+      { entry: "edit", input: { id: OLD_SHOP.id, title: "Shop" } },
+    ]);
+    await waitFor(async () =>
+      expect(await titlesShown(canvas, "Archived projects")).toEqual(["Shop"]),
+    );
+  },
+};
+
+export const AnArchivedProjectIsDeletedAndUndoBringsItBackArchived: Story = {
+  args: { address: ARCHIVE },
+  beforeEach: keepNoticesOpen,
+  render: (args) => (
+    <AppAt
+      address={args.address}
+      access={storyPort(listsOf(OTHERS, [OLD_SHOP]), (call, of) => {
+        if (call.entry === "delete") of.change(listsOf(OTHERS, []));
+        if (call.entry === "restore") of.change(listsOf(OTHERS, [OLD_SHOP]));
+      })}
+    />
+  ),
+  play: async ({ canvas }) => {
+    const form = await openFromTheList(canvas, OLD_SHOP.title);
+    const flash = watchFor(FLASHES);
+    try {
+      await userEvent.click(form.drawer.getByRole("button", { name: "Delete" }));
+      await noDrawer();
+      await canvas.findByText("No archived projects");
+      await expect(flash.seen()).toBeUndefined();
+    } finally {
+      flash.stop();
+    }
+    await undoLast();
+    await waitFor(async () =>
+      expect(await titlesShown(canvas, "Archived projects")).toEqual(["Old shop"]),
+    );
+    await expect(port.calls).toEqual([
+      { entry: "delete", input: { id: OLD_SHOP.id } },
+      { entry: "restore", input: { id: OLD_SHOP.id } },
+    ]);
+  },
+};
+
+export const TheArchivedProjectsDrawerInGerman: Story = {
+  args: { address: ARCHIVE },
+  globals: { language: "de" },
+  play: async ({ canvas }) => {
+    await userEvent.click(await canvas.findByRole("button", { name: OLD_SHOP.title }));
+    const drawer = within(await screen.findByRole("dialog", { name: OLD_SHOP.title }));
+    await expect(await drawer.findByRole("textbox", { name: "Titel" })).toHaveValue("Old shop");
+    await waitFor(() => expect(drawer.getByRole("button", { name: "Reaktivieren" })).toBeVisible());
+    await expect(drawer.getByRole("button", { name: "Löschen" })).toBeVisible();
   },
 };

@@ -35,6 +35,10 @@ msgstr "{minimum, plural, other {Mehr als #.}}"
 msgid "A newer version already applied the update {migration}, which this version does not know. Open your data with the newer version."
 msgstr "Eine neuere Version hat bereits das Update {migration} angewendet, das diese Version nicht kennt. Öffne deine Daten mit der neueren Version."
 
+#: packages/projects/src/archive.tsx
+msgid "A project you archive leaves \"Active\" and appears here."
+msgstr "Ein Projekt, das du archivierst, verlässt „Aktiv“ und erscheint hier."
+
 #: packages/settings-area/src/index.ts
 msgid "About"
 msgstr "Über"
@@ -80,15 +84,25 @@ msgstr "App-Sprache"
 msgid "Appearance"
 msgstr "Darstellung"
 
+#: packages/projects/src/edit-drawer.tsx
+msgctxt "Archive a project"
+msgid "Archive"
+msgstr "Archivieren"
+
 #: packages/icons/src/directory/labels.ts
 msgctxt "Icon"
 msgid "Archive"
 msgstr "Archiv"
 
 #: packages/placeholder-alpha/src/index.ts
+#: packages/projects/src/index.ts
 msgctxt "View title"
 msgid "Archive"
 msgstr "Archiv"
+
+#: packages/projects/src/archive.tsx
+msgid "Archived projects"
+msgstr "Archivierte Projekte"
 
 #: packages/settings-area/src/rows.tsx
 msgid "Background Tint"
@@ -811,6 +825,10 @@ msgctxt "Channel"
 msgid "Nightly"
 msgstr "Nightly"
 
+#: packages/projects/src/archive.tsx
+msgid "No archived projects"
+msgstr "Keine archivierten Projekte"
+
 #: packages/ui/src/entry-pickers/entry-color-picker.tsx
 msgid "No color"
 msgstr "Keine Farbe"
@@ -988,13 +1006,21 @@ msgctxt "Icon"
 msgid "Prohibited"
 msgstr "Verbot"
 
-#: packages/projects/src/delete-with-undo.tsx
+#: packages/projects/src/with-undo.tsx
+msgid "Project archived"
+msgstr "Projekt archiviert"
+
+#: packages/projects/src/with-undo.tsx
 msgid "Project deleted"
 msgstr "Projekt gelöscht"
 
 #: packages/projects/src/edit-drawer.tsx
 msgid "Project not found"
 msgstr "Projekt nicht gefunden"
+
+#: packages/projects/src/with-undo.tsx
+msgid "Project unarchived"
+msgstr "Projekt reaktiviert"
 
 #: packages/projects/src/index.ts
 msgid "Projects"
@@ -1405,6 +1431,10 @@ msgstr "Erneut versuchen"
 #: packages/settings-area/src/area.tsx
 msgid "Try another word, or clear the search."
 msgstr "Versuche ein anderes Wort oder leere die Suche."
+
+#: packages/projects/src/edit-drawer.tsx
+msgid "Unarchive"
+msgstr "Reaktivieren"
 
 #: packages/shell/src/shell-commands.ts
 #: packages/ui/src/feedback.tsx

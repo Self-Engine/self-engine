@@ -30,7 +30,9 @@ export function storyPortOf<Answers>(
   first: Answers,
   afterCall?: (call: PortCall, port: ProjectsStoryPort<Answers>) => void,
 ): ProjectsStoryPort<Answers> {
-  const changing = changingAnswers(answersOf(first), { projects: { active: [TABLE] } });
+  const changing = changingAnswers(answersOf(first), {
+    projects: { active: [TABLE], archived: [TABLE] },
+  });
   const calls: PortCall[] = [];
   const port: ProjectsStoryPort<Answers> = {
     calls,

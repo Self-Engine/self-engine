@@ -29,6 +29,11 @@ export const contribution = defineContribution({
       title: msg({ message: "Active", context: "View title" }),
       load: () => import("./active.tsx"),
     },
+    {
+      id: "archive",
+      title: msg({ message: "Archive", context: "View title" }),
+      load: () => import("./archive.tsx"),
+    },
   ],
   commands: [newProject, createProject],
   primaryAction: newProject,

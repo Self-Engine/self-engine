@@ -48,9 +48,17 @@ const byId = z.strictObject({ id: projectIdSchema });
 export const projectsContract = {
   /** The Live Rows that are not archived: a small set, sorted by title in the page. */
   active: oc.input(z.strictObject({})).output(z.array(projectSchema)),
+  /** The archived Live Rows: a small set, sorted by title in the page as "Active" is. */
+  archived: oc.input(z.strictObject({})).output(z.array(projectSchema)),
   create: oc.input(projectFields.create).output(projectSchema),
   /** The edit pattern (D329): a missing field stays, `null` clears, an edit without fields reads. */
   edit: oc.input(projectFields.edit).output(projectSchema).errors({ NOT_FOUND: {} }),
+  /**
+   * Archive and unarchive lock nothing and answer with the project. Archiving an archived project,
+   * or unarchiving an active one, changes nothing and is no error (D327).
+   */
+  archive: oc.input(byId).output(projectSchema).errors({ NOT_FOUND: {} }),
+  unarchive: oc.input(byId).output(projectSchema).errors({ NOT_FOUND: {} }),
   /** A soft delete; `restore` is its undo and brings the project back as it was, archived or not. */
   delete: oc.input(byId).output(projectSchema).errors({ NOT_FOUND: {} }),
   restore: oc.input(byId).output(projectSchema).errors({ NOT_FOUND: {} }),

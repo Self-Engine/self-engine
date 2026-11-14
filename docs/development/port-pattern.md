@@ -167,6 +167,10 @@ as [`cards/data/index.ts`](../../packages/storage/test/cards-module/data/index.t
 - Archived and deleted are independent: `softDelete` and `restore` leave `archived_at`, so a
   deleted archived row comes back archived.
 - Name the Operations `archive` and `unarchive`; `restore` stays the undo of a delete.
+- A Query for an archive View reads ``live(table).where(`${table}.archived_at`, "is not", null)``,
+  as the `archived` Query of [`projects/data/index.ts`](../../packages/projects/src/data/index.ts)
+  does; its Edit Drawer finds an entry in either list and offers "Archive" or "Unarchive" beside
+  "Delete", each closing the drawer with undo in a Notice.
 
 For joins, aggregates and multi-row changes, use ordinary Kysely builders and explicitly
 apply Space and live-row filters where required. Raw SQL and raw executors in storage are

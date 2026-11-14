@@ -20,13 +20,16 @@ export function sampleProjectId(index: number): string {
   return `01a1cfa1-0b00-7000-8000-${index.toString(16).padStart(12, "0")}`;
 }
 
-const project = (index: number, fields: { title: string; icon?: string; color?: string }) => ({
+const project = (
+  index: number,
+  fields: { title: string; icon?: string; color?: string; archivedAt?: string },
+) => ({
   id: sampleProjectId(index),
   title: fields.title,
   description: null,
   icon: fields.icon ?? null,
   color: fields.color ?? null,
-  archivedAt: null,
+  archivedAt: fields.archivedAt ?? null,
 });
 
 /** With an icon and a color. */
@@ -39,13 +42,26 @@ export const TAX = project(3, { title: "Tax" });
 export const DOCTORS = project(4, { title: "Ärzte", color: "red" });
 export const WORK = project(5, { title: "Arbeit" });
 export const CAR = project(6, { title: "Auto" });
+/** Archived, with an icon and a color. */
+export const OLD_SHOP = project(8, {
+  title: "Old shop",
+  icon: "house",
+  color: "orange",
+  archivedAt: "2026-03-01T09:00:00.000Z",
+});
+/** Archived, without icon and color; created first and sorted after "Old shop". */
+export const TAX_2025 = project(9, { title: "Tax 2025", archivedAt: "2026-02-01T09:00:00.000Z" });
 
 /**
- * The answers of a story where every Operation succeeds and the active list holds six projects in
- * the order of creation. An Operation changes nothing: no Table Change follows.
+ * The answers of a story where every Operation succeeds, the active list holds six projects and the
+ * archived list two, in the order of creation. An Operation changes nothing: no Table Change
+ * follows.
  */
 export const SUCCEEDING: ProjectsAnswers = {
   active: { data: [WEBSITE, GARDEN, TAX, DOCTORS, WORK, CAR] },
+  archived: { data: [TAX_2025, OLD_SHOP] },
+  archive: { data: { ...WEBSITE, archivedAt: "2026-11-12T12:00:00.000Z" } },
+  unarchive: { data: { ...OLD_SHOP, archivedAt: null } },
   create: { data: project(7, { title: "New project" }) },
   edit: { data: WEBSITE },
   delete: { data: WEBSITE },
