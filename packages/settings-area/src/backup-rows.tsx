@@ -4,12 +4,10 @@
 import type { MessageDescriptor } from "@lingui/core";
 import { msg } from "@lingui/core/macro";
 import { Trans, useLingui } from "@lingui/react/macro";
-import { Alert, Box, Button, Group, Stack, Text } from "@mantine/core";
+import { Box, Button, Group, Stack, Text } from "@mantine/core";
 import { useDataAccess } from "@self-engine/data-client/react";
-import { ErrorIcon } from "@self-engine/icons";
-import { roleColor } from "@self-engine/theme";
 import { deviceTimeZone, formatInstant, type TimeZone } from "@self-engine/time";
-import { notifyDone, notifyUndoable, QueryStateBlock } from "@self-engine/ui";
+import { notifyDone, notifyUndoable, QueryStateBlock, WarningAlert } from "@self-engine/ui";
 import { memo, useCallback, useState } from "react";
 import {
   type Backup,
@@ -60,15 +58,6 @@ export function backupTime(
   return formatInstant(backup.takenAt, "dateTime", locale, timeZone);
 }
 
-/** Mantine's alert in the theme's warning roles, which its own `color` cannot name. */
-const WARNING_VARS = () => ({
-  root: {
-    "--alert-bg": roleColor("warningSoft"),
-    "--alert-color": roleColor("warningText"),
-    "--alert-bd": "none",
-  },
-});
-
 /**
  * Shown while the automatic Backups fail (D94): nobody asked for them, so nobody would be told.
  * It goes when the next Backup succeeds, whoever asked for it.
@@ -76,18 +65,12 @@ const WARNING_VARS = () => ({
 function AutomaticBackupFailed() {
   return (
     // Its own line below the title and the button.
-    <Alert
-      flex="1 1 100%"
-      // The icon the app already loads at startup: one of its own would add 3.3 KB there.
-      icon={<ErrorIcon />}
-      title={<Trans>The last automatic backup failed</Trans>}
-      vars={WARNING_VARS}
-    >
+    <WarningAlert flex="1 1 100%" title={<Trans>The last automatic backup failed</Trans>}>
       <Trans>
         Your data is not being backed up at the moment. Check that this device has free disk space.
         The app tries again within the hour, and "Create backup now" tries at once.
       </Trans>
-    </Alert>
+    </WarningAlert>
   );
 }
 
