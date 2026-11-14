@@ -32,6 +32,8 @@ interface Archivable {
 type ArchivableTable<DB> = {
   [Table in SyncedTable<DB>]: DB[Table] extends Archivable ? Table : never;
 }[SyncedTable<DB>];
+/** The id of a row of a synchronized table, with its brand. */
+type RowId<DB, Table extends keyof DB> = DB[Table] extends Convention ? DB[Table]["id"] : never;
 type ConventionKey = keyof Convention | keyof Archivable;
 type Fields<Row> = Omit<Row, ConventionKey> & { [Key in ConventionKey]?: never };
 /** An edit's fields: a field left `undefined` is missing from the call and stays untouched. */
@@ -88,10 +90,7 @@ export function sharedEntry<DB>(tx: ReadAccess<DB>, context: StorageContext) {
       .where(`${table}.deleted_at`, "is", null)
       .where(`${table}.archived_at`, "is", null) as unknown as SelectQueryBuilder<DB, Table, {}>;
   }
-  async function lookup<Table extends SyncedTable<DB>>(
-    table: Table,
-    id: DB[Table] extends Convention ? DB[Table]["id"] : never,
-  ) {
+  async function lookup<Table extends SyncedTable<DB>>(table: Table, id: RowId<DB, Table>) {
     const row = await scoped(table)
       .where(`${table}.deleted_at`, "is", null)
       .where(`${String(table)}.id`, "=", id)
@@ -109,7 +108,7 @@ export function sharedWrites<DB>(tx: Transaction<DB>, context: StorageContext) {
   const reads = sharedEntry<DB>(tx, context);
   async function change<Table extends SyncedTable<DB>>(
     table: Table,
-    id: DB[Table] extends Convention ? DB[Table]["id"] : never,
+    id: RowId<DB, Table>,
     values: object,
     restoring: boolean,
   ) {
@@ -132,7 +131,7 @@ export function sharedWrites<DB>(tx: Transaction<DB>, context: StorageContext) {
    */
   async function setArchived<Table extends ArchivableTable<DB>>(
     table: Table,
-    id: DB[Table] extends Convention ? DB[Table]["id"] : never,
+    id: RowId<DB, Table>,
     archived: boolean,
   ) {
     assertSynchronizedTable(table);
@@ -153,7 +152,7 @@ export function sharedWrites<DB>(tx: Transaction<DB>, context: StorageContext) {
     ...reads,
     async insert<Table extends SyncedTable<DB>>(
       table: Table,
-      id: DB[Table] extends Convention ? DB[Table]["id"] : never,
+      id: RowId<DB, Table>,
       fields: Fields<Insertable<DB[Table]>>,
     ) {
       // Also checks the reserved Local Table prefix at runtime for untyped callers.
@@ -180,35 +179,23 @@ export function sharedWrites<DB>(tx: Transaction<DB>, context: StorageContext) {
      */
     update<Table extends SyncedTable<DB>>(
       table: Table,
-      id: DB[Table] extends Convention ? DB[Table]["id"] : never,
+      id: RowId<DB, Table>,
       fields: EditFields<Updateable<DB[Table]>>,
     ) {
       const values = writableFields(fields);
       if (Object.keys(values).length === 0) return reads.lookup(table, id);
       return change(table, id, values, false);
     },
-    softDelete<Table extends SyncedTable<DB>>(
-      table: Table,
-      id: DB[Table] extends Convention ? DB[Table]["id"] : never,
-    ) {
+    softDelete<Table extends SyncedTable<DB>>(table: Table, id: RowId<DB, Table>) {
       return change(table, id, { deleted_at: context.now }, false);
     },
-    restore<Table extends SyncedTable<DB>>(
-      table: Table,
-      id: DB[Table] extends Convention ? DB[Table]["id"] : never,
-    ) {
+    restore<Table extends SyncedTable<DB>>(table: Table, id: RowId<DB, Table>) {
       return change(table, id, { deleted_at: null }, true);
     },
-    archive<Table extends ArchivableTable<DB>>(
-      table: Table,
-      id: DB[Table] extends Convention ? DB[Table]["id"] : never,
-    ) {
+    archive<Table extends ArchivableTable<DB>>(table: Table, id: RowId<DB, Table>) {
       return setArchived(table, id, true);
     },
-    unarchive<Table extends ArchivableTable<DB>>(
-      table: Table,
-      id: DB[Table] extends Convention ? DB[Table]["id"] : never,
-    ) {
+    unarchive<Table extends ArchivableTable<DB>>(table: Table, id: RowId<DB, Table>) {
       return setArchived(table, id, false);
     },
   };
