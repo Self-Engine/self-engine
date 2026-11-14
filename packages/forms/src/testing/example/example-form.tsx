@@ -1,8 +1,9 @@
 // The example form, written as a module writes its form (D322): it names the Operation, gives the
-// starting draft and lays out its fields. It writes no check, no text and no mapping of a message
-// to a field: those come from the helper and the Contract. Its labels are plain English, like
+// starting draft and lays out its fields. It writes no check and no mapping of a message
+// to a field: those come from the helper and the Contract. It gives only its special texts. Its labels are plain English, like
 // every story's sample text.
 
+import { msg } from "@lingui/core/macro";
 import { Button, Stack } from "@mantine/core";
 import type { z } from "zod";
 import { LongTextField, OperationFormBody, TextField, useOperationForm } from "../../index.ts";
@@ -22,6 +23,10 @@ export function ExampleForm({ onSuccess }: ExampleFormProps) {
     entry: exampleContract.create,
     operation: useCreateExample(),
     draft: { title: "", description: "" },
+    texts: {
+      fields: { title: msg`Give this entry a title of at most 80 characters.` },
+      reasons: { description_matches_title: msg`The description must differ from the title.` },
+    },
     onSuccess,
   });
   return (

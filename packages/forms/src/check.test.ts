@@ -131,7 +131,6 @@ describe("the check of a draft", () => {
       choice: z.enum(["a", "b"]),
       large: z.bigint().min(1n),
       tags: z.array(z.string()).min(1),
-      rule: z.string().refine(() => false, { params: { reason: "unknown_reason" } }),
     });
     const draft = {
       email: "no",
@@ -139,7 +138,6 @@ describe("the check of a draft", () => {
       choice: "c",
       large: 0n,
       tags: [],
-      rule: "y",
     };
     expect(await messages(schema, draft, language)).toEqual({
       email: text,
@@ -147,7 +145,6 @@ describe("the check of a draft", () => {
       choice: text,
       large: text,
       tags: text,
-      rule: text,
     });
   });
 

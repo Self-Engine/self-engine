@@ -536,6 +536,10 @@ msgctxt "Icon"
 msgid "Gift"
 msgstr "Gift"
 
+#: packages/forms/src/testing/example/example-form.tsx
+msgid "Give this entry a title of at most 80 characters."
+msgstr "Give this entry a title of at most 80 characters."
+
 #: packages/icons/src/directory/labels.ts
 msgctxt "Icon"
 msgid "Globe"
@@ -1229,6 +1233,10 @@ msgstr "The action could not be completed. Please try again."
 #: packages/settings-area/src/theme-rows.tsx
 msgid "The colors of the app. When the app follows the system, light and dark each have their own Theme."
 msgstr "The colors of the app. When the app follows the system, light and dark each have their own Theme."
+
+#: packages/forms/src/testing/example/example-form.tsx
+msgid "The description must differ from the title."
+msgstr "The description must differ from the title."
 
 #: packages/ui/src/entry-pickers/entry-icon-picker.tsx
 msgid "The emojis could not be loaded."

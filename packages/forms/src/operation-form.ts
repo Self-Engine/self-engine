@@ -3,7 +3,7 @@ import { useForm, type UseFormReturnType } from "@mantine/form";
 import type { AnyContractProcedure, InferSchemaInput } from "@orpc/contract";
 import type { OperationResult, OperationState } from "@self-engine/data-client/react";
 import { useEffect, useRef, useState } from "react";
-import { checkDraft, type InputSchema } from "./check.ts";
+import { checkDraft, type InputSchema, type FormTexts } from "./check.ts";
 import { FieldMessages } from "./field-messages.ts";
 
 /** The input that an entry of a Contract takes, as its input schema accepts it. */
@@ -35,6 +35,8 @@ export interface OperationFormOptions<
    * checks the draft (D317), so the module's Contract loads with the form, never at startup.
    */
   readonly entry: Entry;
+  /** Only the texts special to this module (D320). */
+  readonly texts?: FormTexts<keyof InputOfEntry<Entry> & string>;
   /** What the Operation hook of that entry returns, such as `useCreateNote()`. */
   readonly operation: OperationState<InputOfEntry<Entry>, Result>;
   /** The draft the form starts with; read once, when the form first draws. */
@@ -88,6 +90,7 @@ interface Latest {
   /** The options without the types that tie them to one entry. */
   readonly options: {
     readonly entry: AnyContractProcedure;
+    readonly texts?: FormTexts;
     readonly operation: { readonly run: (input: Values) => Promise<AnyResult> };
     readonly onSuccess?: (data: unknown) => void;
     readonly onDone?: () => void;
@@ -136,7 +139,7 @@ function createForm(latest: () => Latest): OperationForm<never> {
   let checkingEveryChange = false;
   const check = (): ReadonlyMap<string, MessageDescriptor> => {
     const { draft, options } = latest();
-    const found = checkDraft(inputSchemaOf(options.entry), draft.getValues());
+    const found = checkDraft(inputSchemaOf(options.entry), draft.getValues(), options.texts);
     messages.replace(new Map([...conflicts, ...found]));
     return found;
   };

@@ -20,3 +20,5 @@ export {
   OperationFormBody,
   type OperationFormBodyProps,
 } from "./form-body.tsx";
+
+export type { FormTexts } from "./check.ts";

@@ -18,7 +18,12 @@ export const exampleEntrySchema = z.object({ id: z.string(), ...exampleFields })
 /** The example's Port, mounted as `example` in the stories. */
 export const exampleContract = {
   create: oc
-    .input(z.object(exampleFields))
+    .input(
+      z.object(exampleFields).refine(({ title, description }) => title !== description, {
+        path: ["description"],
+        params: { reason: "description_matches_title" },
+      }),
+    )
     .output(exampleEntrySchema)
     .errors({
       NOT_FOUND: {},
