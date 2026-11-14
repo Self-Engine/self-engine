@@ -18,10 +18,13 @@ export interface EmojiTabProps {
   readonly onChoose: (emoji: string) => void;
   /** Whether the search field takes the focus when the tab appears. */
   readonly autoFocus: boolean;
+  /** The search term, shared with the Icons tab (D301); Mantine's own field shows it. */
+  readonly query: string;
+  readonly onQueryChange: (query: string) => void;
 }
 
 /** The emoji grid with its search, categories, skin tones and preview, in the app's language. */
-export function EmojiTab({ data, onChoose, autoFocus }: EmojiTabProps) {
+export function EmojiTab({ data, onChoose, autoFocus, query, onQueryChange }: EmojiTabProps) {
   const { t } = useLingui();
   // Kept per language: the picker hands its texts to every emoji in the grid through a context.
   const labels = useMemo<Required<EmojiPickerLabels>>(
@@ -62,6 +65,8 @@ export function EmojiTab({ data, onChoose, autoFocus }: EmojiTabProps) {
       categoryLabels={categoryLabels}
       data={data}
       labels={labels}
+      onSearchChange={onQueryChange}
+      searchValue={query}
       onEmojiSelect={(emoji) => {
         // Every emoji of the data passes the rule (a test holds that); this keeps the answer
         // strict should a later version of the data hold one that does not.

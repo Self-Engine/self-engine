@@ -4,7 +4,7 @@ import { activateLanguage } from "@self-engine/i18n";
 import { entryIconSchema } from "@self-engine/icons/names";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useState } from "react";
-import { expect, fn, screen, userEvent, waitFor, within } from "storybook/test";
+import { expect, fireEvent, fn, screen, userEvent, waitFor, within } from "storybook/test";
 import { afterTheCommitsNowDue, difference, renderCounts } from "../story-render-counts.ts";
 import { EntryIconPicker } from "./index.ts";
 
@@ -211,6 +211,131 @@ export const SearchesEmojisByNameAndFollowsTheLanguage: Story = {
     const lastTab = await emojiTab(again.dialog, { search: "Emojis durchsuchen", grid: "Emojis" });
     await userEvent.type(lastTab.search, "no emoji is called this");
     await expect(again.picker.getByText("Kein Emoji passt zur Suche.")).toBeVisible();
+    await expectStrict();
+  },
+};
+
+export const KeepsTheSearchTermAcrossTheTabs: Story = {
+  render: () => <Form answer={answers} stored={null} />,
+  play: async ({ canvas }) => {
+    answers.mockClear();
+    await userEvent.click(trigger(canvas));
+    const { dialog, picker, search, grid } = await opened();
+    // A term typed under "Icons" is the term under "Emoji", with its results.
+    await userEvent.type(search(), "house");
+    await expect(shownOptions(grid())).toEqual(["House"]);
+    await userEvent.click(picker.getByRole("tab", { name: "Emoji" }));
+    const emoji = await emojiTab(dialog);
+    await expect(emoji.search).toHaveValue("house");
+    await expect(within(emoji.grid).getByRole("gridcell", { name: "house" })).toHaveTextContent(
+      "🏠",
+    );
+
+    // And the other way round.
+    await userEvent.clear(emoji.search);
+    await userEvent.type(emoji.search, "rocket");
+    await expect(within(emoji.grid).getByRole("gridcell", { name: "rocket" })).toHaveTextContent(
+      "🚀",
+    );
+    await userEvent.click(picker.getByRole("tab", { name: "Icons" }));
+    await expect(search()).toHaveValue("rocket");
+    await expect(shownOptions(grid())).toEqual(["Rocket"]);
+
+    // The next opening starts with an empty search.
+    await userEvent.keyboard("{Escape}");
+    await closed();
+    await userEvent.click(trigger(canvas));
+    const again = await opened();
+    await expect(again.search()).toHaveValue("");
+    await expect(answers).not.toHaveBeenCalled();
+  },
+};
+
+export const TakesAPastedEmojiInBothTabs: Story = {
+  render: () => <Form answer={answers} stored={null} />,
+  play: async ({ canvas }) => {
+    answers.mockClear();
+    // Under "Icons": an emoji with a skin tone, pasted with space around it.
+    await userEvent.click(trigger(canvas));
+    const first = await opened();
+    await userEvent.click(first.search());
+    await userEvent.paste(" 👍🏽 ");
+    await expect(answers).toHaveBeenLastCalledWith("👍🏽");
+    await closed();
+    await expect(trigger(canvas)).toHaveAccessibleName("Icon 👍🏽");
+
+    // Under "Emoji", which a stored emoji opens on: a joined emoji of several parts.
+    await userEvent.click(trigger(canvas));
+    const second = await opened();
+    await expect(second.selectedTab()).toHaveAccessibleName("Emoji");
+    const tab = await emojiTab(second.dialog);
+    await expect(tab.search).toHaveValue("");
+    await userEvent.click(tab.search);
+    await userEvent.paste("🧑🏿‍🚀");
+    await expect(answers).toHaveBeenLastCalledWith("🧑🏿‍🚀");
+    await closed();
+    await expect(canvas.getByTestId("stored")).toHaveTextContent("🧑🏿‍🚀");
+
+    // The next opening shows an empty search in both tabs.
+    await userEvent.click(trigger(canvas));
+    const third = await opened();
+    const again = await emojiTab(third.dialog);
+    await expect(again.search).toHaveValue("");
+    await userEvent.click(third.picker.getByRole("tab", { name: "Icons" }));
+    await expect(third.search()).toHaveValue("");
+    await expect(answers).toHaveBeenCalledTimes(2);
+    await expectStrict();
+  },
+};
+
+export const KeepsMixedTextAsASearchTerm: Story = {
+  render: () => <Form answer={answers} stored={null} />,
+  play: async ({ canvas }) => {
+    answers.mockClear();
+    await userEvent.click(trigger(canvas));
+    const { dialog, picker, search } = await opened();
+    for (const term of ["😀 house", "😀😀", "abc😀"]) {
+      await userEvent.clear(search());
+      await userEvent.click(search());
+      await userEvent.paste(term);
+      await expect(search()).toHaveValue(term);
+    }
+    await userEvent.click(picker.getByRole("tab", { name: "Emoji" }));
+    // The last term came along to the Emoji tab, where it stays a search term too. It finds no
+    // emoji, so the picker shows no grid.
+    const emojiSearch = await picker.findByRole(
+      "searchbox",
+      { name: "Search emojis" },
+      { timeout: 10_000 },
+    );
+    await expect(emojiSearch).toHaveValue("abc😀");
+    await userEvent.clear(emojiSearch);
+    await userEvent.click(emojiSearch);
+    await userEvent.paste("😀 house");
+    await expect(emojiSearch).toHaveValue("😀 house");
+    await expect(dialog).toBeVisible();
+    await expect(answers).not.toHaveBeenCalled();
+  },
+};
+
+export const TakesAComposedEmojiOnlyOnceItIsComposed: Story = {
+  render: () => <Form answer={answers} stored={null} />,
+  play: async ({ canvas }) => {
+    answers.mockClear();
+    await userEvent.click(trigger(canvas));
+    const { search } = await opened();
+    // An input method shows an emoji as a candidate while the user still composes.
+    await fireEvent.compositionStart(search());
+    await fireEvent.input(search(), { target: { value: "🍣" } });
+    await expect(search()).toHaveValue("🍣");
+    await expect(answers).not.toHaveBeenCalled();
+    // Once the composition ends with the emoji, it is the choice.
+    await fireEvent.compositionEnd(search());
+    await expect(answers).toHaveBeenLastCalledWith("🍣");
+    // Some browsers send the composed text once more after the end: it is not a second answer.
+    await fireEvent.input(search(), { target: { value: "🍣" } });
+    await expect(answers).toHaveBeenCalledTimes(1);
+    await closed();
     await expectStrict();
   },
 };

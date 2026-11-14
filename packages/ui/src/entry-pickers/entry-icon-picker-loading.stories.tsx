@@ -2,7 +2,7 @@
 // Emoji tab before this one looks at what the page requested.
 
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { expect, screen, userEvent, waitFor, within } from "storybook/test";
+import { expect, fn, screen, userEvent, waitFor, within } from "storybook/test";
 import { EntryIconPicker } from "./index.ts";
 
 /** The page's requests since the story began. The page's own list fills up and then drops some. */
@@ -24,6 +24,8 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
+const answers = fn<(value: string | null) => void>();
+
 /** The requests for the emoji picker or its data, by the package in the address. */
 const emojiRequests = () =>
   requests.filter((name) => /emojibase[-_]data|@mantine[/_+]emoji/.test(name));
@@ -33,6 +35,22 @@ const pickerStyles = () =>
   [...document.querySelectorAll("style")].some((style) =>
     /mantine-EmojiPicker|\.m_873e66bb/.test(style.textContent),
   );
+
+// First in the file, so no story before it has loaded the picker's code in this page.
+export const TakesAPastedEmojiWithoutTheEmojiData: Story = {
+  render: () => <EntryIconPicker onChange={answers} value="house" />,
+  play: async ({ canvas }) => {
+    answers.mockClear();
+    await userEvent.click(canvas.getByRole("button", { name: /^Icon/ }));
+    const dialog = await screen.findByRole("dialog", { name: "Choose an icon" });
+    await userEvent.click(within(dialog).getByRole("searchbox", { name: "Search icons" }));
+    await userEvent.paste("👨‍👩‍👧‍👦");
+    await expect(answers).toHaveBeenLastCalledWith("👨‍👩‍👧‍👦");
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+    await expect(emojiRequests()).toEqual([]);
+    await expect(pickerStyles()).toBe(false);
+  },
+};
 
 export const LoadsTheEmojisWhenTheEmojiTabOpens: Story = {
   render: () => <EntryIconPicker onChange={() => {}} value="house" />,

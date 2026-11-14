@@ -8,6 +8,9 @@
 //
 // Emoji: Mantine's emoji picker (D300). It and the emoji list of the app's language load with a
 // dynamic import when the tab first opens, so a user who only chooses icons never loads them.
+//
+// Search: each tab keeps its own field, ours and Mantine's, and both show one term that lives in
+// the field (D301). A term that is exactly one emoji is the choice (D302), in either tab.
 
 import { useLingui } from "@lingui/react/macro";
 import {
@@ -40,6 +43,7 @@ import {
   useState,
 } from "react";
 import type { EmojiTabProps } from "./emoji-tab.tsx";
+import { emojiOfSearchTerm } from "./search-term.ts";
 
 export interface EntryIconPickerProps {
   /**
@@ -155,12 +159,16 @@ const POPOVER_WIDTH = rem(320);
 function IconsTab({
   chosen,
   onChoose,
+  query,
+  onQueryChange,
 }: {
   readonly chosen: IconName | undefined;
   readonly onChoose: (name: IconName) => void;
+  /** The search term, shared with the Emoji tab (D301). */
+  readonly query: string;
+  readonly onQueryChange: (query: string) => void;
 }) {
   const { t, i18n } = useLingui();
-  const [query, setQuery] = useState("");
   const [focused, setFocused] = useState<IconName>();
   const searchRef = useRef<HTMLInputElement>(null);
   const gridRef = useRef<HTMLDivElement>(null);
@@ -213,7 +221,7 @@ function IconsTab({
         aria-label={t`Search icons`}
         data-autofocus
         onChange={(event) => {
-          setQuery(event.currentTarget.value);
+          onQueryChange(event.currentTarget.value);
         }}
         onKeyDown={onSearchKeyDown}
         placeholder={t`Search icons`}
@@ -272,9 +280,14 @@ interface LoadedEmojiTab {
 function EmojiPanel({
   onChoose,
   autoFocus,
+  query,
+  onQueryChange,
 }: {
   readonly onChoose: (emoji: string) => void;
   readonly autoFocus: boolean;
+  /** The search term, shared with the Icons tab (D301). */
+  readonly query: string;
+  readonly onQueryChange: (query: string) => void;
 }) {
   const { t, i18n } = useLingui();
   const locale = i18n.locale;
@@ -314,7 +327,15 @@ function EmojiPanel({
       </Center>
     );
   const { EmojiTab, data } = loaded;
-  return <EmojiTab autoFocus={autoFocus} data={data} onChoose={onChoose} />;
+  return (
+    <EmojiTab
+      autoFocus={autoFocus}
+      data={data}
+      onChoose={onChoose}
+      onQueryChange={onQueryChange}
+      query={query}
+    />
+  );
 }
 
 /** The mark of an entry: a button with the current icon or emoji that opens the two tabs. */
@@ -325,6 +346,14 @@ export function EntryIconPicker({ value, onChange, label }: EntryIconPickerProps
   // Each opening starts afresh, with an empty search and no skin tone, even while the dropdown of
   // the last opening is still fading out.
   const [opening, setOpening] = useState(0);
+  // One search term for both tabs (D301): it lives here, so it survives a switch of the tab, and
+  // each opening empties it.
+  const [query, setQuery] = useState("");
+  // Whether an input method is composing in a search field: its text is not yet a choice.
+  const composing = useRef(false);
+  // Whether this opening has taken an emoji from the search, so the input event some browsers
+  // send after the end of a composition does not answer it twice.
+  const taken = useRef(false);
   const labelId = useId();
   const valueId = useId();
   const titleId = useId();
@@ -337,6 +366,9 @@ export function EntryIconPicker({ value, onChange, label }: EntryIconPickerProps
 
   const open = () => {
     setTab(storedTab);
+    setQuery("");
+    composing.current = false;
+    taken.current = false;
     setOpening((count) => count + 1);
     setOpened(true);
   };
@@ -346,6 +378,19 @@ export function EntryIconPicker({ value, onChange, label }: EntryIconPickerProps
   const choose = (next: string | null) => {
     onChange(next);
     close();
+  };
+  // A term that is exactly one emoji is the choice in both tabs (D302); any other text is the
+  // search. It is taken as the term changes, before Mantine's search sees an Enter.
+  const search = (term: string) => {
+    if (taken.current) return;
+    const emoji = composing.current ? undefined : emojiOfSearchTerm(term);
+    if (emoji === undefined) {
+      setQuery(term);
+      return;
+    }
+    taken.current = true;
+    setQuery("");
+    choose(emoji);
   };
 
   const fieldLabel = label ?? t`Icon`;
@@ -386,7 +431,18 @@ export function EntryIconPicker({ value, onChange, label }: EntryIconPickerProps
           </Button>
         </Popover.Target>
         {/* Mantine names the dropdown after its target; the dialog says what it is for instead. */}
-        <Popover.Dropdown aria-labelledby={titleId} p="xs">
+        {/* Composition events bubble: the two search fields are the dropdown's only text. */}
+        <Popover.Dropdown
+          aria-labelledby={titleId}
+          onCompositionEnd={(event) => {
+            composing.current = false;
+            if (event.target instanceof HTMLInputElement) search(event.target.value);
+          }}
+          onCompositionStart={() => {
+            composing.current = true;
+          }}
+          p="xs"
+        >
           <VisuallyHidden id={titleId}>{t`Choose an icon`}</VisuallyHidden>
           <Stack gap="xs">
             <Tabs
@@ -402,12 +458,17 @@ export function EntryIconPicker({ value, onChange, label }: EntryIconPickerProps
                 <Tabs.Tab value="emoji">{t`Emoji`}</Tabs.Tab>
               </Tabs.List>
               <Tabs.Panel value="icons">
-                <IconsTab chosen={chosen} onChoose={choose} />
+                <IconsTab chosen={chosen} onChoose={choose} onQueryChange={search} query={query} />
               </Tabs.Panel>
               <Tabs.Panel value="emoji">
                 {/* The search takes the focus when the popover opens on this tab, as the
                     search of the Icons tab does; a switch of the tab leaves it on the tab. */}
-                <EmojiPanel autoFocus={storedTab === "emoji"} onChoose={choose} />
+                <EmojiPanel
+                  autoFocus={storedTab === "emoji"}
+                  onChoose={choose}
+                  onQueryChange={search}
+                  query={query}
+                />
               </Tabs.Panel>
             </Tabs>
             <Group justify="flex-end">
