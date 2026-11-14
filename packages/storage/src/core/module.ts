@@ -25,6 +25,11 @@ export type ModuleEntries<Contract extends StorageContract, Rows extends RowMap>
          * read piece. A Table Change naming one of them makes its answer outdated (D248).
          */
         readonly reads: readonly string[];
+        /**
+         * Declares to the contract kit that the answer holds no archived row (D327): the kit
+         * archives the seeded rows and fails the Query if one of them is still in its answer.
+         */
+        readonly active?: true;
         readonly list?:
           | { readonly kind: "window" | "small-set" }
           | {
@@ -105,6 +110,7 @@ export type ErasedStorageModule = Pick<
       | {
           readonly kind: "query";
           readonly reads: readonly string[];
+          readonly active?: true;
           readonly list?: { readonly kind: "window" | "small-set" | "pages" };
           readonly run: (...args: never[]) => unknown;
         }
