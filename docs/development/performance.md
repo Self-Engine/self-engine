@@ -437,7 +437,7 @@ records what a Backup is.
 
 Measured in the built Electron app with Node 26.13.0, five fresh app sessions, each with a new
 throwaway data folder. The normal Color Mode and drawer transitions were kept. Each session
-navigated to placeholder-alpha’s Overview, then clicked New entry once; no form or Contract
+navigated to placeholder-alpha’s Overview, then clicked New entry; no form or Contract
 was preloaded by the measurement. All apps were stopped and their data folders removed.
 
 The portable method uses the renderer’s `performance.now()`: a capturing click listener starts
@@ -448,12 +448,24 @@ are outside the timed interval. It measures the visible form, including lazy loa
 Shell opening behavior, rather than just importing the helper. It does not wait for the slide
 to finish, and is not a check by eye.
 
-Results: **331.0, 328.2, 328.1, 334.5, 331.5 ms**; median **331.0 ms**, range **328.1–334.5 ms**.
-This is above D326’s 100 ms threshold: the owner must decide before merging the package.
-No threshold or transition was changed to accept it.
+The second opening is the next click on New entry in the same session, after the first drawer
+was closed. Both builds were measured by this method on the same machine:
 
-Startup JavaScript: **843,398 bytes before** (`4f28e33`) and **843,341 bytes after** (−57).
-The before value was reproduced with the integration branch’s drawer. The forms package marks
+| Build                   | First opening (ms)      | Median | Second opening (ms) |
+| ----------------------- | ----------------------- | ------ | ------------------- |
+| `main` (`5e004cf`)      | 338, 330, 327, 329, 329 | 329    | 41, 41, 45, 45, 42  |
+| This branch (`31b5138`) | 329, 329, 330, 329, 329 | 329    | 45, 51, 43, 46, 41  |
+
+The helper adds nothing measurable. On both builds the input is in the DOM about 320 ms after
+the click on the first opening. The cause lies in the Shell and predates the helper: the Edit
+Drawer’s content loads through `Suspense` (`LazyContribution` in `packages/shell`), and React
+reveals content no sooner than 300 ms after a fallback was committed. Opening without that wait
+is a question for the Shell, not for this package. The first opening is above D326’s 100 ms
+threshold: the owner must decide before merging the package. No threshold or transition was
+changed to accept it.
+
+Startup JavaScript against `main` at the merge base (`e5b4a0e`): **843,398 bytes** on `main`,
+**843,341 bytes** on this branch with `main` merged in (−57). The forms package marks
 its modules side-effect-free, letting the build discard unused picker exports; the module
 also shares the identical Overview/Archive lazy list loader instead of declaring it twice.
 The startup gate still forbids Contracts, full Zod and the form libraries there.
