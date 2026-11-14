@@ -75,6 +75,8 @@ export const ALLOWED_IMPORTS: AllowedImports = {
  * as allowed for the check against `package.json` like ALLOWED_IMPORTS.
  */
 export const TEST_ONLY_IMPORTS: AllowedImports = {
+  // The app's catalogs, to check that every picture has its own label in every language (#261).
+  icons: ["i18n"],
   // The test Data Process and the `notes` test module, to test the client over the real core.
   "data-client": ["data-process", "storage"],
   // Instants written as text in the fixtures of the Backups the core answers with.

@@ -833,6 +833,9 @@ importers:
 
   packages/icons:
     dependencies:
+      '@lingui/core':
+        specifier: 'catalog:'
+        version: 6.12.0(@babel/core@8.1.0)
       '@phosphor-icons/react':
         specifier: 'catalog:'
         version: 2.1.10(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
@@ -849,6 +852,9 @@ importers:
       '@mantine/core':
         specifier: 'catalog:'
         version: 9.7.5(@mantine/hooks@9.7.5(react@19.3.1))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
+      '@self-engine/i18n':
+        specifier: workspace:*
+        version: link:../i18n
       '@self-engine/theme':
         specifier: workspace:*
         version: link:../theme
