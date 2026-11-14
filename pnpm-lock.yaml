@@ -1121,9 +1121,15 @@ importers:
         specifier: 'catalog:'
         version: 4.6.7
     devDependencies:
+      '@orpc/server':
+        specifier: 'catalog:'
+        version: 1.16.2(ws@8.22.1)
       '@self-engine/data-process':
         specifier: workspace:*
         version: link:../data-process
+      '@self-engine/spaces':
+        specifier: workspace:*
+        version: link:../spaces
       '@types/node':
         specifier: 24.19.2
         version: 24.19.2

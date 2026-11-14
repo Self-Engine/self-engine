@@ -1,11 +1,13 @@
 import { oc } from "@orpc/contract";
-import { entryFields, idSchema } from "@self-engine/db/schema";
+import { entryFields } from "@self-engine/db/schema";
 import { entryIconSchema } from "@self-engine/icons/names";
 import { colorSetNameSchema } from "@self-engine/theme/names";
 import { instantSchema } from "@self-engine/time";
 import { z } from "zod";
+import { projectIdSchema } from "./project-id.ts";
 
-export const projectIdSchema = idSchema("Project");
+export { projectIdSchema };
+export { type ProjectReference, projectReferenceSchema } from "./project-reference.ts";
 
 /** The longest title, in characters after trimming. */
 export const TITLE_MAX = 200;

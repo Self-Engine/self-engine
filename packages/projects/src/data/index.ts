@@ -39,3 +39,6 @@ export const projects = defineStorageModule({
     },
   },
 });
+
+// The Read Piece for the Queries of a module above (D241, D330).
+export { projectReferences } from "./project-references.ts";
