@@ -3,7 +3,8 @@ import type { Meta, StoryObj } from "@storybook/react-vite";
 import type { CSSProperties } from "react";
 import { expect, within } from "storybook/test";
 import { COLOR_SETS, roleColor } from "../core/index.ts";
-import { activeColorMode, SET_NAMES } from "./story-samples.tsx";
+import { COLOR_SET_NAMES } from "../names/index.ts";
+import { activeColorMode } from "./story-samples.tsx";
 
 const AREA: CSSProperties = {
   background: roleColor("navSurface"),
@@ -58,7 +59,7 @@ function ModuleSample({ name }: { readonly name: string }) {
 function ModuleColors() {
   return (
     <SimpleGrid cols={4}>
-      {SET_NAMES.map((name) => (
+      {COLOR_SET_NAMES.map((name) => (
         <div data-module-color={name} data-testid={name} key={name} style={AREA}>
           <ModuleSample name={name} />
         </div>
@@ -77,7 +78,7 @@ export default meta;
 export const Overview: StoryObj<typeof meta> = {
   play: async ({ canvas }) => {
     await Promise.all(
-      SET_NAMES.map(async (name) => {
+      COLOR_SET_NAMES.map(async (name) => {
         const area = within(canvas.getByTestId(name));
         await expect(area.getByTestId("active-entry")).toHaveStyle({
           backgroundColor: COLOR_SETS[name][activeColorMode()].accentSoft,

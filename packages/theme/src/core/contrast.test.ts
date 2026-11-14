@@ -13,6 +13,7 @@ import {
   formatColorSetFailure,
   formatContrastFailure,
   FROM_THEME,
+  type Hex,
   type ModuleColor,
   resolveAppearance,
   type Theme,
@@ -104,8 +105,25 @@ describe("the final tinted surfaces", () => {
 });
 
 describe("auditColorSets", () => {
-  it("finds no failure in the eight Color Sets, in either Color Mode", () => {
+  it("finds no failure in the twelve Color Sets, in either Color Mode", () => {
     expect(auditColorSets(COLOR_SETS).map(formatColorSetFailure)).toEqual([]);
+  });
+
+  // Further from black means lighter.
+  const lightness = (color: Hex) => contrastRatio(color, "#000000");
+
+  it.each(["cyan", "lime", "yellow"] as const)(
+    "gives %s a bright fill with darker text on it, in both Color Modes",
+    (name) => {
+      for (const { accent, onAccent } of [COLOR_SETS[name].light, COLOR_SETS[name].dark]) {
+        expect(lightness(accent)).toBeGreaterThan(lightness(onAccent));
+      }
+    },
+  );
+
+  it("keeps white text on the red fill", () => {
+    expect(COLOR_SETS.red.light.onAccent).toBe("#ffffff");
+    expect(COLOR_SETS.red.dark.onAccent).toBe("#ffffff");
   });
 
   it("names the Color Set, Color Mode, pair and ratio", () => {
@@ -234,7 +252,7 @@ describe("Module Color text", () => {
     ]);
   });
 
-  it("is checked on surface, for all eight Color Sets, green and pink included", () => {
+  it("is checked on surface, for all twelve Color Sets, those that are no Accent included", () => {
     const overrides = { chrome: "#808080", surface: "#808080" } as const;
     for (const colorSet of Object.keys(COLOR_SETS)) {
       expect(moduleTextPairs(overrides, colorSet)).toEqual([

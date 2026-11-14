@@ -1,3 +1,4 @@
+import type { ColorSetName } from "../names/list.ts";
 import type { ColorSetColors, ResolvedColorMode, ThemeColors } from "./roles.ts";
 
 /** A Color Set per Color Mode, under the Accent role names. */
@@ -310,28 +311,96 @@ const PINK: ColorSet = {
   },
 };
 
+/** The Neutral Theme's error color, as in the old app. */
+const RED: ColorSet = {
+  light: {
+    accent: "#c92a2a",
+    onAccent: "#ffffff",
+    accentSoft: "#fdecec",
+    accentText: "#b42318",
+  },
+  dark: {
+    accent: "#c92a2a",
+    onAccent: "#ffffff",
+    accentSoft: "#3b1a1a",
+    accentText: "#ff8f8f",
+  },
+};
+
+// Cyan, lime and yellow keep a bright fill, so they stay recognizable in bars and charts, and
+// carry dark text on it (D295).
+
+const CYAN: ColorSet = {
+  light: {
+    accent: "#1fb6d1",
+    onAccent: "#04252b",
+    accentSoft: "#e0f4f8",
+    accentText: "#0b6779",
+  },
+  dark: {
+    accent: "#1fb6d1",
+    onAccent: "#04252b",
+    accentSoft: "#0e2f38",
+    accentText: "#56cfe6",
+  },
+};
+
+const LIME: ColorSet = {
+  light: {
+    accent: "#8fd11f",
+    onAccent: "#1b2a05",
+    accentSoft: "#eef6dc",
+    accentText: "#4a6b0f",
+  },
+  dark: {
+    accent: "#8fd11f",
+    onAccent: "#1b2a05",
+    accentSoft: "#25330f",
+    accentText: "#a8dc55",
+  },
+};
+
+const YELLOW: ColorSet = {
+  light: {
+    accent: "#f6bd0c",
+    onAccent: "#2a1f00",
+    accentSoft: "#fbf1cf",
+    accentText: "#7a5700",
+  },
+  dark: {
+    accent: "#f6bd0c",
+    onAccent: "#2a1f00",
+    accentSoft: "#382d0a",
+    accentText: "#f0c94a",
+  },
+};
+
 /** The Accent for "From Theme" when the Theme has none of its own. */
 export const DEFAULT_COLOR_SET: ColorSet = BLUE;
 
-/** Every Color Set, all of them usable as a Module Color. */
+/** Every Color Set, all of them usable as a Module Color, in the order of the names. */
 export const COLOR_SETS = {
-  blue: BLUE,
-  indigo: INDIGO,
-  violet: VIOLET,
-  teal: TEAL,
-  orange: ORANGE,
-  grape: GRAPE,
-  green: GREEN,
+  red: RED,
   pink: PINK,
-} as const satisfies Readonly<Record<string, ColorSet>>;
-
-export type ColorSetId = keyof typeof COLOR_SETS;
+  grape: GRAPE,
+  violet: VIOLET,
+  indigo: INDIGO,
+  blue: BLUE,
+  cyan: CYAN,
+  teal: TEAL,
+  green: GREEN,
+  lime: LIME,
+  yellow: YELLOW,
+  orange: ORANGE,
+} as const satisfies Readonly<Record<ColorSetName, ColorSet>>;
 
 /**
- * The Color Sets a user may pick as the Accent. Green is left out: it reads as `success`.
- * A stored Accent stays an open string; the engine compares it against this list.
+ * The Color Sets a user may pick as the Accent. Green, red and yellow are left out, because they
+ * read as `success`, `error` and `warning`; pink, cyan and lime are colors for entries only. A
+ * stored Accent stays an open string; the engine compares it against this list, so a stored
+ * name of another Color Set means "From Theme".
  */
-export const ACCENT_IDS: readonly ColorSetId[] = [
+export const ACCENT_IDS: readonly ColorSetName[] = [
   "blue",
   "indigo",
   "violet",

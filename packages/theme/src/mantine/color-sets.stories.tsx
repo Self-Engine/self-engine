@@ -2,13 +2,14 @@ import { Paper, SimpleGrid, Stack, Text, useComputedColorScheme } from "@mantine
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { expect, within } from "storybook/test";
 import { COLOR_SETS, type ColorSetRole } from "../core/index.ts";
-import { SET_NAMES, Swatch } from "./story-samples.tsx";
+import { COLOR_SET_NAMES } from "../names/index.ts";
+import { Swatch } from "./story-samples.tsx";
 
 function ColorSets() {
   const colorMode = useComputedColorScheme("light");
   return (
     <SimpleGrid cols={{ base: 1, sm: 2, lg: 4 }}>
-      {SET_NAMES.map((name) => (
+      {COLOR_SET_NAMES.map((name) => (
         <Paper data-testid={name} key={name} p="xs" withBorder>
           <Stack gap="xs">
             <Text fw={600}>{name}</Text>
@@ -36,7 +37,7 @@ export default meta;
 
 function expectValuesOf(canvasElement: HTMLElement, mode: "light" | "dark") {
   return Promise.all(
-    SET_NAMES.map(async (name) => {
+    COLOR_SET_NAMES.map(async (name) => {
       const set = within(within(canvasElement).getByTestId(name));
       await expect(set.getByText(COLOR_SETS[name][mode].accentSoft)).toBeVisible();
       await expect(set.getByText(COLOR_SETS[name][mode].accentText)).toBeVisible();

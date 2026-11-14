@@ -1,9 +1,7 @@
 // Shared by the stories in this folder. No entry point of the package imports it.
 
 import { Group, Text } from "@mantine/core";
-import { COLOR_SETS, type ColorSetId, roleColor } from "../core/index.ts";
-
-export const SET_NAMES = Object.keys(COLOR_SETS) as ColorSetId[];
+import { roleColor } from "../core/index.ts";
 
 /** The status Color Roles, which have no Mantine palette: a fill and a soft pair each. */
 export const STATUS_ROLES = [
