@@ -27,21 +27,23 @@ const markedFields = {
   hours: z.number().min(0).nullable(),
 };
 
+const markedEntrySchema = z.object({ id: z.string(), ...markedFields });
+
 const markedContract = {
-  create: oc.input(z.object(markedFields)).output(z.object({ id: z.string(), ...markedFields })),
+  create: oc.input(z.object(markedFields)).output(markedEntrySchema),
+  update: oc.input(markedEntrySchema.partial().required({ id: true })).output(markedEntrySchema),
 };
 
-const useCreateMarked = portHooks<typeof markedContract>("marked").operation("create");
+const markedHooks = portHooks<typeof markedContract>("marked");
+const useCreateMarked = markedHooks.operation("create");
+const useUpdateMarked = markedHooks.operation("update");
 
-type MarkedForm = OperationForm<{
-  title: string | null;
-  icon: string | null;
-  color: string | null;
-  hours: number | null;
-}>;
+/** A form of either Operation: the edit's draft may hold no hours, as its input may leave them out. */
+type MarkedForm = OperationForm<{ hours: number | null | undefined }>;
 
 /** The text the hours field shows for a value of the draft. */
-const hoursText = (hours: number | null) => (hours === null ? "" : String(hours));
+const hoursText = (hours: number | null | undefined) =>
+  typeof hours === "number" ? String(hours) : "";
 
 /** The number a typed text stands for: `null` for none, `undefined` while it is no number. */
 function hoursOf(text: string): number | null | undefined {
@@ -52,15 +54,15 @@ function hoursOf(text: string): number | null | undefined {
 
 /**
  * A number typed as text: it keeps what is typed, hands on only a number or "empty", and reports
- * any other text as unfinished. A value set by code replaces its text.
+ * any other text as unfinished. A value from outside, set by code or followed from the stored
+ * entry, replaces its text, also one equal to the value the text stood for.
  */
 const HoursField = memo(function HoursField({ form }: { readonly form: MarkedForm }) {
   const field = useFieldBinding(form, "hours");
   const [text, setText] = useState(() => hoursText(field.value));
-  // The value the text stands for: when the draft's value differs, it was set by code.
-  const [shown, setShown] = useState(field.value);
-  if (field.value !== shown) {
-    setShown(field.value);
+  const [seen, setSeen] = useState(field.setFromOutside);
+  if (field.setFromOutside !== seen) {
+    setSeen(field.setFromOutside);
     setText(hoursText(field.value));
   }
   return (
@@ -76,7 +78,6 @@ const HoursField = memo(function HoursField({ form }: { readonly form: MarkedFor
           field.onUnfinished();
           return;
         }
-        setShown(hours);
         field.onChange(hours);
       }}
       ref={field.ref}
@@ -86,6 +87,7 @@ const HoursField = memo(function HoursField({ form }: { readonly form: MarkedFor
 });
 
 const SUGGESTED = { title: "Launch", icon: "rocket-launch", color: "teal", hours: 8 } as const;
+const STORED = { id: "marked-1", ...SUGGESTED };
 
 /** Creates a marked entry; "Suggest" fills every field by code. */
 function MarkedEntryForm() {
@@ -115,6 +117,33 @@ function MarkedEntryForm() {
   );
 }
 
+/**
+ * Edits a marked entry. The module gives the stored entry on every draw (D324); "Change
+ * elsewhere" changes it under the open form, as another window would.
+ */
+function MarkedEditForm() {
+  const [stored, setStored] = useState<z.output<typeof markedEntrySchema>>(STORED);
+  const form = useOperationForm({
+    entry: markedContract.update,
+    operation: useUpdateMarked(),
+    draft: stored,
+    edit: { identity: { id: stored.id } },
+  });
+  return (
+    <Stack>
+      <TextField form={form} label="Title" name="title" />
+      <HoursField form={form} />
+      <Button
+        onClick={() => setStored((entry) => ({ ...entry, title: "Launch day", hours: 9 }))}
+        variant="default"
+      >
+        Change elsewhere
+      </Button>
+      <Button onClick={() => void form.submit()}>Save</Button>
+    </Stack>
+  );
+}
+
 interface Loaded {
   readonly port: RecordingPort;
 }
@@ -125,7 +154,7 @@ const meta = {
     (): Loaded => ({
       port: recordingPortOf(
         { marked: markedContract },
-        { marked: { create: { data: { id: "marked-1", ...SUGGESTED } } } },
+        { marked: { create: { data: STORED }, update: { data: STORED } } },
       ),
     }),
   ],
@@ -151,6 +180,8 @@ function formIn(canvasElement: HTMLElement) {
     colorChoice: (name: string) => within(color()).getByRole("radio", { name }),
     hours: () => canvas.getByRole("textbox", { name: "Hours" }),
     suggest: () => userEvent.click(canvas.getByRole("button", { name: "Suggest" })),
+    changeElsewhere: () =>
+      userEvent.click(canvas.getByRole("button", { name: "Change elsewhere" })),
     save: () => userEvent.click(canvas.getByRole("button", { name: "Save" })),
   };
 }
@@ -271,6 +302,65 @@ export const SavingWithTextThatIsNoValueShowsItsMessage: Story = {
     await form.save();
     await waitFor(() =>
       expect(callsOf(loaded)).toEqual([{ entry: "create", input: { ...SUGGESTED, hours: null } }]),
+    );
+  },
+};
+
+export const ValueSetByCodeAgainReplacesTextThatIsNoValue: Story = {
+  play: async ({ canvasElement, loaded }) => {
+    const form = formIn(canvasElement);
+    await form.suggest();
+    await userEvent.type(form.hours(), "x");
+    await expect(form.hours()).toHaveValue("8x");
+    // The same value again, which the draft holds already: the field shows it, not the old text.
+    await form.suggest();
+    await expect(form.hours()).toHaveValue("8");
+    await form.save();
+    await expect(form.hours()).not.toHaveAccessibleDescription(UNFINISHED);
+    await waitFor(() => expect(callsOf(loaded)).toEqual([{ entry: "create", input: SUGGESTED }]));
+  },
+};
+
+const editRender: Story["render"] = (_args, { loaded }) => (
+  <DataProvider access={(loaded as Loaded).port.access}>
+    <MarkedEditForm />
+  </DataProvider>
+);
+
+export const AnUntouchedNumberFieldFollowsTheEntry: Story = {
+  render: editRender,
+  play: async ({ canvasElement, loaded }) => {
+    const form = formIn(canvasElement);
+    await expect(form.hours()).toHaveValue("8");
+    await form.changeElsewhere();
+    await expect(form.title()).toHaveValue("Launch day");
+    await expect(form.hours()).toHaveValue("9");
+    await form.save();
+    await expect(callsOf(loaded)).toEqual([]);
+  },
+};
+
+export const TextThatIsNoValueStaysWhenTheEntryChanges: Story = {
+  render: editRender,
+  play: async ({ canvasElement, loaded }) => {
+    const form = formIn(canvasElement);
+    await userEvent.type(form.hours(), "x");
+    await form.changeElsewhere();
+    // The untouched title follows; the half-typed text neither vanishes nor gives way to 9.
+    await expect(form.title()).toHaveValue("Launch day");
+    await expect(form.hours()).toHaveValue("8x");
+    // "Save" sends neither the older 8 nor the stored 9 in the text's place.
+    await form.save();
+    await expect(form.hours()).toHaveAccessibleDescription(UNFINISHED);
+    await expect(form.hours()).toHaveFocus();
+    await expect(callsOf(loaded)).toEqual([]);
+
+    // Finished, the text is a change against the stored 9 and is sent.
+    await userEvent.type(form.hours(), "{Backspace}");
+    await expect(form.hours()).not.toHaveAccessibleDescription(UNFINISHED);
+    await form.save();
+    await waitFor(() =>
+      expect(callsOf(loaded)).toEqual([{ entry: "update", input: { id: "marked-1", hours: 8 } }]),
     );
   },
 };

@@ -15,6 +15,12 @@ export type FieldName<FormDraft> = keyof FormDraft & string;
 export interface FieldBinding<Value> {
   /** The field's value in the draft; the field draws again when it changes, also by code. */
   readonly value: Value;
+  /**
+   * Changes whenever a value reaches the field from outside it: set by code, or followed from the
+   * stored entry (D324), also when it equals `value`. A field that keeps its own text replaces it
+   * with `value` then; its own `onChange` leaves this as it is.
+   */
+  readonly setFromOutside: number;
   /** Hands on a finished value, `null` for "empty"; any text the field held that was no value is gone. */
   readonly onChange: (value: Value) => void;
   /**
@@ -56,6 +62,10 @@ export function useFieldBinding<FormDraft, Name extends FieldName<FormDraft>>(
     useCallback((listener: () => void) => binding.subscribeValue(name, listener), [binding, name]),
     () => binding.valueOf(name),
   ) as FormDraft[Name];
+  const setFromOutside = useSyncExternalStore(
+    useCallback((listener: () => void) => binding.subscribeValue(name, listener), [binding, name]),
+    () => binding.setFromOutside(name),
+  );
   const error = useFieldMessage(binding, name);
   const ref = useFieldElement(binding, name);
   const handlers = useMemo(
@@ -72,7 +82,7 @@ export function useFieldBinding<FormDraft, Name extends FieldName<FormDraft>>(
     }),
     [binding, name],
   );
-  return { value, error, ref, ...handlers };
+  return { value, setFromOutside, error, ref, ...handlers };
 }
 
 /** The message of `field`, translated; the field draws again only when it or the language changes. */

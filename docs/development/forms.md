@@ -197,10 +197,11 @@ does not redraw it. Built-in Text/LongText/Icon/Color fields already handle this
 
 A field accepting half-typed text keeps that text itself. A finished value calls
 `onChange(value)`; empty calls `onChange(null)`. Text that is no value calls
-`onUnfinished(msg\`Complete this value.\`)`and leaving calls`onBlur()`. It counts as an unsaved
-change and blocks submit, showing a message on leave or Save. Never silently submit the older
-value. When `field.value`changes by code, replace the local text with its formatted value.
-Date/time fields follow with`time-tracking`; use the working example in
+``onUnfinished(msg`Complete this value.`)`` and leaving calls `onBlur()`. It counts as an
+unsaved change and blocks submit, showing a message on leave or Save. Never silently submit the
+older value. When `field.setFromOutside` changes, a value came by code or from the followed
+entry: replace the local text with the formatted `field.value`, even if that value did not
+change. Date/time fields follow with `time-tracking`; use the working example in
 [`bound-fields.stories.tsx`](../../packages/forms/src/testing/example/bound-fields.stories.tsx)
 for the local text pattern.
 

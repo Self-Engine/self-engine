@@ -100,6 +100,12 @@ export interface FormBinding {
   readonly change: (field: string, value: unknown) => void;
   /** Calls `listener` when the value of `field` changes, by the user or by code. */
   readonly subscribeValue: (field: string, listener: () => void) => () => void;
+  /**
+   * How many values reached `field` from outside it: set by code, or followed from the stored
+   * entry (D324), also one equal to the value the draft holds. It changes before the listeners of
+   * `subscribeValue` hear of it.
+   */
+  readonly setFromOutside: (field: string) => number;
   /** `field` holds text that is no value (D319); `message` shows once the user leaves it. */
   readonly holdUnfinished: (field: string, message: MessageDescriptor) => void;
   /** The focus left `field`. */
@@ -188,6 +194,9 @@ interface MadeForm {
 function createForm(latest: () => Latest): MadeForm {
   const messages = new FieldMessages();
   const values = new FieldListeners();
+  const fromOutside = new Map<string, number>();
+  const countFromOutside = (field: string) =>
+    fromOutside.set(field, (fromOutside.get(field) ?? 0) + 1);
   const unfinished = new UnfinishedTexts();
   const conflicts = new Map<string, MessageDescriptor>();
   const elements = new Map<string, HTMLElement>();
@@ -292,6 +301,7 @@ function createForm(latest: () => Latest): MadeForm {
       );
       for (const field of taking) {
         draft.setFieldValue(field, options.draft[field], { forceUpdate: false });
+        countFromOutside(field);
       }
       stored = structuredClone(next);
       for (const field of taking) values.notify(field);
@@ -335,12 +345,17 @@ function createForm(latest: () => Latest): MadeForm {
         setRunning(false);
       }
     },
-    setValue: change,
+    setValue(field, value) {
+      // Also a value the draft holds already reaches the field, which drops any text it holds.
+      countFromOutside(field);
+      change(field, value);
+    },
   };
   BINDINGS.set(form, {
     valueOf: (field) => latest().draft.getValues()[field],
     change,
     subscribeValue: (field, listener) => values.subscribe(field, listener),
+    setFromOutside: (field) => fromOutside.get(field) ?? 0,
     holdUnfinished(field, message) {
       unfinished.hold(field, message);
       show();
