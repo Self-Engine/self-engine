@@ -46,6 +46,9 @@ export const CAR = project(6, { title: "Auto" });
 export const SUCCEEDING: ProjectsAnswers = {
   active: { data: [WEBSITE, GARDEN, TAX, DOCTORS, WORK, CAR] },
   create: { data: project(7, { title: "New project" }) },
+  edit: { data: WEBSITE },
+  delete: { data: WEBSITE },
+  restore: { data: WEBSITE },
 };
 
 /** The Port access of a story: `answers` over the succeeding ones, checked against the Contract. */
