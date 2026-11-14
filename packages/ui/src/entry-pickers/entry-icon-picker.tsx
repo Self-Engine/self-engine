@@ -171,13 +171,16 @@ const EMOJI_COLUMNS = 9;
 const POPOVER_PADDING = "xs";
 const PADDING = `var(--mantine-spacing-${POPOVER_PADDING})`;
 
+/** The size of an emoji button at the 100 % font scale: Mantine's for the picker's size `sm`. */
+const EMOJI_SIZE = 32;
+
 /**
  * The width of the popover: the width Mantine gives its emoji picker, by its own formula, from
- * `EMOJI_COLUMNS` buttons of size `sm` (32 px at the 100 % font scale) and its inset on each side,
+ * `EMOJI_COLUMNS` buttons of `EMOJI_SIZE`, which the font scale scales, and its inset on each side,
  * plus the popover's border of 1 px in place of the picker's own. With the inset as the popover's
  * padding, the emoji grid fills the popover's content exactly.
  */
-const POPOVER_WIDTH = `calc(${EMOJI_COLUMNS} * ${rem(32)} + ${PADDING} * 2 + 2px)`;
+const POPOVER_WIDTH = `calc(${EMOJI_COLUMNS} * ${rem(EMOJI_SIZE)} + ${PADDING} * 2 + 2px)`;
 
 /**
  * The height of a tab's content, under the tabs and above "No icon": the same on both tabs and in
@@ -372,6 +375,7 @@ function EmojiPanel({
         autoFocus={autoFocus}
         columns={EMOJI_COLUMNS}
         data={data}
+        emojiSize={EMOJI_SIZE}
         onChoose={onChoose}
         onQueryChange={onQueryChange}
         query={query}

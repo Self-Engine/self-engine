@@ -840,6 +840,64 @@ export const ShowsTheWholeFocusRingInTheCompactDensity: Story = {
   globals: { density: "compact" },
 };
 
+/** Mantine's glyph size of its emoji picker's size `sm`, at the 100 % font scale. */
+const EMOJI_GLYPH_SIZE = 18;
+
+/**
+ * The play of the row stories: in the emoji grid the buttons of one row end where the buttons of
+ * the next begin, so the hover and focus background of an emoji stays in its own row and leaves
+ * no gap to the next, and the glyphs keep Mantine's size at every font scale.
+ */
+async function keepsTheEmojiRowsApart(canvas: ReturnType<typeof within>) {
+  await userEvent.click(trigger(canvas));
+  const dialog = await dialogShown();
+  await userEvent.click(tabNamed(dialog, "Emoji"));
+  const grid = await within(dialog).findByRole("grid", {}, { timeout: 10_000 });
+  // The rows the virtual list shows, in order; a category's label is a row of its own.
+  const rows = within(grid)
+    .getAllByRole("row")
+    .map((row) => within(row).queryAllByRole("gridcell"));
+  let pairs = 0;
+  for (const [index, upper] of rows.entries()) {
+    const lower = rows[index + 1];
+    if (upper.length === 0 || lower === undefined || lower.length === 0) continue;
+    const bottom = Math.max(...upper.map((cell) => cell.getBoundingClientRect().bottom));
+    const top = Math.min(...lower.map((cell) => cell.getBoundingClientRect().top));
+    await expect(Math.abs(top - bottom)).toBeLessThanOrEqual(SCROLL_ROUNDING);
+    pairs += 1;
+  }
+  await expect(pairs).toBeGreaterThan(3);
+  const scale = Number.parseFloat(
+    getComputedStyle(document.documentElement).getPropertyValue("--mantine-scale"),
+  );
+  const cell = within(grid).getAllByRole("gridcell")[0]!;
+  await expect(Number.parseFloat(getComputedStyle(cell).fontSize)).toBeCloseTo(
+    EMOJI_GLYPH_SIZE * scale,
+  );
+}
+
+export const KeepsTheEmojiRowsApart: Story = {
+  render: () => <Form answer={answers} stored={null} />,
+  play: async ({ canvas }) => {
+    await keepsTheEmojiRowsApart(canvas);
+  },
+};
+
+export const KeepsTheEmojiRowsApartAtTheLargestFontScale: Story = {
+  ...KeepsTheEmojiRowsApart,
+  globals: { fontScale: "112.5" },
+};
+
+export const KeepsTheEmojiRowsApartAtTheSmallestFontScale: Story = {
+  ...KeepsTheEmojiRowsApart,
+  globals: { fontScale: "87.5" },
+};
+
+export const KeepsTheEmojiRowsApartInTheCompactDensity: Story = {
+  ...KeepsTheEmojiRowsApart,
+  globals: { density: "compact" },
+};
+
 /** Mantine's height of size `xs` at the 100 % font scale, which the compact Density gives controls. */
 const COMPACT_CONTROL_HEIGHT = 30;
 
