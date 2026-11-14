@@ -13,10 +13,10 @@ const link = z.object({
 });
 export const linksContract = {
   create: oc
-    .input(z.object({ noteId: noteIdSchema, label: z.string().min(1) }))
+    .input(z.strictObject({ noteId: noteIdSchema, label: z.string().min(1) }))
     .output(link)
     .errors({ NOT_FOUND: {} }),
-  list: oc.input(z.object({ title: z.string().optional() })).output(
+  list: oc.input(z.strictObject({ title: z.string().optional() })).output(
     z.array(
       link.extend({
         noteTitle: z.string().nullable(),

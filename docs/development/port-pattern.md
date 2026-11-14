@@ -31,6 +31,34 @@ Forms also check with the same input schema for field feedback (D317), but the D
 still checks every input and decides. Trimming belongs in the input schema, not a form-only
 rule. Load the Contract with the lazy form, never at startup; see [the form guide](forms.md).
 
+Every input is strict: write `z.strictObject(...)`, so an unknown key is an input error and
+nothing is dropped silently ([ADR 0032](../adr/0032-every-edit-names-what-changes-and-its-inputs-come-from-one-field-list.md)).
+The contract kit fails an object input that accepts an unknown field, for Queries and
+Operations alike.
+
+An entry that is created and edited lists its fields once and derives both inputs with
+`entryFields` from `@self-engine/db/schema`, as the test module
+[`cards`](../../packages/storage/test/cards-module/contracts/index.ts) does:
+
+```ts
+export const cardFields = entryFields(cardIdSchema, {
+  title: z.string().trim().min(1).max(200),
+  body: z.string().trim().max(10_000).nullable(),
+  color: z.enum(["red", "blue"]).nullable(),
+});
+// create: title required, body and color may be missing (then empty).
+// edit: the id, every field optional; null clears body or color, never the title.
+create: oc.input(cardFields.create.refine(bodyDiffers, bodyRule)).output(cardSchema),
+edit: oc.input(cardFields.edit.refine(bodyDiffers, bodyRule)).output(cardSchema)
+  .errors({ NOT_FOUND: {} }),
+```
+
+A field whose schema accepts `null` is optional; every other field is required. Declare a rule
+across fields on the derived input with `.refine`, naming its field and its `params.reason`; on
+an edit it checks the fields when both travel, so export the tied groups beside it for the form
+([form guide](forms.md)). Name each field in the entry's answer as in the input: the kit
+compares them by name. Archive, delete and restore stay named Operations, never fields.
+
 Done when each planned query and operation has one contract entry, its input, full output
 shape and expected error codes, without a second hand-written port interface.
 
@@ -110,6 +138,13 @@ non-deleted select, and `.lookup(table, id)` for one live row or `NOT_FOUND`. Us
 non-literal objects, and runtime writes discard injected convention fields. Update and
 soft delete require a live row; restore requires a deleted row. Unknown ids and ids in another
 Space are not found; restoring a live row is also not found.
+
+`update` writes only the fields that are not `undefined`, so an edit hands its input on field by
+field, `{ title: input.title, body: input.body }`, and a missing field stays untouched. With no
+field left it reads instead: it answers with the live row, writes nothing, leaves `updated_at`
+and sends no Table Change. Mark such an entry `kind: "operation", edit: true`, as `cards` does;
+the kit then checks the edit pattern (step 6). The Operation does not compare with the stored
+state: sending the value already stored writes and advances `updated_at` (ADR 0032).
 
 For joins, aggregates and multi-row changes, use ordinary Kysely builders and explicitly
 apply Space and live-row filters where required. Raw SQL and raw executors in storage are
@@ -237,6 +272,16 @@ Space/deletion isolation, query read-only behavior, indexed page sorting and cur
 unique-index mappings and reachable conflict reasons. It repeats every operation's valid
 example on the same database and rejects conflicts or reasons not declared by that entry.
 Extra output fields have their own violation, separate from schema conversions and defaults. Business behavior still needs module-owned tests.
+
+For an Operation marked `edit: true` the kit checks the edit pattern on a seeded database
+([ADR 0032](../adr/0032-every-edit-names-what-changes-and-its-inputs-come-from-one-field-list.md)).
+The input's required keys are the identity, its optional keys the fields, and the example sets
+every field of a seeded entry. An edit with only the identity must answer, write nothing and
+announce nothing, and an id no seed produced must be not found. After the example, the kit
+sends each field alone, first as `null` where the input allows it, then as the example's value:
+that field must be cleared or set, and every other field must keep its value. The kit test of
+[`cards`](../../packages/storage/src/testing/edits.test.ts) shows a passing module and one for
+each failure.
 
 The kit records the tables each query’s SQL takes rows from (FROM, JOIN and subqueries,
 including those a read piece builds) and reports `query reads an undeclared table: <table>`

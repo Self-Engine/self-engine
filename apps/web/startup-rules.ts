@@ -52,6 +52,14 @@ export const STARTUP_RULES = {
         "import it as a type in startup code, and at runtime only in an Edit Drawer that loads on demand, where a form checks with its input schema.",
     },
     {
+      // The id schema and the field-list building block that derives create and edit inputs
+      // (D329). They build Zod schemas, so they load with a Contract, never at startup.
+      name: "The shared schemas of db",
+      path: "/packages/db/src/schema/",
+      instead:
+        "import them only from a module's Contract or row map; startup code reads the Contract as a type.",
+    },
+    {
       // The names and search words of 1,932 emojis: about 790 KB per language (#268).
       name: "The emoji data",
       path: "/node_modules/emojibase-data/",

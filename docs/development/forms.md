@@ -6,37 +6,43 @@ Use `@self-engine/forms` for module forms (ADR 0030). Add `forms` to the module�
 import its Contract at runtime there, and as a type in `port.ts`. The startup gate rejects
 Contracts, the full Zod build and the form library in startup chunks.
 
-The next consumer is `projects` (#273). The example below describes a proposed multi-field
-form, not a settled projects Contract. Projects must first decide its partial-update Contract
-and its meaning of missing, empty and value. Do not copy placeholder-alpha’s single-field
-rename Contract for a multi-field edit.
+The next consumer is `projects` (#273). The Contract of a multi-field edit follows the edit
+pattern of [ADR 0032](../adr/0032-every-edit-names-what-changes-and-its-inputs-come-from-one-field-list.md):
+missing stays untouched, `null` clears, a value sets, an unknown field is an input error and an
+edit without fields does nothing. Do not copy placeholder-alpha’s single-field rename Contract
+for a multi-field edit.
 
 ## Contract and hooks
 
 Rules belong in the input schema, not in field handlers. The Data Process checks every input
 and decides; the form’s Check gives immediate feedback. Output schemas preserve values.
-For example, a create schema can declare:
+List the entry’s fields once and derive the create and edit inputs with `entryFields` from
+`@self-engine/db/schema` ([port guide](port-pattern.md#1-set-up-the-entries-and-contract)):
 
 ```ts
-const fields = {
+const projectFields = entryFields(projectIdSchema, {
   title: z.string().trim().min(1).max(200),
   description: z.string().trim().max(2000).nullable(),
   icon: iconInputSchema.nullable(),
   color: colorInputSchema.nullable(),
+});
+const descriptionDiffers = (input: { title?: string; description?: string | null }) =>
+  input.title === undefined || input.description == null || input.description !== input.title;
+const descriptionRule = {
+  path: ["description"],
+  params: { reason: "description_matches_title" },
 };
-const createInput = z
-  .object(fields)
-  .refine((input) => input.description === null || input.description !== input.title, {
-    path: ["description"],
-    params: { reason: "description_matches_title" },
-  });
+const createInput = projectFields.create.refine(descriptionDiffers, descriptionRule);
+const editInput = projectFields.edit.refine(descriptionDiffers, descriptionRule);
+export const projectTiedFields = [["title", "description"]] as const;
 ```
 
-Use the pure icon/color schemas of `ui` (ADR 0029). A rule across fields names its affected
-field and reason. For an edit, export tied field groups beside that rule, for example
-`[["title", "description"]] as const`; the partial input schema must accept exactly the
-subsets the form sends and check a group when it is present. The same schema runs in the
-Data Process. Never reimplement the predicate in the form.
+Use the pure icon/color schemas of `ui` (ADR 0029). A field whose schema accepts `null` is
+optional. A rule across fields names its affected field and reason. For an edit, export tied
+field groups beside that rule; the derived edit input accepts exactly the subsets the form
+sends, and the rule checks a group when it is present. The same schema runs in the Data
+Process. Never reimplement the predicate in the form. Both inputs are strict: a field the
+Draft holds but the input does not take is an input error, not dropped.
 
 Build hooks with `portHooks<typeof contract>(mountName)` as in [the hooks guide](port-hooks.md).
 Give every Conflict reason its `msg` descriptor and field there; use `field: null` for a

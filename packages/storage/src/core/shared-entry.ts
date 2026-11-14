@@ -26,6 +26,8 @@ type SyncedTable<DB> = {
       : never;
 }[keyof DB & string];
 type Fields<Row> = Omit<Row, keyof Convention> & { [Key in keyof Convention]?: never };
+/** An edit's fields: a field left `undefined` is missing from the call and stays untouched. */
+type EditFields<Row> = { [Key in keyof Fields<Row>]?: Fields<Row>[Key] | undefined };
 
 function assertSynchronizedTable(table: string) {
   if (table.startsWith("local_"))
@@ -35,7 +37,9 @@ function assertSynchronizedTable(table: string) {
 function writableFields(fields: object) {
   return Object.fromEntries(
     Object.entries(fields).filter(
-      ([key]) => !["id", "space_id", "created_at", "updated_at", "deleted_at"].includes(key),
+      ([key, value]) =>
+        value !== undefined &&
+        !["id", "space_id", "created_at", "updated_at", "deleted_at"].includes(key),
     ),
   );
 }
@@ -123,12 +127,19 @@ export function sharedWrites<DB>(tx: Transaction<DB>, context: StorageContext) {
       if (row === undefined) throw new Error("Insert returned no row");
       return row as Selectable<DB[Table]>;
     },
+    /**
+     * Writes the fields given and leaves a missing (`undefined`) one untouched (D329). With no
+     * field left it reads instead: it answers with the live row, writes nothing, leaves
+     * `updated_at` and announces no Table Change; an unknown id is still not found.
+     */
     update<Table extends SyncedTable<DB>>(
       table: Table,
       id: DB[Table] extends Convention ? DB[Table]["id"] : never,
-      fields: Fields<Updateable<DB[Table]>>,
+      fields: EditFields<Updateable<DB[Table]>>,
     ) {
-      return change(table, id, writableFields(fields), false);
+      const values = writableFields(fields);
+      if (Object.keys(values).length === 0) return reads.lookup(table, id);
+      return change(table, id, values, false);
     },
     softDelete<Table extends SyncedTable<DB>>(
       table: Table,

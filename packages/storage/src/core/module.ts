@@ -43,6 +43,11 @@ export type ModuleEntries<Contract extends StorageContract, Rows extends RowMap>
       }
     | {
         readonly kind: "operation";
+        /**
+         * Declares the Operation an edit (D329, ADR 0032): its input is the id and optional
+         * fields, as `entryFields` derives it, and the contract kit checks the edit pattern.
+         */
+        readonly edit?: true;
         readonly run: Handler<
           Transaction<TablesOf<Rows>>,
           InferSchemaOutput<Contract[Entry]["~orpc"]["inputSchema"]>,
@@ -108,7 +113,11 @@ export type ErasedStorageModule = Pick<
           readonly list?: { readonly kind: "window" | "small-set" | "pages" };
           readonly run: (...args: never[]) => unknown;
         }
-      | { readonly kind: "operation"; readonly run: (...args: never[]) => unknown }
+      | {
+          readonly kind: "operation";
+          readonly edit?: true;
+          readonly run: (...args: never[]) => unknown;
+        }
     >
   >;
 };

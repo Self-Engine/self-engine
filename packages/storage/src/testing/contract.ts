@@ -1,5 +1,6 @@
 import { declaresConflict } from "../core/conflict-declared.ts";
 import { checkConflicts, type ConflictExamples } from "./conflicts.ts";
+import { acceptsUnknownField, checkEdits } from "./edits.ts";
 import { seedScoping, returnsSeededRow, checkEntryScoping, scopedRowsChanged } from "./scoping.ts";
 import { isDeepStrictEqual } from "node:util";
 import type { InferContractRouterInputs } from "@orpc/contract";
@@ -120,6 +121,8 @@ export async function checkContract<Contract extends StorageContract, Rows exten
       invalid.push(candidate);
     }
     if (invalid.length === 0) violations.push({ entry, rule: "accepts invalid input" });
+    if (await acceptsUnknownField(inputSchema, example))
+      violations.push({ entry, rule: "input accepts an unknown field" });
     const database = await createTestDatabase(module, dependencies);
     try {
       const sources = createTestContext();
@@ -357,5 +360,6 @@ export async function checkContract<Contract extends StorageContract, Rows exten
     }
   }
   violations.push(...(await checkConflicts(module, seed, conflictExamples, dependencies)));
+  violations.push(...(await checkEdits(module, seed, examples, dependencies)));
   return violations;
 }

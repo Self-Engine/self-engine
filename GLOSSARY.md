@@ -90,6 +90,10 @@ _Avoid_: private table, device table
 The identity of one entity, branded for its kind so a project id cannot stand in for a task id. References to that entity keep the same identity.
 _Avoid_: generic id, shared id brand
 
+**Field List** (de: _Feldliste_):
+The fields of one kind of entry, each with the schema of its value, written once in its _Contract_. The inputs of create and edit are derived from it; a field that may be empty is optional, every other one required. An edit names only the fields that change.
+_Avoid_: patch schema, update DTO, partial entity
+
 **Live Row** (de: _nicht gelöschte Zeile_):
 A stored row that has not been soft-deleted. Ordinary reads and changes see only live rows in the current _Space_.
 _Avoid_: active row, undeleted record

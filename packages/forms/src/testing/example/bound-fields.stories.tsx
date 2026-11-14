@@ -30,7 +30,7 @@ const markedFields = {
 const markedEntrySchema = z.object({ id: z.string(), ...markedFields });
 
 const markedContract = {
-  create: oc.input(z.object(markedFields)).output(markedEntrySchema),
+  create: oc.input(z.strictObject(markedFields)).output(markedEntrySchema),
   update: oc.input(markedEntrySchema.partial().required({ id: true })).output(markedEntrySchema),
 };
 

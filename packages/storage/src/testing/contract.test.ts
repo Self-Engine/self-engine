@@ -25,7 +25,7 @@ const announcementNotes = {
 
 const good = defineStorageModule({
   name: "fixture",
-  contract: { echo: oc.input(z.object({ text: z.string() })).output(z.string()) },
+  contract: { echo: oc.input(z.strictObject({ text: z.string() })).output(z.string()) },
   migrations: [],
   rowMap: {},
 }).entries({ echo: { kind: "query", reads: [], run: (_tx, _context, input) => input.text } });
@@ -448,7 +448,9 @@ test("the kit rejects a count that includes another Space or deleted rows", asyn
 test("the kit rejects a by-id lookup of its own deleted row", async () => {
   const fixture = defineStorageModule({
     ...referenceNotes,
-    contract: { lookup: oc.input(z.object({ id: noteIdSchema })).output(z.string().nullable()) },
+    contract: {
+      lookup: oc.input(z.strictObject({ id: noteIdSchema })).output(z.string().nullable()),
+    },
   }).entries({
     lookup: {
       kind: "query",
@@ -485,7 +487,7 @@ test("the kit rejects a by-id lookup of another Space's scalar value", async () 
   const fixture = defineStorageModule({
     ...referenceNotes,
     contract: {
-      lookup: oc.input(z.object({ id: noteIdSchema })).output(z.string().nullable()),
+      lookup: oc.input(z.strictObject({ id: noteIdSchema })).output(z.string().nullable()),
     },
   }).entries({
     lookup: {
@@ -519,8 +521,10 @@ test("the kit catches by-id reads, by-id writes and bulk writes without scoping"
   const fixture = defineStorageModule({
     ...referenceNotes,
     contract: {
-      get: oc.input(z.object({ id: noteIdSchema })).output(z.string().nullable()),
-      rename: oc.input(z.object({ id: noteIdSchema, title: z.string() })).output(z.undefined()),
+      get: oc.input(z.strictObject({ id: noteIdSchema })).output(z.string().nullable()),
+      rename: oc
+        .input(z.strictObject({ id: noteIdSchema, title: z.string() }))
+        .output(z.undefined()),
       unpinAll: oc.input(z.undefined()).output(z.undefined()),
     },
   }).entries({
