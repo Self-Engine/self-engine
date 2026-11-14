@@ -7,6 +7,30 @@ msgstr ""
 "X-Generator: @lingui/cli\n"
 "Language: de\n"
 
+#: packages/forms/src/violation-texts.ts
+msgid "{maximum, plural, one {At most # character.} other {At most # characters.}}"
+msgstr "{maximum, plural, one {Höchstens # Zeichen.} other {Höchstens # Zeichen.}}"
+
+#: packages/forms/src/violation-texts.ts
+msgid "{maximum, plural, other {At most #.}}"
+msgstr "{maximum, plural, other {Höchstens #.}}"
+
+#: packages/forms/src/violation-texts.ts
+msgid "{maximum, plural, other {Less than #.}}"
+msgstr "{maximum, plural, other {Weniger als #.}}"
+
+#: packages/forms/src/violation-texts.ts
+msgid "{minimum, plural, one {At least # character.} other {At least # characters.}}"
+msgstr "{minimum, plural, one {Mindestens # Zeichen.} other {Mindestens # Zeichen.}}"
+
+#: packages/forms/src/violation-texts.ts
+msgid "{minimum, plural, other {At least #.}}"
+msgstr "{minimum, plural, other {Mindestens #.}}"
+
+#: packages/forms/src/violation-texts.ts
+msgid "{minimum, plural, other {More than #.}}"
+msgstr "{minimum, plural, other {Mehr als #.}}"
+
 #: apps/web/src/data-connection-states.tsx
 msgid "A newer version already applied the update {migration}, which this version does not know. Open your data with the newer version."
 msgstr "Eine neuere Version hat bereits das Update {migration} angewendet, das diese Version nicht kennt. Öffne deine Daten mit der neueren Version."
@@ -160,7 +184,7 @@ msgctxt "Icon"
 msgid "Camera"
 msgstr "Kamera"
 
-#: packages/placeholder-alpha/src/edit-drawer.tsx
+#: packages/forms/src/form-body.tsx
 #: packages/ui/src/feedback.tsx
 msgid "Cancel"
 msgstr "Abbrechen"
@@ -178,6 +202,10 @@ msgstr "Kanal"
 msgctxt "Icon"
 msgid "Check mark"
 msgstr "Häkchen"
+
+#: packages/forms/src/testing/example/example-form.tsx
+msgid "Choose a color for the star."
+msgstr "Wähle eine Farbe für den Stern."
 
 #: packages/ui/src/entry-pickers/entry-icon-picker.tsx
 msgid "Choose an icon"
@@ -290,6 +318,10 @@ msgstr "Befehlspalette"
 msgctxt "Density"
 msgid "Compact"
 msgstr "Kompakt"
+
+#: packages/forms/src/unfinished-texts.ts
+msgid "Complete or clear this field."
+msgstr "Vervollständige dieses Feld oder leere es."
 
 #: packages/icons/src/directory/labels.ts
 msgctxt "Icon"
@@ -436,6 +468,10 @@ msgstr "Emoji-Vorschau"
 msgid "Emojis"
 msgstr "Emojis"
 
+#: packages/forms/src/violation-texts.ts
+msgid "Enter a whole number."
+msgstr "Gib eine ganze Zahl ein."
+
 #: packages/placeholder-alpha/src/entries.tsx
 msgid "Entries you create appear here."
 msgstr "Einträge, die du anlegst, erscheinen hier."
@@ -506,6 +542,10 @@ msgstr "Allgemein"
 msgctxt "Icon"
 msgid "Gift"
 msgstr "Geschenk"
+
+#: packages/forms/src/testing/example/example-form.tsx
+msgid "Give this entry a title of at most 80 characters."
+msgstr "Gib diesem Eintrag einen Titel mit höchstens 80 Zeichen."
 
 #: packages/icons/src/directory/labels.ts
 msgctxt "Icon"
@@ -591,6 +631,10 @@ msgstr "Im Browser hat Self-Engine noch keinen Zugang zu deinen Daten. Öffne di
 msgctxt "Color"
 msgid "Indigo"
 msgstr "Indigo"
+
+#: packages/forms/src/violation-texts.ts
+msgid "Invalid value."
+msgstr "Ungültiger Wert."
 
 #: packages/shell/src/edit-drawer-exits.tsx
 msgid "Keep editing"
@@ -1010,7 +1054,7 @@ msgstr "Tresor"
 msgid "Safety copy"
 msgstr "Sicherheitskopie"
 
-#: packages/placeholder-alpha/src/edit-drawer.tsx
+#: packages/forms/src/form-body.tsx
 msgid "Save"
 msgstr "Speichern"
 
@@ -1196,6 +1240,10 @@ msgstr "Die Aktion konnte nicht ausgeführt werden. Bitte versuche es erneut."
 msgid "The colors of the app. When the app follows the system, light and dark each have their own Theme."
 msgstr "Die Farben der App. Folgt die App dem System, haben Hell und Dunkel je ein eigenes Theme."
 
+#: packages/forms/src/testing/example/example-form.tsx
+msgid "The description must differ from the title."
+msgstr "Die Beschreibung muss sich vom Titel unterscheiden."
+
 #: packages/ui/src/entry-pickers/entry-icon-picker.tsx
 msgid "The emojis could not be loaded."
 msgstr "Die Emojis konnten nicht geladen werden."
@@ -1260,10 +1308,22 @@ msgstr "Diese Sicherung lässt sich nicht mehr lesen. Es wurde nichts wiederherg
 msgid "This entry no longer exists."
 msgstr "Diesen Eintrag gibt es nicht mehr."
 
+#: packages/forms/src/form-body.tsx
+msgid "This entry was deleted"
+msgstr "Dieser Eintrag wurde gelöscht"
+
+#: packages/forms/src/violation-texts.ts
+msgid "This field is required."
+msgstr "Dieses Feld ist erforderlich."
+
 #: packages/shell/src/lazy-contribution.tsx
 #: packages/ui/src/query-state-block.tsx
 msgid "This part could not be loaded."
 msgstr "Dieser Bereich konnte nicht geladen werden."
+
+#: packages/forms/src/testing/example/port.ts
+msgid "This title is already in use."
+msgstr "Dieser Titel wird schon verwendet."
 
 #: apps/web/src/data-connection-states.tsx
 msgid "This version of Self-Engine could not apply the update {migration} to your data. It was undone, so your data is unchanged."
@@ -1382,6 +1442,10 @@ msgstr "Wolle"
 msgctxt "Color"
 msgid "Yellow"
 msgstr "Gelb"
+
+#: packages/forms/src/form-body.tsx
+msgid "You can still read and copy what you typed here, but it can no longer be saved."
+msgstr "Was du hier eingegeben hast, kannst du noch lesen und kopieren, aber nicht mehr speichern."
 
 #: apps/web/src/data-connection-states.tsx
 msgid "Your data cannot be reached."

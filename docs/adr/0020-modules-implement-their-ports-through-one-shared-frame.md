@@ -1,7 +1,7 @@
 ---
 status: accepted
 date: 2026-11-12
-decisions: D187, D188, D189, D190, D195, D231, D232, D233, D234, D235, D236, D237, D238, D239, D240, D241, D260, D287
+decisions: D187, D188, D189, D190, D195, D231, D232, D233, D234, D235, D236, D237, D238, D239, D240, D241, D260, D287, D317
 ---
 
 # Modules implement their ports through one shared frame
@@ -28,6 +28,10 @@ changes atomically without opening a transaction for each call.
   transaction and never commit or announce. Queries have read-only access. Bridges call
   lower functions inside their own transaction; streams and progress imports may remain
   hand-written.
+- A form checks its Draft with the Contract’s input schema for field feedback (D317).
+  This does not replace the frame’s input check: the Data Process checks every input and
+  decides, including calls from Commands, imports and a later assistant. Contracts used by
+  forms load with the lazy Edit Drawer, never at startup (ADR 0030).
 - The frame checks outputs inside the transaction in tests and development. With checks off
   it uses a copy of the contract without output schemas. Output schemas preserve values in
   both modes; the contract kit rejects conversions and defaults. A failure rolls back and

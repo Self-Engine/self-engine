@@ -47,8 +47,9 @@ export const useDeleteEntry = alphaPort.operation("delete");
 export const createEntry = alphaPort.run("create", nameTaken); // for Commands, step 5
 ```
 
-- **Import the Contract as a type only** (`import type`). Its schemas then never load in the
-  app; only story and test code loads them (step 6).
+- **Import the Contract as a type only** (`import type`). Hooks must not load schemas at startup.
+  Lazy forms import their Contract at runtime for their Check; see [the form guide](forms.md).
+  Story and test code also loads schemas (step 6).
 - **The string is the mount name**: the module’s key in the app contract and in
   `apps/desktop/src/data-modules.ts`, the same as `name` in `defineStorageModule`.
 - **Entry names, inputs and answers are typed from the Contract.** A misspelled entry or a
@@ -331,9 +332,11 @@ answersByMount({ placeholderAlpha: placeholderAlphaAnswers(), backups: backupAns
 ```
 
 A Fixed Answer never changes: an Operation returns its answer and changes nothing, and no Table
-Change follows. Stories show states, not flows. The one exception is a story that measures what a
-change redraws: `changingAnswers(first, queries)` from the same entry switches to the next Fixed
-Answers and delivers their Table Change in one step, as the render-count gate does (step 4).
+Change follows. Stories show states, not flows. The exceptions are a story that measures what a
+change redraws and a story of a form that follows its stored entry while it is open (D324):
+`changingAnswers(first, queries)` from the same entry switches to the next Fixed Answers and
+delivers their Table Change in one step, as the render-count gate does (step 4) and the stories in
+[`example-form-follow-entry.stories.tsx`](../../packages/forms/src/testing/example/example-form-follow-entry.stories.tsx).
 Where no call is meant to reach a Port, pass `NO_DATA_PROCESS` from
 `@self-engine/data-client/react`; do not write an inert access of your own.
 

@@ -3,10 +3,10 @@
 
 import { msg } from "@lingui/core/macro";
 import { useLingui } from "@lingui/react/macro";
-import { CheckIcon, rem, Stack, Text } from "@mantine/core";
+import { CheckIcon, Input, rem, Stack, Text } from "@mantine/core";
 import { colorSetColor, roleColor } from "@self-engine/theme";
 import { COLOR_SET_NAMES, type ColorSetName, resolveColorSetName } from "@self-engine/theme/names";
-import { useId } from "react";
+import { type ReactNode, useId } from "react";
 import { COLOR_SET_LABELS } from "../color-set-labels.ts";
 import { type SwatchChoice, SwatchRadioGroup } from "../swatch-radio-group.tsx";
 
@@ -17,6 +17,8 @@ export interface EntryColorPickerProps {
   readonly onChange: (color: ColorSetName | null) => void;
   /** The group's visible name; "Color" when left out. */
   readonly label?: string;
+  /** A message below the circles, such as from a form's check; it describes the group. */
+  readonly error?: ReactNode;
 }
 
 /** "No color" first, then the Color Sets around the color wheel. */
@@ -38,9 +40,11 @@ const NO_COLOR_LOOK = {
 } as const;
 
 /** The color of an entry: "no color" first, then the Color Sets. Answers only when chosen. */
-export function EntryColorPicker({ value, onChange, label }: EntryColorPickerProps) {
+export function EntryColorPicker({ value, onChange, label, error }: EntryColorPickerProps) {
   const { t, i18n } = useLingui();
   const labelId = useId();
+  const errorId = useId();
+  const hasError = Boolean(error);
   const chosen = resolveColorSetName(value) ?? null;
   const choices = CHOICES.map((colorSet): SwatchChoice<ColorSetName | null> =>
     colorSet === null
@@ -61,7 +65,14 @@ export function EntryColorPicker({ value, onChange, label }: EntryColorPickerPro
       <Text component="span" id={labelId} size="sm">
         {label ?? t`Color`}
       </Text>
-      <SwatchRadioGroup choices={choices} labelledBy={labelId} onChange={onChange} value={chosen} />
+      <SwatchRadioGroup
+        choices={choices}
+        describedBy={hasError ? errorId : undefined}
+        labelledBy={labelId}
+        onChange={onChange}
+        value={chosen}
+      />
+      {hasError && <Input.Error id={errorId}>{error}</Input.Error>}
     </Stack>
   );
 }

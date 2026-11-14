@@ -24,17 +24,19 @@ const createNamedEntry = {
   load: () => import("./create-named-entry.ts"),
 } as const satisfies ShellCommand;
 
+const loadEntries = () => import("./entries.tsx");
+
 export const contribution = defineContribution({
   id: "placeholder-alpha",
   name: msg`Placeholder Alpha`,
   icon: ProjectsIcon,
   color: "blue",
   views: [
-    { id: "overview", title: msg`Overview`, load: () => import("./entries.tsx") },
+    { id: "overview", title: msg`Overview`, load: loadEntries },
     {
       id: "archive",
       title: msg({ message: "Archive", context: "View title" }),
-      load: () => import("./entries.tsx"),
+      load: loadEntries,
     },
   ],
   commands: [createEntry, addSampleEntry, createNamedEntry],

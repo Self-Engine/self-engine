@@ -1,0 +1,51 @@
+import type { MessageDescriptor } from "@lingui/core";
+import { FieldListeners } from "./field-listeners.ts";
+
+/**
+ * The message each field shows, by field name, with one subscription per field: a change to one
+ * field's message redraws that field alone, so checking the whole form on every change after a
+ * failed save stays cheap (D318, D321).
+ */
+export class FieldMessages {
+  readonly #shown = new Map<string, MessageDescriptor>();
+  readonly #listeners = new FieldListeners();
+
+  /** The message `field` shows, or `undefined`. */
+  of(field: string): MessageDescriptor | undefined {
+    return this.#shown.get(field);
+  }
+
+  /** Calls `listener` when the message of `field` changes; returns the function that stops it. */
+  subscribe(field: string, listener: () => void): () => void {
+    return this.#listeners.subscribe(field, listener);
+  }
+
+  /** Shows `next` in place of every message so far; only the fields whose text changed hear of it. */
+  replace(next: ReadonlyMap<string, MessageDescriptor>): void {
+    const changed = new Set<string>();
+    for (const [field, message] of this.#shown) {
+      if (!sameMessage(message, next.get(field))) changed.add(field);
+    }
+    for (const [field, message] of next) {
+      if (!sameMessage(message, this.#shown.get(field))) changed.add(field);
+    }
+    for (const field of changed) {
+      const message = next.get(field);
+      if (message === undefined) this.#shown.delete(field);
+      else this.#shown.set(field, message);
+    }
+    for (const field of changed) this.#listeners.notify(field);
+  }
+}
+
+/** The same text with the same numbers: a new check that finds the same violation changes nothing. */
+function sameMessage(a: MessageDescriptor | undefined, b: MessageDescriptor | undefined): boolean {
+  if (a === undefined || b === undefined) return a === b;
+  return a.id === b.id && sameValues(a.values ?? {}, b.values ?? {});
+}
+
+/** Key by key, without serializing: a value may be a bigint, which JSON cannot write. */
+function sameValues(a: Record<string, unknown>, b: Record<string, unknown>): boolean {
+  const keys = Object.keys(a);
+  return keys.length === Object.keys(b).length && keys.every((key) => Object.is(a[key], b[key]));
+}

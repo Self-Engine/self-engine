@@ -37,6 +37,7 @@ import {
   type ComponentType,
   type KeyboardEvent,
   memo,
+  type ReactNode,
   useEffect,
   useId,
   useMemo,
@@ -60,6 +61,8 @@ export interface EntryIconPickerProps {
   readonly onChange: (icon: string | null) => void;
   /** The field's visible name; "Icon" when left out. */
   readonly label?: string;
+  /** A message below the button, such as from a form's check; it describes the button. */
+  readonly error?: ReactNode;
 }
 
 type Tab = "icons" | "emoji";
@@ -386,7 +389,7 @@ function EmojiPanel({
 }
 
 /** The mark of an entry: a button with the current icon or emoji that opens the two tabs. */
-export function EntryIconPicker({ value, onChange, label }: EntryIconPickerProps) {
+export function EntryIconPicker({ value, onChange, label, error }: EntryIconPickerProps) {
   const { t, i18n } = useLingui();
   const [opened, setOpened] = useState(false);
   const [tab, setTab] = useState<Tab>("icons");
@@ -408,6 +411,8 @@ export function EntryIconPicker({ value, onChange, label }: EntryIconPickerProps
   const labelId = useId();
   const valueId = useId();
   const titleId = useId();
+  const errorId = useId();
+  const hasError = Boolean(error);
   const resolved = resolveEntryIcon(value);
   const chosen = resolved.kind === "icon" ? resolved.name : undefined;
   // The tab of what is stored: an emoji opens on "Emoji", anything else on "Icons".
@@ -454,7 +459,12 @@ export function EntryIconPicker({ value, onChange, label }: EntryIconPickerProps
         ? t`No icon`
         : i18n._(ICON_LABELS[chosen]);
   return (
-    <Input.Wrapper label={fieldLabel} labelProps={{ id: labelId }}>
+    <Input.Wrapper
+      error={error}
+      errorProps={{ id: errorId }}
+      label={fieldLabel}
+      labelProps={{ id: labelId }}
+    >
       <Popover
         onChange={(next) => {
           if (next) open();
@@ -469,6 +479,7 @@ export function EntryIconPicker({ value, onChange, label }: EntryIconPickerProps
       >
         <Popover.Target>
           <Button
+            aria-describedby={hasError ? errorId : undefined}
             aria-labelledby={`${labelId} ${valueId}`}
             color="gray"
             display="block"

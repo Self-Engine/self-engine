@@ -9,6 +9,7 @@
     "./entry-mark": "./src/entry-mark.tsx",
     "./entry-pickers": "./src/entry-pickers/index.ts",
     "./swatch-radio-group": "./src/swatch-radio-group.tsx",
+    "./warning-alert": "./src/warning-alert.tsx",
     "./story-notices": "./src/story-notices.ts",
     "./story-timers": "./src/story-timers.ts",
     "./story-render-counts": "./src/story-render-counts.ts"

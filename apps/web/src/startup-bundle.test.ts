@@ -277,6 +277,73 @@ describe("the web app's startup rules", () => {
     ]);
   });
 
+  describe.each([
+    [
+      "@mantine/form",
+      "/repo/node_modules/.pnpm/@mantine+form@9.8.0_react@19.3.0/node_modules/@mantine/form/esm/use-form.mjs",
+      "The form library",
+    ],
+    [
+      "@mantine/dates",
+      "/repo/node_modules/.pnpm/@mantine+dates@9.8.0_@mantine+core@9.8.0_dayjs@1.11.20/node_modules/@mantine/dates/esm/components/DatePicker/DatePicker.mjs",
+      "Mantine's date fields",
+    ],
+  ])("%s", (_library, library, name) => {
+    const draft = "/repo/packages/forms/src/draft-form.ts";
+    const drawer = "/repo/packages/module/src/edit-drawer.tsx";
+    const formImporters: Readonly<Record<string, readonly string[]>> = {
+      [library]: [draft],
+      [draft]: [drawer],
+    };
+    const inspectForm = (startup: Record<string, unknown>, onDemand: Record<string, unknown>) =>
+      inspectStartup(
+        [
+          chunk("main.js", { isEntry: true, modules: startup }),
+          chunk("drawer.js", { modules: onDemand }),
+        ],
+        new Set(),
+        { ...STARTUP_RULES, maxBytes: 100 },
+        (id) => formImporters[id] ?? [],
+      ).problems;
+
+    it("is accepted in an Edit Drawer that loads on demand", () => {
+      expect(inspectForm({}, { [drawer]: {}, [draft]: {}, [library]: {} })).toEqual([]);
+    });
+
+    it("is rejected at startup, naming the code that imports it", () => {
+      expect(inspectForm({ [drawer]: {}, [draft]: {}, [library]: {} }, {})).toEqual([
+        `${name} entered the startup bundle, imported by ${draft}: build forms with @self-engine/forms only in an Edit Drawer or a View that loads on demand.`,
+      ]);
+    });
+  });
+
+  describe("a module's Contract", () => {
+    const contract = "/repo/packages/module/src/contracts/index.ts";
+    const drawer = "/repo/packages/module/src/edit-drawer.tsx";
+    const shell = "/repo/packages/shell/src/shell.tsx";
+    const contractImporters: Readonly<Record<string, readonly string[]>> = { [contract]: [drawer] };
+    const inspectContract = (startup: Record<string, unknown>, onDemand: Record<string, unknown>) =>
+      inspectStartup(
+        [
+          chunk("main.js", { isEntry: true, modules: startup }),
+          chunk("drawer.js", { modules: onDemand }),
+        ],
+        new Set(),
+        { ...STARTUP_RULES, maxBytes: 100 },
+        (id) => contractImporters[id] ?? [],
+      ).problems;
+
+    it("is accepted in the Edit Drawer whose form checks with it", () => {
+      expect(inspectContract({ [shell]: {} }, { [drawer]: {}, [contract]: {} })).toEqual([]);
+    });
+
+    it("is rejected at startup, naming the code that imports it", () => {
+      expect(inspectContract({ [shell]: {}, [drawer]: {}, [contract]: {} }, {})).toEqual([
+        `A module's Contract entered the startup bundle, imported by ${drawer}: import it as a type in startup code, and at runtime only in an Edit Drawer that loads on demand, where a form checks with its input schema.`,
+      ]);
+    });
+  });
+
   it("reject the emoji data at startup and name the code that imports it", () => {
     expect(
       inspect(

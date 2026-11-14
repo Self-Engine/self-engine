@@ -37,6 +37,8 @@ catalog:
   "@mantine/core": 9.8.0
   # The emoji grid of the Entry Mark's field (D300); it ships no data, emojibase-data has it.
   "@mantine/emoji": 9.8.0
+  # The draft of every form, in uncontrolled mode (D318). Only packages/forms imports it (D325).
+  "@mantine/form": 9.8.0
   "@mantine/hooks": 9.8.0
   "@mantine/modals": 9.8.0
   "@mantine/notifications": 9.8.0
@@ -50,6 +52,9 @@ catalog:
   "@orpc/server": 1.16.2
   # Only packages/icons may depend on it (#18).
   "@phosphor-icons/react": 2.1.10
+  # The interface a form reads a Contract's input schema through (D317); types only. The version
+  # oRPC brings.
+  "@standard-schema/spec": 1.1.0
   # The Component Catalog (apps/component-catalog). Every Storybook package moves together.
   "@storybook/addon-vitest": 10.6.6
   "@storybook/react-vite": 10.6.6
