@@ -30,5 +30,4 @@ export {
   LoadingState,
   useWaitIsSlow,
 } from "./state-blocks.tsx";
-export { WarningAlert, type WarningAlertProps } from "./warning-alert.tsx";
 export { NOT_WINDOW_DRAG_STYLE, WINDOW_DRAG_STYLE } from "./window-drag.ts";

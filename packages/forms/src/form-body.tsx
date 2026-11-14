@@ -7,7 +7,7 @@ import {
   useSyncExternalStore,
 } from "react";
 import { useUnsavedChanges } from "@self-engine/shell";
-import { WarningAlert } from "@self-engine/ui";
+import { WarningAlert } from "@self-engine/ui/warning-alert";
 import { bindingOf, type FormBinding, type OperationForm } from "./operation-form.ts";
 
 export interface OperationFormBodyProps {

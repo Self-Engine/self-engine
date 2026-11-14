@@ -7,7 +7,8 @@ import { Trans, useLingui } from "@lingui/react/macro";
 import { Box, Button, Group, Stack, Text } from "@mantine/core";
 import { useDataAccess } from "@self-engine/data-client/react";
 import { deviceTimeZone, formatInstant, type TimeZone } from "@self-engine/time";
-import { notifyDone, notifyUndoable, QueryStateBlock, WarningAlert } from "@self-engine/ui";
+import { notifyDone, notifyUndoable, QueryStateBlock } from "@self-engine/ui";
+import { WarningAlert } from "@self-engine/ui/warning-alert";
 import { memo, useCallback, useState } from "react";
 import {
   type Backup,

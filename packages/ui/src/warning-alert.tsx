@@ -1,3 +1,5 @@
+// Its own entry, not part of the package's index: the index loads at startup, and the warnings
+// sit in parts that load later, such as the Settings and the forms.
 import { Alert, type AlertProps } from "@mantine/core";
 import { ErrorIcon } from "@self-engine/icons";
 import { roleColor } from "@self-engine/theme";
