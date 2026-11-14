@@ -55,8 +55,14 @@ Apply [ADR 0019](../adr/0019-row-maps-are-the-single-source-of-storage-types.md)
   space_id TEXT NOT NULL REFERENCES spaces(id) DEFERRABLE INITIALLY DEFERRED
   ```
 
-  No `ON UPDATE` or `ON DELETE` action, and no key over several columns in its place. In the
-  row map, `space_id` uses `spaceIdSchema` from `@self-engine/storage`.
+  No key over several columns in its place. In the row map, `space_id` uses `spaceIdSchema`
+  from `@self-engine/storage`.
+
+- Every foreign key is `DEFERRABLE INITIALLY DEFERRED`. On a synchronized table it has no
+  `ON UPDATE` and no `ON DELETE` action: no `CASCADE`, `SET NULL`, `SET DEFAULT` or `RESTRICT`.
+  Rows are only soft-deleted, and a parent is deleted only while no live row refers to it, so an
+  action would delete or rewrite rows behind the Operations; `RESTRICT` would also fire before
+  the deferred check. An explicit `NO ACTION` passes, because SQLite records it like none.
 
 - Indexes on synchronized tables begin with `space_id`; unique indexes are partial on
   `WHERE deleted_at IS NULL`. The primary key’s automatic index is exempt, as are Local Tables.
@@ -65,7 +71,8 @@ Apply [ADR 0019](../adr/0019-row-maps-are-the-single-source-of-storage-types.md)
 
 Done when `checkAgreement(migrations, rowMap)` and `checkConventions(database)` return no
 violations, as in the notes tests. `checkConventions` names a synchronized table whose
-`space_id` lacks the key to `spaces(id)`, refers elsewhere, carries an action or is not deferred.
+`space_id` lacks the key to `spaces(id)` or refers elsewhere, and any foreign key that carries an
+action or is not deferred, with its parent.
 
 ## 3. Implement the data entry
 

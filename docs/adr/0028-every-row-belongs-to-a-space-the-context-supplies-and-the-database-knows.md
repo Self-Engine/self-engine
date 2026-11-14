@@ -82,9 +82,9 @@ data. The first real module would have copied the missing key into every table o
    - `space_id` refers to `spaces(id)` by a key over that one column; a key over several
      columns that includes `space_id` does not count, and `REFERENCES spaces` without `(id)` is
      reported.
-   - The key has no `ON UPDATE` and no `ON DELETE` action. An explicit `NO ACTION` passes,
-     because SQLite records it like none.
-   - The key is `DEFERRABLE INITIALLY DEFERRED`, which the rule for every foreign key checks.
+   - The key has no `ON UPDATE` and no `ON DELETE` action and is `DEFERRABLE INITIALLY
+     DEFERRED`. The rules for every foreign key of such a table check both; an explicit
+     `NO ACTION` passes, because SQLite records it like none.
    - There is no exception list. `spaces` passes itself, because its row refers to itself.
 
 6. **The key to `spaces` is not a link between modules.** [ADR 0003](0003-one-table-per-module-entity-in-local-sqlite.md)
