@@ -4,14 +4,14 @@ import type { AppRouterContext, ModuleList } from "./module-list.ts";
 import { routeTree } from "./routeTree.gen.ts";
 
 /**
- * The app's router over `modules`: the app's own list, or a story's, with a fresh router for
+ * The app's router over `moduleList`: the app's own list, or a story's, with a fresh router for
  * each reload.
  */
-export function createAppRouter(history: RouterHistory, modules: ModuleList) {
+export function createAppRouter(history: RouterHistory, moduleList: ModuleList) {
   return createRouter({
     routeTree,
     history,
-    context: { modules } satisfies AppRouterContext,
+    context: { moduleList } satisfies AppRouterContext,
     defaultPreload: "intent",
     defaultPendingMs: Infinity,
     parseSearch: parseAddressSearch,

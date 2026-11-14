@@ -77,7 +77,7 @@ interface SearchedLocation {
 const moduleOfPath = (pathname: string) => pathname.split("/")[1] ?? "";
 
 /** The modules the router mounts, which `createAppRouter` puts into its context. */
-const modulesOf = (router: AnyRouter) => (router.options.context as AppRouterContext).modules;
+const modulesOf = (router: AnyRouter) => (router.options.context as AppRouterContext).moduleList;
 
 function keptSearch(router: AnyRouter, location: SearchedLocation, destination: string) {
   const toModule = moduleOfPath(destination);

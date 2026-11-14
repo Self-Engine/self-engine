@@ -3,7 +3,9 @@ import { ViewLoadError } from "../route-states.tsx";
 
 export const Route = createFileRoute("/$module/$view")({
   loader: async ({ params, context }) => {
-    const view = context.modules.find(params.module)?.views.find((view) => view.id === params.view);
+    const view = context.moduleList
+      .find(params.module)
+      ?.views.find((view) => view.id === params.view);
     if (!view) throw notFound();
     return { Component: (await view.load()).default };
   },

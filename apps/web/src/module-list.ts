@@ -23,7 +23,7 @@ export interface ModuleList {
 
 /** What every route reads from the router's context: the modules it mounts. */
 export interface AppRouterContext {
-  readonly modules: ModuleList;
+  readonly moduleList: ModuleList;
 }
 
 export function defaultAddress(module: ShellContribution) {

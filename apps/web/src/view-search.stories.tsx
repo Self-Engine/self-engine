@@ -67,7 +67,7 @@ function SearchStory({ children = <SearchControls /> }: { readonly children?: Re
     return createRouter({
       routeTree: root,
       history: createMemoryHistory({ initialEntries: ["/?client=studio"] }),
-      context: { modules: storyModules },
+      context: { moduleList: storyModules },
     });
   });
   return <RouterProvider router={router} />;

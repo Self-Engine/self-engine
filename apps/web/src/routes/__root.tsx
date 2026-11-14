@@ -25,9 +25,9 @@ export const Route = createRootRouteWithContext<AppRouterContext>()({
 function RootLayout() {
   const { pathname } = useRouterState({ select: visibleLocation });
   const badge = channelBadge(window);
-  const { modules } = Route.useRouteContext();
+  const { moduleList } = Route.useRouteContext();
   const [, moduleId, viewId] = pathname.split("/");
-  const activeModule = modules.find(moduleId ?? "");
+  const activeModule = moduleList.find(moduleId ?? "");
   const activeView = activeModule?.views.find((view) => view.id === viewId);
   const navbar = useSetting(settingsStore, SHELL_SETTINGS.navbar);
   const moduleSidebarWidth = useSetting(settingsStore, SHELL_SETTINGS.moduleSidebarWidth);
@@ -41,7 +41,7 @@ function RootLayout() {
       activeModule={activeModule}
       activeView={activeView}
       channelBadge={badge && <Badge variant="light">{badge}</Badge>}
-      contributions={modules.modules}
+      contributions={moduleList.modules}
       data={data}
       logo={LOGO}
       moduleSidebarCollapsed={moduleSidebarCollapsed}
@@ -56,7 +56,7 @@ function RootLayout() {
       onNavbarCommit={(next) => settingsStore.write(SHELL_SETTINGS.navbar, next)}
       routing={ROUTING}
       reserveWindowButtons={reservesWindowButtons(window)}
-      settings={modules.settings}
+      settings={moduleList.settings}
     >
       <Outlet />
     </Shell>
