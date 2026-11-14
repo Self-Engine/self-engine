@@ -47,8 +47,9 @@ export const useDeleteEntry = alphaPort.operation("delete");
 export const createEntry = alphaPort.run("create", nameTaken); // for Commands, step 5
 ```
 
-- **Import the Contract as a type only** (`import type`). Its schemas then never load in the
-  app; only story and test code loads them (step 6).
+- **Import the Contract as a type only** (`import type`). Hooks must not load schemas at startup.
+  Lazy forms import their Contract at runtime for their Check; see [the form guide](forms.md).
+  Story and test code also loads schemas (step 6).
 - **The string is the mount name**: the module’s key in the app contract and in
   `apps/desktop/src/data-modules.ts`, the same as `name` in `defineStorageModule`.
 - **Entry names, inputs and answers are typed from the Contract.** A misspelled entry or a

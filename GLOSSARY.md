@@ -110,6 +110,20 @@ _Avoid_: entity map, table interface
 The message of the _Data Process_ that names the tables one committed change wrote, so that every _Query_ reading one of them is answered again. A failed or reading call sends none.
 _Avoid_: invalidation, change event, update event
 
+### Forms
+
+**Draft** (de: _Formularentwurf_):
+The values a form holds while someone fills it in, with the field names of the Operation’s input. A value can still be empty or invalid; it is not stored until the Operation succeeds.
+_Avoid_: form state, buffer
+
+**Check** (de: _Formularprüfung_):
+The check of a form’s Draft against the Contract before submit, for feedback at its fields. It calls no Operation when a rule is violated. The Data Process still checks every input and decides whether to accept it.
+_Avoid_: client validation, business validation
+
+**Field Binding** (de: _Feldbindung_):
+The connection that gives a form field its current value, takes its changes and shows its messages. A picker can use it while remaining usable without a form.
+_Avoid_: bridge, adapter
+
 ### Development
 
 **Agreement Test** (de: _Übereinstimmungstest_):

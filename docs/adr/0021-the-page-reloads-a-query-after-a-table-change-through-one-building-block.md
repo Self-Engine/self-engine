@@ -1,7 +1,7 @@
 ---
 status: accepted
 date: 2026-11-13
-decisions: D247, D248, D249, D250, D251, D253, D255, D256, D257, D261, D263, D264, D265
+decisions: D247, D248, D249, D250, D251, D253, D255, D256, D257, D261, D263, D264, D265, D317
 ---
 
 # The page reloads a Query after a Table Change, through one building block
@@ -56,7 +56,8 @@ is spent drawing.
   answer and shows a Notice that it may be outdated.
 - **Fixed Answers.** Stories and component tests give each Port entry a Fixed Answer, checked
   against the entry’s output schema and declared errors. A call to an entry without one fails.
-  The Contract’s schemas load at runtime only in story and test code.
+  The Contract’s schemas load at runtime in story and test code and in lazy forms for
+  their Check (D317, ADR 0030); hooks retain type-only imports and never check Query outputs.
 - **One changed row redraws one row.** A row is its own memoized component that receives its
   row whole and nothing that is new on every list render. A gate test renames one of 1,000
   `placeholder-alpha` rows and requires exactly one row and the list itself to draw.

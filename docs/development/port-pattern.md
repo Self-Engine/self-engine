@@ -26,7 +26,10 @@ use Zod schemas and `oc.input(...).output(...).errors(...)`. Share entity id sch
 `Instant` through pure schema/value entries. Declare `NOT_FOUND` where applicable and
 `CONFLICT` with the operation’s allowed reason codes. Write normal output schemas that
 preserve values: no transforms, defaults, coercion or other conversions. Tests and development
-check outputs; the packaged app skips that check. Inputs are always checked before a handler runs.
+check outputs; the packaged app skips that check. Inputs are always checked in the Data Process before a lower function runs.
+Forms also check with the same input schema for field feedback (D317), but the Data Process
+still checks every input and decides. Trimming belongs in the input schema, not a form-only
+rule. Load the Contract with the lazy form, never at startup; see [the form guide](forms.md).
 
 Done when each planned query and operation has one contract entry, its input, full output
 shape and expected error codes, without a second hand-written port interface.
