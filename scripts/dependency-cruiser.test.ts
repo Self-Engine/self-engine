@@ -407,6 +407,20 @@ describe("the theme names entry", () => {
     ]);
     expect(found).toEqual([]);
   });
+
+  it("can be imported by a module contract, unlike the theme core", async () => {
+    const contract = (entry: string) =>
+      declaring(
+        extraPackage("packages/module", { "src/contracts/index.ts": `import "${entry}";\n` }),
+        "@self-engine/theme",
+      );
+    const run = (entry: string) =>
+      cruise([theme([], "export {};\n"), contract(entry)], {
+        allowedImports: { module: ["theme"] },
+      });
+    expect(await run("@self-engine/theme/names")).toEqual([]);
+    expect(ruleNames(await run("@self-engine/theme"))).toEqual(["module-contracts-is-pure"]);
+  });
 });
 
 describe("the translation core", () => {

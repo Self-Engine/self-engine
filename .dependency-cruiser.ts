@@ -322,11 +322,11 @@ export function boundaryConfig({
     {
       name: "module-contracts-is-pure",
       comment:
-        "A module's contracts load on both sides (D187): import only contract schemas, time, `@self-engine/db/schema` or `@self-engine/icons/names`, never database runtime code (D225) or React.",
+        "A module's contracts load on both sides (D187): import only contract schemas, time, `@self-engine/db/schema` or the names of `icons` and `theme`, never database runtime code (D225) or React.",
       severity: "error",
       from: { path: "^packages/[^/]+/src/contracts/" },
       to: {
-        pathNot: `^packages/(?:db/src/schema/|time/|icons/src/names/|[^/]+/src/contracts/)|(^|/)node_modules/(?:${alternatives(CONTRACT_LIBRARIES)})/`,
+        pathNot: `^packages/(?:db/src/schema/|time/|(?:icons|theme)/src/names/|[^/]+/src/contracts/)|(^|/)node_modules/(?:${alternatives(CONTRACT_LIBRARIES)})/`,
       },
     },
     {
