@@ -5,7 +5,7 @@ import { useDataAccess } from "@self-engine/data-client/react";
 import { useSetting } from "@self-engine/settings/react";
 import { Shell } from "@self-engine/shell";
 import { Outlet, createRootRouteWithContext, useRouterState } from "@tanstack/react-router";
-import type { AppRouterContext } from "../app-router.ts";
+import type { AppRouterContext } from "../module-list.ts";
 import { DataConnectionStates } from "../data-connection-states.tsx";
 import { dataConnection, retryDesktopData } from "../desktop-data.ts";
 import { channelBadge, reservesWindowButtons } from "../env.ts";

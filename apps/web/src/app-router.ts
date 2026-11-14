@@ -1,12 +1,7 @@
 import { createRouter, type RouterHistory } from "@tanstack/react-router";
 import { parseAddressSearch, stringifyAddressSearch } from "./address-search.ts";
-import type { ModuleList } from "./module-list.ts";
+import type { AppRouterContext, ModuleList } from "./module-list.ts";
 import { routeTree } from "./routeTree.gen.ts";
-
-/** What every route reads from the router: the modules it mounts. */
-export interface AppRouterContext {
-  readonly modules: ModuleList;
-}
 
 /**
  * The app's router over `modules`: the app's own list, or a story's, with a fresh router for

@@ -16,7 +16,7 @@ import {
   useRouter,
   useRouterState,
 } from "@tanstack/react-router";
-import type { AppRouterContext } from "./app-router.ts";
+import type { AppRouterContext } from "./module-list.ts";
 
 /** What the Shell shows: the page being left, until the next one has loaded. */
 export function visibleLocation<Location>(state: {

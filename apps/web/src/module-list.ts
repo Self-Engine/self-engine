@@ -21,6 +21,11 @@ export interface ModuleList {
   readonly find: (id: string) => ShellContribution | undefined;
 }
 
+/** What every route reads from the router's context: the modules it mounts. */
+export interface AppRouterContext {
+  readonly modules: ModuleList;
+}
+
 export function defaultAddress(module: ShellContribution) {
   return `/${module.id}/${module.views[0].id}`;
 }
