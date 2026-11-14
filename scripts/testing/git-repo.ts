@@ -33,5 +33,9 @@ export function createTestRepo(prefix: string): TestRepo {
   writeFileSync(join(dir, "a.txt"), "a\n");
   git("add", "-A");
   git("commit", "-q", "-m", "init");
-  return { dir, git, remove: () => rmSync(dir, { recursive: true, force: true }) };
+  // Under load the removal has failed with ENOTEMPTY: something still wrote into the
+  // directory while it was being emptied. Node retries that error when asked to.
+  const remove = (): void =>
+    rmSync(dir, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
+  return { dir, git, remove };
 }
