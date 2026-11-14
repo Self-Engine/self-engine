@@ -4,17 +4,30 @@ import { BUILT_IN_THEMES, DEFAULT_APPEARANCE, resolveAppearance } from "./index.
 const resolved = resolveAppearance(DEFAULT_APPEARANCE, BUILT_IN_THEMES);
 
 describe("the Module Colors", () => {
-  it("are all eight Color Sets, green included although it is no Accent", () => {
+  it("are all twelve Color Sets, those that are no Accent included", () => {
     expect(Object.keys(resolved.light.moduleColors)).toEqual([
-      "blue",
-      "indigo",
-      "violet",
-      "teal",
-      "orange",
-      "grape",
-      "green",
+      "red",
       "pink",
+      "grape",
+      "violet",
+      "indigo",
+      "blue",
+      "cyan",
+      "teal",
+      "green",
+      "lime",
+      "yellow",
+      "orange",
     ]);
+  });
+
+  it("give yellow its dark text on the fill, which is lighter than the text", () => {
+    expect(resolved.light.moduleColors["yellow"]).toEqual({
+      "--se-module": "#f6bd0c",
+      "--se-module-on": "#2a1f00",
+      "--se-module-soft": "#fbf1cf",
+      "--se-module-text": "#7a5700",
+    });
   });
 
   it("give each Color Set's values for the Color Mode to the four variables", () => {
@@ -47,7 +60,20 @@ describe("the Module Color rules", () => {
     const names = [...resolved.dark.moduleColorCss.matchAll(/data-module-color="(\w+)"/g)].map(
       ([, name]) => name,
     );
-    expect(names).toEqual(["blue", "indigo", "violet", "teal", "orange", "grape", "green", "pink"]);
+    expect(names).toEqual([
+      "red",
+      "pink",
+      "grape",
+      "violet",
+      "indigo",
+      "blue",
+      "cyan",
+      "teal",
+      "green",
+      "lime",
+      "yellow",
+      "orange",
+    ]);
   });
 
   it("do not change with the Theme or the Accent", () => {

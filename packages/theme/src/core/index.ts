@@ -3,11 +3,11 @@ export {
   BUILT_IN_THEMES,
   COLOR_SETS,
   type ColorSet,
-  type ColorSetId,
   DEFAULT_THEME,
   type Theme,
   type ThemeCatalog,
 } from "./catalog.ts";
+export type { ColorSetName } from "../names/list.ts";
 export { contrastRatio } from "./color.ts";
 export {
   auditColorSets,

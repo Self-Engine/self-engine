@@ -44,7 +44,7 @@ import {
 } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import { SearchIcon, SidePanelIcon } from "@self-engine/icons";
-import { type ColorSetId, roleColor } from "@self-engine/theme";
+import { type ColorSetName, roleColor } from "@self-engine/theme";
 import {
   LoadingState,
   NOT_WINDOW_DRAG_STYLE,
@@ -264,7 +264,7 @@ interface NavigationEntry {
   /** Already translated. */
   readonly label: string;
   readonly icon: ShellContribution["icon"];
-  readonly color: ColorSetId;
+  readonly color: ColorSetName;
 }
 
 /** The app's brand. The Shell only places it: its artwork comes in from outside. */
@@ -288,7 +288,7 @@ interface ShellFrameProps {
   /** Renders nothing. Inside the routing, because a shortcut starts a Command on this page. */
   readonly shortcuts?: ReactNode;
   readonly pageTitle: string;
-  readonly activeColor: ColorSetId | undefined;
+  readonly activeColor: ColorSetName | undefined;
   /** Sits in the top strip of the navigation, in the drawer at the narrow step, and in the content header while the Navbar holds the window buttons. None at phone width. */
   readonly logo?: ShellLogo;
   /** The free end of the content header. */

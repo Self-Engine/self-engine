@@ -37,7 +37,7 @@ The named purpose a color serves, such as the page background or muted text. Com
 _Avoid_: token, shade, color variable
 
 **Color Set** (de: _Farbsatz_):
-A named group of four matching colors for one hue: a fill, the text on that fill, a soft fill, and colored text on normal backgrounds. _Accents_ and _Module Colors_ are _Color Sets_.
+A named group of four matching colors for one hue: a fill, the text on that fill, a soft fill, and colored text on normal backgrounds. The text on the fill is part of the set and may be dark, as on yellow. _Accents_ and _Module Colors_ are _Color Sets_.
 _Avoid_: hue, color scale
 
 **Density** (de: _Dichte_):

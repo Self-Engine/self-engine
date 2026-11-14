@@ -7,6 +7,7 @@
   "exports": {
     ".": "./src/core/index.ts",
     "./mantine": "./src/mantine/index.tsx",
+    "./names": "./src/names/index.ts",
     "./fonts.css": "./src/fonts.css"
   },
   "dependencies": {
@@ -15,7 +16,8 @@
     "@mantine/hooks": "catalog:",
     "culori": "catalog:",
     "react": "catalog:",
-    "react-dom": "catalog:"
+    "react-dom": "catalog:",
+    "zod": "catalog:"
   },
   "devDependencies": {
     "@storybook/react-vite": "catalog:",

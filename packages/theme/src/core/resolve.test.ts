@@ -4,7 +4,7 @@ import {
   BUILT_IN_THEMES,
   COLOR_SETS,
   type ColorSet,
-  type ColorSetId,
+  type ColorSetName,
   contrastRatio,
   COLOR_MODE_CHOICES,
   DEFAULT_APPEARANCE,
@@ -188,13 +188,15 @@ describe("the Accent", () => {
   };
   const branded = { ...DEFAULT_APPEARANCE, lightTheme: "branded", darkTheme: "branded" };
 
-  it("offers six of the eight Color Sets as Accents", () => {
+  it("offers six of the twelve Color Sets as Accents", () => {
     expect(ACCENT_IDS).toEqual(["blue", "indigo", "violet", "teal", "orange", "grape"]);
-    expect(Object.keys(COLOR_SETS).toSorted()).toEqual([...ACCENT_IDS, "green", "pink"].toSorted());
+    expect(Object.keys(COLOR_SETS).toSorted()).toEqual(
+      [...ACCENT_IDS, "green", "pink", "red", "cyan", "lime", "yellow"].toSorted(),
+    );
   });
 
   it("types the built-in Accents as Color Set ids, so a typo fails the typecheck", () => {
-    expectTypeOf(ACCENT_IDS).items.toEqualTypeOf<ColorSetId>();
+    expectTypeOf(ACCENT_IDS).items.toEqualTypeOf<ColorSetName>();
   });
 
   it("uses blue for From Theme when the Theme has no Accent", () => {
@@ -224,14 +226,22 @@ describe("the Accent", () => {
     expect(values.dark.roles.accentText).toBe(set.dark.accentText);
   });
 
-  it.each(["nope", "constructor", "__proto__", "toString", "green", "pink"])(
-    "displays %s like From Theme",
-    (id) => {
-      expect(resolveAppearance({ ...branded, accent: id }, catalog)).toEqual(
-        resolveAppearance(branded, catalog),
-      );
-    },
-  );
+  it.each([
+    "nope",
+    "constructor",
+    "__proto__",
+    "toString",
+    "green",
+    "pink",
+    "red",
+    "cyan",
+    "lime",
+    "yellow",
+  ])("displays %s like From Theme", (id) => {
+    expect(resolveAppearance({ ...branded, accent: id }, catalog)).toEqual(
+      resolveAppearance(branded, catalog),
+    );
+  });
 
   it("lets white text on the blue fill reach AA in light Color Mode", () => {
     expect(resolved.light.roles.onAccent).toBe("#ffffff");
