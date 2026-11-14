@@ -180,6 +180,17 @@ startup code reaches it. Startup JavaScript went from **843,143** to **843,206 b
 the slice, from the shared name of the Color Set scope. Drawing a mark costs one icon render; the
 first View that draws one pays the chunk's load once.
 
+The pickers of an entry's icon, emoji and color (`@self-engine/ui/entry-pickers`, #261) load the
+same way: an edit drawer, which loads on demand, imports them. Startup JavaScript stayed at
+**843,206 bytes** (16 chunks) before and after the slice. In a trial build that loaded the pickers
+and the mark on demand, the pickers' own chunk measured **26,353 bytes** (11,010 gzipped) beside
+the shared directory chunk of **342,249 bytes**. The 214 icon labels sit in the language catalogs,
+which load before the first render outside this budget: the German catalog chunk went from
+**7,144 to 10,053 bytes**, the English one from **6,313 to 9,124**. The icon grid draws only while
+its popover is open. Measured in the story runner (Chromium, React in development mode, median of
+25 runs): opening it with all 107 pictures took **39 ms** (at most 44.5), narrowing them to those
+matching "ba" **4.5 ms**, and showing all 107 again **22 ms**; a production build is faster.
+
 ### Zod at startup
 
 The app reads its Settings before the first render, and each Setting checks its stored value

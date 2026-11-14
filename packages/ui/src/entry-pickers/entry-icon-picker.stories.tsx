@@ -202,3 +202,27 @@ export const SearchesInGerman: Story = {
     await expect(shownOptions(grid)).toEqual(["Glühbirne"]);
   },
 };
+
+/** Mantine's height of size `xs` at the 100 % font scale, which the compact Density gives controls. */
+const COMPACT_CONTROL_HEIGHT = 30;
+
+export const FollowsTheCompactDensity: Story = {
+  globals: { density: "compact", fontScale: "100" },
+  render: () => (
+    <Stack>
+      <Form answer={answers} stored="house" />
+      <div data-testid="row" style={{ height: "var(--se-row-height)" }} />
+    </Stack>
+  ),
+  play: async ({ canvas }) => {
+    await expect(trigger(canvas).getBoundingClientRect().height).toBe(COMPACT_CONTROL_HEIGHT);
+    await userEvent.click(trigger(canvas));
+    const { grid, search } = await opened();
+    await expect(search.getBoundingClientRect().height).toBe(COMPACT_CONTROL_HEIGHT);
+    // A picture is at least as wide as a row of the Density is high, and square.
+    const row = canvas.getByTestId("row").getBoundingClientRect().height;
+    const cell = within(grid).getByRole("option", { name: "House" }).getBoundingClientRect();
+    await expect(cell.width).toBeGreaterThanOrEqual(row);
+    await expect(Math.round(cell.height)).toBe(Math.round(cell.width));
+  },
+};
