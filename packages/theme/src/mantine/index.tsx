@@ -106,7 +106,7 @@ export function ThemeProvider({ appearance, catalog, children }: ThemeProviderPr
         forceColorScheme={activeColorMode}
         theme={theme}
       >
-        <style>{`${densityCss}${resolved[activeColorMode].moduleColorCss}${FOCUS_RING_CSS}`}</style>
+        <style>{`${densityCss}${resolved[activeColorMode].colorSetScopeCss}${FOCUS_RING_CSS}`}</style>
         {children}
       </MantineProvider>
     </ColorsContext>

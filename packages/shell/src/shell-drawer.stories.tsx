@@ -229,7 +229,7 @@ export const TheDrawerNavbarNamesItsEntriesAndMarksTheActiveOne: Story = {
     await expectNavigationLinks(navbar);
     const active = navbar.getByRole("link", { name: "Time", current: "page" });
     await expect(active).toHaveStyle({
-      backgroundColor: getComputedStyle(active).getPropertyValue("--se-module-soft"),
+      backgroundColor: getComputedStyle(active).getPropertyValue("--se-color-set-soft"),
     });
     await expectActiveEntryFillsTheColumn(active);
     await userEvent.hover(navbar.getByRole("link", { name: "Projects" }));

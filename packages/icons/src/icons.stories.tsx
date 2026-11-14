@@ -9,7 +9,9 @@ const BUTTON_VARIANTS = ["filled", "light", "outline", "subtle"] as const;
 const TEXT_ROLES = ["text", "textMuted"] as const;
 
 /** Reads the package's exports, so a new icon shows up here by itself. */
-const CATALOG = Object.entries(icons);
+const CATALOG = Object.entries(icons).filter(
+  (entry): entry is [string, icons.CatalogIcon] => entry[0] !== "iconLength",
+);
 
 const meta = {
   title: "Icons/Catalog",
@@ -86,10 +88,10 @@ export const Colors: StoryObj<typeof meta> = {
       <Group gap="xl">
         {Object.keys(COLOR_SETS).map((name) => (
           <Group
-            data-module-color={name}
+            data-color-set={name}
             gap="xs"
             key={name}
-            style={{ color: "var(--se-module-text)" }}
+            style={{ color: "var(--se-color-set-text)" }}
           >
             <icons.ProjectsIcon />
             {name}

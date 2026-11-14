@@ -18,9 +18,9 @@ const AREA: CSSProperties = {
 
 const MARK: CSSProperties = {
   alignItems: "center",
-  background: "var(--se-module)",
+  background: "var(--se-color-set)",
   borderRadius: "var(--mantine-radius-sm)",
-  color: "var(--se-module-on)",
+  color: "var(--se-color-set-on)",
   display: "flex",
   fontWeight: 700,
   height: rem(32),
@@ -40,12 +40,16 @@ function ModuleSample({ name }: { readonly name: string }) {
       <div aria-hidden style={MARK}>
         {name.charAt(0).toUpperCase()}
       </div>
-      <Text fw={600} style={{ color: "var(--se-module-text)" }}>
+      <Text fw={600} style={{ color: "var(--se-color-set-text)" }}>
         {name}
       </Text>
       <div
         data-testid="active-entry"
-        style={{ ...ENTRY, background: "var(--se-module-soft)", color: "var(--se-module-text)" }}
+        style={{
+          ...ENTRY,
+          background: "var(--se-color-set-soft)",
+          color: "var(--se-color-set-text)",
+        }}
       >
         Active entry
       </div>
@@ -60,7 +64,7 @@ function ModuleColors() {
   return (
     <SimpleGrid cols={4}>
       {COLOR_SET_NAMES.map((name) => (
-        <div data-module-color={name} data-testid={name} key={name} style={AREA}>
+        <div data-color-set={name} data-testid={name} key={name} style={AREA}>
           <ModuleSample name={name} />
         </div>
       ))}

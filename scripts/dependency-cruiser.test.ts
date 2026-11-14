@@ -763,6 +763,33 @@ describe("testing entries", () => {
   });
 });
 
+describe("the directory of entry pictures", () => {
+  const RULE = "icon-directory-only-in-ui";
+  const icons: FixturePackage = {
+    dir: "packages/icons",
+    exports: { ".": "./src/index.ts", "./directory": "./src/directory/index.ts" },
+    files: {
+      "src/index.ts": "export const HouseIcon = 1;\n",
+      "src/directory/index.ts": "export const ICON_DIRECTORY = {};\n",
+    },
+  };
+  const importing = (dir: string): FixturePackage => ({
+    dir,
+    dependencies: ["@self-engine/icons"],
+    files: { "src/index.ts": 'import "@self-engine/icons/directory";\n' },
+  });
+  const allowedImports = { ui: ["icons"], module: ["icons"], web: ["icons"] };
+
+  it("passes an import in ui, where the mark and the pickers draw it", async () => {
+    expect(await cruise([icons, importing("packages/ui")], { allowedImports })).toEqual([]);
+  });
+
+  it.each(["packages/module", "apps/web"])("fails an import in %s", async (dir) => {
+    const found = await cruise([icons, importing(dir)], { allowedImports });
+    expect(ruleNames(found)).toEqual([RULE]);
+  });
+});
+
 describe("icon libraries", () => {
   const RULE = "icons-only-through-catalog";
 

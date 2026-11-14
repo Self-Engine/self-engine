@@ -9,7 +9,7 @@ import {
 } from "./catalog.ts";
 import { composite, mixOklab } from "./color.ts";
 import { type Density, type FontScale, type LayoutValues, resolveLayout } from "./layout.ts";
-import { type ModuleColor, moduleColorCss, moduleColors } from "./module-colors.ts";
+import { type ColorSetScope, colorSetScopeCss, colorSetScopes } from "./color-set-scope.ts";
 import { neutralPalette } from "./neutral-palette.ts";
 import {
   type ColorSetColors,
@@ -68,10 +68,10 @@ export interface ColorModeValues {
   readonly colorVariables: Readonly<Record<`--mantine-${string}`, Hex>>;
   /** The palettes for Mantine's `theme.colors`, by key. */
   readonly palettes: Readonly<Record<string, Palette>>;
-  /** Every Color Set as a Module Color, by Color Set name. */
-  readonly moduleColors: Readonly<Record<string, ModuleColor>>;
-  /** The rules that turn `data-module-color` into the `--se-module*` variables. */
-  readonly moduleColorCss: string;
+  /** Every Color Set as a scope for Module Colors and the colors of entries, by name. */
+  readonly colorSetScopes: Readonly<Record<string, ColorSetScope>>;
+  /** The rules that turn `data-color-set` into the `--se-color-set*` variables. */
+  readonly colorSetScopeCss: string;
 }
 
 export type ResolvedAppearance = Readonly<Record<ResolvedColorMode, ColorModeValues>> & {
@@ -168,7 +168,7 @@ function colorModeValues(
     ...accentSet,
   };
   const sets = paletteSets(mode, accentSet);
-  const modules = moduleColors(mode);
+  const scopes = colorSetScopes(mode);
   return {
     roles,
     cssVariables: cssVariables(roles),
@@ -180,8 +180,8 @@ function colorModeValues(
       ...sets.map(([name, set]) => colorSetVariables(name, set)),
     ),
     palettes: Object.fromEntries(sets.map(([name, set]) => [name, colorSetPalette(set, mode)])),
-    moduleColors: modules,
-    moduleColorCss: moduleColorCss(modules),
+    colorSetScopes: scopes,
+    colorSetScopeCss: colorSetScopeCss(scopes),
   };
 }
 

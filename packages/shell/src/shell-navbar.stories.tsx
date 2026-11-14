@@ -80,7 +80,7 @@ export const ActiveEntryIsMarkedInItsModuleColor: Story = {
     const active = canvas.getByRole("link", { name: "Time", current: "page" });
     const scope = getComputedStyle(active);
     await expect(active).toHaveStyle({
-      backgroundColor: scope.getPropertyValue("--se-module-soft"),
+      backgroundColor: scope.getPropertyValue("--se-color-set-soft"),
     });
     await expect(canvas.getByRole("link", { name: "Projects" })).not.toHaveAttribute(
       "aria-current",

@@ -357,6 +357,14 @@ export function boundaryConfig({
       to: { path: `(^|(^|/)node_modules/)(?:${alternatives(ICON_LIBRARIES)})(/|$)` },
     },
     {
+      name: "icon-directory-only-in-ui",
+      comment:
+        "The directory of entry pictures (`@self-engine/icons/directory`) holds 107 icons and loads only on demand (D293). Draw an entry's icon with the mark of `@self-engine/ui/entry-mark`, the one building block that resolves the stored text (D294).",
+      severity: "error",
+      from: { path: "^(apps|packages)/", pathNot: "^packages/(?:icons|ui)/" },
+      to: { path: "^packages/icons/src/directory/" },
+    },
+    {
       name: "hotkeys-only-through-bindings",
       comment:
         "The hotkey library is in beta and must stay out of the startup bundle, so only the Shell's lazily loaded binding file may import it (D179). Add a binding there.",
