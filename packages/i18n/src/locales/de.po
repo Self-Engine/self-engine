@@ -440,6 +440,7 @@ msgstr "Standard-Hautton"
 
 #: packages/placeholder-alpha/src/edit-drawer.tsx
 #: packages/placeholder-alpha/src/entries.tsx
+#: packages/projects/src/edit-drawer.tsx
 msgid "Delete"
 msgstr "Löschen"
 
@@ -1002,6 +1003,10 @@ msgstr "Betende Hände"
 msgctxt "Icon"
 msgid "Prohibited"
 msgstr "Verbot"
+
+#: packages/projects/src/delete-with-undo.tsx
+msgid "Project deleted"
+msgstr "Projekt gelöscht"
 
 #: packages/projects/src/edit-drawer.tsx
 msgid "Project not found"

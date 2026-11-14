@@ -14,6 +14,9 @@ export const ACTIVE_PROJECTS = {};
 
 export const useActiveProjects = projectsPort.query("active");
 export const useCreateProject = projectsPort.operation("create");
+export const useEditProject = projectsPort.operation("edit");
+export const useDeleteProject = projectsPort.operation("delete");
+export const useRestoreProject = projectsPort.operation("restore");
 
 /** `create` for the Commands, which run outside React and are given the Port access (D261). */
 export const createProject = projectsPort.run("create");

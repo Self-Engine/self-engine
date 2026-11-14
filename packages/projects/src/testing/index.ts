@@ -12,6 +12,7 @@ import {
   projectReferenceSchema,
   projectsContract,
 } from "../contracts/index.ts";
+import { type PortCall, type ProjectsStoryPort, storyPortOf } from "./story-port.ts";
 
 const contracts = { projects: projectsContract };
 
@@ -50,6 +51,9 @@ export const CAR = project(6, { title: "Auto" });
 export const SUCCEEDING: ProjectsAnswers = {
   active: { data: [WEBSITE, GARDEN, TAX, DOCTORS, WORK, CAR] },
   create: { data: project(7, { title: "New project" }) },
+  edit: { data: WEBSITE },
+  delete: { data: WEBSITE },
+  restore: { data: WEBSITE },
 };
 
 /** The Port access of a story: `answers` over the succeeding ones, checked against the Contract. */
@@ -58,6 +62,19 @@ export function projectsAnswers(
   options?: FixedAnswerOptions,
 ): PortAccess {
   return fixedAnswers(contracts, { projects: { ...SUCCEEDING, ...answers } }, options);
+}
+
+export type { PortCall, ProjectsStoryPort } from "./story-port.ts";
+
+/**
+ * The Port of a story that changes the stored projects under an open View (Changing Answers): it
+ * answers `first` over the succeeding answers and writes down every Operation.
+ */
+export function projectsStoryPort(
+  first: ProjectsAnswers = {},
+  afterCall?: (call: PortCall, port: ProjectsStoryPort<ProjectsAnswers>) => void,
+): ProjectsStoryPort<ProjectsAnswers> {
+  return storyPortOf((answers) => projectsAnswers(answers), first, afterCall);
 }
 
 /** Another project titled "Website": only its mark tells it apart in the picker. */

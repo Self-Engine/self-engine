@@ -3,8 +3,12 @@
 // states and the calls that reach the Port; that the list follows a change is shown by the
 // module's Port test.
 
-import type { PortAccess } from "@self-engine/data-client/react";
-import { projectsAnswers, WEBSITE } from "@self-engine/projects/testing";
+import {
+  type ProjectsAnswers,
+  projectsAnswers,
+  projectsStoryPort,
+  WEBSITE,
+} from "@self-engine/projects/testing";
 import { LOADER_DELAY_MS } from "@self-engine/ui";
 import { holdTimers } from "@self-engine/ui/story-timers";
 import type { Meta, StoryObj } from "@storybook/react-vite";
@@ -24,33 +28,13 @@ type Canvas = ReturnType<typeof within>;
 const ACTIVE = "/projects/active";
 const NEW = `${ACTIVE}?edit=new`;
 
-interface Call {
-  readonly entry: string;
-  readonly input: unknown;
-}
-
-/** The Port access of a story, and every call that reached it. */
-function recorded(access: PortAccess): { access: PortAccess; calls: Call[] } {
-  const calls: Call[] = [];
-  return {
-    calls,
-    access: {
-      ...access,
-      call: (module, entry, input, signal) => {
-        calls.push({ entry, input });
-        return access.call(module, entry, input, signal);
-      },
-    },
-  };
-}
-
-let port = recorded(projectsAnswers());
-/** A new recording for every render, so that a second run starts without calls. */
-const freshPort = (access = projectsAnswers()) => {
-  port = recorded(access);
+let port = projectsStoryPort();
+/** A new Port for every render, so that a second run starts without calls. */
+const freshPort = (answers?: ProjectsAnswers) => {
+  port = projectsStoryPort(answers);
   return port.access;
 };
-const writes = () => port.calls.filter((call) => call.entry !== "active");
+const writes = () => port.calls;
 
 const meta = {
   title: "App/Projects/Active",
@@ -65,8 +49,11 @@ type Story = StoryObj<typeof meta>;
 
 const list = (canvas: Canvas) => canvas.findByRole("list", { name: "Active projects" });
 
+/** The button of a row, which opens its project: the mark, then the title. */
+const buttonOf = (item: HTMLElement) => within(item).getByRole("button");
+
 /** The title of a row, without an emoji of its mark. */
-const titleOf = (item: HTMLElement) => item.lastElementChild?.textContent;
+const titleOf = (item: HTMLElement) => buttonOf(item).lastElementChild?.textContent;
 
 /** The titles in the order the list shows them. */
 async function titlesShown(canvas: Canvas) {
@@ -80,7 +67,7 @@ async function markOf(canvas: Canvas, title: string) {
   const row = within(await list(canvas))
     .getAllByRole("listitem")
     .find((item) => titleOf(item) === title);
-  const mark = row?.firstElementChild;
+  const mark = row === undefined ? undefined : buttonOf(row).firstElementChild;
   if (!(mark instanceof HTMLElement)) throw new Error(`No mark for ${title}`);
   return mark;
 }
@@ -124,9 +111,7 @@ export const TheListIsSortedByGermanRulesInGerman: Story = {
 };
 
 export const AnEmptyListSaysHowToCreateTheFirstProject: Story = {
-  render: (args) => (
-    <AppAt address={args.address} access={freshPort(projectsAnswers({ active: { data: [] } }))} />
-  ),
+  render: (args) => <AppAt address={args.address} access={freshPort({ active: { data: [] } })} />,
   play: async ({ canvas }) => {
     const empty = within((await canvas.findByText("No projects yet")).parentElement!);
     await expect(empty.getByText(/Create your first project with "New project"/)).toBeVisible();
@@ -140,9 +125,7 @@ export const AnEmptyListSaysHowToCreateTheFirstProject: Story = {
 let heldWait: ReturnType<typeof holdTimers>["held"];
 
 export const ASlowLoadShowsTheLoadingStateAfterItsWait: Story = {
-  render: (args) => (
-    <AppAt address={args.address} access={freshPort(projectsAnswers({ active: "loading" }))} />
-  ),
+  render: (args) => <AppAt address={args.address} access={freshPort({ active: "loading" })} />,
   beforeEach: () => {
     const timers = holdTimers(LOADER_DELAY_MS);
     heldWait = timers.held;
@@ -159,9 +142,7 @@ export const ASlowLoadShowsTheLoadingStateAfterItsWait: Story = {
 };
 
 export const AFailedLoadOffersToTryAgain: Story = {
-  render: (args) => (
-    <AppAt address={args.address} access={freshPort(projectsAnswers({ active: "unexpected" }))} />
-  ),
+  render: (args) => <AppAt address={args.address} access={freshPort({ active: "unexpected" })} />,
   play: async ({ canvas }) => {
     const failure = await canvas.findByRole("alert");
     await expect(failure).toHaveTextContent("This part could not be loaded.");

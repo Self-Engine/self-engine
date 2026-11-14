@@ -41,6 +41,8 @@ export const projectSchema = z.object({
   archivedAt: instantSchema.nullable(),
 });
 
+const byId = z.strictObject({ id: projectIdSchema });
+
 /**
  * The module's Port (D252): mounted as `projects` in the app contract. A project is its id: no
  * title is unique, so no Operation answers with a Conflict (D328).
@@ -49,4 +51,9 @@ export const projectsContract = {
   /** The Live Rows that are not archived: a small set, sorted by title in the page. */
   active: oc.input(z.strictObject({})).output(z.array(projectSchema)),
   create: oc.input(projectFields.create).output(projectSchema),
+  /** The edit pattern (D329): a missing field stays, `null` clears, an edit without fields reads. */
+  edit: oc.input(projectFields.edit).output(projectSchema).errors({ NOT_FOUND: {} }),
+  /** A soft delete; `restore` is its undo and brings the project back as it was, archived or not. */
+  delete: oc.input(byId).output(projectSchema).errors({ NOT_FOUND: {} }),
+  restore: oc.input(byId).output(projectSchema).errors({ NOT_FOUND: {} }),
 };

@@ -38,6 +38,32 @@ export const projects = defineStorageModule({
       );
     },
   },
+  edit: {
+    kind: "operation",
+    edit: true,
+    async run(tx, context, input) {
+      return toProject(
+        await sharedWrites(tx, context).update("projects", input.id, {
+          title: input.title,
+          description: input.description,
+          icon: input.icon,
+          color: input.color,
+        }),
+      );
+    },
+  },
+  delete: {
+    kind: "operation",
+    async run(tx, context, input) {
+      return toProject(await sharedWrites(tx, context).softDelete("projects", input.id));
+    },
+  },
+  restore: {
+    kind: "operation",
+    async run(tx, context, input) {
+      return toProject(await sharedWrites(tx, context).restore("projects", input.id));
+    },
+  },
 });
 
 // The Read Piece for the Queries of a module above (D241, D330).

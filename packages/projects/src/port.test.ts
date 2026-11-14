@@ -93,6 +93,7 @@ async function renderOverPort() {
     }),
   );
   return {
+    process,
     data,
     notices,
     calls,
@@ -218,4 +219,109 @@ test("the input Command answers an invalid input with the error and its field, a
     error: { issues: [{ code: "unrecognized_keys", keys: ["titel"] }] },
   });
   expect(rendered.calls.filter((call) => call.entry !== "active")).toEqual([]);
+});
+
+/** A call through the Port as the app makes it, answered with the data or the error's code. */
+async function callPort(data: DataAccess, entry: string, input: unknown) {
+  try {
+    return { data: await data.access.call("projects", entry, input) };
+  } catch (error) {
+    return { error: (error as { code?: string }).code ?? "unexpected" };
+  }
+}
+
+test("an edit of the title alone changes the title in every open View and keeps the rest", async () => {
+  const rendered = await renderOverPort();
+  const created = await createProject(rendered.data, {
+    title: "Website",
+    description: "Relaunch",
+    icon: "house",
+    color: "teal",
+  });
+  if (created.status !== "success") throw new Error("Not created");
+  await rendered.until((list) => titles(list)?.length === 1);
+
+  const edited = await callPort(rendered.data, "edit", { id: created.data.id, title: " Shop " });
+
+  expect(edited).toEqual({ data: { ...created.data, title: "Shop" } });
+  const both = await rendered.until((list) => titles(list)?.[0] === "Shop");
+  expect(both.status === "content" && both.data).toEqual([{ ...created.data, title: "Shop" }]);
+});
+
+test("null clears the description, and an edit without fields answers with the project", async () => {
+  const rendered = await renderOverPort();
+  const created = await createProject(rendered.data, { title: "Website", description: "Old" });
+  if (created.status !== "success") throw new Error("Not created");
+  const { id } = created.data;
+
+  expect(await callPort(rendered.data, "edit", { id, description: null })).toEqual({
+    data: { ...created.data, description: null },
+  });
+  expect(await callPort(rendered.data, "edit", { id })).toEqual({
+    data: { ...created.data, description: null },
+  });
+});
+
+test("a project whose stored icon this version does not know keeps it when its title changes", async () => {
+  const rendered = await renderOverPort();
+  const process = rendered.process;
+  const created = await createProject(rendered.data, { title: "Website", icon: "house" });
+  if (created.status !== "success") throw new Error("Not created");
+  // As a newer version of the app would have written it.
+  await process.database.executeScript(
+    `UPDATE projects SET icon = 'icon-of-a-newer-version' WHERE id = '${created.data.id}'`,
+  );
+
+  const edited = await callPort(rendered.data, "edit", { id: created.data.id, title: "Shop" });
+
+  expect(edited).toMatchObject({ data: { title: "Shop", icon: "icon-of-a-newer-version" } });
+});
+
+test("an edit with an unknown field or an empty title is an input error and changes nothing", async () => {
+  const rendered = await renderOverPort();
+  const created = await createProject(rendered.data, { title: "Website" });
+  if (created.status !== "success") throw new Error("Not created");
+  const { id } = created.data;
+  for (const input of [
+    { id, titel: "Shop" },
+    { id, title: "  " },
+    { id, title: null },
+  ]) {
+    expect(await callPort(rendered.data, "edit", input)).toEqual({ error: "BAD_REQUEST" });
+  }
+  expect(await callPort(rendered.data, "edit", { id })).toEqual({ data: created.data });
+});
+
+test("a delete leaves every open View, and restore brings the project back as it was", async () => {
+  const rendered = await renderOverPort();
+  const created = await createProject(rendered.data, { title: "Website", icon: "house" });
+  if (created.status !== "success") throw new Error("Not created");
+  const { id } = created.data;
+  await rendered.until((list) => titles(list)?.length === 1);
+
+  expect(await callPort(rendered.data, "delete", { id })).toEqual({ data: created.data });
+  await rendered.until((list) => titles(list)?.length === 0);
+  expect(await callPort(rendered.data, "edit", { id, title: "Shop" })).toEqual({
+    error: "NOT_FOUND",
+  });
+  expect(await callPort(rendered.data, "delete", { id })).toEqual({ error: "NOT_FOUND" });
+
+  expect(await callPort(rendered.data, "restore", { id })).toEqual({ data: created.data });
+  const back = await rendered.until((list) => titles(list)?.length === 1);
+  expect(back.status === "content" && back.data).toEqual([created.data]);
+  expect(await callPort(rendered.data, "restore", { id })).toEqual({ error: "NOT_FOUND" });
+});
+
+test("a project comes back even when another project carries its title by now", async () => {
+  const rendered = await renderOverPort();
+  const first = await createProject(rendered.data, { title: "Tax" });
+  if (first.status !== "success") throw new Error("Not created");
+  await callPort(rendered.data, "delete", { id: first.data.id });
+  await createProject(rendered.data, { title: "Tax" });
+
+  expect(await callPort(rendered.data, "restore", { id: first.data.id })).toEqual({
+    data: first.data,
+  });
+  const both = await rendered.until((list) => titles(list)?.length === 2);
+  expect(titles(both)).toEqual(["Tax", "Tax"]);
 });
