@@ -28,7 +28,7 @@ export const ALLOWED_IMPORTS: AllowedImports = {
   backup: ["data-protocol", "db", "time"],
   // Composes the protocol and the modules' contracts (D187): `contracts → module`. Only the
   // desktop app's module list imports it.
-  contracts: ["data-protocol", "placeholder-alpha"],
+  contracts: ["data-protocol", "placeholder-alpha", "projects"],
   // The building block tells the user through `ui`'s feedback system. It takes the protocol from
   // `data-protocol`, which knows no module, so no cycle runs through a module (ADR 0006).
   "data-client": ["data-protocol", "ui"],
@@ -50,6 +50,9 @@ export const ALLOWED_IMPORTS: AllowedImports = {
   // reads and writes through the data building block.
   "placeholder-alpha": ["data-client", "db", "forms", "icons", "shell", "storage", "time", "ui"],
   "placeholder-beta": ["shell", "icons"],
+  // The first real module (#273): its Contract, data entry, Views and form. Icon and color come
+  // from the names of `icons` and `theme` (ADR 0029).
+  projects: ["data-client", "db", "forms", "icons", "shell", "storage", "theme", "time", "ui"],
   // The rows of the View Data call the protocol's `backups` through the data building block; the
   // contract arrives as a type, and its schemas load only in the stories' Fixed Answers. Their
   // Instants are shown through `time`'s display formats.
@@ -89,6 +92,8 @@ export const TEST_ONLY_IMPORTS: AllowedImports = {
   forms: ["i18n"],
   // The test Data Process, to run the module's hooks end to end without the app (#33).
   "placeholder-alpha": ["data-process"],
+  // The test Data Process, to run the module's hooks and form end to end without the app.
+  projects: ["data-process"],
   // The app's catalogs, so a story of the icon field switches the language as the Settings do.
   ui: ["i18n"],
 };

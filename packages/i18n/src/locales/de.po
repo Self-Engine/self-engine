@@ -43,6 +43,15 @@ msgstr "Über"
 msgid "Accent"
 msgstr "Akzentfarbe"
 
+#: packages/projects/src/index.ts
+msgctxt "View title"
+msgid "Active"
+msgstr "Aktiv"
+
+#: packages/projects/src/active.tsx
+msgid "Active projects"
+msgstr "Aktive Projekte"
+
 #: packages/ui/src/entry-pickers/emoji-tab.tsx
 msgid "Activity"
 msgstr "Aktivitäten"
@@ -240,6 +249,7 @@ msgid "Clipboard"
 msgstr "Klemmbrett"
 
 #: packages/placeholder-alpha/src/edit-drawer.tsx
+#: packages/projects/src/edit-drawer.tsx
 msgctxt "Close the drawer"
 msgid "Close"
 msgstr "Schließen"
@@ -284,6 +294,7 @@ msgstr "Münzen"
 msgid "Collapse module sidebar"
 msgstr "Modul-Sidebar einklappen"
 
+#: packages/projects/src/edit-drawer.tsx
 #: packages/settings-area/src/theme-rows.tsx
 #: packages/ui/src/entry-pickers/entry-color-picker.tsx
 msgid "Color"
@@ -357,6 +368,10 @@ msgstr "Countdown"
 msgid "Create backup now"
 msgstr "Sicherung jetzt erstellen"
 
+#: packages/projects/src/active.tsx
+msgid "Create your first project with \"New project\". It appears here."
+msgstr "Lege dein erstes Projekt mit „Neues Projekt“ an. Es erscheint hier."
+
 #: packages/settings-area/src/backup-rows.tsx
 msgid "Created by you"
 msgstr "Von dir erstellt"
@@ -427,6 +442,10 @@ msgstr "Gelöscht"
 #: packages/settings-area/src/rows.tsx
 msgid "Density"
 msgstr "Dichte"
+
+#: packages/projects/src/edit-drawer.tsx
+msgid "Description"
+msgstr "Beschreibung"
 
 #: packages/settings-area/src/about-rows.tsx
 msgctxt "Channel"
@@ -615,6 +634,7 @@ msgstr "Haus"
 msgid "How tightly lists and controls are laid out. The size of the text stays the same."
 msgstr "Wie eng Listen und Bedienelemente angeordnet sind. Die Textgröße bleibt gleich."
 
+#: packages/projects/src/edit-drawer.tsx
 #: packages/ui/src/entry-pickers/entry-icon-picker.tsx
 msgid "Icon"
 msgstr "Icon"
@@ -775,6 +795,12 @@ msgstr "Neutraler Hintergrund"
 msgid "New entry"
 msgstr "Neuer Eintrag"
 
+#: packages/projects/src/active.tsx
+#: packages/projects/src/edit-drawer.tsx
+#: packages/projects/src/index.ts
+msgid "New project"
+msgstr "Neues Projekt"
+
 #: packages/settings-area/src/rows.tsx
 msgid "Night"
 msgstr "Nacht"
@@ -808,6 +834,10 @@ msgstr "Kein Icon passt zur Suche."
 msgctxt "Icon"
 msgid "No phone"
 msgstr "Handyverbot"
+
+#: packages/projects/src/active.tsx
+msgid "No projects yet"
+msgstr "Noch keine Projekte"
 
 #: packages/settings-area/src/area.tsx
 msgid "No settings found"
@@ -956,6 +986,14 @@ msgstr "Betende Hände"
 msgctxt "Icon"
 msgid "Prohibited"
 msgstr "Verbot"
+
+#: packages/projects/src/edit-drawer.tsx
+msgid "Project not found"
+msgstr "Projekt nicht gefunden"
+
+#: packages/projects/src/index.ts
+msgid "Projects"
+msgstr "Projekte"
 
 #: packages/icons/src/directory/labels.ts
 msgctxt "Icon"
@@ -1337,6 +1375,10 @@ msgstr "Diese Ansicht konnte nicht geladen werden. Bitte versuche es erneut."
 msgctxt "Icon"
 msgid "Thumbs up"
 msgstr "Daumen hoch"
+
+#: packages/projects/src/edit-drawer.tsx
+msgid "Title"
+msgstr "Titel"
 
 #: packages/settings-area/src/rows.tsx
 msgid "Translation"

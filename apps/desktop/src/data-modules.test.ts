@@ -30,7 +30,12 @@ test("placeholder-alpha is mounted: an Operation is followed by its Table Change
   );
   await expect(client.health()).resolves.toMatchObject({
     state: "ready",
-    migrations: ["placeholder-alpha/0001", "placeholder-alpha/0002", "spaces/0001"],
+    migrations: [
+      "placeholder-alpha/0001",
+      "placeholder-alpha/0002",
+      "projects/0001",
+      "spaces/0001",
+    ],
   });
   const events = await client.tablesChanged();
   await expect(events.next()).resolves.toEqual({
@@ -39,6 +44,7 @@ test("placeholder-alpha is mounted: an Operation is followed by its Table Change
       kind: "opened",
       queries: {
         placeholderAlpha: { list: ["placeholder_alpha_entries"] },
+        projects: { active: ["projects"] },
         backups: { list: [] },
       },
     },
@@ -57,5 +63,33 @@ test("placeholder-alpha is mounted: an Operation is followed by its Table Change
     code: "CONFLICT",
     data: { reason: "name_taken" },
   });
+  await events.return();
+});
+
+test("projects is mounted: a created project follows its Table Change into the active Query", async () => {
+  const process = await startTestDataProcess({ modules });
+  started.push(process);
+  const client = createORPCClient<ContractRouterClient<AppContract>>(
+    new RPCLink({ port: process.openPort() }),
+  );
+  const events = await client.tablesChanged();
+  await events.next();
+
+  const created = await client.projects.create({ title: "Website" });
+
+  await expect(events.next()).resolves.toEqual({
+    done: false,
+    value: { kind: "changed", tables: ["projects"] },
+  });
+  await expect(client.projects.active({})).resolves.toEqual([
+    {
+      id: created.id,
+      title: "Website",
+      description: null,
+      icon: null,
+      color: null,
+      archivedAt: null,
+    },
+  ]);
   await events.return();
 });

@@ -150,6 +150,12 @@ _Avoid_: catalog (on its own), design system, Storybook
 What one _Port_ entry returns in a story or component test, without a _Data Process_: data, loading that never ends, an unexpected error, a declared conflict or "not found". It is checked against the entry's _Contract_, and a call to an entry without one fails.
 _Avoid_: mock, fixture, stub
 
+### Projects
+
+**Project** (de: _Projekt_):
+A piece of work a freelancer keeps track of, with a title and optionally a description, an icon and a color. A project is its id: two projects may carry the same title. It has no type and no rate; those come with billing. It is _archived_ when finished, never closed.
+_Avoid_: job, client, engagement, assignment
+
 ### Settings
 
 **Device Setting** (de: _Geräteeinstellung_):

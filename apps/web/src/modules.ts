@@ -1,12 +1,14 @@
 import { contribution as alpha } from "@self-engine/placeholder-alpha";
 import { contribution as beta } from "@self-engine/placeholder-beta";
+import { contribution as projects } from "@self-engine/projects";
 import { createSettingsArea } from "@self-engine/settings-area";
 import { type ShellContribution, validateContributions } from "@self-engine/shell";
 import { version } from "../package.json";
 import { versionInfo } from "./env.ts";
 import { settingsStore } from "./settings-store.ts";
 
-export const modules: readonly ShellContribution[] = [beta, alpha];
+// The placeholders leave with #306, and `projects` becomes the start address then.
+export const modules: readonly ShellContribution[] = [beta, alpha, projects];
 
 /** The settings area, which the Shell gets beside the modules. */
 export const settings: ShellContribution = createSettingsArea({
