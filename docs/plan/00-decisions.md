@@ -55,6 +55,7 @@ den Vermerk `_Überholt durch D<n>._`
 | [D286–D290](decisions/d286-d290-spaces-package.md) | 2026-11-14 | Paket `spaces`: Fremdschlüssel, Lage, ein persönlicher Space, Tabelle, Begriffe | #108 |
 | [D291–D297](decisions/d291-d297-icon-and-color.md) | 2026-11-14 | Icon und Farbe an Entitäten: Zuschnitt, Icon-Namen, Vertragsmuster, helle Füllungen, Marke, Strichstärke (D297 überholt durch D298) | #106 |
 | [D298](decisions/d298-regular-icon-weight.md) | 2026-11-14 | Icons standardmäßig regular statt duotone | #106 |
+| [D299–D302](decisions/d299-d302-icon-field-with-emoji-picker.md) | 2026-11-14 | Ein Feld für Icon und Emoji: zwei Reiter, Mantines Emoji-Auswahl, ein Suchbegriff, Einfügen | #264 |
 
 D109 und D110 sind doppelt vergeben, in den Runden 18 und 19. Wer eine der beiden nennt, nennt die
 Runde dazu.
