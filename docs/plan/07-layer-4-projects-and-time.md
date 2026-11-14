@@ -1,7 +1,7 @@
 # Schicht 4: Projekte und Zeit
 
-Stand: 2026-11-14 · Status: **entschieden** (D303–D316), Arbeitspakete noch nicht als Issues
-geschnitten
+Stand: 2026-11-14 · Status: **entschieden** (D303–D316), Spec #271, Issues #272–#277 sowie #109,
+#110 und #213
 
 Schicht 4 ist der erste Fachmeilenstein: das erste, was in der App sichtbar und nutzbar ist. Sie
 ist bewusst schmal. Der Owner nutzt die alte App weiter, bis die neue ihn überzeugt (D315).
@@ -50,20 +50,22 @@ Was ein Zeiteintrag speichert (D308):
 
 ## Arbeitspakete
 
-Die Reihenfolge aus D316. Jedes Paket außer dem ersten wird vor dem Bau gegrillt; die beiden Teile
-von `time-tracking` teilen sich ein Grilling.
+Spec: [#271](https://github.com/Self-Engine/self-engine/issues/271). Die Reihenfolge stammt aus
+D316. Jedes Paket außer dem ersten wird vor dem Bau gegrillt und trägt bis dahin `needs-grilling`;
+die beiden Teile von `time-tracking` teilen sich ein Grilling. #109 und #110 bleiben Pakete der
+Schicht 3 unter Spec #103.
 
-| Nr. | Paket | Issue | Entscheidungen |
-|---|---|---|---|
-| 1 | Verbot von `CASCADE` und `SET NULL` in der Konventionsprüfung | – | D306 |
-| 2 | Formular-Helfer | #213 | D312 |
-| 3 | `projects`; die Platzhalter verlassen die App | – | D303–D306, D313, D315 |
-| 4 | Schutz-Paket: Einhängepunkt und Verweis-Prüfung | – | D306, D307 |
-| 5 | Einstellungen in der Datenbank | #109 | D62, D113 ff. |
-| 6 | Zeitzone und Wochenstart | #110, verkleinert | D147, D153, D316 |
-| 7 | `time-tracking`, Teil 1: Einträge, Formular, Wochenansicht | – | D303, D304, D308, D311, D313 |
-| 8 | Ständiger Platz in der Hülle | – | D314 |
-| 9 | `time-tracking`, Teil 2: Timer und Markierung der Überschneidungen | – | D310, D311, D314 |
+| Nr. | Paket | Issue | Entscheidungen | Blocked by |
+|---|---|---|---|---|
+| 1 | Verbot von `CASCADE` und `SET NULL` in der Konventionsprüfung | #272 | D306 | – |
+| 2 | Formular-Helfer | #213 | D312 | – |
+| 3 | `projects`; die Platzhalter verlassen die App | #273 | D303–D306, D313, D315 | #213, #272 |
+| 4 | Schutz-Paket: Einhängepunkt und Verweis-Prüfung | #274 | D306, D307 | #272 |
+| 5 | Einstellungen in der Datenbank | #109 | D62, D113 ff. | – |
+| 6 | Zeitzone und Wochenstart | #110, verkleinert | D147, D153, D316 | #109 |
+| 7 | `time-tracking`, Teil 1: Einträge, Formular, Wochenansicht | #275 | D303, D304, D308, D311, D313 | #110, #273, #274 |
+| 8 | Ständiger Platz in der Hülle | #276 | D314 | – |
+| 9 | `time-tracking`, Teil 2: Timer und Markierung der Überschneidungen | #277 | D310, D311, D314 | #275, #276 |
 
 Zwei Pakete tragen eine Messung als Abnahmekriterium: der ständige Platz (Start und Neuzeichnen,
 D314) und die Wochenansicht (Abfragezeit mit erzeugten Daten von zwei Jahren, D193).
