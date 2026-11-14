@@ -71,11 +71,11 @@ not know must not break its lists.
    `\p{Extended_Pictographic}` and others), and a JavaScript engine reads those from its own
    Unicode tables. Electron 45.2.3 knows Unicode 17.0 (ICU 78.2): there the rule rejects the 9
    emojis new in Emoji 18 (19 characters with their skin tones), which an engine with Unicode 18,
-   such as a Node linked against ICU 79, accepts. An emoji newer than the engine cannot be written there, and the icon
-   field does not offer it (point 9). Reading stays lenient (point 5): a stored emoji the engine
-   does not know is kept unchanged, but `resolveEntryIcon` uses the same rule and turns it into
-   `none`, so the mark draws the usual icon of the kind of entry and the icon field shows "No
-   icon" until the user chooses or clears.
+   such as a Node linked against ICU 79, accepts. An emoji newer than the engine cannot be written
+   there, and the icon field does not offer it (point 9). Reading stays lenient (point 5): a
+   stored emoji the engine does not know is kept unchanged, but `resolveEntryIcon` uses the same
+   rule and turns it into `none`, so the mark draws the usual icon of the kind of entry and the
+   icon field shows "No icon" until the user chooses or clears.
 
    An `icon` is a name or one emoji, told apart without a marker: a name is plain ASCII, and no
    emoji is.
