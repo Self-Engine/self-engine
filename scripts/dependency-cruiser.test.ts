@@ -407,6 +407,20 @@ describe("the theme names entry", () => {
     ]);
     expect(found).toEqual([]);
   });
+
+  it("can be imported by a module contract, unlike the theme core", async () => {
+    const contract = (entry: string) =>
+      declaring(
+        extraPackage("packages/module", { "src/contracts/index.ts": `import "${entry}";\n` }),
+        "@self-engine/theme",
+      );
+    const run = (entry: string) =>
+      cruise([theme([], "export {};\n"), contract(entry)], {
+        allowedImports: { module: ["theme"] },
+      });
+    expect(await run("@self-engine/theme/names")).toEqual([]);
+    expect(ruleNames(await run("@self-engine/theme"))).toEqual(["module-contracts-is-pure"]);
+  });
 });
 
 describe("the translation core", () => {
@@ -437,6 +451,57 @@ describe("the translation core", () => {
       }),
     ]);
     expect(found).toEqual([]);
+  });
+});
+
+describe("the icon names entry", () => {
+  const icons = (dependencies: string[], files: Record<string, string>): FixturePackage => ({
+    dir: "packages/icons",
+    dependencies,
+    exports: { ".": "./src/index.ts", "./names": "./src/names/index.ts" },
+    files: { "src/index.ts": "export const HouseIcon = 1;\n", ...files },
+  });
+
+  it.each(["react", "@phosphor-icons/react", "@mantine/core"])(
+    "fails an import of %s",
+    async (name) => {
+      const found = await cruise([icons([name], { "src/names/index.ts": `import "${name}";\n` })]);
+      expect(ruleNames(found)).toEqual(["icons-names-is-pure"]);
+    },
+  );
+
+  it("fails a relative import of the icon catalog", async () => {
+    const found = await cruise([icons([], { "src/names/index.ts": 'import "../index.ts";\n' })]);
+    expect(ruleNames(found)).toEqual(["icons-names-is-pure"]);
+  });
+
+  it("passes Zod, its own files, and a test file's test library", async () => {
+    const found = await cruise([
+      {
+        ...icons(["zod"], {
+          "src/names/index.ts": 'import "zod";\nimport "./emoji.ts";\n',
+          "src/names/emoji.ts": "export const emoji = 1;\n",
+          "src/names/emoji.test.ts": 'import "vite-plus";\nimport "./emoji.ts";\n',
+        }),
+        devDependencies: ["vite-plus"],
+      },
+    ]);
+    expect(found).toEqual([]);
+  });
+
+  it("can be imported by a module contract, unlike the icon catalog", async () => {
+    const entries = { names: "@self-engine/icons/names", catalog: "@self-engine/icons" };
+    const contract = (entry: string) =>
+      declaring(
+        extraPackage("packages/module", { "src/contracts/index.ts": `import "${entry}";\n` }),
+        "@self-engine/icons",
+      );
+    const run = (entry: string) =>
+      cruise([icons([], { "src/names/index.ts": "export {};\n" }), contract(entry)], {
+        allowedImports: { module: ["icons"] },
+      });
+    expect(await run(entries.names)).toEqual([]);
+    expect(ruleNames(await run(entries.catalog))).toEqual(["module-contracts-is-pure"]);
   });
 });
 
