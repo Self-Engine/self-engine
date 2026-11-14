@@ -627,6 +627,219 @@ export const SearchesInGerman: Story = {
   },
 };
 
+/** Where an element is on the screen, as a plain value to compare. */
+function boxOf(element: Element) {
+  const { x, y, width, height } = element.getBoundingClientRect();
+  return { x, y, width, height };
+}
+
+/** The open dialog, whatever the language names it. */
+const dialogShown = () => screen.findByRole("dialog");
+
+/** The search field of the tab shown: each tab has its own, and only one is in the dialog. */
+const searchShown = (dialog: HTMLElement) => within(dialog).getByRole("searchbox");
+
+/** The tab of that name, in English or German: both languages call them "Icons" and "Emoji". */
+const tabNamed = (dialog: HTMLElement, name: "Icons" | "Emoji") =>
+  within(dialog).getByRole("tab", { name });
+
+async function typeIn(field: HTMLElement, term: string) {
+  await userEvent.clear(field);
+  if (term !== "") await userEvent.type(field, term);
+}
+
+/** The play of the size stories: the dialog's box, compared after every change in the dialog. */
+async function keepsOneSize(canvas: ReturnType<typeof within>) {
+  await userEvent.click(trigger(canvas));
+  const dialog = await dialogShown();
+  const size = boxOf(dialog);
+  const expectSameSize = () => waitFor(() => expect(boxOf(dialog)).toEqual(size));
+
+  // The Icons tab: a search with a few matches and one with none.
+  for (const term of ["bank", "no picture is called this", ""]) {
+    await typeIn(searchShown(dialog), term);
+    await expectSameSize();
+  }
+  // The Emoji tab, with its grid, a few matches and none.
+  await userEvent.click(tabNamed(dialog, "Emoji"));
+  await within(dialog).findByRole("grid", {}, { timeout: 10_000 });
+  await expectSameSize();
+  for (const term of ["house", "no emoji is called this", ""]) {
+    await typeIn(searchShown(dialog), term);
+    await expectSameSize();
+  }
+  // And back.
+  await userEvent.click(tabNamed(dialog, "Icons"));
+  await expectSameSize();
+}
+
+export const KeepsOneSizeOnBothTabs: Story = {
+  render: () => <Form answer={answers} stored={null} />,
+  play: async ({ canvas }) => {
+    await keepsOneSize(canvas);
+  },
+};
+
+export const KeepsOneSizeAtTheLargestFontScale: Story = {
+  ...KeepsOneSizeOnBothTabs,
+  globals: { fontScale: "112.5" },
+};
+
+export const KeepsOneSizeInTheCompactDensity: Story = {
+  ...KeepsOneSizeOnBothTabs,
+  globals: { density: "compact" },
+};
+
+/** The box inside an element's border. */
+function insideTheBorder(element: Element) {
+  const box = element.getBoundingClientRect();
+  const style = getComputedStyle(element);
+  const left = box.left + Number.parseFloat(style.borderLeftWidth);
+  const right = box.right - Number.parseFloat(style.borderRightWidth);
+  return { left, right };
+}
+
+/** The play of the placement stories: both tabs line up, and the emoji picker fits inside. */
+async function linesUpBothTabs(canvas: ReturnType<typeof within>) {
+  await userEvent.click(trigger(canvas));
+  const dialog = await dialogShown();
+  const tabList = boxOf(within(dialog).getByRole("tablist"));
+  const clear = within(dialog).getAllByRole("button").at(-1)!;
+  const clearBox = boxOf(clear);
+  const iconSearch = searchShown(dialog).getBoundingClientRect();
+  // The grid fills the width of the search field above it.
+  const iconGrid = within(dialog)
+    .getByRole("listbox")
+    .closest(".mantine-ScrollArea-viewport")!
+    .getBoundingClientRect();
+  await expect([iconGrid.left, iconGrid.right]).toEqual([iconSearch.left, iconSearch.right]);
+
+  await userEvent.click(tabNamed(dialog, "Emoji"));
+  const grid = await within(dialog).findByRole("grid", {}, { timeout: 10_000 });
+  const search = searchShown(dialog);
+  // The picker lies inside the dialog's border and brings no frame of its own.
+  const picker = search.closest(".mantine-EmojiPicker-root")!;
+  const room = insideTheBorder(dialog);
+  const pickerBox = picker.getBoundingClientRect();
+  await expect(pickerBox.left).toBeGreaterThanOrEqual(room.left);
+  await expect(pickerBox.right).toBeLessThanOrEqual(room.right);
+  await expect(getComputedStyle(picker).borderTopWidth).toBe("0px");
+  await expect(getComputedStyle(picker).borderLeftWidth).toBe("0px");
+  // Its search field and its grid have the inset of the Icons tab's, on the left and the right,
+  // and the search field is where the Icons tab has its own.
+  const emojiSearch = search.getBoundingClientRect();
+  await expect([emojiSearch.left, emojiSearch.top, emojiSearch.right, emojiSearch.height]).toEqual([
+    iconSearch.left,
+    iconSearch.top,
+    iconSearch.right,
+    iconSearch.height,
+  ]);
+  const emojiGrid = grid.getBoundingClientRect();
+  await expect([emojiGrid.left, emojiGrid.right]).toEqual([iconSearch.left, iconSearch.right]);
+  // The tabs and "No icon" stay where they were.
+  await expect(boxOf(within(dialog).getByRole("tablist"))).toEqual(tabList);
+  await expect(boxOf(within(dialog).getAllByRole("button").at(-1)!)).toEqual(clearBox);
+}
+
+export const LinesUpBothTabs: Story = {
+  render: () => <Form answer={answers} stored={null} />,
+  play: async ({ canvas }) => {
+    await linesUpBothTabs(canvas);
+  },
+};
+
+export const LinesUpBothTabsAtTheLargestFontScale: Story = {
+  ...LinesUpBothTabs,
+  globals: { fontScale: "112.5" },
+};
+
+export const LinesUpBothTabsInTheCompactDensity: Story = {
+  ...LinesUpBothTabs,
+  globals: { density: "compact" },
+};
+
+export const LinesUpBothTabsInGerman: Story = {
+  ...LinesUpBothTabs,
+  globals: { language: "de" },
+};
+
+const SCROLL_ROUNDING = 0.5;
+
+/**
+ * Asserts that the focus ring of the focused picture shows whole: inside the grid's scroll
+ * viewport, which cuts what reaches past it, and clear of the scrollbar, which lies over it.
+ */
+async function expectWholeRing(option: HTMLElement) {
+  await expect(option).toHaveFocus();
+  const style = getComputedStyle(option);
+  await expect(style.outlineStyle).toBe("solid");
+  // An outline reaches past the border box by its offset and its width.
+  const reach = Number.parseFloat(style.outlineOffset) + Number.parseFloat(style.outlineWidth);
+  const cell = option.getBoundingClientRect();
+  const ring = {
+    left: cell.left - reach,
+    top: cell.top - reach,
+    right: cell.right + reach,
+    bottom: cell.bottom + reach,
+  };
+  const scrollArea = option.closest(".mantine-ScrollArea-root")!;
+  const viewport = scrollArea
+    .querySelector(".mantine-ScrollArea-viewport")!
+    .getBoundingClientRect();
+  // Pictures are a fraction of a pixel high and the viewport scrolls by whole pixels, so at the
+  // end of the scroll up to half a pixel of the last row may stay out of view.
+  await expect(ring.left).toBeGreaterThanOrEqual(viewport.left);
+  await expect(ring.top).toBeGreaterThanOrEqual(viewport.top - SCROLL_ROUNDING);
+  await expect(ring.right).toBeLessThanOrEqual(viewport.right);
+  await expect(ring.bottom).toBeLessThanOrEqual(viewport.bottom + SCROLL_ROUNDING);
+  const scrollbar = scrollArea.querySelector(
+    '.mantine-ScrollArea-scrollbar[data-orientation="vertical"]',
+  );
+  // Mantine places the scrollbar once it has measured the content.
+  if (scrollbar !== null)
+    await waitFor(() =>
+      expect(ring.right).toBeLessThanOrEqual(scrollbar.getBoundingClientRect().left),
+    );
+}
+
+export const ShowsTheWholeFocusRingOnEveryEdgeOfTheGrid: Story = {
+  render: () => <Form answer={answers} stored={null} />,
+  play: async ({ canvas }) => {
+    await userEvent.click(trigger(canvas));
+    const { grid, search } = await opened();
+    await waitFor(() => expect(search()).toHaveFocus());
+    const options = within(grid()).getAllByRole("option");
+    const columns = options.filter((option) => option.offsetTop === options[0]!.offsetTop).length;
+    const lastRow = Math.floor((options.length - 1) / columns) * columns;
+    // The first picture, then the last of the first row.
+    await userEvent.keyboard("{ArrowDown}");
+    await expectWholeRing(options[0]!);
+    await userEvent.keyboard(`{ArrowRight>${columns - 1}/}`);
+    await expectWholeRing(options[columns - 1]!);
+    // The last picture, scrolled into view, and the first of the last row.
+    await userEvent.keyboard("{End}");
+    await expectWholeRing(options.at(-1)!);
+    await userEvent.keyboard(`{ArrowLeft>${options.length - 1 - lastRow}/}`);
+    await expectWholeRing(options[lastRow]!);
+    // The last of the row above the last, whose ring meets the scrollbar's side.
+    await userEvent.keyboard("{ArrowLeft}");
+    await expectWholeRing(options[lastRow - 1]!);
+    // And the first again, scrolled back up.
+    await userEvent.keyboard("{Home}");
+    await expectWholeRing(options[0]!);
+  },
+};
+
+export const ShowsTheWholeFocusRingAtTheLargestFontScale: Story = {
+  ...ShowsTheWholeFocusRingOnEveryEdgeOfTheGrid,
+  globals: { fontScale: "112.5" },
+};
+
+export const ShowsTheWholeFocusRingInTheCompactDensity: Story = {
+  ...ShowsTheWholeFocusRingOnEveryEdgeOfTheGrid,
+  globals: { density: "compact" },
+};
+
 /** Mantine's height of size `xs` at the 100 % font scale, which the compact Density gives controls. */
 const COMPACT_CONTROL_HEIGHT = 30;
 
