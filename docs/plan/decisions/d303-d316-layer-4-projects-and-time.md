@@ -1,4 +1,4 @@
-# Runde 39 (2026-11-14): Schicht 4, Projekte und Zeit (ändert D153, schärft D152 und D172, klärt die offenen Punkte aus D241 und D252)
+# Runde 40 (2026-11-14): Schicht 4, Projekte und Zeit (ändert D153, schärft D152 und D172, klärt die offenen Punkte aus D241 und D252)
 
 Grundlage: der Stand auf `main` nach #263 und die alte App (nur gelesen, Pfad in
 `research-layer-3-core.md`):
@@ -29,7 +29,7 @@ Grundlage: der Stand auf `main` nach #263 und die alte App (nur gelesen, Pfad in
   Dateien außerhalb der beiden Pakete nutzen sie: Stories der Hülle, Tests des Rahmens und die
   Skripte, die Neuzeichnungen messen.
 
-- **D299 Schicht 4 hat eine Stufe: Projekte, Zeiteinträge von Hand, ein Timer und eine
+- **D303 Schicht 4 hat eine Stufe: Projekte, Zeiteinträge von Hand, ein Timer und eine
   Wochenansicht.** Projekte lassen sich anlegen, bearbeiten, archivieren und löschen, mit Titel,
   Beschreibung, Icon und Farbe. Zeiteinträge entstehen von Hand mit Beginn, Ende, Projekt und
   Notiz. Ein Timer lässt sich starten und stoppen und ist in jedem Modul sichtbar. Eine
@@ -39,9 +39,9 @@ Grundlage: der Stand auf `main` nach #263 und die alte App (nur gelesen, Pfad in
   4:_ Rundung, Pausen und Phasen, Zeitklassen und Kategorien, Aufgaben, Kunden, Ordner, Favoriten
   und Tags, geteilte Zeit, Pomodoro, parallele Timer, Abrechnung mit Bezahlt-Zustand und
   Auszahlungen, Festpreis und Anstellung, Terminverknüpfung, Heatmap und Statistik, Serien,
-  Tageslimit. _Verworfen:_ eine zweite Stufe mit Satz, Rundung und Erlösen (D301 und D305 nehmen
-  ihr den Inhalt; übrig bliebe nur die Markierung aus D307).
-- **D300 Zwei Module: `projects` und `time-tracking` (klärt den offenen Namen aus Schicht 3).**
+  Tageslimit. _Verworfen:_ eine zweite Stufe mit Satz, Rundung und Erlösen (D305 und D309 nehmen
+  ihr den Inhalt; übrig bliebe nur die Markierung aus D311).
+- **D304 Zwei Module: `projects` und `time-tracking` (klärt den offenen Namen aus Schicht 3).**
   `time-tracking` importiert `projects`, nie umgekehrt (D152). Der Timer gehört zu `time-tracking`.
   Für `time-tracking` gilt: Vertrags-Namensraum `timeTracking`, Adresse `/time-tracking/<ansicht>`,
   Tabellen `time_entries` und `timers`, im Glossar **Time Tracking** (de: _Zeiterfassung_), in der
@@ -50,17 +50,17 @@ Grundlage: der Stand auf `main` nach #263 und die alte App (nur gelesen, Pfad in
   für später:_ Aufgaben werden ein eigenes Modul über `projects`, Kunden eines unter `projects`.
   _Verworfen:_ ein Paket `work` für beides (die alte App hatte so die Zyklen, die D152 beendet);
   der Timer als eigenes Paket (er schreibt in derselben Transaktion wie der Zeiteintrag).
-- **D301 Ein Projekt hat in Schicht 4 weder Art noch Satz; Abrechnungsbedingungen kommen mit der
+- **D305 Ein Projekt hat in Schicht 4 weder Art noch Satz; Abrechnungsbedingungen kommen mit der
   Abrechnung (ändert D153).** Satz, Währung, Festpreis und Anstellung werden zusammen mit der
   Abrechnung entworfen, die Finanzen braucht. Ob sie dann am Projekt oder in der
   Abrechnungs-Brücke liegen, entscheidet jene Runde. _Gründe:_ Ohne Abrechnung bewirkt ein Satz
   nur einen Betrag neben den Stunden. Die Art der alten App mischt Abrechnungsform und Zweck in
   einem unveränderlichen Feld. _Folgen:_ `money` (#105) ist keine Voraussetzung für Schicht 4. Der
   Satz „Standard-Stundensatz und Rundung gehören in Schicht 4“ aus D153 gilt nicht mehr: Der
-  Standard-Stundensatz gehört zur Abrechnung, die Rundung regelt D305. Die Frage, ob ein
+  Standard-Stundensatz gehört zur Abrechnung, die Rundung regelt D309. Die Frage, ob ein
   Zeiteintrag eine Kopie des Satzes trägt, gehört ebenfalls zur Abrechnung. _Verworfen:_ ein
   optionaler Satz mit Währung am Projekt schon jetzt.
-- **D302 Ein Projekt ist immer archivierbar und nur löschbar, solange nichts Ungelöschtes darauf
+- **D306 Ein Projekt ist immer archivierbar und nur löschbar, solange nichts Ungelöschtes darauf
   zeigt (schärft D172).** Archiviert heißt: aus der aktiven Liste und aus den Auswahlen
   verschwunden, eigene Ansicht „Archiv“, jederzeit zurückholbar. Archivieren sperrt nichts;
   Zeiteinträge eines archivierten Projekts bleiben sichtbar und änderbar. Gespeichert wird
@@ -81,9 +81,9 @@ Grundlage: der Stand auf `main` nach #263 und die alte App (nur gelesen, Pfad in
   lebt. _Verworfen:_ jederzeit löschbar ohne Sperre (meine erste Empfehlung; der Owner: Es soll
   nichts Dummes möglich sein); die Sperre in jedem Modul einzeln (`projects` sieht die
   Zeiteinträge nicht).
-- **D303 Jede Regel sitzt im Datenprozess, an der tiefsten Stelle, die sie sehen kann; das gilt
+- **D307 Jede Regel sitzt im Datenprozess, an der tiefsten Stelle, die sie sehen kann; das gilt
   für die ganze App (schärft D152).** Vier Stellen: die Datenbank (Pflichtfelder, Eindeutigkeit,
-  gültige Verweise, D302), der Speicher-Rahmen (nichts Ungelöschtes zeigt auf Gelöschtes, D302),
+  gültige Verweise, D306), der Speicher-Rahmen (nichts Ungelöschtes zeigt auf Gelöschtes, D306),
   die Operation des Moduls (Regeln im eigenen Modul, etwa „Ende liegt nach dem Beginn“) und die
   Schutzregel einer Brücke (Regeln, die ein Modul nicht kennen kann, ADR 0023). Die Oberfläche
   spiegelt eine Regel nur, etwa mit einem ausgegrauten Knopf. So gilt sie für Befehle, einen
@@ -92,11 +92,11 @@ Grundlage: der Stand auf `main` nach #263 und die alte App (nur gelesen, Pfad in
   mit der Verweis-Prüfung als erster Regel. _Offen:_ Ein Import muss durch dieselben Operationen
   schreiben oder danach geprüft werden (Schicht 5). Was ein Abgleich hereinbringt, verhindert
   keine Regel; die Sync-Phase braucht eine Datenprüfung, die verletzte Regeln findet und anzeigt.
-- **D304 Ein Zeiteintrag speichert, wo er liegt und wie viel er zählt, getrennt.** `started_at`
+- **D308 Ein Zeiteintrag speichert, wo er liegt und wie viel er zählt, getrennt.** `started_at`
   und `ended_at` sind die Zeitpunkte, wie gemessen oder eingetragen; sie werden nie gerundet.
   `duration_seconds` ist die Zeit, die zählt, als ganze Zahl. In Schicht 4 setzt die Operation sie
   auf Ende minus Beginn. Rundung, Pausen und geteilte Zeit ändern später nur diese Zahl. Dazu
-  `project_id` und `note`; kein Satz und kein Bezahlt-Zustand (D22, D301). _Gründe:_ Die alte Form
+  `project_id` und `note`; kein Satz und kein Bezahlt-Zustand (D22, D305). _Gründe:_ Die alte Form
   verliert die Messung und lässt die Rundung Überschneidungen erzeugen (zwei Anrufe von 10:00 bis
   10:05 und 10:06 bis 10:12 werden aufgerundet zu überlappenden Viertelstunden). Eine gespeicherte
   Zahl bleibt stehen, wenn sich eine Regel ändert, und Summen sind eine Addition ohne
@@ -107,18 +107,18 @@ Grundlage: der Stand auf `main` nach #263 und die alte App (nur gelesen, Pfad in
   obere trägt. Der Bau von `time-tracking` stellt ADR 0014 so klar. _Verworfen:_ gerundete
   Zeiten wie in der alten App; nur Beginn und Ende speichern und beim Anzeigen runden (jede Summe
   müsste die Regel kennen, und eine geänderte Regel veränderte alte Monate).
-- **D305 Schicht 4 rundet nicht; die Rundung ist eine Eigenschaft der Zeiterfassung je Projekt
+- **D309 Schicht 4 rundet nicht; die Rundung ist eine Eigenschaft der Zeiterfassung je Projekt
   (ändert D153).** Sie kommt nach Schicht 4 als eigenes Paket und gilt auch für private Projekte,
   unabhängig von der Abrechnung (der Owner: Wer will, rundet auch private Projekte auf fünf
   Minuten). _Folgen:_ Die Regel je Projekt liegt in einer Tabelle von `time-tracking`, nicht in
   `projects`. Die gerundete Zahl steht am Zeiteintrag in `duration_seconds`; die Abrechnung liest
   sie und rundet nur das Geld einmal (D145). Alle drei Arten der alten App passen in das Format
-  aus D304: Die gewöhnliche Rundung ändert nur die Dauer, die Zeitabschnitts-Rundung ergibt die
+  aus D308: Die gewöhnliche Rundung ändert nur die Dauer, die Zeitabschnitts-Rundung ergibt die
   Summe der berührten Abschnitte, die exakte Speicherung lässt Ende minus Beginn stehen. Weil die
   Zeitpunkte bleiben, lässt sich eine Regel später verlustfrei auf vorhandene Einträge anwenden.
   _Verworfen:_ eine Regel für die ganze App schon in Schicht 4; Rundung als Teil der
   Abrechnungsbedingungen (meine Empfehlung, vom Owner korrigiert).
-- **D306 Ein laufender Timer ist eine eigene Zeile, und Stoppen ist eine Transaktion.** Die
+- **D310 Ein laufender Timer ist eine eigene Zeile, und Stoppen ist eine Transaktion.** Die
   Tabelle `timers` hält je laufendem Timer Beginn, Projekt und Notiz. Stoppen legt in einer
   Operation den Zeiteintrag an und löscht die Timer-Zeile weich; Verwerfen löscht nur die
   Timer-Zeile. Schicht 4 startet einen Timer zugleich: Wer einen zweiten startet, stoppt den
@@ -132,9 +132,9 @@ Grundlage: der Stand auf `main` nach #263 und die alte App (nur gelesen, Pfad in
   grob 2.000 bis 4.000 im Jahr; der Papierkorb räumt sie ab, weil nichts auf sie zeigt.
   _Verworfen:_ ein offener Zeiteintrag ohne Ende; dauerhafte Timer-Plätze je Projekt wie in der
   alten App.
-- **D307 Überschneidungen sind gültige Daten, jede Summe zählt jeden Eintrag voll, und Schicht 4
+- **D311 Überschneidungen sind gültige Daten, jede Summe zählt jeden Eintrag voll, und Schicht 4
   markiert nur.** Keine Datenbank-Regel und keine Operation lehnt einen überlappenden Eintrag ab;
-  Überschneidungen sind kein Fall für D303. Betroffene Einträge bekommen in der Wochenansicht
+  Überschneidungen sind kein Fall für D307. Betroffene Einträge bekommen in der Wochenansicht
   einen Hinweis, nie einen Fehler. _Gründe:_ Ein Verbot bräche am Import (die alte App enthält
   erlaubte Überschneidungen und geteilte Zeit), am Sync (zwei Geräte tragen offline dieselbe
   Stunde ein) und an parallelen Timern. _Preis:_ Die App hält niemanden davon ab, eine Stunde
@@ -143,27 +143,27 @@ Grundlage: der Stand auf `main` nach #263 und die alte App (nur gelesen, Pfad in
   zusätzliche Kennzahl und, auf Wunsch des Owners, eine Einstellung, ob Überschneidungen
   zugelassen werden, für die ganze App und je Projekt. Diese Einstellung wird eine Regel der
   Operation für Eingaben auf dem eigenen Gerät; was Import und Sync bringen, bleibt gültig und
-  wird markiert. Die Regel je Projekt liegt in derselben Tabelle wie die Rundung (D305).
-- **D308 Der Formular-Helfer (#213) wird vor `projects` gebaut.** Sein Grilling nimmt die beiden
+  wird markiert. Die Regel je Projekt liegt in derselben Tabelle wie die Rundung (D309).
+- **D312 Der Formular-Helfer (#213) wird vor `projects` gebaut.** Sein Grilling nimmt die beiden
   Formulare aus Schicht 4 als Maßstab; das Projekt-Formular wird die Vorlage für jedes weitere
   Modul. _Gründe:_ Das erste Formular wird kopiert; von Hand gebaut, müssten später zwei Formulare
   umgebaut werden. Die Felder stehen fest (Text, langer Text, Icon, Farbe, zwei Zeitpunkte,
   Projekt-Auswahl), und das Zeiteintrags-Formular bringt die Prüfung über zwei Felder mit, die am
   Projekt-Formular allein fehlte. _Preis:_ Das erste sichtbare Modul kommt ein Paket später.
   _Verworfen:_ das Projekt-Formular von Hand, der Helfer beim zweiten Formular.
-- **D309 Schicht 4 hat keine Seite für ein einzelnes Projekt; #201 wird mit dieser Seite gegrillt
+- **D313 Schicht 4 hat keine Seite für ein einzelnes Projekt; #201 wird mit dieser Seite gegrillt
   (klärt den offenen Punkt aus D241 für Schicht 4).** Ein Projekt wird über die Liste und den
   Bearbeiten-Drawer bearbeitet. Seine Zeiten zeigt die Zeit-Ansicht, gefiltert über eine Gruppe
   „Projekte“ in der Modul-Sidebar von `time-tracking`. Die Projektseite kommt, sobald ein zweites
   Modul etwas zu einem Projekt zeigt, als Seite von `projects`, auf der Module darüber Abschnitte
   beitragen. Schicht 4 baut keinen Erweiterungspunkt zwischen Modulen: Die Projekt-Auswahl
   exportiert `projects`, Name und Farbe am Zeiteintrag kommen über den Lese-Baustein (D241), der
-  Timer über D310. _Gründe:_ Eine Projektseite könnte in Schicht 4 nur Zeiteinträge zeigen, also
+  Timer über D314. _Gründe:_ Eine Projektseite könnte in Schicht 4 nur Zeiteinträge zeigen, also
   dieselbe Liste an einem zweiten Ort. Der Erweiterungspunkt entstünde an einem einzigen Fall,
   und die Seite für einen Eintrag ist ein Baustein der Hülle, den jedes Modul kopiert. _Preis:_
   Vom Projekt führt kein Sprung zu seinen Zeiten, und die Projektliste zeigt keine Stundensumme.
   _Verworfen:_ die Projektseite mit einem ersten Erweiterungspunkt schon jetzt.
-- **D310 Die Hülle bekommt einen ständigen Platz, den ein Modul über seinen Hüllen-Beitrag
+- **D314 Die Hülle bekommt einen ständigen Platz, den ein Modul über seinen Hüllen-Beitrag
   füllt.** Ein Modul meldet ein kleines Element an; die Hülle bestimmt den Ort, das Modul den
   Inhalt. Je Modul ein Element, ohne einstellbare Reihenfolge. Erster Nutzer ist der Timer: Das
   Element zeigt Projekt und laufende Zeit und stoppt mit einem Klick; läuft nichts, bietet es das
@@ -176,7 +176,7 @@ Grundlage: der Stand auf `main` nach #263 und die alte App (nur gelesen, Pfad in
   Abfrage beim Start. Die Anzeige zeichnet nur sich selbst neu. Der Platz ist reserviert, bevor
   der Code da ist, damit nichts springt. Das Paket bekommt eine Messung als Abnahmekriterium.
   _Verworfen:_ nur Befehle zum Starten und Stoppen ohne Anzeige.
-- **D311 Die Platzhalter verlassen die App, wenn `projects` eingehängt wird, und bleiben
+- **D315 Die Platzhalter verlassen die App, wenn `projects` eingehängt wird, und bleiben
   Testobjekte; ein Modul-Abbau wird dafür nicht gebaut (klärt den offenen Punkt aus D252).**
   `placeholder-alpha` und `placeholder-beta` verschwinden aus Navbar, Modulliste des
   Datenprozesses und App-Vertrag. Sie bleiben im Repo für die Stories der Hülle und die Tests des
@@ -189,16 +189,16 @@ Grundlage: der Stand auf `main` nach #263 und die alte App (nur gelesen, Pfad in
   App weiter, bis er wechselt. Bis er Daten anlegt, die nicht verloren gehen dürfen, darf eine
   Datenbank neu aufgesetzt werden; danach nie wieder, und spätestens dann braucht jeder Abbau
   #214. _Preis:_ zwei Pakete ohne Fachnutzen, die mit dem Rahmen mitziehen.
-- **D312 Schicht 4 wird in neun Schritten gebaut.**
-  1. Die Konventionsprüfung verbietet `CASCADE` und `SET NULL` an jedem Fremdschlüssel (D302),
+- **D316 Schicht 4 wird in neun Schritten gebaut.**
+  1. Die Konventionsprüfung verbietet `CASCADE` und `SET NULL` an jedem Fremdschlüssel (D306),
      ohne Grilling.
-  2. Formular-Helfer (#213, D308).
-  3. `projects`; die Platzhalter verlassen die App (D311).
-  4. Schutz-Paket: der Einhängepunkt im Rahmen und die Verweis-Prüfung (D302, D303).
+  2. Formular-Helfer (#213, D312).
+  3. `projects`; die Platzhalter verlassen die App (D315).
+  4. Schutz-Paket: der Einhängepunkt im Rahmen und die Verweis-Prüfung (D306, D307).
   5. Einstellungen in der Datenbank (#109).
   6. Zeitzone und Wochenstart (#110, verkleinert).
   7. `time-tracking`, Teil 1: Zeiteinträge, Formular, Wochenansicht, Filter nach Projekt.
-  8. Der ständige Platz in der Hülle (D310).
+  8. Der ständige Platz in der Hülle (D314).
   9. `time-tracking`, Teil 2: Timer und Markierung der Überschneidungen.
 
   Jeder Schritt außer dem ersten wird vorher gegrillt; die beiden Teile von `time-tracking` teilen

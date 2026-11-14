@@ -21,7 +21,7 @@ Stand: 2026-11-10 · Status: **entschieden** (D143–D154), Spec #103, Issues #1
 | – | Icon, Farbe | Grilling zu #106: Werte, Anzeige und Auswahl in einem Paket, ein Icon-Name je Bild und der Import übersetzt, ein Vorrat ohne React für Web und Mobile, Vertragsmuster, helle Füllungen mit dunkler Schrift, Marke in zwei Formen, alle Icons regular (D291–D298, ändern D151; D298 ändert D297) |
 | L3.10 | Abläufe | Brücken-Pakete über den Modulen, gemeinsame Transaktion, Schutzregeln (D152) |
 | L3.11 | Einstellungen | Region aus der Sprache, Wochenstart, Standardwährung, Deklaration in `contracts` (D153) |
-| – | Einstellungen | Grilling zu Schicht 4: Standard-Stundensatz gehört zur Abrechnung, Rundung zur Zeiterfassung nach Schicht 4; #110 wird ohne die Standardwährung gebaut (D301, D305, D312, ändern D153) |
+| – | Einstellungen | Grilling zu Schicht 4: Standard-Stundensatz gehört zur Abrechnung, Rundung zur Zeiterfassung nach Schicht 4; #110 wird ohne die Standardwährung gebaut (D305, D309, D316, ändern D153) |
 | L3.12 | Zuschnitt in Issues | Acht Arbeitspakete, jedes wird einzeln gegrillt (D154) |
 
 ## Aufbau
@@ -50,7 +50,7 @@ Icon-Verzeichnis und reine Einstiege ohne React (D151).
 Spec: [#103](https://github.com/Self-Engine/self-engine/issues/103). Jedes Paket außer #107 wird
 vor dem Bau gegrillt und trägt bis dahin `needs-grilling` (D155), danach wird es in Teil-Tickets
 geschnitten. Gebaut wird in der Reihenfolge aus D279: #104, #108, dann Schicht 4 mit Projekten; die
-übrigen Pakete folgen, sobald ein Modul sie braucht. Nach D312 kommen #109 und #110 vor
+übrigen Pakete folgen, sobald ein Modul sie braucht. Nach D316 kommen #109 und #110 vor
 `time-tracking`, #105 und #111 nach Schicht 4.
 
 | Issue | Paket | Entscheidungen | Blocked by |
@@ -61,7 +61,7 @@ geschnitten. Gebaut wird in der Reihenfolge aus D279: #104, #108, dann Schicht 4
 | #107 | ADR und Glossar für Brücken | D152 | – |
 | #108 | `spaces` | D144, D286–D290 | #29, #32 |
 | #109 | Einstellungen in der Datenbank (ersetzt #34) | D62, D113 ff. | #33, #108 |
-| #110 | Eine Zeitzone und die Kern-Einstellungen; die Standardwährung wandert zu #105 (D312) | D147, D153, D312 | #21, #23, #104, #109 |
+| #110 | Eine Zeitzone und die Kern-Einstellungen; die Standardwährung wandert zu #105 (D316) | D147, D153, D316 | #21, #23, #104, #109 |
 | #111 | `tags` mit Brücken der Module | D150 | #33, #108 |
 
 ## Offen
