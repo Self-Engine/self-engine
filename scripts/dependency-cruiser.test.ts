@@ -726,6 +726,38 @@ describe("the query library", () => {
   });
 });
 
+describe("the form libraries", () => {
+  const RULE = "form-libraries-only-in-forms";
+  const importing = (dir: string, library: string, file = "src/index.ts"): FixturePackage => ({
+    dir,
+    dependencies: [library],
+    files: { [file]: `import "${library}";\n` },
+  });
+
+  describe.each(["@mantine/form", "@mantine/dates"])("%s", (library) => {
+    it("passes an import in forms", async () => {
+      expect(await cruise([importing("packages/forms", library, "src/draft.ts")])).toEqual([]);
+    });
+
+    it("passes an import in a story of forms", async () => {
+      const story = importing("packages/forms", library, "src/example.stories.tsx");
+      expect(await cruise([story])).toEqual([]);
+    });
+
+    it.each(["packages/module", "packages/ui", "apps/web"])(
+      "fails an import in %s",
+      async (dir) => {
+        expect(ruleNames(await cruise([importing(dir, library)]))).toEqual([RULE]);
+      },
+    );
+
+    it("fails an import in a module that has not installed it", async () => {
+      const undeclared = { ...importing("packages/module", library), dependencies: [] };
+      expect(ruleNames(await cruise([undeclared]))).toContain(RULE);
+    });
+  });
+});
+
 describe("testing entries", () => {
   const RULE = "testing-entries-only-in-tests-and-stories";
   /** The shared package with a `./testing` entry, as `@self-engine/data-client/testing`. */

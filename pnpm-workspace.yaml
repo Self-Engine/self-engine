@@ -37,6 +37,8 @@ catalog:
   "@mantine/core": 9.8.0
   # The emoji grid of the Entry Mark's field (D300); it ships no data, emojibase-data has it.
   "@mantine/emoji": 9.8.0
+  # The draft of every form, in uncontrolled mode (D318). Only packages/forms imports it (D325).
+  "@mantine/form": 9.8.0
   "@mantine/hooks": 9.8.0
   "@mantine/modals": 9.8.0
   "@mantine/notifications": 9.8.0

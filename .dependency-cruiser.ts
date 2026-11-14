@@ -4,8 +4,8 @@
 // declared in the importer's own `package.json`, no relative imports into another package, no
 // imports past another package's `exports`, no icon library outside `@self-engine/icons`, nothing
 // but Zod in the icon names, no hotkey library outside the Shell's binding file, no query library
-// outside the data client's React entry, no `testing` entry outside tests and stories, and no
-// cycles.
+// outside the data client's React entry, no form library outside `forms`, no `testing` entry
+// outside tests and stories, and no cycles.
 //
 // Paths are relative to the repo root, or to the fixture root in
 // scripts/dependency-cruiser.test.ts, which builds its own config with `boundaryConfig`.
@@ -41,6 +41,10 @@ export const ALLOWED_IMPORTS: AllowedImports = {
   "desktop-bridge": ["data-protocol"],
   // Timestamp generation returns the shared Instant brand (D223).
   db: ["time"],
+  // The form helper (D325): it submits through an Operation hook of the data building block, binds
+  // the pickers of `ui` and registers with the Shell's Edit Drawer. It imports no module; a
+  // module's own picker reaches a form through the helper's binding.
+  forms: ["data-client", "shell", "ui"],
   icons: ["theme"],
   // Its contracts and data entries (D252); the root entry stays with the shell and the UI, and
   // reads and writes through the data building block.
@@ -81,6 +85,8 @@ export const TEST_ONLY_IMPORTS: AllowedImports = {
   "data-client": ["data-process", "storage"],
   // Instants written as text in the fixtures of the Backups the core answers with.
   "data-process": ["time"],
+  // The app's catalogs: the texts of the checks in both languages, and a story's language switch.
+  forms: ["i18n"],
   // The test Data Process, to run the module's hooks end to end without the app (#33).
   "placeholder-alpha": ["data-process"],
   // The app's catalogs, so a story of the icon field switches the language as the Settings do.
@@ -95,6 +101,9 @@ const ICON_LIBRARIES = [
   "lucide-react",
   "react-icons",
 ];
+
+/** Only `@self-engine/forms` may import these (D325). */
+const FORM_LIBRARIES = ["@mantine/form", "@mantine/dates"];
 
 /** The npm packages the app contract may import: it stays pure (D187). */
 const CONTRACT_LIBRARIES = ["zod", "@orpc/contract"];
@@ -383,6 +392,14 @@ export function boundaryConfig({
       severity: "error",
       from: { path: "^(apps|packages)/", pathNot: "^packages/data-client/src/react/" },
       to: { path: "(^|(^|/)node_modules/)@tanstack/(?:react-)?query(?:-core|-devtools)?(/|$)" },
+    },
+    {
+      name: "form-libraries-only-in-forms",
+      comment:
+        "Only `@self-engine/forms` may import the form library and Mantine's date fields, so every form has the same draft, checks and flow, and the library stays replaceable (D318, D325). Build the form with the helper of `@self-engine/forms`; a field it lacks is added there.",
+      severity: "error",
+      from: { path: "^(apps|packages)/", pathNot: "^packages/forms/" },
+      to: { path: `(^|(^|/)node_modules/)(?:${alternatives(FORM_LIBRARIES)})(/|$)` },
     },
     {
       name: "testing-entries-only-in-tests-and-stories",

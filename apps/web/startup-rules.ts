@@ -28,6 +28,30 @@ export const STARTUP_RULES = {
         "import it only from the Emoji tab of the icon field, which loads when the tab first opens.",
     },
     {
+      // The draft of every form (D318). It loads with the first Edit Drawer, never at startup
+      // (D325).
+      name: "The form library",
+      path: "/node_modules/@mantine/form/",
+      instead:
+        "build forms with @self-engine/forms only in an Edit Drawer or a View that loads on demand.",
+    },
+    {
+      // The date and time fields of `forms` (D325), with their date library.
+      name: "Mantine's date fields",
+      path: "/node_modules/@mantine/dates/",
+      instead:
+        "build forms with @self-engine/forms only in an Edit Drawer or a View that loads on demand.",
+    },
+    {
+      // A form checks its draft with the input schema of the Contract (D317), so the Edit Drawer
+      // loads the Contract and with it Zod's full build; the rest of the renderer reads the
+      // Contract as a type (D187).
+      name: "A module's Contract",
+      path: "/src/contracts/",
+      instead:
+        "import it as a type in startup code, and at runtime only in an Edit Drawer that loads on demand, where a form checks with its input schema.",
+    },
+    {
       // The names and search words of 1,932 emojis: about 790 KB per language (#268).
       name: "The emoji data",
       path: "/node_modules/emojibase-data/",
