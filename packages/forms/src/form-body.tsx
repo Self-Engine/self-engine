@@ -6,6 +6,7 @@ import {
   type SyntheticEvent,
   useSyncExternalStore,
 } from "react";
+import { useUnsavedChanges } from "@self-engine/shell";
 import { bindingOf, type OperationForm } from "./operation-form.ts";
 
 export interface OperationFormBodyProps {
@@ -79,6 +80,9 @@ export interface EditDrawerFormProps extends OperationFormBodyProps {
 /** Fields written by the module, with the shared Edit Drawer actions. */
 export function EditDrawerForm({ form, onCancel, actions, children }: EditDrawerFormProps) {
   const { t } = useLingui();
+  const binding = bindingOf(form);
+  const canSubmit = useSyncExternalStore(binding.subscribeChanged, binding.canSubmit);
+  useUnsavedChanges(binding.isChanged);
   return (
     <OperationFormBody form={form}>
       <Stack flex={1}>
@@ -86,7 +90,7 @@ export function EditDrawerForm({ form, onCancel, actions, children }: EditDrawer
         <Group justify="flex-end" mt="auto">
           {actions && <Group me="auto">{actions}</Group>}
           <Button type="button" variant="default" onClick={onCancel}>{t`Cancel`}</Button>
-          <Button type="submit">{t`Save`}</Button>
+          <Button type="submit" disabled={!canSubmit}>{t`Save`}</Button>
         </Group>
       </Stack>
     </OperationFormBody>

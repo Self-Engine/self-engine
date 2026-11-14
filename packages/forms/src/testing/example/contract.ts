@@ -20,7 +20,26 @@ const exampleFields = {
 export const exampleEntrySchema = z.object({ id: z.string(), ...exampleFields });
 
 /** The example's Port, mounted as `example` in the stories. */
+export const exampleTiedFields = [["icon", "color"]] as const;
+
 export const exampleContract = {
+  // This invented partial input proves the form side only; projects sets the real pattern.
+  update: oc
+    .input(
+      z
+        .object({
+          id: z.string(),
+          title: exampleFields.title.optional(),
+          description: exampleFields.description.nullable().optional(),
+          icon: z.enum(["circle", "star"]).nullable().optional(),
+          color: exampleFields.color.optional(),
+        })
+        .refine(({ icon, color }) => icon !== "star" || (color !== undefined && color !== null), {
+          path: [exampleTiedFields[0][1]],
+          params: { reason: "star_needs_color" },
+        }),
+    )
+    .output(exampleEntrySchema),
   create: oc
     .input(
       z.object(exampleFields).refine(({ title, description }) => title !== description, {

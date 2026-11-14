@@ -8,3 +8,5 @@ const examplePort = portHooks<typeof exampleContract>("example");
 export const useCreateExample = examplePort.operation("create", {
   conflicts: { title_taken: { field: "title", text: msg`This title is already in use.` } },
 });
+
+export const useUpdateExample = examplePort.operation("update");

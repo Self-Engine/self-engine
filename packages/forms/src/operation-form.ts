@@ -18,7 +18,9 @@ export type InputOfEntry<Entry extends AnyContractProcedure> = InferSchemaInput<
  * Operation's input. Every field may still be empty: an empty text is `""`, and a field without an
  * empty text, such as a picker, holds `null`.
  */
-export type Draft<Input> = { [Field in keyof Input]-?: Input[Field] | null };
+// A draft may show a stored string a newer Contract no longer accepts (for example an icon).
+type DraftValue<Value> = Value extends string ? string : Value;
+export type Draft<Input> = { [Field in keyof Input]-?: DraftValue<Input[Field]> | null };
 
 /** Any result of an Operation hook (`OperationResult` of `@self-engine/data-client/react`). */
 type AnyResult = OperationResult<unknown, string, string>;
@@ -43,6 +45,15 @@ export interface OperationFormOptions<
   readonly operation: OperationState<InputOfEntry<Entry>, Result>;
   /** The draft the form starts with; read once, when the form first draws. */
   readonly draft: Draft<InputOfEntry<Entry>>;
+  /** Editing compares against the initial draft and submits only changed fields plus identity. */
+  readonly edit?: {
+    /** Required routing keys (usually { id }); never counted as editable fields. */
+    readonly identity: Partial<InputOfEntry<Entry>>;
+    /** Groups named beside the Contract rule; overlapping groups travel together. */
+    readonly tiedFields?: readonly (readonly (keyof InputOfEntry<Entry> & string)[])[];
+  };
+  /** Nullable text fields: an empty or whitespace-only input hands on null, never empty text. */
+  readonly emptyTextFields?: readonly (keyof InputOfEntry<Entry> & string)[];
   /** Called once the Operation succeeded, with its answer. */
   readonly onSuccess?: (data: SuccessData<Result>) => void;
   /** Closes the form after success or a not-found result. */
@@ -83,6 +94,9 @@ export interface FormBinding {
   /** The fields that hold text which is no value: it counts as an unsaved change too (#288). */
   readonly unfinished: Pick<UnfinishedTexts, "any" | "subscribe">;
   readonly messages: FieldMessages;
+  readonly isChanged: () => boolean;
+  readonly canSubmit: () => boolean;
+  readonly subscribeChanged: (listener: () => void) => () => void;
   readonly isRunning: () => boolean;
   readonly subscribeRunning: (listener: () => void) => () => void;
   /** Makes `element` the one the focus goes to for `field`; returns the function that undoes it. */
@@ -104,6 +118,11 @@ interface Latest {
   readonly draft: UseFormReturnType<Values>;
   /** The options without the types that tie them to one entry. */
   readonly options: {
+    readonly edit?: {
+      readonly identity: Values;
+      readonly tiedFields?: readonly (readonly string[])[];
+    };
+    readonly emptyTextFields?: readonly string[];
     readonly entry: AnyContractProcedure;
     readonly texts?: FormTexts;
     readonly operation: { readonly run: (input: Values) => Promise<AnyResult> };
@@ -146,6 +165,54 @@ function createForm(latest: () => Latest): OperationForm<never> {
   const unfinished = new UnfinishedTexts();
   const conflicts = new Map<string, MessageDescriptor>();
   const elements = new Map<string, HTMLElement>();
+  const changedListeners = new Set<() => void>();
+  const normalized = (): Values => {
+    const result = { ...latest().draft.getValues() };
+    for (const field of latest().options.emptyTextFields ?? []) {
+      if (typeof result[field] === "string" && result[field].trim() === "") result[field] = null;
+    }
+    return result;
+  };
+  // The comparison state is independent of the draft: #289 can replace it under an open form.
+  let stored: Values = structuredClone(normalized());
+  const changedFields = () => {
+    const current = normalized();
+    return Object.keys(stored).filter(
+      (field) =>
+        !Object.hasOwn(latest().options.edit?.identity ?? {}, field) &&
+        !sameValue(current[field], stored[field]),
+    );
+  };
+  const isChanged = () => unfinished.any() || changedFields().length > 0;
+  const canSubmit = () => latest().options.edit === undefined || isChanged();
+  const notifyChanged = () => {
+    for (const listener of changedListeners) listener();
+  };
+  unfinished.subscribe(notifyChanged);
+  const input = (): Values => {
+    const draft = normalized();
+    const edit = latest().options.edit;
+    if (edit === undefined) return draft;
+    const fields = new Set(changedFields());
+    // Closure handles overlapping rules (a/b and b/c must send a/b/c).
+    let expanded = true;
+    while (expanded) {
+      expanded = false;
+      for (const group of edit.tiedFields ?? []) {
+        if (!group.some((field) => fields.has(field))) continue;
+        for (const field of group) {
+          if (!fields.has(field)) {
+            fields.add(field);
+            expanded = true;
+          }
+        }
+      }
+    }
+    return {
+      ...Object.fromEntries([...fields].map((field) => [field, draft[field]])),
+      ...edit.identity,
+    };
+  };
   let running = false;
   const runningListeners = new Set<() => void>();
   const setRunning = (value: boolean) => {
@@ -160,8 +227,8 @@ function createForm(latest: () => Latest): OperationForm<never> {
   const show = () =>
     messages.replace(new Map([...conflicts, ...violations, ...unfinished.shown()]));
   const check = (): ReadonlyMap<string, MessageDescriptor> => {
-    const { draft, options } = latest();
-    violations = checkDraft(inputSchemaOf(options.entry), draft.getValues(), options.texts);
+    const { options } = latest();
+    violations = checkDraft(inputSchemaOf(options.entry), input(), options.texts);
     show();
     return violations;
   };
@@ -172,12 +239,13 @@ function createForm(latest: () => Latest): OperationForm<never> {
     // A Conflict at the field is answered by any change to it.
     const hadConflict = conflicts.delete(field);
     values.notify(field);
+    notifyChanged();
     if (checkingEveryChange || hadConflict) check();
     else if (wasUnfinished) show();
   };
   const form: OperationForm<never> = {
     async submit() {
-      if (running) return;
+      if (running || !canSubmit()) return;
       unfinished.reportAll();
       const found = check();
       const blocked = new Set([...found.keys(), ...unfinished.shown().keys()]);
@@ -188,17 +256,21 @@ function createForm(latest: () => Latest): OperationForm<never> {
         if (first !== undefined) focusInto(first);
         return;
       }
-      const { draft, options } = latest();
+      const { options } = latest();
       setRunning(true);
       try {
-        const result = await options.operation.run(draft.getValues());
+        const result = await options.operation.run(input());
         if (result.status === "conflict") {
           if (result.field !== null) {
             conflicts.set(result.field, result.text);
             check();
           }
         }
-        if (result.status === "success") latest().options.onSuccess?.(result.data);
+        if (result.status === "success") {
+          stored = structuredClone(normalized());
+          notifyChanged();
+          latest().options.onSuccess?.(result.data);
+        }
         if (result.status === "success" || result.status === "notFound")
           latest().options.onDone?.();
       } finally {
@@ -221,6 +293,12 @@ function createForm(latest: () => Latest): OperationForm<never> {
     },
     unfinished,
     messages,
+    isChanged,
+    canSubmit,
+    subscribeChanged(listener) {
+      changedListeners.add(listener);
+      return () => changedListeners.delete(listener);
+    },
     isRunning: () => running,
     subscribeRunning(listener) {
       runningListeners.add(listener);
@@ -287,4 +365,22 @@ function reportFieldsMissing(
       `The input schema reports "${field}", but the form shows no field of that name: the save is blocked without a message.`,
     );
   }
+}
+
+/** Contract values are data: compare their contents rather than object identity. */
+function sameValue(left: unknown, right: unknown): boolean {
+  if (Object.is(left, right)) return true;
+  if (typeof left !== "object" || left === null || typeof right !== "object" || right === null)
+    return false;
+  if (left instanceof Date || right instanceof Date)
+    return left instanceof Date && right instanceof Date && left.getTime() === right.getTime();
+  if (Array.isArray(left) !== Array.isArray(right)) return false;
+  const keys = Object.keys(left);
+  return (
+    keys.length === Object.keys(right).length &&
+    keys.every(
+      (key) =>
+        Object.hasOwn(right, key) && sameValue(Reflect.get(left, key), Reflect.get(right, key)),
+    )
+  );
 }
