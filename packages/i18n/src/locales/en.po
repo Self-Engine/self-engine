@@ -184,6 +184,7 @@ msgctxt "Icon"
 msgid "Camera"
 msgstr "Camera"
 
+#: packages/forms/src/form-body.tsx
 #: packages/placeholder-alpha/src/edit-drawer.tsx
 #: packages/ui/src/feedback.tsx
 msgid "Cancel"
@@ -538,6 +539,10 @@ msgstr "General"
 msgctxt "Icon"
 msgid "Gift"
 msgstr "Gift"
+
+#: packages/forms/src/testing/example/example-form.tsx
+msgid "Give this entry a title of at most 80 characters."
+msgstr "Give this entry a title of at most 80 characters."
 
 #: packages/icons/src/directory/labels.ts
 msgctxt "Icon"
@@ -1046,6 +1051,7 @@ msgstr "Safe"
 msgid "Safety copy"
 msgstr "Safety copy"
 
+#: packages/forms/src/form-body.tsx
 #: packages/placeholder-alpha/src/edit-drawer.tsx
 msgid "Save"
 msgstr "Save"
@@ -1232,6 +1238,10 @@ msgstr "The action could not be completed. Please try again."
 msgid "The colors of the app. When the app follows the system, light and dark each have their own Theme."
 msgstr "The colors of the app. When the app follows the system, light and dark each have their own Theme."
 
+#: packages/forms/src/testing/example/example-form.tsx
+msgid "The description must differ from the title."
+msgstr "The description must differ from the title."
+
 #: packages/ui/src/entry-pickers/entry-icon-picker.tsx
 msgid "The emojis could not be loaded."
 msgstr "The emojis could not be loaded."
@@ -1304,6 +1314,10 @@ msgstr "This field is required."
 #: packages/ui/src/query-state-block.tsx
 msgid "This part could not be loaded."
 msgstr "This part could not be loaded."
+
+#: packages/forms/src/testing/example/port.ts
+msgid "This title is already in use."
+msgstr "This title is already in use."
 
 #: apps/web/src/data-connection-states.tsx
 msgid "This version of Self-Engine could not apply the update {migration} to your data. It was undone, so your data is unchanged."

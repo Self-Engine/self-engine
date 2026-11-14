@@ -1,9 +1,9 @@
 import type { MessageDescriptor } from "@lingui/core";
 import { useForm, type UseFormReturnType } from "@mantine/form";
 import type { AnyContractProcedure, InferSchemaInput } from "@orpc/contract";
-import type { OperationState } from "@self-engine/data-client/react";
+import type { OperationResult, OperationState } from "@self-engine/data-client/react";
 import { useEffect, useRef, useState } from "react";
-import { checkDraft, type InputSchema } from "./check.ts";
+import { checkDraft, type FormTexts, type InputSchema } from "./check.ts";
 import { FieldListeners } from "./field-listeners.ts";
 import { FieldMessages } from "./field-messages.ts";
 import { UnfinishedTexts } from "./unfinished-texts.ts";
@@ -21,9 +21,7 @@ export type InputOfEntry<Entry extends AnyContractProcedure> = InferSchemaInput<
 export type Draft<Input> = { [Field in keyof Input]-?: Input[Field] | null };
 
 /** Any result of an Operation hook (`OperationResult` of `@self-engine/data-client/react`). */
-interface AnyResult {
-  readonly status: string;
-}
+type AnyResult = OperationResult<unknown, string, string>;
 
 /** The answer of an Operation that succeeded. */
 type SuccessData<Result> = Result extends { readonly status: "success"; readonly data: infer Data }
@@ -39,12 +37,16 @@ export interface OperationFormOptions<
    * checks the draft (D317), so the module's Contract loads with the form, never at startup.
    */
   readonly entry: Entry;
+  /** Only the texts special to this module (D320). */
+  readonly texts?: FormTexts<keyof InputOfEntry<Entry> & string>;
   /** What the Operation hook of that entry returns, such as `useCreateNote()`. */
   readonly operation: OperationState<InputOfEntry<Entry>, Result>;
   /** The draft the form starts with; read once, when the form first draws. */
   readonly draft: Draft<InputOfEntry<Entry>>;
   /** Called once the Operation succeeded, with its answer. */
   readonly onSuccess?: (data: SuccessData<Result>) => void;
+  /** Closes the form after success or a not-found result. */
+  readonly onDone?: () => void;
 }
 
 declare const draftOf: unique symbol;
@@ -81,6 +83,8 @@ export interface FormBinding {
   /** The fields that hold text which is no value: it counts as an unsaved change too (#288). */
   readonly unfinished: Pick<UnfinishedTexts, "any" | "subscribe">;
   readonly messages: FieldMessages;
+  readonly isRunning: () => boolean;
+  readonly subscribeRunning: (listener: () => void) => () => void;
   /** Makes `element` the one the focus goes to for `field`; returns the function that undoes it. */
   readonly register: (field: string, element: HTMLElement) => () => void;
 }
@@ -101,8 +105,10 @@ interface Latest {
   /** The options without the types that tie them to one entry. */
   readonly options: {
     readonly entry: AnyContractProcedure;
+    readonly texts?: FormTexts;
     readonly operation: { readonly run: (input: Values) => Promise<AnyResult> };
     readonly onSuccess?: (data: unknown) => void;
+    readonly onDone?: () => void;
   };
 }
 
@@ -138,15 +144,24 @@ function createForm(latest: () => Latest): OperationForm<never> {
   const messages = new FieldMessages();
   const values = new FieldListeners();
   const unfinished = new UnfinishedTexts();
+  const conflicts = new Map<string, MessageDescriptor>();
   const elements = new Map<string, HTMLElement>();
+  let running = false;
+  const runningListeners = new Set<() => void>();
+  const setRunning = (value: boolean) => {
+    running = value;
+    for (const listener of runningListeners) listener();
+  };
   // From the first failed save on, every change checks the whole draft (D321).
   let checkingEveryChange = false;
   let violations: ReadonlyMap<string, MessageDescriptor> = new Map();
-  // A field's text that is no value outranks what the schema says of its older value.
-  const show = () => messages.replace(new Map([...violations, ...unfinished.shown()]));
+  // A violation outranks a Conflict at the same field, and a field's text that is no value
+  // outranks what the schema says of its older value.
+  const show = () =>
+    messages.replace(new Map([...conflicts, ...violations, ...unfinished.shown()]));
   const check = (): ReadonlyMap<string, MessageDescriptor> => {
     const { draft, options } = latest();
-    violations = checkDraft(inputSchemaOf(options.entry), draft.getValues());
+    violations = checkDraft(inputSchemaOf(options.entry), draft.getValues(), options.texts);
     show();
     return violations;
   };
@@ -154,12 +169,15 @@ function createForm(latest: () => Latest): OperationForm<never> {
     // Without the forced update: the field already shows what was typed.
     latest().draft.setFieldValue(field, value, { forceUpdate: false });
     const wasUnfinished = unfinished.finish(field);
+    // A Conflict at the field is answered by any change to it.
+    const hadConflict = conflicts.delete(field);
     values.notify(field);
-    if (checkingEveryChange) check();
+    if (checkingEveryChange || hadConflict) check();
     else if (wasUnfinished) show();
   };
   const form: OperationForm<never> = {
     async submit() {
+      if (running) return;
       unfinished.reportAll();
       const found = check();
       const blocked = new Set([...found.keys(), ...unfinished.shown().keys()]);
@@ -171,8 +189,21 @@ function createForm(latest: () => Latest): OperationForm<never> {
         return;
       }
       const { draft, options } = latest();
-      const result = await options.operation.run(draft.getValues());
-      if (result.status === "success") latest().options.onSuccess?.(Reflect.get(result, "data"));
+      setRunning(true);
+      try {
+        const result = await options.operation.run(draft.getValues());
+        if (result.status === "conflict") {
+          if (result.field !== null) {
+            conflicts.set(result.field, result.text);
+            check();
+          }
+        }
+        if (result.status === "success") latest().options.onSuccess?.(result.data);
+        if (result.status === "success" || result.status === "notFound")
+          latest().options.onDone?.();
+      } finally {
+        setRunning(false);
+      }
     },
     setValue: change,
   };
@@ -190,6 +221,13 @@ function createForm(latest: () => Latest): OperationForm<never> {
     },
     unfinished,
     messages,
+    isRunning: () => running,
+    subscribeRunning(listener) {
+      runningListeners.add(listener);
+      return () => {
+        runningListeners.delete(listener);
+      };
+    },
     register(field, element) {
       elements.set(field, element);
       return () => {

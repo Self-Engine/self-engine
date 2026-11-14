@@ -60,13 +60,14 @@ function formIn(canvasElement: HTMLElement) {
 }
 
 const REQUIRED = "This field is required.";
+const TITLE_TEXT = "Give this entry a title of at most 80 characters.";
 
 export const SavingTheEmptyFormShowsEveryMessage: Story = {
   play: async ({ canvasElement, loaded }) => {
     const form = formIn(canvasElement);
     await form.save();
     // The example form maps no message: each lands at the field of the schema's name.
-    await expect(form.title()).toHaveAccessibleDescription(REQUIRED);
+    await expect(form.title()).toHaveAccessibleDescription(TITLE_TEXT);
     await expect(form.description()).toHaveAccessibleDescription(REQUIRED);
     await expect(form.title()).toHaveFocus();
     await expect(loadedOf(loaded).port.calls).toEqual([]);
@@ -92,7 +93,7 @@ export const NothingIsReportedBeforeTheFirstSave: Story = {
     await userEvent.paste("x".repeat(501));
     await userEvent.tab();
     await expect(form.invalid()).toEqual([]);
-    await expect(form.title()).not.toHaveAccessibleDescription(REQUIRED);
+    await expect(form.title()).not.toHaveAccessibleDescription(TITLE_TEXT);
     await expect(form.description()).not.toHaveAccessibleDescription("At most 500 characters.");
     await expect(loadedOf(loaded).port.calls).toEqual([]);
   },
@@ -112,13 +113,13 @@ export const AfterAFailedSaveEveryChangeIsChecked: Story = {
 
     // Breaking a rule shows its message at once.
     await userEvent.clear(form.title());
-    await expect(form.title()).toHaveAccessibleDescription(REQUIRED);
+    await expect(form.title()).toHaveAccessibleDescription(TITLE_TEXT);
     await userEvent.click(form.description());
     await userEvent.paste("x".repeat(500));
     await expect(form.description()).toHaveAccessibleDescription("At most 500 characters.");
     // Spaces alone are no title: the schema trims.
     await userEvent.type(form.title(), "   ");
-    await expect(form.title()).toHaveAccessibleDescription(REQUIRED);
+    await expect(form.title()).toHaveAccessibleDescription(TITLE_TEXT);
     await expect(loadedOf(loaded).port.calls).toEqual([]);
   },
 };
@@ -173,11 +174,13 @@ export const TheMessagesFollowALanguageSwitch: Story = {
     await userEvent.click(form.title());
     await userEvent.paste("x".repeat(81));
     await form.save();
-    await expect(form.title()).toHaveAccessibleDescription("At most 80 characters.");
+    await expect(form.title()).toHaveAccessibleDescription(TITLE_TEXT);
     await expect(form.description()).toHaveAccessibleDescription(REQUIRED);
 
     await userEvent.click(canvas.getByRole("button", { name: "Deutsch" }));
-    await expect(await canvas.findByText("Höchstens 80 Zeichen.")).toBeVisible();
+    await expect(
+      await canvas.findByText("Gib diesem Eintrag einen Titel mit höchstens 80 Zeichen."),
+    ).toBeVisible();
     await expect(form.description()).toHaveAccessibleDescription("Dieses Feld ist erforderlich.");
     // The form stayed open with what was typed, and Zod's own text appears nowhere.
     await expect(form.title()).toHaveValue("x".repeat(81));
