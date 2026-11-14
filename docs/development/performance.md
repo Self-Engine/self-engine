@@ -191,6 +191,12 @@ its popover is open. Measured in the story runner (Chromium, React in developmen
 25 runs): opening it with all 107 pictures took **39 ms** (at most 44.5), narrowing them to those
 matching "ba" **4.5 ms**, and showing all 107 again **22 ms**; a production build is faster.
 
+The color picker and the Accent row of the Settings share one building block, the swatch radio
+group (`@self-engine/ui/swatch-radio-group`). It is an entry of its own and not part of `ui`'s main
+entry: exported from there, it took Mantine's `Radio.Card`, `Tooltip` and `ColorSwatch` into the
+startup bundle (**+19,995 bytes**), although both users load on demand. As its own entry, startup
+JavaScript stayed at **843,206 bytes** (16 chunks) before and after the review fixes of #106.
+
 ### Zod at startup
 
 The app reads its Settings before the first render, and each Setting checks its stored value

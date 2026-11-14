@@ -30,7 +30,10 @@ export interface EntryMarkProps {
   readonly size?: IconSize;
 }
 
-/** The side of the soft tile against the icon in it: the icon keeps an eighth of air each side. */
+/**
+ * The side of the soft tile against the icon in it: the icon keeps three eighths of its own side
+ * as air on each side.
+ */
 const TILE_FACTOR = 1.75;
 
 /** Colored text and soft fill: the Color Set's through its scope, or the neutral roles. */
