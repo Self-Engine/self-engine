@@ -1,3 +1,4 @@
+import { PlusIcon } from "@phosphor-icons/react/dist/csr/Plus";
 import { type ComponentProps, createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, expectTypeOf, it } from "vite-plus/test";
@@ -27,6 +28,13 @@ describe.each(ICON_NAMES)("%s", (name) => {
     expect(markup).toMatch(/^<svg [^>]*fill="currentColor"/);
   });
 
+  it("is drawn in the regular weight, all in the same color", () => {
+    // Only Phosphor's duotone weight lays a shape at a fifth of the opacity under the line
+    // drawing; the regular weight is the line drawing alone.
+    expect(markup).not.toMatch(/opacity=/);
+    expect(markup).not.toMatch(/<path [^>]*(fill|stroke)=/);
+  });
+
   it("is 1.125rem by default, grown by the font scale", () => {
     expect(markup).toMatch(
       /^<svg [^>]*style="[^"]*width:calc\(1\.125rem \* var\(--mantine-scale\)\)/,
@@ -47,8 +55,14 @@ describe.each(ICON_NAMES)("%s", (name) => {
 });
 
 describe("the catalog", () => {
-  it("exports exactly the starter icons", () => {
-    expect(Object.keys(catalog).toSorted()).toEqual(ICON_NAMES.toSorted());
+  it("exports exactly the starter icons, beside the length of a named size", () => {
+    expect(Object.keys(catalog).toSorted()).toEqual([...ICON_NAMES, "iconLength"].toSorted());
+  });
+
+  it("draws the picture of Phosphor's regular weight", () => {
+    const picture = (markup: string) => markup.replace(/^<svg [^>]*>/, "");
+    const regular = renderToStaticMarkup(createElement(PlusIcon, { weight: "regular" }));
+    expect(picture(renderToStaticMarkup(createElement(catalog.AddIcon)))).toBe(picture(regular));
   });
 
   it("shows a different picture for every meaning", () => {

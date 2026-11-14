@@ -3,11 +3,11 @@ export {
   BUILT_IN_THEMES,
   COLOR_SETS,
   type ColorSet,
-  type ColorSetId,
   DEFAULT_THEME,
   type Theme,
   type ThemeCatalog,
 } from "./catalog.ts";
+export type { ColorSetName } from "../names/list.ts";
 export { contrastRatio } from "./color.ts";
 export {
   auditColorSets,
@@ -20,7 +20,7 @@ export {
   formatContrastFailure,
 } from "./contrast.ts";
 export { FONT_FAMILY } from "./font.ts";
-export type { ModuleColor } from "./module-colors.ts";
+export { colorSetColor, type ColorSetScope } from "./color-set-scope.ts";
 export {
   DENSITIES,
   type Density,

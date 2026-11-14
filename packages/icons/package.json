@@ -6,15 +6,20 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
-    "./brand-mark": "./src/brand-mark.tsx"
+    "./brand-mark": "./src/brand-mark.tsx",
+    "./directory": "./src/directory/index.ts",
+    "./names": "./src/names/index.ts"
   },
   "dependencies": {
+    "@lingui/core": "catalog:",
     "@phosphor-icons/react": "catalog:",
     "react": "catalog:",
-    "react-dom": "catalog:"
+    "react-dom": "catalog:",
+    "zod": "catalog:"
   },
   "devDependencies": {
     "@mantine/core": "catalog:",
+    "@self-engine/i18n": "workspace:*",
     "@self-engine/theme": "workspace:*",
     "@storybook/react-vite": "catalog:",
     "@types/node": "catalog:",

@@ -37,12 +37,16 @@ The named purpose a color serves, such as the page background or muted text. Com
 _Avoid_: token, shade, color variable
 
 **Color Set** (de: _Farbsatz_):
-A named group of four matching colors for one hue: a fill, the text on that fill, a soft fill, and colored text on normal backgrounds. _Accents_ and _Module Colors_ are _Color Sets_.
+A named group of four matching colors for one hue: a fill, the text on that fill, a soft fill, and colored text on normal backgrounds. The text on the fill is part of the set and may be dark, as on yellow. _Accents_, _Module Colors_ and the color the user gives an entry, such as a project or a habit, are _Color Sets_.
 _Avoid_: hue, color scale
 
 **Density** (de: _Dichte_):
 How tightly the interface is laid out, either comfortable or compact. It changes spacing and control sizes, not the size of the text.
 _Avoid_: compact mode, zoom
+
+**Entry Mark** (de: _Marke_):
+The icon or single emoji of an entry, such as a project or a habit, drawn in the entry's _Color Set_. An entry without an icon shows the usual icon of its kind, and one without a color looks neutral.
+_Avoid_: avatar, entry icon, badge
 
 **Module Color** (de: _Modulfarbe_):
 The _Color Set_ a module declares for itself, which marks its icon, its active entries and its charts. It is not a user setting and is separate from the _Accent_, which marks actions.

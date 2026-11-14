@@ -168,6 +168,38 @@ Shared dependencies of lazy modules can still be eager; the lazy entry itself ca
 A fixture test builds both lazy and accidentally eager versions and checks the actual
 build fails, including when it is below the byte limit.
 
+### The directory of entry pictures
+
+The mark of an entry (`@self-engine/ui/entry-mark`, #260) draws any of the 107 icon names through
+the directory of pictures (`@self-engine/icons/directory`). Each Phosphor icon carries all six
+weights, so the chunk that holds the directory and the mark measured **343,907 bytes** (88,198
+gzipped) in a trial build that loaded the mark on demand, against **46,650 bytes** left below the
+limit. The directory therefore never loads at startup (D293): only a View that loads on demand
+imports the mark, and the startup check names the directory in `lazyOnly`, so a build fails when
+startup code reaches it. Startup JavaScript went from **843,143** to **843,206 bytes** (+63) with
+the slice, from the shared name of the Color Set scope. Drawing a mark costs one icon render; the
+first View that draws one pays the chunk's load once.
+
+The pickers of an entry's icon, emoji and color (`@self-engine/ui/entry-pickers`, #261) load the
+same way: an edit drawer, which loads on demand, imports them. Startup JavaScript stayed at
+**843,206 bytes** (16 chunks) before and after the slice. In a trial build that loaded the pickers
+and the mark on demand, the pickers' own chunk measured **26,353 bytes** (11,010 gzipped) beside
+the shared directory chunk of **342,249 bytes**. The 214 icon labels sit in the language catalogs,
+which load before the first render outside this budget: the German catalog chunk went from
+**7,144 to 10,053 bytes**, the English one from **6,313 to 9,124**. The icon grid draws only while
+its popover is open. Measured in the story runner (Chromium, React in development mode, median of
+25 runs): opening it with all 107 pictures took **39 ms** (at most 44.5), narrowing them to those
+matching "ba" **4.5 ms**, and showing all 107 again **22 ms**; a production build is faster.
+These times were taken while every icon was drawn in the duotone weight, which adds a second
+shape to each picture; the regular weight drawn now (D298) has only the line drawing. They were
+not measured again.
+
+The color picker and the Accent row of the Settings share one building block, the swatch radio
+group (`@self-engine/ui/swatch-radio-group`). It is an entry of its own and not part of `ui`'s main
+entry: exported from there, it took Mantine's `Radio.Card`, `Tooltip` and `ColorSwatch` into the
+startup bundle (**+19,995 bytes**), although both users load on demand. As its own entry, startup
+JavaScript stayed at **843,206 bytes** (16 chunks) before and after the review fixes of #106.
+
 ### Zod at startup
 
 The app reads its Settings before the first render, and each Setting checks its stored value
@@ -195,7 +227,7 @@ Zod's core is still at startup, for two reasons:
   needs at startup therefore arrive complete. With no full build anywhere in the page, the same
   startup measured **802,759 bytes**: 36,511 of the remaining bytes are the price of sharing.
 
-The startup check holds this (`lazyOnly` in `apps/web/vite.config.ts`): a build fails if a module
+The startup check holds this (`lazyOnly` in `apps/web/startup-rules.ts`): a build fails if a module
 of Zod's full build (`zod/v4/classic/`) is in a static startup chunk, and names the startup code
 that imports it. The byte limit alone would not catch it: the full build fits under the 6 %.
 

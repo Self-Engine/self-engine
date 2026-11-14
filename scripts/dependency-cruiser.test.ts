@@ -368,6 +368,61 @@ describe("the theme core", () => {
   });
 });
 
+describe("the theme names entry", () => {
+  const theme = (
+    dependencies: string[],
+    names: string,
+    core = "export const core = 1;\n",
+  ): FixturePackage => ({
+    dir: "packages/theme",
+    dependencies,
+    exports: {
+      ".": "./src/core/index.ts",
+      "./mantine": "./src/mantine/index.ts",
+      "./names": "./src/names/index.ts",
+    },
+    files: {
+      "src/core/index.ts": core,
+      "src/mantine/index.ts": "export const provider = 1;\n",
+      "src/names/index.ts": names,
+    },
+  });
+
+  it.each(["react", "react-dom", "@mantine/core", "culori"])(
+    "fails an import of %s",
+    async (name) => {
+      const found = await cruise([theme([name], `import "${name}";\n`)]);
+      expect(ruleNames(found)).toEqual(["theme-names-is-pure"]);
+    },
+  );
+
+  it.each(["core", "mantine"])("fails a relative import of the %s entry", async (entry) => {
+    const found = await cruise([theme([], `import "../${entry}/index.ts";\n`)]);
+    expect(ruleNames(found)).toEqual(["theme-names-is-pure"]);
+  });
+
+  it("passes Zod, and the core importing the names", async () => {
+    const found = await cruise([
+      theme(["zod"], 'import "zod";\n', 'import "../names/index.ts";\n'),
+    ]);
+    expect(found).toEqual([]);
+  });
+
+  it("can be imported by a module contract, unlike the theme core", async () => {
+    const contract = (entry: string) =>
+      declaring(
+        extraPackage("packages/module", { "src/contracts/index.ts": `import "${entry}";\n` }),
+        "@self-engine/theme",
+      );
+    const run = (entry: string) =>
+      cruise([theme([], "export {};\n"), contract(entry)], {
+        allowedImports: { module: ["theme"] },
+      });
+    expect(await run("@self-engine/theme/names")).toEqual([]);
+    expect(ruleNames(await run("@self-engine/theme"))).toEqual(["module-contracts-is-pure"]);
+  });
+});
+
 describe("the translation core", () => {
   const i18n = (dependencies: string[], files: Record<string, string>): FixturePackage => ({
     dir: "packages/i18n",
@@ -396,6 +451,57 @@ describe("the translation core", () => {
       }),
     ]);
     expect(found).toEqual([]);
+  });
+});
+
+describe("the icon names entry", () => {
+  const icons = (dependencies: string[], files: Record<string, string>): FixturePackage => ({
+    dir: "packages/icons",
+    dependencies,
+    exports: { ".": "./src/index.ts", "./names": "./src/names/index.ts" },
+    files: { "src/index.ts": "export const HouseIcon = 1;\n", ...files },
+  });
+
+  it.each(["react", "@phosphor-icons/react", "@mantine/core"])(
+    "fails an import of %s",
+    async (name) => {
+      const found = await cruise([icons([name], { "src/names/index.ts": `import "${name}";\n` })]);
+      expect(ruleNames(found)).toEqual(["icons-names-is-pure"]);
+    },
+  );
+
+  it("fails a relative import of the icon catalog", async () => {
+    const found = await cruise([icons([], { "src/names/index.ts": 'import "../index.ts";\n' })]);
+    expect(ruleNames(found)).toEqual(["icons-names-is-pure"]);
+  });
+
+  it("passes Zod, its own files, and a test file's test library", async () => {
+    const found = await cruise([
+      {
+        ...icons(["zod"], {
+          "src/names/index.ts": 'import "zod";\nimport "./emoji.ts";\n',
+          "src/names/emoji.ts": "export const emoji = 1;\n",
+          "src/names/emoji.test.ts": 'import "vite-plus";\nimport "./emoji.ts";\n',
+        }),
+        devDependencies: ["vite-plus"],
+      },
+    ]);
+    expect(found).toEqual([]);
+  });
+
+  it("can be imported by a module contract, unlike the icon catalog", async () => {
+    const entries = { names: "@self-engine/icons/names", catalog: "@self-engine/icons" };
+    const contract = (entry: string) =>
+      declaring(
+        extraPackage("packages/module", { "src/contracts/index.ts": `import "${entry}";\n` }),
+        "@self-engine/icons",
+      );
+    const run = (entry: string) =>
+      cruise([icons([], { "src/names/index.ts": "export {};\n" }), contract(entry)], {
+        allowedImports: { module: ["icons"] },
+      });
+    expect(await run(entries.names)).toEqual([]);
+    expect(ruleNames(await run(entries.catalog))).toEqual(["module-contracts-is-pure"]);
   });
 });
 
@@ -654,6 +760,33 @@ describe("testing entries", () => {
   it("fails an import of the package's own testing folder from its code", async () => {
     const own = withFiles(withTesting, { "src/index.ts": 'import "./testing/index.ts";\n' });
     expect(ruleNames(await cruise([own]))).toEqual([RULE]);
+  });
+});
+
+describe("the directory of entry pictures", () => {
+  const RULE = "icon-directory-only-in-ui";
+  const icons: FixturePackage = {
+    dir: "packages/icons",
+    exports: { ".": "./src/index.ts", "./directory": "./src/directory/index.ts" },
+    files: {
+      "src/index.ts": "export const HouseIcon = 1;\n",
+      "src/directory/index.ts": "export const ICON_DIRECTORY = {};\n",
+    },
+  };
+  const importing = (dir: string): FixturePackage => ({
+    dir,
+    dependencies: ["@self-engine/icons"],
+    files: { "src/index.ts": 'import "@self-engine/icons/directory";\n' },
+  });
+  const allowedImports = { ui: ["icons"], module: ["icons"], web: ["icons"] };
+
+  it("passes an import in ui, where the mark and the pickers draw it", async () => {
+    expect(await cruise([icons, importing("packages/ui")], { allowedImports })).toEqual([]);
+  });
+
+  it.each(["packages/module", "apps/web"])("fails an import in %s", async (dir) => {
+    const found = await cruise([icons, importing(dir)], { allowedImports });
+    expect(ruleNames(found)).toEqual([RULE]);
   });
 });
 

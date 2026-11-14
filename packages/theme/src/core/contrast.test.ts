@@ -13,7 +13,7 @@ import {
   formatColorSetFailure,
   formatContrastFailure,
   FROM_THEME,
-  type ModuleColor,
+  type Hex,
   resolveAppearance,
   type Theme,
   type ThemeColors,
@@ -104,8 +104,25 @@ describe("the final tinted surfaces", () => {
 });
 
 describe("auditColorSets", () => {
-  it("finds no failure in the eight Color Sets, in either Color Mode", () => {
+  it("finds no failure in the twelve Color Sets, in either Color Mode", () => {
     expect(auditColorSets(COLOR_SETS).map(formatColorSetFailure)).toEqual([]);
+  });
+
+  // Further from black means lighter.
+  const lightness = (color: Hex) => contrastRatio(color, "#000000");
+
+  it.each(["cyan", "lime", "yellow"] as const)(
+    "gives %s a bright fill with darker text on it, in both Color Modes",
+    (name) => {
+      for (const { accent, onAccent } of [COLOR_SETS[name].light, COLOR_SETS[name].dark]) {
+        expect(lightness(accent)).toBeGreaterThan(lightness(onAccent));
+      }
+    },
+  );
+
+  it("keeps white text on the red fill", () => {
+    expect(COLOR_SETS.red.light.onAccent).toBe("#ffffff");
+    expect(COLOR_SETS.red.dark.onAccent).toBe("#ffffff");
   });
 
   it("names the Color Set, Color Mode, pair and ratio", () => {
@@ -220,28 +237,34 @@ describe("the pairs that are checked", () => {
   });
 });
 
-describe("Module Color text", () => {
-  const moduleTextPairs = (overrides: Partial<ThemeColors>, colorSet: string) =>
-    pairs(overrides).filter((pair) => pair.startsWith(`${colorSet} module text`));
+describe("Color Set text, as Module Colors and the marks of entries draw it", () => {
+  const textPairs = (overrides: Partial<ThemeColors>, colorSet: string) =>
+    pairs(overrides).filter((pair) => pair.startsWith(`${colorSet} color set text`));
 
   it("is checked on canvas", () => {
-    expect(moduleTextPairs({ canvas: "#808080" }, "teal")).toEqual(["teal module text on canvas"]);
+    expect(textPairs({ canvas: "#808080" }, "teal")).toEqual(["teal color set text on canvas"]);
   });
 
   it("is checked on the calculated navSurface, which a light surface over a dark chrome dims", () => {
-    expect(moduleTextPairs({ chrome: "#000000", surface: "#ffffff" }, "teal")).toEqual([
-      "teal module text on navSurface",
+    expect(textPairs({ chrome: "#000000", surface: "#ffffff" }, "teal")).toEqual([
+      "teal color set text on navSurface",
     ]);
   });
 
-  it("is checked on surface, for all eight Color Sets, green and pink included", () => {
+  it("is checked on surface, for all twelve Color Sets, those that are no Accent included", () => {
     const overrides = { chrome: "#808080", surface: "#808080" } as const;
     for (const colorSet of Object.keys(COLOR_SETS)) {
-      expect(moduleTextPairs(overrides, colorSet)).toEqual([
-        `${colorSet} module text on navSurface`,
-        `${colorSet} module text on surface`,
+      expect(textPairs(overrides, colorSet)).toEqual([
+        `${colorSet} color set text on navSurface`,
+        `${colorSet} color set text on surface`,
       ]);
     }
+  });
+
+  it("is checked on surfaceRaised, where a mark sits in a popover or a drawer", () => {
+    expect(textPairs({ surfaceRaised: "#808080" }, "teal")).toEqual([
+      "teal color set text on surfaceRaised",
+    ]);
   });
 
   it("is checked on its own soft fill", () => {
@@ -249,11 +272,14 @@ describe("Module Color text", () => {
       { ...DEFAULT_APPEARANCE, colorMode: "light" },
       BUILT_IN_THEMES,
     );
-    const teal = light.moduleColors["teal"] as ModuleColor;
+    const { teal } = light.colorSetScopes;
     const issues = checkContrast({
       roles: light.roles,
-      moduleColors: { probe: { ...teal, "--se-module-soft": teal["--se-module-text"] } },
+      colorSetScopes: {
+        ...light.colorSetScopes,
+        teal: { ...teal, "--se-color-set-soft": teal["--se-color-set-text"] },
+      },
     });
-    expect(issues.map((issue) => issue.pair)).toEqual(["probe module text on its soft fill"]);
+    expect(issues.map((issue) => issue.pair)).toEqual(["teal color set text on its soft fill"]);
   });
 });

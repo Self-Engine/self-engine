@@ -39,6 +39,11 @@ msgstr "App Language"
 msgid "Appearance"
 msgstr "Appearance"
 
+#: packages/icons/src/directory/labels.ts
+msgctxt "Icon"
+msgid "Archive"
+msgstr "Archive"
+
 #: packages/placeholder-alpha/src/index.ts
 msgctxt "View title"
 msgid "Archive"
@@ -60,6 +65,26 @@ msgstr "Backup restored."
 msgid "Backups"
 msgstr "Backups"
 
+#: packages/icons/src/directory/labels.ts
+msgctxt "Icon"
+msgid "Bank"
+msgstr "Bank"
+
+#: packages/icons/src/directory/labels.ts
+msgctxt "Icon"
+msgid "Banknote"
+msgstr "Banknote"
+
+#: packages/icons/src/directory/labels.ts
+msgctxt "Icon"
+msgid "Bar chart"
+msgstr "Bar chart"
+
+#: packages/icons/src/directory/labels.ts
+msgctxt "Icon"
+msgid "Barbell"
+msgstr "Barbell"
+
 #: packages/settings-area/src/backup-rows.tsx
 msgid "Before a restore"
 msgstr "Before a restore"
@@ -68,23 +93,97 @@ msgstr "Before a restore"
 msgid "Before an update"
 msgstr "Before an update"
 
-#: packages/settings-area/src/theme-rows.tsx
-msgctxt "Accent"
+#: packages/icons/src/directory/labels.ts
+msgctxt "Icon"
+msgid "Bicycle"
+msgstr "Bicycle"
+
+#: packages/icons/src/directory/labels.ts
+msgctxt "Icon"
+msgid "Bitcoin"
+msgstr "Bitcoin"
+
+#: packages/ui/src/color-set-labels.ts
+msgctxt "Color"
 msgid "Blue"
 msgstr "Blue"
+
+#: packages/icons/src/directory/labels.ts
+msgctxt "Icon"
+msgid "Book"
+msgstr "Book"
+
+#: packages/icons/src/directory/labels.ts
+msgctxt "Icon"
+msgid "Brain"
+msgstr "Brain"
+
+#: packages/icons/src/directory/labels.ts
+msgctxt "Icon"
+msgid "Briefcase"
+msgstr "Briefcase"
+
+#: packages/icons/src/directory/labels.ts
+msgctxt "Icon"
+msgid "Broom"
+msgstr "Broom"
+
+#: packages/icons/src/directory/labels.ts
+msgctxt "Icon"
+msgid "Bug"
+msgstr "Bug"
 
 #: packages/settings-area/src/about-rows.tsx
 msgid "Build"
 msgstr "Build"
+
+#: packages/icons/src/directory/labels.ts
+msgctxt "Icon"
+msgid "Buildings"
+msgstr "Buildings"
+
+#: packages/icons/src/directory/labels.ts
+msgctxt "Icon"
+msgid "Calendar"
+msgstr "Calendar"
+
+#: packages/icons/src/directory/labels.ts
+msgctxt "Icon"
+msgid "Camera"
+msgstr "Camera"
 
 #: packages/placeholder-alpha/src/edit-drawer.tsx
 #: packages/ui/src/feedback.tsx
 msgid "Cancel"
 msgstr "Cancel"
 
+#: packages/icons/src/directory/labels.ts
+msgctxt "Icon"
+msgid "Car"
+msgstr "Car"
+
 #: packages/settings-area/src/about-rows.tsx
 msgid "Channel"
 msgstr "Channel"
+
+#: packages/icons/src/directory/labels.ts
+msgctxt "Icon"
+msgid "Check mark"
+msgstr "Check mark"
+
+#: packages/ui/src/entry-pickers/entry-icon-picker.tsx
+msgid "Choose an icon"
+msgstr "Choose an icon"
+
+#: packages/icons/src/directory/labels.ts
+msgctxt "Icon"
+msgid "Circle"
+msgstr "Circle"
+
+#: packages/icons/src/directory/labels.ts
+msgctxt "Icon"
+msgid "Clapperboard"
+msgstr "Clapperboard"
 
 #: packages/settings-area/src/area.tsx
 msgid "Clear search"
@@ -95,6 +194,11 @@ msgid "Clients"
 msgstr "Clients"
 
 #: packages/settings-area/src/about-rows.tsx
+msgid "Clipboard"
+msgstr "Clipboard"
+
+#: packages/icons/src/directory/labels.ts
+msgctxt "Icon"
 msgid "Clipboard"
 msgstr "Clipboard"
 
@@ -119,11 +223,32 @@ msgstr "Close navigation"
 msgid "Close notice"
 msgstr "Close notice"
 
+#: packages/icons/src/directory/labels.ts
+msgctxt "Icon"
+msgid "Cloud"
+msgstr "Cloud"
+
+#: packages/icons/src/directory/labels.ts
+msgctxt "Icon"
+msgid "Code"
+msgstr "Code"
+
+#: packages/icons/src/directory/labels.ts
+msgctxt "Icon"
+msgid "Coffee"
+msgstr "Coffee"
+
+#: packages/icons/src/directory/labels.ts
+msgctxt "Icon"
+msgid "Coins"
+msgstr "Coins"
+
 #: packages/shell/src/shell.tsx
 msgid "Collapse module sidebar"
 msgstr "Collapse module sidebar"
 
 #: packages/settings-area/src/theme-rows.tsx
+#: packages/ui/src/entry-pickers/entry-color-picker.tsx
 msgid "Color"
 msgstr "Color"
 
@@ -157,6 +282,16 @@ msgctxt "Density"
 msgid "Compact"
 msgstr "Compact"
 
+#: packages/icons/src/directory/labels.ts
+msgctxt "Icon"
+msgid "Computer"
+msgstr "Computer"
+
+#: packages/icons/src/directory/labels.ts
+msgctxt "Icon"
+msgid "Cooking pot"
+msgstr "Cooking pot"
+
 #: packages/settings-area/src/theme-rows.tsx
 msgctxt "Theme"
 msgid "Cool"
@@ -172,6 +307,11 @@ msgctxt "Button that copies the version information"
 msgid "Copy"
 msgstr "Copy"
 
+#: packages/icons/src/directory/labels.ts
+msgctxt "Icon"
+msgid "Countdown"
+msgstr "Countdown"
+
 #: packages/settings-area/src/backup-rows.tsx
 msgid "Create backup now"
 msgstr "Create backup now"
@@ -179,6 +319,21 @@ msgstr "Create backup now"
 #: packages/settings-area/src/backup-rows.tsx
 msgid "Created by you"
 msgstr "Created by you"
+
+#: packages/icons/src/directory/labels.ts
+msgctxt "Icon"
+msgid "Credit card"
+msgstr "Credit card"
+
+#: packages/icons/src/directory/labels.ts
+msgctxt "Icon"
+msgid "Cross"
+msgstr "Cross"
+
+#: packages/ui/src/color-set-labels.ts
+msgctxt "Color"
+msgid "Cyan"
+msgstr "Cyan"
 
 #: packages/settings-area/src/backup-rows.tsx
 msgid "Daily backup"
@@ -196,6 +351,11 @@ msgstr "Dark mode"
 #: packages/settings-area/src/theme-rows.tsx
 msgid "Dark Theme"
 msgstr "Dark Theme"
+
+#: packages/icons/src/directory/labels.ts
+msgctxt "Icon"
+msgid "Dashed circle"
+msgstr "Dashed circle"
 
 #: packages/settings-area/src/index.ts
 msgctxt "View of the settings"
@@ -232,6 +392,29 @@ msgstr "Discard"
 msgid "Discard changes?"
 msgstr "Discard changes?"
 
+#: packages/icons/src/directory/labels.ts
+msgctxt "Icon"
+msgid "Dollar"
+msgstr "Dollar"
+
+#: packages/icons/src/directory/labels.ts
+msgctxt "Icon"
+msgid "Double check mark"
+msgstr "Double check mark"
+
+#: packages/icons/src/directory/labels.ts
+msgctxt "Icon"
+msgid "Drop"
+msgstr "Drop"
+
+#: packages/ui/src/entry-pickers/entry-emoji-input.tsx
+msgid "Emoji"
+msgstr "Emoji"
+
+#: packages/ui/src/entry-pickers/entry-emoji-input.tsx
+msgid "Enter exactly one emoji."
+msgstr "Enter exactly one emoji."
+
 #: packages/placeholder-alpha/src/entries.tsx
 msgid "Entries you create appear here."
 msgstr "Entries you create appear here."
@@ -244,6 +427,16 @@ msgstr "Entry not found"
 msgid "Expand module sidebar"
 msgstr "Expand module sidebar"
 
+#: packages/icons/src/directory/labels.ts
+msgctxt "Icon"
+msgid "Fire"
+msgstr "Fire"
+
+#: packages/icons/src/directory/labels.ts
+msgctxt "Icon"
+msgid "Flask"
+msgstr "Flask"
+
 #: packages/settings-area/src/rows.tsx
 msgid "Font scale"
 msgstr "Font scale"
@@ -252,38 +445,121 @@ msgstr "Font scale"
 msgid "Font size"
 msgstr "Font size"
 
+#: packages/icons/src/directory/labels.ts
+msgctxt "Icon"
+msgid "Fork and knife"
+msgstr "Fork and knife"
+
 #: packages/settings-area/src/theme-rows.tsx
 msgid "From Theme"
 msgstr "From Theme"
 
+#: packages/icons/src/directory/labels.ts
+msgctxt "Icon"
+msgid "Game controller"
+msgstr "Game controller"
+
 #: packages/placeholder-alpha/src/groups.tsx
 msgid "Garden"
 msgstr "Garden"
+
+#: packages/icons/src/directory/labels.ts
+msgctxt "Icon"
+msgid "Gear"
+msgstr "Gear"
 
 #: packages/settings-area/src/shortcut-rows.tsx
 msgctxt "Shortcuts that belong to no module"
 msgid "General"
 msgstr "General"
 
-#: packages/settings-area/src/theme-rows.tsx
-msgctxt "Accent"
+#: packages/icons/src/directory/labels.ts
+msgctxt "Icon"
+msgid "Gift"
+msgstr "Gift"
+
+#: packages/icons/src/directory/labels.ts
+msgctxt "Icon"
+msgid "Globe"
+msgstr "Globe"
+
+#: packages/icons/src/directory/labels.ts
+msgctxt "Icon"
+msgid "Graduation cap"
+msgstr "Graduation cap"
+
+#: packages/ui/src/color-set-labels.ts
+msgctxt "Color"
 msgid "Grape"
 msgstr "Grape"
+
+#: packages/ui/src/color-set-labels.ts
+msgctxt "Color"
+msgid "Green"
+msgstr "Green"
+
+#: packages/icons/src/directory/labels.ts
+msgctxt "Icon"
+msgid "Guitar"
+msgstr "Guitar"
+
+#: packages/icons/src/directory/labels.ts
+msgctxt "Icon"
+msgid "Half circle"
+msgstr "Half circle"
+
+#: packages/icons/src/directory/labels.ts
+msgctxt "Icon"
+msgid "Hamburger"
+msgstr "Hamburger"
+
+#: packages/icons/src/directory/labels.ts
+msgctxt "Icon"
+msgid "Hand with coins"
+msgstr "Hand with coins"
+
+#: packages/icons/src/directory/labels.ts
+msgctxt "Icon"
+msgid "Handshake"
+msgstr "Handshake"
+
+#: packages/icons/src/directory/labels.ts
+msgctxt "Icon"
+msgid "Heart"
+msgstr "Heart"
 
 #: packages/settings-area/src/theme-rows.tsx
 msgid "Highlight color"
 msgstr "Highlight color"
 
+#: packages/icons/src/directory/labels.ts
+msgctxt "Icon"
+msgid "Hourglass"
+msgstr "Hourglass"
+
+#: packages/icons/src/directory/labels.ts
+msgctxt "Icon"
+msgid "House"
+msgstr "House"
+
 #: packages/settings-area/src/rows.tsx
 msgid "How tightly lists and controls are laid out. The size of the text stays the same."
 msgstr "How tightly lists and controls are laid out. The size of the text stays the same."
+
+#: packages/ui/src/entry-pickers/entry-icon-picker.tsx
+msgid "Icon"
+msgstr "Icon"
+
+#: packages/ui/src/entry-pickers/entry-icon-picker.tsx
+msgid "Icons"
+msgstr "Icons"
 
 #: apps/web/src/data-connection-states.tsx
 msgid "In the browser, Self-Engine has no access to your data yet. Open the desktop app to work with it."
 msgstr "In the browser, Self-Engine has no access to your data yet. Open the desktop app to work with it."
 
-#: packages/settings-area/src/theme-rows.tsx
-msgctxt "Accent"
+#: packages/ui/src/color-set-labels.ts
+msgctxt "Color"
 msgid "Indigo"
 msgstr "Indigo"
 
@@ -303,6 +579,11 @@ msgstr "Keyboard"
 msgid "Language"
 msgstr "Language"
 
+#: packages/icons/src/directory/labels.ts
+msgctxt "Icon"
+msgid "Laptop"
+msgstr "Laptop"
+
 #: packages/settings-area/src/about-rows.tsx
 msgid "License"
 msgstr "License"
@@ -312,6 +593,11 @@ msgctxt "Color Mode"
 msgid "Light"
 msgstr "Light"
 
+#: packages/icons/src/directory/labels.ts
+msgctxt "Icon"
+msgid "Light bulb"
+msgstr "Light bulb"
+
 #: packages/settings-area/src/rows.tsx
 msgid "Light mode"
 msgstr "Light mode"
@@ -320,9 +606,39 @@ msgstr "Light mode"
 msgid "Light Theme"
 msgstr "Light Theme"
 
+#: packages/icons/src/directory/labels.ts
+msgctxt "Icon"
+msgid "Lightning"
+msgstr "Lightning"
+
+#: packages/ui/src/color-set-labels.ts
+msgctxt "Color"
+msgid "Lime"
+msgstr "Lime"
+
 #: packages/ui/src/state-blocks.tsx
 msgid "Loading"
 msgstr "Loading"
+
+#: packages/icons/src/directory/labels.ts
+msgctxt "Icon"
+msgid "Magnifying glass"
+msgstr "Magnifying glass"
+
+#: packages/icons/src/directory/labels.ts
+msgctxt "Icon"
+msgid "Mailbox"
+msgstr "Mailbox"
+
+#: packages/icons/src/directory/labels.ts
+msgctxt "Icon"
+msgid "Megaphone"
+msgstr "Megaphone"
+
+#: packages/icons/src/directory/labels.ts
+msgctxt "Icon"
+msgid "Microphone"
+msgstr "Microphone"
 
 #: packages/shell/src/shell.tsx
 msgid "Module Sidebar"
@@ -332,9 +648,24 @@ msgstr "Module Sidebar"
 msgid "Modules"
 msgstr "Modules"
 
+#: packages/icons/src/directory/labels.ts
+msgctxt "Icon"
+msgid "Moon and stars"
+msgstr "Moon and stars"
+
+#: packages/icons/src/directory/labels.ts
+msgctxt "Icon"
+msgid "Music notes"
+msgstr "Music notes"
+
 #: packages/placeholder-alpha/src/edit-drawer.tsx
 msgid "Name"
 msgstr "Name"
+
+#: packages/icons/src/directory/labels.ts
+msgctxt "Icon"
+msgid "Needle"
+msgstr "Needle"
 
 #: packages/settings-area/src/theme-rows.tsx
 msgctxt "Theme"
@@ -360,13 +691,40 @@ msgctxt "Channel"
 msgid "Nightly"
 msgstr "Nightly"
 
+#: packages/ui/src/entry-pickers/entry-color-picker.tsx
+msgid "No color"
+msgstr "No color"
+
 #: packages/placeholder-alpha/src/entries.tsx
 msgid "No entries here"
 msgstr "No entries here"
 
+#: packages/ui/src/entry-pickers/entry-icon-picker.tsx
+msgid "No icon"
+msgstr "No icon"
+
+#: packages/ui/src/entry-pickers/entry-icon-picker.tsx
+msgid "No icon matches the search."
+msgstr "No icon matches the search."
+
+#: packages/icons/src/directory/labels.ts
+msgctxt "Icon"
+msgid "No phone"
+msgstr "No phone"
+
 #: packages/settings-area/src/area.tsx
 msgid "No settings found"
 msgstr "No settings found"
+
+#: packages/icons/src/directory/labels.ts
+msgctxt "Icon"
+msgid "No smoking"
+msgstr "No smoking"
+
+#: packages/icons/src/directory/labels.ts
+msgctxt "Icon"
+msgid "Notebook"
+msgstr "Notebook"
 
 #: packages/shell/src/command-palette-dialog.tsx
 msgid "Nothing found"
@@ -375,6 +733,10 @@ msgstr "Nothing found"
 #: apps/web/src/route-states.tsx
 msgid "Nothing was found at this address."
 msgstr "Nothing was found at this address."
+
+#: packages/ui/src/entry-pickers/entry-emoji-input.tsx
+msgid "One emoji. The emoji keyboard opens with Control + Command + Space on a Mac and with Windows + . on Windows."
+msgstr "One emoji. The emoji keyboard opens with Control + Command + Space on a Mac and with Windows + . on Windows."
 
 #: packages/shell/src/shell.tsx
 msgid "Open module sidebar"
@@ -396,8 +758,8 @@ msgstr "Open the Command Palette"
 msgid "Operating system"
 msgstr "Operating system"
 
-#: packages/settings-area/src/theme-rows.tsx
-msgctxt "Accent"
+#: packages/ui/src/color-set-labels.ts
+msgctxt "Color"
 msgid "Orange"
 msgstr "Orange"
 
@@ -405,6 +767,71 @@ msgstr "Orange"
 #: packages/placeholder-beta/src/index.ts
 msgid "Overview"
 msgstr "Overview"
+
+#: packages/icons/src/directory/labels.ts
+msgctxt "Icon"
+msgid "Package"
+msgstr "Package"
+
+#: packages/icons/src/directory/labels.ts
+msgctxt "Icon"
+msgid "Paintbrush"
+msgstr "Paintbrush"
+
+#: packages/icons/src/directory/labels.ts
+msgctxt "Icon"
+msgid "Palette"
+msgstr "Palette"
+
+#: packages/icons/src/directory/labels.ts
+msgctxt "Icon"
+msgid "Pause"
+msgstr "Pause"
+
+#: packages/icons/src/directory/labels.ts
+msgctxt "Icon"
+msgid "Paw print"
+msgstr "Paw print"
+
+#: packages/icons/src/directory/labels.ts
+msgctxt "Icon"
+msgid "Pen nib"
+msgstr "Pen nib"
+
+#: packages/icons/src/directory/labels.ts
+msgctxt "Icon"
+msgid "Pencil"
+msgstr "Pencil"
+
+#: packages/icons/src/directory/labels.ts
+msgctxt "Icon"
+msgid "Pencil and ruler"
+msgstr "Pencil and ruler"
+
+#: packages/icons/src/directory/labels.ts
+msgctxt "Icon"
+msgid "Person"
+msgstr "Person"
+
+#: packages/icons/src/directory/labels.ts
+msgctxt "Icon"
+msgid "Phone call"
+msgstr "Phone call"
+
+#: packages/icons/src/directory/labels.ts
+msgctxt "Icon"
+msgid "Piggy bank"
+msgstr "Piggy bank"
+
+#: packages/icons/src/directory/labels.ts
+msgctxt "Icon"
+msgid "Pill"
+msgstr "Pill"
+
+#: packages/ui/src/color-set-labels.ts
+msgctxt "Color"
+msgid "Pink"
+msgstr "Pink"
 
 #: packages/placeholder-alpha/src/index.ts
 msgid "Placeholder Alpha"
@@ -418,6 +845,31 @@ msgstr "Placeholder Beta"
 msgid "Platform"
 msgstr "Platform"
 
+#: packages/icons/src/directory/labels.ts
+msgctxt "Icon"
+msgid "Play"
+msgstr "Play"
+
+#: packages/icons/src/directory/labels.ts
+msgctxt "Icon"
+msgid "Praying hands"
+msgstr "Praying hands"
+
+#: packages/icons/src/directory/labels.ts
+msgctxt "Icon"
+msgid "Prohibited"
+msgstr "Prohibited"
+
+#: packages/icons/src/directory/labels.ts
+msgctxt "Icon"
+msgid "Question mark"
+msgstr "Question mark"
+
+#: packages/icons/src/directory/labels.ts
+msgctxt "Icon"
+msgid "Receipt"
+msgstr "Receipt"
+
 #: apps/web/src/data-connection-states.tsx
 msgid "Reconnecting to your data…"
 msgstr "Reconnecting to your data…"
@@ -426,9 +878,19 @@ msgstr "Reconnecting to your data…"
 msgid "Recover"
 msgstr "Recover"
 
+#: packages/ui/src/color-set-labels.ts
+msgctxt "Color"
+msgid "Red"
+msgstr "Red"
+
 #: packages/settings-area/src/about-rows.tsx
 msgid "Release"
 msgstr "Release"
+
+#: packages/icons/src/directory/labels.ts
+msgctxt "Icon"
+msgid "Repeat"
+msgstr "Repeat"
 
 #: packages/settings-area/src/backup-rows.tsx
 msgid "Replaces all your data with the data of a backup. Your current data is backed up first, so you can go back."
@@ -463,6 +925,16 @@ msgstr "Restore the backup from {takenAt}"
 msgid "Rights"
 msgstr "Rights"
 
+#: packages/icons/src/directory/labels.ts
+msgctxt "Icon"
+msgid "Rising chart"
+msgstr "Rising chart"
+
+#: packages/icons/src/directory/labels.ts
+msgctxt "Icon"
+msgid "Rocket"
+msgstr "Rocket"
+
 #: packages/settings-area/src/backup-rows.tsx
 msgid "Roll back"
 msgstr "Roll back"
@@ -470,6 +942,16 @@ msgstr "Roll back"
 #: packages/settings-area/src/rows.tsx
 msgid "Row height"
 msgstr "Row height"
+
+#: packages/icons/src/directory/labels.ts
+msgctxt "Icon"
+msgid "Running person"
+msgstr "Running person"
+
+#: packages/icons/src/directory/labels.ts
+msgctxt "Icon"
+msgid "Safe"
+msgstr "Safe"
 
 #: packages/settings-area/src/backup-rows.tsx
 msgid "Safety copy"
@@ -483,6 +965,11 @@ msgstr "Save"
 msgid "Save a copy"
 msgstr "Save a copy"
 
+#: packages/icons/src/directory/labels.ts
+msgctxt "Icon"
+msgid "Scissors"
+msgstr "Scissors"
+
 #: packages/shell/src/shell.tsx
 msgid "Search"
 msgstr "Search"
@@ -490,6 +977,10 @@ msgstr "Search"
 #: packages/shell/src/command-palette-dialog.tsx
 msgid "Search commands and views"
 msgstr "Search commands and views"
+
+#: packages/ui/src/entry-pickers/entry-icon-picker.tsx
+msgid "Search icons"
+msgstr "Search icons"
 
 #: packages/settings-area/src/area.tsx
 msgid "Search settings"
@@ -507,6 +998,16 @@ msgstr "Self-Engine is free software under the GNU Affero General Public License
 msgid "Settings"
 msgstr "Settings"
 
+#: packages/icons/src/directory/labels.ts
+msgctxt "Icon"
+msgid "Shield"
+msgstr "Shield"
+
+#: packages/icons/src/directory/labels.ts
+msgctxt "Icon"
+msgid "Shopping cart"
+msgstr "Shopping cart"
+
 #: packages/settings-area/src/shortcut-rows.tsx
 msgid "Shortcut"
 msgstr "Shortcut"
@@ -519,6 +1020,16 @@ msgstr "Shortcuts"
 msgid "Show the app light or dark, or follow the system."
 msgstr "Show the app light or dark, or follow the system."
 
+#: packages/icons/src/directory/labels.ts
+msgctxt "Icon"
+msgid "Shower"
+msgstr "Shower"
+
+#: packages/icons/src/directory/labels.ts
+msgctxt "Icon"
+msgid "Smartphone"
+msgstr "Smartphone"
+
 #: packages/data-client/src/react/operation-hook.ts
 msgid "Something went wrong, and the change was not saved."
 msgstr "Something went wrong, and the change was not saved."
@@ -527,14 +1038,39 @@ msgstr "Something went wrong, and the change was not saved."
 msgid "Spacing"
 msgstr "Spacing"
 
+#: packages/icons/src/directory/labels.ts
+msgctxt "Icon"
+msgid "Sparkle"
+msgstr "Sparkle"
+
 #: packages/settings-area/src/about-rows.tsx
 msgctxt "Channel"
 msgid "Stable"
 msgstr "Stable"
 
+#: packages/icons/src/directory/labels.ts
+msgctxt "Icon"
+msgid "Star"
+msgstr "Star"
+
+#: packages/icons/src/directory/labels.ts
+msgctxt "Icon"
+msgid "Stop"
+msgstr "Stop"
+
 #: packages/placeholder-alpha/src/groups.tsx
 msgid "Studio"
 msgstr "Studio"
+
+#: packages/icons/src/directory/labels.ts
+msgctxt "Icon"
+msgid "Sun"
+msgstr "Sun"
+
+#: packages/icons/src/directory/labels.ts
+msgctxt "Icon"
+msgid "Sunrise"
+msgstr "Sunrise"
 
 #: packages/settings-area/src/rows.tsx
 msgctxt "App Language"
@@ -546,10 +1082,30 @@ msgctxt "Color Mode"
 msgid "System"
 msgstr "System"
 
-#: packages/settings-area/src/theme-rows.tsx
-msgctxt "Accent"
+#: packages/icons/src/directory/labels.ts
+msgctxt "Icon"
+msgid "Tablet"
+msgstr "Tablet"
+
+#: packages/icons/src/directory/labels.ts
+msgctxt "Icon"
+msgid "Tai chi"
+msgstr "Tai chi"
+
+#: packages/icons/src/directory/labels.ts
+msgctxt "Icon"
+msgid "Target"
+msgstr "Target"
+
+#: packages/ui/src/color-set-labels.ts
+msgctxt "Color"
 msgid "Teal"
 msgstr "Teal"
+
+#: packages/icons/src/directory/labels.ts
+msgctxt "Icon"
+msgid "Television"
+msgstr "Television"
 
 #: packages/settings-area/src/rows.tsx
 msgid "Text size"
@@ -640,9 +1196,19 @@ msgstr "This version of Self-Engine could not apply the update {migration} to yo
 msgid "This View could not be loaded. Please try again."
 msgstr "This View could not be loaded. Please try again."
 
+#: packages/icons/src/directory/labels.ts
+msgctxt "Icon"
+msgid "Thumbs up"
+msgstr "Thumbs up"
+
 #: packages/settings-area/src/rows.tsx
 msgid "Translation"
 msgstr "Translation"
+
+#: packages/icons/src/directory/labels.ts
+msgctxt "Icon"
+msgid "Tray"
+msgstr "Tray"
 
 #: packages/ui/src/state-blocks.tsx
 msgid "Try again"
@@ -678,15 +1244,35 @@ msgstr "Version information"
 msgid "Version, channel and operating system as one line, for a bug report."
 msgstr "Version, channel and operating system as one line, for a bug report."
 
-#: packages/settings-area/src/theme-rows.tsx
-msgctxt "Accent"
+#: packages/ui/src/color-set-labels.ts
+msgctxt "Color"
 msgid "Violet"
 msgstr "Violet"
+
+#: packages/icons/src/directory/labels.ts
+msgctxt "Icon"
+msgid "Walking person"
+msgstr "Walking person"
+
+#: packages/icons/src/directory/labels.ts
+msgctxt "Icon"
+msgid "Wallet"
+msgstr "Wallet"
 
 #: packages/settings-area/src/theme-rows.tsx
 msgctxt "Theme"
 msgid "Warm"
 msgstr "Warm"
+
+#: packages/icons/src/directory/labels.ts
+msgctxt "Icon"
+msgid "Warning"
+msgstr "Warning"
+
+#: packages/icons/src/directory/labels.ts
+msgctxt "Icon"
+msgid "Waving hand"
+msgstr "Waving hand"
 
 #: packages/shell/src/edit-drawer-exits.tsx
 msgid "What you changed here will be lost."
@@ -695,6 +1281,26 @@ msgstr "What you changed here will be lost."
 #: packages/data-client/src/react/reload-notice.ts
 msgid "What you see may be outdated: it could not be reloaded."
 msgstr "What you see may be outdated: it could not be reloaded."
+
+#: packages/icons/src/directory/labels.ts
+msgctxt "Icon"
+msgid "Wi-Fi"
+msgstr "Wi-Fi"
+
+#: packages/icons/src/directory/labels.ts
+msgctxt "Icon"
+msgid "Wrench"
+msgstr "Wrench"
+
+#: packages/icons/src/directory/labels.ts
+msgctxt "Icon"
+msgid "Yarn"
+msgstr "Yarn"
+
+#: packages/ui/src/color-set-labels.ts
+msgctxt "Color"
+msgid "Yellow"
+msgstr "Yellow"
 
 #: apps/web/src/data-connection-states.tsx
 msgid "Your data cannot be reached."

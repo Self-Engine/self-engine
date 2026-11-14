@@ -5,21 +5,12 @@
 import type { MessageDescriptor } from "@lingui/core";
 import { msg } from "@lingui/core/macro";
 import { useLingui } from "@lingui/react/macro";
-import {
-  Box,
-  ColorSwatch,
-  Group,
-  Radio,
-  rem,
-  Stack,
-  Text,
-  Tooltip,
-  useComputedColorScheme,
-} from "@mantine/core";
+import { Box, Group, Radio, rem, Stack, Text, useComputedColorScheme } from "@mantine/core";
 import { ThemeColorsIcon } from "@self-engine/icons";
 import { useSetting } from "@self-engine/settings/react";
 import {
   ACCENT_IDS,
+  type ColorSetName,
   COLOR_MODES,
   DEFAULT_APPEARANCE,
   type FinalColors,
@@ -32,6 +23,8 @@ import {
   type Theme,
   type ThemeCatalog,
 } from "@self-engine/theme";
+import { COLOR_SET_LABELS, radioTabStop } from "@self-engine/ui";
+import { type SwatchChoice, SwatchRadioGroup } from "@self-engine/ui/swatch-radio-group";
 import { useId, useMemo } from "react";
 import type { SettingsRow, SettingsRowControlProps } from "./row.ts";
 import { APPEARANCE_SETTINGS } from "./settings.ts";
@@ -60,32 +53,19 @@ const PICKER_LABELS: Readonly<Record<ResolvedColorMode, MessageDescriptor>> = {
   dark: msg`Theme for dark`,
 };
 
-/** By Accent id. A test holds every Accent a user may pick against this list. */
-const ACCENT_NAMES: Readonly<Record<string, MessageDescriptor>> = {
-  [FROM_THEME]: msg`From Theme`,
-  blue: msg({ message: "Blue", context: "Accent" }),
-  indigo: msg({ message: "Indigo", context: "Accent" }),
-  violet: msg({ message: "Violet", context: "Accent" }),
-  teal: msg({ message: "Teal", context: "Accent" }),
-  orange: msg({ message: "Orange", context: "Accent" }),
-  grape: msg({ message: "Grape", context: "Accent" }),
-};
+/** What the Accent row offers: "From Theme" first, then the fixed Accents. */
+type AccentChoice = typeof FROM_THEME | ColorSetName;
 
-const ACCENT_CHOICES: readonly string[] = [FROM_THEME, ...ACCENT_IDS];
+const ACCENT_CHOICES: readonly AccentChoice[] = [FROM_THEME, ...ACCENT_IDS];
 
-interface RadioChoice {
-  readonly value: string;
-  readonly disabled?: boolean;
-}
+const FROM_THEME_NAME = msg`From Theme`;
 
-/**
- * The one radio of a group the Tab key stops on, as in a native radio group: the chosen one, or
- * the first that can be chosen. `Radio.Card` alone would stop on every card.
- */
-function tabStopOf(choices: readonly RadioChoice[], chosen: string): string | undefined {
-  const usable = choices.filter((choice) => !choice.disabled);
-  return (usable.find((choice) => choice.value === chosen) ?? usable[0])?.value;
-}
+/** An Accent's name: "From Theme", or the shared name of the Color Set it is. */
+const accentName = (accent: AccentChoice): MessageDescriptor =>
+  accent === FROM_THEME ? FROM_THEME_NAME : COLOR_SET_LABELS[accent];
+
+const isAccentChoice = (value: string): value is AccentChoice =>
+  (ACCENT_CHOICES as readonly string[]).includes(value);
 
 const CHOSEN_BORDER = roleColor("accentText");
 
@@ -154,7 +134,7 @@ function ThemePicker({
   const stored = useSetting(store, setting);
   // The Theme the engine shows, also for a stored one that is unknown or lacks this Color Mode.
   const chosen = servingTheme(stored, catalog, mode).theme.id;
-  const tabStop = tabStopOf(
+  const tabStop = radioTabStop(
     themes.map((theme) => ({ value: theme.id })),
     chosen,
   );
@@ -277,8 +257,6 @@ export function themeRow(catalog: ThemeCatalog): SettingsRow {
   };
 }
 
-const SWATCH_SIZE = 24;
-
 /** The row "Accent": a circle per fixed Accent, with "From Theme" first. */
 export function accentRow(catalog: ThemeCatalog): SettingsRow {
   function AccentControl({ store, labelledBy }: SettingsRowControlProps) {
@@ -288,14 +266,12 @@ export function accentRow(catalog: ThemeCatalog): SettingsRow {
     const stored = useSetting(store, APPEARANCE_SETTINGS.accent);
     const lightTheme = useSetting(store, APPEARANCE_SETTINGS.lightTheme);
     const darkTheme = useSetting(store, APPEARANCE_SETTINGS.darkTheme);
-    const groupName = useId();
-
     // The Theme the engine shows in this Color Mode, which for a stored one that is unknown or
     // lacks the mode is the default Theme.
     const { theme } = servingTheme(mode === "light" ? lightTheme : darkTheme, catalog, mode);
     const themeHasAccent = theme.accent?.[mode] !== undefined;
     // An unknown stored Accent means "From Theme" to the engine.
-    const chosen = ACCENT_CHOICES.includes(stored) ? stored : FROM_THEME;
+    const chosen = isAccentChoice(stored) ? stored : FROM_THEME;
     // Each choice as the engine would resolve it, so that "From Theme" shows what it would give.
     const colors = useMemo(
       () =>
@@ -309,51 +285,26 @@ export function accentRow(catalog: ThemeCatalog): SettingsRow {
         ),
       [lightTheme, darkTheme, mode],
     );
-    const choices = ACCENT_CHOICES.map((value) => ({
-      value,
-      disabled: value === FROM_THEME && !themeHasAccent,
+    const choices = ACCENT_CHOICES.map((accent): SwatchChoice<AccentChoice> => ({
+      value: accent,
+      label: i18n._(accentName(accent)),
+      disabled: accent === FROM_THEME && !themeHasAccent,
+      swatch: {
+        attributes: { colorOverlay: { "data-color-role": "accent" } },
+        c: roleColor("onAccent"),
+        color: colors.get(accent) ?? "transparent",
+        children: accent === FROM_THEME && <ThemeColorsIcon aria-hidden size="xs" />,
+      },
     }));
-    const tabStop = tabStopOf(choices, chosen);
     return (
-      <Group aria-labelledby={labelledBy} gap={rem(4)} role="radiogroup">
-        {choices.map(({ value, disabled }) => {
-          const descriptor = ACCENT_NAMES[value];
-          const name = descriptor ? i18n._(descriptor) : value;
-          return (
-            <Tooltip key={value} label={name}>
-              <Radio.Card
-                aria-label={name}
-                checked={value === chosen}
-                disabled={disabled}
-                // `Radio.Card` moves the arrow keys over every card with the group's name, so a
-                // card that cannot be chosen leaves the group for them.
-                name={disabled ? `${groupName}-unavailable` : groupName}
-                onClick={() => {
-                  store.write(APPEARANCE_SETTINGS.accent, value);
-                }}
-                p={rem(2)}
-                radius="xl"
-                style={{
-                  borderColor: value === chosen ? CHOSEN_BORDER : "transparent",
-                  ...(disabled && { cursor: "not-allowed", opacity: 0.45 }),
-                }}
-                tabIndex={value === tabStop ? 0 : -1}
-                w="auto"
-              >
-                <ColorSwatch
-                  attributes={{ colorOverlay: { "data-color-role": "accent" } }}
-                  c={roleColor("onAccent")}
-                  color={colors.get(value) ?? "transparent"}
-                  size={rem(SWATCH_SIZE)}
-                  withShadow={false}
-                >
-                  {value === FROM_THEME && <ThemeColorsIcon aria-hidden size="xs" />}
-                </ColorSwatch>
-              </Radio.Card>
-            </Tooltip>
-          );
-        })}
-      </Group>
+      <SwatchRadioGroup
+        choices={choices}
+        labelledBy={labelledBy}
+        onChange={(accent) => {
+          store.write(APPEARANCE_SETTINGS.accent, accent);
+        }}
+        value={chosen}
+      />
     );
   }
 
@@ -363,7 +314,7 @@ export function accentRow(catalog: ThemeCatalog): SettingsRow {
     title: msg`Accent`,
     description: msg`The highlight color for buttons, active items and links. "From Theme" uses the color a Theme brings, if it brings one.`,
     searchWords: [msg`Highlight color`, msg`Color`],
-    values: ACCENT_CHOICES.flatMap((accent) => ACCENT_NAMES[accent] ?? []),
+    values: ACCENT_CHOICES.map(accentName),
     settings: [APPEARANCE_SETTINGS.accent.key],
     control: AccentControl,
   };

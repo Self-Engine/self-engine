@@ -2,9 +2,10 @@
 // vite.config.ts). pnpm's isolation and the `exports` field are the first two mechanisms;
 // these rules are the third: the directions allowed between packages, every workspace import
 // declared in the importer's own `package.json`, no relative imports into another package, no
-// imports past another package's `exports`, no icon library outside `@self-engine/icons`, no
-// hotkey library outside the Shell's binding file, no query library outside the data client's
-// React entry, no `testing` entry outside tests and stories, and no cycles.
+// imports past another package's `exports`, no icon library outside `@self-engine/icons`, nothing
+// but Zod in the icon names, no hotkey library outside the Shell's binding file, no query library
+// outside the data client's React entry, no `testing` entry outside tests and stories, and no
+// cycles.
 //
 // Paths are relative to the repo root, or to the fixture root in
 // scripts/dependency-cruiser.test.ts, which builds its own config with `boundaryConfig`.
@@ -74,6 +75,8 @@ export const ALLOWED_IMPORTS: AllowedImports = {
  * as allowed for the check against `package.json` like ALLOWED_IMPORTS.
  */
 export const TEST_ONLY_IMPORTS: AllowedImports = {
+  // The app's catalogs, to check that every picture has its own label in every language (#261).
+  icons: ["i18n"],
   // The test Data Process and the `notes` test module, to test the client over the real core.
   "data-client": ["data-process", "storage"],
   // Instants written as text in the fixtures of the Backups the core answers with.
@@ -263,6 +266,14 @@ export function boundaryConfig({
         "The theme core (`@self-engine/theme`) runs without React or Mantine, so it can serve React Native and tests. Those imports belong in `@self-engine/theme/mantine`.",
     }),
     corePurityRule({
+      folder: "theme",
+      entry: "names",
+      binding: "(?:core|mantine)",
+      npmPattern: "react|react-dom|@mantine/[^/]+|culori",
+      comment:
+        "The Color Set names (`@self-engine/theme/names`) load in Contracts, the Data Process and a later mobile app, so they stay free of React, Mantine and the color calculation (D293). The core may import them, not the other way round.",
+    }),
+    corePurityRule({
       folder: "settings",
       binding: "react",
       npmPattern: "react|react-dom",
@@ -292,6 +303,14 @@ export function boundaryConfig({
         "The shared schemas (`@self-engine/db/schema`) load in contracts and row maps, so they stay free of Kysely, uuid and the driver (D225). Runtime helpers belong in `@self-engine/db`.",
     }),
     {
+      name: "icons-names-is-pure",
+      comment:
+        "The icon names (`@self-engine/icons/names`) load in the Data Process and in module contracts, and later on Hermes (D293): they import only Zod and their own files, never React, the icon library or the icon catalog.",
+      severity: "error",
+      from: { path: "^packages/icons/src/names/", pathNot: DEV_ONLY_FILE },
+      to: { pathNot: `^packages/icons/src/names/|(^|/)node_modules/zod/` },
+    },
+    {
       name: "contracts-is-pure",
       comment:
         "The app contract (`@self-engine/contracts`) and the protocol (`@self-engine/data-protocol`) load in the renderer and the data process, so they hold only Zod schemas and oRPC contracts (D187): no database code, no Node built-in, nothing from Electron.",
@@ -305,11 +324,11 @@ export function boundaryConfig({
     {
       name: "module-contracts-is-pure",
       comment:
-        "A module's contracts load on both sides (D187): import only contract schemas, time or `@self-engine/db/schema`, never database runtime code (D225).",
+        "A module's contracts load on both sides (D187): import only contract schemas, time, `@self-engine/db/schema` or the names of `icons` and `theme`, never database runtime code (D225) or React.",
       severity: "error",
       from: { path: "^packages/[^/]+/src/contracts/" },
       to: {
-        pathNot: `^packages/(?:db/src/schema/|time/|[^/]+/src/contracts/)|(^|/)node_modules/(?:${alternatives(CONTRACT_LIBRARIES)})/`,
+        pathNot: `^packages/(?:db/src/schema/|time/|(?:icons|theme)/src/names/|[^/]+/src/contracts/)|(^|/)node_modules/(?:${alternatives(CONTRACT_LIBRARIES)})/`,
       },
     },
     {
@@ -338,6 +357,14 @@ export function boundaryConfig({
       // pnpm's isolation makes the usual case: the import does not resolve, and still gets
       // this hint.
       to: { path: `(^|(^|/)node_modules/)(?:${alternatives(ICON_LIBRARIES)})(/|$)` },
+    },
+    {
+      name: "icon-directory-only-in-ui",
+      comment:
+        "The directory of entry pictures (`@self-engine/icons/directory`) holds 107 icons and loads only on demand (D293). Draw an entry's icon with the mark of `@self-engine/ui/entry-mark`, the one building block that resolves the stored text (D294).",
+      severity: "error",
+      from: { path: "^(apps|packages)/", pathNot: "^packages/(?:icons|ui)/" },
+      to: { path: "^packages/icons/src/directory/" },
     },
     {
       name: "hotkeys-only-through-bindings",

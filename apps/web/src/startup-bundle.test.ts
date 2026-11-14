@@ -2,7 +2,7 @@ import { mkdirSync, mkdtempSync, writeFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { build } from "vite-plus";
-import { expect, it } from "vite-plus/test";
+import { describe, expect, it } from "vite-plus/test";
 import {
   inspectStartup,
   type LazyOnlyDependency,
@@ -10,6 +10,7 @@ import {
   type StartupChunk,
   type StartupRules,
 } from "../startup-bundle.ts";
+import { STARTUP_RULES } from "../startup-rules.ts";
 
 function chunk(fileName: string, options: Partial<StartupChunk> = {}): StartupChunk {
   return { fileName, isEntry: false, imports: [], code: "abc", modules: {}, ...options };
@@ -210,4 +211,37 @@ it("fails a real production build if startup code imports a lazy-only dependency
   } finally {
     project.remove();
   }
+});
+
+describe("the web app's startup rules", () => {
+  const directory = "/repo/packages/icons/src/directory/index.ts";
+  const mark = "/repo/packages/ui/src/entry-mark.tsx";
+  const importers: Readonly<Record<string, readonly string[]>> = {
+    [directory]: [mark],
+    [mark]: ["/repo/packages/shell/src/shell.tsx"],
+  };
+  const inspect = (startup: Record<string, unknown>, onDemand: Record<string, unknown>) =>
+    inspectStartup(
+      [
+        chunk("main.js", { isEntry: true, modules: startup }),
+        chunk("view.js", { modules: onDemand }),
+      ],
+      new Set(),
+      { ...STARTUP_RULES, maxBytes: 100 },
+      (id) => importers[id] ?? [],
+    ).problems;
+
+  it("accept the directory of entry pictures in a View that loads on demand", () => {
+    expect(
+      inspect({ "/repo/packages/shell/src/shell.tsx": {} }, { [directory]: {}, [mark]: {} }),
+    ).toEqual([]);
+  });
+
+  it("reject the directory of entry pictures at startup and name the code that imports it", () => {
+    expect(
+      inspect({ "/repo/packages/shell/src/shell.tsx": {}, [mark]: {}, [directory]: {} }, {}),
+    ).toEqual([
+      "The directory of entry pictures entered the startup bundle, imported by /repo/packages/ui/src/entry-mark.tsx: draw an entry's icon with the mark of @self-engine/ui/entry-mark only in a View that loads on demand.",
+    ]);
+  });
 });
