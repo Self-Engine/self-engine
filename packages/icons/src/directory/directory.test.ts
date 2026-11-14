@@ -1,3 +1,4 @@
+import { RocketLaunchIcon } from "@phosphor-icons/react/dist/csr/RocketLaunch";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vite-plus/test";
@@ -18,10 +19,18 @@ describe("the directory of pictures", () => {
     expect(new Set(pictures).size).toBe(107);
   });
 
-  it.each(ICON_NAMES)("draws %s like a catalog icon: duotone, in the color around it", (name) => {
+  it("draws the picture of Phosphor's regular weight", () => {
+    const picture = (markup: string) => markup.replace(/^<svg [^>]*>/, "");
+    const regular = renderToStaticMarkup(createElement(RocketLaunchIcon, { weight: "regular" }));
+    expect(picture(draw("rocket-launch"))).toBe(picture(regular));
+  });
+
+  it.each(ICON_NAMES)("draws %s like a catalog icon: regular, in the color around it", (name) => {
     const markup = draw(name);
     expect(markup).toMatch(/^<svg [^>]*fill="currentColor"/);
-    expect(markup).toMatch(/<path [^>]*opacity="0\.2"/);
+    // Only the duotone weight has a layer at a fifth of the opacity.
+    expect(markup).not.toMatch(/opacity=/);
+    expect(markup).not.toMatch(/<path [^>]*(fill|stroke)=/);
     expect(markup).toMatch(/width:calc\(1\.125rem \* var\(--mantine-scale\)\)/);
   });
 

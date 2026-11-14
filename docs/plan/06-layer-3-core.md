@@ -18,7 +18,7 @@ Stand: 2026-11-10 · Status: **entschieden** (D143–D154), Spec #103, Issues #1
 | – | Zeit | Grilling zu #104: für die neue App geschnitten, Temporal im Inneren, fünf Zeitwerte, strenge Lint-Regel, Prüfung in Electrons Laufzeit (D279–D285, ändern D148 und D149) |
 | L3.8 | Tags | Tabelle `tags`, Brücken gehören den Modulen, weiches Löschen (D150) |
 | L3.9 | Icon, Farbe | Name oder Emoji, Farbsatz-Name, vier neue Farbsätze, kein neues Paket (D151) |
-| – | Icon, Farbe | Grilling zu #106: Werte, Anzeige und Auswahl in einem Paket, ein Icon-Name je Bild und der Import übersetzt, ein Vorrat ohne React für Web und Mobile, Vertragsmuster, helle Füllungen mit dunkler Schrift, Marke in zwei Formen, alle Icons duotone (D291–D297, ändern D151) |
+| – | Icon, Farbe | Grilling zu #106: Werte, Anzeige und Auswahl in einem Paket, ein Icon-Name je Bild und der Import übersetzt, ein Vorrat ohne React für Web und Mobile, Vertragsmuster, helle Füllungen mit dunkler Schrift, Marke in zwei Formen, alle Icons regular (D291–D298, ändern D151; D298 ändert D297) |
 | L3.10 | Abläufe | Brücken-Pakete über den Modulen, gemeinsame Transaktion, Schutzregeln (D152) |
 | L3.11 | Einstellungen | Region aus der Sprache, Wochenstart, Standardwährung, Deklaration in `contracts` (D153) |
 | L3.12 | Zuschnitt in Issues | Acht Arbeitspakete, jedes wird einzeln gegrillt (D154) |

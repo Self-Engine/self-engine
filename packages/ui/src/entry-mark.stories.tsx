@@ -238,8 +238,8 @@ export const TheFiveSizesOfTheIconCatalog: Story = {
           "svg",
         )!;
         await expect(svg.getBoundingClientRect().width).toBe(side);
-        // Drawn in the duotone weight: a filled layer at a fifth of the opacity.
-        await expect(svg.querySelector('path[opacity="0.2"]')).not.toBeNull();
+        // Drawn in the regular weight: no filled layer at a fifth of the opacity, as duotone has.
+        await expect(svg.querySelector("path[opacity]")).toBeNull();
         const emoji = markIn(canvasElement, `${form} blue 🚀 ${size}`);
         const tile = markIn(canvasElement, `${form} blue rocket-launch ${size}`);
         await expect(emoji.getBoundingClientRect().width).toBe(tile.getBoundingClientRect().width);
