@@ -318,7 +318,7 @@ describe("the neutral palette Mantine reads as gray (light) and dark (dark)", ()
     expect(brightness).toEqual(brightness.toSorted((a, b) => b - a));
   });
 
-  // The slots follow what Mantine 9.7.5's stylesheet reads from each index.
+  // The slots follow what Mantine 9.8.0's stylesheet reads from each index.
   it("puts the light roles where the light scheme reads gray", () => {
     const gray = resolved.light.neutralPalette;
     expect(gray[1], "filled input, menu hover: hover over surface").toBe("#ededed");

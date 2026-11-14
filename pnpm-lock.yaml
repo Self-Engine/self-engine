@@ -189,20 +189,20 @@ catalogs:
       specifier: 6.12.0
       version: 6.12.0
     '@mantine/core':
-      specifier: 9.7.5
-      version: 9.7.5
+      specifier: 9.8.0
+      version: 9.8.0
     '@mantine/hooks':
-      specifier: 9.7.5
-      version: 9.7.5
+      specifier: 9.8.0
+      version: 9.8.0
     '@mantine/modals':
-      specifier: 9.7.5
-      version: 9.7.5
+      specifier: 9.8.0
+      version: 9.8.0
     '@mantine/notifications':
-      specifier: 9.7.5
-      version: 9.7.5
+      specifier: 9.8.0
+      version: 9.8.0
     '@mantine/spotlight':
-      specifier: 9.7.5
-      version: 9.7.5
+      specifier: 9.8.0
+      version: 9.8.0
     '@messageformat/parser':
       specifier: 5.2.0
       version: 5.2.0
@@ -389,10 +389,10 @@ importers:
     dependencies:
       '@mantine/core':
         specifier: 'catalog:'
-        version: 9.7.5(@mantine/hooks@9.7.5(react@19.3.1))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
+        version: 9.8.0(@mantine/hooks@9.8.0(react@19.3.1))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
       '@mantine/hooks':
         specifier: 'catalog:'
-        version: 9.7.5(react@19.3.1)
+        version: 9.8.0(react@19.3.1)
       '@self-engine/i18n':
         specifier: workspace:*
         version: link:../../packages/i18n
@@ -511,10 +511,10 @@ importers:
         version: 6.12.0(@babel/core@8.1.0)(react@19.3.1)
       '@mantine/core':
         specifier: 'catalog:'
-        version: 9.7.5(@mantine/hooks@9.7.5(react@19.3.1))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
+        version: 9.8.0(@mantine/hooks@9.8.0(react@19.3.1))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
       '@mantine/hooks':
         specifier: 'catalog:'
-        version: 9.7.5(react@19.3.1)
+        version: 9.8.0(react@19.3.1)
       '@self-engine/data-client':
         specifier: workspace:*
         version: link:../../packages/data-client
@@ -665,7 +665,7 @@ importers:
     devDependencies:
       '@mantine/core':
         specifier: 'catalog:'
-        version: 9.7.5(@mantine/hooks@9.7.5(react@19.3.1))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
+        version: 9.8.0(@mantine/hooks@9.8.0(react@19.3.1))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
       '@self-engine/data-process':
         specifier: workspace:*
         version: link:../data-process
@@ -851,7 +851,7 @@ importers:
     devDependencies:
       '@mantine/core':
         specifier: 'catalog:'
-        version: 9.7.5(@mantine/hooks@9.7.5(react@19.3.1))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
+        version: 9.8.0(@mantine/hooks@9.8.0(react@19.3.1))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
       '@self-engine/i18n':
         specifier: workspace:*
         version: link:../i18n
@@ -900,7 +900,7 @@ importers:
         version: 6.12.0(@babel/core@8.1.0)(react@19.3.1)
       '@mantine/core':
         specifier: 'catalog:'
-        version: 9.7.5(@mantine/hooks@9.7.5(react@19.3.1))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
+        version: 9.8.0(@mantine/hooks@9.8.0(react@19.3.1))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
       '@orpc/contract':
         specifier: 'catalog:'
         version: 1.16.2
@@ -964,7 +964,7 @@ importers:
         version: 6.12.0(@babel/core@8.1.0)(react@19.3.1)
       '@mantine/core':
         specifier: 'catalog:'
-        version: 9.7.5(@mantine/hooks@9.7.5(react@19.3.1))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
+        version: 9.8.0(@mantine/hooks@9.8.0(react@19.3.1))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
       '@self-engine/icons':
         specifier: workspace:*
         version: link:../icons
@@ -1014,7 +1014,7 @@ importers:
         version: 6.12.0(@babel/core@8.1.0)(react@19.3.1)
       '@mantine/core':
         specifier: 'catalog:'
-        version: 9.7.5(@mantine/hooks@9.7.5(react@19.3.1))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
+        version: 9.8.0(@mantine/hooks@9.8.0(react@19.3.1))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
       '@self-engine/data-client':
         specifier: workspace:*
         version: link:../data-client
@@ -1078,13 +1078,13 @@ importers:
         version: 6.12.0(@babel/core@8.1.0)(react@19.3.1)
       '@mantine/core':
         specifier: 'catalog:'
-        version: 9.7.5(@mantine/hooks@9.7.5(react@19.3.1))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
+        version: 9.8.0(@mantine/hooks@9.8.0(react@19.3.1))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
       '@mantine/hooks':
         specifier: 'catalog:'
-        version: 9.7.5(react@19.3.1)
+        version: 9.8.0(react@19.3.1)
       '@mantine/spotlight':
         specifier: 'catalog:'
-        version: 9.7.5(@mantine/core@9.7.5(@mantine/hooks@9.7.5(react@19.3.1))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(@mantine/hooks@9.7.5(react@19.3.1))(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
+        version: 9.8.0(@mantine/core@9.8.0(@mantine/hooks@9.8.0(react@19.3.1))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(@mantine/hooks@9.8.0(react@19.3.1))(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
       '@self-engine/data-client':
         specifier: workspace:*
         version: link:../data-client
@@ -1192,10 +1192,10 @@ importers:
         version: 5.3.0
       '@mantine/core':
         specifier: 'catalog:'
-        version: 9.7.5(@mantine/hooks@9.7.5(react@19.3.1))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
+        version: 9.8.0(@mantine/hooks@9.8.0(react@19.3.1))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
       '@mantine/hooks':
         specifier: 'catalog:'
-        version: 9.7.5(react@19.3.1)
+        version: 9.8.0(react@19.3.1)
       culori:
         specifier: 'catalog:'
         version: 4.0.2
@@ -1251,16 +1251,16 @@ importers:
         version: 6.12.0(@babel/core@8.1.0)(react@19.3.1)
       '@mantine/core':
         specifier: 'catalog:'
-        version: 9.7.5(@mantine/hooks@9.7.5(react@19.3.1))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
+        version: 9.8.0(@mantine/hooks@9.8.0(react@19.3.1))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
       '@mantine/hooks':
         specifier: 'catalog:'
-        version: 9.7.5(react@19.3.1)
+        version: 9.8.0(react@19.3.1)
       '@mantine/modals':
         specifier: 'catalog:'
-        version: 9.7.5(@mantine/core@9.7.5(@mantine/hooks@9.7.5(react@19.3.1))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(@mantine/hooks@9.7.5(react@19.3.1))(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
+        version: 9.8.0(@mantine/core@9.8.0(@mantine/hooks@9.8.0(react@19.3.1))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(@mantine/hooks@9.8.0(react@19.3.1))(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
       '@mantine/notifications':
         specifier: 'catalog:'
-        version: 9.7.5(@mantine/core@9.7.5(@mantine/hooks@9.7.5(react@19.3.1))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(@mantine/hooks@9.7.5(react@19.3.1))(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
+        version: 9.8.0(@mantine/core@9.8.0(@mantine/hooks@9.8.0(react@19.3.1))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(@mantine/hooks@9.8.0(react@19.3.1))(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
       '@self-engine/icons':
         specifier: workspace:*
         version: link:../icons
@@ -1872,44 +1872,44 @@ packages:
     resolution: {integrity: sha512-9QOtNffcOF/c1seMCDnjckb3R9WHcG34tky+FHpNKKCW0wc/scYLwMtO+ptyGUfMW0/b/n4qRiALlaFHc9Oj7Q==}
     engines: {node: '>= 10.0.0'}
 
-  '@mantine/core@9.7.5':
-    resolution: {integrity: sha512-NiOTHpAZssi1Z5ISZBvcXEA4XDn0BWcxwpmmUthFx/eL0CsJ18FXMn/ydRCJmoeMGcIKmRE+pjt90KM70GOsUw==}
+  '@mantine/core@9.8.0':
+    resolution: {integrity: sha512-+2Y+GBM6WvBJgBBb7hrfEvHbyljuRsOqC1GjxNpmX6NcD2SwmDXf9ZVFfquyXvi8fFerMrTpAwYdfb6k2PGAlQ==}
     peerDependencies:
-      '@mantine/hooks': 9.7.5
+      '@mantine/hooks': 9.8.0
       react: ^19.2.0
       react-dom: ^19.2.0
 
-  '@mantine/hooks@9.7.5':
-    resolution: {integrity: sha512-+3cNisLOUkzF77SjRKkG/V+svZii9WDGvcwlaxFH58b14MNohz1zWbV+WfjZt9qfzrIPPUOedks/z6PMo5rAFA==}
+  '@mantine/hooks@9.8.0':
+    resolution: {integrity: sha512-fUA3PS8Ys2kih6VEuozgdEO0UyiGhryTJqx+Bf2lxee1XpXQ0XFXsQY7lNB4f+eBDzYCczYykQjIIuUzyJft7A==}
     peerDependencies:
       react: ^19.2.0
 
-  '@mantine/modals@9.7.5':
-    resolution: {integrity: sha512-wTWJJHDlHdgLT7Yg6yrkT9lv1R2RUIbCC3IO1yIfjVJ0NtPFTZkA0p2BQ/aCvd3uw+2Nv+K4qenHBeuv7Fk0lA==}
+  '@mantine/modals@9.8.0':
+    resolution: {integrity: sha512-YRq4jy+kioDT3uIyskLwaQMw7DybVTCkE9n1NFxq9sb0gL2D/UIpkVBU0sWBItLuXBxqd73SNS5Br9SZlZD0eA==}
     peerDependencies:
-      '@mantine/core': 9.7.5
-      '@mantine/hooks': 9.7.5
-      react: ^19.2.0
-      react-dom: ^19.2.0
-
-  '@mantine/notifications@9.7.5':
-    resolution: {integrity: sha512-S7jApMXZhXmKLlwvvp5yfQ3AqfxQN9Y+GQK82f5vNWKLZVgQ3HdicpeSh1DmsNWdB4sJr0oIhWliCUPAC8ctyA==}
-    peerDependencies:
-      '@mantine/core': 9.7.5
-      '@mantine/hooks': 9.7.5
+      '@mantine/core': 9.8.0
+      '@mantine/hooks': 9.8.0
       react: ^19.2.0
       react-dom: ^19.2.0
 
-  '@mantine/spotlight@9.7.5':
-    resolution: {integrity: sha512-6YKtPEfwPTkS5wdxNXtn+EicFh+wvI1V9ydpK7O/sXVRCwbOdYRvOYfE/0AJy/aL0o9akxWcjZey4pyHpT/IeA==}
+  '@mantine/notifications@9.8.0':
+    resolution: {integrity: sha512-5+f1hQUa41UqC7z05kSYOU1uOrL6hpm/s7WzPmeHsfxbcb8xFefFi0I/9RZZ5KNgkCdt0LpfO4N4KNfiTmi0OQ==}
     peerDependencies:
-      '@mantine/core': 9.7.5
-      '@mantine/hooks': 9.7.5
+      '@mantine/core': 9.8.0
+      '@mantine/hooks': 9.8.0
       react: ^19.2.0
       react-dom: ^19.2.0
 
-  '@mantine/store@9.7.5':
-    resolution: {integrity: sha512-A+5/Y7+2EkkB8ByWSIxUpaXA0O7jFlhBKNrB8IAAkl0WADEhDh6UxDV/88p9fUfGP17vbWskEyMLT9t5vWmu4g==}
+  '@mantine/spotlight@9.8.0':
+    resolution: {integrity: sha512-MsJKv6h0ARTJGgATOZYDh/0liA9ffJQZ7L2TMs1D/0brGFb5l1a4kiUrp1p1GRtZpAEZoiQK1n9Rg8Zo6qqtRA==}
+    peerDependencies:
+      '@mantine/core': 9.8.0
+      '@mantine/hooks': 9.8.0
+      react: ^19.2.0
+      react-dom: ^19.2.0
+
+  '@mantine/store@9.8.0':
+    resolution: {integrity: sha512-1lXf+ULBFLnMTN+cN4rCNxaBIRAUEPGm2uplLtNk0WHpvL+UwSuXZc26S5tdjYUW5HYsLLeY6C3u/N5qLv1r1Q==}
     peerDependencies:
       react: ^19.2.0
 
@@ -6081,10 +6081,10 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@mantine/core@9.7.5(@mantine/hooks@9.7.5(react@19.3.1))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)':
+  '@mantine/core@9.8.0(@mantine/hooks@9.8.0(react@19.3.1))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)':
     dependencies:
       '@floating-ui/react': 0.27.20(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
-      '@mantine/hooks': 9.7.5(react@19.3.1)
+      '@mantine/hooks': 9.8.0(react@19.3.1)
       clsx: 2.1.1
       react: 19.3.1
       react-dom: 19.3.1(react@19.3.1)
@@ -6094,35 +6094,35 @@ snapshots:
     transitivePeerDependencies:
       - '@types/react'
 
-  '@mantine/hooks@9.7.5(react@19.3.1)':
+  '@mantine/hooks@9.8.0(react@19.3.1)':
     dependencies:
       react: 19.3.1
 
-  '@mantine/modals@9.7.5(@mantine/core@9.7.5(@mantine/hooks@9.7.5(react@19.3.1))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(@mantine/hooks@9.7.5(react@19.3.1))(react-dom@19.3.1(react@19.3.1))(react@19.3.1)':
+  '@mantine/modals@9.8.0(@mantine/core@9.8.0(@mantine/hooks@9.8.0(react@19.3.1))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(@mantine/hooks@9.8.0(react@19.3.1))(react-dom@19.3.1(react@19.3.1))(react@19.3.1)':
     dependencies:
-      '@mantine/core': 9.7.5(@mantine/hooks@9.7.5(react@19.3.1))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
-      '@mantine/hooks': 9.7.5(react@19.3.1)
+      '@mantine/core': 9.8.0(@mantine/hooks@9.8.0(react@19.3.1))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
+      '@mantine/hooks': 9.8.0(react@19.3.1)
       react: 19.3.1
       react-dom: 19.3.1(react@19.3.1)
 
-  '@mantine/notifications@9.7.5(@mantine/core@9.7.5(@mantine/hooks@9.7.5(react@19.3.1))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(@mantine/hooks@9.7.5(react@19.3.1))(react-dom@19.3.1(react@19.3.1))(react@19.3.1)':
+  '@mantine/notifications@9.8.0(@mantine/core@9.8.0(@mantine/hooks@9.8.0(react@19.3.1))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(@mantine/hooks@9.8.0(react@19.3.1))(react-dom@19.3.1(react@19.3.1))(react@19.3.1)':
     dependencies:
-      '@mantine/core': 9.7.5(@mantine/hooks@9.7.5(react@19.3.1))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
-      '@mantine/hooks': 9.7.5(react@19.3.1)
-      '@mantine/store': 9.7.5(react@19.3.1)
+      '@mantine/core': 9.8.0(@mantine/hooks@9.8.0(react@19.3.1))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
+      '@mantine/hooks': 9.8.0(react@19.3.1)
+      '@mantine/store': 9.8.0(react@19.3.1)
       react: 19.3.1
       react-dom: 19.3.1(react@19.3.1)
       react-transition-group: 4.4.5(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
 
-  '@mantine/spotlight@9.7.5(@mantine/core@9.7.5(@mantine/hooks@9.7.5(react@19.3.1))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(@mantine/hooks@9.7.5(react@19.3.1))(react-dom@19.3.1(react@19.3.1))(react@19.3.1)':
+  '@mantine/spotlight@9.8.0(@mantine/core@9.8.0(@mantine/hooks@9.8.0(react@19.3.1))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(@mantine/hooks@9.8.0(react@19.3.1))(react-dom@19.3.1(react@19.3.1))(react@19.3.1)':
     dependencies:
-      '@mantine/core': 9.7.5(@mantine/hooks@9.7.5(react@19.3.1))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
-      '@mantine/hooks': 9.7.5(react@19.3.1)
-      '@mantine/store': 9.7.5(react@19.3.1)
+      '@mantine/core': 9.8.0(@mantine/hooks@9.8.0(react@19.3.1))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
+      '@mantine/hooks': 9.8.0(react@19.3.1)
+      '@mantine/store': 9.8.0(react@19.3.1)
       react: 19.3.1
       react-dom: 19.3.1(react@19.3.1)
 
-  '@mantine/store@9.7.5(react@19.3.1)':
+  '@mantine/store@9.8.0(react@19.3.1)':
     dependencies:
       react: 19.3.1
 
