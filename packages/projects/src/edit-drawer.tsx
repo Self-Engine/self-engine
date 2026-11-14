@@ -2,6 +2,7 @@ import { useLingui } from "@lingui/react/macro";
 import { Button } from "@mantine/core";
 import {
   ColorField,
+  type Draft,
   EditDrawerForm,
   IconField,
   LongTextField,
@@ -13,7 +14,8 @@ import { type EditDrawerProps, useEditDrawerTitle } from "@self-engine/shell";
 import { ErrorState, QueryStateBlock } from "@self-engine/ui";
 import type { ReactNode } from "react";
 import { useState } from "react";
-import { projectsContract } from "./contracts/index.ts";
+import type { z } from "zod";
+import { projectFields, projectsContract } from "./contracts/index.ts";
 import { NEW_PROJECT_ID } from "./project-address.ts";
 import {
   ACTIVE_PROJECTS,
@@ -177,13 +179,8 @@ function EditForm({
   );
 }
 
-/** The fields create and edit share; an edit's fields may be missing (D329). */
-interface ProjectDraft {
-  title: string | null | undefined;
-  description: string | null | undefined;
-  icon: string | null | undefined;
-  color: string | null | undefined;
-}
+/** The fields create and edit share, from the one field list (ADR 0032); an edit's may be missing. */
+type ProjectDraft = Omit<Draft<z.input<typeof projectFields.edit>>, "id">;
 
 function ProjectFields({
   form,
