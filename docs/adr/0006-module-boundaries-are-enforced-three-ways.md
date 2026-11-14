@@ -25,8 +25,8 @@ Each boundary is enforced by three independent mechanisms:
    devDependencies included (D266).
 
 `time` depends on no other package. Every package that stores, sends or shows a date takes its
-values from `time`: today `db`, `storage`, `data-protocol`, `backup`, `settings-area` and
-`placeholder-alpha`, and `data-process` in its tests. Only code in `apps/` loads the system
+values from `time`: today `db`, `storage`, `data-protocol`, `backup`, `settings-area`,
+`projects` and `placeholder-alpha`, and `data-process` in its tests. Only code in `apps/` loads the system
 clock, `@self-engine/time/system-clock`; the dependency-cruiser rule `system-clock-only-in-apps`
 rejects it anywhere else, and a package takes a _Clock_ as an argument (D284).
 

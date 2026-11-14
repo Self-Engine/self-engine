@@ -6,11 +6,14 @@ Use `@self-engine/forms` for module forms (ADR 0030). Add `forms` to the module�
 import its Contract at runtime there, and as a type in `port.ts`. The startup gate rejects
 Contracts, the full Zod build and the form library in startup chunks.
 
-The next consumer is `projects` (#273). The Contract of a multi-field edit follows the edit
+Copy [`projects`](../../packages/projects/src/), the template every later module follows
+(D315): its [Edit Drawer](../../packages/projects/src/edit-drawer.tsx) creates, edits, archives,
+unarchives and deletes a project. The Contract of a multi-field edit follows the edit
 pattern of [ADR 0032](../adr/0032-every-edit-names-what-changes-and-its-inputs-come-from-one-field-list.md):
 missing stays untouched, `null` clears, a value sets, an unknown field is an input error and an
 edit without fields does nothing. Do not copy placeholder-alpha’s single-field rename Contract
-for a multi-field edit.
+for a multi-field edit. `projects` has no Conflict (D328); a Conflict reason shown at a field is
+found in placeholder-alpha’s [Port](../../packages/placeholder-alpha/src/port.ts) and its stories.
 
 ## Contract and hooks
 
@@ -151,7 +154,7 @@ while an Operation runs. Enter in a single-line input and Ctrl/Cmd+Enter submit;
 with the Shell. Plain Enter in long text inserts a line break.
 
 Keep the last loaded entry separately from the Draft, as
-[`placeholder-alpha/edit-drawer.tsx`](../../packages/placeholder-alpha/src/edit-drawer.tsx) does.
+[`projects/edit-drawer.tsx`](../../packages/projects/src/edit-drawer.tsx) does.
 An id never found shows “Entry not found”. If an entry that was loaded disappears, retain its
 last value and pass `edit.deleted: true`. The form stays readable and copyable with a lasting
 warning and Save disabled. Undo passes the restored entry and `deleted: false`.
@@ -223,7 +226,7 @@ Drive fields, buttons and keys; observe visible messages and the Port calls, nev
 internals. The example stories in `packages/forms/src/testing/example/` cover multi-field
 Checks, own texts, field binding, changed groups, flow and external changes using Fixed
 Answers and Changing Answers. Add stories for your module’s own rules and texts. Prove the
-module flow over the test Data Process, as in placeholder-alpha’s `port.test.ts`, including
-invalid input sent past the form. Run `pnpm check`, then `pnpm verify`. Measure first-open
+module flow over the test Data Process, as in the [`port.test.ts`](../../packages/projects/src/port.test.ts)
+of `projects`, including invalid input sent past the form. Run `pnpm check`, then `pnpm verify`. Measure first-open
 latency in the built app and compare `apps/web/dist/startup-bundle.json`; neither the Contract
 nor the form library belongs at startup.

@@ -6,8 +6,18 @@ records the architectural choice. Start from the test-only
 [`notes` template](../../packages/storage/test/notes-module/); it is not registered in the app.
 Its relative imports reach storage internals because it lives inside that package. A real
 module imports `@self-engine/storage` and `@self-engine/storage/testing` through their exports,
-as [`placeholder-alpha`](../../packages/placeholder-alpha/) does: the first module mounted in
-the app (D252), with `src/contracts/`, `src/data/` and its kit test in `src/data/`.
+as [`projects`](../../packages/projects/) does: the first real module and the template every
+later module copies (D315), with `src/contracts/`, `src/data/` and its kit test in
+[`src/data/projects.test.ts`](../../packages/projects/src/data/projects.test.ts).
+
+`projects` has no unique index and so no Conflict (D328). The pattern "a unique index becomes
+a Conflict at a field" is found in two places instead: the `notes` template above, with its
+create, update and restore conflicts, and
+[`placeholder-alpha`](../../packages/placeholder-alpha/), whose
+[data entry](../../packages/placeholder-alpha/src/data/index.ts) maps its unique index to
+`name_taken` and whose [Port](../../packages/placeholder-alpha/src/port.ts) shows that reason at the name
+field. `placeholder-alpha` is no longer mounted in the app; it
+stays a test subject of the Shell's stories and the render measurements.
 
 ## 1. Set up the entries and contract
 
@@ -177,7 +187,8 @@ apply Space and live-row filters where required. Raw SQL and raw executors in st
 rejected by `self-engine/no-raw-storage-sql`, including `sql` in read-only expressions.
 Use `eb.fn` for SQL functions in storage queries; migration SQL remains separate.
 
-Map each unique index name to its reason, as `notes_live_title: "title_taken"` does. Let the
+A module with a unique index maps each index name to its reason, as `notes_live_title:
+"title_taken"` and `placeholder_alpha_entries_live_name: "name_taken"` do. Let the
 index enforce uniqueness, rather than querying first. Unique indexes over the same columns
 must map to the same reason: SQLite's diagnostic cannot distinguish their partial predicates. Restore into a reused title produces the
 same conflict as create. Throw `ORPCError("CONFLICT", { data: { reason } })` for a business
@@ -391,6 +402,17 @@ keys. Add dependencies and allowed import directions together. Modules import st
 data-process, except from their tests (`TEST_ONLY_IMPORTS`). Storage itself imports neither Electron nor a
 native driver; the driver and transport remain replaceable, independently of future sync.
 
+Add the module's Shell Contribution to the web app's list,
+[`apps/web/src/modules.ts`](../../apps/web/src/modules.ts); the first View of its first module
+is the app's start address. The router hands that list to its routes through its context. The
+app's stories mount their own list, [`apps/web/src/story-modules.ts`](../../apps/web/src/story-modules.ts):
+the placeholder modules beside every module of the app, so add a new module there too.
+
+A module never leaves the module list without a plan for its tables: nothing removes them yet
+(#214). A database that recorded a migration the list no longer has is refused as written by a
+newer app, naming that migration, as the desktop's runtime test shows for a dev database from
+before `projects` replaced the placeholders (D315). Such a dev database is set up again.
+
 The shared frame opens one transaction per call, runs the lower function, validates outputs
 when enabled, and rolls back on failure. After commit it announces a nonempty table set once;
 queries, failed operations and zero-row writes (including empty `RETURNING` results) announce nothing. A failing announcer is
@@ -405,8 +427,9 @@ will replace that reporter with the local error log; until then these reports wr
 Special procedures such as streams or long imports with progress can remain hand-written.
 
 For stories and component tests, Fixed Answers from the same contract stand in for the Data
-Process ([renderer guide](port-hooks.md#6-show-each-state-in-a-story-with-fixed-answers)). Do not register notes or note-links as app modules; `placeholder-alpha` is the mounted example
-(`placeholderAlpha` in both lists).
+Process ([renderer guide](port-hooks.md#6-show-each-state-in-a-story-with-fixed-answers)). Do not register notes, note-links or a placeholder module as app modules; `projects` is the
+mounted example (`projects` in the app contract of `packages/contracts` and in the Data
+Process's list in `apps/desktop/src/data-modules.ts`).
 
 Done when the committed implementation passes `pnpm verify` with `VERIFY: PASS` as its final line.
 Then build the hooks, Views and stories with [the renderer guide](port-hooks.md).
