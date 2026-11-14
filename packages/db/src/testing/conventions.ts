@@ -123,10 +123,39 @@ function foreignKeyRules(table: string, createTable: string): string[] {
 }
 
 /**
+ * No foreign key of a table that is not a Local Table has an action (D306). Rows are only
+ * soft-deleted (D172), and a parent is deleted only while no live row refers to it, so `CASCADE`,
+ * `SET NULL` and `SET DEFAULT` would delete or rewrite rows behind the Operations. `RESTRICT`
+ * fires at once even on a deferred key, against the deferral every key has. SQLite records an
+ * explicit `NO ACTION` and none alike, so both pass.
+ */
+async function foreignKeyActionRules(database: Database, table: string): Promise<string[]> {
+  if (isLocalTable(table)) return [];
+  const rows = await foreignKeyListOf(database, table);
+  // SQLite numbers the keys from the last one declared; report them in declaration order.
+  const ids = [...new Set(rows.map(({ id }) => id))].sort((a, b) => b - a);
+  return ids.flatMap((id) => {
+    const pairs = rows.filter((row) => row.id === id);
+    const [first] = pairs;
+    if (first === undefined) return [];
+    const from = pairs.length === 1 ? first.from : `(${pairs.map((pair) => pair.from).join(", ")})`;
+    return [
+      ["ON UPDATE", first.on_update],
+      ["ON DELETE", first.on_delete],
+    ]
+      .filter(([, action]) => action !== "NO ACTION")
+      .map(
+        ([clause, action]) =>
+          `foreign key from ${from} to ${first.table} must not have ${clause} ${action}`,
+      );
+  });
+}
+
+/**
  * Every row of a table that is not a Local Table belongs to a Space the database knows (D286):
  * `space_id` refers to `spaces(id)` in one form,
- * `space_id TEXT NOT NULL REFERENCES spaces(id) DEFERRABLE INITIALLY DEFERRED`. The deferral is
- * checked with every foreign key above; here the parent and the actions. A key over several
+ * `space_id TEXT NOT NULL REFERENCES spaces(id) DEFERRABLE INITIALLY DEFERRED`. The deferral and
+ * the actions are checked with every foreign key above; here the parent. A key over several
  * columns that includes `space_id` is a different key and does not count. `spaces` is held to
  * this like any table: its row refers to itself.
  */
@@ -151,24 +180,11 @@ async function spaceKeyRules(
       (key) =>
         `space_id must refer to spaces(id), not to ${key.table}${key.to === null ? "" : `(${key.to})`}`,
     );
-  // SQLite records an explicit NO ACTION and none alike, so both pass.
-  const actions = toSpaces.flatMap((key) =>
-    [
-      ["ON UPDATE", key.on_update],
-      ["ON DELETE", key.on_delete],
-    ]
-      .filter(([, action]) => action !== "NO ACTION")
-      .map(
-        ([clause, action]) =>
-          `foreign key from space_id to spaces must not have ${clause} ${action}`,
-      ),
-  );
   return [
     ...(toSpaces.length === 0 && elsewhere.length === 0
       ? ["space_id must refer to spaces(id)"]
       : []),
     ...elsewhere,
-    ...actions,
   ];
 }
 
@@ -240,6 +256,7 @@ export async function checkConventions(database: Database): Promise<SchemaViolat
       ...(strict === 1 ? [] : ["must be STRICT"]),
       ...columnRules(name, columns),
       ...foreignKeyRules(name, createTable),
+      ...(await foreignKeyActionRules(database, name)),
       ...(await spaceKeyRules(database, name, columns)),
       ...(await indexRules(database, name, createTable)),
     ];
