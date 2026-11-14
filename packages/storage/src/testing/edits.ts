@@ -1,16 +1,10 @@
 import { isDeepStrictEqual } from "node:util";
 import { ValidationError, type AnySchema, type InferContractRouterInputs } from "@orpc/contract";
-import { call, ORPCError, type AnyProcedure } from "@orpc/server";
-import type { Migration, TablesOf } from "@self-engine/db";
+import { call, ORPCError } from "@orpc/server";
+import type { Migration } from "@self-engine/db";
 import { z } from "zod";
-import {
-  createContext,
-  createFrame,
-  type RowMap,
-  type StorageContract,
-  type StorageModule,
-} from "../core/index.ts";
-import { createTestContext, createTestDatabase } from "./helpers.ts";
+import { type RowMap, type StorageContract, type StorageModule } from "../core/index.ts";
+import { createSeededDatabase, frameEntry } from "./kit-setup.ts";
 import type { Seed } from "./seed.ts";
 import { tableContents } from "./table-contents.ts";
 import type { ContractViolation } from "./violation.ts";
@@ -71,17 +65,11 @@ export async function checkEdits<Contract extends StorageContract, Rows extends 
     for (const field of fields)
       if (!Object.hasOwn(example, field))
         violate(`edit example does not set every field: ${field}`);
-    const database = await createTestDatabase(module, dependencies);
+    const { database, sources } = await createSeededDatabase(module, dependencies, seed);
     try {
-      const sources = createTestContext();
-      await database.kysely
-        .transaction()
-        .execute((tx) =>
-          Promise.resolve(seed(tx.withTables<TablesOf<Rows>>(), createContext(sources))),
-        );
       let announced = false;
       let refusedOutput = false;
-      const router: Record<string, AnyProcedure> = createFrame(module, {
+      const target = frameEntry(module, entry, {
         database,
         sources,
         checkOutputs: true,
@@ -97,8 +85,6 @@ export async function checkEdits<Contract extends StorageContract, Rows extends 
             refusedOutput = true;
         },
       });
-      const target = router[entry];
-      if (target === undefined) throw new Error(`Missing module function: ${entry}`);
       const edit = async (input: Record<string, unknown>) => {
         // The clock moves, so a write without a change still shows in `updated_at`.
         sources.advance(1000);

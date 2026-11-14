@@ -1,15 +1,13 @@
 import { isDeepStrictEqual } from "node:util";
-import { call, ORPCError, type AnyProcedure } from "@orpc/server";
+import { call, ORPCError } from "@orpc/server";
 import {
-  createContext,
-  createFrame,
   type StorageContract,
   type StorageModule,
   type RowMap,
   type StorageContext,
 } from "../core/index.ts";
 import { createSpaceRows, SECOND_SPACE_ID, THIRD_SPACE_ID } from "@self-engine/spaces/testing";
-import { createTestContext, createTestDatabase } from "./helpers.ts";
+import { createSeededDatabase, frameEntry } from "./kit-setup.ts";
 import { tableContents } from "./table-contents.ts";
 import type { ContractViolation } from "./violation.ts";
 import type { Database, TablesOf } from "@self-engine/db";
@@ -86,15 +84,14 @@ export async function checkEntryScoping<Contract extends StorageContract, Rows e
     const results = [];
     let changedHidden = false;
     for (const absent of [true, false]) {
-      const database = await createTestDatabase(module, dependencies);
-      try {
-        const sources = createTestContext();
-        const context = createContext(sources);
-        const hidden = new Map<string, readonly string[]>();
-        await database.kysely.transaction().execute(async (transaction) => {
+      const hidden = new Map<string, readonly string[]>();
+      const { database, sources } = await createSeededDatabase(
+        module,
+        dependencies,
+        seed,
+        async (transaction, context) => {
           // Rows moved to another Space refer to it. Both runs hold it, so only the rows differ.
           await createSpaceRows(transaction, [{ id: SECOND_SPACE_ID }]);
-          await seed(transaction.withTables<TablesOf<Rows>>(), context);
           const tx =
             transaction.withTables<
               Record<string, { id: string; space_id: string; deleted_at: string | null }>
@@ -119,15 +116,11 @@ export async function checkEntryScoping<Contract extends StorageContract, Rows e
                 .where("id", "in", ids)
                 .execute();
           }
-        });
+        },
+      );
+      try {
         const before = await tableContents(database);
-        const router: Record<string, AnyProcedure> = createFrame(module, {
-          database,
-          sources,
-          checkOutputs: false,
-        });
-        const target = router[entry];
-        if (target === undefined) throw new Error(`Missing module function: ${entry}`);
+        const target = frameEntry(module, entry, { database, sources, checkOutputs: false });
         try {
           results.push({ output: await call(target, example) });
         } catch (error) {

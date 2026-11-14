@@ -1,13 +1,6 @@
-import { call, ORPCError, type AnyProcedure } from "@orpc/server";
-import type { TablesOf } from "@self-engine/db";
-import {
-  createContext,
-  createFrame,
-  type RowMap,
-  type StorageContract,
-  type StorageModule,
-} from "../core/index.ts";
-import { createTestContext, createTestDatabase } from "./helpers.ts";
+import { call, ORPCError } from "@orpc/server";
+import { type RowMap, type StorageContract, type StorageModule } from "../core/index.ts";
+import { createSeededDatabase, frameEntry } from "./kit-setup.ts";
 import { returnsSeededRow } from "./scoping.ts";
 import type { Seed } from "./seed.ts";
 import type { ContractViolation } from "./violation.ts";
@@ -36,14 +29,13 @@ export async function checkActiveQuery<Contract extends StorageContract, Rows ex
 ): Promise<ContractViolation[]> {
   const tables = archivableTables(module.rowMap);
   if (tables.length === 0) return [{ entry, rule: "active query has no archivable table" }];
-  const database = await createTestDatabase(module, dependencies);
-  try {
-    const sources = createTestContext();
-    const context = createContext(sources);
-    const archived = new Set<string>();
-    let archivedLive = 0n;
-    await database.kysely.transaction().execute(async (transaction) => {
-      await seed(transaction.withTables<TablesOf<Rows>>(), context);
+  const archived = new Set<string>();
+  let archivedLive = 0n;
+  const { database, sources } = await createSeededDatabase(
+    module,
+    dependencies,
+    seed,
+    async (transaction, context) => {
       const tx =
         transaction.withTables<
           Record<string, { id: string; deleted_at: string | null; archived_at: string | null }>
@@ -63,16 +55,13 @@ export async function checkActiveQuery<Contract extends StorageContract, Rows ex
           .execute();
         for (const row of rows) archived.add(row.id);
       }
-    });
+    },
+  );
+  try {
     // Without a Live Row to archive, the answer could not show an archived one.
-    if (archivedLive === 0n) return [{ entry, rule: "active query has no seeded Live Row to archive" }];
-    const router: Record<string, AnyProcedure> = createFrame(module, {
-      database,
-      sources,
-      checkOutputs: false,
-    });
-    const target = router[entry];
-    if (target === undefined) throw new Error(`Missing module function: ${entry}`);
+    if (archivedLive === 0n)
+      return [{ entry, rule: "active query has no seeded Live Row to archive" }];
+    const target = frameEntry(module, entry, { database, sources, checkOutputs: false });
     try {
       if (returnsSeededRow(await call(target, example), archived))
         return [{ entry, rule: "active query returns an archived row" }];
