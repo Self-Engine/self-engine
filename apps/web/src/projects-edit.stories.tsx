@@ -46,7 +46,7 @@ let port = projectsStoryPort();
 /** The Port a story's render uses; `afterCall` changes the stored projects after an Operation. */
 function storyPort(
   answers: ProjectsAnswers,
-  afterCall?: (call: PortCall, of: ProjectsStoryPort<ProjectsAnswers>) => void,
+  afterCall?: (call: PortCall, of: ProjectsStoryPort) => void,
 ) {
   port = projectsStoryPort(answers, afterCall);
   return port.access;

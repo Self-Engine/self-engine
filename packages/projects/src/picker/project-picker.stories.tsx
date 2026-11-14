@@ -166,7 +166,6 @@ async function choose(canvasElement: HTMLElement, name: string) {
 }
 
 const SORTED = ["Arbeit", "Ärzte", "Auto", "Garden", "Tax", "Website"];
-const ARCHIVED_AT = "2026-03-01T09:00:00.000Z";
 
 export const TheListOffersTheActiveProjectsWithMarkAndTitle: Story = {
   play: async ({ canvasElement }) => {
@@ -203,7 +202,7 @@ export const HandedAnActiveProjectThePickerShowsItAsChosen: Story = {
 };
 
 export const AnArchivedProjectIsShownWithItsAdditionUntilAnotherIsChosen: Story = {
-  args: { project: projectReference(OLD_SITE, { archivedAt: ARCHIVED_AT }) },
+  args: { project: projectReference(OLD_SITE) },
   play: async ({ canvasElement, loaded }) => {
     await expect(pickerIn(canvasElement)).toHaveValue("Old site (archived)");
     await expect(await offered(canvasElement, SORTED.length + 1)).toContain("Old site (archived)");
@@ -223,10 +222,7 @@ export const AnArchivedProjectIsShownWithItsAdditionUntilAnotherIsChosen: Story 
 
 export const ADeletedProjectIsShownWithItsAddition: Story = {
   args: {
-    project: projectReference(OLD_SITE, {
-      archivedAt: ARCHIVED_AT,
-      deletedAt: "2026-04-01T09:00:00.000Z",
-    }),
+    project: projectReference(OLD_SITE, { deletedAt: "2026-04-01T09:00:00.000Z" }),
   },
   play: async ({ canvasElement }) => {
     // Deleted outranks archived: the project is gone, whatever else it was.
@@ -237,7 +233,7 @@ export const ADeletedProjectIsShownWithItsAddition: Story = {
 };
 
 export const InGermanTheAdditionIsGerman: Story = {
-  args: { project: projectReference(OLD_SITE, { archivedAt: ARCHIVED_AT }) },
+  args: { project: projectReference(OLD_SITE) },
   globals: { language: "de" },
   play: async ({ canvasElement }) => {
     await expect(pickerIn(canvasElement)).toHaveValue("Old site (archiviert)");
@@ -332,7 +328,7 @@ export const AnEmptyListSaysThereIsNoActiveProject: Story = {
 
 export const AnArchivedChoiceStaysShownWhileTheListIsEmpty: Story = {
   args: {
-    project: projectReference(OLD_SITE, { archivedAt: ARCHIVED_AT }),
+    project: projectReference(OLD_SITE),
     projects: { active: { data: [] } },
   },
   play: async ({ canvasElement }) => {
