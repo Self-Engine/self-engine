@@ -347,6 +347,9 @@ export function EntryIconPicker({ value, onChange, label }: EntryIconPickerProps
   const { t, i18n } = useLingui();
   const [opened, setOpened] = useState(false);
   const [tab, setTab] = useState<Tab>("icons");
+  // Whether the user has switched the tab in this opening: from then the focus stays where the
+  // user put it, on the tab.
+  const [switched, setSwitched] = useState(false);
   // The key of the tabs, counted up at each opening: a new key mounts them anew, so each opening
   // starts afresh, with an empty search and no skin tone, even while the dropdown of the last
   // opening is still fading out.
@@ -371,6 +374,7 @@ export function EntryIconPicker({ value, onChange, label }: EntryIconPickerProps
 
   const open = () => {
     setTab(storedTab);
+    setSwitched(false);
     setQuery("");
     composing.current = false;
     taken.current = false;
@@ -454,7 +458,9 @@ export function EntryIconPicker({ value, onChange, label }: EntryIconPickerProps
               keepMounted={false}
               key={openingKey}
               onChange={(next) => {
-                if (next === "icons" || next === "emoji") setTab(next);
+                if (next !== "icons" && next !== "emoji") return;
+                setTab(next);
+                if (next !== tab) setSwitched(true);
               }}
               value={tab}
             >
@@ -467,9 +473,10 @@ export function EntryIconPicker({ value, onChange, label }: EntryIconPickerProps
               </Tabs.Panel>
               <Tabs.Panel value="emoji">
                 {/* The search takes the focus when the popover opens on this tab, as the
-                    search of the Icons tab does; a switch of the tab leaves it on the tab. */}
+                    search of the Icons tab does. A switch of the tab mounts the panel anew, and
+                    then the focus stays on the tab, so the arrows go on switching it. */}
                 <EmojiPanel
-                  autoFocus={storedTab === "emoji"}
+                  autoFocus={storedTab === "emoji" && !switched}
                   onChoose={choose}
                   onQueryChange={search}
                   query={query}

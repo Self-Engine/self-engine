@@ -485,6 +485,29 @@ export const ReachesEveryEmojiWithTheKeyboardAlone: Story = {
   },
 };
 
+export const ASwitchOfTheTabLeavesTheFocusOnTheTab: Story = {
+  render: () => <Form answer={answers} stored="🏠" />,
+  play: async () => {
+    await userEvent.tab();
+    await userEvent.keyboard("{Enter}");
+    const { dialog, picker } = await opened();
+    // A stored emoji opens on "Emoji", with the focus in its search.
+    const first = await emojiTab(dialog);
+    await waitFor(() => expect(first.search).toHaveFocus());
+    // Back to the tabs, over to "Icons" and back: the Emoji tab mounts anew, and its search does
+    // not take the focus a second time, so the arrows go on switching the tab.
+    await userEvent.tab({ shift: true });
+    await expect(picker.getByRole("tab", { name: "Emoji" })).toHaveFocus();
+    await userEvent.keyboard("{ArrowLeft}");
+    await expect(picker.getByRole("tab", { name: "Icons", selected: true })).toHaveFocus();
+    await userEvent.keyboard("{ArrowRight}");
+    await emojiTab(dialog);
+    await expect(picker.getByRole("tab", { name: "Emoji", selected: true })).toHaveFocus();
+    await userEvent.keyboard("{ArrowLeft}");
+    await expect(picker.getByRole("tab", { name: "Icons", selected: true })).toHaveFocus();
+  },
+};
+
 export const NamesEveryControl: Story = {
   render: () => <Form answer={answers} stored="🏠" />,
   play: async ({ canvas }) => {
