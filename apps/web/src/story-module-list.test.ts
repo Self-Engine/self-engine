@@ -20,6 +20,9 @@ test("when enabled, every other module loads as it is", () => {
 
 test("when disabled, the plugin applies nowhere, a build neither", () => {
   const plugin = storyModuleList(false);
-  expect(typeof plugin.apply === "function" && plugin.apply({}, { command: "serve", mode: "development" })).toBe(false);
+  expect(
+    typeof plugin.apply === "function" &&
+      plugin.apply({}, { command: "serve", mode: "development" }),
+  ).toBe(false);
   expect(plugin.load).toBeUndefined();
 });
