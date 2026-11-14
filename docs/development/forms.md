@@ -86,14 +86,16 @@ function CreateProjectForm({ onCancel, onDone }: EditDrawerProps) {
 ```
 
 `Draft<Input>` has every input key, including optional keys; each can hold `null`. Text fields
-may start with `""`. `emptyTextFields` converts empty/whitespace-only optional text to `null`
-for comparison and submission; trimming other text belongs in the Contract. Stored string
+may start with `""`. Only the fields named in `emptyTextFields` hand on an emptied or
+whitespace-only text as `null`, "empty", for comparison and submission; every other text field
+hands on `""` as typed. Trimming other text belongs in the Contract. Stored string
 values can include names unknown to the current input schema, such as a newer icon.
 
 The helper supplies translated violation texts; `texts.fields` replaces a field’s generic
 text, and `texts.reasons` names special rules. A reason takes precedence over a field text.
-Descriptors follow an open-form language switch. Missing reason text shows the fallback and
-logs an error: exercise every reason in a story so the console-error gate rejects omissions.
+Descriptors follow an open-form language switch. The types do not find a missing reason text;
+a story does, at runtime: the field shows the fallback and an error is logged, which the
+console-error gate rejects. Exercise every reason in a story.
 No raw Zod message reaches the screen.
 
 Nothing is reported before Save. A failed Check calls no Operation, shows messages, focuses
@@ -130,9 +132,13 @@ do nothing. `form.setValue("title", value)` changes a value by code and updates 
 Do not keep another Draft, starting value, Conflict text or changed flag in the module.
 
 Create sends all fields. Edit sends identity plus changed fields; every group touched by a
-change travels together (including overlapping groups). Missing means untouched, `null` means
-clear, and a value means set. Thus changing only a title does not send an unknown stored icon
-unless a Contract rule ties it to that title. No changed fields means no Operation.
+change travels together (including overlapping groups). `edit.tiedFields` must name every group
+a rule of the Contract ties. A forgotten group sends one field of the rule without the other,
+and the rule reports at a field the edit does not submit, with a message wrong for what that
+field shows; Save then logs an error naming that field, so a story fails. Missing means
+untouched, `null` means clear, and a value means set. Thus changing only a title does not send
+an unknown stored icon unless a Contract rule ties it to that title. No changed fields means no
+Operation.
 Save and the Shell’s leave guard share one comparison: typing and undoing a character is no
 change. Create Save remains enabled. The helper locks fields and prevents duplicate submits
 while an Operation runs. Enter in a single-line input and Ctrl/Cmd+Enter submit; Escape stays
