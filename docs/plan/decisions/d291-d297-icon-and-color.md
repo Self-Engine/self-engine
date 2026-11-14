@@ -4,8 +4,8 @@ Grundlage: der Stand von `theme` (acht Farbsätze, Kontrastprüfung, Mantine-Anb
 (14 Icons der Oberfläche, einzeln importiert), die alte App (nur gelesen, Pfad in
 `research-layer-3-core.md`) und Messungen dieser Runde:
 
-- **Icon-Namen der alten App:** fünf Listen, eine je Entität (Projekt 36, Gewohnheit 43, Konto 14,
-  Dauerbuchung 20, Aufgabenstatus 28). Zusammen 129 Namen für 106 Bilder. 21 Bilder haben zwei oder
+- **Icon-Namen der alten App:** fünf Listen, eine je Entität (Projekt 36, Gewohnheit 43, Konto 15,
+  Dauerbuchung 20, Aufgabenstatus 28). Zusammen 130 Namen für 107 Bilder. 21 Bilder haben zwei oder
   drei Namen (`fitness`, `gym` und `barbell` sind dieselbe Hantel). Ein Name ist mehrdeutig:
   `savings` ist bei Gewohnheiten Münzen, bei Konten ein Schild, bei Dauerbuchungen ein Sparschwein.
   Von den 131 Paaren aus Name und Bild beschreiben 69 das Bild, 62 eine Bedeutung in einer Entität
@@ -18,7 +18,7 @@ Grundlage: der Stand von `theme` (acht Farbsätze, Kontrastprüfung, Mantine-Anb
   Farbsätze bestehen jedes Paar der heutigen Prüfung, mit heller wie mit abgedunkelter Füllung
   (Wegwerf-Skript, WCAG-Formel).
 - **Größe:** Ein Phosphor-Icon bringt alle sechs Strichstärken mit: 1.568, 5.640 und 5.750 Bytes in
-  drei Stichproben. 106 Icons sind hochgerechnet grob 400 KB. Der Start liegt bei 839.270 Bytes und
+  drei Stichproben. 107 Icons sind hochgerechnet grob 400 KB. Der Start liegt bei 839.270 Bytes und
   darf 869 KiB nicht überschreiten (D258, D269).
 - **Emoji-Regel:** Die offizielle Unicode-Liste (`\p{RGI_Emoji}`) braucht das Regex-Flag `v`. Node
   26.13 kann es; für Hermes ließ es sich nicht belegen. Die Regel der alten App läuft auf Hermes,
@@ -26,6 +26,12 @@ Grundlage: der Stand von `theme` (acht Farbsätze, Kontrastprüfung, Mantine-Anb
 - **Die Marke der alten App:** zwei Formen. Das nackte, getönte Icon steht an 9 Stellen
   (Navigationslisten, Tabs, Zeilen), die weiche Kachel an 15 Stellen (Karten, Detailköpfe,
   Auswahl, Formulare). Füllungen bekamen ihre Schriftfarbe über Mantines `autoContrast`.
+
+_Korrektur (2026-11-14):_ Der Bau von #259 hat die Icons der alten App neu gezählt. Die Kontoliste
+hat 15 Icons, nicht 14; die alte App hat damit 107 Bilder und 130 Namen, und die
+Übersetzungstabelle hat 142 Zeilen aus Entitätsart und altem Namen. Die Zahlen oben und in D292
+sind berichtigt. Die Aufteilung der Paare aus Name und Bild (69 und 62 von 131) stammt aus dem
+Grilling und wurde nicht neu gezählt. Die Entscheidungen bleiben, wie sie sind.
 
 - **D291 #106 liefert Werte, Anzeige und Auswahl (weitet den Zuschnitt aus D151).** Vier Slices:
   die vier Farbsätze; Namen, Schemas und Auflösung ohne React; das Verzeichnis und die Marke; die
@@ -36,20 +42,20 @@ Grundlage: der Stand von `theme` (acht Farbsätze, Kontrastprüfung, Mantine-Anb
   Bearbeiten-Drawer aus. _Verworfen:_ nur Werte (mischt geteilte Bausteine in das erste Fachmodul);
   Werte und Anzeige, die Auswahl mit Projekten.
 - **D292 Ein Icon-Name je Bild, benannt nach dem Bild; der Import übersetzt (ändert „mit den alten
-  Namen“ in D151).** Das Verzeichnis hat 106 Namen. Ein Name beschreibt, was zu sehen ist (`house`,
+  Namen“ in D151).** Das Verzeichnis hat 107 Namen. Ein Name beschreibt, was zu sehen ist (`house`,
   `briefcase`, `barbell`, `piggy-bank`), nicht, was es in einer Entität bedeutet. Die Namen gehören
   der App und folgen nur in der Schreibweise Phosphor: Wechselt die Icon-Bibliothek, bleibt der
   Name und zeigt auf das neue Bild. Der Import übersetzt über eine Tabelle aus Entitätsart und
-  altem Namen (131 Zeilen); das Bild jedes Eintrags bleibt dasselbe. Die Tabelle entsteht jetzt in
+  altem Namen (142 Zeilen); das Bild jedes Eintrags bleibt dasselbe. Die Tabelle entsteht jetzt in
   `icons` als Daten mit einem Test: Jedes alte Paar führt auf einen Namen des Verzeichnisses. Wer
   später ein Bild entfernt, bricht diesen Test. _Gründe:_ `savings` erzwingt das Übersetzen
-  ohnehin, weil ein Name in einem gemeinsamen Verzeichnis nur ein Bild haben kann. Mit 129 Namen
+  ohnehin, weil ein Name in einem gemeinsamen Verzeichnis nur ein Bild haben kann. Mit 130 Namen
   trügen gleiche Bilder verschiedene gespeicherte Werte; die Auswahl, jeder Vergleich von Icons und
   ein späterer Assistent müssten Zweitnamen auflösen, und Zweitnamen ließen sich nie mehr
   entfernen, weil Daten sie tragen. Das in D151 verworfene „beim Import umbiegen“ galt den Farben,
   wo ein Umbiegen das Aussehen ändert; die zwölf Farbnamen bleiben unangetastet. _Preis:_ Der
   Import schreibt 62 der 131 Paare um, und die Tabelle entsteht, bevor ihr Nutzer gebaut ist.
-  _Verworfen:_ die 129 Namen übernehmen; Zweitnamen im Verzeichnis führen, die das Lesen annimmt
+  _Verworfen:_ die 130 Namen übernehmen; Zweitnamen im Verzeichnis führen, die das Lesen annimmt
   und das Schreiben ersetzt.
 - **D293 Ein Vorrat für die ganze App, und die Werte laufen ohne React und ohne Browser (schärft
   D151).** Alle Bilder liegen in `icons`; jede Entitätsart darf jedes wählen, und kein Modul führt
@@ -143,7 +149,7 @@ anders entscheiden und nennt es im Pull Request des Arbeitspakets.
 - **CSS-Bereich:** ein neutraler Name statt `data-module-color`, von Modulen und Einträgen
   gemeinsam genutzt.
 - **Rot:** bekommt den Wert der Fehlerfarbe des Themes Neutral, wie in der alten App.
-- **Auswahl:** Beschriftungen der 106 Icons in zwei Sprachen, Suche über die Beschriftung, Farben
+- **Auswahl:** Beschriftungen der 107 Icons in zwei Sprachen, Suche über die Beschriftung, Farben
   in der Reihenfolge des Farbkreises.
 - **Dokumentation beim Bau:** ein ADR zum Vertragsmuster und zu den Namen; im Glossar nennt der
   Eintrag „Color Set“ zusätzlich die Farbe eines Eintrags.

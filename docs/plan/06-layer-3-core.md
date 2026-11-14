@@ -55,7 +55,7 @@ geschnitten. Gebaut wird in der Reihenfolge aus D279: #104, #108, dann Schicht 4
 |---|---|---|---|
 | #104 | `time` mit Uhr und Lint-Regeln | D148, D149, D223, D279–D285 | – |
 | #105 | `money` | D145, D146, D153 | – |
-| #106 | Icon und Farbe an Entitäten | D151, D291–D297 | – |
+| #106 | Icon und Farbe an Entitäten | D151, D291–D297, [ADR 0029](../adr/0029-an-entrys-icon-and-color-are-names-written-strictly-read-unchanged-and-drawn-by-one-mark.md) | – |
 | #107 | ADR und Glossar für Brücken | D152 | – |
 | #108 | `spaces` | D144, D286–D290 | #29, #32 |
 | #109 | Einstellungen in der Datenbank (ersetzt #34) | D62, D113 ff. | #33, #108 |
