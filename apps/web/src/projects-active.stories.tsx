@@ -3,7 +3,12 @@
 // states and the calls that reach the Port; that the list follows a change is shown by the
 // module's Port test.
 
-import { type ProjectsAnswers, projectsAnswers, WEBSITE } from "@self-engine/projects/testing";
+import {
+  type ProjectsAnswers,
+  projectsAnswers,
+  projectsStoryPort,
+  WEBSITE,
+} from "@self-engine/projects/testing";
 import { LOADER_DELAY_MS } from "@self-engine/ui";
 import { holdTimers } from "@self-engine/ui/story-timers";
 import type { Meta, StoryObj } from "@storybook/react-vite";
@@ -17,7 +22,6 @@ import {
   pressWithMod,
   storyRouter,
 } from "./story-app.tsx";
-import { projectsStoryPort } from "./projects-story-port.ts";
 
 type Canvas = ReturnType<typeof within>;
 

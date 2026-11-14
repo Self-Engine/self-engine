@@ -4,8 +4,11 @@
 // module's Port test and the contract kit.
 
 import {
+  type PortCall,
   type ProjectsAnswers,
+  type ProjectsStoryPort,
   projectsAnswers,
+  projectsStoryPort,
   sampleProjectId,
   TAX,
   WEBSITE,
@@ -13,7 +16,6 @@ import {
 import { holdTimers } from "@self-engine/ui/story-timers";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { expect, screen, userEvent, waitFor, within } from "storybook/test";
-import { type PortCall, type ProjectsStoryPort, projectsStoryPort } from "./projects-story-port.ts";
 import { AppAt, editInAddress, loadStoryApp, QUESTION, storyRouter } from "./story-app.tsx";
 
 type Canvas = ReturnType<typeof within>;
@@ -33,7 +35,7 @@ let port = projectsStoryPort();
 /** The Port a story's render uses; `afterCall` changes the stored projects after an Operation. */
 function storyPort(
   answers: ProjectsAnswers,
-  afterCall?: (call: PortCall, of: ProjectsStoryPort) => void,
+  afterCall?: (call: PortCall, of: ProjectsStoryPort<ProjectsAnswers>) => void,
 ) {
   port = projectsStoryPort(answers, afterCall);
   return port.access;

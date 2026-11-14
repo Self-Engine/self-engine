@@ -4,35 +4,35 @@
 
 import type { PortAccess } from "@self-engine/data-client/react";
 import { changingAnswers } from "@self-engine/data-client/testing";
-import { type ProjectsAnswers, projectsAnswers } from "@self-engine/projects/testing";
 
 export interface PortCall {
   readonly entry: string;
   readonly input: unknown;
 }
 
-export interface ProjectsStoryPort {
+export interface ProjectsStoryPort<Answers = object> {
   readonly access: PortAccess;
   /** Every Operation that reached the Port, in order; the reloads of a Query are left out. */
   readonly calls: PortCall[];
   /** Answers `next` over the succeeding answers from now on, and delivers the Table Change. */
-  readonly change: (next: ProjectsAnswers) => void;
+  readonly change: (next: Answers) => void;
 }
 
 /** The table of `projects`, as the Data Process's Query-to-tables list names it (D248). */
 const TABLE = "projects";
 
 /**
- * A Port that answers `first` over the succeeding answers. `afterCall` runs after each Operation
+ * A Port that answers what `answersOf(first)` builds. `afterCall` runs after each Operation
  * answered, so a story can change the stored projects the way that Operation would.
  */
-export function projectsStoryPort(
-  first: ProjectsAnswers = {},
-  afterCall?: (call: PortCall, port: ProjectsStoryPort) => void,
-): ProjectsStoryPort {
-  const changing = changingAnswers(projectsAnswers(first), { projects: { active: [TABLE] } });
+export function storyPortOf<Answers>(
+  answersOf: (answers: Answers) => PortAccess,
+  first: Answers,
+  afterCall?: (call: PortCall, port: ProjectsStoryPort<Answers>) => void,
+): ProjectsStoryPort<Answers> {
+  const changing = changingAnswers(answersOf(first), { projects: { active: [TABLE] } });
   const calls: PortCall[] = [];
-  const port: ProjectsStoryPort = {
+  const port: ProjectsStoryPort<Answers> = {
     calls,
     access: {
       ...changing.access,
@@ -46,7 +46,7 @@ export function projectsStoryPort(
         return answer;
       },
     },
-    change: (next) => changing.change(projectsAnswers(next), [TABLE]),
+    change: (next) => changing.change(answersOf(next), [TABLE]),
   };
   return port;
 }
