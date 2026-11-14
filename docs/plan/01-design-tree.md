@@ -42,8 +42,15 @@ Pro Runde werden nur 2–3 Fragen gestellt; die Nummern sind stabil.
       - ✅ Abläufe über mehrere Module, Brücken (D152)
       - ✅ Einstellungen des Kerns: Standardwährung, Region (D153) → 06-layer-3-core.md
       - ✅ Zerlegung in acht Arbeitspakete, jedes wird einzeln gegrillt (D154)
-    - ⏳ Schicht 4 Projekte + Zeit
-    - ⏳ Schicht 5 Import
+    - ✅ Schicht 4 Projekte + Zeit entschieden (D299–D312) → 07-layer-4-projects-and-time.md
+      - ✅ Umfang in einer Stufe, Module `projects` und `time-tracking` (D299, D300)
+      - ✅ Projekt ohne Art und Satz, Rundung nach Schicht 4 (D301, D305)
+      - ✅ Archivieren, Löschschutz im Speicher-Rahmen, Regeln im Datenprozess (D302, D303)
+      - ✅ Zeiteintrag mit Lage und Dauer, Timer als eigene Zeile, Überschneidungen gültig (D304, D306, D307)
+      - ✅ Formular-Helfer zuerst, keine Projektseite, ständiger Platz in der Hülle (D308–D310)
+      - ✅ Platzhalter verlassen die App, Reihenfolge in neun Schritten (D311, D312)
+      - ⏳ Paket-Grillings: #213, `projects`, Schutz-Paket, #109, #110, `time-tracking`, ständiger Platz
+    - ⏳ Schicht 5 Import (beginnt mit Projekten und Zeiteinträgen, D312)
   - ⏳ Reihenfolge nach Schicht 5 bis zum Stichtag (weitere Module, Sync, Mobile)
   - ⏳ Zeitpunkt Organisations-Spaces & Policies
   - ⏳ Onboarding / Blueprints

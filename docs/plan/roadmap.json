@@ -7,14 +7,39 @@
     {
       "id": "4",
       "name": "Projekte und Zeit",
+      "decisions": "D299–D312",
       "planned": [
         {
-          "title": "Erster Fachmeilenstein",
-          "note": "Offen ist auch der Name des Zeitmoduls."
+          "title": "Verbot von CASCADE und SET NULL in der Konventionsprüfung",
+          "note": "Ohne Grilling, vor der ersten echten Migration (D302)."
         },
         {
-          "title": "Andockpunkte zwischen Modulen in der Oberfläche",
-          "note": "Ein Modul hängt etwas in die Seite eines anderen ein (D241); die Form ist offen."
+          "title": "Formular-Helfer (#213)",
+          "note": "Vor dem ersten Formular, entworfen an den beiden Formularen der Schicht (D308)."
+        },
+        {
+          "title": "Modul projects",
+          "note": "Erstes sichtbares Modul; die Platzhalter verlassen die App (D311)."
+        },
+        {
+          "title": "Schutz-Paket: Einhängepunkt im Rahmen und Verweis-Prüfung",
+          "note": "Muss stehen, bevor etwas auf Projekte zeigt (D302, D303)."
+        },
+        {
+          "title": "Einstellungen in der Datenbank (#109), Zeitzone und Wochenstart (#110)",
+          "note": "Voraussetzung der Wochenansicht; #110 wird ohne die Standardwährung gebaut (D312)."
+        },
+        {
+          "title": "Modul time-tracking, Teil 1: Einträge, Formular, Wochenansicht",
+          "note": "Zeitpunkte ungerundet, die Dauer als eigene Zahl (D304)."
+        },
+        {
+          "title": "Ständiger Platz in der Hülle",
+          "note": "Ein Modul füllt ihn über seinen Hüllen-Beitrag; erster Nutzer ist der Timer (D310)."
+        },
+        {
+          "title": "Modul time-tracking, Teil 2: Timer und Markierung der Überschneidungen",
+          "note": "Ein Timer zugleich, Stoppen in einer Transaktion (D306, D307)."
         }
       ]
     },
@@ -35,6 +60,10 @@
         {
           "title": "Weitere Module (Finanzen, Kalender, Gewohnheiten)",
           "note": "Erste Brücke kommt mit Finanzen oder Kalender (D152)."
+        },
+        {
+          "title": "Ausbau von Projekten und Zeit",
+          "note": "Rundung je Projekt, Pausen, Kategorien, Abrechnung, Projektseite mit Andockpunkten (#201); Liste in 07-layer-4-projects-and-time.md."
         },
         {
           "title": "Sync",
