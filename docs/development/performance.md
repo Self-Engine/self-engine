@@ -432,3 +432,28 @@ records what a Backup is.
   protocol's messages, whose package now holds the schemas of `backups`.
 - **Disk.** Each Backup has the size of the database. With one Backup a day the folder holds
   eleven; it never holds more than 32, four a day for seven days and four weekly.
+
+## Forms: first opening (#290)
+
+Measured in the built Electron app with Node 26.13.0, five fresh app sessions, each with a new
+throwaway data folder. The normal Color Mode and drawer transitions were kept. Each session
+navigated to placeholder-alpha’s Overview, then clicked New entry once; no form or Contract
+was preloaded by the measurement. All apps were stopped and their data folders removed.
+
+The portable method uses the renderer’s `performance.now()`: a capturing click listener starts
+the timer. Each animation frame checks for an input in the dialog with a nonzero rectangle and
+`checkVisibility({ opacityProperty: true, visibilityProperty: true })`. The next animation frame
+ends the timer, bounding the first paint with that visible input; Node/automation round trips
+are outside the timed interval. It measures the visible form, including lazy loads and normal
+Shell opening behavior, rather than just importing the helper. It does not wait for the slide
+to finish, and is not a check by eye.
+
+Results: **331.0, 328.2, 328.1, 334.5, 331.5 ms**; median **331.0 ms**, range **328.1–334.5 ms**.
+This is above D326’s 100 ms threshold: the owner must decide before merging the package.
+No threshold or transition was changed to accept it.
+
+Startup JavaScript: **843,398 bytes before** (`4f28e33`) and **843,341 bytes after** (−57).
+The before value was reproduced with the integration branch’s drawer. The forms package marks
+its modules side-effect-free, letting the build discard unused picker exports; the module
+also shares the identical Overview/Archive lazy list loader instead of declaring it twice.
+The startup gate still forbids Contracts, full Zod and the form libraries there.

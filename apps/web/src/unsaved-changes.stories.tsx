@@ -396,12 +396,32 @@ export const TheNameIsLockedWhileItSaves: Story = {
     const name = await drawer.findByRole("textbox", { name: "Name" });
     await userEvent.type(name, "Saved");
     await userEvent.click(drawer.getByRole("button", { name: "Save" }));
-    await waitFor(() => expect(name).toHaveAttribute("readonly"));
+    await waitFor(() => expect(name).toBeDisabled());
     await userEvent.type(name, " and more");
     await expect(name).toHaveValue("Saved");
 
     answerCreate();
     await noDrawer("New entry");
     await expect(address().edit).toBeUndefined();
+  },
+};
+
+export const SaveAndLeavingUseTheSameChangedValues: Story = {
+  play: async ({ canvas }) => {
+    await userEvent.click(await canvas.findByRole("button", { name: "Studio work" }));
+    const drawer = within(await screen.findByRole("dialog", { name: "Studio work" }));
+    const name = await drawer.findByRole("textbox", { name: "Name" });
+    const save = drawer.getByRole("button", { name: "Save" });
+    await expect(save).toBeDisabled();
+    await userEvent.type(name, "!");
+    await expect(save).toBeEnabled();
+    await userEvent.click(drawer.getByRole("button", { name: "Cancel" }));
+    await answer("Keep editing");
+    await noQuestion();
+    await userEvent.type(name, "{Backspace}");
+    await expect(save).toBeDisabled();
+    await userEvent.click(drawer.getByRole("button", { name: "Cancel" }));
+    await noDrawer("Studio work");
+    await expect(screen.queryByRole("dialog", { name: QUESTION })).toBeNull();
   },
 };
