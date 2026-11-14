@@ -14,3 +14,5 @@ export {
   type TextFieldName,
   type TextFieldProps,
 } from "./text-fields.tsx";
+
+export type { FormTexts } from "./check.ts";
