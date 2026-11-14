@@ -35,5 +35,8 @@ choice, and users will later bring Themes from other tools.
 
 - Wide-gamut colors are given up, because the output is sRGB hex.
 - A new Theme or Color Set is data, and the contrast test covers it without new test code.
+- The text on a fill comes from its Color Set, never from Mantine's automatic contrast, and may
+  be dark, as on yellow
+  ([ADR 0029](0029-an-entrys-icon-and-color-are-names-written-strictly-read-unchanged-and-drawn-by-one-mark.md)).
 - Exact per-component tuning of Mantine stays a separate step, since generated palettes only
   approximate a Theme.
