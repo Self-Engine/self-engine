@@ -59,8 +59,18 @@ export const LoadsTheEmojisWhenTheEmojiTabOpens: Story = {
     await expect(emojiRequests()).toEqual([]);
     await expect(emojiPickerHasRun()).toBe(false);
 
+    // The dialog keeps its size when the Emoji tab opens and once the emojis are there. What the
+    // tab shows at first is a matter of speed, the loader or already the grid, so the story does
+    // not ask for the loader.
+    const sizeOf = (element: Element) => {
+      const { width, height } = element.getBoundingClientRect();
+      return { width, height };
+    };
+    const size = sizeOf(dialog);
     await userEvent.click(within(dialog).getByRole("tab", { name: "Emoji" }));
+    await expect(sizeOf(dialog)).toEqual(size);
     await within(dialog).findByRole("grid", { name: "Emojis" }, { timeout: 10_000 });
+    await expect(sizeOf(dialog)).toEqual(size);
     await expect(emojiPickerHasRun()).toBe(true);
     await waitFor(() =>
       expect(emojiRequests().filter((name) => /emojibase[-_]data.en.data/.test(name))).toHaveLength(
