@@ -3,12 +3,17 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vite-plus/test";
 
 import {
+  actorOf,
   blockersOf,
+  dependencyGraph,
   buildOverview,
   escapeHtml,
+  historyOf,
   parentOf,
   renderPage,
+  scriptJson,
   statusOf,
+  summaryOf,
   type Issue,
   type Roadmap,
 } from "./plan-overview.ts";
@@ -47,6 +52,103 @@ describe("blockersOf", () => {
   });
 });
 
+describe("dependencyGraph", () => {
+  it("orders open issues into waves and counts what each one frees", () => {
+    const graph = dependencyGraph([
+      { number: 1, blockers: [] },
+      { number: 2, blockers: [1, 99] },
+      { number: 3, blockers: [2] },
+      { number: 4, blockers: [] },
+    ]);
+    expect(graph.get(1)).toEqual({ wave: 0, frees: 2, waitsOn: [], unblocks: [2] });
+    expect(graph.get(2)).toMatchObject({ wave: 1, frees: 1, waitsOn: [1] });
+    expect(graph.get(3)).toMatchObject({ wave: 2, frees: 0 });
+    expect(graph.get(4)).toMatchObject({ wave: 0, frees: 0 });
+  });
+
+  it("finishes a package after its open slices", () => {
+    const graph = dependencyGraph([
+      { number: 10, blockers: [] },
+      { number: 11, blockers: [], parent: 10 },
+      { number: 12, blockers: [11], parent: 10 },
+      { number: 13, blockers: [10] },
+    ]);
+    expect(graph.get(10)).toMatchObject({ wave: 2, waitsOn: [11, 12], unblocks: [13] });
+    expect(graph.get(11)?.frees).toBe(3);
+    expect(graph.get(13)?.wave).toBe(3);
+  });
+
+  it("stops growing on a cycle", () => {
+    const graph = dependencyGraph([
+      { number: 1, blockers: [2] },
+      { number: 2, blockers: [1] },
+    ]);
+    expect(graph.get(1)?.wave).toBeLessThanOrEqual(50);
+    expect(graph.get(1)?.frees).toBe(1);
+  });
+});
+
+describe("actorOf", () => {
+  it("names who acts next", () => {
+    expect(actorOf("grill")).toBe("owner");
+    expect(actorOf("review")).toBe("owner");
+    expect(actorOf("buildable")).toBe("agent");
+    expect(actorOf("cut")).toBe("slices");
+    expect(actorOf("built")).toBeUndefined();
+  });
+});
+
+describe("scriptJson", () => {
+  it("cannot close the script block it sits in", () => {
+    const json = scriptJson({ title: "</script><b>" });
+    expect(json).not.toContain("</script>");
+    expect(JSON.parse(json)).toEqual({ title: "</script><b>" });
+  });
+});
+
+describe("summaryOf", () => {
+  it("takes the first paragraph of What to build, skipping quotes and lists", () => {
+    const body =
+      "> **Grill this first.**\n\n## Parent\n\n#3\n\n## What to build\n\n- a list\n\nAmounts are **exact**, see [D145](x).\nSecond line.\n\nMore.";
+    expect(summaryOf(body)).toBe("Amounts are exact, see D145. Second line.");
+  });
+
+  it("falls back to the Problem Statement and then to the intro", () => {
+    expect(summaryOf("## Problem Statement\n\nUsers lose data.")).toBe("Users lose data.");
+    expect(summaryOf("Plain intro.\n\n## Notes\n\nx")).toBe("Plain intro.");
+    expect(summaryOf("Blocked by: #4")).toBeUndefined();
+  });
+
+  it("shortens a long paragraph at a word", () => {
+    const summary = summaryOf(`## Summary\n\n${"word ".repeat(100)}`) ?? "";
+    expect(summary.length).toBeLessThanOrEqual(322);
+    expect(summary.endsWith("word …")).toBe(true);
+  });
+});
+
+describe("historyOf", () => {
+  it("counts created and built issues per day and fills empty days", () => {
+    const history = historyOf([
+      issue(1, {
+        createdAt: "2026-11-07T10:00:00Z",
+        state: "CLOSED",
+        closedAt: "2026-11-09T08:00:00Z",
+      }),
+      issue(2, { createdAt: "2026-11-07T23:59:00Z" }),
+      issue(3, { createdAt: "2026-11-09T01:00:00Z", closedAt: "2026-11-09T02:00:00Z" }),
+    ]);
+    expect(history).toEqual([
+      { day: "2026-11-07", created: 2, built: 0 },
+      { day: "2026-11-08", created: 0, built: 0 },
+      { day: "2026-11-09", created: 1, built: 1 },
+    ]);
+  });
+
+  it("is empty without dates", () => {
+    expect(historyOf([issue(1)])).toEqual([]);
+  });
+});
+
 describe("statusOf", () => {
   const specified = "## Problem Statement\n\nText";
 
@@ -80,13 +182,41 @@ describe("buildOverview", () => {
   it("nests slices under their package and counts both", () => {
     const [one] = buildOverview(issues, new Map(), ROADMAP).layers;
     expect(one?.rows.map((row) => row.number)).toEqual([1, 3, 4]);
-    expect(one?.rows[0]?.slices).toEqual([{ number: 2, status: "built" }]);
+    expect(one?.rows[0]?.slices).toEqual([{ number: 2, title: "Issue 2", status: "built" }]);
     expect([one?.built, one?.total]).toEqual([2, 4]);
   });
 
   it("lists only open blockers", () => {
     const [one] = buildOverview(issues, new Map(), ROADMAP).layers;
-    expect(one?.rows[1]?.waitingOn).toEqual([4]);
+    expect(one?.rows[1]?.waitingOn?.map((ref) => ref.number)).toEqual([4]);
+  });
+
+  it("names every blocker with its status in the details", () => {
+    const [one] = buildOverview(issues, new Map(), ROADMAP).layers;
+    expect(one?.rows[1]?.details?.blockers).toEqual([
+      { number: 1, title: "Issue 1", status: "built" },
+      { number: 4, title: "Issue 4", status: "buildable" },
+    ]);
+    expect(one?.rows[1]?.details?.labels).toEqual(["needs-grilling"]);
+  });
+
+  it("puts packages and slices into the work tree with their place in the graph", () => {
+    const { graph } = buildOverview(issues, new Map(), ROADMAP);
+    expect(graph.map((node) => node.number)).toEqual([1, 2, 3, 4, 5]);
+    expect(graph.find((node) => node.number === 2)).toMatchObject({ parent: 1, layer: "1" });
+    expect(graph.find((node) => node.number === 1)?.actor).toBeUndefined();
+    expect(graph.find((node) => node.number === 3)).toMatchObject({
+      actor: "owner",
+      wave: 1,
+      waitsOn: [4],
+    });
+    expect(graph.find((node) => node.number === 4)).toMatchObject({ actor: "agent", frees: 1 });
+    expect(graph.find((node) => node.number === 5)?.layer).toBe("none");
+  });
+
+  it("counts the statuses of each layer", () => {
+    const [one] = buildOverview(issues, new Map(), ROADMAP).layers;
+    expect(one?.statusCounts).toMatchObject({ built: 2, grill: 1, buildable: 1 });
   });
 
   it("treats the children of a layer spec as packages", () => {
@@ -161,6 +291,49 @@ describe("renderPage", () => {
     expect(page).not.toContain("<script>alert(1)");
     expect(page).toContain(escapeHtml("<script>alert(1)</script>"));
     expect(page).toContain("2026-11-10 08:00");
+  });
+
+  it("names each slice in a tooltip and opens details for a package", () => {
+    const overview = buildOverview(
+      [
+        issue(1, {
+          labels: ["layer:1", "ready-for-agent"],
+          body: "## What to build\n\nA <b> form.",
+        }),
+        issue(2, { title: "Child & co", labels: ["layer:1"], body: "## Parent\n\n#1" }),
+      ],
+      new Map(),
+      ROADMAP,
+    );
+    const page = renderPage(overview, "now");
+    expect(page).toContain('data-tip="Child &amp; co" data-sub="#2 · Triage offen"');
+    expect(page).toContain('aria-controls="d-1"');
+    expect(page).toContain("A &lt;b&gt; form.");
+    expect(page).toContain('<span class="kc num">0/1</span>');
+  });
+
+  it("embeds the work tree as data", () => {
+    const overview = buildOverview(
+      [issue(1, { title: "</script>", labels: ["layer:1", "ready-for-agent"] })],
+      new Map(),
+      ROADMAP,
+    );
+    const page = renderPage(overview, "now");
+    const json = /<script type="application\/json" id="wt-data">(.*?)<\/script>/su.exec(page)?.[1];
+    expect(JSON.parse(json ?? "null")).toMatchObject({
+      nodes: [{ number: 1, title: "</script>", actor: "agent", wave: 0 }],
+    });
+  });
+
+  it("draws the history when issues have dates", () => {
+    const overview = buildOverview(
+      [issue(1, { labels: ["layer:1"], createdAt: "2026-11-07T10:00:00Z" })],
+      new Map(),
+      ROADMAP,
+    );
+    const page = renderPage(overview, "now");
+    expect(page).toContain('data-tip="0 gebaut · 1 angelegt"');
+    expect(page).toContain("Verlauf als Tabelle");
   });
 
   it("marks inline code in titles", () => {

@@ -7,7 +7,7 @@
 
 import "@mantine/emoji/styles.css";
 import { useLingui } from "@lingui/react/macro";
-import { type MantineSize, useProps } from "@mantine/core";
+import { type MantineSize, rem, useMantineTheme, useProps } from "@mantine/core";
 import {
   EmojiPicker,
   type EmojiPickerData,
@@ -30,12 +30,17 @@ export interface EmojiTabProps {
   readonly onQueryChange: (query: string) => void;
   /** The emoji grid's columns, which the field's width is made for. */
   readonly columns: number;
+  /** The size of an emoji button at the 100 % font scale, which the field's width is made for. */
+  readonly emojiSize: number;
   /** The width of the grid's scrollbar, as the field's own grid has it. */
   readonly scrollbarSize: string;
 }
 
 /** What `useProps` merges the theme's defaults into: no props of our own. */
 const NO_PROPS: { readonly size?: MantineSize } = {};
+
+/** The glyph size Mantine gives the emojis of its size `sm`, at the 100 % font scale. */
+const EMOJI_GLYPH_SIZE = 18;
 
 /**
  * The picker as part of the field rather than a frame of its own: no border, radius or background
@@ -62,9 +67,22 @@ export function EmojiTab({
   query,
   onQueryChange,
   columns,
+  emojiSize,
   scrollbarSize,
 }: EmojiTabProps) {
   const { t } = useLingui();
+  // Mantine 9.8.0 sizes the emoji buttons in CSS, which the font scale scales, but places the rows
+  // of its virtual list `emojiSize` plain pixels apart, so at any font scale but 100 % the rows
+  // overlap or leave a gap. Here the list steps by the scaled size, and `vars` give the buttons and
+  // glyphs back the sizes `emojiSize` would otherwise scale a second time. All of it can go once
+  // Mantine's virtual list honours the scale.
+  const { scale } = useMantineTheme();
+  const vars = useMemo<NonNullable<EmojiPickerProps["vars"]>>(
+    () => () => ({
+      root: { "--ep-emoji-size": rem(emojiSize), "--ep-emoji-fz": rem(EMOJI_GLYPH_SIZE) },
+    }),
+    [emojiSize],
+  );
   // The search field takes the size the theme gives every input, as the Icons tab's does: in the
   // compact Density a smaller one. The picker would give it the size of its emojis.
   const { size: inputSize } = useProps("Input", { size: "sm" }, NO_PROPS);
@@ -113,6 +131,7 @@ export function EmojiTab({
       categoryLabels={categoryLabels}
       columns={columns}
       data={data}
+      emojiSize={emojiSize * scale}
       labels={labels}
       onSearchChange={onQueryChange}
       searchValue={query}
@@ -124,6 +143,7 @@ export function EmojiTab({
       scrollAreaProps={scrollAreaProps}
       searchInputProps={searchInputProps}
       styles={PICKER_STYLES}
+      vars={vars}
       withUnsupportedDetection
     />
   );
