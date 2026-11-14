@@ -26,7 +26,7 @@ export function catalogIcon(SourceIcon: PhosphorIcon) {
       ...props,
       // In CSS, because the svg's width and height attributes cannot hold a variable.
       style: { width: length, height: length, ...style },
-      weight: "regular",
+      weight: "duotone",
       color: "currentColor",
     });
   };
