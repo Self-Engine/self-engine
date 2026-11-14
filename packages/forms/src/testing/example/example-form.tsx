@@ -5,7 +5,7 @@
 
 import { Button, Stack } from "@mantine/core";
 import type { z } from "zod";
-import { LongTextField, TextField, useOperationForm } from "../../index.ts";
+import { LongTextField, OperationFormBody, TextField, useOperationForm } from "../../index.ts";
 import { exampleContract, type exampleEntrySchema } from "./contract.ts";
 import { useCreateExample } from "./port.ts";
 
@@ -25,10 +25,12 @@ export function ExampleForm({ onSuccess }: ExampleFormProps) {
     onSuccess,
   });
   return (
-    <Stack>
-      <TextField form={form} label="Title" name="title" />
-      <LongTextField form={form} label="Description" name="description" />
-      <Button onClick={() => void form.submit()}>Save</Button>
-    </Stack>
+    <OperationFormBody form={form}>
+      <Stack>
+        <TextField form={form} label="Title" name="title" />
+        <LongTextField form={form} label="Description" name="description" />
+        <Button type="submit">Save</Button>
+      </Stack>
+    </OperationFormBody>
   );
 }
