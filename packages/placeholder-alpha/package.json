@@ -17,6 +17,7 @@
     "@orpc/contract": "catalog:",
     "@self-engine/data-client": "workspace:*",
     "@self-engine/db": "workspace:*",
+    "@self-engine/forms": "workspace:*",
     "@self-engine/icons": "workspace:*",
     "@self-engine/shell": "workspace:*",
     "@self-engine/storage": "workspace:*",

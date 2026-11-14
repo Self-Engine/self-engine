@@ -48,7 +48,7 @@ export const ALLOWED_IMPORTS: AllowedImports = {
   icons: ["theme"],
   // Its contracts and data entries (D252); the root entry stays with the shell and the UI, and
   // reads and writes through the data building block.
-  "placeholder-alpha": ["data-client", "db", "icons", "shell", "storage", "time", "ui"],
+  "placeholder-alpha": ["data-client", "db", "forms", "icons", "shell", "storage", "time", "ui"],
   "placeholder-beta": ["shell", "icons"],
   // The rows of the View Data call the protocol's `backups` through the data building block; the
   // contract arrives as a type, and its schemas load only in the stories' Fixed Answers. Their

@@ -983,6 +983,9 @@ importers:
       '@self-engine/db':
         specifier: workspace:*
         version: link:../db
+      '@self-engine/forms':
+        specifier: workspace:*
+        version: link:../forms
       '@self-engine/icons':
         specifier: workspace:*
         version: link:../icons

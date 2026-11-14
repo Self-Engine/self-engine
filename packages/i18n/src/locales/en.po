@@ -185,7 +185,6 @@ msgid "Camera"
 msgstr "Camera"
 
 #: packages/forms/src/form-body.tsx
-#: packages/placeholder-alpha/src/edit-drawer.tsx
 #: packages/ui/src/feedback.tsx
 msgid "Cancel"
 msgstr "Cancel"
@@ -1052,7 +1051,6 @@ msgid "Safety copy"
 msgstr "Safety copy"
 
 #: packages/forms/src/form-body.tsx
-#: packages/placeholder-alpha/src/edit-drawer.tsx
 msgid "Save"
 msgstr "Save"
 

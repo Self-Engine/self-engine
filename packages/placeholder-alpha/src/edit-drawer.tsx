@@ -1,113 +1,123 @@
-import type { MessageDescriptor } from "@lingui/core";
 import { useLingui } from "@lingui/react/macro";
-import { Button, Group, Stack, Text, TextInput } from "@mantine/core";
-import { type EditDrawerProps, useEditDrawerTitle, useUnsavedChanges } from "@self-engine/shell";
+import { Button, Text } from "@mantine/core";
+import {
+  EditDrawerForm,
+  TextField,
+  useOperationForm,
+  type OperationForm,
+} from "@self-engine/forms";
+import { type EditDrawerProps, useEditDrawerTitle } from "@self-engine/shell";
 import { ErrorState, QueryStateBlock } from "@self-engine/ui";
 import { useState } from "react";
+import { placeholderAlphaContract } from "./contracts/index.ts";
 import { useDeleteWithUndo } from "./delete-with-undo.tsx";
 import { NEW_ENTRY_ID } from "./entry-address.ts";
 import { ALL_ENTRIES, type Entry, useCreateEntry, useEntries, useRenameEntry } from "./port.ts";
 
-export default function EditDrawer({ id, onCancel, onDone }: EditDrawerProps) {
-  const { t } = useLingui();
+export default function EditDrawer(props: EditDrawerProps) {
   const list = useEntries(ALL_ENTRIES);
-  const remove = useDeleteWithUndo();
-  // Deleting closes the drawer, and the form keeps its own copy of the entry while the drawer
-  // slides out, so it shows neither an empty form nor "not found" (D252; removed in #132).
-  const [deletedHere, setDeletedHere] = useState<Entry>();
-  if (id === NEW_ENTRY_ID) {
-    return <EntryForm entry={undefined} id={id} onCancel={onCancel} onDone={onDone} />;
-  }
+  if (props.id === NEW_ENTRY_ID) return <CreateForm {...props} />;
   return (
     <QueryStateBlock state={list}>
-      {(entries) => {
-        const entry = entries.find((candidate) => candidate.id === id) ?? deletedHere;
-        if (entry === undefined) {
-          return (
-            <ErrorState
-              action={
-                <Button onClick={onDone} variant="default">
-                  {t({ message: "Close", context: "Close the drawer" })}
-                </Button>
-              }
-              title={t`Entry not found`}
-            />
-          );
-        }
-        const deleteHere = () => {
-          setDeletedHere(entry);
-          void remove(entry.id);
-          onDone();
-        };
-        return (
-          <EntryForm
-            entry={entry}
-            id={id}
-            onCancel={onCancel}
-            onDelete={deleteHere}
-            onDone={onDone}
-          />
-        );
-      }}
+      {(entries) => (
+        <StoredEntryDrawer {...props} found={entries.find((entry) => entry.id === props.id)} />
+      )}
     </QueryStateBlock>
   );
 }
 
-interface EntryFormProps extends EditDrawerProps {
-  /** Left out for an entry that does not exist yet. */
-  readonly entry: Entry | undefined;
-  readonly onDelete?: () => void;
+function StoredEntryDrawer({
+  found,
+  ...props
+}: EditDrawerProps & { readonly found: Entry | undefined }) {
+  const { t } = useLingui();
+  const remove = useDeleteWithUndo();
+  const [last, setLast] = useState(found);
+  if (found !== undefined && found !== last) setLast(found);
+  const [deletedHere, setDeletedHere] = useState(false);
+  const entry = found ?? last;
+  if (entry === undefined)
+    return (
+      <ErrorState
+        title={t`Entry not found`}
+        action={
+          <Button onClick={props.onDone} variant="default">
+            {t({ message: "Close", context: "Close the drawer" })}
+          </Button>
+        }
+      />
+    );
+  return (
+    <RenameForm
+      {...props}
+      entry={entry}
+      deleted={found === undefined && !deletedHere}
+      onDelete={() => {
+        // Keep the entry through the closing transition (#132), without the deleted-entry warning.
+        setDeletedHere(true);
+        void remove(entry.id);
+        props.onDone();
+      }}
+    />
+  );
 }
 
-/**
- * Saving creates or renames through an Operation, and the name cannot change until it answers. A
- * taken name is shown at the field and the drawer stays open; "not found" closes it after the
- * building block's notice; an unexpected error keeps it open with the building block's notice
- * (D251).
- */
-function EntryForm({ id, entry, onCancel, onDelete, onDone }: EntryFormProps) {
-  const { t, i18n } = useLingui();
-  const create = useCreateEntry();
-  const rename = useRenameEntry();
-  useEditDrawerTitle(entry === undefined ? t`New entry` : entry.name);
-  const [startedFrom] = useState(entry?.name ?? "");
-  const [draft, setDraft] = useState(startedFrom);
-  const [conflict, setConflict] = useState<MessageDescriptor>();
-  useUnsavedChanges(() => draft !== startedFrom);
-  const running = create.running || rename.running;
-  const save = async () => {
-    const result =
-      entry === undefined
-        ? await create.run({ name: draft })
-        : await rename.run({ id: entry.id, name: draft });
-    if (result.status === "success" || result.status === "notFound") onDone();
-    else if (result.status === "conflict") setConflict(result.text);
-  };
+function CreateForm(props: EditDrawerProps) {
+  const { t } = useLingui();
+  useEditDrawerTitle(t`New entry`);
+  const form = useOperationForm({
+    entry: placeholderAlphaContract.create,
+    operation: useCreateEntry(),
+    draft: { name: "" },
+    onDone: props.onDone,
+  });
+  return <Fields {...props} form={form} />;
+}
+
+function RenameForm({
+  entry,
+  deleted,
+  onDelete,
+  ...props
+}: EditDrawerProps & {
+  readonly entry: Entry;
+  readonly deleted: boolean;
+  readonly onDelete: () => void;
+}) {
+  const { t } = useLingui();
+  useEditDrawerTitle(entry.name);
+  const form = useOperationForm({
+    entry: placeholderAlphaContract.rename,
+    operation: useRenameEntry(),
+    draft: { id: entry.id, name: entry.name },
+    edit: { identity: { id: entry.id }, deleted },
+    onDone: props.onDone,
+  });
   return (
-    <Stack flex={1}>
+    <Fields
+      {...props}
+      form={form}
+      actions={<Button onClick={onDelete} variant="subtle">{t`Delete`}</Button>}
+    />
+  );
+}
+
+function Fields({
+  id,
+  form,
+  onCancel,
+  actions,
+}: {
+  readonly id: string;
+  readonly form: OperationForm<{ name: string | null }>;
+  readonly onCancel: () => void;
+  readonly actions?: React.ReactNode;
+}) {
+  const { t } = useLingui();
+  return (
+    <EditDrawerForm form={form} onCancel={onCancel} actions={actions}>
       <Text>{id}</Text>
-      <TextInput
-        error={conflict && i18n._(conflict)}
-        label={t`Name`}
-        // What is typed while the save runs would be lost when the drawer closes.
-        readOnly={running}
-        onChange={(event) => {
-          setDraft(event.currentTarget.value);
-          setConflict(undefined);
-        }}
-        value={draft}
-      />
-      <Group justify="flex-end" mt="auto">
-        {onDelete && (
-          <Button me="auto" onClick={onDelete} variant="subtle">
-            {t`Delete`}
-          </Button>
-        )}
-        <Button onClick={onCancel} variant="default">{t`Cancel`}</Button>
-        <Button disabled={draft === ""} loading={running} onClick={() => void save()}>
-          {t`Save`}
-        </Button>
-      </Group>
-    </Stack>
+      <TextField form={form} name="name" label={t`Name`} />
+    </EditDrawerForm>
   );
 }
