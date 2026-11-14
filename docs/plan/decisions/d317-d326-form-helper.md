@@ -171,10 +171,11 @@ Grundlage: der Stand auf `main` nach #281.
     das die vier Felder, eine Regel über zwei Felder und einen Konflikt abdeckt; der Umzug des
     Formulars von `placeholder-alpha` auf den Helfer, dessen Tests gegen den echten Datenprozess
     laufen; ein Leitfaden unter `docs/development/`.
-  - **Nicht geliefert wird:** Felder für Datum und Uhrzeit und die Projekt-Auswahl (mit
-    `time-tracking`, #275, weil sie an der Zeitzone aus #110 hängen); Listen im Formular (mit dem
-    ersten Modul, das sie braucht); Prüfungen, die den Datenprozess fragen (ein vergebener Name
-    bleibt ein Konflikt der Operation).
+  - **Nicht geliefert wird:** Felder für Datum und Uhrzeit (mit `time-tracking`, #275, weil sie
+    an der Zeitzone aus #110 hängen); die Projekt-Auswahl (ein Baustein, den `projects`
+    exportiert, #273, und den die Brücke von `forms` an ein Formular bindet; `forms` importiert
+    kein Modul); Listen im Formular (mit dem ersten Modul, das sie braucht); Prüfungen, die den
+    Datenprozess fragen (ein vergebener Name bleibt ein Konflikt der Operation).
   - **Abnahme:** Jedes Szenario aus D319 bis D324 ist ein Test. Eine Story zählt, dass Tippen in
     einem Feld kein anderes Feld neu zeichnet. Die Startgröße wächst nicht, und die Start-Prüfung
     kennt die neuen Einträge (D325). Die Zeit vom Klick bis zum sichtbaren Formular wird beim
