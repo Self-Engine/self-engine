@@ -116,6 +116,8 @@ import { YarnIcon } from "@phosphor-icons/react/dist/csr/Yarn";
 import { type CatalogIcon, catalogIcon } from "../catalog-icon.ts";
 import type { IconName } from "../names/index.ts";
 
+export { ICON_LABELS } from "./labels.ts";
+
 /** Each icon name with its picture, drawn like every catalog icon. */
 export const ICON_DIRECTORY: Readonly<Record<IconName, CatalogIcon>> = {
   archive: catalogIcon(ArchiveIcon),

@@ -32,6 +32,7 @@ import {
   type Theme,
   type ThemeCatalog,
 } from "@self-engine/theme";
+import { COLOR_SET_LABELS, radioTabStop } from "@self-engine/ui";
 import { useId, useMemo } from "react";
 import type { SettingsRow, SettingsRowControlProps } from "./row.ts";
 import { APPEARANCE_SETTINGS } from "./settings.ts";
@@ -63,29 +64,10 @@ const PICKER_LABELS: Readonly<Record<ResolvedColorMode, MessageDescriptor>> = {
 /** By Accent id. A test holds every Accent a user may pick against this list. */
 const ACCENT_NAMES: Readonly<Record<string, MessageDescriptor>> = {
   [FROM_THEME]: msg`From Theme`,
-  blue: msg({ message: "Blue", context: "Accent" }),
-  indigo: msg({ message: "Indigo", context: "Accent" }),
-  violet: msg({ message: "Violet", context: "Accent" }),
-  teal: msg({ message: "Teal", context: "Accent" }),
-  orange: msg({ message: "Orange", context: "Accent" }),
-  grape: msg({ message: "Grape", context: "Accent" }),
+  ...COLOR_SET_LABELS,
 };
 
 const ACCENT_CHOICES: readonly string[] = [FROM_THEME, ...ACCENT_IDS];
-
-interface RadioChoice {
-  readonly value: string;
-  readonly disabled?: boolean;
-}
-
-/**
- * The one radio of a group the Tab key stops on, as in a native radio group: the chosen one, or
- * the first that can be chosen. `Radio.Card` alone would stop on every card.
- */
-function tabStopOf(choices: readonly RadioChoice[], chosen: string): string | undefined {
-  const usable = choices.filter((choice) => !choice.disabled);
-  return (usable.find((choice) => choice.value === chosen) ?? usable[0])?.value;
-}
 
 const CHOSEN_BORDER = roleColor("accentText");
 
@@ -154,7 +136,7 @@ function ThemePicker({
   const stored = useSetting(store, setting);
   // The Theme the engine shows, also for a stored one that is unknown or lacks this Color Mode.
   const chosen = servingTheme(stored, catalog, mode).theme.id;
-  const tabStop = tabStopOf(
+  const tabStop = radioTabStop(
     themes.map((theme) => ({ value: theme.id })),
     chosen,
   );
@@ -313,7 +295,7 @@ export function accentRow(catalog: ThemeCatalog): SettingsRow {
       value,
       disabled: value === FROM_THEME && !themeHasAccent,
     }));
-    const tabStop = tabStopOf(choices, chosen);
+    const tabStop = radioTabStop(choices, chosen);
     return (
       <Group aria-labelledby={labelledBy} gap={rem(4)} role="radiogroup">
         {choices.map(({ value, disabled }) => {
