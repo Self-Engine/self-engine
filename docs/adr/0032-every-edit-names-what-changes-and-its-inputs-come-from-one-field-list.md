@@ -64,7 +64,7 @@ stricter: renaming a field changes every caller in the same step, and TypeScript
 Tests and fixtures that sent extra keys had to send exactly what an entry takes. The kit's edit
 check needs a seeded entry with the example's id, as every operation example already does, and
 an example that sets every field. Fields whose names differ between input and answer cannot use
-the check; the pattern keeps them equal. The test module `cards` of `storage` shows the pattern;
+the check; the pattern keeps them equal. The test module `memos` of `storage` shows the pattern;
 `projects` is its first real user.
 
 ## Considered Options

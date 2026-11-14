@@ -1,9 +1,8 @@
-// Test-only reference for the edit pattern; no runtime entry imports this module.
 import { defineMigrations, type TablesOf } from "@self-engine/db";
 import { spaceIdSchema } from "@self-engine/spaces";
 import { instantSchema } from "@self-engine/time";
 import { z } from "zod";
-import { cardIdSchema, cardSchema } from "../contracts/index.ts";
+import { cardIdSchema, type cardSchema } from "../contracts/index.ts";
 
 export const cardsMigrations = defineMigrations(
   "cards",
@@ -16,21 +15,13 @@ export const cardsRowMap = {
     created_at: instantSchema,
     updated_at: instantSchema,
     deleted_at: instantSchema.nullable(),
+    archived_at: instantSchema.nullable(),
     space_id: spaceIdSchema,
     title: z.string(),
-    body: z.string().nullable(),
-    color: z.string().nullable(),
   }),
 };
-type CardRow = TablesOf<typeof cardsRowMap>["cards"];
+export type CardRow = TablesOf<typeof cardsRowMap>["cards"];
 
 export function toCard(row: CardRow): z.output<typeof cardSchema> {
-  return {
-    id: row.id,
-    createdAt: row.created_at,
-    updatedAt: row.updated_at,
-    title: row.title,
-    body: row.body,
-    color: row.color,
-  };
+  return { id: row.id, updatedAt: row.updated_at, archivedAt: row.archived_at, title: row.title };
 }

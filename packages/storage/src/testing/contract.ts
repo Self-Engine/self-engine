@@ -16,6 +16,7 @@ import {
   type StorageModule,
 } from "../core/index.ts";
 import { tableContents } from "./table-contents.ts";
+import { checkActiveQuery } from "./active.ts";
 import { QueryWriteError } from "../core/table-writes.ts";
 import { recordTableReads } from "./table-reads.ts";
 import { createTestContext, createTestDatabase } from "./helpers.ts";
@@ -214,6 +215,8 @@ export async function checkContract<Contract extends StorageContract, Rows exten
         }
       }
       violations.push(...(await checkEntryScoping(module, seed, entry, example, dependencies)));
+      if (definition?.kind === "query" && definition.active === true)
+        violations.push(...(await checkActiveQuery(module, seed, entry, example, dependencies)));
       const scoped = await seedScoping(database, module.rowMap, seed, createContext(sources));
       let calls = 0;
       const read = new Set<string>();
