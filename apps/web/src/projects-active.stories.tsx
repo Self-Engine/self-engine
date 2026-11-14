@@ -17,10 +17,12 @@ import {
   AppAt,
   editInAddress,
   loadStoryApp,
+  noDrawer,
   openPalette,
   paletteGone,
   pressWithMod,
   storyRouter,
+  titlesShown,
 } from "./story-app.tsx";
 
 type Canvas = ReturnType<typeof within>;
@@ -55,13 +57,6 @@ const buttonOf = (item: HTMLElement) => within(item).getByRole("button");
 /** The title of a row, without an emoji of its mark. */
 const titleOf = (item: HTMLElement) => buttonOf(item).lastElementChild?.textContent;
 
-/** The titles in the order the list shows them. */
-async function titlesShown(canvas: Canvas) {
-  return within(await list(canvas))
-    .getAllByRole("listitem")
-    .map(titleOf);
-}
-
 /** The mark of the row titled `title`: the element before the title. */
 async function markOf(canvas: Canvas, title: string) {
   const row = within(await list(canvas))
@@ -80,7 +75,7 @@ const SORTED = ["Arbeit", "Ärzte", "Auto", "Garden", "Tax", "Website"];
 
 export const TheListShowsEachProjectWithItsMarkSortedByTitle: Story = {
   play: async ({ canvas }) => {
-    await expect(await titlesShown(canvas)).toEqual(SORTED);
+    await expect(await titlesShown(canvas, "Active projects")).toEqual(SORTED);
 
     const website = await markOf(canvas, "Website");
     await expect(website).toHaveAttribute("data-color-set", "teal");
@@ -196,8 +191,6 @@ async function formIn() {
     save: () => drawer.getByRole("button", { name: "Save" }),
   };
 }
-
-const noDrawer = () => waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
 
 export const TheNewProjectFormChecksTheTitleBeforeAnyCall: Story = {
   args: { address: NEW },

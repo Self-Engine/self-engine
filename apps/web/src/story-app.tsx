@@ -2,6 +2,7 @@
 
 import { DataProvider, type PortAccess } from "@self-engine/data-client/react";
 import { LANGUAGE_TAGS, loadAppCatalog } from "@self-engine/i18n";
+import { holdTimers } from "@self-engine/ui/story-timers";
 import { loadStoryShell, modKey } from "@self-engine/shell/story-interactions";
 import { createMemoryHistory, RouterProvider } from "@tanstack/react-router";
 import { useState } from "react";
@@ -102,8 +103,27 @@ export function held<T>() {
   return { promise, finish };
 }
 
-export const noDrawer = (name: string) =>
-  waitFor(() => expect(screen.queryByRole("dialog", { name })).toBeNull());
+/** The drawer named `name` is closed; without a name, every drawer is. */
+export const noDrawer = (name?: string) =>
+  waitFor(() =>
+    expect(screen.queryByRole("dialog", name === undefined ? {} : { name })).toBeNull(),
+  );
+
+/** A notice stays until the story answers it. Returns what lets the timers run again. */
+export const keepNoticesOpen = () => holdTimers(8000).restore;
+
+/** Undo on the latest notice, the one in front of the stack; the others lie behind it, inert. */
+export async function undoLast() {
+  const offers = await screen.findAllByRole("button", { name: "Undo" });
+  await userEvent.click(offers.find((offer) => offer.closest("[inert]") === null)!);
+}
+
+/** The titles in the order the list named `name` shows them, without an emoji of a mark. */
+export async function titlesShown(canvas: ReturnType<typeof within>, name: string) {
+  return within(await canvas.findByRole("list", { name }))
+    .getAllByRole("button")
+    .map((row) => row.lastElementChild?.textContent);
+}
 
 /** Opens the entry from the list, so that there is a history entry to go back from. */
 export async function editStudio(canvas: ReturnType<typeof within>) {

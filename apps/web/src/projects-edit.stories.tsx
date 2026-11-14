@@ -14,10 +14,19 @@ import {
   TAX,
   WEBSITE,
 } from "@self-engine/projects/testing";
-import { holdTimers } from "@self-engine/ui/story-timers";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { expect, screen, userEvent, waitFor, within } from "storybook/test";
-import { AppAt, editInAddress, loadStoryApp, QUESTION, storyRouter } from "./story-app.tsx";
+import {
+  AppAt,
+  editInAddress,
+  keepNoticesOpen,
+  loadStoryApp,
+  noDrawer,
+  QUESTION,
+  storyRouter,
+  titlesShown,
+  undoLast,
+} from "./story-app.tsx";
 
 type Canvas = ReturnType<typeof within>;
 
@@ -63,11 +72,6 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-const titlesShown = async (canvas: Canvas, name = "Active projects") =>
-  within(await canvas.findByRole("list", { name }))
-    .getAllByRole("button")
-    .map((row) => row.lastElementChild?.textContent);
-
 /** Opens `title` from the list and finds its form as a user finds it. */
 async function openFromTheList(canvas: Canvas, title = WEBSITE.title) {
   await userEvent.click(await canvas.findByRole("button", { name: title }));
@@ -80,17 +84,6 @@ async function openFromTheList(canvas: Canvas, title = WEBSITE.title) {
     save: () => drawer.getByRole("button", { name: "Save" }),
   };
 }
-
-const noDrawer = () => waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
-
-/** A notice stays until the story answers it. */
-const keepNoticesOpen = () => holdTimers(8000).restore;
-
-/** Undo on the latest notice, the one in front of the stack. */
-const undoLast = async () => {
-  const offers = await screen.findAllByRole("button", { name: "Undo" });
-  await userEvent.click(offers.find((offer) => offer.closest("[inert]") === null)!);
-};
 
 /** Whether one of `texts` was ever on the page while the story ran, even for one frame. */
 function watchFor(texts: readonly string[]) {
@@ -146,7 +139,9 @@ export const ANewTitleIsSentAloneAndTheListShowsIt: Story = {
     await userEvent.click(form.save());
     await noDrawer();
     await expect(port.calls).toEqual([{ entry: "edit", input: { id: WEBSITE.id, title: "Shop" } }]);
-    await waitFor(async () => expect(await titlesShown(canvas)).toEqual(["Shop", "Tax"]));
+    await waitFor(async () =>
+      expect(await titlesShown(canvas, "Active projects")).toEqual(["Shop", "Tax"]),
+    );
     await expect(editInAddress(storyRouter())).toBeUndefined();
   },
 };
@@ -224,7 +219,9 @@ export const DeleteClosesTheDrawerAndUndoBringsTheProjectBack: Story = {
     try {
       await userEvent.click(form.drawer.getByRole("button", { name: "Delete" }));
       await noDrawer();
-      await waitFor(async () => expect(await titlesShown(canvas)).toEqual(["Tax"]));
+      await waitFor(async () =>
+        expect(await titlesShown(canvas, "Active projects")).toEqual(["Tax"]),
+      );
       await expect(flash.seen()).toBeUndefined();
     } finally {
       flash.stop();
@@ -234,7 +231,9 @@ export const DeleteClosesTheDrawerAndUndoBringsTheProjectBack: Story = {
     await expect(await screen.findByText("Project deleted")).toBeVisible();
 
     await undoLast();
-    await waitFor(async () => expect(await titlesShown(canvas)).toEqual(["Tax", "Website"]));
+    await waitFor(async () =>
+      expect(await titlesShown(canvas, "Active projects")).toEqual(["Tax", "Website"]),
+    );
     await expect(port.calls).toEqual([
       { entry: "delete", input: { id: WEBSITE.id } },
       { entry: "restore", input: { id: WEBSITE.id } },
@@ -322,7 +321,9 @@ export const ArchiveClosesTheDrawerAndUndoBringsTheProjectBack: Story = {
     try {
       await userEvent.click(form.drawer.getByRole("button", { name: "Archive" }));
       await noDrawer();
-      await waitFor(async () => expect(await titlesShown(canvas)).toEqual(["Tax"]));
+      await waitFor(async () =>
+        expect(await titlesShown(canvas, "Active projects")).toEqual(["Tax"]),
+      );
       await expect(flash.seen()).toBeUndefined();
     } finally {
       flash.stop();
@@ -330,7 +331,9 @@ export const ArchiveClosesTheDrawerAndUndoBringsTheProjectBack: Story = {
     await expect(await screen.findByText("Project archived")).toBeVisible();
 
     await undoLast();
-    await waitFor(async () => expect(await titlesShown(canvas)).toEqual(["Tax", "Website"]));
+    await waitFor(async () =>
+      expect(await titlesShown(canvas, "Active projects")).toEqual(["Tax", "Website"]),
+    );
     await expect(port.calls).toEqual([
       { entry: "archive", input: { id: WEBSITE.id } },
       { entry: "unarchive", input: { id: WEBSITE.id } },

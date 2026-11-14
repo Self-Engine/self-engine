@@ -9,9 +9,7 @@ import {
 } from "@self-engine/projects/testing";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { expect, screen, userEvent, within } from "storybook/test";
-import { AppAt, editInAddress, loadStoryApp, storyRouter } from "./story-app.tsx";
-
-type Canvas = ReturnType<typeof within>;
+import { AppAt, editInAddress, loadStoryApp, storyRouter, titlesShown } from "./story-app.tsx";
 
 const ARCHIVE = "/projects/archive";
 
@@ -30,17 +28,10 @@ const withAnswers = (answers: ProjectsAnswers) => (args: { readonly address: str
   <AppAt address={args.address} access={projectsStoryPort(answers).access} />
 );
 
-/** The titles in the order the list named `name` shows them, without an emoji of a mark. */
-async function titlesShown(canvas: Canvas, name = "Archived projects") {
-  return within(await canvas.findByRole("list", { name }))
-    .getAllByRole("button")
-    .map((row) => row.lastElementChild?.textContent);
-}
-
 export const TheArchiveShowsTheArchivedProjectsSortedByTitle: Story = {
   play: async ({ canvas }) => {
     await expect(await canvas.findByRole("heading", { name: "Archive", level: 1 })).toBeVisible();
-    await expect(await titlesShown(canvas)).toEqual(["Old shop", "Tax 2025"]);
+    await expect(await titlesShown(canvas, "Archived projects")).toEqual(["Old shop", "Tax 2025"]);
     await expect(canvas.queryByRole("list", { name: "Active projects" })).toBeNull();
   },
 };

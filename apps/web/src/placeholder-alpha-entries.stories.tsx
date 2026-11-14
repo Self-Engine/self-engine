@@ -12,13 +12,16 @@ import { holdTimers } from "@self-engine/ui/story-timers";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { expect, screen, userEvent, waitFor, within } from "storybook/test";
 import {
-  loadStoryApp,
   AppAt,
   editInAddress,
+  keepNoticesOpen,
+  loadStoryApp,
   modKeyIsLeftToTheBrowser,
+  noDrawer,
   pressWithMod,
   QUESTION,
   storyRouter,
+  undoLast,
 } from "./story-app.tsx";
 
 type Canvas = ReturnType<typeof within>;
@@ -37,11 +40,6 @@ type Story = StoryObj<typeof meta>;
 
 const openEntry = () => editInAddress(storyRouter());
 
-const noDrawer = () => waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
-
-/** A notice stays until the story answers it. */
-const keepNoticesOpen = () => holdTimers(8000).restore;
-
 const listed = (canvas: Canvas) =>
   canvas
     .getAllByRole("button", { name: /^(Studio|Garden) work$/ })
@@ -51,12 +49,6 @@ const deleteFromTheList = async (canvas: Canvas, name: string) =>
   userEvent.click(await canvas.findByRole("button", { name: `Delete ${name}` }));
 
 const undoOffers = () => screen.queryAllByRole("button", { name: "Undo" });
-
-/** Undo on the latest notice, the one in front of the stack; the others lie behind it, inert. */
-const undoLast = async () => {
-  const offers = await screen.findAllByRole("button", { name: "Undo" });
-  await userEvent.click(offers.find((offer) => offer.closest("[inert]") === null)!);
-};
 
 const noUndoOffer = () => waitFor(() => expect(undoOffers()).toHaveLength(0));
 
