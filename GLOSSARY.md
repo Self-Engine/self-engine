@@ -156,6 +156,10 @@ _Avoid_: mock, fixture, stub
 A piece of work a freelancer keeps track of, with a title and optionally a description, an icon and a color. A project is its id: two projects may carry the same title. It has no type and no rate; those come with billing. It is _archived_ when finished, never closed.
 _Avoid_: job, client, engagement, assignment
 
+**Project Reference** (de: _Projekt-Verweis_):
+What a module above `projects` holds of a project to show it and know its state: id, title, icon, color, an archive mark and a deletion mark. `projects` releases it as a _Read Piece_ and as a schema; a form hands it to the project picker as the current choice. It is not the project itself, and it does not make an archived project unusable.
+_Avoid_: project link, foreign key, project summary
+
 ### Settings
 
 **Device Setting** (de: _Geräteeinstellung_):
