@@ -220,7 +220,7 @@ Paket-Grilling sortiert sie neu; wer baut, darf anders entscheiden und nennt es 
 **`projects`**
 
 - **Titel:** eindeutig je Space unter nicht gelöschten Projekten, wie der Name in
-  `placeholder-alpha`.
+  `placeholder-alpha`. _Überholt durch D328._
 - **Icon und Farbe:** nach dem Muster aus D294; das Standard-Icon gibt `projects` vor.
 - **Ansichten:** „Aktiv“ und „Archiv“.
 - **Projekt-Auswahl:** ein Baustein, den `projects` exportiert; der Einstieg des Pakets dafür wird
@@ -277,3 +277,4 @@ Diese Fragen betreffen ein gespeichertes Format oder die Richtigkeit von Zeit un
 - **Dauer von Hand:** ob jemand die Dauer überschreiben darf, ohne Beginn oder Ende zu ändern.
 - **Zeitumstellung im Formular:** die offenen Punkte aus der Runde zu `time` (D279–D285).
 - **Archiv als Muster:** ob `archived_at` und seine Bedeutung für jedes Modul gleich gelten.
+  _Beantwortet durch D327._
