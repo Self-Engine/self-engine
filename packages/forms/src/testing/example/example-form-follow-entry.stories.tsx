@@ -5,11 +5,6 @@
 
 import { Button } from "@mantine/core";
 import { DataProvider } from "@self-engine/data-client/react";
-import {
-  afterTheCommitsNowDue,
-  difference,
-  renderCounts,
-} from "@self-engine/ui/story-render-counts";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useState } from "react";
 import { expect, screen, userEvent, waitFor, within } from "storybook/test";
@@ -23,6 +18,7 @@ import {
 } from "../../index.ts";
 import { exampleTiedFields, exampleContract } from "./contract.ts";
 import { loadStoryShell, StoryDrawer } from "./drawer-story.tsx";
+import { fieldsDrawnDuring } from "./fields-drawn.ts";
 import { type ExampleEntry, exampleEditTexts } from "./example-form.tsx";
 import { useExampleEntries, useUpdateExample } from "./port.ts";
 import { CREATED, type ChangingPort, changingPort } from "./story-port.ts";
@@ -234,19 +230,15 @@ export const AnUntouchedFieldWithTheCaretKeepsItWhenItFollows: Story = {
 const FIELDS = ["TextField", "LongTextField", "IconField", "ColorField"] as const;
 
 /** How often each field drew while the stored entry changed to `changes`. */
-async function fieldsDrawnWhenStoredAs(
+const fieldsDrawnWhenStoredAs = (
   port: ChangingPort,
   changes: Partial<ExampleEntry>,
   shown: () => void,
-): Promise<Record<string, number>> {
-  await afterTheCommitsNowDue();
-  const before = renderCounts();
-  port.change(storedAs(changes));
-  await waitFor(shown);
-  await afterTheCommitsNowDue();
-  const drawn = difference(renderCounts(), before).components;
-  return Object.fromEntries(FIELDS.map((name) => [name, drawn[name] ?? 0]));
-}
+) =>
+  fieldsDrawnDuring(FIELDS, async () => {
+    port.change(storedAs(changes));
+    await waitFor(shown);
+  });
 
 export const AChangedStoredValueRedrawsOnlyItsField: Story = {
   play: async ({ loaded }) => {

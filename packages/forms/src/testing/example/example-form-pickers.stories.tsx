@@ -4,14 +4,10 @@
 
 import { Stack } from "@mantine/core";
 import { DataProvider } from "@self-engine/data-client/react";
-import {
-  afterTheCommitsNowDue,
-  difference,
-  renderCounts,
-} from "@self-engine/ui/story-render-counts";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { expect, screen, userEvent, waitFor, within } from "storybook/test";
 import { ExampleForm } from "./example-form.tsx";
+import { fieldsDrawnDuring } from "./fields-drawn.ts";
 import { type RecordingPort, recordingPort } from "./story-port.ts";
 
 interface Loaded {
@@ -180,34 +176,28 @@ export const EveryFieldIsReachedAndChosenWithTheKeyboard: Story = {
 
 const FIELDS = ["TextField", "LongTextField", "IconField", "ColorField"] as const;
 
-/** How often each field drew while `act` ran. */
-async function fieldsDrawnDuring(act: () => Promise<void>): Promise<Record<string, number>> {
-  await afterTheCommitsNowDue();
-  const before = renderCounts();
-  await act();
-  await afterTheCommitsNowDue();
-  const drawn = difference(renderCounts(), before).components;
-  return Object.fromEntries(FIELDS.map((name) => [name, drawn[name] ?? 0]));
-}
-
 export const ChoosingInOnePickerRedrawsNoOtherField: Story = {
   play: async ({ canvasElement }) => {
     const form = formIn(canvasElement);
     // Only the field whose value changed draws, once; the texts and the other picker do not.
-    await expect(await fieldsDrawnDuring(() => userEvent.click(form.colorChoice("Teal")))).toEqual({
+    await expect(
+      await fieldsDrawnDuring(FIELDS, () => userEvent.click(form.colorChoice("Teal"))),
+    ).toEqual({
       TextField: 0,
       LongTextField: 0,
       IconField: 0,
       ColorField: 1,
     });
-    await expect(await fieldsDrawnDuring(() => chooseIcon(form, "Rocket"))).toEqual({
+    await expect(await fieldsDrawnDuring(FIELDS, () => chooseIcon(form, "Rocket"))).toEqual({
       TextField: 0,
       LongTextField: 0,
       IconField: 1,
       ColorField: 0,
     });
     // Typing redraws no picker.
-    await expect(await fieldsDrawnDuring(() => userEvent.type(form.title(), "Kitchen"))).toEqual({
+    await expect(
+      await fieldsDrawnDuring(FIELDS, () => userEvent.type(form.title(), "Kitchen")),
+    ).toEqual({
       TextField: 0,
       LongTextField: 0,
       IconField: 0,
@@ -217,7 +207,9 @@ export const ChoosingInOnePickerRedrawsNoOtherField: Story = {
     // After a failed save every change is checked, and still only the chosen picker draws.
     await userEvent.clear(form.title());
     await form.save();
-    await expect(await fieldsDrawnDuring(() => userEvent.click(form.colorChoice("Red")))).toEqual({
+    await expect(
+      await fieldsDrawnDuring(FIELDS, () => userEvent.click(form.colorChoice("Red"))),
+    ).toEqual({
       TextField: 0,
       LongTextField: 0,
       IconField: 0,
