@@ -21,7 +21,7 @@ Stand: 2026-11-13 · Status: **entschieden** (D86–D98, D133–D142, D187–D19
 | L2.11 | Plattformen | Nur Desktop, Code plattformneutral (D97) |
 | L2.12 | Issues | Jetzt zerlegen, `layer:2` (D98) |
 | L2.13 | Verträge | Schemas im Modul unter `./contracts`, `contracts` setzt nur zusammen (D187) |
-| L2.14 | Prüfen | Eingaben immer im Datenprozess, Ausgaben nur in Tests und im Dev-Build, der Renderer nie (D188) |
+| L2.14 | Prüfen | Eingaben immer im Datenprozess, Ausgaben nur in Tests und im Dev-Build, der Renderer nie (D188); ein Formular prüft seine Eingabe für die Rückmeldung mit dem Schema des Vertrags (D317) |
 | L2.15 | Port | Port, Vertrag, Speicher; ein Vertrag pro Modul, der Speicher in zwei Lagen (D189) |
 | L2.16 | Fehler | „Nicht gefunden“ und „Konflikt“ mit Grund, alles andere unerwartet; kein Effect (D190) |
 | L2.17 | Migrationen | D139 bleibt, der Build sammelt die SQL-Dateien ein (D191) |
@@ -75,7 +75,7 @@ löst dasselbe `tablesChanged` aus (D89).
 - Migrationen im Build von Mobile (D191)
 - Wie ein Modul in der Oberfläche etwas in die Seite eines anderen einhängt (Schicht 4, D241)
 - Wie ein Modul samt Tabelle verschwindet (mit dem Ersatz der Platzhalter, D252)
-- Allgemeiner Formular-Helfer mit Eingabeprüfung (mit dem ersten echten Modul, D251)
+- Allgemeiner Formular-Helfer mit Eingabeprüfung (entschieden in D317–D326, #213)
 - Web- und Mobile-Treiber (mit diesen Plattformen)
 - Wahl der Sync-Engine (Sync-Phase, Kriterien in D89), Operations-Protokoll (mit Sync)
 
