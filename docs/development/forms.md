@@ -6,37 +6,62 @@ Use `@self-engine/forms` for module forms (ADR 0030). Add `forms` to the module�
 import its Contract at runtime there, and as a type in `port.ts`. The startup gate rejects
 Contracts, the full Zod build and the form library in startup chunks.
 
-The next consumer is `projects` (#273). The example below describes a proposed multi-field
-form, not a settled projects Contract. Projects must first decide its partial-update Contract
-and its meaning of missing, empty and value. Do not copy placeholder-alpha’s single-field
-rename Contract for a multi-field edit.
+Copy [`projects`](../../packages/projects/src/), the template every later module follows
+(D315): its [Edit Drawer](../../packages/projects/src/edit-drawer.tsx) creates, edits, archives,
+unarchives and deletes a project. The Contract of a multi-field edit follows the edit
+pattern of [ADR 0032](../adr/0032-every-edit-names-what-changes-and-its-inputs-come-from-one-field-list.md):
+missing stays untouched, `null` clears, a value sets, an unknown field is an input error and an
+edit without fields does nothing. Do not copy placeholder-alpha’s single-field rename Contract
+for a multi-field edit. `projects` has no Conflict (D328); a Conflict reason shown at a field is
+found in placeholder-alpha’s [Port](../../packages/placeholder-alpha/src/port.ts) and its stories.
 
 ## Contract and hooks
 
 Rules belong in the input schema, not in field handlers. The Data Process checks every input
 and decides; the form’s Check gives immediate feedback. Output schemas preserve values.
-For example, a create schema can declare:
+List the entry’s fields once and derive the create and edit inputs with `entryFields` from
+`@self-engine/db/schema` ([port guide](port-pattern.md#1-set-up-the-entries-and-contract)):
 
 ```ts
-const fields = {
-  title: z.string().trim().min(1).max(200),
-  description: z.string().trim().max(2000).nullable(),
-  icon: iconInputSchema.nullable(),
-  color: colorInputSchema.nullable(),
-};
-const createInput = z
-  .object(fields)
-  .refine((input) => input.description === null || input.description !== input.title, {
-    path: ["description"],
-    params: { reason: "description_matches_title" },
-  });
+import { entryIconSchema } from "@self-engine/icons/names";
+import { colorSetNameSchema } from "@self-engine/theme/names";
+
+export const projectFields = entryFields(projectIdSchema, {
+  title: z.string().trim().min(1).max(TITLE_MAX),
+  description: z
+    .string()
+    .trim()
+    .max(DESCRIPTION_MAX)
+    .transform((text) => (text === "" ? null : text))
+    .nullable(),
+  icon: z.nullable(entryIconSchema),
+  color: z.nullable(colorSetNameSchema),
+});
+// create: oc.input(projectFields.create) and edit: oc.input(projectFields.edit)
 ```
 
-Use the pure icon/color schemas of `ui` (ADR 0029). A rule across fields names its affected
-field and reason. For an edit, export tied field groups beside that rule, for example
-`[["title", "description"]] as const`; the partial input schema must accept exactly the
-subsets the form sends and check a group when it is present. The same schema runs in the
-Data Process. Never reimplement the predicate in the form.
+Take the icon and color schemas from the pure `names` entries of `icons` and `theme`
+(ADR 0029), which load no pictures and no theme. A field whose schema accepts `null` is
+optional. Both inputs are strict: a field the Draft holds but the input does not take is an
+input error, not dropped.
+
+`projects` has no rule across fields. When an entry needs one, it names its affected field
+and reason and refines both derived inputs; for an edit, export the tied field groups beside
+it. The test module `memos` of `storage`
+([its Contract](../../packages/storage/test/memos-module/contracts/index.ts)) has one:
+
+```ts
+export const bodyDiffers = ({ title, body }: { title?: string; body?: string | null }) =>
+  title === undefined || body === undefined || body !== title;
+export const bodyRule = { path: ["body"], params: { reason: "body_matches_title" } };
+export const memoTiedFields = [["title", "body"]] as const;
+const createInput = memoFields.create.refine(bodyDiffers, bodyRule);
+const editInput = memoFields.edit.refine(bodyDiffers, bodyRule);
+```
+
+The derived edit input accepts exactly the subsets the form sends, and the rule checks a group
+when it is present. The same schema runs in the Data Process. Never reimplement the predicate
+in the form.
 
 Build hooks with `portHooks<typeof contract>(mountName)` as in [the hooks guide](port-hooks.md).
 Give every Conflict reason its `msg` descriptor and field there; use `field: null` for a
@@ -47,7 +72,6 @@ Conflict no field can show. A taken title is checked by the Operation, not while
 Inside a lazy drawer, with its `onCancel` and `onDone` props:
 
 ```tsx
-import { msg } from "@lingui/core/macro";
 import { useLingui } from "@lingui/react/macro";
 import {
   ColorField,
@@ -57,21 +81,17 @@ import {
   TextField,
   useOperationForm,
 } from "@self-engine/forms";
-import { projectContract } from "./contracts/index.ts";
+import { projectsContract } from "./contracts/index.ts";
 import { useCreateProject } from "./port.ts";
 
 function CreateProjectForm({ onCancel, onDone }: EditDrawerProps) {
   const { t } = useLingui();
   useEditDrawerTitle(t`New project`);
   const form = useOperationForm({
-    entry: projectContract.create,
+    entry: projectsContract.create,
     operation: useCreateProject(),
     draft: { title: "", description: "", icon: null, color: null },
     emptyTextFields: ["description"],
-    texts: {
-      fields: { title: msg`Give this project a title of at most 200 characters.` },
-      reasons: { description_matches_title: msg`The description must differ from the title.` },
-    },
     onDone,
   });
   return (
@@ -91,8 +111,11 @@ whitespace-only text as `null`, "empty", for comparison and submission; every ot
 hands on `""` as typed. Trimming other text belongs in the Contract. Stored string
 values can include names unknown to the current input schema, such as a newer icon.
 
-The helper supplies translated violation texts; `texts.fields` replaces a field’s generic
-text, and `texts.reasons` names special rules. A reason takes precedence over a field text.
+The helper supplies translated violation texts, which is all `projects` needs. A module with
+texts of its own passes `texts`: `texts.fields` replaces a field’s generic text, and
+`texts.reasons` names special rules, such as
+``{ reasons: { body_matches_title: msg`The body must differ from the title.` } }`` for the rule
+of `memos` above. A reason takes precedence over a field text.
 Descriptors follow an open-form language switch. The types do not find a missing reason text;
 a story does, at runtime: the field shows the fallback and an error is logged, which the
 console-error gate rejects. Exercise every reason in a story.
@@ -110,18 +133,17 @@ Use a separate edit component to keep hook calls unconditional:
 
 ```tsx
 const form = useOperationForm({
-  entry: projectContract.update,
-  operation: useUpdateProject(),
+  entry: projectsContract.edit,
+  operation: useEditProject(),
   draft: {
-    id: entry.id,
-    title: entry.title,
-    description: entry.description,
-    icon: entry.icon,
-    color: entry.color,
+    id: project.id,
+    title: project.title,
+    description: project.description,
+    icon: project.icon,
+    color: project.color,
   },
-  edit: { identity: { id: entry.id }, tiedFields: projectFieldGroups, deleted },
+  edit: { identity: { id: project.id }, deleted },
   emptyTextFields: ["description"],
-  texts: projectFormTexts,
   onDone,
 });
 ```
@@ -133,7 +155,7 @@ Do not keep another Draft, starting value, Conflict text or changed flag in the 
 
 Create sends all fields. Edit sends identity plus changed fields; every group touched by a
 change travels together (including overlapping groups). `edit.tiedFields` must name every group
-a rule of the Contract ties. A forgotten group sends one field of the rule without the other,
+a rule of the Contract ties (`projects` has none; `memos` would pass `memoTiedFields`). A forgotten group sends one field of the rule without the other,
 and the rule reports at a field the edit does not submit, with a message wrong for what that
 field shows; Save then logs an error naming that field, so a story fails. Missing means
 untouched, `null` means clear, and a value means set. Thus changing only a title does not send
@@ -145,7 +167,7 @@ while an Operation runs. Enter in a single-line input and Ctrl/Cmd+Enter submit;
 with the Shell. Plain Enter in long text inserts a line break.
 
 Keep the last loaded entry separately from the Draft, as
-[`placeholder-alpha/edit-drawer.tsx`](../../packages/placeholder-alpha/src/edit-drawer.tsx) does.
+[`projects/edit-drawer.tsx`](../../packages/projects/src/edit-drawer.tsx) does.
 An id never found shows “Entry not found”. If an entry that was loaded disappears, retain its
 last value and pass `edit.deleted: true`. The form stays readable and copyable with a lasting
 warning and Save disabled. Undo passes the restored entry and `deleted: false`.
@@ -217,7 +239,7 @@ Drive fields, buttons and keys; observe visible messages and the Port calls, nev
 internals. The example stories in `packages/forms/src/testing/example/` cover multi-field
 Checks, own texts, field binding, changed groups, flow and external changes using Fixed
 Answers and Changing Answers. Add stories for your module’s own rules and texts. Prove the
-module flow over the test Data Process, as in placeholder-alpha’s `port.test.ts`, including
-invalid input sent past the form. Run `pnpm check`, then `pnpm verify`. Measure first-open
+module flow over the test Data Process, as in the [`port.test.ts`](../../packages/projects/src/port.test.ts)
+of `projects`, including invalid input sent past the form. Run `pnpm check`, then `pnpm verify`. Measure first-open
 latency in the built app and compare `apps/web/dist/startup-bundle.json`; neither the Contract
 nor the form library belongs at startup.

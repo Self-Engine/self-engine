@@ -344,6 +344,32 @@ describe("the web app's startup rules", () => {
     });
   });
 
+  describe("the project picker", () => {
+    const pickerEntry = "/repo/packages/projects/src/picker/index.tsx";
+    const drawer = "/repo/packages/time-tracking/src/edit-drawer.tsx";
+    const shell = "/repo/packages/shell/src/shell.tsx";
+    const inspectPicker = (startup: Record<string, unknown>, onDemand: Record<string, unknown>) =>
+      inspectStartup(
+        [
+          chunk("main.js", { isEntry: true, modules: startup }),
+          chunk("drawer.js", { modules: onDemand }),
+        ],
+        new Set(),
+        { ...STARTUP_RULES, maxBytes: 100 },
+        (id) => (id === pickerEntry ? [drawer] : []),
+      ).problems;
+
+    it("is accepted in the form of an Edit Drawer that loads on demand", () => {
+      expect(inspectPicker({ [shell]: {} }, { [drawer]: {}, [pickerEntry]: {} })).toEqual([]);
+    });
+
+    it("is rejected at startup, naming the code that imports it", () => {
+      expect(inspectPicker({ [shell]: {}, [drawer]: {}, [pickerEntry]: {} }, {})).toEqual([
+        `The project picker entered the startup bundle, imported by ${drawer}: import @self-engine/projects/picker only from a form that loads on demand, such as an Edit Drawer's.`,
+      ]);
+    });
+  });
+
   it("reject the emoji data at startup and name the code that imports it", () => {
     expect(
       inspect(

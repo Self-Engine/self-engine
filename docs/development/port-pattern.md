@@ -6,8 +6,18 @@ records the architectural choice. Start from the test-only
 [`notes` template](../../packages/storage/test/notes-module/); it is not registered in the app.
 Its relative imports reach storage internals because it lives inside that package. A real
 module imports `@self-engine/storage` and `@self-engine/storage/testing` through their exports,
-as [`placeholder-alpha`](../../packages/placeholder-alpha/) does: the first module mounted in
-the app (D252), with `src/contracts/`, `src/data/` and its kit test in `src/data/`.
+as [`projects`](../../packages/projects/) does: the first real module and the template every
+later module copies (D315), with `src/contracts/`, `src/data/` and its kit test in
+[`src/data/projects.test.ts`](../../packages/projects/src/data/projects.test.ts).
+
+`projects` has no unique index and so no Conflict (D328). The pattern "a unique index becomes
+a Conflict at a field" is found in two places instead: the `notes` template above, with its
+create, update and restore conflicts, and
+[`placeholder-alpha`](../../packages/placeholder-alpha/), whose
+[data entry](../../packages/placeholder-alpha/src/data/index.ts) maps its unique index to
+`name_taken` and whose [Port](../../packages/placeholder-alpha/src/port.ts) shows that reason at the name
+field. `placeholder-alpha` is no longer mounted in the app; it
+stays a test subject of the Shell's stories and the render measurements.
 
 ## 1. Set up the entries and contract
 
@@ -30,6 +40,34 @@ check outputs; the packaged app skips that check. Inputs are always checked in t
 Forms also check with the same input schema for field feedback (D317), but the Data Process
 still checks every input and decides. Trimming belongs in the input schema, not a form-only
 rule. Load the Contract with the lazy form, never at startup; see [the form guide](forms.md).
+
+Every input is strict: write `z.strictObject(...)`, so an unknown key is an input error and
+nothing is dropped silently ([ADR 0032](../adr/0032-every-edit-names-what-changes-and-its-inputs-come-from-one-field-list.md)).
+The contract kit fails an object input that accepts an unknown field, for Queries and
+Operations alike.
+
+An entry that is created and edited lists its fields once and derives both inputs with
+`entryFields` from `@self-engine/db/schema`, as the test module
+[`memos`](../../packages/storage/test/memos-module/contracts/index.ts) does:
+
+```ts
+export const memoFields = entryFields(memoIdSchema, {
+  title: z.string().trim().min(1).max(200),
+  body: z.string().trim().max(10_000).nullable(),
+  color: z.enum(["red", "blue"]).nullable(),
+});
+// create: title required, body and color may be missing (then empty).
+// edit: the id, every field optional; null clears body or color, never the title.
+create: oc.input(memoFields.create.refine(bodyDiffers, bodyRule)).output(memoSchema),
+edit: oc.input(memoFields.edit.refine(bodyDiffers, bodyRule)).output(memoSchema)
+  .errors({ NOT_FOUND: {} }),
+```
+
+A field whose schema accepts `null` is optional; every other field is required. Declare a rule
+across fields on the derived input with `.refine`, naming its field and its `params.reason`; on
+an edit it checks the fields when both travel, so export the tied groups beside it for the form
+([form guide](forms.md)). Name each field in the entry's answer as in the input: the kit
+compares them by name. Archive, delete and restore stay named Operations, never fields.
 
 Done when each planned query and operation has one contract entry, its input, full output
 shape and expected error codes, without a second hand-written port interface.
@@ -72,6 +110,12 @@ Apply [ADR 0019](../adr/0019-row-maps-are-the-single-source-of-storage-types.md)
 - Local Tables have the `local_` prefix and their own shape. Shared synchronized-row helpers
   do not accept them. Nothing synchronized may depend on a Local Table.
 
+- A synchronized table becomes archivable with one more convention column, `archived_at TEXT`:
+  nullable, no `DEFAULT`, `instantSchema.nullable()` in the row map
+  ([ADR 0031](../adr/0031-archived-is-a-second-state-of-a-row-beside-deleted.md)). The
+  [`cards`](../../packages/storage/test/cards-module/data/migrations/0001.sql) test module shows
+  it. Add it with a forward migration; every existing row starts active.
+
 Done when `checkAgreement(migrations, rowMap)` and `checkConventions(database)` return no
 violations, as in the notes tests. `checkConventions` names a synchronized table whose
 `space_id` lacks the key to `spaces(id)` or refers elsewhere, and any foreign key that carries an
@@ -111,12 +155,40 @@ non-literal objects, and runtime writes discard injected convention fields. Upda
 soft delete require a live row; restore requires a deleted row. Unknown ids and ids in another
 Space are not found; restoring a live row is also not found.
 
+`update` writes only the fields that are not `undefined`, so an edit hands its input on field by
+field, `{ title: input.title, body: input.body }`, and a missing field stays untouched. With no
+field left it reads instead: it answers with the live row, writes nothing, leaves `updated_at`
+and sends no Table Change. Mark such an entry `kind: "operation", edit: true`, as [`memos/data/index.ts`](../../packages/storage/test/memos-module/data/index.ts) does;
+the kit then checks the edit pattern (step 6). The Operation does not compare with the stored
+state: sending the value already stored writes and advances `updated_at` (ADR 0032).
+
+On an archivable table, `sharedEntry(tx, context).active(table)` selects the Live Rows that are
+not archived; `live(table)` and `lookup` keep archived rows, because an archived row is a Live
+Row. `sharedWrites` adds `archive(table, id)` and `unarchive(table, id)`, typed for archivable
+tables only; `insert` and `update` never set `archived_at`. Write no archive logic of your own,
+as [`cards/data/index.ts`](../../packages/storage/test/cards-module/data/index.ts) shows:
+
+- Archive sets `archived_at` and `updated_at` to `context.now`; unarchive empties `archived_at`
+  and sets `updated_at`. Both are ordinary changes that announce the table, and they lock
+  nothing: an archived row can still be updated, deleted and restored.
+- Archiving an archived row, or unarchiving one that is not archived, answers with the row as it is, keeps
+  the first Instant and writes nothing, so nothing is announced.
+- Both answer `NOT_FOUND` for an unknown or deleted id and for a row of another Space.
+- Archived and deleted are independent: `softDelete` and `restore` leave `archived_at`, so a
+  deleted archived row comes back archived.
+- Name the Operations `archive` and `unarchive`; `restore` stays the undo of a delete.
+- A Query for an archive View reads ``live(table).where(`${table}.archived_at`, "is not", null)``,
+  as the `archived` Query of [`projects/data/index.ts`](../../packages/projects/src/data/index.ts)
+  does; its Edit Drawer finds an entry in either list and offers "Archive" or "Unarchive" beside
+  "Delete", each closing the drawer with undo in a Notice.
+
 For joins, aggregates and multi-row changes, use ordinary Kysely builders and explicitly
 apply Space and live-row filters where required. Raw SQL and raw executors in storage are
 rejected by `self-engine/no-raw-storage-sql`, including `sql` in read-only expressions.
 Use `eb.fn` for SQL functions in storage queries; migration SQL remains separate.
 
-Map each unique index name to its reason, as `notes_live_title: "title_taken"` does. Let the
+A module with a unique index maps each index name to its reason, as `notes_live_title:
+"title_taken"` and `placeholder_alpha_entries_live_name: "name_taken"` do. Let the
 index enforce uniqueness, rather than querying first. Unique indexes over the same columns
 must map to the same reason: SQLite's diagnostic cannot distinguish their partial predicates. Restore into a reused title produces the
 same conflict as create. Throw `ORPCError("CONFLICT", { data: { reason } })` for a business
@@ -191,6 +263,48 @@ caller as an internal error. The lookup is one primary-key read per write. Filte
 columns in that same query. Declare allowed package dependencies in both `package.json` and
 `ALLOWED_IMPORTS` in `.dependency-cruiser.ts`.
 
+### Refer to a project
+
+A module above `projects` refers to a project through the project reference (D330): `id`,
+`title`, `icon`, `color`, `archivedAt` and `deletedAt`. These six fields are released; `projects`
+renames none of them without touching every module above. `projects` releases the reference
+twice:
+
+- **The Read Piece** `projectReferences(tx, context, alias)` from `@self-engine/projects/data`.
+  Join it in the module's own Query, as
+  [the `project-entries` test module](../../packages/projects/test/project-entries-module/data/index.ts)
+  does, and sort or filter by its fields there. It is scoped to the current Space and keeps an
+  archived and a deleted project with their marks, so an entry never loses its project. It takes
+  `ReadTransaction<DB>`, which a write transaction satisfies too. Declare `projects` in the
+  Query's `reads`.
+- **The schema** `projectReferenceSchema` from `@self-engine/projects/contracts`. Build it into
+  the module's own answers, such as `project: projectReferenceSchema.nullable()`, `null` where
+  the left join found no project in this Space. It is strict and accepts exactly what the Read
+  Piece gives.
+
+**Hiding archived projects is display, not a rule.** An Operation that stores a project's id
+looks it up through the Read Piece with `deletedAt` `null` and answers `NOT_FOUND` for a deleted
+or unknown project only. It accepts an archived one: an import of old entries, an entry a device
+wrote offline while another archived the project, and every edit that sends the project along
+must not fail. Never filter that lookup on `archivedAt`.
+
+**The form hands the reference to the picker.** A form of the module binds the project picker
+from `@self-engine/projects/picker` to the draft field that holds the id, and gives it the stored
+entry's reference as `current`:
+
+```tsx
+<ProjectField form={form} name="projectId" current={entry.project} label={t`Project`} />
+```
+
+The picker loads the active projects itself, with the Query of the View "Active", and never asks
+for a single id. While `current` is chosen it shows it, with "archived" or "deleted" where it is
+no longer active; once the user chooses another project it is no longer offered. A form that
+forgets `current` shows an archived or deleted choice as empty. An untouched picker sends nothing
+in an edit. Give `clearable` when the module's field is optional. Import the picker only from a
+form that loads on demand: the web app's startup check fails when startup code imports it.
+[The picker's stories](../../packages/projects/src/picker/project-picker.stories.tsx) show a test
+form of a module above.
+
 The bridge runner is not built yet; it comes with the first bridge. The intended runner
 will call modules’ lower functions inside one transaction and announce all changed tables
 together after commit. No exported runner currently makes that composition available.
@@ -238,6 +352,19 @@ unique-index mappings and reachable conflict reasons. It repeats every operation
 example on the same database and rejects conflicts or reasons not declared by that entry.
 Extra output fields have their own violation, separate from schema conversions and defaults. Business behavior still needs module-owned tests.
 
+For an Operation marked `edit: true` the kit checks the edit pattern on a seeded database
+([ADR 0032](../adr/0032-every-edit-names-what-changes-and-its-inputs-come-from-one-field-list.md)).
+The input's required keys are the identity, its optional keys the fields, and the example sets
+every field of a seeded entry. An edit with only the identity must answer with the entry as it
+stands, write nothing, announce nothing and leave `updated_at`; after the example its answer
+must equal the example's, though the clock has moved on. An id no seed produced must be not
+found. After the example, the kit
+sends each field alone, first as `null` where the input allows it, then as the example's value:
+that field must be cleared or set, and every other field must keep its value. The kit test of
+[`memos`](../../packages/storage/src/testing/edits.test.ts) shows a passing module and one for
+each failure. The kit finds an edit only by its flag: an edit Operation without `edit: true` is
+not checked against the pattern.
+
 The kit records the tables each query’s SQL takes rows from (FROM, JOIN and subqueries,
 including those a read piece builds) and reports `query reads an undeclared table: <table>`
 for each one missing from `reads`. It sees only the SQL its example ran: a table a query
@@ -253,6 +380,15 @@ affected-row count uses the returned-row count for a `RETURNING` statement; with
 a missing count is conservatively treated as a write). Rewriting identical values can
 therefore announce a table without changing its contents. A trigger writing another table
 cannot ship unnoticed: the kit detects the unannounced changed table.
+
+Declare every Query that must answer without archived rows as active, by adding
+`active: true` to its entry, as `cards` does with `{ ...smallSetList(reads, run), active: true }`.
+For each one the kit seeds a fresh database, archives every seeded Live Row of the module's own
+archivable tables and fails with `active query returns an archived row` when one of those ids
+is still in the answer, at any depth. A module without an archivable table that declares an
+active Query fails with `active query has no archivable table`. Seed at least one Live Row
+that is not archived: without one the check has nothing to archive and fails with
+`active query has no seeded Live Row to archive`.
 
 Done when the kit returns no violations and business tests cover behavior beyond these rules.
 
@@ -270,6 +406,17 @@ keys. Add dependencies and allowed import directions together. Modules import st
 data-process, except from their tests (`TEST_ONLY_IMPORTS`). Storage itself imports neither Electron nor a
 native driver; the driver and transport remain replaceable, independently of future sync.
 
+Add the module's Shell Contribution to the web app's list,
+[`apps/web/src/modules.ts`](../../apps/web/src/modules.ts); the first View of its first module
+is the app's start address. The router hands that list to its routes through its context. The
+app's stories mount their own list, [`apps/web/src/story-modules.ts`](../../apps/web/src/story-modules.ts):
+the placeholder modules beside every module of the app, so add a new module there too.
+
+A module never leaves the module list without a plan for its tables: nothing removes them yet
+(#214). A database that recorded a migration the list no longer has is refused as written by a
+newer app, naming that migration, as the desktop's runtime test shows for a dev database from
+before `projects` replaced the placeholders (D315). Such a dev database is set up again.
+
 The shared frame opens one transaction per call, runs the lower function, validates outputs
 when enabled, and rolls back on failure. After commit it announces a nonempty table set once;
 queries, failed operations and zero-row writes (including empty `RETURNING` results) announce nothing. A failing announcer is
@@ -284,8 +431,9 @@ will replace that reporter with the local error log; until then these reports wr
 Special procedures such as streams or long imports with progress can remain hand-written.
 
 For stories and component tests, Fixed Answers from the same contract stand in for the Data
-Process ([renderer guide](port-hooks.md#6-show-each-state-in-a-story-with-fixed-answers)). Do not register notes or note-links as app modules; `placeholder-alpha` is the mounted example
-(`placeholderAlpha` in both lists).
+Process ([renderer guide](port-hooks.md#6-show-each-state-in-a-story-with-fixed-answers)). Do not register notes, note-links or a placeholder module as app modules; `projects` is the
+mounted example (`projects` in the app contract of `packages/contracts` and in the Data
+Process's list in `apps/desktop/src/data-modules.ts`).
 
 Done when the committed implementation passes `pnpm verify` with `VERIFY: PASS` as its final line.
 Then build the hooks, Views and stories with [the renderer guide](port-hooks.md).

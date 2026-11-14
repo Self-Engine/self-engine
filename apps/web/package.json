@@ -19,6 +19,7 @@
     "@self-engine/icons": "workspace:*",
     "@self-engine/placeholder-alpha": "workspace:*",
     "@self-engine/placeholder-beta": "workspace:*",
+    "@self-engine/projects": "workspace:*",
     "@self-engine/settings": "workspace:*",
     "@self-engine/settings-area": "workspace:*",
     "@self-engine/shell": "workspace:*",

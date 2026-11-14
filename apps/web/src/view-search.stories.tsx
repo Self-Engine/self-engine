@@ -18,10 +18,9 @@ import { DataProvider } from "@self-engine/data-client/react";
 import { fixedAnswers } from "@self-engine/data-client/testing";
 import { memo, type ReactNode, useState } from "react";
 import { contribution as alpha } from "@self-engine/placeholder-alpha";
-import { modules, settings } from "./modules.ts";
 import { createAppRouter } from "./app-router.ts";
 import { ROUTING } from "./shell-routing.tsx";
-import { loadStoryApp } from "./story-app.tsx";
+import { loadStoryApp, storyModules } from "./story-app.tsx";
 
 /** These Views call no Port entry and show no notice, so any call fails the story. */
 const noAnswers = fixedAnswers({}, {});
@@ -54,8 +53,8 @@ function SearchStory({ children = <SearchControls /> }: { readonly children?: Re
     const root = createRootRoute({
       component: () => (
         <Shell
-          contributions={modules}
-          settings={settings}
+          contributions={storyModules.modules}
+          settings={storyModules.settings}
           activeModule={undefined}
           activeView={undefined}
           data={noData}
@@ -68,6 +67,7 @@ function SearchStory({ children = <SearchControls /> }: { readonly children?: Re
     return createRouter({
       routeTree: root,
       history: createMemoryHistory({ initialEntries: ["/?client=studio"] }),
+      context: { moduleList: storyModules },
     });
   });
   return <RouterProvider router={router} />;
@@ -155,6 +155,7 @@ function DrawerIsolationStory() {
   const [router] = useState(() => {
     return createAppRouter(
       createMemoryHistory({ initialEntries: ["/placeholder-alpha/overview?client=studio"] }),
+      storyModules,
     );
   });
   return (

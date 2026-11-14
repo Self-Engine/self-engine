@@ -338,6 +338,51 @@ describe("checkConventions", () => {
     });
   });
 
+  describe("the archive column (D327)", () => {
+    const ARCHIVED_RULE = "must have archived_at, where present, as nullable TEXT";
+
+    test("passes a table with a well-formed archived_at", async () => {
+      await database.executeScript(
+        `CREATE TABLE projects (${SYNCED_COLUMNS}, archived_at TEXT) STRICT;`,
+      );
+
+      await expect(checkConventions(database)).resolves.toEqual([]);
+    });
+
+    test("passes a table without the column", async () => {
+      await database.executeScript(`CREATE TABLE projects (${SYNCED_COLUMNS}) STRICT;`);
+
+      await expect(checkConventions(database)).resolves.toEqual([]);
+    });
+
+    test.each([
+      ["of another type", "archived_at INTEGER"],
+      ["that is non-null", "archived_at TEXT NOT NULL"],
+    ])("fails a column %s", async (_name, column) => {
+      await database.executeScript(`CREATE TABLE projects (${SYNCED_COLUMNS}, ${column}) STRICT;`);
+
+      await expect(checkConventions(database)).resolves.toEqual([
+        { table: "projects", rule: ARCHIVED_RULE },
+      ]);
+    });
+
+    test("fails an SQL DEFAULT, which would archive every new row", async () => {
+      await database.executeScript(
+        `CREATE TABLE projects (${SYNCED_COLUMNS}, archived_at TEXT DEFAULT 'x') STRICT;`,
+      );
+
+      await expect(checkConventions(database)).resolves.toEqual([
+        { table: "projects", rule: "must not have an SQL DEFAULT on archived_at" },
+      ]);
+    });
+
+    test("leaves the column of a Local Table alone", async () => {
+      await database.executeScript("CREATE TABLE local_figures (archived_at INTEGER) STRICT;");
+
+      await expect(checkConventions(database)).resolves.toEqual([]);
+    });
+  });
+
   describe("a timestamp column", () => {
     test.each([
       [

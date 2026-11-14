@@ -1,23 +1,25 @@
 import { declaresConflict } from "../core/conflict-declared.ts";
 import { checkConflicts, type ConflictExamples } from "./conflicts.ts";
+import { acceptsUnknownField, checkEdits } from "./edits.ts";
 import { seedScoping, returnsSeededRow, checkEntryScoping, scopedRowsChanged } from "./scoping.ts";
 import { isDeepStrictEqual } from "node:util";
 import type { InferContractRouterInputs } from "@orpc/contract";
-import { call, ORPCError, type AnyProcedure } from "@orpc/server";
+import { call, ORPCError } from "@orpc/server";
 import { uniqueIndexes, type TablesOf } from "@self-engine/db";
 import { CompiledQuery, type Transaction } from "kysely";
 import { z } from "zod";
 import {
   createContext,
-  createFrame,
   type RowMap,
   type StorageContract,
   type StorageModule,
 } from "../core/index.ts";
 import { tableContents } from "./table-contents.ts";
+import { checkActiveQuery } from "./active.ts";
 import { QueryWriteError } from "../core/table-writes.ts";
 import { recordTableReads } from "./table-reads.ts";
-import { createTestContext, createTestDatabase } from "./helpers.ts";
+import { createTestDatabase } from "./helpers.ts";
+import { createSeededDatabase, frameEntry } from "./kit-setup.ts";
 
 import type { ContractViolation } from "./violation.ts";
 export type { ContractViolation } from "./violation.ts";
@@ -120,14 +122,10 @@ export async function checkContract<Contract extends StorageContract, Rows exten
       invalid.push(candidate);
     }
     if (invalid.length === 0) violations.push({ entry, rule: "accepts invalid input" });
-    const database = await createTestDatabase(module, dependencies);
+    if (await acceptsUnknownField(inputSchema, example))
+      violations.push({ entry, rule: "input accepts an unknown field" });
+    const { database, sources } = await createSeededDatabase(module, dependencies, seed);
     try {
-      const sources = createTestContext();
-      await database.kysely
-        .transaction()
-        .execute((tx) =>
-          Promise.resolve(seed(tx.withTables<TablesOf<Rows>>(), createContext(sources))),
-        );
       const definition = module.entries[entry];
       if (definition?.kind === "query" && definition.list?.kind === "pages") {
         const queries = definition.list.queries;
@@ -182,24 +180,24 @@ export async function checkContract<Contract extends StorageContract, Rows exten
       }
       let baseline: unknown;
       if (definition?.kind === "query") {
-        const isolated = await createTestDatabase(module, dependencies);
-        try {
-          const isolatedSources = createTestContext();
-          await isolated.kysely.transaction().execute(async (transaction) => {
-            await seed(transaction.withTables<TablesOf<Rows>>(), createContext(isolatedSources));
+        const { database: isolated, sources: isolatedSources } = await createSeededDatabase(
+          module,
+          dependencies,
+          seed,
+          async (transaction) => {
             const tx = transaction.withTables<Record<string, { deleted_at: string | null }>>();
             for (const [table, schema] of Object.entries(module.rowMap)) {
               if (!table.startsWith("local_") && Object.hasOwn(schema.shape, "deleted_at"))
                 await tx.deleteFrom(table).where("deleted_at", "is not", null).execute();
             }
-          });
-          const isolatedRouter: Record<string, AnyProcedure> = createFrame(module, {
+          },
+        );
+        try {
+          const isolatedTarget = frameEntry(module, entry, {
             database: isolated,
             sources: isolatedSources,
             checkOutputs: false,
           });
-          const isolatedTarget = isolatedRouter[entry];
-          if (isolatedTarget === undefined) throw new Error(`Missing module function: ${entry}`);
           try {
             baseline = { output: await call(isolatedTarget, example) };
           } catch (error) {
@@ -211,6 +209,8 @@ export async function checkContract<Contract extends StorageContract, Rows exten
         }
       }
       violations.push(...(await checkEntryScoping(module, seed, entry, example, dependencies)));
+      if (definition?.kind === "query" && definition.active === true)
+        violations.push(...(await checkActiveQuery(module, seed, entry, example, dependencies)));
       const scoped = await seedScoping(database, module.rowMap, seed, createContext(sources));
       let calls = 0;
       const read = new Set<string>();
@@ -248,13 +248,7 @@ export async function checkContract<Contract extends StorageContract, Rows exten
             violations.push({ entry, rule: `query reads an undeclared table: ${table}` });
       };
       for (const checkOutputs of [true, false]) {
-        const router: Record<string, AnyProcedure> = createFrame(observed, {
-          database,
-          sources,
-          checkOutputs,
-        });
-        const target = router[entry];
-        if (target === undefined) throw new Error(`Missing module function: ${entry}`);
+        const target = frameEntry(observed, entry, { database, sources, checkOutputs });
         for (const candidate of invalid) {
           calls = 0;
           let rejected = false;
@@ -272,7 +266,7 @@ export async function checkContract<Contract extends StorageContract, Rows exten
       let queryWrite = false;
       const announced = new Set<string>();
       const before = await tableContents(database);
-      const router: Record<string, AnyProcedure> = createFrame(observed, {
+      const target = frameEntry(observed, entry, {
         database,
         sources,
         checkOutputs: false,
@@ -284,8 +278,6 @@ export async function checkContract<Contract extends StorageContract, Rows exten
           for (const table of tables) announced.add(table);
         },
       });
-      const target = router[entry];
-      if (target === undefined) throw new Error(`Missing module function: ${entry}`);
       let output: unknown;
       read.clear();
       try {
@@ -357,5 +349,6 @@ export async function checkContract<Contract extends StorageContract, Rows exten
     }
   }
   violations.push(...(await checkConflicts(module, seed, conflictExamples, dependencies)));
+  violations.push(...(await checkEdits(module, seed, examples, dependencies)));
   return violations;
 }

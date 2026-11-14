@@ -16,7 +16,7 @@ import {
   useRouter,
   useRouterState,
 } from "@tanstack/react-router";
-import { findModule } from "./modules.ts";
+import type { AppRouterContext } from "./module-list.ts";
 
 /** What the Shell shows: the page being left, until the next one has loaded. */
 export function visibleLocation<Location>(state: {
@@ -76,13 +76,16 @@ interface SearchedLocation {
 
 const moduleOfPath = (pathname: string) => pathname.split("/")[1] ?? "";
 
-function keptSearch(location: SearchedLocation, destination: string) {
+/** The modules the router mounts, which `createAppRouter` puts into its context. */
+const modulesOf = (router: AnyRouter) => (router.options.context as AppRouterContext).moduleList;
+
+function keptSearch(router: AnyRouter, location: SearchedLocation, destination: string) {
   const toModule = moduleOfPath(destination);
   return retainedViewSearch(
     location.search,
     moduleOfPath(location.pathname),
     toModule,
-    findModule(toModule)?.sharedSearch,
+    modulesOf(router).find(toModule)?.sharedSearch,
   );
 }
 
@@ -101,7 +104,7 @@ function leaveGuardsOf(router: AnyRouter) {
  * refuses leaves the promise of `navigate` open until some later navigation finishes.
  */
 async function goToView(router: AnyRouter, to: string) {
-  const search = keptSearch(visibleLocation(router.state), to);
+  const search = keptSearch(router, visibleLocation(router.state), to);
   const { pathname, search: currentSearch } = router.latestLocation;
   const attempt = {
     current: { pathname, search: currentSearch as ViewSearch },
@@ -163,11 +166,12 @@ export const ROUTING: ShellRouting = {
     useBlocker({ shouldBlockFn, disabled: !enabled, enableBeforeUnload: false });
   },
   Link: ({ to, search, target, "aria-current": current, ...props }) => {
+    const router = useRouter();
     const location = useRouterState({ select: visibleLocation });
     const destination = to === "." ? location.pathname : to;
     const kept =
       (typeof search === "function" ? search(location.search) : search) ??
-      keptSearch(location, destination);
+      keptSearch(router, location, destination);
     return (
       <RouterLink
         {...props}

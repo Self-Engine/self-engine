@@ -55,9 +55,10 @@ test.each(["get", "update", "delete"] as const)(
       const note = await client.create({ title: "Gone", isPinned: false });
       await client.delete({ id: note.id });
       for (const id of [note.id, "00000000-0000-7000-8000-000000000099" as typeof note.id]) {
-        await expect(client[entry]({ id, title: "Changed" })).rejects.toMatchObject({
-          code: "NOT_FOUND",
-        });
+        const input = entry === "update" ? { id, title: "Changed" } : { id };
+        await expect(
+          client[entry](input as { id: typeof id; title: string }),
+        ).rejects.toMatchObject({ code: "NOT_FOUND" });
       }
     } finally {
       await database.close();
@@ -114,7 +115,8 @@ test("another Space's row is absent from lookup and every single-row change", as
     );
     await expect(client.list({})).resolves.toEqual([]);
     for (const entry of ["get", "update", "delete", "restore"] as const) {
-      await expect(client[entry]({ id, title: "Changed" })).rejects.toMatchObject({
+      const input = entry === "update" ? { id, title: "Changed" } : { id };
+      await expect(client[entry](input as { id: typeof id; title: string })).rejects.toMatchObject({
         code: "NOT_FOUND",
       });
     }

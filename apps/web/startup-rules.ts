@@ -1,6 +1,6 @@
 import type { StartupRules } from "./startup-bundle.ts";
 
-/** What the startup check of the web app holds the production build to (D258, D269, D293, D300). */
+/** What the startup check of the web app holds the production build to (D258, D269, D293, D300, D330). */
 export const STARTUP_RULES = {
   // Baseline 839,270 raw JS bytes (#136); measured plus 6 %, rounded up to whole KiB (D258).
   maxBytes: 869 * 1024,
@@ -50,6 +50,22 @@ export const STARTUP_RULES = {
       path: "/src/contracts/",
       instead:
         "import it as a type in startup code, and at runtime only in an Edit Drawer that loads on demand, where a form checks with its input schema.",
+    },
+    {
+      // The id schema and the field-list building block that derives create and edit inputs
+      // (D329). They build Zod schemas, so they load with a Contract, never at startup.
+      name: "The shared schemas of db",
+      path: "/packages/db/src/schema/",
+      instead:
+        "import them only from a module's Contract or row map; startup code reads the Contract as a type.",
+    },
+    {
+      // The project picker of `projects` (D330): it loads with the form of a module above that
+      // uses it, together with the Entry Mark and Mantine's Select, never at startup.
+      name: "The project picker",
+      path: "/packages/projects/src/picker/",
+      instead:
+        "import @self-engine/projects/picker only from a form that loads on demand, such as an Edit Drawer's.",
     },
     {
       // The names and search words of 1,932 emojis: about 790 KB per language (#268).
