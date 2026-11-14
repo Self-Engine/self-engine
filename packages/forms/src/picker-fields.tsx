@@ -15,9 +15,9 @@ import type { OperationForm } from "./operation-form.ts";
 /** What a picker answers: a Color Set name, or `null` for "no color". */
 type ColorChoice = Parameters<EntryColorPickerProps["onChange"]>[0];
 
-/** The fields of a draft that may hold what `Picked` answers. */
+/** The fields of a draft that may hold everything `Picked` answers, not only a part of it. */
 type FieldTaking<FormDraft, Picked> = {
-  [Field in FieldName<FormDraft>]: Picked extends FormDraft[Field] ? Field : never;
+  [Field in FieldName<FormDraft>]: [Picked] extends [FormDraft[Field]] ? Field : never;
 }[FieldName<FormDraft>];
 
 /** What the helper sets on a bound picker: the module leaves these out. */

@@ -331,7 +331,9 @@ function createForm(latest: () => Latest): MadeForm {
       const { options } = latest();
       setRunning(true);
       try {
-        const result = await options.operation.run(input());
+        // What this save hands on: a value set while it runs was never sent and stays changed.
+        const sent = structuredClone(input());
+        const result = await options.operation.run(sent);
         if (result.status === "conflict") {
           if (result.field !== null) {
             conflicts.set(result.field, result.text);
@@ -339,7 +341,7 @@ function createForm(latest: () => Latest): MadeForm {
           }
         }
         if (result.status === "success") {
-          stored = structuredClone(normalized());
+          stored = { ...stored, ...structuredClone(sent) };
           notifyChanged();
           latest().options.onSuccess?.(result.data);
         }

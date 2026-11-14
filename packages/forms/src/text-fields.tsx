@@ -57,11 +57,14 @@ function useTextBinding<FormDraft>(form: OperationForm<FormDraft>, name: string)
     (element: HTMLInputElement | HTMLTextAreaElement | null) => {
       if (element === null) return undefined;
       const unregister = register(element);
-      const unsubscribe = binding.subscribeValue(name, () => {
+      const write = () => {
         // What the user typed is the value already; only a value set by code differs.
         const text = textOf(binding.valueOf(name));
         if (element.value !== text) writeKeepingTheCaret(element, text);
-      });
+      };
+      // An input that stays while its `name` or `form` changes shows the new field's value.
+      write();
+      const unsubscribe = binding.subscribeValue(name, write);
       return () => {
         unregister?.();
         unsubscribe();

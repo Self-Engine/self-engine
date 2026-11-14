@@ -17,7 +17,12 @@ const exampleFields = {
   color: z.string().nullable(),
 };
 
-export const exampleEntrySchema = z.object({ id: z.string(), ...exampleFields });
+/** A stored example entry. Its description may be empty: an edit may clear it. */
+export const exampleEntrySchema = z.object({
+  id: z.string(),
+  ...exampleFields,
+  description: exampleFields.description.nullable(),
+});
 
 /** The example's Port, mounted as `example` in the stories. */
 export const exampleTiedFields = [["icon", "color"]] as const;

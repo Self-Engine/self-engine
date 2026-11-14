@@ -41,5 +41,11 @@ export class FieldMessages {
 /** The same text with the same numbers: a new check that finds the same violation changes nothing. */
 function sameMessage(a: MessageDescriptor | undefined, b: MessageDescriptor | undefined): boolean {
   if (a === undefined || b === undefined) return a === b;
-  return a.id === b.id && JSON.stringify(a.values ?? {}) === JSON.stringify(b.values ?? {});
+  return a.id === b.id && sameValues(a.values ?? {}, b.values ?? {});
+}
+
+/** Key by key, without serializing: a value may be a bigint, which JSON cannot write. */
+function sameValues(a: Record<string, unknown>, b: Record<string, unknown>): boolean {
+  const keys = Object.keys(a);
+  return keys.length === Object.keys(b).length && keys.every((key) => Object.is(a[key], b[key]));
 }

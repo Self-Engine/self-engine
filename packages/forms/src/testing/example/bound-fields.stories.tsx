@@ -327,6 +327,57 @@ const editRender: Story["render"] = (_args, { loaded }) => (
   </DataProvider>
 );
 
+interface Held extends Loaded {
+  /** Lets the answers through that waited. */
+  readonly release: () => void;
+}
+
+/** A Port whose answers wait until the story lets them through, so it can act while a save runs. */
+function heldPort(): Held {
+  const port = recordingPortOf(
+    { marked: markedContract },
+    { marked: { create: { data: STORED }, update: { data: STORED } } },
+  );
+  const held = Promise.withResolvers<void>();
+  return {
+    release: held.resolve,
+    port: {
+      calls: port.calls,
+      access: {
+        ...port.access,
+        async call(module, entry, input, signal) {
+          const answer = port.access.call(module, entry, input, signal);
+          await held.promise;
+          return answer;
+        },
+      },
+    },
+  };
+}
+
+export const AValueChangedWhileASaveRunsStaysChanged: Story = {
+  loaders: [heldPort],
+  render: editRender,
+  play: async ({ canvasElement, loaded }) => {
+    const form = formIn(canvasElement);
+    await userEvent.type(form.title(), " day");
+    await form.save();
+    await waitFor(() => expect(callsOf(loaded)).toHaveLength(1));
+    // The save is on its way without these hours: its success must not count them as saved.
+    await userEvent.clear(form.hours());
+    await userEvent.type(form.hours(), "5");
+    (loaded as Held).release();
+    await waitFor(async () => {
+      await form.save();
+      await expect(callsOf(loaded)).toHaveLength(2);
+    });
+    await expect(callsOf(loaded)).toEqual([
+      { entry: "update", input: { id: STORED.id, title: "Launch day" } },
+      { entry: "update", input: { id: STORED.id, hours: 5 } },
+    ]);
+  },
+};
+
 export const AnUntouchedNumberFieldFollowsTheEntry: Story = {
   render: editRender,
   play: async ({ canvasElement, loaded }) => {
