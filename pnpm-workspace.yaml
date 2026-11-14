@@ -35,6 +35,8 @@ catalog:
   # Parses ICU in the catalog check (scripts/check-i18n.ts). The version Lingui itself uses.
   "@messageformat/parser": 5.2.0
   "@mantine/core": 9.8.0
+  # The emoji grid of the Entry Mark's field (D300); it ships no data, emojibase-data has it.
+  "@mantine/emoji": 9.8.0
   "@mantine/hooks": 9.8.0
   "@mantine/modals": 9.8.0
   "@mantine/notifications": 9.8.0
@@ -78,6 +80,8 @@ catalog:
   dependency-cruiser: 18.7.2
   electron: 45.2.3
   electron-builder: 26.18.0
+  # The emoji names and search words in German and English for @mantine/emoji (D300).
+  emojibase-data: 18.0.0
   # A DOM for the hook tests of packages/data-client/src/react/, which run in Node.
   happy-dom: 21.0.4
   # The query layer and the migration runner (D91).
