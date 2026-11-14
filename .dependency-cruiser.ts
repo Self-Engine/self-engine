@@ -83,6 +83,8 @@ export const TEST_ONLY_IMPORTS: AllowedImports = {
   "data-process": ["time"],
   // The test Data Process, to run the module's hooks end to end without the app (#33).
   "placeholder-alpha": ["data-process"],
+  // The app's catalogs, so a story of the icon field switches the language as the Settings do.
+  ui: ["i18n"],
 };
 
 /** Only `@self-engine/icons` may import these; Tabler and the rest would be a second library. */

@@ -17,15 +17,18 @@
     "@lingui/core": "catalog:",
     "@lingui/react": "catalog:",
     "@mantine/core": "catalog:",
+    "@mantine/emoji": "catalog:",
     "@mantine/hooks": "catalog:",
     "@mantine/modals": "catalog:",
     "@mantine/notifications": "catalog:",
     "@self-engine/icons": "workspace:*",
     "@self-engine/theme": "workspace:*",
+    "emojibase-data": "catalog:",
     "react": "catalog:",
     "react-dom": "catalog:"
   },
   "devDependencies": {
+    "@self-engine/i18n": "workspace:*",
     "@storybook/react-vite": "catalog:",
     "@types/node": "catalog:",
     "@types/react": "catalog:",

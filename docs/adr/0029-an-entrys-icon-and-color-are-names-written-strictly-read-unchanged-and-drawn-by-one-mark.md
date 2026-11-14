@@ -1,7 +1,7 @@
 ---
 status: accepted
 date: 2026-11-14
-decisions: D151, D291, D292, D293, D294, D295, D296, D297, D298
+decisions: D151, D291, D292, D293, D294, D295, D296, D297, D298, D299, D300, D301, D302
 ---
 
 # An entry's icon and color are names, written strictly, read unchanged and drawn by one mark
@@ -58,12 +58,24 @@ not know must not break its lists.
      and their own files. `module-contracts-is-pure` lets a module's contracts import both.
    - The schemas are `zod/mini`, so they never bring Zod's full build to startup.
 
-4. **"Exactly one emoji" is one rule, the same on every device.** `isSingleEmoji` starts from the
-   old app's regular expression and needs no `v` flag, which Hermes may lack.
+4. **"Exactly one emoji" is one rule; which characters it knows depends on the engine.**
+   `isSingleEmoji` starts from the old app's regular expression and needs no `v` flag, which
+   Hermes may lack.
    - A character drawn as text by default, such as ©, ❤ or a digit, counts only with the variation
      selector U+FE0F after it, or as a keycap.
    - A flag of two regional indicators counts, and so do the flags of England, Scotland and Wales.
    - A joined emoji has at most four parts, the longest sequences Unicode defines.
+
+   The form of the rule is the same on every device; the set of characters it accepts is not. The
+   rule is built from Unicode property escapes (`\p{Emoji_Presentation}`,
+   `\p{Extended_Pictographic}` and others), and a JavaScript engine reads those from its own
+   Unicode tables. Electron 45.2.3 knows Unicode 17.0 (ICU 78.2): there the rule rejects the 9
+   emojis new in Emoji 18 (19 characters with their skin tones), which an engine with Unicode 18,
+   such as a Node linked against ICU 79, accepts. An emoji newer than the engine cannot be written
+   there, and the icon field does not offer it (point 9). Reading stays lenient (point 5): a
+   stored emoji the engine does not know is kept unchanged, but `resolveEntryIcon` uses the same
+   rule and turns it into `none`, so the mark draws the usual icon of the kind of entry and the
+   icon field shows "No icon" until the user chooses or clears.
 
    An `icon` is a name or one emoji, told apart without a marker: a name is plain ASCII, and no
    emoji is.
@@ -119,13 +131,41 @@ not know must not break its lists.
    check holds every Color Set's colored text on its soft fill and on the navigation, the canvas,
    the surface and raised surfaces such as popovers and drawers.
 
-9. **Three pickers in `ui`.** `EntryIconPicker` chooses a name from the directory and searches the
-   labels in the user's language. `EntryEmojiInput` accepts exactly one emoji and points to the
-   emoji keyboard of the operating system. `EntryColorPicker` offers "no color" first, then the
-   Color Sets in the order of the list. Each shows a stored value it cannot show as nothing
-   chosen, leaving it stored until the user acts, and each can clear what it stands for: "No
-   icon" clears any stored text but an emoji, a name from a newer version included; the emoji
-   field clears an emoji; "no color" clears any stored color.
+9. **Two pickers in `ui`: one field for the icon or emoji, one for the color.** Both are in
+   `@self-engine/ui/entry-pickers`.
+   - `EntryIconPicker` is the one field for `icon` (D299). A button shows the stored icon or
+     emoji and opens one popover with the tabs "Icons" and "Emoji" and one "No icon". It opens on
+     "Emoji" when an emoji is stored, otherwise on "Icons". It answers an icon name, exactly one
+     emoji, or `null`, so every answer passes `entryIconSchema`.
+   - "Icons" holds the 107 pictures of the directory and searches their labels in the user's
+     language, ignoring case and accents.
+   - "Emoji" is Mantine's bare `EmojiPicker` from `@mantine/emoji` (D300), with a grid by
+     category, a search, a skin tone that is chosen per opening and not remembered, and a
+     preview. Its list is `emojibase-data` as the package ships it, turned into Mantine's shape
+     by Mantine's `emojibaseAdapter`: names and search words in German for German, in English for
+     every other language. The adapter leaves out emojibase's components group (the skin tones
+     and hair styles alone) and every variant with two different skin tones. No messages file of
+     emojibase is read; the names of the categories and every label of the picker are messages in
+     our catalogs. The list is cut to what the emoji rule accepts on the engine it runs in
+     (`onlyAccepted`, point 4), and Mantine's detection hides what the device cannot draw.
+     `EmojiPickerInput` is not used: its value is an emoji id, and the Contract stores the
+     character.
+   - The picker, its stylesheet and the emoji list load with a dynamic import when the Emoji tab
+     first opens, the list as one chunk per language. The startup check names
+     `@mantine/emoji` and `emojibase-data` in `lazyOnly`, beside the directory (point 6).
+   - One search term serves both tabs (D301). Each tab keeps its own search field, ours under
+     "Icons" and Mantine's under "Emoji", and both show the one term the field holds, so it
+     survives a switch of the tab; each opening empties it. The two searches compare
+     differently: ours ignores accents, Mantine's does not.
+   - A search term that, trimmed, is exactly one emoji by `isSingleEmoji` is the choice (D302):
+     the field answers it, empties the term and closes, in either tab and without the emoji list,
+     so pasting and the emoji keyboard of the operating system work. While an input method
+     composes, the text is taken only when the composition ends. Any other text is a search term.
+   - `EntryColorPicker` offers "no color" first, then the Color Sets in the order of the list.
+   - Each shows a stored value it cannot resolve as nothing chosen and leaves it stored until the
+     user acts; an emoji the list does not know but the rule accepts still shows on the button.
+     "No icon" clears any stored text, an emoji and a name from a newer version included; "no
+     color" clears any stored color.
 
 10. **Every icon of the app is drawn in the regular weight.** `catalogIcon` draws it for the icons
     of the interface and the pictures of the directory, so an entry's mark is regular too. A
@@ -142,9 +182,19 @@ not know must not break its lists.
   appears where it fills an area. In the bare form an emoji hides the entry's color.
 - The directory and the mark measured 343,907 bytes (88,198 gzipped) in a chunk that loads on
   demand, against 46,650 bytes left below the startup limit. The slice of the mark added 63
-  bytes to startup, the pickers none. The pickers' own chunk is 26,353 bytes; the 214 labels
-  (107 in each language) sit in the language catalogs
-  ([performance guide](../development/performance.md)).
+  bytes to startup, the pickers none; the 214 labels (107 in each language) sit in the language
+  catalogs ([performance guide](../development/performance.md)).
+- Beside the directory, the icon field brings two dependencies, `@mantine/emoji` and
+  `emojibase-data`, and both load only when the Emoji tab first opens: the tab's code is 52,114
+  bytes with a stylesheet of 4,003, and the emoji list 785,619 bytes in English or 800,550 in
+  German (about 100 KB gzipped each). A user who only chooses icons never loads them. The first
+  opening of the tab, with the detection of what the device cannot draw, took about 300 ms in the
+  story runner; a later one about 22 ms.
+- The emojis the field offers and accepts follow the engine's Unicode version, not the data's:
+  under Electron 45.2.3 (Unicode 17.0) it offers 1,914 emojis in 3,564 characters, under an
+  engine with Unicode 18 all 1,923 in 3,583. An emoji written on a newer device shows there as
+  the usual icon until the engine catches up, and the field can clear it. A new version of
+  `emojibase-data` adds nothing until the engine knows its emojis.
 - The import of old data (Layer 5) reads `OLD_ICON_NAMES`, writes the old `gray` as empty and
   keeps the twelve color names as they are. Removing a picture breaks the test of the table.
 - The mark and the pickers are Mantine. A later mobile app brings its own and shares only the
@@ -175,4 +225,17 @@ not know must not break its lists.
 - **The icon in the full fill color, as in the old app:** rejected (D296). Yellow on white has
   1.7:1, and it would be the first exception to the contrast check.
 - **Unicode's own emoji list (`\p{RGI_Emoji}`):** rejected. It needs the `v` flag, whose support
-  on Hermes could not be confirmed, and every device must apply the same rule.
+  on Hermes could not be confirmed, and every device must apply the same form of the rule.
+- **Two fields for the one `icon`, an icon picker and an emoji text field:** rejected (D299). It
+  was built first: choosing an emoji emptied the icon field, "No icon" could not remove an emoji,
+  and the text field relied on a shortcut of the operating system and could hold text that is no
+  emoji, an error the form around it could not see.
+- **Mantine's `EmojiPickerInput`, or emoji-mart's data:** rejected (D300). The input's value is an
+  emoji id, not the character the Contract stores; emoji-mart's data has English names only and
+  ends at Emoji 15.
+- **A search term per tab, or one mixed list of icons and emojis:** rejected (D301). Separate
+  terms make the user type twice; a mixed list would mean drawing the emoji grid ourselves and
+  loading the emoji list on the first keystroke.
+- **Only the grid, or the grid beside a text field:** rejected (D302). Without taking an emoji
+  from the search, a pasted emoji and the emoji keyboard of the operating system would do
+  nothing; a text field beside the grid would bring back the error state.

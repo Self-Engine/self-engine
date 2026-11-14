@@ -19,6 +19,10 @@ msgstr "About"
 msgid "Accent"
 msgstr "Accent"
 
+#: packages/ui/src/entry-pickers/emoji-tab.tsx
+msgid "Activity"
+msgstr "Activity"
+
 #: packages/placeholder-alpha/src/index.ts
 msgid "Add sample entry"
 msgstr "Add sample entry"
@@ -30,6 +34,10 @@ msgstr "All clients"
 #: packages/placeholder-alpha/src/port.ts
 msgid "An entry with this name already exists."
 msgstr "An entry with this name already exists."
+
+#: packages/ui/src/entry-pickers/emoji-tab.tsx
+msgid "Animals & Nature"
+msgstr "Animals & Nature"
 
 #: packages/settings-area/src/rows.tsx
 msgid "App Language"
@@ -186,6 +194,7 @@ msgid "Clapperboard"
 msgstr "Clapperboard"
 
 #: packages/settings-area/src/area.tsx
+#: packages/ui/src/entry-pickers/emoji-tab.tsx
 msgid "Clear search"
 msgstr "Clear search"
 
@@ -348,6 +357,10 @@ msgstr "Dark"
 msgid "Dark mode"
 msgstr "Dark mode"
 
+#: packages/ui/src/entry-pickers/emoji-tab.tsx
+msgid "Dark skin tone"
+msgstr "Dark skin tone"
+
 #: packages/settings-area/src/theme-rows.tsx
 msgid "Dark Theme"
 msgstr "Dark Theme"
@@ -361,6 +374,10 @@ msgstr "Dashed circle"
 msgctxt "View of the settings"
 msgid "Data"
 msgstr "Data"
+
+#: packages/ui/src/entry-pickers/emoji-tab.tsx
+msgid "Default skin tone"
+msgstr "Default skin tone"
 
 #: packages/placeholder-alpha/src/edit-drawer.tsx
 #: packages/placeholder-alpha/src/entries.tsx
@@ -407,13 +424,17 @@ msgctxt "Icon"
 msgid "Drop"
 msgstr "Drop"
 
-#: packages/ui/src/entry-pickers/entry-emoji-input.tsx
+#: packages/ui/src/entry-pickers/entry-icon-picker.tsx
 msgid "Emoji"
 msgstr "Emoji"
 
-#: packages/ui/src/entry-pickers/entry-emoji-input.tsx
-msgid "Enter exactly one emoji."
-msgstr "Enter exactly one emoji."
+#: packages/ui/src/entry-pickers/emoji-tab.tsx
+msgid "Emoji preview"
+msgstr "Emoji preview"
+
+#: packages/ui/src/entry-pickers/emoji-tab.tsx
+msgid "Emojis"
+msgstr "Emojis"
 
 #: packages/placeholder-alpha/src/entries.tsx
 msgid "Entries you create appear here."
@@ -432,6 +453,10 @@ msgctxt "Icon"
 msgid "Fire"
 msgstr "Fire"
 
+#: packages/ui/src/entry-pickers/emoji-tab.tsx
+msgid "Flags"
+msgstr "Flags"
+
 #: packages/icons/src/directory/labels.ts
 msgctxt "Icon"
 msgid "Flask"
@@ -444,6 +469,10 @@ msgstr "Font scale"
 #: packages/settings-area/src/rows.tsx
 msgid "Font size"
 msgstr "Font size"
+
+#: packages/ui/src/entry-pickers/emoji-tab.tsx
+msgid "Food & Drink"
+msgstr "Food & Drink"
 
 #: packages/icons/src/directory/labels.ts
 msgctxt "Icon"
@@ -602,6 +631,10 @@ msgstr "Light bulb"
 msgid "Light mode"
 msgstr "Light mode"
 
+#: packages/ui/src/entry-pickers/emoji-tab.tsx
+msgid "Light skin tone"
+msgstr "Light skin tone"
+
 #: packages/settings-area/src/theme-rows.tsx
 msgid "Light Theme"
 msgstr "Light Theme"
@@ -620,6 +653,10 @@ msgstr "Lime"
 msgid "Loading"
 msgstr "Loading"
 
+#: packages/ui/src/entry-pickers/entry-icon-picker.tsx
+msgid "Loading the emojis"
+msgstr "Loading the emojis"
+
 #: packages/icons/src/directory/labels.ts
 msgctxt "Icon"
 msgid "Magnifying glass"
@@ -629,6 +666,18 @@ msgstr "Magnifying glass"
 msgctxt "Icon"
 msgid "Mailbox"
 msgstr "Mailbox"
+
+#: packages/ui/src/entry-pickers/emoji-tab.tsx
+msgid "Medium skin tone"
+msgstr "Medium skin tone"
+
+#: packages/ui/src/entry-pickers/emoji-tab.tsx
+msgid "Medium-dark skin tone"
+msgstr "Medium-dark skin tone"
+
+#: packages/ui/src/entry-pickers/emoji-tab.tsx
+msgid "Medium-light skin tone"
+msgstr "Medium-light skin tone"
 
 #: packages/icons/src/directory/labels.ts
 msgctxt "Icon"
@@ -695,6 +744,10 @@ msgstr "Nightly"
 msgid "No color"
 msgstr "No color"
 
+#: packages/ui/src/entry-pickers/emoji-tab.tsx
+msgid "No emoji matches the search."
+msgstr "No emoji matches the search."
+
 #: packages/placeholder-alpha/src/entries.tsx
 msgid "No entries here"
 msgstr "No entries here"
@@ -734,9 +787,9 @@ msgstr "Nothing found"
 msgid "Nothing was found at this address."
 msgstr "Nothing was found at this address."
 
-#: packages/ui/src/entry-pickers/entry-emoji-input.tsx
-msgid "One emoji. The emoji keyboard opens with Control + Command + Space on a Mac and with Windows + . on Windows."
-msgstr "One emoji. The emoji keyboard opens with Control + Command + Space on a Mac and with Windows + . on Windows."
+#: packages/ui/src/entry-pickers/emoji-tab.tsx
+msgid "Objects"
+msgstr "Objects"
 
 #: packages/shell/src/shell.tsx
 msgid "Open module sidebar"
@@ -978,9 +1031,17 @@ msgstr "Search"
 msgid "Search commands and views"
 msgstr "Search commands and views"
 
+#: packages/ui/src/entry-pickers/emoji-tab.tsx
+msgid "Search emojis"
+msgstr "Search emojis"
+
 #: packages/ui/src/entry-pickers/entry-icon-picker.tsx
 msgid "Search icons"
 msgstr "Search icons"
+
+#: packages/ui/src/entry-pickers/emoji-tab.tsx
+msgid "Search results"
+msgstr "Search results"
 
 #: packages/settings-area/src/area.tsx
 msgid "Search settings"
@@ -1025,10 +1086,18 @@ msgctxt "Icon"
 msgid "Shower"
 msgstr "Shower"
 
+#: packages/ui/src/entry-pickers/emoji-tab.tsx
+msgid "Skin tone"
+msgstr "Skin tone"
+
 #: packages/icons/src/directory/labels.ts
 msgctxt "Icon"
 msgid "Smartphone"
 msgstr "Smartphone"
+
+#: packages/ui/src/entry-pickers/emoji-tab.tsx
+msgid "Smileys & People"
+msgstr "Smileys & People"
 
 #: packages/data-client/src/react/operation-hook.ts
 msgid "Something went wrong, and the change was not saved."
@@ -1071,6 +1140,10 @@ msgstr "Sun"
 msgctxt "Icon"
 msgid "Sunrise"
 msgstr "Sunrise"
+
+#: packages/ui/src/entry-pickers/emoji-tab.tsx
+msgid "Symbols"
+msgstr "Symbols"
 
 #: packages/settings-area/src/rows.tsx
 msgctxt "App Language"
@@ -1122,6 +1195,10 @@ msgstr "The action could not be completed. Please try again."
 #: packages/settings-area/src/theme-rows.tsx
 msgid "The colors of the app. When the app follows the system, light and dark each have their own Theme."
 msgstr "The colors of the app. When the app follows the system, light and dark each have their own Theme."
+
+#: packages/ui/src/entry-pickers/entry-icon-picker.tsx
+msgid "The emojis could not be loaded."
+msgstr "The emojis could not be loaded."
 
 #: packages/placeholder-alpha/src/port.ts
 msgid "The entry could not come back: another entry has its name now."
@@ -1204,6 +1281,10 @@ msgstr "Thumbs up"
 #: packages/settings-area/src/rows.tsx
 msgid "Translation"
 msgstr "Translation"
+
+#: packages/ui/src/entry-pickers/emoji-tab.tsx
+msgid "Travel & Places"
+msgstr "Travel & Places"
 
 #: packages/icons/src/directory/labels.ts
 msgctxt "Icon"

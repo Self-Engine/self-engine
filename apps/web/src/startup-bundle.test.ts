@@ -216,9 +216,21 @@ it("fails a real production build if startup code imports a lazy-only dependency
 describe("the web app's startup rules", () => {
   const directory = "/repo/packages/icons/src/directory/index.ts";
   const mark = "/repo/packages/ui/src/entry-mark.tsx";
+  const picker = "/repo/packages/ui/src/entry-pickers/entry-icon-picker.tsx";
+  const emojiTab = "/repo/packages/ui/src/entry-pickers/emoji-tab.tsx";
+  const emojiLoader = "/repo/packages/ui/src/entry-pickers/emoji-data.ts";
+  // The paths pnpm gives the two packages, with the peer dependencies in the folder name.
+  const emojiPicker =
+    "/repo/node_modules/.pnpm/@mantine+emoji@9.8.0_@mantine+core@9.8.0/node_modules/@mantine/emoji/esm/components/EmojiPicker/EmojiPicker.mjs";
+  const emojiData =
+    "/repo/node_modules/.pnpm/emojibase-data@18.0.0_emojibase@18.0.0/node_modules/emojibase-data/de/data.json";
   const importers: Readonly<Record<string, readonly string[]>> = {
     [directory]: [mark],
     [mark]: ["/repo/packages/shell/src/shell.tsx"],
+    [emojiPicker]: [emojiTab],
+    [emojiData]: [emojiLoader],
+    [emojiLoader]: [emojiTab],
+    [emojiTab]: [picker],
   };
   const inspect = (startup: Record<string, unknown>, onDemand: Record<string, unknown>) =>
     inspectStartup(
@@ -242,6 +254,37 @@ describe("the web app's startup rules", () => {
       inspect({ "/repo/packages/shell/src/shell.tsx": {}, [mark]: {}, [directory]: {} }, {}),
     ).toEqual([
       "The directory of entry pictures entered the startup bundle, imported by /repo/packages/ui/src/entry-mark.tsx: draw an entry's icon with the mark of @self-engine/ui/entry-mark only in a View that loads on demand.",
+    ]);
+  });
+
+  it("accept the emoji picker and its data in a chunk that loads when the Emoji tab opens", () => {
+    expect(
+      inspect(
+        { [picker]: {} },
+        { [emojiTab]: {}, [emojiLoader]: {}, [emojiPicker]: {}, [emojiData]: {} },
+      ),
+    ).toEqual([]);
+  });
+
+  it("reject the emoji picker at startup and name the code that imports it", () => {
+    expect(
+      inspect(
+        { [picker]: {}, [emojiTab]: {}, [emojiPicker]: {} },
+        { [emojiLoader]: {}, [emojiData]: {} },
+      ),
+    ).toEqual([
+      "Mantine's emoji picker entered the startup bundle, imported by /repo/packages/ui/src/entry-pickers/emoji-tab.tsx: import it only from the Emoji tab of the icon field, which loads when the tab first opens.",
+    ]);
+  });
+
+  it("reject the emoji data at startup and name the code that imports it", () => {
+    expect(
+      inspect(
+        { [picker]: {}, [emojiTab]: {}, [emojiLoader]: {}, [emojiData]: {} },
+        { [emojiPicker]: {} },
+      ),
+    ).toEqual([
+      "The emoji data entered the startup bundle, imported by /repo/packages/ui/src/entry-pickers/emoji-data.ts: load it with a dynamic import, one chunk per language, when the Emoji tab first opens.",
     ]);
   });
 });
