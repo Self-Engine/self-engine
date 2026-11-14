@@ -17,5 +17,11 @@ export const exampleEntrySchema = z.object({ id: z.string(), ...exampleFields })
 
 /** The example's Port, mounted as `example` in the stories. */
 export const exampleContract = {
-  create: oc.input(z.object(exampleFields)).output(exampleEntrySchema),
+  create: oc
+    .input(z.object(exampleFields))
+    .output(exampleEntrySchema)
+    .errors({
+      NOT_FOUND: {},
+      CONFLICT: { data: z.object({ reason: z.literal("title_taken") }) },
+    }),
 };

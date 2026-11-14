@@ -184,6 +184,7 @@ msgctxt "Icon"
 msgid "Camera"
 msgstr "Camera"
 
+#: packages/forms/src/form-body.tsx
 #: packages/placeholder-alpha/src/edit-drawer.tsx
 #: packages/ui/src/feedback.tsx
 msgid "Cancel"
@@ -1042,6 +1043,7 @@ msgstr "Safe"
 msgid "Safety copy"
 msgstr "Safety copy"
 
+#: packages/forms/src/form-body.tsx
 #: packages/placeholder-alpha/src/edit-drawer.tsx
 msgid "Save"
 msgstr "Save"
@@ -1300,6 +1302,10 @@ msgstr "This field is required."
 #: packages/ui/src/query-state-block.tsx
 msgid "This part could not be loaded."
 msgstr "This part could not be loaded."
+
+#: packages/forms/src/testing/example/port.ts
+msgid "This title is already in use."
+msgstr "This title is already in use."
 
 #: apps/web/src/data-connection-states.tsx
 msgid "This version of Self-Engine could not apply the update {migration} to your data. It was undone, so your data is unchanged."
