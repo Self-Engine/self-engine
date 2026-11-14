@@ -8,6 +8,8 @@ import {
   fixedAnswers,
 } from "@self-engine/data-client/testing";
 import {
+  type ProjectId,
+  projectIdSchema,
   type ProjectReference,
   projectReferenceSchema,
   projectsContract,
@@ -20,8 +22,8 @@ const contracts = { projects: projectsContract };
 export type ProjectsAnswers = NonNullable<FixedAnswers<typeof contracts>["projects"]>;
 
 /** A well-formed project id, numbered: what the Data Process would hand out. */
-export function sampleProjectId(index: number): string {
-  return `01a1cfa1-0b00-7000-8000-${index.toString(16).padStart(12, "0")}`;
+export function sampleProjectId(index: number): ProjectId {
+  return projectIdSchema.parse(`01a1cfa1-0b00-7000-8000-${index.toString(16).padStart(12, "0")}`);
 }
 
 const project = (

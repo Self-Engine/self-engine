@@ -14,7 +14,7 @@ import {
 import { ProjectsIcon } from "@self-engine/icons";
 import { EntryMark } from "@self-engine/ui/entry-mark";
 import { useCallback, useMemo } from "react";
-import type { ProjectReference } from "../contracts/index.ts";
+import type { ProjectId, ProjectReference } from "../contracts/index.ts";
 import { ACTIVE_PROJECTS, useActiveProjects } from "../port.ts";
 import { useSortedByTitle } from "../sorted-by-title.ts";
 
@@ -26,9 +26,9 @@ type Bound = "value" | "onChange" | "error" | "data" | "defaultValue" | "renderO
 
 export type ProjectPickerProps = {
   /** The id of the chosen project, or `null` for no choice. */
-  readonly value: string | null;
+  readonly value: ProjectId | null;
   /** Hands on the id of the project the user chose, or `null` once they cleared the choice. */
-  readonly onChange: (id: string | null) => void;
+  readonly onChange: (id: ProjectId | null) => void;
   /**
    * The project the stored entry refers to, as its Query answered it, or `null` for none. The
    * picker shows it while it is chosen, with "archived" or "deleted" where it is no longer active;
@@ -114,7 +114,8 @@ export function ProjectPicker({
         )
       }
       nothingFoundMessage={t`No active projects`}
-      onChange={onChange}
+      // Mantine hands on the option's text; the project shown under it holds the branded id.
+      onChange={(option) => onChange(option === null ? null : (byId.get(option)?.id ?? null))}
       // Opening the picker again after a failed load tries again.
       {...(retry === undefined ? {} : { onDropdownOpen: retry })}
       renderOption={renderOption}
@@ -130,7 +131,7 @@ const NONE: readonly [] = [];
 export type ProjectFieldProps<FormDraft> = {
   readonly form: OperationForm<FormDraft>;
   /** The field of the draft, and of the Operation's input, that holds the project's id. */
-  readonly name: FieldTaking<FormDraft, string | null>;
+  readonly name: FieldTaking<FormDraft, ProjectId | null>;
 } & Omit<ProjectPickerProps, "value" | "onChange" | "error" | "form" | "name">;
 
 /**
@@ -150,8 +151,10 @@ export const ProjectField = typedMemo(function ProjectField<FormDraft>({
         {...props}
         error={field.error}
         onBlur={field.onBlur}
-        onChange={field.onChange as (id: string | null) => void}
-        value={field.value as string | null}
+        // A draft holds a stored id as plain text (`Draft` of `forms`); the field takes it back as
+        // the project id it came from, the one place the brand is restored without a parse.
+        onChange={field.onChange as (id: ProjectId | null) => void}
+        value={field.value as ProjectId | null}
       />
     </div>
   );

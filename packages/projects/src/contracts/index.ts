@@ -7,6 +7,7 @@ import { z } from "zod";
 import { projectIdSchema } from "./project-id.ts";
 
 export { projectIdSchema };
+export type { ProjectId } from "./project-id.ts";
 export { type ProjectReference, projectReferenceSchema } from "./project-reference.ts";
 
 /** The longest title, in characters after trimming. */

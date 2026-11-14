@@ -15,7 +15,12 @@ import { ErrorState, QueryStateBlock } from "@self-engine/ui";
 import type { ReactNode } from "react";
 import { useState } from "react";
 import type { z } from "zod";
-import { projectFields, projectsContract } from "./contracts/index.ts";
+import {
+  type ProjectId,
+  projectFields,
+  projectIdSchema,
+  projectsContract,
+} from "./contracts/index.ts";
 import { NEW_PROJECT_ID } from "./project-address.ts";
 import {
   ACTIVE_PROJECTS,
@@ -38,10 +43,12 @@ export default function EditDrawer(props: EditDrawerProps) {
   return <StoredProjectDrawer {...props} />;
 }
 
-const withId = (projects: readonly Project[], id: string) =>
+const withId = (projects: readonly Project[], id: ProjectId) =>
   projects.find((project) => project.id === id);
 
 function StoredProjectDrawer(props: EditDrawerProps) {
+  // The address is text: one that is no project id finds no project.
+  const id = projectIdSchema.safeParse(props.id).data;
   const active = useActiveProjects(ACTIVE_PROJECTS);
   const archived = useArchivedProjects(ARCHIVED_PROJECTS);
   return (
@@ -51,7 +58,11 @@ function StoredProjectDrawer(props: EditDrawerProps) {
           {(archivedProjects) => (
             <FoundProject
               {...props}
-              found={withId(activeProjects, props.id) ?? withId(archivedProjects, props.id)}
+              found={
+                id === undefined
+                  ? undefined
+                  : (withId(activeProjects, id) ?? withId(archivedProjects, id))
+              }
             />
           )}
         </QueryStateBlock>
