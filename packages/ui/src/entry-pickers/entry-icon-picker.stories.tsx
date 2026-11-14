@@ -428,7 +428,7 @@ function activeEmoji(owner: HTMLElement): HTMLElement | null {
 
 export const ReachesEveryEmojiWithTheKeyboardAlone: Story = {
   render: () => <Form answer={answers} stored={null} />,
-  play: async () => {
+  play: async ({ canvas }) => {
     answers.mockClear();
     await userEvent.tab();
     await userEvent.keyboard("{Enter}");
@@ -451,13 +451,22 @@ export const ReachesEveryEmojiWithTheKeyboardAlone: Story = {
     await userEvent.keyboard("{Enter}");
     await expect(answers).toHaveBeenLastCalledWith(second!.textContent);
     await closed();
+    await waitFor(() => expect(trigger(canvas)).toHaveFocus());
 
-    // In the grid itself, Down reaches the last row and Right the last emoji of the list.
+    // Without a search term, the keyboard reaches the grid itself: the field opens on "Emoji",
+    // where the emoji now stored lives, with the focus in the empty search; Tab passes the
+    // categories and lands in the grid.
     await userEvent.keyboard("{Enter}");
     const again = await opened();
-    await userEvent.click(again.picker.getByRole("tab", { name: "Emoji" }));
+    await expect(again.selectedTab()).toHaveAccessibleName("Emoji");
     const all = await emojiTab(again.dialog);
-    all.grid.focus();
+    await waitFor(() => expect(all.search).toHaveFocus());
+    await expect(all.search).toHaveValue("");
+    await userEvent.tab();
+    await expect(again.picker.getByRole("button", { name: "Smileys & People" })).toHaveFocus();
+    await userEvent.tab();
+    await expect(all.grid).toHaveFocus();
+    // In the grid, Down reaches the last row and Right the last emoji of the list.
     // Down from the last row stays there, so the walk ends when Down changes nothing.
     let previous: string | undefined;
     for (let step = 0; step < 400; step += 1) {

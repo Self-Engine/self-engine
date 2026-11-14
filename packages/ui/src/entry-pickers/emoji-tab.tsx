@@ -1,12 +1,13 @@
 // The Emoji tab of the icon field (D300): Mantine's bare `EmojiPicker` with our texts. The field
 // imports this file dynamically when the tab first opens, so the picker, its stylesheet and its
 // virtual list stay out of the startup code and out of the field's own chunk; the startup check
-// of the web app holds that (#268).
+// of the web app holds that (#268). It passes on the data loader of `emoji-data.ts`, so the one
+// dynamic import of this file brings the tab and the loader of its data together; the data of
+// each language is a dynamic import of its own.
 
 import "@mantine/emoji/styles.css";
 import { useLingui } from "@lingui/react/macro";
 import { EmojiPicker, type EmojiPickerData, type EmojiPickerLabels } from "@mantine/emoji";
-import { isSingleEmoji } from "@self-engine/icons/names";
 import { useMemo } from "react";
 
 export { emojiLanguageOf, loadEmojiData } from "./emoji-data.ts";
@@ -67,10 +68,10 @@ export function EmojiTab({ data, onChoose, autoFocus, query, onQueryChange }: Em
       labels={labels}
       onSearchChange={onQueryChange}
       searchValue={query}
+      // `loadEmojiData` offers only what the emoji rule accepts, each skin tone included, and the
+      // picker answers an emoji or one of its skin tones, so every answer is strict.
       onEmojiSelect={(emoji) => {
-        // `loadEmojiData` offers only what the rule accepts; this keeps the answer strict for
-        // any other list a caller hands in.
-        if (isSingleEmoji(emoji.emoji)) onChoose(emoji.emoji);
+        onChoose(emoji.emoji);
       }}
       withUnsupportedDetection
     />

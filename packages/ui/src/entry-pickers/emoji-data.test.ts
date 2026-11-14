@@ -47,24 +47,15 @@ describe("onlyAccepted", () => {
 });
 
 // The emoji rule reads Unicode's properties from the engine the test runs in, and engines differ:
-// Electron 45 and Node's own builds know Unicode 17, a Node linked against a newer ICU knows 18.
-// The data reaches Emoji 18. So the list is checked up to Emoji 17, which every engine of the
-// app knows, and the nine emojis of Emoji 18 are offered only where the engine accepts them.
+// Electron 45 knows Unicode 17, a Node linked against a newer ICU knows 18. The data reaches
+// Emoji 18. So the list is checked up to Emoji 17, which every engine of the app knows, and the
+// nine emojis of Emoji 18 are checked against what the rule of this engine says about them.
 const NEWEST_EMOJI_EVERY_ENGINE_KNOWS = 17;
 
-describe.each(["de", "en"] as const)("the emoji data in %s", (language) => {
-  it("offers only characters the emoji rule accepts, skin tones included", async () => {
-    const data = await loadEmojiData(language);
-    const characters = Object.values(data.emojis).flatMap((emoji) => [
-      emoji.emoji,
-      ...(emoji.skins ?? []),
-    ]);
-    expect(characters.filter((character) => !isSingleEmoji(character))).toEqual([]);
-    for (const category of data.categories) {
-      expect(category.emojis.filter((id) => !Object.hasOwn(data.emojis, id))).toEqual([]);
-    }
-  });
+/** The nine emojis new in Emoji 18, as emojibase-data 18.0.0 lists them. */
+const EMOJI_18 = ["🫫", "🫹", "🫺", "🫌", "🫝", "🛙", "🪋", "🪌", "🪍"];
 
+describe.each(["de", "en"] as const)("the emoji data in %s", (language) => {
   it("offers every emoji up to Emoji 17 on every engine", async () => {
     const data = await loadEmojiData(language);
     const known = Object.values(data.emojis).filter(
@@ -76,10 +67,14 @@ describe.each(["de", "en"] as const)("the emoji data in %s", (language) => {
     // 330 of them in five skin tones each; a variant with two different tones, such as a couple,
     // the adapter leaves out.
     expect(known.flatMap((emoji) => [emoji.emoji, ...(emoji.skins ?? [])])).toHaveLength(3564);
-    const newer = Object.values(data.emojis).filter(
-      (emoji) => (emoji.version ?? 0) > NEWEST_EMOJI_EVERY_ENGINE_KNOWS,
-    );
-    expect([0, 9]).toContain(newer.length);
+  });
+
+  it("offers the emojis of Emoji 18 exactly when the emoji rule of this engine accepts them", async () => {
+    const data = await loadEmojiData(language);
+    const newer = Object.values(data.emojis)
+      .filter((emoji) => (emoji.version ?? 0) > NEWEST_EMOJI_EVERY_ENGINE_KNOWS)
+      .map((emoji) => emoji.emoji);
+    expect(newer).toEqual(EMOJI_18.some(isSingleEmoji) ? EMOJI_18 : []);
   });
 
   it("names and finds the house in its language", async () => {

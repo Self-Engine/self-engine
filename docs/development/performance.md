@@ -210,8 +210,8 @@ Startup JavaScript is **843,398 bytes** (16 chunks) both on the commit before th
 it, since nothing at startup imports it. In the trial build it is **846,390 bytes** (20 chunks)
 before the field and **847,132 bytes** (23 chunks) with it, +742 in three more chunks: the
 bundler splits modules that startup code shares with the field's chunks into chunks of their own.
-The startup check passes in both, so the directory, the emoji picker and its data stay out. The catalogs, which load before the first render, are now 10,530 bytes (German) and 9,595
-(English).
+The startup check passes in both, so the directory, the emoji picker and its data stay out. The
+catalogs, which load before the first render, are now 10,530 bytes (German) and 9,595 (English).
 
 **Times**, measured with a story written for the measurement and not kept: the stories' runner
 (`vp test run --root apps/component-catalog`), Chromium headless shell 158 through Playwright
@@ -245,9 +245,9 @@ list offers 1,914 emojis in 3,564 characters, of which the detection hid 3. The 
 virtual list: it draws the rows in view, not all 1,914 emojis.
 
 Each keystroke in either search also checks whether the term is exactly one emoji (D302), without
-the emoji list. That check measured, in Node 26.13 (median of 9 runs of a million calls), **11 ns** for a
-word such as "house" or "Glühbirne", **21 ns** for 😀 and **43 ns** for the joined family emoji
-👨‍👩‍👧‍👦.
+the emoji list. That check measured, in Node 26.13 (median of 9 runs of a million calls),
+**11 ns** for a word such as "house" or "Glühbirne", **21 ns** for 😀 and **43 ns** for the joined
+family emoji 👨‍👩‍👧‍👦.
 
 The color picker and the Accent row of the Settings share one building block, the swatch radio
 group (`@self-engine/ui/swatch-radio-group`). It is an entry of its own and not part of `ui`'s main

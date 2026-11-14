@@ -1,9 +1,11 @@
-// A file of its own: a story file runs in a page of its own, so no other story has loaded the
-// Emoji tab before this one looks at what the page requested.
+// A file of its own: a story file runs in a page of its own, so no story of another file has
+// loaded the Emoji tab before these look at what the page requested. Each story checks first that
+// no story of this file has either.
 
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { expect, fn, screen, userEvent, waitFor, within } from "storybook/test";
 import { EntryIconPicker } from "./index.ts";
+import { emojiPickerHasRun, expectTheEmojiPickerNotYetRun } from "./story-fresh-page.ts";
 
 /** The page's requests since the story began. The page's own list fills up and then drops some. */
 const requests: string[] = [];
@@ -30,16 +32,10 @@ const answers = fn<(value: string | null) => void>();
 const emojiRequests = () =>
   requests.filter((name) => /emojibase[-_]data|@mantine[/_+]emoji/.test(name));
 
-/** Whether the picker's stylesheet is in the page, which it is once the picker's code has run. */
-const pickerStyles = () =>
-  [...document.querySelectorAll("style")].some((style) =>
-    /mantine-EmojiPicker|\.m_873e66bb/.test(style.textContent),
-  );
-
-// First in the file, so no story before it has loaded the picker's code in this page.
 export const TakesAPastedEmojiWithoutTheEmojiData: Story = {
   render: () => <EntryIconPicker onChange={answers} value="house" />,
   play: async ({ canvas }) => {
+    expectTheEmojiPickerNotYetRun();
     answers.mockClear();
     await userEvent.click(canvas.getByRole("button", { name: /^Icon/ }));
     const dialog = await screen.findByRole("dialog", { name: "Choose an icon" });
@@ -48,23 +44,24 @@ export const TakesAPastedEmojiWithoutTheEmojiData: Story = {
     await expect(answers).toHaveBeenLastCalledWith("👨‍👩‍👧‍👦");
     await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
     await expect(emojiRequests()).toEqual([]);
-    await expect(pickerStyles()).toBe(false);
+    await expect(emojiPickerHasRun()).toBe(false);
   },
 };
 
 export const LoadsTheEmojisWhenTheEmojiTabOpens: Story = {
   render: () => <EntryIconPicker onChange={() => {}} value="house" />,
   play: async ({ canvas }) => {
+    expectTheEmojiPickerNotYetRun();
     await userEvent.click(canvas.getByRole("button", { name: /^Icon/ }));
     const dialog = await screen.findByRole("dialog", { name: "Choose an icon" });
     // The Icons tab, searched and browsed, asks for nothing of the emoji picker.
     await userEvent.type(within(dialog).getByRole("searchbox", { name: "Search icons" }), "house");
     await expect(emojiRequests()).toEqual([]);
-    await expect(pickerStyles()).toBe(false);
+    await expect(emojiPickerHasRun()).toBe(false);
 
     await userEvent.click(within(dialog).getByRole("tab", { name: "Emoji" }));
     await within(dialog).findByRole("grid", { name: "Emojis" }, { timeout: 10_000 });
-    await expect(pickerStyles()).toBe(true);
+    await expect(emojiPickerHasRun()).toBe(true);
     await waitFor(() =>
       expect(emojiRequests().filter((name) => /emojibase[-_]data.en.data/.test(name))).toHaveLength(
         1,

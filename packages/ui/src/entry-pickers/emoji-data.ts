@@ -54,17 +54,15 @@ const loaded = new Map<EmojiLanguage, Promise<EmojiPickerData>>();
 export function loadEmojiData(language: EmojiLanguage): Promise<EmojiPickerData> {
   let data = loaded.get(language);
   if (data === undefined) {
-    data = LOADERS[language]().then(
-      ({ default: emojis }) =>
-        onlyAccepted(
-          emojibaseAdapter(emojis as Parameters<typeof emojibaseAdapter>[0], NO_MESSAGES),
-          isSingleEmoji,
-        ),
-      (error: unknown) => {
-        // A failed load is tried again at the next opening instead of being kept.
-        loaded.delete(language);
-        throw error;
-      },
+    // A failed load stays failed, here and in the browser: Chromium keeps a module that failed
+    // to load in its module map and answers each later import of it with the same error
+    // (whatwg/html#6768). In the desktop app the chunk is a file of the app itself, so it fails
+    // only in a damaged install, which no retry would mend.
+    data = LOADERS[language]().then(({ default: emojis }) =>
+      onlyAccepted(
+        emojibaseAdapter(emojis as Parameters<typeof emojibaseAdapter>[0], NO_MESSAGES),
+        isSingleEmoji,
+      ),
     );
     loaded.set(language, data);
   }

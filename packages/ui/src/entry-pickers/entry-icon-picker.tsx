@@ -155,6 +155,18 @@ function nextIndex(key: string, at: number, count: number, columns: number): num
 /** The width of the popover: Mantine's emoji grid at its defaults, 9 columns of 32 px. */
 const POPOVER_WIDTH = rem(320);
 
+/** The height of a tab's content below its search: the icon grid at most, the loader exactly. */
+const PANEL_HEIGHT = rem(264);
+
+/** The line a tab shows in place of its content: no match, or emojis that could not load. */
+function EmptyNote({ children }: { readonly children: string }) {
+  return (
+    <Text c="dimmed" py="sm" size="sm" ta="center">
+      {children}
+    </Text>
+  );
+}
+
 /** The Icons tab: the search over the labels and the grid of the 107 pictures. */
 function IconsTab({
   chosen,
@@ -177,15 +189,15 @@ function IconsTab({
   const pictures = useMemo<readonly Picture[]>(
     () =>
       ICON_NAMES.map((name) => {
-        const shown = i18n._(ICON_LABELS[name]);
-        return { name, label: shown, searched: folded(shown, i18n.locale) };
+        const label = i18n._(ICON_LABELS[name]);
+        return { name, label, searched: folded(label, i18n.locale) };
       }),
     [i18n, i18n.locale],
   );
   const wanted = folded(query.trim(), i18n.locale);
-  const shown =
+  const found =
     wanted === "" ? pictures : pictures.filter((picture) => picture.searched.includes(wanted));
-  const shownNames = shown.map((picture) => picture.name);
+  const shownNames = found.map((picture) => picture.name);
   // The one Tab stop of the grid: the focused picture, else the chosen one, else the first.
   const tabStop =
     [focused, chosen].find((name) => name !== undefined && shownNames.includes(name)) ??
@@ -229,7 +241,7 @@ function IconsTab({
         type="search"
         value={query}
       />
-      <ScrollArea.Autosize mah={rem(264)} type="auto">
+      <ScrollArea.Autosize mah={PANEL_HEIGHT} type="auto">
         <div
           aria-label={t`Icons`}
           onClick={(event) => {
@@ -245,7 +257,7 @@ function IconsTab({
           role="listbox"
           style={GRID_STYLE}
         >
-          {shown.map((picture) => (
+          {found.map((picture) => (
             <PictureOption
               key={picture.name}
               label={picture.label}
@@ -255,11 +267,7 @@ function IconsTab({
             />
           ))}
         </div>
-        {shown.length === 0 && (
-          <Text c="dimmed" py="sm" size="sm" ta="center">
-            {t`No icon matches the search.`}
-          </Text>
-        )}
+        {found.length === 0 && <EmptyNote>{t`No icon matches the search.`}</EmptyNote>}
       </ScrollArea.Autosize>
     </Stack>
   );
@@ -305,7 +313,8 @@ function EmojiPanel({
           if (current) setLoaded(next);
         },
         () => {
-          // The tab says that the emojis could not load, and the next opening tries again.
+          // The tab says that the emojis could not load. A later opening imports again and gets
+          // the same error, as `loadEmojiData` explains, until the app starts anew.
           if (current) setLoaded("failed");
         },
       );
@@ -314,15 +323,10 @@ function EmojiPanel({
     };
   }, [locale]);
 
-  if (loaded === "failed")
-    return (
-      <Text c="dimmed" py="sm" size="sm" ta="center">
-        {t`The emojis could not be loaded.`}
-      </Text>
-    );
+  if (loaded === "failed") return <EmptyNote>{t`The emojis could not be loaded.`}</EmptyNote>;
   if (loaded?.locale !== locale)
     return (
-      <Center h={rem(264)}>
+      <Center h={PANEL_HEIGHT}>
         <Loader aria-label={t`Loading the emojis`} size="sm" />
       </Center>
     );
@@ -343,9 +347,10 @@ export function EntryIconPicker({ value, onChange, label }: EntryIconPickerProps
   const { t, i18n } = useLingui();
   const [opened, setOpened] = useState(false);
   const [tab, setTab] = useState<Tab>("icons");
-  // Each opening starts afresh, with an empty search and no skin tone, even while the dropdown of
-  // the last opening is still fading out.
-  const [opening, setOpening] = useState(0);
+  // The key of the tabs, counted up at each opening: a new key mounts them anew, so each opening
+  // starts afresh, with an empty search and no skin tone, even while the dropdown of the last
+  // opening is still fading out.
+  const [openingKey, setOpeningKey] = useState(0);
   // One search term for both tabs (D301): it lives here, so it survives a switch of the tab, and
   // each opening empties it.
   const [query, setQuery] = useState("");
@@ -369,7 +374,7 @@ export function EntryIconPicker({ value, onChange, label }: EntryIconPickerProps
     setQuery("");
     composing.current = false;
     taken.current = false;
-    setOpening((count) => count + 1);
+    setOpeningKey((count) => count + 1);
     setOpened(true);
   };
   const close = () => {
@@ -447,7 +452,7 @@ export function EntryIconPicker({ value, onChange, label }: EntryIconPickerProps
           <Stack gap="xs">
             <Tabs
               keepMounted={false}
-              key={opening}
+              key={openingKey}
               onChange={(next) => {
                 if (next === "icons" || next === "emoji") setTab(next);
               }}
