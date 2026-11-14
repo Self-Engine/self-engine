@@ -1,7 +1,7 @@
 # Schicht 4: Projekte und Zeit
 
-Stand: 2026-11-14 · Status: **entschieden** (D303–D316), Spec #271, Issues #272–#277 sowie #109,
-#110 und #213
+Stand: 2026-11-14 · Status: **entschieden** (D303–D316, Formular-Helfer D317–D326), Spec #271,
+Issues #272–#277 sowie #109, #110 und #213
 
 Schicht 4 ist der erste Fachmeilenstein: das erste, was in der App sichtbar und nutzbar ist. Sie
 ist bewusst schmal. Der Owner nutzt die alte App weiter, bis die neue ihn überzeugt (D315).
@@ -19,7 +19,8 @@ ist bewusst schmal. Der Owner nutzt die alte App weiter, bis die neue ihn überz
 | L4.7 | Rundung | Nicht in Schicht 4; später je Projekt in `time-tracking`, auch für private Projekte (D309, ändert D153) |
 | L4.8 | Timer | Eigene Zeile, Stoppen in einer Transaktion, einer zugleich als Regel der Operation (D310) |
 | L4.9 | Überschneidungen | Gültige Daten, jede Summe zählt voll, Schicht 4 markiert nur (D311) |
-| L4.10 | Formulare | Der Formular-Helfer (#213) kommt vor dem ersten Formular (D312) |
+| L4.10 | Formulare | Der Formular-Helfer (#213) kommt vor dem ersten Formular (D312); er prüft mit dem Eingabe-Schema des Vertrags, baut auf `@mantine/form` und liegt im Paket `forms` (D317–D326) |
+| L4.15 | Bearbeiten | Eine Operation zum Bearbeiten bekommt nur die geänderten Felder; Felder, die eine Regel verbindet, reisen zusammen (D323) |
 | L4.11 | Projektseite | Keine in Schicht 4; #201 wird mit ihr gegrillt (D313) |
 | L4.12 | Hülle | Ein ständiger Platz, den ein Modul füllt; erster Nutzer ist der Timer (D314) |
 | L4.13 | Platzhalter | Verlassen die App mit `projects`, bleiben Testobjekte; kein Modul-Abbau (D315) |
@@ -37,8 +38,9 @@ storage                   Rahmen mit Einhängepunkt und Verweis-Prüfung (D306, 
 spaces, db, time          Schicht 2 und 3
 ```
 
-Daneben bekommt die Hülle den ständigen Platz (D314). Wo der Formular-Helfer (#213) liegt, klärt
-sein Grilling.
+Daneben bekommt die Hülle den ständigen Platz (D314). Der Formular-Helfer (#213) liegt im Paket
+`forms` über `shell`, `data-client` und `ui`; beide Module importieren es, und nur `forms`
+importiert `@mantine/form` und `@mantine/dates` (D325).
 
 Was ein Zeiteintrag speichert (D308):
 
@@ -58,7 +60,7 @@ Schicht 3 unter Spec #103.
 | Nr. | Paket | Issue | Entscheidungen | Blocked by |
 |---|---|---|---|---|
 | 1 | Verbot von `CASCADE` und `SET NULL` in der Konventionsprüfung | #272 | D306 | – |
-| 2 | Formular-Helfer | #213 | D312 | – |
+| 2 | Formular-Helfer | #213 | D312, D317–D326 | – |
 | 3 | `projects`; die Platzhalter verlassen die App | #273 | D303–D306, D313, D315 | #213, #272 |
 | 4 | Schutz-Paket: Einhängepunkt und Verweis-Prüfung | #274 | D306, D307 | #272 |
 | 5 | Einstellungen in der Datenbank | #109 | D62, D113 ff. | – |

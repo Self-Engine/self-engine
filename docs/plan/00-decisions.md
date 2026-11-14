@@ -57,6 +57,7 @@ den Vermerk `_Überholt durch D<n>._`
 | [D298](decisions/d298-regular-icon-weight.md) | 2026-11-14 | Icons standardmäßig regular statt duotone | #106 |
 | [D299–D302](decisions/d299-d302-icon-field-with-emoji-picker.md) | 2026-11-14 | Ein Feld für Icon und Emoji: zwei Reiter, Mantines Emoji-Auswahl, ein Suchbegriff, Einfügen | #264 |
 | [D303–D316](decisions/d303-d316-layer-4-projects-and-time.md) | 2026-11-14 | Schicht 4: Projekte und Zeit (Umfang, Module, Löschschutz, Zeiteintrag, Timer, Überschneidungen, Reihenfolge) | #271–#277, #109, #110, #201, #213, #214 |
+| [D317–D326](decisions/d317-d326-form-helper.md) | 2026-11-14 | Formular-Helfer: Prüfung mit dem Vertrag, `@mantine/form`, Entwurf, Meldungen, Ablauf, geänderte Felder, Paket `forms` | #213 |
 
 D109 und D110 sind doppelt vergeben, in den Runden 18 und 19. Wer eine der beiden nennt, nennt die
 Runde dazu.

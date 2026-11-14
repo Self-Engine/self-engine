@@ -49,7 +49,8 @@ Pro Runde werden nur 2–3 Fragen gestellt; die Nummern sind stabil.
       - ✅ Zeiteintrag mit Lage und Dauer, Timer als eigene Zeile, Überschneidungen gültig (D308, D310, D311)
       - ✅ Formular-Helfer zuerst, keine Projektseite, ständiger Platz in der Hülle (D312–D314)
       - ✅ Platzhalter verlassen die App, Reihenfolge in neun Schritten (D315, D316)
-      - ⏳ Paket-Grillings: #213, `projects` (#273), Schutz-Paket (#274), #109, #110, `time-tracking` (#275, #277), ständiger Platz (#276)
+      - ✅ Formular-Helfer gegrillt: Prüfung mit dem Vertrag, `@mantine/form`, Paket `forms`, Bearbeiten schickt nur geänderte Felder (D317–D326, #213)
+      - ⏳ Paket-Grillings: `projects` (#273), Schutz-Paket (#274), #109, #110, `time-tracking` (#275, #277), ständiger Platz (#276)
     - ⏳ Schicht 5 Import (beginnt mit Projekten und Zeiteinträgen, D316)
   - ⏳ Reihenfolge nach Schicht 5 bis zum Stichtag (weitere Module, Sync, Mobile)
   - ⏳ Zeitpunkt Organisations-Spaces & Policies
