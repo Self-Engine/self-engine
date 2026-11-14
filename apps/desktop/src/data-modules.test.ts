@@ -44,7 +44,7 @@ test("placeholder-alpha is mounted: an Operation is followed by its Table Change
       kind: "opened",
       queries: {
         placeholderAlpha: { list: ["placeholder_alpha_entries"] },
-        projects: { active: ["projects"] },
+        projects: { active: ["projects"], archived: ["projects"] },
         backups: { list: [] },
       },
     },
