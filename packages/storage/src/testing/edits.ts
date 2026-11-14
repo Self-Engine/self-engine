@@ -1,5 +1,5 @@
 import { isDeepStrictEqual } from "node:util";
-import type { AnySchema, InferContractRouterInputs } from "@orpc/contract";
+import { ValidationError, type AnySchema, type InferContractRouterInputs } from "@orpc/contract";
 import { call, ORPCError, type AnyProcedure } from "@orpc/server";
 import type { Migration, TablesOf } from "@self-engine/db";
 import { z } from "zod";
@@ -37,8 +37,8 @@ export async function acceptsUnknownField(schema: AnySchema, example: unknown) {
  * `edit: true`, on a fresh seeded database. The input's required keys are the entry's identity,
  * its optional keys the fields; the answer carries each field under the same name.
  *
- * 1. Without fields the edit answers, writes nothing and announces nothing; an id no seed
- *    produced is not found.
+ * 1. Without fields the edit answers with the entry as it stands, writes nothing, announces
+ *    nothing and leaves `updated_at`; an id no seed produced is not found.
  * 2. With the example, which must set every field, then each field alone: a field the call does
  *    not carry keeps its value, `null` clears an optional field, a value sets it.
  */
@@ -80,12 +80,21 @@ export async function checkEdits<Contract extends StorageContract, Rows extends 
           Promise.resolve(seed(tx.withTables<TablesOf<Rows>>(), createContext(sources))),
         );
       let announced = false;
+      let refusedOutput = false;
       const router: Record<string, AnyProcedure> = createFrame(module, {
         database,
         sources,
         checkOutputs: true,
         announce: () => {
           announced = true;
+        },
+        report: (event) => {
+          if (
+            event.kind === "unexpected-error" &&
+            event.error instanceof ORPCError &&
+            event.error.cause instanceof ValidationError
+          )
+            refusedOutput = true;
         },
       });
       const target = router[entry];
@@ -96,9 +105,15 @@ export async function checkEdits<Contract extends StorageContract, Rows extends 
         return (await call(target, input)) as unknown;
       };
 
+      const answersNothing = (error: unknown) => {
+        // An answer the output schema refuses is no entry.
+        if (!refusedOutput) throw error;
+        refusedOutput = false;
+        violate("edit without fields does not answer the entry");
+      };
       const before = await tableContents(database);
       announced = false;
-      await edit(identity);
+      await edit(identity).catch(answersNothing);
       if (announced || !isDeepStrictEqual(before, await tableContents(database)))
         violate("edit without fields writes");
       if (Object.keys(identity).length === 1 && Object.hasOwn(identity, "id")) {
@@ -115,6 +130,11 @@ export async function checkEdits<Contract extends StorageContract, Rows extends 
       const set = fields.filter((field) => Object.hasOwn(example, field));
       const full = await edit(example);
       if (!isRecord(full)) continue;
+      // After the example the entry is the full edit's answer, `updated_at` included, though the
+      // clock has moved on.
+      const bare = await edit(identity).catch(answersNothing);
+      if (bare !== undefined && !isDeepStrictEqual(bare, full))
+        violate("edit without fields does not answer the entry");
       for (const field of set)
         if (!Object.hasOwn(full, field)) violate(`edit answer lacks a field: ${field}`);
       const carried = set.filter((field) => Object.hasOwn(full, field));

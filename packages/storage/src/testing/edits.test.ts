@@ -71,6 +71,7 @@ test("the kit fails an edit that writes when it carries no field", async () => {
   });
   await expect(checkContract(writes, seed, examples)).resolves.toEqual([
     { entry: "edit", rule: "edit without fields writes" },
+    { entry: "edit", rule: "edit without fields does not answer the entry" },
   ]);
 });
 
@@ -86,6 +87,7 @@ test("the kit fails an edit that clears a field missing from the call", async ()
   );
   await expect(checkContract(clears, seed, examples)).resolves.toEqual([
     { entry: "edit", rule: "edit without fields writes" },
+    { entry: "edit", rule: "edit without fields does not answer the entry" },
     { entry: "edit", rule: "edit changes a field it did not carry: body" },
   ]);
 });
@@ -131,5 +133,36 @@ test("the kit names a field the edit example does not set", async () => {
   ).resolves.toEqual([
     { entry: "edit", rule: "edit example does not set every field: body" },
     { entry: "edit", rule: "edit example does not set every field: color" },
+  ]);
+});
+
+const editMemo: EditRun = async (tx, context, input) =>
+  toMemo(
+    await sharedWrites(tx, context).update("memos", input.id, {
+      title: input.title,
+      body: input.body,
+      color: input.color,
+    }),
+  );
+
+test("the kit fails an edit that answers nothing when it carries no field", async () => {
+  const empty = withEdit(async (tx, context, input) => {
+    const memo = await editMemo(tx, context, input);
+    // Writes nothing, but answers no entry.
+    return Object.keys(input).length > 1 ? memo : ({} as typeof memo);
+  });
+  await expect(checkContract(empty, seed, examples)).resolves.toEqual([
+    { entry: "edit", rule: "edit without fields does not answer the entry" },
+  ]);
+});
+
+test("the kit fails an edit that answers a moved `updated_at` when it carries no field", async () => {
+  const stale = withEdit(async (tx, context, input) => {
+    const memo = await editMemo(tx, context, input);
+    // Writes nothing, but answers as if it had.
+    return Object.keys(input).length > 1 ? memo : { ...memo, updatedAt: context.now };
+  });
+  await expect(checkContract(stale, seed, examples)).resolves.toEqual([
+    { entry: "edit", rule: "edit without fields does not answer the entry" },
   ]);
 });
