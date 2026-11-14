@@ -1306,6 +1306,10 @@ msgstr "This backup can no longer be read. Nothing was restored."
 msgid "This entry no longer exists."
 msgstr "This entry no longer exists."
 
+#: packages/forms/src/form-body.tsx
+msgid "This entry was deleted"
+msgstr "This entry was deleted"
+
 #: packages/forms/src/violation-texts.ts
 msgid "This field is required."
 msgstr "This field is required."
@@ -1436,6 +1440,10 @@ msgstr "Yarn"
 msgctxt "Color"
 msgid "Yellow"
 msgstr "Yellow"
+
+#: packages/forms/src/form-body.tsx
+msgid "You can still read and copy what you typed here, but it can no longer be saved."
+msgstr "You can still read and copy what you typed here, but it can no longer be saved."
 
 #: apps/web/src/data-connection-states.tsx
 msgid "Your data cannot be reached."

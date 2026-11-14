@@ -43,14 +43,27 @@ export interface OperationFormOptions<
   readonly texts?: FormTexts<keyof InputOfEntry<Entry> & string>;
   /** What the Operation hook of that entry returns, such as `useCreateNote()`. */
   readonly operation: OperationState<InputOfEntry<Entry>, Result>;
-  /** The draft the form starts with; read once, when the form first draws. */
+  /**
+   * Creating: the draft the form starts with, read once, when the form first draws. Editing: the
+   * stored entry as the Query answers it now, followed while the form is open (D324). A field the
+   * user has not changed takes its new value; a changed one keeps its text, and "changed" is
+   * compared with the new state. Give it on every draw; a new object with the same values does
+   * nothing.
+   */
   readonly draft: Draft<InputOfEntry<Entry>>;
-  /** Editing compares against the initial draft and submits only changed fields plus identity. */
+  /** Editing compares against the stored entry and submits only changed fields plus identity. */
   readonly edit?: {
     /** Required routing keys (usually { id }); never counted as editable fields. */
     readonly identity: Partial<InputOfEntry<Entry>>;
     /** Groups named beside the Contract rule; overlapping groups travel together. */
     readonly tiedFields?: readonly (readonly (keyof InputOfEntry<Entry> & string)[])[];
+    /**
+     * The entry was deleted elsewhere (D324): the form keeps what it shows, tells the user and
+     * cannot save, and `draft` is not followed, so give the last entry you had. Once it is `false`
+     * again, after an undo, the form follows `draft` and saves as before. A module that deletes
+     * the entry from inside its own form closes it and leaves this `false`.
+     */
+    readonly deleted?: boolean;
   };
   /** Nullable text fields: an empty or whitespace-only input hands on null, never empty text. */
   readonly emptyTextFields?: readonly (keyof InputOfEntry<Entry> & string)[];
@@ -95,7 +108,11 @@ export interface FormBinding {
   readonly unfinished: Pick<UnfinishedTexts, "any" | "subscribe">;
   readonly messages: FieldMessages;
   readonly isChanged: () => boolean;
+  /** Whether "Save" may submit: not while editing without a change, nor once the entry is deleted. */
   readonly canSubmit: () => boolean;
+  /** The entry the form edits was deleted elsewhere (D324). */
+  readonly isDeleted: () => boolean;
+  /** Calls `listener` when `isChanged`, `canSubmit` or `isDeleted` may have changed. */
   readonly subscribeChanged: (listener: () => void) => () => void;
   readonly isRunning: () => boolean;
   readonly subscribeRunning: (listener: () => void) => () => void;
@@ -118,9 +135,11 @@ interface Latest {
   readonly draft: UseFormReturnType<Values>;
   /** The options without the types that tie them to one entry. */
   readonly options: {
+    readonly draft: Values;
     readonly edit?: {
       readonly identity: Values;
       readonly tiedFields?: readonly (readonly string[])[];
+      readonly deleted?: boolean;
     };
     readonly emptyTextFields?: readonly string[];
     readonly entry: AnyContractProcedure;
@@ -152,29 +171,40 @@ export function useOperationForm<Entry extends AnyContractProcedure, Result exte
   const draft = useForm<Values>({ mode: "uncontrolled", initialValues: options.draft });
   // Read when the user acts, never while drawing: the latest Operation state and callback.
   const latest = useRef<Latest>({ draft, options } as unknown as Latest);
+  const [{ form, follow }] = useState(() => createForm(() => latest.current));
   useEffect(() => {
     latest.current = { draft, options } as unknown as Latest;
+    follow();
   });
-  const [form] = useState(() => createForm(() => latest.current));
   return form;
 }
 
-function createForm(latest: () => Latest): OperationForm<never> {
+interface MadeForm {
+  readonly form: OperationForm<never>;
+  /** Follows the stored entry of an edit after a draw (D324). */
+  readonly follow: () => void;
+}
+
+function createForm(latest: () => Latest): MadeForm {
   const messages = new FieldMessages();
   const values = new FieldListeners();
   const unfinished = new UnfinishedTexts();
   const conflicts = new Map<string, MessageDescriptor>();
   const elements = new Map<string, HTMLElement>();
   const changedListeners = new Set<() => void>();
-  const normalized = (): Values => {
-    const result = { ...latest().draft.getValues() };
+  const normalize = (values: Values): Values => {
+    const result = { ...values };
     for (const field of latest().options.emptyTextFields ?? []) {
       if (typeof result[field] === "string" && result[field].trim() === "") result[field] = null;
     }
     return result;
   };
-  // The comparison state is independent of the draft: #289 can replace it under an open form.
+  const normalized = () => normalize(latest().draft.getValues());
+  // The stored state "changed" compares with, apart from the draft: it follows the entry (D324).
   let stored: Values = structuredClone(normalized());
+  // The stored entry as the module gave it last, to notice when it gives another.
+  let followed: unknown = structuredClone(latest().options.draft);
+  let deleted = false;
   const changedFields = () => {
     const current = normalized();
     return Object.keys(stored).filter(
@@ -184,7 +214,7 @@ function createForm(latest: () => Latest): OperationForm<never> {
     );
   };
   const isChanged = () => unfinished.any() || changedFields().length > 0;
-  const canSubmit = () => latest().options.edit === undefined || isChanged();
+  const canSubmit = () => latest().options.edit === undefined || (!deleted && isChanged());
   const notifyChanged = () => {
     for (const listener of changedListeners) listener();
   };
@@ -243,6 +273,34 @@ function createForm(latest: () => Latest): OperationForm<never> {
     if (checkingEveryChange || hadConflict) check();
     else if (wasUnfinished) show();
   };
+  const follow = () => {
+    const { draft, options } = latest();
+    if (options.edit === undefined) return;
+    const gone = options.edit.deleted === true;
+    let followedNow = gone !== deleted;
+    deleted = gone;
+    if (!gone && !sameValue(options.draft, followed)) {
+      followed = structuredClone(options.draft);
+      const current = normalized();
+      const next = normalize(options.draft);
+      // A field the user has not changed takes the new value; a changed one keeps its text.
+      const taking = Object.keys(next).filter(
+        (field) =>
+          !unfinished.holds(field) &&
+          sameValue(current[field], stored[field]) &&
+          !sameValue(current[field], next[field]),
+      );
+      for (const field of taking) {
+        draft.setFieldValue(field, options.draft[field], { forceUpdate: false });
+      }
+      stored = structuredClone(next);
+      for (const field of taking) values.notify(field);
+      followedNow = true;
+    }
+    if (!followedNow) return;
+    notifyChanged();
+    if (checkingEveryChange) check();
+  };
   const form: OperationForm<never> = {
     async submit() {
       if (running || !canSubmit()) return;
@@ -295,6 +353,7 @@ function createForm(latest: () => Latest): OperationForm<never> {
     messages,
     isChanged,
     canSubmit,
+    isDeleted: () => deleted,
     subscribeChanged(listener) {
       changedListeners.add(listener);
       return () => changedListeners.delete(listener);
@@ -313,7 +372,7 @@ function createForm(latest: () => Latest): OperationForm<never> {
       };
     },
   });
-  return form;
+  return { form, follow };
 }
 
 function inputSchemaOf(entry: AnyContractProcedure): InputSchema {

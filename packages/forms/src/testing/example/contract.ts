@@ -23,6 +23,8 @@ export const exampleEntrySchema = z.object({ id: z.string(), ...exampleFields })
 export const exampleTiedFields = [["icon", "color"]] as const;
 
 export const exampleContract = {
+  /** Every example entry: what an edit form shows and follows while it is open (D324). */
+  list: oc.input(z.object({})).output(z.array(exampleEntrySchema)),
   // This invented partial input proves the form side only; projects sets the real pattern.
   update: oc
     .input(

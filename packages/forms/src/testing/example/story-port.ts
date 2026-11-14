@@ -2,7 +2,12 @@
 // every call written down, so a story asserts which call reached the Port.
 
 import type { PortAccess } from "@self-engine/data-client/react";
-import { type Contracts, type FixedAnswers, fixedAnswers } from "@self-engine/data-client/testing";
+import {
+  changingAnswers,
+  type Contracts,
+  type FixedAnswers,
+  fixedAnswers,
+} from "@self-engine/data-client/testing";
 import { exampleContract } from "./contract.ts";
 
 const contracts = { example: exampleContract };
@@ -50,5 +55,41 @@ export function recordingPortOf<Of extends Contracts>(
         return fixed.call(module, entry, input, signal);
       },
     },
+  };
+}
+
+/** The table the example entries live in, as the Data Process would name it (D248). */
+const EXAMPLE_TABLE = "example_entries";
+
+type ExampleAnswers = NonNullable<FixedAnswers<typeof contracts>["example"]>;
+
+export interface ChangingPort extends RecordingPort {
+  /**
+   * Answers from `next` from now on and delivers the Table Change of the example entries, as the
+   * Data Process does after another window, an assistant or the sync wrote them.
+   */
+  readonly change: (next: ExampleAnswers) => void;
+}
+
+/**
+ * A Port whose stored entries change under an open form (Changing Answers): it answers `first`
+ * until the story calls `change`. Only the Operations are written down, not the reloads of the
+ * Query.
+ */
+export function changingPort(first: ExampleAnswers): ChangingPort {
+  const answers = (of: ExampleAnswers) => fixedAnswers(contracts, { example: of });
+  const port = changingAnswers(answers(first), { example: { list: [EXAMPLE_TABLE] } });
+  const calls: PortCall[] = [];
+  return {
+    calls,
+    access: {
+      ...port.access,
+      call(module, entry, input, signal) {
+        if (port.access.describeEntry(module, entry)?.kind !== "query")
+          calls.push({ entry, input });
+        return port.access.call(module, entry, input, signal);
+      },
+    },
+    change: (next) => port.change(answers(next), [EXAMPLE_TABLE]),
   };
 }

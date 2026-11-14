@@ -7,14 +7,33 @@ import {
   useSyncExternalStore,
 } from "react";
 import { useUnsavedChanges } from "@self-engine/shell";
-import { bindingOf, type OperationForm } from "./operation-form.ts";
+import { WarningAlert } from "@self-engine/ui";
+import { bindingOf, type FormBinding, type OperationForm } from "./operation-form.ts";
 
 export interface OperationFormBodyProps {
   readonly form: OperationForm<unknown>;
   readonly children: ReactNode;
 }
 
-/** The shared lock, submit and keys, also for a form outside the Edit Drawer. */
+/**
+ * Says that the entry the form edits was deleted elsewhere (D324), while it is: the fields stay,
+ * so the user can still read and copy what they typed, but nothing saves.
+ */
+function DeletedEntryMessage({ binding }: { readonly binding: FormBinding }) {
+  const { t } = useLingui();
+  const deleted = useSyncExternalStore(binding.subscribeChanged, binding.isDeleted);
+  if (!deleted) return null;
+  return (
+    <WarningAlert mb="md" title={t`This entry was deleted`}>
+      {t`You can still read and copy what you typed here, but it can no longer be saved.`}
+    </WarningAlert>
+  );
+}
+
+/**
+ * The shared lock, submit and keys, also for a form outside the Edit Drawer, and the message for
+ * an entry deleted while the form is open.
+ */
 export function OperationFormBody({ form, children }: OperationFormBodyProps) {
   const binding = bindingOf(form);
   const running = useSyncExternalStore(binding.subscribeRunning, binding.isRunning);
@@ -66,6 +85,7 @@ export function OperationFormBody({ form, children }: OperationFormBodyProps) {
           flexDirection: "column",
         }}
       >
+        <DeletedEntryMessage binding={binding} />
         {children}
       </fieldset>
     </form>

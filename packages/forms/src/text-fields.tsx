@@ -26,6 +26,25 @@ export type LongTextFieldProps<FormDraft> = TextBindingProps<FormDraft> &
 const textOf = (value: unknown) => (typeof value === "string" ? value : "");
 
 /**
+ * Writes a value set by code, or a stored value the field follows (D324), into the input. Where
+ * the user's caret stands in it, it stays at the same place, or at the end of a shorter text.
+ */
+function writeKeepingTheCaret(element: HTMLInputElement | HTMLTextAreaElement, text: string) {
+  if (element !== element.ownerDocument.activeElement) {
+    element.value = text;
+    return;
+  }
+  const { selectionStart, selectionEnd, selectionDirection } = element;
+  element.value = text;
+  if (selectionStart === null || selectionEnd === null) return;
+  element.setSelectionRange(
+    Math.min(selectionStart, text.length),
+    Math.min(selectionEnd, text.length),
+    selectionDirection ?? undefined,
+  );
+}
+
+/**
  * Binds a Mantine text input to its field of the draft. The input keeps what is typed itself
  * (uncontrolled), so a key press redraws nothing; the field draws again only when its message or
  * the language changes. A value set by code is written into the input without a redraw.
@@ -41,7 +60,7 @@ function useTextBinding<FormDraft>(form: OperationForm<FormDraft>, name: string)
       const unsubscribe = binding.subscribeValue(name, () => {
         // What the user typed is the value already; only a value set by code differs.
         const text = textOf(binding.valueOf(name));
-        if (element.value !== text) element.value = text;
+        if (element.value !== text) writeKeepingTheCaret(element, text);
       });
       return () => {
         unregister?.();

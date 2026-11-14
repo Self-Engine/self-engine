@@ -10,3 +10,5 @@ export const useCreateExample = examplePort.operation("create", {
 });
 
 export const useUpdateExample = examplePort.operation("update");
+
+export const useExampleEntries = examplePort.query("list");

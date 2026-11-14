@@ -331,9 +331,11 @@ answersByMount({ placeholderAlpha: placeholderAlphaAnswers(), backups: backupAns
 ```
 
 A Fixed Answer never changes: an Operation returns its answer and changes nothing, and no Table
-Change follows. Stories show states, not flows. The one exception is a story that measures what a
-change redraws: `changingAnswers(first, queries)` from the same entry switches to the next Fixed
-Answers and delivers their Table Change in one step, as the render-count gate does (step 4).
+Change follows. Stories show states, not flows. The exceptions are a story that measures what a
+change redraws and a story of a form that follows its stored entry while it is open (D324):
+`changingAnswers(first, queries)` from the same entry switches to the next Fixed Answers and
+delivers their Table Change in one step, as the render-count gate does (step 4) and the stories in
+[`example-form-follow-entry.stories.tsx`](../../packages/forms/src/testing/example/example-form-follow-entry.stories.tsx).
 Where no call is meant to reach a Port, pass `NO_DATA_PROCESS` from
 `@self-engine/data-client/react`; do not write an inert access of your own.
 

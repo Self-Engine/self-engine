@@ -46,6 +46,11 @@ export class UnfinishedTexts {
     return new Map([...this.#reported].flatMap((field) => this.#entryOf(field)));
   }
 
+  /** Whether `field` holds text that is no value. */
+  holds(field: string): boolean {
+    return this.#held.has(field);
+  }
+
   /** Whether any field holds text that is no value: then no save is possible. */
   any(): boolean {
     return this.#held.size > 0;
