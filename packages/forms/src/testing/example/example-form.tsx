@@ -5,7 +5,7 @@
 
 import { Button, Stack } from "@mantine/core";
 import type { z } from "zod";
-import { LongTextField, TextField, useOperationForm } from "../../index.ts";
+import { ColorField, IconField, LongTextField, TextField, useOperationForm } from "../../index.ts";
 import { exampleContract, type exampleEntrySchema } from "./contract.ts";
 import { useCreateExample } from "./port.ts";
 
@@ -21,13 +21,15 @@ export function ExampleForm({ onSuccess }: ExampleFormProps) {
   const form = useOperationForm({
     entry: exampleContract.create,
     operation: useCreateExample(),
-    draft: { title: "", description: "" },
+    draft: { title: "", description: "", icon: null, color: null },
     onSuccess,
   });
   return (
     <Stack>
       <TextField form={form} label="Title" name="title" />
       <LongTextField form={form} label="Description" name="description" />
+      <IconField form={form} label="Icon" name="icon" />
+      <ColorField form={form} label="Color" name="color" />
       <Button onClick={() => void form.submit()}>Save</Button>
     </Stack>
   );

@@ -315,6 +315,10 @@ msgctxt "Density"
 msgid "Compact"
 msgstr "Compact"
 
+#: packages/forms/src/unfinished-texts.ts
+msgid "Complete or clear this field."
+msgstr "Complete or clear this field."
+
 #: packages/icons/src/directory/labels.ts
 msgctxt "Icon"
 msgid "Computer"

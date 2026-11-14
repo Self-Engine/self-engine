@@ -11,6 +11,10 @@ const exampleFields = {
   title: z.string().trim().min(1).max(80),
   /** Multi-line. */
   description: z.string().trim().min(1).max(500),
+  /** An icon name or one emoji, or empty; a module's Contract checks it with `entryIconSchema`. */
+  icon: z.string().nullable(),
+  /** A Color Set name, or empty; a module's Contract checks it with `colorSetNameSchema`. */
+  color: z.string().nullable(),
 };
 
 export const exampleEntrySchema = z.object({ id: z.string(), ...exampleFields });

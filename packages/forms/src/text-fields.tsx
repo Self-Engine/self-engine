@@ -1,6 +1,6 @@
-import { useLingui } from "@lingui/react";
 import { Textarea, type TextareaProps, TextInput, type TextInputProps } from "@mantine/core";
-import { type ChangeEvent, memo, useCallback, useSyncExternalStore } from "react";
+import { type ChangeEvent, useCallback } from "react";
+import { typedMemo, useFieldElement, useFieldMessage } from "./field-binding.ts";
 import { bindingOf, type OperationForm } from "./operation-form.ts";
 
 /** The fields of a draft that hold a text. */
@@ -22,43 +22,44 @@ export type TextFieldProps<FormDraft> = TextBindingProps<FormDraft> & Omit<TextI
 export type LongTextFieldProps<FormDraft> = TextBindingProps<FormDraft> &
   Omit<TextareaProps, Bound>;
 
+/** The text a text field shows for a value of the draft. */
+const textOf = (value: unknown) => (typeof value === "string" ? value : "");
+
 /**
  * Binds a Mantine text input to its field of the draft. The input keeps what is typed itself
  * (uncontrolled), so a key press redraws nothing; the field draws again only when its message or
- * the language changes.
+ * the language changes. A value set by code is written into the input without a redraw.
  */
 function useTextBinding<FormDraft>(form: OperationForm<FormDraft>, name: string) {
   const binding = bindingOf(form);
-  const message = useSyncExternalStore(
-    useCallback(
-      (listener: () => void) => binding.messages.subscribe(name, listener),
-      [binding, name],
-    ),
-    () => binding.messages.of(name),
-  );
-  const { i18n } = useLingui();
+  const error = useFieldMessage(binding, name);
+  const register = useFieldElement(binding, name);
   const ref = useCallback(
-    (element: HTMLElement | null) =>
-      element === null ? undefined : binding.register(name, element),
-    [binding, name],
+    (element: HTMLInputElement | HTMLTextAreaElement | null) => {
+      if (element === null) return undefined;
+      const unregister = register(element);
+      const unsubscribe = binding.subscribeValue(name, () => {
+        // What the user typed is the value already; only a value set by code differs.
+        const text = textOf(binding.valueOf(name));
+        if (element.value !== text) element.value = text;
+      });
+      return () => {
+        unregister?.();
+        unsubscribe();
+      };
+    },
+    [binding, name, register],
   );
-  const value = binding.valueOf(name);
   return {
     ref,
     name,
-    defaultValue: typeof value === "string" ? value : "",
+    defaultValue: textOf(binding.valueOf(name)),
     onChange: (event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
       binding.change(name, event.currentTarget.value);
     },
-    error: message && i18n._(message),
+    error,
   };
 }
-
-/**
- * `memo` for a generic component: a field draws again only when its own props change, not when
- * the module's form around it does, such as when the form library notes the first change.
- */
-const typedMemo = memo as <Component>(component: Component) => Component;
 
 /** A single-line text of the draft, with its message from the check. */
 export const TextField = typedMemo(function TextField<FormDraft>({

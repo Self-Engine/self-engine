@@ -1,4 +1,5 @@
 import type { MessageDescriptor } from "@lingui/core";
+import { FieldListeners } from "./field-listeners.ts";
 
 /**
  * The message each field shows, by field name, with one subscription per field: a change to one
@@ -7,7 +8,7 @@ import type { MessageDescriptor } from "@lingui/core";
  */
 export class FieldMessages {
   readonly #shown = new Map<string, MessageDescriptor>();
-  readonly #listeners = new Map<string, Set<() => void>>();
+  readonly #listeners = new FieldListeners();
 
   /** The message `field` shows, or `undefined`. */
   of(field: string): MessageDescriptor | undefined {
@@ -16,10 +17,7 @@ export class FieldMessages {
 
   /** Calls `listener` when the message of `field` changes; returns the function that stops it. */
   subscribe(field: string, listener: () => void): () => void {
-    const listeners = this.#listeners.get(field) ?? new Set();
-    this.#listeners.set(field, listeners);
-    listeners.add(listener);
-    return () => listeners.delete(listener);
+    return this.#listeners.subscribe(field, listener);
   }
 
   /** Shows `next` in place of every message so far; only the fields whose text changed hear of it. */
@@ -36,8 +34,7 @@ export class FieldMessages {
       if (message === undefined) this.#shown.delete(field);
       else this.#shown.set(field, message);
     }
-    for (const field of changed)
-      for (const listener of this.#listeners.get(field) ?? []) listener();
+    for (const field of changed) this.#listeners.notify(field);
   }
 }
 

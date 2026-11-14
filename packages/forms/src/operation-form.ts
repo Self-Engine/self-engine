@@ -4,7 +4,9 @@ import type { AnyContractProcedure, InferSchemaInput } from "@orpc/contract";
 import type { OperationState } from "@self-engine/data-client/react";
 import { useEffect, useRef, useState } from "react";
 import { checkDraft, type InputSchema } from "./check.ts";
+import { FieldListeners } from "./field-listeners.ts";
 import { FieldMessages } from "./field-messages.ts";
+import { UnfinishedTexts } from "./unfinished-texts.ts";
 
 /** The input that an entry of a Contract takes, as its input schema accepts it. */
 export type InputOfEntry<Entry extends AnyContractProcedure> = InferSchemaInput<
@@ -55,6 +57,11 @@ export interface OperationForm<FormDraft> {
    * checks the whole draft again (D321). Without, it calls the Operation with the draft.
    */
   readonly submit: () => Promise<void>;
+  /**
+   * Sets the value of `field` by code, as if the user had chosen it: the field shows it, also a
+   * bound picker, and any text the field held that was no value is gone.
+   */
+  setValue<Field extends keyof FormDraft & string>(field: Field, value: FormDraft[Field]): void;
   /** Only types the names a field may take; there is no such value. */
   readonly [draftOf]?: FormDraft;
 }
@@ -63,8 +70,16 @@ export interface OperationForm<FormDraft> {
 export interface FormBinding {
   /** The value of `field` in the draft now. */
   readonly valueOf: (field: string) => unknown;
-  /** Takes a finished value of `field` into the draft. */
+  /** Takes a finished value of `field` into the draft; any text it held that was no value is gone. */
   readonly change: (field: string, value: unknown) => void;
+  /** Calls `listener` when the value of `field` changes, by the user or by code. */
+  readonly subscribeValue: (field: string, listener: () => void) => () => void;
+  /** `field` holds text that is no value (D319); `message` shows once the user leaves it. */
+  readonly holdUnfinished: (field: string, message: MessageDescriptor) => void;
+  /** The focus left `field`. */
+  readonly leave: (field: string) => void;
+  /** The fields that hold text which is no value: it counts as an unsaved change too (#288). */
+  readonly unfinished: Pick<UnfinishedTexts, "any" | "subscribe">;
   readonly messages: FieldMessages;
   /** Makes `element` the one the focus goes to for `field`; returns the function that undoes it. */
   readonly register: (field: string, element: HTMLElement) => () => void;
@@ -121,36 +136,59 @@ export function useOperationForm<Entry extends AnyContractProcedure, Result exte
 
 function createForm(latest: () => Latest): OperationForm<never> {
   const messages = new FieldMessages();
+  const values = new FieldListeners();
+  const unfinished = new UnfinishedTexts();
   const elements = new Map<string, HTMLElement>();
   // From the first failed save on, every change checks the whole draft (D321).
   let checkingEveryChange = false;
+  let violations: ReadonlyMap<string, MessageDescriptor> = new Map();
+  // A field's text that is no value outranks what the schema says of its older value.
+  const show = () => messages.replace(new Map([...violations, ...unfinished.shown()]));
   const check = (): ReadonlyMap<string, MessageDescriptor> => {
     const { draft, options } = latest();
-    const found = checkDraft(inputSchemaOf(options.entry), draft.getValues());
-    messages.replace(found);
-    return found;
+    violations = checkDraft(inputSchemaOf(options.entry), draft.getValues());
+    show();
+    return violations;
+  };
+  const change = (field: string, value: unknown) => {
+    // Without the forced update: the field already shows what was typed.
+    latest().draft.setFieldValue(field, value, { forceUpdate: false });
+    const wasUnfinished = unfinished.finish(field);
+    values.notify(field);
+    if (checkingEveryChange) check();
+    else if (wasUnfinished) show();
   };
   const form: OperationForm<never> = {
     async submit() {
+      unfinished.reportAll();
       const found = check();
-      if (found.size > 0) {
+      const blocked = new Set([...found.keys(), ...unfinished.shown().keys()]);
+      if (blocked.size > 0) {
         checkingEveryChange = true;
         reportFieldsMissing(found, elements);
-        firstOnScreen(found, elements)?.focus();
+        const first = firstOnScreen(blocked, elements);
+        if (first !== undefined) focusInto(first);
         return;
       }
       const { draft, options } = latest();
       const result = await options.operation.run(draft.getValues());
       if (result.status === "success") latest().options.onSuccess?.(Reflect.get(result, "data"));
     },
+    setValue: change,
   };
   BINDINGS.set(form, {
     valueOf: (field) => latest().draft.getValues()[field],
-    change(field, value) {
-      // Without the forced update: the field already shows what was typed.
-      latest().draft.setFieldValue(field, value, { forceUpdate: false });
-      if (checkingEveryChange) check();
+    change,
+    subscribeValue: (field, listener) => values.subscribe(field, listener),
+    holdUnfinished(field, message) {
+      unfinished.hold(field, message);
+      show();
     },
+    leave(field) {
+      unfinished.report(field);
+      show();
+    },
+    unfinished,
     messages,
     register(field, element) {
       elements.set(field, element);
@@ -170,10 +208,10 @@ function inputSchemaOf(entry: AnyContractProcedure): InputSchema {
 
 /** Of the fields with a message, the one that comes first on screen. */
 function firstOnScreen(
-  found: ReadonlyMap<string, MessageDescriptor>,
+  fields: Iterable<string>,
   elements: ReadonlyMap<string, HTMLElement>,
 ): HTMLElement | undefined {
-  const shown = [...found.keys()].flatMap((field) => elements.get(field) ?? []);
+  const shown = [...fields].flatMap((field) => elements.get(field) ?? []);
   return shown.reduce<HTMLElement | undefined>(
     (first, element) =>
       first === undefined ||
@@ -182,6 +220,19 @@ function firstOnScreen(
         : first,
     undefined,
   );
+}
+
+/**
+ * Focuses a field: its element where that takes the focus, such as a text input, else the first
+ * element inside it that does, such as the button of a picker or its chosen radio.
+ */
+function focusInto(field: HTMLElement): void {
+  const takesFocus = (element: HTMLElement) =>
+    element.tabIndex >= 0 && !element.matches(":disabled");
+  const target = takesFocus(field)
+    ? field
+    : [...field.querySelectorAll<HTMLElement>("*")].find(takesFocus);
+  target?.focus();
 }
 
 /**

@@ -133,7 +133,10 @@ export const AValidFormCallsTheOperationOnce: Story = {
     await expect(await within(canvasElement).findByText("Saved Kitchen")).toBeVisible();
     // The draft is the Operation's input as it is.
     await expect(port.calls).toEqual([
-      { entry: "create", input: { title: "Kitchen", description: "Paint the walls." } },
+      {
+        entry: "create",
+        input: { title: "Kitchen", description: "Paint the walls.", icon: null, color: null },
+      },
     ]);
     await expect(saved).toHaveBeenCalledTimes(1);
     await expect(saved).toHaveBeenCalledWith(CREATED);
