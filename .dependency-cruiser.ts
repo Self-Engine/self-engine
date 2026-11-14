@@ -2,9 +2,10 @@
 // vite.config.ts). pnpm's isolation and the `exports` field are the first two mechanisms;
 // these rules are the third: the directions allowed between packages, every workspace import
 // declared in the importer's own `package.json`, no relative imports into another package, no
-// imports past another package's `exports`, no icon library outside `@self-engine/icons`, no
-// hotkey library outside the Shell's binding file, no query library outside the data client's
-// React entry, no `testing` entry outside tests and stories, and no cycles.
+// imports past another package's `exports`, no icon library outside `@self-engine/icons`, nothing
+// but Zod in the icon names, no hotkey library outside the Shell's binding file, no query library
+// outside the data client's React entry, no `testing` entry outside tests and stories, and no
+// cycles.
 //
 // Paths are relative to the repo root, or to the fixture root in
 // scripts/dependency-cruiser.test.ts, which builds its own config with `boundaryConfig`.
@@ -292,6 +293,14 @@ export function boundaryConfig({
         "The shared schemas (`@self-engine/db/schema`) load in contracts and row maps, so they stay free of Kysely, uuid and the driver (D225). Runtime helpers belong in `@self-engine/db`.",
     }),
     {
+      name: "icons-names-is-pure",
+      comment:
+        "The icon names (`@self-engine/icons/names`) load in the Data Process and in module contracts, and later on Hermes (D293): they import only Zod and their own files, never React, the icon library or the icon catalog.",
+      severity: "error",
+      from: { path: "^packages/icons/src/names/", pathNot: DEV_ONLY_FILE },
+      to: { pathNot: `^packages/icons/src/names/|(^|/)node_modules/zod/` },
+    },
+    {
       name: "contracts-is-pure",
       comment:
         "The app contract (`@self-engine/contracts`) and the protocol (`@self-engine/data-protocol`) load in the renderer and the data process, so they hold only Zod schemas and oRPC contracts (D187): no database code, no Node built-in, nothing from Electron.",
@@ -305,11 +314,11 @@ export function boundaryConfig({
     {
       name: "module-contracts-is-pure",
       comment:
-        "A module's contracts load on both sides (D187): import only contract schemas, time or `@self-engine/db/schema`, never database runtime code (D225).",
+        "A module's contracts load on both sides (D187): import only contract schemas, time, `@self-engine/db/schema` or `@self-engine/icons/names`, never database runtime code (D225) or React.",
       severity: "error",
       from: { path: "^packages/[^/]+/src/contracts/" },
       to: {
-        pathNot: `^packages/(?:db/src/schema/|time/|[^/]+/src/contracts/)|(^|/)node_modules/(?:${alternatives(CONTRACT_LIBRARIES)})/`,
+        pathNot: `^packages/(?:db/src/schema/|time/|icons/src/names/|[^/]+/src/contracts/)|(^|/)node_modules/(?:${alternatives(CONTRACT_LIBRARIES)})/`,
       },
     },
     {

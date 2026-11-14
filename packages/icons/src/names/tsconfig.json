@@ -1,0 +1,9 @@
+{
+  // The icon names run without a DOM, in the Data Process and later on Hermes (D293). Without the
+  // `DOM` lib, a use of `document` or `window` fails the typecheck.
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "lib": ["ESNext"]
+  },
+  "include": ["."]
+}

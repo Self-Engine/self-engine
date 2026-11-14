@@ -6,12 +6,14 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
-    "./brand-mark": "./src/brand-mark.tsx"
+    "./brand-mark": "./src/brand-mark.tsx",
+    "./names": "./src/names/index.ts"
   },
   "dependencies": {
     "@phosphor-icons/react": "catalog:",
     "react": "catalog:",
-    "react-dom": "catalog:"
+    "react-dom": "catalog:",
+    "zod": "catalog:"
   },
   "devDependencies": {
     "@mantine/core": "catalog:",
