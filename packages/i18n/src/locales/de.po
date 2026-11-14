@@ -31,6 +31,14 @@ msgstr "{minimum, plural, other {Mindestens #.}}"
 msgid "{minimum, plural, other {More than #.}}"
 msgstr "{minimum, plural, other {Mehr als #.}}"
 
+#: packages/projects/src/picker/index.tsx
+msgid "{title} (archived)"
+msgstr "{title} (archiviert)"
+
+#: packages/projects/src/picker/index.tsx
+msgid "{title} (deleted)"
+msgstr "{title} (gelöscht)"
+
 #: apps/web/src/data-connection-states.tsx
 msgid "A newer version already applied the update {migration}, which this version does not know. Open your data with the newer version."
 msgstr "Eine neuere Version hat bereits das Update {migration} angewendet, das diese Version nicht kennt. Öffne deine Daten mit der neueren Version."
@@ -234,6 +242,10 @@ msgstr "Filmklappe"
 #: packages/ui/src/entry-pickers/emoji-tab.tsx
 msgid "Clear search"
 msgstr "Suche leeren"
+
+#: packages/projects/src/picker/index.tsx
+msgid "Clear the choice"
+msgstr "Auswahl leeren"
 
 #: packages/placeholder-alpha/src/groups.tsx
 msgid "Clients"
@@ -810,6 +822,10 @@ msgctxt "Channel"
 msgid "Nightly"
 msgstr "Nightly"
 
+#: packages/projects/src/picker/index.tsx
+msgid "No active projects"
+msgstr "Keine aktiven Projekte"
+
 #: packages/ui/src/entry-pickers/entry-color-picker.tsx
 msgid "No color"
 msgstr "Keine Farbe"
@@ -1313,6 +1329,10 @@ msgstr "Die minimale Modulansicht."
 #: apps/web/src/data-connection-states.tsx
 msgid "The part of Self-Engine that keeps your data stopped after it crashed several times."
 msgstr "Der Teil von Self-Engine, der deine Daten verwaltet, wurde nach mehreren Abstürzen angehalten."
+
+#: packages/projects/src/picker/index.tsx
+msgid "The projects could not be loaded."
+msgstr "Die Projekte konnten nicht geladen werden."
 
 #: packages/settings-area/src/about-rows.tsx
 msgid "The release line this app belongs to."

@@ -7,7 +7,11 @@ import {
   type FixedAnswers,
   fixedAnswers,
 } from "@self-engine/data-client/testing";
-import { projectsContract } from "../contracts/index.ts";
+import {
+  type ProjectReference,
+  projectReferenceSchema,
+  projectsContract,
+} from "../contracts/index.ts";
 
 const contracts = { projects: projectsContract };
 
@@ -55,3 +59,24 @@ export function projectsAnswers(
 ): PortAccess {
   return fixedAnswers(contracts, { projects: { ...SUCCEEDING, ...answers } }, options);
 }
+
+/** Another project titled "Website": only its mark tells it apart in the picker. */
+export const WEBSITE_TWIN = project(8, { title: "Website", icon: "🌐", color: "orange" });
+
+/** A project as a module above refers to it (D330), with its archive and deletion marks. */
+export function projectReference(
+  of: typeof WEBSITE,
+  marks: { archivedAt?: string; deletedAt?: string } = {},
+): ProjectReference {
+  return projectReferenceSchema.parse({
+    id: of.id,
+    title: of.title,
+    icon: of.icon,
+    color: of.color,
+    archivedAt: marks.archivedAt ?? of.archivedAt,
+    deletedAt: marks.deletedAt ?? null,
+  });
+}
+
+/** A project that was archived: absent from the active list. */
+export const OLD_SITE = project(9, { title: "Old site", icon: "house", color: "grape" });
