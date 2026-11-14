@@ -50,7 +50,8 @@ Pro Runde werden nur 2–3 Fragen gestellt; die Nummern sind stabil.
       - ✅ Formular-Helfer zuerst, keine Projektseite, ständiger Platz in der Hülle (D312–D314)
       - ✅ Platzhalter verlassen die App, Reihenfolge in neun Schritten (D315, D316)
       - ✅ Formular-Helfer gegrillt: Prüfung mit dem Vertrag, `@mantine/form`, Paket `forms`, Bearbeiten schickt nur geänderte Felder (D317–D326, #213)
-      - ⏳ Paket-Grillings: `projects` (#273), Schutz-Paket (#274), #109, #110, `time-tracking` (#275, #277), ständiger Platz (#276)
+      - ✅ `projects` gegrillt: Archiv im Speicher-Rahmen, Titel nicht eindeutig, Muster des Bearbeitens, Projekt-Verweis (D327–D330, #273)
+      - ⏳ Paket-Grillings: Schutz-Paket (#274), #109, #110, `time-tracking` (#275, #277), ständiger Platz (#276)
     - ⏳ Schicht 5 Import (beginnt mit Projekten und Zeiteinträgen, D316)
   - ⏳ Reihenfolge nach Schicht 5 bis zum Stichtag (weitere Module, Sync, Mobile)
   - ⏳ Zeitpunkt Organisations-Spaces & Policies

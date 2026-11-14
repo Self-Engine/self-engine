@@ -1,7 +1,7 @@
 # Schicht 4: Projekte und Zeit
 
-Stand: 2026-11-14 · Status: **entschieden** (D303–D316, Formular-Helfer D317–D326), Spec #271,
-Issues #272–#277 sowie #109, #110 und #213
+Stand: 2026-11-15 · Status: **entschieden** (D303–D316, Formular-Helfer D317–D326, `projects`
+D327–D330), Spec #271, Issues #272–#277 sowie #109, #110 und #213
 
 Schicht 4 ist der erste Fachmeilenstein: das erste, was in der App sichtbar und nutzbar ist. Sie
 ist bewusst schmal. Der Owner nutzt die alte App weiter, bis die neue ihn überzeugt (D315).
@@ -21,6 +21,10 @@ ist bewusst schmal. Der Owner nutzt die alte App weiter, bis die neue ihn überz
 | L4.9 | Überschneidungen | Gültige Daten, jede Summe zählt voll, Schicht 4 markiert nur (D311) |
 | L4.10 | Formulare | Der Formular-Helfer (#213) kommt vor dem ersten Formular (D312); er prüft mit dem Eingabe-Schema des Vertrags, baut auf `@mantine/form` und liegt im Paket `forms` (D317–D326) |
 | L4.15 | Bearbeiten | Eine Operation zum Bearbeiten bekommt nur die geänderten Felder; Felder, die eine Regel verbindet, reisen zusammen (D323) |
+| L4.16 | Archiv | `archived_at` ist ein Baustein des Speicher-Rahmens: unabhängig vom Löschen, sperrt nichts, doppeltes Archivieren ändert nichts (D327) |
+| L4.17 | Titel | Zwei Projekte dürfen denselben Titel tragen; `projects` hat keinen Konflikt (D328) |
+| L4.18 | Muster des Bearbeitens | Fehlt, leer, Wert; unbekannte Felder sind ein Eingabefehler; eine Änderung ohne Felder tut nichts (D329) |
+| L4.19 | Projekt-Verweis | Id, Titel, Icon, Farbe, Archiv- und Lösch-Marke; die Auswahl bekommt die aktuelle Wahl gereicht; archivierte zu verstecken ist Anzeige, keine Regel (D330) |
 | L4.11 | Projektseite | Keine in Schicht 4; #201 wird mit ihr gegrillt (D313) |
 | L4.12 | Hülle | Ein ständiger Platz, den ein Modul füllt; erster Nutzer ist der Timer (D314) |
 | L4.13 | Platzhalter | Verlassen die App mit `projects`, bleiben Testobjekte; kein Modul-Abbau (D315) |
@@ -33,7 +37,7 @@ time-tracking             time_entries, timers; importiert projects (D304)
   ↓
 projects                  projects; kennt die Zeiterfassung nicht
   ↓
-storage                   Rahmen mit Einhängepunkt und Verweis-Prüfung (D306, D307)
+storage                   Rahmen mit Archiv (D327), Einhängepunkt und Verweis-Prüfung (D306, D307)
   ↓
 spaces, db, time          Schicht 2 und 3
 ```
@@ -61,7 +65,7 @@ Schicht 3 unter Spec #103.
 |---|---|---|---|---|
 | 1 | Verbot von `CASCADE` und `SET NULL` in der Konventionsprüfung | #272 | D306 | – |
 | 2 | Formular-Helfer | #213 | D312, D317–D326 | – |
-| 3 | `projects`; die Platzhalter verlassen die App | #273 | D303–D306, D313, D315 | #213, #272 |
+| 3 | `projects`; die Platzhalter verlassen die App | #273 | D303–D306, D313, D315, D327–D330 | #213, #272 |
 | 4 | Schutz-Paket: Einhängepunkt und Verweis-Prüfung | #274 | D306, D307 | #272 |
 | 5 | Einstellungen in der Datenbank | #109 | D62, D113 ff. | – |
 | 6 | Zeitzone und Wochenstart | #110, verkleinert | D147, D153, D316 | #109 |
@@ -97,4 +101,7 @@ D314) und die Wochenansicht (Abfragezeit mit erzeugten Daten von zwei Jahren, D1
 - Ob die gespeicherte Dauer im Glossar „Booked Duration“ heißt wie in der alten App; der Begriff
   entsteht beim Bau von `time-tracking`.
 - Die Fragen für die Paket-Grillings stehen am Ende der
-  [Runde 40](decisions/d303-d316-layer-4-projects-and-time.md).
+  [Runde 40](decisions/d303-d316-layer-4-projects-and-time.md); die zu `projects` sind in
+  [Runde 42](decisions/d327-d330-projects-module.md) beantwortet.
+- Was ein Abgleich mit zwei Zeilen macht, die ein eindeutiger Index nicht beide zulässt (D328,
+  Sync-Phase).
