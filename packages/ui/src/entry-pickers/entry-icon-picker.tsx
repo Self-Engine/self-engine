@@ -193,6 +193,19 @@ const POPOVER_WIDTH = `calc(${EMOJI_COLUMNS} * ${rem(EMOJI_SIZE)} + ${PADDING} *
  */
 const PANEL_HEIGHT = rem(420);
 
+/**
+ * How the popover finds its place. Under the field in an Edit Drawer a window of the app's first
+ * height has less room than the popover needs, and above it too: there the popover moves over its
+ * button rather than out of the window, which Mantine leaves off by default. A window lower than
+ * the popover caps its height, and the dropdown scrolls as a whole. The room Mantine keeps to the
+ * window's edge is the same for both.
+ */
+const WINDOW_EDGE = 5;
+const POPOVER_MIDDLEWARES = {
+  shift: { crossAxis: true, padding: WINDOW_EDGE },
+  size: { padding: WINDOW_EDGE },
+} as const;
+
 /** The line a tab shows in place of its content: no match, or emojis that could not load. */
 function EmptyNote({ children }: { readonly children: string }) {
   return (
@@ -466,6 +479,7 @@ export function EntryIconPicker({ value, onChange, label, error }: EntryIconPick
       labelProps={{ id: labelId }}
     >
       <Popover
+        middlewares={POPOVER_MIDDLEWARES}
         onChange={(next) => {
           if (next) open();
           else close();
@@ -505,6 +519,7 @@ export function EntryIconPicker({ value, onChange, label, error }: EntryIconPick
             composing.current = true;
           }}
           p={POPOVER_PADDING}
+          style={{ overflowY: "auto" }}
         >
           <VisuallyHidden id={titleId}>{t`Choose an icon`}</VisuallyHidden>
           <Stack gap="xs">

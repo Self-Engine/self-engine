@@ -921,3 +921,60 @@ export const FollowsTheCompactDensity: Story = {
     await expect(Math.round(cell.height)).toBe(Math.round(cell.width));
   },
 };
+
+/** The field at the height an Edit Drawer shows it, in a window of the given height. */
+const inAWindowOfHeight = (height: number): Partial<Story> => ({
+  parameters: {
+    viewport: {
+      options: { window: { name: "Window", styles: { width: "1280px", height: `${height}px` } } },
+    },
+  },
+  globals: { viewport: { value: "window", isRotated: false } },
+  render: () => (
+    <div style={{ position: "fixed", top: 290, left: 16 }}>
+      <EntryIconPicker onChange={answers} value="star" />
+    </div>
+  ),
+});
+
+/** Where the open field lies in the window, once it has found its place. */
+async function expectInsideTheWindow(dialog: HTMLElement, height: number) {
+  await expect(window.innerHeight).toBe(height);
+  await waitFor(async () => {
+    const { top, bottom } = dialog.getBoundingClientRect();
+    await expect(top).toBeGreaterThanOrEqual(0);
+    await expect(bottom).toBeLessThanOrEqual(height);
+  });
+}
+
+/**
+ * The app's first window is 800 px high. Under the field there is less room than the field needs,
+ * and above it too, so it lies over its button rather than reaching out of the window.
+ */
+export const StaysInsideAWindowWithTooLittleRoomUnderTheField: Story = {
+  ...inAWindowOfHeight(800),
+  play: async ({ canvas }) => {
+    await userEvent.click(trigger(canvas));
+    const { dialog, picker } = await opened();
+    await expectInsideTheWindow(dialog, 800);
+    const clear = picker.getByRole("button", { name: "No icon" });
+    await expect(clear.getBoundingClientRect().bottom).toBeLessThanOrEqual(800);
+    await userEvent.click(clear);
+    await expect(answers).toHaveBeenLastCalledWith(null);
+  },
+};
+
+/** A window lower than the field: the field takes the window's height and scrolls as a whole. */
+export const ScrollsInAWindowLowerThanItself: Story = {
+  ...inAWindowOfHeight(400),
+  play: async ({ canvas }) => {
+    await userEvent.click(trigger(canvas));
+    const { dialog, picker } = await opened();
+    await expectInsideTheWindow(dialog, 400);
+    const clear = picker.getByRole("button", { name: "No icon" });
+    clear.scrollIntoView({ block: "nearest" });
+    await waitFor(() => expect(clear.getBoundingClientRect().bottom).toBeLessThanOrEqual(400));
+    await userEvent.click(clear);
+    await expect(answers).toHaveBeenLastCalledWith(null);
+  },
+};
