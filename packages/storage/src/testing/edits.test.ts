@@ -107,6 +107,21 @@ test("the kit fails an edit that ignores null for an optional field", async () =
   ]);
 });
 
+test("the kit fails an edit that ignores a field it carries", async () => {
+  // In the full edit as in the edit of the title alone: the two answers agree with each other.
+  const ignores = withEdit(async (tx, context, input) =>
+    toMemo(
+      await sharedWrites(tx, context).update("memos", input.id, {
+        body: input.body,
+        color: input.color,
+      }),
+    ),
+  );
+  await expect(checkContract(ignores, seed, examples)).resolves.toEqual([
+    { entry: "edit", rule: "edit does not set a field it carries: title" },
+  ]);
+});
+
 test("the kit fails an edit that answers an unknown id without fields", async () => {
   const answers = withEdit(async (tx, context, input) => {
     if (Object.keys(input).length > 1)

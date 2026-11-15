@@ -34,7 +34,8 @@ export async function acceptsUnknownField(schema: AnySchema, example: unknown) {
  * 1. Without fields the edit answers with the entry as it stands, writes nothing, announces
  *    nothing and leaves `updated_at`; an id no seed produced is not found.
  * 2. With the example, which must set every field, then each field alone: a field the call does
- *    not carry keeps its value, `null` clears an optional field, a value sets it.
+ *    not carry keeps its value, `null` clears an optional field, a value sets it. The answer
+ *    carries a set value as the input schema reads it, which may turn spaces into no value.
  */
 export async function checkEdits<Contract extends StorageContract, Rows extends RowMap>(
   module: StorageModule<Contract, Rows>,
@@ -113,6 +114,12 @@ export async function checkEdits<Contract extends StorageContract, Rows extends 
         }
       }
 
+      // What a call asks `field` to become. Never an answer: an edit that ignores a field
+      // answers the same every time, and its answers would confirm each other.
+      const asked = async (input: Record<string, unknown>, field: string) => {
+        const read = await inputSchema.safeParseAsync(input);
+        return read.success ? read.data[field] : input[field];
+      };
       const set = fields.filter((field) => Object.hasOwn(example, field));
       const full = await edit(example);
       if (!isRecord(full)) continue;
@@ -124,6 +131,9 @@ export async function checkEdits<Contract extends StorageContract, Rows extends 
       for (const field of set)
         if (!Object.hasOwn(full, field)) violate(`edit answer lacks a field: ${field}`);
       const carried = set.filter((field) => Object.hasOwn(full, field));
+      for (const field of carried)
+        if (!isDeepStrictEqual(full[field], await asked(example, field)))
+          violate(`edit does not set a field it carries: ${field}`);
       const untouched = (answer: unknown, sent: string) => {
         if (!isRecord(answer)) return;
         for (const field of carried)
@@ -141,7 +151,7 @@ export async function checkEdits<Contract extends StorageContract, Rows extends 
         const value = { ...identity, [field]: example[field] };
         if (!(await accepts(inputSchema, value))) continue;
         const answer = await edit(value);
-        if (isRecord(answer) && !isDeepStrictEqual(answer[field], full[field]))
+        if (isRecord(answer) && !isDeepStrictEqual(answer[field], await asked(value, field)))
           violate(`edit does not set a field it carries: ${field}`);
         untouched(answer, field);
       }
