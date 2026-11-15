@@ -4,11 +4,16 @@ Use this guide when a module’s Views, drawers or Commands read or change its d
 where [the port guide](port-pattern.md) ends: the module has a Contract, a Storage with
 `reads` on every Query, and is mounted in the app contract and in the desktop app’s module
 list. [ADR 0021](../adr/0021-the-page-reloads-a-query-after-a-table-change-through-one-building-block.md)
-records the binding parts. The template is
-[`placeholder-alpha`](../../packages/placeholder-alpha/src/): `port.ts` builds its hooks,
-`entries.tsx` is a list, `edit-drawer.tsx` a form, `delete-with-undo.tsx` delete with undo,
-`add-sample-entry.ts` a Command, `testing/` its Fixed Answers and `port.test.ts` its end-to-end
-test.
+records the binding parts. The template is [`projects`](../../packages/projects/src/), the
+module every later one copies (D315): `port.ts` builds its hooks, `project-list.tsx` is a list,
+`edit-drawer.tsx` a form, `with-undo.tsx` delete, archive and unarchive with undo,
+`new-project.ts` a page Command and `create-project.ts` an input Command, `testing/` its Fixed
+Answers and `port.test.ts` its end-to-end test.
+
+The code below quotes [`placeholder-alpha`](../../packages/placeholder-alpha/src/), which left
+the app and stays the Shell's test subject. Its files have the same roles (`entries.tsx`,
+`delete-with-undo.tsx`, `add-sample-entry.ts`), and unlike `projects` it shows a Conflict at a
+field and backs the render-count gate.
 
 The terms are the glossary’s: a _Query_ reads, an _Operation_ changes data, a _Table Change_
 says which tables a commit changed, and a _Fixed Answer_ is what an entry returns in a story.

@@ -1,5 +1,5 @@
 import { protocolContract } from "@self-engine/data-protocol";
-import { placeholderAlphaContract } from "@self-engine/placeholder-alpha/contracts";
+import { projectsContract } from "@self-engine/projects/contracts";
 
 /**
  * Every procedure the data process serves: the protocol's `health` and `tablesChanged`, and each
@@ -9,7 +9,7 @@ import { placeholderAlphaContract } from "@self-engine/placeholder-alpha/contrac
  */
 export const appContract = {
   ...protocolContract,
-  placeholderAlpha: placeholderAlphaContract,
+  projects: projectsContract,
 };
 
 /** The app contract's type, which the module list is checked against. */

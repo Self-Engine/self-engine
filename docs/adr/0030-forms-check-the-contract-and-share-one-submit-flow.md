@@ -35,12 +35,13 @@ the startup chunks merely because a View can open an Edit Drawer.
 - One value comparison answers both Save and the leave guard. Create can always attempt a
   save; unchanged edits cannot. Edit sends identity plus changed fields, expanding tied
   groups declared beside Contract rules. Empty optional text is normalized to null when
-  configured. Projects sets the real partial-update Contract pattern, not this helper.
+  configured. `projects` sets the real partial-update Contract pattern (ADR 0032), not this
+  helper.
 - An open edit follows stored changes in untouched fields and keeps changed/unfinished ones,
   comparing against the latest stored state. Deletion elsewhere preserves readable input,
   shows a warning in the form and disables saving; undo restores normal behavior.
-  Placeholder-alpha retains its last entry through closing after deletion inside its own
-  drawer, suppressing that warning until #132 settles Shell content retention.
+  `projects` retains its last entry through closing after deletion, archiving or unarchiving
+  inside its own drawer, suppressing that warning until #132 settles Shell content retention.
 - Text, long text, icon and color fields are shared. Pickers remain in ui; module-owned
   pickers use `useFieldBinding`. Date/time fields follow with time-tracking, not this package.
 
@@ -49,7 +50,8 @@ the startup chunks merely because a View can open an Edit Drawer.
 Modules write fields and name Operations rather than duplicating a form flow. The helper’s
 uncontrolled field subscriptions keep typing from redrawing unrelated fields. Changes from
 elsewhere require a retained entry in the drawer, distinct from the Draft. Tests drive the
-screen and observe the Port; placeholder-alpha proves the path over the test Data Process.
+screen and observe the Port; `projects`, the template of every later module, proves the path
+over the test Data Process.
 The [form guide](../development/forms.md) gives the multi-field authoring pattern. First-open
 latency is measured in the built app; the startup size must not grow. Light/dark visual
 inspection remains separate from the automated story gate.

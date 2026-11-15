@@ -25,7 +25,27 @@ type SyncedTable<DB> = {
       ? Table
       : never;
 }[keyof DB & string];
-type Fields<Row> = Omit<Row, keyof Convention> & { [Key in keyof Convention]?: never };
+/** The optional convention column of an archivable table (D327): an Instant or empty. */
+interface Archivable {
+  archived_at: Instant | null;
+}
+type ArchivableTable<DB> = {
+  [Table in SyncedTable<DB>]: DB[Table] extends Archivable ? Table : never;
+}[SyncedTable<DB>];
+/** The id of a row of a synchronized table, with its brand. */
+type RowId<DB, Table extends keyof DB> = DB[Table] extends Convention ? DB[Table]["id"] : never;
+type ConventionKey = keyof Convention | keyof Archivable;
+type Fields<Row> = Omit<Row, ConventionKey> & { [Key in ConventionKey]?: never };
+/** An edit's fields: a field left `undefined` is missing from the call and stays untouched. */
+type EditFields<Row> = { [Key in keyof Fields<Row>]?: Fields<Row>[Key] | undefined };
+const CONVENTION_COLUMNS: readonly string[] = [
+  "id",
+  "space_id",
+  "created_at",
+  "updated_at",
+  "deleted_at",
+  "archived_at",
+];
 
 function assertSynchronizedTable(table: string) {
   if (table.startsWith("local_"))
@@ -35,7 +55,7 @@ function assertSynchronizedTable(table: string) {
 function writableFields(fields: object) {
   return Object.fromEntries(
     Object.entries(fields).filter(
-      ([key]) => !["id", "space_id", "created_at", "updated_at", "deleted_at"].includes(key),
+      ([key, value]) => value !== undefined && !CONVENTION_COLUMNS.includes(key),
     ),
   );
 }
@@ -45,11 +65,15 @@ function writableFields(fields: object) {
  */
 type ReadAccess<DB> = ReadTransaction<DB> | Transaction<DB>;
 
-/** One place for Space and live-row scoping; compound queries remain ordinary Kysely. */
+/**
+ * One place for Space, live-row and archive scoping; compound queries remain ordinary Kysely.
+ * `live` keeps archived rows: an archived row is a Live Row. `active` leaves them out too.
+ */
 export function sharedEntry<DB>(tx: ReadAccess<DB>, context: StorageContext) {
   // Kysely cannot infer convention columns from the conditional table-name constraint.
   // The public constraint guarantees them; this view is private to the shared implementation.
-  const db = tx as unknown as Kysely<Record<string, Convention>>;
+  // Only paths typed for an archivable table name `archived_at`.
+  const db = tx as unknown as Kysely<Record<string, Convention & Archivable>>;
   function scoped(table: string) {
     assertSynchronizedTable(table);
     return db.selectFrom(String(table)).where(`${table}.space_id`, "=", context.spaceId);
@@ -61,10 +85,12 @@ export function sharedEntry<DB>(tx: ReadAccess<DB>, context: StorageContext) {
       {}
     >;
   }
-  async function lookup<Table extends SyncedTable<DB>>(
-    table: Table,
-    id: DB[Table] extends Convention ? DB[Table]["id"] : never,
-  ) {
+  function active<Table extends ArchivableTable<DB>>(table: Table) {
+    return scoped(table)
+      .where(`${table}.deleted_at`, "is", null)
+      .where(`${table}.archived_at`, "is", null) as unknown as SelectQueryBuilder<DB, Table, {}>;
+  }
+  async function lookup<Table extends SyncedTable<DB>>(table: Table, id: RowId<DB, Table>) {
     const row = await scoped(table)
       .where(`${table}.deleted_at`, "is", null)
       .where(`${String(table)}.id`, "=", id)
@@ -73,16 +99,16 @@ export function sharedEntry<DB>(tx: ReadAccess<DB>, context: StorageContext) {
     if (row === undefined) throw new ORPCError("NOT_FOUND");
     return row as Selectable<DB[Table]>;
   }
-  return { live, lookup };
+  return { live, active, lookup };
 }
 
 /** Standard single-row writes are available only on an operation's write transaction. */
 export function sharedWrites<DB>(tx: Transaction<DB>, context: StorageContext) {
-  const db = tx as unknown as Kysely<Record<string, Convention>>;
+  const db = tx as unknown as Kysely<Record<string, Convention & Archivable>>;
   const reads = sharedEntry<DB>(tx, context);
   async function change<Table extends SyncedTable<DB>>(
     table: Table,
-    id: DB[Table] extends Convention ? DB[Table]["id"] : never,
+    id: RowId<DB, Table>,
     values: object,
     restoring: boolean,
   ) {
@@ -99,11 +125,34 @@ export function sharedWrites<DB>(tx: Transaction<DB>, context: StorageContext) {
     if (result === undefined) throw new ORPCError("NOT_FOUND");
     return result as Selectable<DB[Table]>;
   }
+  /**
+   * Archive and unarchive change only a Live Row whose state differs; otherwise they answer with
+   * the row as it is and write nothing, so a second call keeps the first Instant (D327).
+   */
+  async function setArchived<Table extends ArchivableTable<DB>>(
+    table: Table,
+    id: RowId<DB, Table>,
+    archived: boolean,
+  ) {
+    assertSynchronizedTable(table);
+    const result = await db
+      .updateTable(String(table))
+      .set({ archived_at: archived ? context.now : null, updated_at: context.now })
+      .where("space_id", "=", context.spaceId)
+      .where("id", "=", id)
+      .where("deleted_at", "is", null)
+      .where("archived_at", archived ? "is" : "is not", null)
+      .returningAll()
+      .executeTakeFirst();
+    return result === undefined
+      ? reads.lookup(table, id)
+      : (result as unknown as Selectable<DB[Table]>);
+  }
   return {
     ...reads,
     async insert<Table extends SyncedTable<DB>>(
       table: Table,
-      id: DB[Table] extends Convention ? DB[Table]["id"] : never,
+      id: RowId<DB, Table>,
       fields: Fields<Insertable<DB[Table]>>,
     ) {
       // Also checks the reserved Local Table prefix at runtime for untyped callers.
@@ -111,7 +160,7 @@ export function sharedWrites<DB>(tx: Transaction<DB>, context: StorageContext) {
       const row = await db
         .insertInto(String(table))
         .values({
-          ...fields,
+          ...writableFields(fields),
           id,
           space_id: context.spaceId,
           created_at: context.now,
@@ -123,24 +172,31 @@ export function sharedWrites<DB>(tx: Transaction<DB>, context: StorageContext) {
       if (row === undefined) throw new Error("Insert returned no row");
       return row as Selectable<DB[Table]>;
     },
+    /**
+     * Writes the fields given and leaves a missing (`undefined`) one untouched (D329). With no
+     * field left it reads instead: it answers with the live row, writes nothing, leaves
+     * `updated_at` and announces no Table Change; an unknown id is still not found.
+     */
     update<Table extends SyncedTable<DB>>(
       table: Table,
-      id: DB[Table] extends Convention ? DB[Table]["id"] : never,
-      fields: Fields<Updateable<DB[Table]>>,
+      id: RowId<DB, Table>,
+      fields: EditFields<Updateable<DB[Table]>>,
     ) {
-      return change(table, id, writableFields(fields), false);
+      const values = writableFields(fields);
+      if (Object.keys(values).length === 0) return reads.lookup(table, id);
+      return change(table, id, values, false);
     },
-    softDelete<Table extends SyncedTable<DB>>(
-      table: Table,
-      id: DB[Table] extends Convention ? DB[Table]["id"] : never,
-    ) {
+    softDelete<Table extends SyncedTable<DB>>(table: Table, id: RowId<DB, Table>) {
       return change(table, id, { deleted_at: context.now }, false);
     },
-    restore<Table extends SyncedTable<DB>>(
-      table: Table,
-      id: DB[Table] extends Convention ? DB[Table]["id"] : never,
-    ) {
+    restore<Table extends SyncedTable<DB>>(table: Table, id: RowId<DB, Table>) {
       return change(table, id, { deleted_at: null }, true);
+    },
+    archive<Table extends ArchivableTable<DB>>(table: Table, id: RowId<DB, Table>) {
+      return setArchived(table, id, true);
+    },
+    unarchive<Table extends ArchivableTable<DB>>(table: Table, id: RowId<DB, Table>) {
+      return setArchived(table, id, false);
     },
   };
 }

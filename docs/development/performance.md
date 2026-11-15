@@ -26,6 +26,11 @@ Chromium, runs the real app, and closes both on completion or failure. It measur
    Change reloads the list, and the count covers everything that redraws for that one changed
    row.
 
+The placeholder modules left the app with #306 (D315). For this measurement the dev server
+mounts the stories' module list instead of the app's (`SELF_ENGINE_STORY_MODULES=1`, set by the
+command; `apps/web/story-module-list.ts`), so the scenarios still open `placeholder-alpha`. A
+build never mounts it.
+
 The page reaches a real Data Process without Electron. A stand-in for the desktop bridge hands it
 a port, as the preload does, and the script relays that port to a test Data Process in Node
 (`scripts/render-data-process.ts`) with `placeholder-alpha` mounted. The Data Process starts empty;
@@ -469,3 +474,59 @@ Startup JavaScript against `main` at the merge base (`e5b4a0e`): **843,398 bytes
 its modules side-effect-free, letting the build discard unused picker exports; the module
 also shares the identical Overview/Archive lazy list loader instead of declaring it twice.
 The startup gate still forbids Contracts, full Zod and the form libraries there.
+
+## The placeholders leave the app (#306)
+
+`projects` is the only module of the app; the placeholders stay the stories' modules (D315).
+Measured on an Apple M3 Pro with Node 26.13.0, on production builds of the web app.
+
+**Startup JavaScript** (`apps/web/dist/startup-bundle.json`):
+
+| Build                                                       | Bytes   | Static chunks |
+| ----------------------------------------------------------- | ------- | ------------- |
+| Before `projects` (`d8f175c`, the placeholders only)        | 843,341 | 16            |
+| `projects` beside the placeholders (`bd9fc7f`, before #306) | 848,017 | 22            |
+| `projects` alone (#306)                                     | 845,745 | 19            |
+
+Against the app before the package, the startup grew by **2,404 bytes**; against the app before
+#306 it shrank by 2,272. The limit of 889,856 bytes stays.
+
+**Where the bytes come from.** Compared module by module (Rolldown's rendered length of each
+module in a static startup chunk, before minification), the startup holds the same modules as
+before the package, plus the Navbar entry of `projects` (`packages/projects/src/index.ts`, 952
+bytes rendered) and the module list of the web app, minus the entries of both placeholders and
+the Shell's code for a module's Groups, which no mounted module has now. What `projects` added
+beyond its entry is not a module of its own but more of two modules that startup already
+held:
+
+- `@floating-ui/core` grew by 4,278 bytes rendered: the `size` middleware, which the popover of
+  the icon field needs. Before the package no form in the app had that popover; the Edit Drawer
+  of `projects` brings it as a lazy chunk.
+- `zod/mini` grew by 671 bytes rendered: schema constructors that the lazy Contract code uses.
+
+Both are real bytes at startup, loaded but only used by code that loads on demand. A module
+lands in one chunk whole, so the exports that a lazy chunk needs stay with the copy that
+startup loads; the further static chunks (16 → 19) are code that startup already loaded,
+split off because lazy chunks share it (`CloseButton`, floating positioning,
+`use-uncontrolled`). No cheap and clean way removes them: the Shell's Tooltip and Popover keep
+`@floating-ui/core` at startup, and a Setting keeps `zod/mini` there. So the growth is the
+Navbar entry and about 1.5 KB of shared library code, not the 3.5 KB of a new chunk.
+
+**Startup and the first opening of the Edit Drawer.** Ten alternating starts of each build in
+headless Chromium (the built web app served from disk, the desktop bridge stood in as for
+`pnpm renders`, a test Data Process with `projects` mounted, 1440 × 1000), each opening
+`/projects/active` and clicking "New project". The Shell's time is the first frame with the
+Navbar, counted from the start of the page load; the first answer is the data connection's
+`ready` mark; the opening is measured as under "Forms: first opening" above (click to the frame
+after a visible input), then once more after closing the drawer.
+
+| Build                   | Shell visible | First answer | First opening | Second opening |
+| ----------------------- | ------------- | ------------ | ------------- | -------------- |
+| Before #306 (`bd9fc7f`) | 86.1 ms       | 90.6 ms      | 343.8 ms      | 78.0 ms        |
+| #306                    | 85.4 ms       | 89.8 ms      | 348.8 ms      | 77.8 ms        |
+
+Medians; the ranges overlap (Shell 78–102 against 82–123 ms, first opening 341–353 against
+338–353 ms): no measurable change. The first opening stays above D326's 100 ms for the reason
+given under "Forms: first opening": the Shell reveals lazy drawer content no sooner than 300 ms
+after its fallback. These are not desktop numbers; the check in the built desktop app was not
+run for #306.

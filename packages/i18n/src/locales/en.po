@@ -31,9 +31,21 @@ msgstr "{minimum, plural, other {At least #.}}"
 msgid "{minimum, plural, other {More than #.}}"
 msgstr "{minimum, plural, other {More than #.}}"
 
+#: packages/projects/src/picker/index.tsx
+msgid "{title} (archived)"
+msgstr "{title} (archived)"
+
+#: packages/projects/src/picker/index.tsx
+msgid "{title} (deleted)"
+msgstr "{title} (deleted)"
+
 #: apps/web/src/data-connection-states.tsx
 msgid "A newer version already applied the update {migration}, which this version does not know. Open your data with the newer version."
 msgstr "A newer version already applied the update {migration}, which this version does not know. Open your data with the newer version."
+
+#: packages/projects/src/archive.tsx
+msgid "A project you archive leaves \"Active\" and appears here."
+msgstr "A project you archive leaves \"Active\" and appears here."
 
 #: packages/settings-area/src/index.ts
 msgid "About"
@@ -42,6 +54,15 @@ msgstr "About"
 #: packages/settings-area/src/theme-rows.tsx
 msgid "Accent"
 msgstr "Accent"
+
+#: packages/projects/src/index.ts
+msgctxt "View title"
+msgid "Active"
+msgstr "Active"
+
+#: packages/projects/src/active.tsx
+msgid "Active projects"
+msgstr "Active projects"
 
 #: packages/ui/src/entry-pickers/emoji-tab.tsx
 msgid "Activity"
@@ -71,15 +92,25 @@ msgstr "App Language"
 msgid "Appearance"
 msgstr "Appearance"
 
+#: packages/projects/src/edit-drawer.tsx
+msgctxt "Archive a project"
+msgid "Archive"
+msgstr "Archive"
+
 #: packages/icons/src/directory/labels.ts
 msgctxt "Icon"
 msgid "Archive"
 msgstr "Archive"
 
 #: packages/placeholder-alpha/src/index.ts
+#: packages/projects/src/index.ts
 msgctxt "View title"
 msgid "Archive"
 msgstr "Archive"
+
+#: packages/projects/src/archive.tsx
+msgid "Archived projects"
+msgstr "Archived projects"
 
 #: packages/settings-area/src/rows.tsx
 msgid "Background Tint"
@@ -226,6 +257,10 @@ msgstr "Clapperboard"
 msgid "Clear search"
 msgstr "Clear search"
 
+#: packages/projects/src/picker/index.tsx
+msgid "Clear the choice"
+msgstr "Clear the choice"
+
 #: packages/placeholder-alpha/src/groups.tsx
 msgid "Clients"
 msgstr "Clients"
@@ -240,6 +275,7 @@ msgid "Clipboard"
 msgstr "Clipboard"
 
 #: packages/placeholder-alpha/src/edit-drawer.tsx
+#: packages/projects/src/edit-drawer.tsx
 msgctxt "Close the drawer"
 msgid "Close"
 msgstr "Close"
@@ -284,6 +320,7 @@ msgstr "Coins"
 msgid "Collapse module sidebar"
 msgstr "Collapse module sidebar"
 
+#: packages/projects/src/edit-drawer.tsx
 #: packages/settings-area/src/theme-rows.tsx
 #: packages/ui/src/entry-pickers/entry-color-picker.tsx
 msgid "Color"
@@ -357,6 +394,10 @@ msgstr "Countdown"
 msgid "Create backup now"
 msgstr "Create backup now"
 
+#: packages/projects/src/active.tsx
+msgid "Create your first project with \"New project\". It appears here."
+msgstr "Create your first project with \"New project\". It appears here."
+
 #: packages/settings-area/src/backup-rows.tsx
 msgid "Created by you"
 msgstr "Created by you"
@@ -413,6 +454,7 @@ msgstr "Default skin tone"
 
 #: packages/placeholder-alpha/src/edit-drawer.tsx
 #: packages/placeholder-alpha/src/entries.tsx
+#: packages/projects/src/edit-drawer.tsx
 msgid "Delete"
 msgstr "Delete"
 
@@ -427,6 +469,10 @@ msgstr "Deleted"
 #: packages/settings-area/src/rows.tsx
 msgid "Density"
 msgstr "Density"
+
+#: packages/projects/src/edit-drawer.tsx
+msgid "Description"
+msgstr "Description"
 
 #: packages/settings-area/src/about-rows.tsx
 msgctxt "Channel"
@@ -615,6 +661,7 @@ msgstr "House"
 msgid "How tightly lists and controls are laid out. The size of the text stays the same."
 msgstr "How tightly lists and controls are laid out. The size of the text stays the same."
 
+#: packages/projects/src/edit-drawer.tsx
 #: packages/ui/src/entry-pickers/entry-icon-picker.tsx
 msgid "Icon"
 msgstr "Icon"
@@ -775,6 +822,12 @@ msgstr "Neutral background"
 msgid "New entry"
 msgstr "New entry"
 
+#: packages/projects/src/active.tsx
+#: packages/projects/src/edit-drawer.tsx
+#: packages/projects/src/index.ts
+msgid "New project"
+msgstr "New project"
+
 #: packages/settings-area/src/rows.tsx
 msgid "Night"
 msgstr "Night"
@@ -783,6 +836,14 @@ msgstr "Night"
 msgctxt "Channel"
 msgid "Nightly"
 msgstr "Nightly"
+
+#: packages/projects/src/picker/index.tsx
+msgid "No active projects"
+msgstr "No active projects"
+
+#: packages/projects/src/archive.tsx
+msgid "No archived projects"
+msgstr "No archived projects"
 
 #: packages/ui/src/entry-pickers/entry-color-picker.tsx
 msgid "No color"
@@ -808,6 +869,10 @@ msgstr "No icon matches the search."
 msgctxt "Icon"
 msgid "No phone"
 msgstr "No phone"
+
+#: packages/projects/src/active.tsx
+msgid "No projects yet"
+msgstr "No projects yet"
 
 #: packages/settings-area/src/area.tsx
 msgid "No settings found"
@@ -956,6 +1021,26 @@ msgstr "Praying hands"
 msgctxt "Icon"
 msgid "Prohibited"
 msgstr "Prohibited"
+
+#: packages/projects/src/with-undo.tsx
+msgid "Project archived"
+msgstr "Project archived"
+
+#: packages/projects/src/with-undo.tsx
+msgid "Project deleted"
+msgstr "Project deleted"
+
+#: packages/projects/src/edit-drawer.tsx
+msgid "Project not found"
+msgstr "Project not found"
+
+#: packages/projects/src/with-undo.tsx
+msgid "Project unarchived"
+msgstr "Project unarchived"
+
+#: packages/projects/src/index.ts
+msgid "Projects"
+msgstr "Projects"
 
 #: packages/icons/src/directory/labels.ts
 msgctxt "Icon"
@@ -1276,6 +1361,10 @@ msgstr "The minimal module View."
 msgid "The part of Self-Engine that keeps your data stopped after it crashed several times."
 msgstr "The part of Self-Engine that keeps your data stopped after it crashed several times."
 
+#: packages/projects/src/picker/index.tsx
+msgid "The projects could not be loaded."
+msgstr "The projects could not be loaded."
+
 #: packages/settings-area/src/about-rows.tsx
 msgid "The release line this app belongs to."
 msgstr "The release line this app belongs to."
@@ -1338,6 +1427,10 @@ msgctxt "Icon"
 msgid "Thumbs up"
 msgstr "Thumbs up"
 
+#: packages/projects/src/edit-drawer.tsx
+msgid "Title"
+msgstr "Title"
+
 #: packages/settings-area/src/rows.tsx
 msgid "Translation"
 msgstr "Translation"
@@ -1358,6 +1451,10 @@ msgstr "Try again"
 #: packages/settings-area/src/area.tsx
 msgid "Try another word, or clear the search."
 msgstr "Try another word, or clear the search."
+
+#: packages/projects/src/edit-drawer.tsx
+msgid "Unarchive"
+msgstr "Unarchive"
 
 #: packages/shell/src/shell-commands.ts
 #: packages/ui/src/feedback.tsx

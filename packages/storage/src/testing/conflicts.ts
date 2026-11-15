@@ -1,17 +1,11 @@
 import type { InferSchemaInput } from "@orpc/contract";
-import { call, ORPCError, type AnyProcedure } from "@orpc/server";
+import { call, ORPCError } from "@orpc/server";
 import type { TablesOf } from "@self-engine/db";
 import { z } from "zod";
-import {
-  createContext,
-  createFrame,
-  type RowMap,
-  type StorageContract,
-  type StorageModule,
-} from "../core/index.ts";
+import { type RowMap, type StorageContract, type StorageModule } from "../core/index.ts";
 import type { ContractViolation } from "./violation.ts";
 import type { Seed } from "./seed.ts";
-import { createTestContext, createTestDatabase } from "./helpers.ts";
+import { createSeededDatabase, frameEntry } from "./kit-setup.ts";
 
 export type ConflictExamples<Contract extends StorageContract, Rows extends RowMap> = {
   readonly [Entry in keyof Contract]?: readonly {
@@ -56,17 +50,16 @@ export async function checkConflicts<Contract extends StorageContract, Rows exte
     const triggered = new Set<string>();
     const scenarios = examples[entry] ?? [];
     for (const scenario of scenarios) {
-      const database = await createTestDatabase(module, dependencies);
+      const { database, sources } = await createSeededDatabase(
+        module,
+        dependencies,
+        seed,
+        (transaction, context) =>
+          scenario.prepare?.(transaction.withTables<TablesOf<Rows>>(), context),
+      );
       try {
-        const sources = createTestContext();
-        await database.kysely.transaction().execute(async (transaction) => {
-          const tx = transaction.withTables<TablesOf<Rows>>();
-          const context = createContext(sources);
-          await seed(tx, context);
-          await scenario.prepare?.(tx, context);
-        });
         let unexpected: { error: unknown } | undefined;
-        const router: Record<string, AnyProcedure> = createFrame(module, {
+        const target = frameEntry(module, entry, {
           database,
           sources,
           checkOutputs: true,
@@ -74,8 +67,6 @@ export async function checkConflicts<Contract extends StorageContract, Rows exte
             if (event.kind === "unexpected-error") unexpected = event;
           },
         });
-        const target = router[entry];
-        if (target === undefined) throw new Error(`Missing module function: ${entry}`);
         try {
           await call(target, scenario.input);
         } catch (error) {

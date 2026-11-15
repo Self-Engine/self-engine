@@ -11,6 +11,7 @@ export {
 export {
   ColorField,
   type ColorFieldProps,
+  type FieldTaking,
   IconField,
   type IconFieldProps,
 } from "./picker-fields.tsx";

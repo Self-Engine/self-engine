@@ -47,8 +47,8 @@ test("a query entry declares the tables it reads and an operation declares none"
 });
 
 const listContract = {
-  window: oc.input(z.object({ from: z.string() })).output(z.array(z.string())),
-  set: oc.input(z.object({ tag: z.string() })).output(z.array(z.string())),
+  window: oc.input(z.strictObject({ from: z.string() })).output(z.array(z.string())),
+  set: oc.input(z.strictObject({ tag: z.string() })).output(z.array(z.string())),
   pages: oc.input(pageInputSchema.extend({ q: z.string() })).output(pageSchema(z.string())),
 };
 

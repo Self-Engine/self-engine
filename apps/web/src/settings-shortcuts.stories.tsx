@@ -49,7 +49,7 @@ export const ListsTheGeneralShortcutsFirst: Story = {
     await expect(general.getByText(mod("Z"))).toBeVisible();
     await expect(
       canvas.getAllByRole("heading", { level: 2 }).map((heading) => heading.textContent),
-    ).toEqual(["General", "Placeholder Alpha"]);
+    ).toEqual(["General", "Placeholder Alpha", "Projects"]);
   },
 };
 
@@ -62,6 +62,15 @@ export const ListsThePlaceholderModulesCommandsThatHaveAShortcut: Story = {
     await expect(alpha.getByText("Add sample entry")).toBeVisible();
     // Placeholder Beta has no Command with a default shortcut.
     await expect(canvas.queryByRole("region", { name: "Placeholder Beta" })).toBeNull();
+  },
+};
+
+export const ListsNewProjectWithItsShortcut: Story = {
+  play: async ({ canvas }) => {
+    await expectShortcutsView(canvas);
+    const projects = await groupOf(canvas, "Projects");
+    await expect(projects.getByText("New project")).toBeVisible();
+    await expect(await projects.findByText(mod("N"))).toBeVisible();
   },
 };
 

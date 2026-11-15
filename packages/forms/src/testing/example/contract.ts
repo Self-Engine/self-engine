@@ -29,12 +29,14 @@ export const exampleTiedFields = [["icon", "color"]] as const;
 
 export const exampleContract = {
   /** Every example entry: what an edit form shows and follows while it is open (D324). */
-  list: oc.input(z.object({})).output(z.array(exampleEntrySchema)),
-  // This invented partial input proves the form side only; projects sets the real pattern.
+  list: oc.input(z.strictObject({})).output(z.array(exampleEntrySchema)),
+  // Written by hand rather than with `entryFields` of `@self-engine/db/schema` (ADR 0032): the
+  // example's edit narrows the icon and its create requires the description, so the stories
+  // reach cases one field list would not give. A module derives both from one list.
   update: oc
     .input(
       z
-        .object({
+        .strictObject({
           id: z.string(),
           title: exampleFields.title.optional(),
           description: exampleFields.description.nullable().optional(),
@@ -49,7 +51,7 @@ export const exampleContract = {
     .output(exampleEntrySchema),
   create: oc
     .input(
-      z.object(exampleFields).refine(({ title, description }) => title !== description, {
+      z.strictObject(exampleFields).refine(({ title, description }) => title !== description, {
         path: ["description"],
         params: { reason: "description_matches_title" },
       }),

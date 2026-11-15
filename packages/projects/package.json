@@ -1,0 +1,44 @@
+{
+  "name": "@self-engine/projects",
+  "version": "0.0.0",
+  "private": true,
+  "license": "AGPL-3.0-only",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./contracts": "./src/contracts/index.ts",
+    "./data": "./src/data/index.ts",
+    "./picker": "./src/picker/index.tsx",
+    "./testing": "./src/testing/index.ts"
+  },
+  "dependencies": {
+    "@lingui/core": "catalog:",
+    "@lingui/react": "catalog:",
+    "@mantine/core": "catalog:",
+    "@orpc/contract": "catalog:",
+    "@self-engine/data-client": "workspace:*",
+    "@self-engine/db": "workspace:*",
+    "@self-engine/forms": "workspace:*",
+    "@self-engine/icons": "workspace:*",
+    "@self-engine/shell": "workspace:*",
+    "@self-engine/storage": "workspace:*",
+    "@self-engine/theme": "workspace:*",
+    "@self-engine/time": "workspace:*",
+    "@self-engine/ui": "workspace:*",
+    "react": "catalog:",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@orpc/server": "catalog:",
+    "@self-engine/data-process": "workspace:*",
+    "@self-engine/spaces": "workspace:*",
+    "@storybook/react-vite": "catalog:",
+    "@types/node": "catalog:",
+    "@types/react": "catalog:",
+    "@types/react-dom": "catalog:",
+    "happy-dom": "catalog:",
+    "react-dom": "catalog:",
+    "storybook": "catalog:",
+    "vite-plus": "catalog:"
+  }
+}

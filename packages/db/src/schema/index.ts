@@ -7,3 +7,5 @@ export function idSchema<const Name extends string>(_name: Name) {
 
 /** SQLite stores booleans as integers; the row-to-entity mapping converts them. */
 export const sqliteBoolean = z.union([z.literal(0), z.literal(1)]);
+
+export { entryFields, type FieldList } from "./entry-fields.ts";

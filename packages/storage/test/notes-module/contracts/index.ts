@@ -13,7 +13,7 @@ export const noteSchema = z.object({
   isPinned: z.boolean(),
 });
 const conflict = { data: z.object({ reason: z.literal("title_taken") }) };
-const byId = z.object({ id: noteIdSchema });
+const byId = z.strictObject({ id: noteIdSchema });
 const storedNote = z.object({
   id: noteIdSchema,
   space_id: spaceIdSchema,
@@ -32,12 +32,12 @@ export const notesContract = {
   delete: oc.input(byId).output(storedNote).errors({ NOT_FOUND: {} }),
   restore: oc.input(byId).output(storedNote).errors({ NOT_FOUND: {}, CONFLICT: conflict }),
   create: oc
-    .input(z.object({ title: z.string().min(1), isPinned: z.boolean() }))
+    .input(z.strictObject({ title: z.string().min(1), isPinned: z.boolean() }))
     .output(noteSchema)
     .errors({ CONFLICT: conflict }),
   pages: oc.input(pageInputSchema).output(pageSchema(noteSchema)),
   window: oc
-    .input(z.object({ from: instantSchema, to: instantSchema }))
+    .input(z.strictObject({ from: instantSchema, to: instantSchema }))
     .output(z.array(noteSchema)),
-  list: oc.input(z.object({})).output(z.array(noteSchema)),
+  list: oc.input(z.strictObject({})).output(z.array(noteSchema)),
 };

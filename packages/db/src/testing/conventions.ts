@@ -6,7 +6,8 @@ import type { SchemaViolation } from "./violation.ts";
 import { columnsOf, foreignKeyListOf, tablesOf } from "./introspect.ts";
 import type { ColumnRow, ForeignKeyRow } from "./introspect.ts";
 
-const TIMESTAMP_COLUMNS = ["created_at", "updated_at", "deleted_at"];
+// `archived_at` is optional (D327); a DEFAULT on it would archive every new row.
+const TIMESTAMP_COLUMNS = ["created_at", "updated_at", "deleted_at", "archived_at"];
 
 function isText(column: ColumnRow): boolean {
   return column.type.toUpperCase() === "TEXT";
@@ -60,10 +61,15 @@ function columnRules(table: string, columns: readonly ColumnRow[]): string[] {
         const column = columns.find((candidate) => candidate.name === name);
         return column === undefined || !fits(column, columns);
       }).map(({ rule }) => rule);
+  const archived = columns.find((column) => column.name === "archived_at");
+  const archiveRules =
+    !isLocalTable(table) && archived !== undefined && !(isText(archived) && archived.notnull === 0)
+      ? ["must have archived_at, where present, as nullable TEXT"]
+      : [];
   const defaulted = columns
     .filter((column) => TIMESTAMP_COLUMNS.includes(column.name) && column.dflt_value !== null)
     .map((column) => `must not have an SQL DEFAULT on ${column.name}`);
-  return [...missingOrWrong, ...defaulted];
+  return [...missingOrWrong, ...archiveRules, ...defaulted];
 }
 
 // A comment, a string, a quoted name, a word, or any other single character.

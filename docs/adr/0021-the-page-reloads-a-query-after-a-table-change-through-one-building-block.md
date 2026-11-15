@@ -65,7 +65,7 @@ is spent drawing.
 ## Consequences
 
 Module authors write one line per hook and handle only what is special to their module; the
-[guide](../development/port-hooks.md) gives the steps, with `placeholder-alpha` as the template.
+[guide](../development/port-hooks.md) gives the steps, with `projects` as the template.
 What the building block lacks is added there once, not worked around in a module. Freshness
 depends on every committed change being announced and every Query declaring its reads; the
 contract kit checks both, but sees only the SQL its examples run. A later sync engine only has

@@ -16,7 +16,7 @@ import type { OperationForm } from "./operation-form.ts";
 type ColorChoice = Parameters<EntryColorPickerProps["onChange"]>[0];
 
 /** The fields of a draft that may hold everything `Picked` answers, not only a part of it. */
-type FieldTaking<FormDraft, Picked> = {
+export type FieldTaking<FormDraft, Picked> = {
   [Field in FieldName<FormDraft>]: [Picked] extends [FormDraft[Field]] ? Field : never;
 }[FieldName<FormDraft>];
 

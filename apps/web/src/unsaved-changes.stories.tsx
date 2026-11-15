@@ -16,6 +16,7 @@ import {
   noQuestion,
   pressWithMod,
   QUESTION,
+  storyModules,
 } from "./story-app.tsx";
 import { placeholderAlphaAnswers, STUDIO_WORK } from "@self-engine/placeholder-alpha/testing";
 
@@ -31,7 +32,7 @@ function AppAt({ address, access }: { readonly address: string; readonly access:
     return created;
   });
   const [router] = useState(() => {
-    openRouter = createAppRouter(history);
+    openRouter = createAppRouter(history, storyModules);
     return openRouter;
   });
   useEffect(() => () => history.destroy(), [history]);

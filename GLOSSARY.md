@@ -90,9 +90,21 @@ _Avoid_: private table, device table
 The identity of one entity, branded for its kind so a project id cannot stand in for a task id. References to that entity keep the same identity.
 _Avoid_: generic id, shared id brand
 
+**Field List** (de: _Feldliste_):
+The fields of one kind of entry, each with the schema of its value, written once in its _Contract_. The inputs of create and edit are derived from it; a field that may be empty is optional, every other one required. An edit names only the fields that change.
+_Avoid_: patch schema, update DTO, partial entity
+
 **Live Row** (de: _nicht gelöschte Zeile_):
-A stored row that has not been soft-deleted. Ordinary reads and changes see only live rows in the current _Space_.
+A stored row that has not been soft-deleted. Ordinary reads and changes see only live rows in the current _Space_. An archived row is still a _Live Row_; one that is also not archived is _active_ (see _Archive_).
 _Avoid_: active row, undeleted record
+
+**Archive** (de: _Archivieren_):
+To set an entry aside that is finished but kept, such as a completed project: it leaves the lists of active entries and the pickers and appears in its module's archive View. It is an ordinary change that locks nothing, independent of deleting, and archiving an archived entry changes nothing. An entry that is live and not archived is _active_. Not a _Backup_, which copies the whole database.
+_Avoid_: hide, close, deactivate
+
+**Unarchive** (de: _Reaktivieren_):
+To bring an archived entry back among the active ones. Unarchiving an active entry changes nothing. The undo of a delete is _restore_, never _unarchive_.
+_Avoid_: restore, reopen, reactivate
 
 **Operation** (de: _Operation_):
 An entry of a _Port_ that changes data, all of it or nothing. Its expected failures, such as a conflict or "not found", are part of its answer, not surprises.
@@ -137,6 +149,16 @@ _Avoid_: catalog (on its own), design system, Storybook
 **Fixed Answer** (de: _feste Antwort_):
 What one _Port_ entry returns in a story or component test, without a _Data Process_: data, loading that never ends, an unexpected error, a declared conflict or "not found". It is checked against the entry's _Contract_, and a call to an entry without one fails.
 _Avoid_: mock, fixture, stub
+
+### Projects
+
+**Project** (de: _Projekt_):
+A piece of work a freelancer keeps track of, with a title and optionally a description, an icon and a color. A project is its id: two projects may carry the same title. It has no type and no rate; those come with billing. It is _archived_ when finished, never closed.
+_Avoid_: job, client, engagement, assignment
+
+**Project Reference** (de: _Projekt-Verweis_):
+What a module above `projects` holds of a project to show it and know its state: id, title, icon, color, an archive mark and a deletion mark. `projects` releases it as a _Read Piece_ and as a schema; a form hands it to the project picker as the current choice. It is not the project itself, and it does not make an archived project unusable.
+_Avoid_: project link, foreign key, project summary
 
 ### Settings
 
