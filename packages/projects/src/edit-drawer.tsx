@@ -13,7 +13,7 @@ import {
 import { type EditDrawerProps, useEditDrawerTitle } from "@self-engine/shell";
 import { ErrorState, QueryStateBlock } from "@self-engine/ui";
 import type { ReactNode } from "react";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import type { z } from "zod";
 import {
   type ProjectId,
@@ -95,15 +95,21 @@ function FoundProject({
   const unarchive = useUnarchiveWithUndo();
   const [last, setLast] = useState(found);
   const [leaving, setLeaving] = useState(false);
+  // The lock of a named Operation. A ref beside the state: two activations in one tick both
+  // read the state before it changes.
+  const busy = useRef(false);
   if (!leaving && found !== undefined && found !== last) setLast(found);
   const project = leaving ? last : (found ?? last);
   if (project === undefined) return <NotFound {...props} />;
   const leave = (operation: Leave, asks: boolean) => async () => {
-    if (leaving) return;
-    if (asks && !(await props.confirmDiscard())) return;
-    setLeaving(true);
-    if (await operation(project.id)) props.onDone();
-    else setLeaving(false);
+    if (busy.current) return;
+    busy.current = true;
+    const goes = !asks || (await props.confirmDiscard());
+    if (goes) setLeaving(true);
+    // Once the project is left, the lock stays: the drawer is closing.
+    if (goes && (await operation(project.id))) return props.onDone();
+    busy.current = false;
+    setLeaving(false);
   };
   const archiveOrUnarchive = leave(project.archivedAt === null ? archive : unarchive, true);
   const deleteHere = leave(remove, false);

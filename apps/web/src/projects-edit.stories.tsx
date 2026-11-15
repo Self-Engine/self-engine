@@ -503,6 +503,29 @@ export const ArchiveAsksBeforeItDiscardsWhatWasTyped: Story = {
   },
 };
 
+/** Two activations before React has drawn again, as a script or an assistive tool may send. */
+export const TwoActivationsAtOnceArchiveOnce: Story = {
+  beforeEach: () => {
+    clearNotices();
+    return keepNoticesOpen();
+  },
+  render: (args) => (
+    <AppAt
+      address={args.address}
+      access={storyPort(listsOf([WEBSITE, ...OTHERS], []), archivesTheWebsite)}
+    />
+  ),
+  play: async ({ canvas }) => {
+    const form = await openFromTheList(canvas);
+    const archive = form.drawer.getByRole("button", { name: "Archive" });
+    archive.click();
+    archive.click();
+    await noDrawer();
+    await expect(port.calls).toEqual([{ entry: "archive", input: { id: WEBSITE.id } }]);
+    await expect(await screen.findAllByText("Project archived")).toHaveLength(1);
+  },
+};
+
 /** A named Operation that fails leaves the drawer open with what was typed (D322). */
 const aFailedOperationKeepsTheDrawerOpen = (
   entry: "archive" | "delete",
