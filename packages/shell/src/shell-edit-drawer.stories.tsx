@@ -1,4 +1,4 @@
-import { Button, Group, Stack, TextInput } from "@mantine/core";
+import { Button, Group, Popover, Select, Stack, TextInput } from "@mantine/core";
 import { notifyUndoable } from "@self-engine/ui";
 import { clearNotices } from "@self-engine/ui/story-notices";
 import type { Meta } from "@storybook/react-vite";
@@ -16,6 +16,7 @@ import {
   atViewport,
   ENTRIES,
   nextFrame,
+  pressEscape,
   type Story,
   shellMeta,
   storyRouting,
@@ -376,3 +377,65 @@ const noticesLeaveTheHeaderClickable = (viewport: keyof typeof VIEWPORTS): Story
 
 export const NoticesLeaveTheHeaderClickableAtTheWideStep = noticesLeaveTheHeaderClickable("wide");
 export const NoticesLeaveTheHeaderClickableOnThePhone = noticesLeaveTheHeaderClickable("phone");
+
+/** A form with the two kinds of layer a field opens over the drawer: a popover and a list. */
+function FormWithLayers() {
+  return (
+    <Stack>
+      <Popover returnFocus trapFocus>
+        <Popover.Target>
+          <Button>Choose</Button>
+        </Popover.Target>
+        <Popover.Dropdown>
+          <TextInput aria-label="Search" data-autofocus />
+        </Popover.Dropdown>
+      </Popover>
+      <Select data={["Client", "Internal"]} label="Kind" />
+    </Stack>
+  );
+}
+
+const MODULE_WITH_LAYERS: ShellContribution = {
+  ...ENTRIES[1]!,
+  editDrawer: async () => ({ default: FormWithLayers }),
+};
+
+const layersRouting = storyRouting();
+
+/**
+ * Esc belongs to the layer it was pressed in. The drawer listens on the window, ahead of a
+ * popover's own listener, so it has to leave the key to a layer that lies over it.
+ */
+export const EscapeInALayerOverTheDrawerClosesOnlyTheLayer: Story = {
+  args: { activeModule: MODULE_WITH_LAYERS, children: <OpenEditor />, routing: layersRouting },
+  play: async ({ canvas }) => {
+    await userEvent.click(canvas.getByRole("button", { name: "Open editor" }));
+    const drawer = await screen.findByRole("dialog", { name: "Time" });
+    const choose = await within(drawer).findByRole("button", { name: "Choose" });
+    const stillOpen = () => expect(layersRouting.address.search()).toEqual({ edit: "entry" });
+    // A popover opened while the drawer still slides in does not take the focus.
+    await waitFor(() => expect(frameOf(drawer)).toEqual(FLOATING));
+
+    // A popover: the focus is inside it, outside the drawer.
+    await userEvent.click(choose);
+    await waitFor(async () =>
+      expect(await screen.findByRole("textbox", { name: "Search" })).toHaveFocus(),
+    );
+    await pressEscape();
+    await waitFor(() => expect(screen.queryByRole("textbox", { name: "Search" })).toBeNull());
+    await stillOpen();
+    await waitFor(() => expect(choose).toHaveFocus());
+
+    // A list: the focus stays in the field, inside the drawer.
+    await userEvent.click(within(drawer).getByRole("combobox", { name: "Kind" }));
+    await screen.findByRole("option", { name: "Client" });
+    await pressEscape();
+    await waitFor(() => expect(screen.queryByRole("option", { name: "Client" })).toBeNull());
+    await stillOpen();
+
+    // No layer is open any more: now the key is the drawer's.
+    await pressEscape();
+    await waitFor(() => expect(layersRouting.address.search()).toEqual({}));
+    await waitFor(() => expect(drawer.isConnected).toBe(false));
+  },
+};

@@ -13,7 +13,12 @@ import {
 } from "./command-palette-state.tsx";
 import { viewPath, type EditDrawerProps } from "./contributions.ts";
 import { EditDrawerTitleContext } from "./edit-drawer-title.ts";
-import { selectEditId, UnsavedChangesContext, useEditDrawerExits } from "./edit-drawer-exits.tsx";
+import {
+  selectEditId,
+  UnsavedChangesContext,
+  useEditDrawerExits,
+  useEscapeExit,
+} from "./edit-drawer-exits.tsx";
 import { LazyContribution, lazyComponents } from "./lazy-contribution.tsx";
 import { useCloseOverlayOnPick, useViewSearch, useWriteViewSearch } from "./routing.tsx";
 import { ACTIVE_ENTRY_VARS } from "./navigation-style.ts";
@@ -1002,11 +1007,17 @@ function ModuleEditDrawer({ module }: { readonly module: ShellContribution | und
   const done = () => {
     if (exits.letNextExitPass(opening)) close();
   };
+  // The question and the Command Palette are modals of Mantine, which listen on the window like
+  // the drawer: while one is open, Esc is theirs.
+  const frameRef = useEscapeExit(
+    target !== undefined && !exits.questionOpen && !paletteOpen,
+    close,
+  );
   return (
     <Drawer
       {...frame}
-      // Mantine's Drawer and Modal both listen on the window, so one Esc would reach both.
-      closeOnEscape={!exits.questionOpen && !paletteOpen}
+      closeOnEscape={false}
+      ref={frameRef}
       opened={target !== undefined}
       onClose={close}
       position="right"
