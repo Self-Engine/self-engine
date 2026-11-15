@@ -1033,7 +1033,12 @@ function ModuleEditDrawer({ module }: { readonly module: ShellContribution | und
               components={loadedDrawer}
               fallback={<LoadingState />}
               load={shown.module.editDrawer}
-              props={{ id: shown.id, onCancel: close, onDone: done }}
+              props={{
+                id: shown.id,
+                onCancel: close,
+                onDone: done,
+                confirmDiscard: exits.confirmDiscard,
+              }}
             />
           </UnsavedChangesContext>
         </EditDrawerTitleContext>

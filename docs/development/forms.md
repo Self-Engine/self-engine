@@ -172,10 +172,16 @@ An id never found shows “Entry not found”. If an entry that was loaded disap
 last value and pass `edit.deleted: true`. The form stays readable and copyable with a lasting
 warning and Save disabled. Undo passes the restored entry and `deleted: false`.
 
-For deletion inside the Edit Drawer, mark `deletedHere` before calling delete, close through
-`onDone`, and pass `deleted: found === undefined && !deletedHere`. Retain the entry throughout
-the closing transition (#132); this prevents the deleted-entry warning flashing. This state
+For a named Operation that leaves the entry from inside the Edit Drawer (delete, archive,
+unarchive), mark the entry as leaving, await the Operation, and close through `onDone` only when
+it succeeded or the entry was not found. A failed Operation takes the mark back: the drawer stays
+open with what was typed. Pass `deleted: found === undefined && !leaving`, and retain the entry
+until the drawer has closed (#132); this prevents the deleted-entry warning flashing. This state
 belongs to the drawer’s retained entry, not to the form’s Draft.
+
+An Operation that keeps the entry, such as archive, first awaits the Shell’s `confirmDiscard()`
+and runs only when it answers true: it asks “Discard changes?” when the form holds unsaved
+changes, like any other way out. A delete asks nothing.
 
 ## Action slot and a standalone form
 

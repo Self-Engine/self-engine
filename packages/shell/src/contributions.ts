@@ -26,10 +26,16 @@ export interface EditDrawerProps {
   /** Asks first when `useUnsavedChanges` reports changes. */
   readonly onCancel: () => void;
   /**
-   * Closes without asking, after a successful save or delete. A failed save calls neither. Called
-   * after the person left this entry, it closes nothing.
+   * Closes without asking, after a successful save or named Operation. A failed one calls
+   * neither. Called after the person left this entry, it closes nothing.
    */
   readonly onDone: () => void;
+  /**
+   * The question of `onCancel` without the closing, for a named Operation that leaves the entry
+   * and keeps it, such as "Archive": it asks when `useUnsavedChanges` reports changes. True when
+   * nothing is unsaved or the person discards; then run the Operation and call `onDone`.
+   */
+  readonly confirmDiscard: () => Promise<boolean>;
 }
 
 interface ContributionMetadata {

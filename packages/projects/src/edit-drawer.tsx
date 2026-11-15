@@ -31,7 +31,12 @@ import {
   useCreateProject,
   useEditProject,
 } from "./port.ts";
-import { useArchiveWithUndo, useDeleteWithUndo, useUnarchiveWithUndo } from "./with-undo.tsx";
+import {
+  type Leave,
+  useArchiveWithUndo,
+  useDeleteWithUndo,
+  useUnarchiveWithUndo,
+} from "./with-undo.tsx";
 
 /**
  * The Edit Drawer of `projects`. It loads on demand with the Contract, whose input schema the form
@@ -71,14 +76,15 @@ function StoredProjectDrawer(props: EditDrawerProps) {
   );
 }
 
-/** A named Operation of the action slot, which closes the drawer and offers undo in a Notice. */
-type Leave = (id: Project["id"]) => Promise<void>;
-
 /**
  * Keeps the last project it found, so that one deleted elsewhere stays readable with the warning
  * (D324). Once "Archive", "Unarchive" or "Delete" was chosen here, it keeps that project as it was
- * through the closing transition (#132): the project moves between the two lists, or leaves both,
+ * until the drawer has closed (#132): the project moves between the two lists, or leaves both,
  * and the closing drawer shows neither "not found", the warning nor the other button.
+ *
+ * The drawer closes when the Operation has succeeded and offers undo in a Notice. A failed one
+ * leaves it open with what was typed. "Archive" and "Unarchive" keep the project, so they ask
+ * before they discard a change like any other way out; a delete asks nothing.
  */
 function FoundProject({
   found,
@@ -92,18 +98,22 @@ function FoundProject({
   if (!leaving && found !== undefined && found !== last) setLast(found);
   const project = leaving ? last : (found ?? last);
   if (project === undefined) return <NotFound {...props} />;
-  const leave = (operation: Leave) => () => {
+  const leave = (operation: Leave, asks: boolean) => async () => {
+    if (leaving) return;
+    if (asks && !(await props.confirmDiscard())) return;
     setLeaving(true);
-    void operation(project.id);
-    props.onDone();
+    if (await operation(project.id)) props.onDone();
+    else setLeaving(false);
   };
+  const archiveOrUnarchive = leave(project.archivedAt === null ? archive : unarchive, true);
+  const deleteHere = leave(remove, false);
   return (
     <EditForm
       {...props}
       project={project}
       deleted={found === undefined && !leaving}
-      onArchive={leave(project.archivedAt === null ? archive : unarchive)}
-      onDelete={leave(remove)}
+      onArchive={() => void archiveOrUnarchive()}
+      onDelete={() => void deleteHere()}
     />
   );
 }

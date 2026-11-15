@@ -14,14 +14,18 @@ import {
   TAX,
   WEBSITE,
 } from "@self-engine/projects/testing";
+import { clearNotices } from "@self-engine/ui/story-notices";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { expect, screen, userEvent, waitFor, within } from "storybook/test";
 import {
+  answer,
   AppAt,
+  asked,
   editInAddress,
   keepNoticesOpen,
   loadStoryApp,
   noDrawer,
+  noQuestion,
   QUESTION,
   storyRouter,
   titlesShown,
@@ -103,7 +107,8 @@ export const AStoredProjectOpensWithItsValuesAndSaveDisabled: Story = {
   play: async ({ canvas }) => {
     const form = await openFromTheList(canvas);
     await expect(form.title).toHaveValue("Website");
-    await expect(form.drawer.getByRole("button", { name: /^Icon/ })).toBeVisible();
+    // The drawer fades in.
+    await waitFor(() => expect(form.drawer.getByRole("button", { name: /^Icon/ })).toBeVisible());
     await expect(
       within(form.drawer.getByRole("radiogroup", { name: "Color" })).getByRole("radio", {
         name: "Teal",
@@ -457,3 +462,91 @@ export const TheArchivedProjectsDrawerInGerman: Story = {
     await expect(drawer.getByRole("button", { name: "Löschen" })).toBeVisible();
   },
 };
+
+/** The archived project in the answers after "Archive", as the Data Process would store it. */
+const archivesTheWebsite = (call: PortCall, of: ProjectsStoryPort) => {
+  if (call.entry === "archive")
+    of.change(listsOf(OTHERS, [{ ...WEBSITE, archivedAt: ARCHIVED_AT }]));
+};
+
+/**
+ * "Archive" leaves the form like any other way out: with a change typed it asks first. Only a
+ * delete asks nothing, because nothing of the project is kept.
+ */
+export const ArchiveAsksBeforeItDiscardsWhatWasTyped: Story = {
+  beforeEach: keepNoticesOpen,
+  render: (args) => (
+    <AppAt
+      address={args.address}
+      access={storyPort(listsOf([WEBSITE, ...OTHERS], []), archivesTheWebsite)}
+    />
+  ),
+  play: async ({ canvas }) => {
+    const form = await openFromTheList(canvas);
+    await userEvent.type(form.title, " changed");
+    await userEvent.click(form.drawer.getByRole("button", { name: "Archive" }));
+    await asked();
+    await answer("Keep editing");
+    await noQuestion();
+    await expect(form.title).toHaveValue("Website changed");
+    await expect(port.calls).toEqual([]);
+    await expect(editInAddress(storyRouter())).toBe(WEBSITE.id);
+
+    await userEvent.click(form.drawer.getByRole("button", { name: "Archive" }));
+    await answer("Discard");
+    await noDrawer();
+    await expect(await screen.findByText("Project archived")).toBeVisible();
+    await expect(port.calls).toEqual([{ entry: "archive", input: { id: WEBSITE.id } }]);
+    await waitFor(async () =>
+      expect(await titlesShown(canvas, "Active projects")).toEqual(["Tax"]),
+    );
+  },
+};
+
+/** A named Operation that fails leaves the drawer open with what was typed (D322). */
+const aFailedOperationKeepsTheDrawerOpen = (
+  entry: "archive" | "delete",
+  button: string,
+  asks: boolean,
+): Story => ({
+  // Both stories show the same Notice, and the one of the story before would still be there.
+  beforeEach: () => {
+    clearNotices();
+    return keepNoticesOpen();
+  },
+  render: (args) => (
+    <AppAt
+      address={args.address}
+      access={storyPort({ ...listsOf([WEBSITE, ...OTHERS], []), [entry]: "unexpected" })}
+    />
+  ),
+  play: async ({ canvas }) => {
+    const form = await openFromTheList(canvas);
+    await userEvent.type(form.title, " changed");
+    await userEvent.click(form.drawer.getByRole("button", { name: button }));
+    if (asks) await answer("Discard");
+    await waitFor(() => expect(port.calls).toEqual([{ entry, input: { id: WEBSITE.id } }]));
+    // The Notice fades in.
+    await waitFor(() =>
+      expect(screen.getByText("Something went wrong, and the change was not saved.")).toBeVisible(),
+    );
+    await noQuestion();
+    await expect(editInAddress(storyRouter())).toBe(WEBSITE.id);
+    await expect(form.title).toHaveValue("Website changed");
+    // The form is as it was: the Operation can be tried again, and the change saved.
+    await expect(form.drawer.getByRole("button", { name: button })).toBeEnabled();
+    await expect(form.save()).toBeEnabled();
+    await expect(await titlesShown(canvas, "Active projects")).toEqual(["Tax", "Website"]);
+  },
+});
+
+export const AFailedArchiveKeepsTheDrawerOpenWithWhatWasTyped = aFailedOperationKeepsTheDrawerOpen(
+  "archive",
+  "Archive",
+  true,
+);
+export const AFailedDeleteKeepsTheDrawerOpenWithWhatWasTyped = aFailedOperationKeepsTheDrawerOpen(
+  "delete",
+  "Delete",
+  false,
+);

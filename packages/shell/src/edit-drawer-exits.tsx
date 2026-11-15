@@ -120,13 +120,16 @@ export function useEditDrawerExits(openEntryKey: string | undefined) {
     return discard;
   }, []);
 
+  /** Whether unsaved changes may go: asks when there are any, and never twice at once. */
+  const confirmDiscard = useCallback(async () => {
+    if (![...checks].some((check) => check())) return true;
+    return asking.current ? false : askToDiscard();
+  }, [askToDiscard, checks]);
+
   const guard = useCallback<LeaveGuard>(
-    ({ current, next }) => {
-      if (keepsTheEntry(current, next) || finished.current) return true;
-      if (![...checks].some((check) => check())) return true;
-      return asking.current ? false : askToDiscard();
-    },
-    [askToDiscard, checks],
+    ({ current, next }) =>
+      keepsTheEntry(current, next) || finished.current ? true : confirmDiscard(),
+    [confirmDiscard],
   );
   useLeaveGuard(guard, openEntryKey !== undefined);
 
@@ -141,5 +144,12 @@ export function useEditDrawerExits(openEntryKey: string | undefined) {
     return true;
   }, []);
 
-  return { register, questionOpen, opening: opening.count, letNextExitPass, closeButton };
+  return {
+    register,
+    questionOpen,
+    opening: opening.count,
+    letNextExitPass,
+    confirmDiscard,
+    closeButton,
+  };
 }
