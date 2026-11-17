@@ -6,11 +6,12 @@ const referenced = defineReason("referenced", z.object({ table: z.string(), coun
 const pinned = defineReason("pinned", z.object({ title: z.string() }));
 const row = "01a1c0a2-f079-7000-8000-000000000000";
 
-test("a Refusal carries a list of Reasons, each with code, severity, row, field and details", () => {
+test("a Refusal carries a list of Reasons, each with code, severity, table, row, field and details", () => {
   const data = refusal.REFUSED.data;
   const reason = {
     code: "referenced",
     severity: "blocking",
+    table: "projects",
     row,
     field: "project_id",
     details: { table: "time_entries", count: 12 },
@@ -18,12 +19,15 @@ test("a Refusal carries a list of Reasons, each with code, severity, row, field 
   expect(data.parse({ reasons: [reason] })).toEqual({ reasons: [reason] });
   expect(data.safeParse({ reasons: [] }).success).toBe(false);
   expect(data.safeParse({ reasons: [{ ...reason, severity: "fatal" }] }).success).toBe(false);
+  const { table: _table, ...withoutTable } = reason;
+  expect(data.safeParse({ reasons: [withoutTable] }).success).toBe(false);
 });
 
 test("a Reason's definition gives its details typed when the code and the details match", () => {
   const reason: Reason = {
     code: "referenced",
     severity: "blocking",
+    table: "projects",
     row,
     details: { table: "time_entries", count: 12 },
   };

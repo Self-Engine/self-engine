@@ -83,6 +83,7 @@ export async function askRules<DB>(
       reasons.push({
         code,
         severity: "blocking",
+        table,
         row,
         ...(field === undefined ? {} : { field }),
         details: definition.details.parse(details),

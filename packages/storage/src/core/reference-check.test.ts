@@ -123,8 +123,12 @@ async function tag(noteId: string, archived: boolean) {
     .execute();
 }
 
-function referencedBy(note: string, tables: { table: string; count: number }[]) {
-  return { code: "referenced", severity: "blocking", row: note, details: { tables } };
+function referencedBy(
+  note: string,
+  tables: { table: string; count: number }[],
+  table = "notes",
+) {
+  return { code: "referenced", severity: "blocking", table, row: note, details: { tables } };
 }
 
 async function refusalOf(write: Promise<unknown>) {
@@ -209,7 +213,7 @@ test("in a tree a parent with a live child is refused; once the child is deleted
       );
 
   await expect(refusalOf(deleteFolder(parent.id))).resolves.toEqual([
-    referencedBy(parent.id, [{ table: "folders", count: 1 }]),
+    referencedBy(parent.id, [{ table: "folders", count: 1 }], "folders"),
   ]);
   await deleteFolder(child.id);
   await expect(deleteFolder(parent.id)).resolves.toMatchObject({ id: parent.id });
@@ -315,6 +319,7 @@ function targetDeleted(child: string, parent: string) {
   return {
     code: "target_deleted",
     severity: "blocking",
+    table: "folders",
     row: child,
     field: "parent_id",
     details: { target: { table: "folders", id: parent } },
