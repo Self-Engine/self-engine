@@ -80,7 +80,9 @@ Grundlage: der Stand auf `main` nach #263 und die alte App (nur gelesen, Pfad in
   gelöschter Ziele aus D241 nötig. Das Wiederherstellen einer Zeile muss prüfen, ob ihr Ziel noch
   lebt. _Verworfen:_ jederzeit löschbar ohne Sperre (meine erste Empfehlung; der Owner: Es soll
   nichts Dummes möglich sein); die Sperre in jedem Modul einzeln (`projects` sieht die
-  Zeiteinträge nicht).
+  Zeiteinträge nicht). _„Nur löschbar, solange nichts darauf zeigt“ und die Ausnahme eines
+  Verweises überholt durch D338 (ein Verweis schützt, geht mit oder bleibt); die Prüfung selbst
+  führt D337 aus._
 - **D307 Jede Regel sitzt im Datenprozess, an der tiefsten Stelle, die sie sehen kann; das gilt
   für die ganze App (schärft D152).** Vier Stellen: die Datenbank (Pflichtfelder, Eindeutigkeit,
   gültige Verweise, D306), der Speicher-Rahmen (nichts Ungelöschtes zeigt auf Gelöschtes, D306),
@@ -92,6 +94,8 @@ Grundlage: der Stand auf `main` nach #263 und die alte App (nur gelesen, Pfad in
   mit der Verweis-Prüfung als erster Regel. _Offen:_ Ein Import muss durch dieselben Operationen
   schreiben oder danach geprüft werden (Schicht 5). Was ein Abgleich hereinbringt, verhindert
   keine Regel; die Sync-Phase braucht eine Datenprüfung, die verletzte Regeln findet und anzeigt.
+  _Die Stelle „Operation des Moduls“ für Regeln über gespeicherten Zustand überholt durch D331;
+  der Einhängepunkt geschärft durch D332._
 - **D308 Ein Zeiteintrag speichert, wo er liegt und wie viel er zählt, getrennt.** `started_at`
   und `ended_at` sind die Zeitpunkte, wie gemessen oder eingetragen; sie werden nie gerundet.
   `duration_seconds` ist die Zeit, die zählt, als ganze Zahl. In Schicht 4 setzt die Operation sie
@@ -210,7 +214,8 @@ Grundlage: der Stand auf `main` nach #263 und die alte App (nur gelesen, Pfad in
   Ansicht „Gelöscht“ kommt mit dem Papierkorb-Paket; bis dahin bleibt nach dem Löschen der
   Hinweis mit „Rückgängig“. Der Import bleibt Schicht 5 und beginnt mit Projekten und
   Zeiteinträgen. _Verworfen:_ eine frühe Ansicht „Gelöscht“; ein vorgezogener Import von
-  Projekten.
+  Projekten. _Schritt 4 geteilt durch D340: #274 baut den Datenprozess, #313 die Oberfläche, beide
+  vor Schritt 7._
 
 ## Später, mit Vorschlag
 

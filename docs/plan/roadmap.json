@@ -38,7 +38,7 @@
         { "title": "Mobile", "note": "Pflicht vor dem Stichtag (D14)." },
         {
           "title": "Papierkorb und endgültiges Löschen",
-          "note": "Fristen pro Datenart sind offen. Bis dahin löscht die App nie von selbst (D172)."
+          "note": "Fristen pro Datenart sind offen. Bis dahin löscht die App nie von selbst (D172). Hier entscheidet sich, ob verweisende Zeilen mitgelöscht werden (D338)."
         }
       ]
     }
