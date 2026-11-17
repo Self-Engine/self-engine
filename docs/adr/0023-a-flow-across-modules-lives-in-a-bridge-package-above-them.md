@@ -1,7 +1,7 @@
 ---
 status: accepted
 date: 2026-11-13
-decisions: D22, D143, D152, D189, D190, D231, D232, D241, D259, D266
+decisions: D22, D143, D152, D189, D190, D231, D232, D241, D259, D266, D331
 ---
 
 # A flow across modules lives in a bridge package above them
@@ -56,13 +56,16 @@ calendar, is built on them.
   again with the choice. A View, a Command and a later assistant call it the same way. Today a
   conflict carries a reason the Contract declares (`CONFLICT` with `reason`, ADR 0020); a
   conflict that carries options comes with the first Operation that needs one.
-- **Protection rules are registered when the app is composed.** A rule such as "a billed time
-  entry cannot be deleted" belongs to the bridge, because the time module does not know
-  billing. The bridge registers the rule at app composition, and it runs in the transaction of
-  the Operation it guards. The data side of the app is composed from the desktop app's module
-  list today
-  ([ADR 0022](0022-the-desktop-app-owns-the-module-list-and-the-data-protocol-what-crosses-modules.md));
-  nothing registers rules yet. The first bridge builds it.
+- **A bridge guards a module's table with a Protection Rule from above.** A rule such as "a
+  billed time entry cannot be deleted" belongs to the bridge, because the time module does not
+  know billing. A Protection Rule guards one table and one kind of write, and the frame asks it
+  at every write path, in the transaction of the Operation it guards
+  ([ADR 0033](0033-protection-rules-guard-every-write-path-and-answer-with-typed-reasons.md)).
+  A rule from above is registered where the Data Process is started, `startDataProcess({ rules
+  })`, typed against the mounted modules' tables, and joins the modules' rules in one registry;
+  the module below and its Contract learn nothing of it. A typed way for an ordinary package to
+  state such a rule is not built yet, and the desktop app registers none
+  ([ADR 0022](0022-the-desktop-app-owns-the-module-list-and-the-data-protocol-what-crosses-modules.md)).
 
 ## Consequences
 
@@ -72,9 +75,9 @@ calendar, is built on them.
   can be understood and tested on their own.
 - A module's read pieces and the entries a bridge calls are a surface others depend on:
   changing one is a change for its bridges.
-- Not decided here: how a bridge's action appears in a module's Views, and how the refusal of a
-  protection rule appears among the conflict reasons that the guarded Operation's Contract
-  declares.
+- Not decided here: how a bridge's action appears in a module's Views. A rule's refusal is not
+  a conflict reason: every Operation carries the Refusal, whose Reasons no Contract lists
+  (ADR 0033).
 
 ## Considered Options
 
