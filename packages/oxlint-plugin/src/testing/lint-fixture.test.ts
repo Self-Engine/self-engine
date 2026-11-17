@@ -12,6 +12,24 @@ describe("lintFixtures", () => {
     expect(silent?.[0]).toContain("self-engine(no-silent-catch)");
   });
 
+  it("writes a fixture at the path it names, under the folder", () => {
+    const [named, plain] = lintFixtures(
+      "no-time-outside-time",
+      [{ path: "time/src/clock.ts", source: "Date.now();" }, "Date.now();"],
+      "packages",
+    );
+    expect([named?.length, plain?.length]).toEqual([0, 1]);
+  });
+
+  it("refuses two fixtures that share a file name", () => {
+    expect(() =>
+      lintFixtures("no-silent-catch", [
+        { path: "a/same.ts", source: "export {};" },
+        { path: "b/same.ts", source: "export {};" },
+      ]),
+    ).toThrow(/same\.ts/);
+  });
+
   it("fails on a run that did not lint, instead of reporting it clean", () => {
     expect(() => lintFixture("no-such-rule", "export {};")).toThrow(/oxlint exited with/);
   });

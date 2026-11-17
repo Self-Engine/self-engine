@@ -24,18 +24,36 @@ export function diagnosticsOfFile(lines: readonly string[], fileName: string): s
   return lines.filter((line) => basename(line.split(":", 1)[0] ?? "") === fileName);
 }
 
+/** A fixture whose file name matters to the rule: `path` is relative to the fixture folder. */
+export interface NamedFixture {
+  readonly path: string;
+  readonly source: string;
+}
+
 /**
  * The `self-engine/<rule>` diagnostics Oxlint reports for each of `sources`, one line each, in
  * the order of `sources`. One Oxlint run covers them all, so a long fixture table stays fast.
+ * A plain source is written as `fixture-<index>.ts`; diagnostics are matched by file name, so
+ * two fixtures of one run must not share one.
  */
-export function lintFixtures(rule: string, sources: readonly string[], folder = ""): string[][] {
+export function lintFixtures(
+  rule: string,
+  sources: readonly (string | NamedFixture)[],
+  folder = "",
+): string[][] {
+  const paths = sources.map((source, index) =>
+    typeof source === "string" ? `fixture-${index}.ts` : source.path,
+  );
+  const names = paths.map((path) => basename(path));
+  const shared = names.find((name, index) => names.indexOf(name) !== index);
+  if (shared !== undefined) throw new Error(`Two fixtures share the file name ${shared}`);
   const dir = mkdtempSync(join(tmpdir(), "self-engine-oxlint-"));
   try {
     const config = join(dir, ".oxlintrc.json");
-    mkdirSync(join(dir, folder), { recursive: true });
     const files = sources.map((source, index) => {
-      const file = join(dir, folder, `fixture-${index}.ts`);
-      writeFileSync(file, source);
+      const file = join(dir, folder, paths[index] ?? "");
+      mkdirSync(dirname(file), { recursive: true });
+      writeFileSync(file, typeof source === "string" ? source : source.source);
       return file;
     });
     writeFileSync(
@@ -60,7 +78,7 @@ export function lintFixtures(rule: string, sources: readonly string[], folder = 
     if (result.status !== 0 && !(result.status === 1 && hits.length > 0)) {
       throw new Error(`oxlint exited with ${result.status}:\n${result.stdout}${result.stderr}`);
     }
-    return sources.map((_source, index) => diagnosticsOfFile(hits, `fixture-${index}.ts`));
+    return names.map((name) => diagnosticsOfFile(hits, name));
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }

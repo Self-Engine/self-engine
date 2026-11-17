@@ -11,6 +11,7 @@ import noImportTypeQuery from "./rules/no-import-type-query.ts";
 import noRawStorageSql from "./rules/no-raw-storage-sql.ts";
 import noQueryOrThrow from "./rules/no-query-or-throw.ts";
 import noSilentCatch from "./rules/no-silent-catch.ts";
+import noWriteOutsideWritePaths from "./rules/no-write-outside-write-paths.ts";
 
 export default definePlugin({
   meta: { name: "self-engine" },
@@ -22,5 +23,6 @@ export default definePlugin({
     "no-query-or-throw": noQueryOrThrow,
     "no-raw-storage-sql": noRawStorageSql,
     "no-silent-catch": noSilentCatch,
+    "no-write-outside-write-paths": noWriteOutsideWritePaths,
   },
 });
