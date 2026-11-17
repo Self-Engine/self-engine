@@ -9,3 +9,4 @@ export { createMigrationRunner } from "./runner.ts";
 export type { MigrationRunner } from "./runner.ts";
 export type { TablesOf } from "./tables.ts";
 export { uniqueIndexes, type UniqueIndex } from "./unique-indexes.ts";
+export { referencesOf, type Reference } from "./introspect.ts";

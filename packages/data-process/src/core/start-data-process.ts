@@ -1,10 +1,11 @@
 import { type AnyRouter, os } from "@orpc/server";
 import type { Health, TablesChanged } from "@self-engine/data-protocol";
-import type { Database } from "@self-engine/db";
+import { referencesOf, type Database } from "@self-engine/db";
 import type { SpaceSources } from "@self-engine/spaces";
 import {
   createFrame,
   protectionRules,
+  referenceCheck,
   type ErasedStorageModule,
   type FrameOptions,
 } from "@self-engine/storage";
@@ -86,8 +87,12 @@ export async function startDataProcess({
     beforeMigrations,
   );
   const tablesChanged = createTablesChangedPublisher();
-  // One registry for every frame: a module's rules hold whoever writes its tables (D332).
-  const rules = protectionRules(Object.values(modules));
+  // One registry for every frame: a module's rules hold whoever writes its tables (D332). The
+  // reference check reads the foreign keys once, from the schema the migrations left (D337).
+  const rules = protectionRules([
+    ...Object.values(modules),
+    ...(space === undefined ? [] : [referenceCheck(await referencesOf(database))]),
+  ]);
   const moduleRouter = Object.fromEntries(
     Object.entries(modules).map(([name, module]) => [
       name,

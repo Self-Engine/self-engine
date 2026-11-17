@@ -54,6 +54,17 @@ export const refusal = {
   REFUSED: { status: 422, data: z.object({ reasons: z.array(reasonSchema).min(1) }) },
 };
 
+/**
+ * The Reason of the reference check, which the storage frame brings itself (D337): Live Rows
+ * still refer to the row, so it is not deleted. It names each referring table with its count.
+ */
+export const referenced = defineReason(
+  "referenced",
+  z.object({
+    tables: z.array(z.object({ table: z.string(), count: z.number().int().positive() })).min(1),
+  }),
+);
+
 /** The Reason with its details typed, when it is the defined one and its details fit. */
 export function matchReason<Definition extends ReasonDefinition>(
   definition: Definition,
