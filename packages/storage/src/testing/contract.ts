@@ -20,6 +20,7 @@ import { QueryWriteError } from "../core/table-writes.ts";
 import { recordTableReads } from "./table-reads.ts";
 import { createTestDatabase } from "./helpers.ts";
 import { createSeededDatabase, frameEntry } from "./kit-setup.ts";
+import { checkRefusal } from "./refusal.ts";
 
 import type { ContractViolation } from "./violation.ts";
 export type { ContractViolation } from "./violation.ts";
@@ -107,6 +108,7 @@ export async function checkContract<Contract extends StorageContract, Rows exten
     await schemaDatabase.close();
   }
   for (const [entry, procedure] of Object.entries(module.contract)) {
+    violations.push(...checkRefusal(entry, procedure, module.entries[entry]?.kind));
     if (!Object.hasOwn(examples, entry)) {
       violations.push({ entry, rule: "missing example" });
       continue;

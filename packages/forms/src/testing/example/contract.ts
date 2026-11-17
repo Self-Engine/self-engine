@@ -3,6 +3,7 @@
 // `exampleFields`, so a story that needs another field adds its own line.
 
 import { oc } from "@orpc/contract";
+import { refusal } from "@self-engine/db/schema";
 import { z } from "zod";
 
 /** The fields of an example entry, as its create Operation takes them. */
@@ -48,7 +49,8 @@ export const exampleContract = {
           params: { reason: "star_needs_color" },
         }),
     )
-    .output(exampleEntrySchema),
+    .output(exampleEntrySchema)
+    .errors({ ...refusal }),
   create: oc
     .input(
       z.strictObject(exampleFields).refine(({ title, description }) => title !== description, {
@@ -60,5 +62,6 @@ export const exampleContract = {
     .errors({
       NOT_FOUND: {},
       CONFLICT: { data: z.object({ reason: z.literal("title_taken") }) },
+      ...refusal,
     }),
 };

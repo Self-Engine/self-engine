@@ -2,6 +2,7 @@ import { createORPCClient } from "@orpc/client";
 import { RPCLink } from "@orpc/client/message-port";
 import { oc, type ContractRouterClient } from "@orpc/contract";
 import type { ProtocolContract } from "@self-engine/data-protocol";
+import { refusal } from "@self-engine/db/schema";
 import { createTestSources } from "@self-engine/db/testing";
 import { defineStorageModule, type FrameReport } from "@self-engine/storage";
 import { afterEach, expect, test } from "vite-plus/test";
@@ -11,9 +12,15 @@ import { startTestDataProcess, type TestDataProcess } from "../testing/index.ts"
 const fixture = defineStorageModule({
   name: "fixture",
   contract: {
-    add: oc.input(z.string()).output(z.string()),
+    add: oc
+      .input(z.string())
+      .output(z.string())
+      .errors({ ...refusal }),
     list: oc.output(z.array(z.string())),
-    audit: oc.input(z.string()).output(z.string()),
+    audit: oc
+      .input(z.string())
+      .output(z.string())
+      .errors({ ...refusal }),
   },
   migrations: [
     {
@@ -137,7 +144,7 @@ test("unexpected operation errors reach the report sink while the port caller ge
   const error = new Error("Private operation detail");
   const broken = defineStorageModule({
     name: "fixture",
-    contract: { fail: oc.output(z.string()) },
+    contract: { fail: oc.output(z.string()).errors({ ...refusal }) },
     migrations: [],
     rowMap: {},
   }).entries({

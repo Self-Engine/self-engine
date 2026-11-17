@@ -34,7 +34,9 @@ renderer side, in [the second guide](port-hooks.md); start it once step 7 is don
 Copy the shape of [`notes/contracts/index.ts`](../../packages/storage/test/notes-module/contracts/index.ts):
 use Zod schemas and `oc.input(...).output(...).errors(...)`. Share entity id schemas and
 `Instant` through pure schema/value entries. Declare `NOT_FOUND` where applicable and
-`CONFLICT` with the operation’s allowed reason codes. Write normal output schemas that
+`CONFLICT` with the operation’s allowed reason codes. Every Operation carries the Refusal: spread
+`refusal` from `@self-engine/db/schema` into its `.errors()`, and list no Reason's code; a Query
+does not carry it. An Operation without it does not compile, and the contract kit fails it. Write normal output schemas that
 preserve values: no transforms, defaults, coercion or other conversions. Tests and development
 check outputs; the packaged app skips that check. Inputs are always checked in the Data Process before a lower function runs.
 Forms also check with the same input schema for field feedback (D317), but the Data Process
@@ -58,9 +60,10 @@ export const memoFields = entryFields(memoIdSchema, {
 });
 // create: title required, body and color may be missing (then empty).
 // edit: the id, every field optional; null clears body or color, never the title.
-create: oc.input(memoFields.create.refine(bodyDiffers, bodyRule)).output(memoSchema),
+create: oc.input(memoFields.create.refine(bodyDiffers, bodyRule)).output(memoSchema)
+  .errors({ ...refusal }),
 edit: oc.input(memoFields.edit.refine(bodyDiffers, bodyRule)).output(memoSchema)
-  .errors({ NOT_FOUND: {} }),
+  .errors({ NOT_FOUND: {}, ...refusal }),
 ```
 
 A field whose schema accepts `null` is optional; every other field is required. Declare a rule

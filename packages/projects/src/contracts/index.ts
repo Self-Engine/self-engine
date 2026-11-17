@@ -1,5 +1,5 @@
 import { oc } from "@orpc/contract";
-import { entryFields } from "@self-engine/db/schema";
+import { entryFields, refusal } from "@self-engine/db/schema";
 import { entryIconSchema } from "@self-engine/icons/names";
 import { colorSetNameSchema } from "@self-engine/theme/names";
 import { instantSchema } from "@self-engine/time";
@@ -54,16 +54,34 @@ export const projectsContract = {
   active: oc.input(z.strictObject({})).output(z.array(projectSchema)),
   /** The archived Live Rows: a small set, sorted by title in the page as "Active" is. */
   archived: oc.input(z.strictObject({})).output(z.array(projectSchema)),
-  create: oc.input(projectFields.create).output(projectSchema),
+  create: oc
+    .input(projectFields.create)
+    .output(projectSchema)
+    .errors({ ...refusal }),
   /** The edit pattern (D329): a missing field stays, `null` clears, an edit without fields reads. */
-  edit: oc.input(projectFields.edit).output(projectSchema).errors({ NOT_FOUND: {} }),
+  edit: oc
+    .input(projectFields.edit)
+    .output(projectSchema)
+    .errors({ NOT_FOUND: {}, ...refusal }),
   /**
    * Archive and unarchive lock nothing and answer with the project. Archiving an archived project,
    * or unarchiving an active one, changes nothing and is no error (D327).
    */
-  archive: oc.input(byId).output(projectSchema).errors({ NOT_FOUND: {} }),
-  unarchive: oc.input(byId).output(projectSchema).errors({ NOT_FOUND: {} }),
+  archive: oc
+    .input(byId)
+    .output(projectSchema)
+    .errors({ NOT_FOUND: {}, ...refusal }),
+  unarchive: oc
+    .input(byId)
+    .output(projectSchema)
+    .errors({ NOT_FOUND: {}, ...refusal }),
   /** A soft delete; `restore` is its undo and brings the project back as it was, archived or not. */
-  delete: oc.input(byId).output(projectSchema).errors({ NOT_FOUND: {} }),
-  restore: oc.input(byId).output(projectSchema).errors({ NOT_FOUND: {} }),
+  delete: oc
+    .input(byId)
+    .output(projectSchema)
+    .errors({ NOT_FOUND: {}, ...refusal }),
+  restore: oc
+    .input(byId)
+    .output(projectSchema)
+    .errors({ NOT_FOUND: {}, ...refusal }),
 };

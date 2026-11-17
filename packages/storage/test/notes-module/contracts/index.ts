@@ -30,16 +30,19 @@ export const notesContract = {
   update: oc
     .input(byId.extend({ title: z.string().min(1) }))
     .output(noteSchema)
-    .errors({ NOT_FOUND: {}, CONFLICT: conflict }),
+    .errors({ NOT_FOUND: {}, CONFLICT: conflict, ...refusal }),
   delete: oc
     .input(byId)
     .output(storedNote)
     .errors({ NOT_FOUND: {}, ...refusal }),
-  restore: oc.input(byId).output(storedNote).errors({ NOT_FOUND: {}, CONFLICT: conflict }),
+  restore: oc
+    .input(byId)
+    .output(storedNote)
+    .errors({ NOT_FOUND: {}, CONFLICT: conflict, ...refusal }),
   create: oc
     .input(z.strictObject({ title: z.string().min(1), isPinned: z.boolean() }))
     .output(noteSchema)
-    .errors({ CONFLICT: conflict }),
+    .errors({ CONFLICT: conflict, ...refusal }),
   pages: oc.input(pageInputSchema).output(pageSchema(noteSchema)),
   window: oc
     .input(z.strictObject({ from: instantSchema, to: instantSchema }))
