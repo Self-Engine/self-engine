@@ -107,7 +107,8 @@ export function createFrame(
                 error instanceof ORPCError &&
                 (error.code === "BAD_REQUEST" ||
                   error.code === "NOT_FOUND" ||
-                  error.code === "CONFLICT")
+                  error.code === "CONFLICT" ||
+                  error.code === "REFUSED")
               )
                 throw error;
               let index: string | undefined;

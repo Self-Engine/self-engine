@@ -2,7 +2,12 @@ import { type AnyRouter, os } from "@orpc/server";
 import type { Health, TablesChanged } from "@self-engine/data-protocol";
 import type { Database } from "@self-engine/db";
 import type { SpaceSources } from "@self-engine/spaces";
-import { createFrame, type ErasedStorageModule, type FrameOptions } from "@self-engine/storage";
+import {
+  createFrame,
+  protectionRules,
+  type ErasedStorageModule,
+  type FrameOptions,
+} from "@self-engine/storage";
 import type { DataModules } from "./modules.ts";
 import type { PlatformBackups } from "./procedures/backups.ts";
 import { queryTables } from "./query-tables.ts";
@@ -81,6 +86,8 @@ export async function startDataProcess({
     beforeMigrations,
   );
   const tablesChanged = createTablesChangedPublisher();
+  // One registry for every frame: a module's rules hold whoever writes its tables (D332).
+  const rules = protectionRules(Object.values(modules));
   const moduleRouter = Object.fromEntries(
     Object.entries(modules).map(([name, module]) => [
       name,
@@ -88,7 +95,7 @@ export async function startDataProcess({
         ? unserved(module)
         : createFrame(module, {
             database,
-            sources: { clock: sources.clock, ids: sources.ids, spaceId: space.id },
+            sources: { clock: sources.clock, ids: sources.ids, spaceId: space.id, rules },
             checkOutputs,
             ...(report === undefined ? {} : { report }),
             announce: (tables) => tablesChanged.announce([...tables]),

@@ -5,15 +5,41 @@ import {
   smallSetList,
   windowList,
   pageList,
+  protectionRule,
 } from "../../../src/core/index.ts";
-import { notesContract } from "../contracts/index.ts";
+import { notesContract, pinnedNote } from "../contracts/index.ts";
 import { notesMigrations, notesRowMap, noteIdSchema, toNote } from "./rows.ts";
+/** The module's Protection Rule: a pinned note is not deleted; it answers for many rows at once. */
+export const pinnedNotesStay = protectionRule(notesRowMap, {
+  table: "notes",
+  write: "delete",
+  reasons: [pinnedNote],
+  async answer(tx, context, rows) {
+    const pinned = await sharedEntry(tx, context)
+      .live("notes")
+      .select(["id", "title"])
+      .where(
+        "id",
+        "in",
+        rows.map((row) => row.id),
+      )
+      .where("is_pinned", "=", 1)
+      .execute();
+    return pinned.map((note) => ({
+      code: pinnedNote.code,
+      row: note.id,
+      details: { title: note.title },
+    }));
+  },
+});
+
 export const notes = defineStorageModule({
   name: "notes",
   contract: notesContract,
   conflicts: { notes_live_title: "title_taken" },
   migrations: notesMigrations,
   rowMap: notesRowMap,
+  rules: [pinnedNotesStay],
 }).entries({
   get: {
     kind: "query",

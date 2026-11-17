@@ -3,6 +3,8 @@ import type { Migration, TablesOf } from "@self-engine/db";
 import type { Transaction, CompiledQuery } from "kysely";
 import type { z } from "zod";
 import type { StorageContext } from "./context.ts";
+import type { SyncedTable } from "./convention.ts";
+import type { RegisteredRule } from "./registry.ts";
 
 export type StorageContract = Readonly<Record<string, AnyContractProcedure>>;
 export type RowMap = Readonly<Record<string, z.ZodObject>>;
@@ -76,6 +78,8 @@ export interface StorageModule<
   readonly entries: ModuleEntries<Contract, Rows>;
   /** Unique index name to the reason code declared by the contract. */
   readonly conflicts?: Readonly<Record<string, string>>;
+  /** Protection Rules for the module's own tables, each stated with `protectionRule` (D331). */
+  readonly rules?: readonly RegisteredRule<SyncedTable<TablesOf<Rows>>>[];
 }
 
 /** Everything a module declares before its entries: name, Contract, row map and migrations. */
@@ -109,6 +113,7 @@ export type ErasedStorageModule = Pick<
   StorageModule<StorageContract, RowMap>,
   "name" | "contract" | "migrations" | "rowMap" | "conflicts"
 > & {
+  readonly rules?: readonly RegisteredRule[];
   readonly entries: Readonly<
     Record<
       string,
