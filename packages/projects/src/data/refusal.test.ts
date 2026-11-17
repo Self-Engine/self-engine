@@ -2,7 +2,7 @@ import type { ContractRouterClient } from "@orpc/contract";
 import { safe } from "@orpc/server";
 import type { Reason } from "@self-engine/db/schema";
 import { expectTypeOf, test } from "vite-plus/test";
-import { projectsContract, type ProjectId } from "./index.ts";
+import { projectsContract, type ProjectId } from "../contracts/index.ts";
 
 // Never called: the client has no Data Process behind it, the test is the compiler's.
 async function _answers(client: ContractRouterClient<typeof projectsContract>, id: ProjectId) {
