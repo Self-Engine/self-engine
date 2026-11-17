@@ -11,8 +11,10 @@ import {
   startDataProcess,
 } from "../core/index.ts";
 
-export interface TestDataProcessOptions {
-  readonly modules?: DataModules;
+export interface TestDataProcessOptions<Modules extends DataModules = DataModules> {
+  readonly modules?: Modules;
+  /** Passed to the core: Protection Rules from above for tables of the mounted modules. */
+  readonly rules?: DataProcessOptions<Modules>["rules"];
   /** The clock and ids of every call and of the Personal Space; the start finds the Space. */
   readonly sources?: SpaceSources;
   readonly checkOutputs?: boolean;
@@ -48,13 +50,14 @@ export interface TestDataProcess {
  * The real core of the data process over a real SQLite database, reached through Node's
  * `MessageChannel` instead of Electron: the main seam of the contract layer (spec #29).
  */
-export async function startTestDataProcess(
-  options: TestDataProcessOptions = {},
+export async function startTestDataProcess<const Modules extends DataModules = DataModules>(
+  options: TestDataProcessOptions<Modules> = {},
 ): Promise<TestDataProcess> {
   const database = options.database ?? openDatabase(":memory:");
   let core;
   try {
-    core = await startDataProcess({
+    // The rules were checked against `Modules` at the call; the fixture list mounts no table.
+    core = await startDataProcess<DataModules>({
       database,
       modules: options.modules ?? {
         fixture: {
@@ -65,6 +68,7 @@ export async function startTestDataProcess(
           entries: {},
         },
       },
+      ...(options.rules === undefined ? {} : { rules: options.rules }),
       sources: options.sources ?? createTestSources("2026-01-01T00:00:00.000Z"),
       checkOutputs: options.checkOutputs ?? true,
       ...(options.report === undefined ? {} : { report: options.report }),
