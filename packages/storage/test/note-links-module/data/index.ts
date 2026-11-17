@@ -34,6 +34,12 @@ export const links = defineStorageModule({
       );
     },
   },
+  delete: {
+    kind: "operation",
+    async run(tx, context, input) {
+      return toLink(await sharedWrites(tx, context).softDelete("note_links", input.id));
+    },
+  },
   list: smallSetList(
     // Its own table, and the notes table through the released read piece.
     ["note_links", "notes"],

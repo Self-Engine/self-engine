@@ -1,10 +1,11 @@
 import { type AnyRouter, os } from "@orpc/server";
 import type { Health, TablesChanged } from "@self-engine/data-protocol";
-import type { Database } from "@self-engine/db";
+import { referencesOf, type Database } from "@self-engine/db";
 import type { SpaceSources } from "@self-engine/spaces";
 import {
   createFrame,
   protectionRules,
+  referenceCheck,
   type ErasedStorageModule,
   type FrameOptions,
   type RegisteredRule,
@@ -71,7 +72,7 @@ function unserved(module: ErasedStorageModule): AnyRouter {
 }
 
 /**
- * The rules of the modules and from above in one registry. A rule from above for a table no
+ * The rules of the modules and from above, for one registry. A rule from above for a table no
  * mounted module has fails the start, where an untyped module list hid it from the compiler.
  */
 function registerRules(
@@ -84,7 +85,7 @@ function registerRules(
     throw new Error(
       `A Protection Rule from above guards ${stray.table}, which no mounted module has`,
     );
-  return protectionRules([...modules, { rules: fromAbove }]);
+  return [...modules, { rules: fromAbove }];
 }
 
 /**
@@ -103,8 +104,7 @@ export async function startDataProcess<const Modules extends DataModules>({
   report,
   backups,
 }: DataProcessOptions<Modules>): Promise<DataProcess> {
-  // One registry for every frame: a rule holds whoever writes its table (D332).
-  const rules = registerRules(Object.values(modules), fromAbove);
+  const registered = registerRules(Object.values(modules), fromAbove);
   const { health, space } = await startUp(
     database,
     Object.values(modules).flatMap((module) => module.migrations),
@@ -112,6 +112,12 @@ export async function startDataProcess<const Modules extends DataModules>({
     beforeMigrations,
   );
   const tablesChanged = createTablesChangedPublisher();
+  // One registry for every frame: a rule holds whoever writes its table (D332). The reference
+  // check reads the foreign keys once, from the schema the migrations left (D337).
+  const rules = protectionRules([
+    ...registered,
+    ...(space === undefined ? [] : [referenceCheck(await referencesOf(database))]),
+  ]);
   const moduleRouter = Object.fromEntries(
     Object.entries(modules).map(([name, module]) => [
       name,

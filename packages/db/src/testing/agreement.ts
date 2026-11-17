@@ -3,9 +3,9 @@ import { openDatabase } from "../better-sqlite3/index.ts";
 import { createMigrationRunner } from "../core/index.ts";
 import type { Migration } from "../core/index.ts";
 import { sqliteBoolean } from "../schema/index.ts";
-import { columnsOf, tablesOf } from "./introspect.ts";
+import { columnsOf, tablesOf } from "../core/introspect.ts";
 
-import type { ColumnRow } from "./introspect.ts";
+import type { ColumnRow } from "../core/introspect.ts";
 import type { SchemaViolation } from "./violation.ts";
 
 function isString(field: z.core.$ZodType): boolean {
