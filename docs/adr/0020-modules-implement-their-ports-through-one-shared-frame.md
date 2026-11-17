@@ -1,7 +1,7 @@
 ---
 status: accepted
 date: 2026-11-12
-decisions: D187, D188, D189, D190, D195, D231, D232, D233, D234, D235, D236, D237, D238, D239, D240, D241, D260, D287, D317
+decisions: D187, D188, D189, D190, D195, D231, D232, D233, D234, D235, D236, D237, D238, D239, D240, D241, D260, D287, D317, D332, D334
 ---
 
 # Modules implement their ports through one shared frame
@@ -42,14 +42,20 @@ changes atomically without opening a transaction for each call.
   detects every changed table missing from the announcement, including trigger side effects;
   an announcement is valid even when affected rows were rewritten with identical values.
 - The shared query entry scopes synchronized rows to the current Space and live rows. Its
-  standard insert, update, soft-delete and restore paths set convention columns and report
-  absent rows explicitly. Other queries remain ordinary Kysely with explicit filters.
+  standard insert, update, soft-delete, restore, archive and unarchive paths set convention
+  columns, report absent rows explicitly and, before they write, ask the Protection Rules of
+  their table and kind of write in the same transaction (ADR 0033). Lint rejects a write to a
+  synced table outside them. Other queries remain ordinary Kysely with explicit filters.
 - Lists are windows, pages or small sets. Pages use an indexed fixed keyset order ending in
   `id`, default to 100 rows and allow at most 500, chosen in storage. Their unsigned opaque
   cursor carries the module and contract entry names, direction and sort values and survives Data Process
   restarts. Windows and small sets return all rows; with output checks on, at least 1,000 rows
   produce a warning rather than a failure.
-- Expected errors are `NOT_FOUND` and `CONFLICT` with operation-specific reason codes. Each
+- Expected errors are `NOT_FOUND`, `CONFLICT` with operation-specific reason codes, and the
+  Refusal `REFUSED`, which every Operation carries through the shared `refusal` block and no
+  Query does
+  ([ADR 0033](0033-protection-rules-guard-every-write-path-and-answer-with-typed-reasons.md)).
+  Each
   unique index maps to a reason; create and restore share that mapping. Lower functions throw
   business conflicts that no index expresses. Unmapped violations and other unexpected errors
   become a generic internal error. Details and large-result warnings go through one injected
@@ -66,7 +72,7 @@ changes atomically without opening a transaction for each call.
   the module list lives in the desktop app, which hands it to the `data-process` core._
 - One contract-kit call per module uses real in-memory SQLite, its migrations, a seed and
   valid examples for every entry, plus conflict examples. The kit derives invalid inputs;
-  accepting every derived candidate fails. It checks shared invariants, not business behavior.
+  accepting every derived candidate fails, and so does an Operation without the Refusal. It checks shared invariants, not business behavior.
   The test-only notes module is the template, with note-links proving foreign read composition.
 
 ## Consequences

@@ -4,6 +4,7 @@ import { createSpaceRows, SECOND_SPACE_ID } from "@self-engine/spaces/testing";
 import { createContext, createFrame, sharedWrites } from "@self-engine/storage";
 import { checkContract, createTestContext, createTestDatabase } from "@self-engine/storage/testing";
 import { expect, test } from "vite-plus/test";
+import { projectEntryIdSchema } from "../../test/project-entries-module/contracts/index.ts";
 import { projectEntries } from "../../test/project-entries-module/data/index.ts";
 import { projectIdSchema, projectReferenceSchema } from "../contracts/index.ts";
 import { projectReferences, projects } from "./index.ts";
@@ -130,45 +131,34 @@ test("the released schema accepts exactly what the Read Piece gives", async () =
   }
 });
 
-test("an Operation above takes an archived project and refuses a deleted or unknown one", async () => {
-  const { database, projectsClient, client, write } = await setUp();
-  try {
-    const archived = await projectsClient.create({ title: "Archived" });
-    const deleted = await projectsClient.create({ title: "Deleted" });
-    await write((writes, id) => writes.archive("projects", id), archived.id);
-    await write((writes, id) => writes.softDelete("projects", id), deleted.id);
-    await expect(client.create({ projectId: archived.id, label: "Late work" })).resolves.toEqual(
-      expect.objectContaining({ projectId: archived.id }),
-    );
-    const unknown = projectIdSchema.parse("01a1cfa1-0b00-7000-8000-0000000000ff");
-    for (const projectId of [deleted.id, unknown])
-      await expect(client.create({ projectId, label: "Work" })).rejects.toMatchObject({
-        code: "NOT_FOUND",
-      });
-  } finally {
-    await database.close();
-  }
-});
+/** The `n`th deterministic id of the contract kit's seed. */
+const seedId = (n: number) => `01a1cfa1-0a00-7000-8000-${String(n).padStart(12, "0")}`;
+const project = (n: number) => projectIdSchema.parse(seedId(n));
+const entry = (n: number) => projectEntryIdSchema.parse(seedId(n));
 
 test("the test module above passes the storage contract kit with `projects` below it", async () => {
   await expect(
     checkContract(
       projectEntries,
       async (tx, context) => {
-        // The example refers to this project, which gets the first deterministic id.
-        const project = await projects.entries.create.run(tx.withTables(), context, {
+        // The examples refer to this project and these entries, which get the first ids.
+        const website = await projects.entries.create.run(tx.withTables(), context, {
           title: "Website",
         });
         await projectEntries.entries.create.run(tx, context, {
-          projectId: project.id,
+          projectId: website.id,
           label: "Seed entry",
         });
+        const removed = await projectEntries.entries.create.run(tx, context, {
+          projectId: website.id,
+          label: "Removed entry",
+        });
+        await projectEntries.entries.delete.run(tx, context, { id: removed.id });
       },
       {
-        create: {
-          projectId: projectIdSchema.parse("01a1cfa1-0a00-7000-8000-000000000000"),
-          label: "New entry",
-        },
+        create: { projectId: project(0), label: "New entry" },
+        delete: { id: entry(1) },
+        restore: { id: entry(2) },
         list: {},
       },
       {},

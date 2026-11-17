@@ -107,7 +107,7 @@ To bring an archived entry back among the active ones. Unarchiving an active ent
 _Avoid_: restore, reopen, reactivate
 
 **Operation** (de: _Operation_):
-An entry of a _Port_ that changes data, all of it or nothing. Its expected failures, such as a conflict or "not found", are part of its answer, not surprises.
+An entry of a _Port_ that changes data, all of it or nothing. Its expected failures, "not found", a conflict and a _Refusal_, are part of its answer, not surprises.
 _Avoid_: mutation, command, action, write
 
 **Query** (de: _Abfrage_):
@@ -278,6 +278,10 @@ _Avoid_: default locale, fallback language, source locale
 A part of the app above two or more modules that owns one flow across them and is named for its purpose, such as billing. It keeps the records that link the modules' entries and the _Operations_ of that flow; the modules it joins do not know it. A module that builds on another in one direction needs no _Bridge_.
 _Avoid_: integration, connector, glue module, cross-module service
 
+**Clearance** (de: _Auskunft_):
+The answer to "which of these writes on these rows would be refused, and why", given without writing. It asks the same _Protection Rules_ as the write and answers with the same _Reasons_. Not a permission, and not a promise: the write still asks again.
+_Avoid_: guard check, preflight, permission, can-delete flag
+
 **Frame** (de: _Aufrufrahmen_):
 The shared boundary around one module call that checks its input, keeps its changes atomic and announces committed changes. It also gives failures a consistent meaning for the caller.
 _Avoid_: handler, wrapper
@@ -286,9 +290,21 @@ _Avoid_: handler, wrapper
 The _Space_ that holds one person's own data. A database has exactly one, created at the first start and never shown.
 _Avoid_: default space, user space, private space
 
+**Protection Rule** (de: _Schutzregel_):
+A rule about stored state that guards one table and one kind of write, such as deleting a project, and answers with _Reasons_ when the write must not happen. It only reads, and it holds for every caller. A flow, a choice between options and invalid input are not Protection Rules.
+_Avoid_: guard, validator, constraint, policy, check
+
 **Read Piece** (de: _Lesebaustein_):
 A module’s deliberately released view of its own data for other modules to combine with their records, scoped to the current _Space_. Deleted targets remain visible with an explicit deletion mark.
 _Avoid_: foreign table, shared row map
+
+**Reason** (de: _Grund_):
+Why a write is refused: a fixed code with typed details, the row it concerns and, where it applies, the field, such as "Live Rows still refer to this project: 3 entries". Each Reason is defined once by the package that owns it.
+_Avoid_: error code, message, violation, conflict reason
+
+**Refusal** (de: _Ablehnung_):
+The expected failure of an _Operation_ that a _Protection Rule_ stopped, carrying one or more _Reasons_; nothing was written. It is the third expected failure beside "not found" and a conflict, which is a duplicate value.
+_Avoid_: rejection, denial, guard error, conflict
 
 **Space** (de: _Space_):
 The owner of data. Every synced row belongs to exactly one Space, and a row refers only to rows of its own Space. A Space is not something the user picks to sort entries, such as a folder or a filter.

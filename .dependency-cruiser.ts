@@ -94,8 +94,8 @@ export const TEST_ONLY_IMPORTS: AllowedImports = {
   // The test Data Process, to run the module's hooks end to end without the app (#33).
   "placeholder-alpha": ["data-process"],
   // The test Data Process, to run the module's hooks and form end to end without the app, and
-  // the Space rows a test of the Read Piece moves a project into.
-  projects: ["data-process", "spaces"],
+  // the Space rows a test of the Read Piece moves a project into, and the protocol's Clearance.
+  projects: ["data-process", "data-protocol", "spaces"],
   // The app's catalogs, so a story of the icon field switches the language as the Settings do.
   ui: ["i18n"],
 };
