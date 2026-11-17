@@ -2,7 +2,7 @@
 // project. It builds the released project reference into its own answers (D330).
 
 import { oc } from "@orpc/contract";
-import { idSchema } from "@self-engine/db/schema";
+import { idSchema, refusal } from "@self-engine/db/schema";
 import { z } from "zod";
 import { projectIdSchema, projectReferenceSchema } from "../../../src/contracts/index.ts";
 
@@ -19,7 +19,7 @@ export const projectEntriesContract = {
   create: oc
     .input(z.strictObject({ projectId: projectIdSchema, label: z.string().min(1) }))
     .output(projectEntrySchema)
-    .errors({ NOT_FOUND: {} }),
+    .errors({ NOT_FOUND: {}, ...refusal }),
   /** Every entry with its project, sorted by the project's title; `null` for a project not found. */
   list: oc
     .input(z.strictObject({}))

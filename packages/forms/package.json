@@ -15,6 +15,7 @@
     "@mantine/form": "catalog:",
     "@orpc/contract": "catalog:",
     "@self-engine/data-client": "workspace:*",
+    "@self-engine/db": "workspace:*",
     "@self-engine/shell": "workspace:*",
     "@self-engine/ui": "workspace:*",
     "@standard-schema/spec": "catalog:",
