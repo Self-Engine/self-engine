@@ -8,8 +8,9 @@ import {
   referenceCheck,
   type ErasedStorageModule,
   type FrameOptions,
+  type RegisteredRule,
 } from "@self-engine/storage";
-import type { DataModules } from "./modules.ts";
+import type { DataModules, MountedTable } from "./modules.ts";
 import type { PlatformBackups } from "./procedures/backups.ts";
 import { queryTables } from "./query-tables.ts";
 import { createRouter } from "./router.ts";
@@ -17,11 +18,16 @@ import { createPortServer, type DataPort } from "./serve.ts";
 import { type BeforeMigrations, startUp } from "./startup.ts";
 import { createTablesChangedPublisher } from "./tables-changed.ts";
 
-export interface DataProcessOptions {
+export interface DataProcessOptions<Modules extends DataModules = DataModules> {
   /** The opened database; the platform opens it with its own driver. */
   readonly database: Database;
   /** The data entries to mount: the app's list, or a test's fixtures. */
-  readonly modules: DataModules;
+  readonly modules: Modules;
+  /**
+   * Protection Rules from above (D331): the composition registers them for tables of mounted
+   * modules, which learn nothing of them. They join the modules' rules in one registry.
+   */
+  readonly rules?: readonly RegisteredRule<MountedTable<Modules>>[];
   /**
    * The clock and the id source of every call, and of the Personal Space when the first start
    * creates it. The Space of a call is not a source the app passes: the start finds it.
@@ -66,20 +72,39 @@ function unserved(module: ErasedStorageModule): AnyRouter {
 }
 
 /**
+ * The rules of the modules and from above, for one registry. A rule from above for a table no
+ * mounted module has fails the start, where an untyped module list hid it from the compiler.
+ */
+function registerRules(
+  modules: readonly ErasedStorageModule[],
+  fromAbove: readonly RegisteredRule[],
+) {
+  const tables = new Set(modules.flatMap((module) => Object.keys(module.rowMap)));
+  const stray = fromAbove.find((rule) => !tables.has(rule.table));
+  if (stray !== undefined)
+    throw new Error(
+      `A Protection Rule from above guards ${stray.table}, which no mounted module has`,
+    );
+  return [...modules, { rules: fromAbove }];
+}
+
+/**
  * The platform-neutral core of the data process: runs the pending migrations and makes sure of
  * the Personal Space first, so their outcome is known before the first call is answered, then
  * serves the app contract on each port it receives. Every module's frame gets that Space, and
  * each call's context carries it (D195, D287). It knows nothing of Electron (D97).
  */
-export async function startDataProcess({
+export async function startDataProcess<const Modules extends DataModules>({
   database,
   modules,
+  rules: fromAbove = [],
   sources,
   checkOutputs,
   beforeMigrations,
   report,
   backups,
-}: DataProcessOptions): Promise<DataProcess> {
+}: DataProcessOptions<Modules>): Promise<DataProcess> {
+  const registered = registerRules(Object.values(modules), fromAbove);
   const { health, space } = await startUp(
     database,
     Object.values(modules).flatMap((module) => module.migrations),
@@ -87,10 +112,10 @@ export async function startDataProcess({
     beforeMigrations,
   );
   const tablesChanged = createTablesChangedPublisher();
-  // One registry for every frame: a module's rules hold whoever writes its tables (D332). The
-  // reference check reads the foreign keys once, from the schema the migrations left (D337).
+  // One registry for every frame: a rule holds whoever writes its table (D332). The reference
+  // check reads the foreign keys once, from the schema the migrations left (D337).
   const rules = protectionRules([
-    ...Object.values(modules),
+    ...registered,
     ...(space === undefined ? [] : [referenceCheck(await referencesOf(database))]),
   ]);
   const moduleRouter = Object.fromEntries(
