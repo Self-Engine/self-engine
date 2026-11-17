@@ -12,6 +12,7 @@ import {
 } from "../core/index.ts";
 import { checkContract, createTestContext, createTestDatabase, type Seed } from "./index.ts";
 import { noteIdSchema } from "../../test/notes-module/contracts/index.ts";
+import { linkIdSchema } from "../../test/note-links-module/contracts/index.ts";
 import { notes, noteTitles } from "../../test/notes-module/data/index.ts";
 import { links } from "../../test/note-links-module/data/index.ts";
 import { linksRowMap, toLink } from "../../test/note-links-module/data/rows.ts";
@@ -164,6 +165,8 @@ const linksExamples = {
     noteId: noteIdSchema.parse("01a1cfa1-0a00-7000-8000-000000000000"),
     label: "New link",
   },
+  // The seed link, which gets the third deterministic id.
+  delete: { id: linkIdSchema.parse("01a1cfa1-0a00-7000-8000-000000000002") },
   list: {},
 };
 

@@ -12,6 +12,7 @@ export { entryFields, type FieldList } from "./entry-fields.ts";
 export {
   defineReason,
   matchReason,
+  referenced,
   refusal,
   severities,
   type Reason,

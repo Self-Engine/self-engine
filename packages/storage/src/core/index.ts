@@ -13,6 +13,7 @@ export { createContext, type StorageContext, type ContextSources } from "./conte
 export { spaceIdSchema, type SpaceId } from "@self-engine/spaces";
 export { sharedEntry, sharedWrites } from "./shared-entry.ts";
 export { protectionRule, type ProtectionRule, type RuleRow, type WrittenValues } from "./rules.ts";
+export { referenceCheck } from "./reference-check.ts";
 export {
   protectionRules,
   noProtectionRules,

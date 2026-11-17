@@ -16,6 +16,10 @@ export const linksContract = {
     .input(z.strictObject({ noteId: noteIdSchema, label: z.string().min(1) }))
     .output(link)
     .errors({ NOT_FOUND: {}, ...refusal }),
+  delete: oc
+    .input(z.strictObject({ id: linkIdSchema }))
+    .output(link)
+    .errors({ NOT_FOUND: {}, ...refusal }),
   list: oc.input(z.strictObject({ title: z.string().optional() })).output(
     z.array(
       link.extend({
