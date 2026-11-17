@@ -13,6 +13,7 @@ export {
   defineReason,
   matchReason,
   referenced,
+  reasonSchema,
   refusal,
   severities,
   targetDeleted,

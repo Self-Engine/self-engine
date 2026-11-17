@@ -118,14 +118,20 @@ export async function startDataProcess<const Modules extends DataModules>({
     ...registered,
     ...(space === undefined ? [] : [referenceCheck(await referencesOf(database))]),
   ]);
+  const reportUnexpected = (entry: string, error: unknown) =>
+    report?.({ kind: "unexpected-error", entry, error });
+  const contextSources =
+    space === undefined
+      ? undefined
+      : { clock: sources.clock, ids: sources.ids, spaceId: space.id, rules };
   const moduleRouter = Object.fromEntries(
     Object.entries(modules).map(([name, module]) => [
       name,
-      space === undefined
+      contextSources === undefined
         ? unserved(module)
         : createFrame(module, {
             database,
-            sources: { clock: sources.clock, ids: sources.ids, spaceId: space.id, rules },
+            sources: contextSources,
             checkOutputs,
             ...(report === undefined ? {} : { report }),
             announce: (tables) => tablesChanged.announce([...tables]),
@@ -140,9 +146,12 @@ export async function startDataProcess<const Modules extends DataModules>({
         tablesChanged,
         queries: queryTables(modules),
         moduleRouter,
-        backups: {
-          backups,
-          reportUnexpected: (entry, error) => report?.({ kind: "unexpected-error", entry, error }),
+        backups: { backups, reportUnexpected },
+        clearance: {
+          database,
+          sources: contextSources,
+          modules: Object.values(modules),
+          reportUnexpected,
         },
       }),
     ),

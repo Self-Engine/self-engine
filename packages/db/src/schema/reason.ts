@@ -23,10 +23,15 @@ export function defineReason<const Code extends string, Details extends z.ZodTyp
   return { code, details };
 }
 
-/** Why a write is refused: its code, severity, the id of the row, optionally a field, and details. */
+/**
+ * Why a write is refused: its code, severity, the row it concerns by table and id, optionally a
+ * field, and details. The frame sets the table where it asks the rules, so a rule never states it
+ * and a Refusal of a flow that writes several tables still says which one a row belongs to.
+ */
 export interface Reason<Code extends string = string, Details = unknown> {
   readonly code: Code;
   readonly severity: Severity;
+  readonly table: string;
   readonly row: string;
   readonly field?: string | undefined;
   readonly details: Details;
@@ -37,9 +42,11 @@ export type ReasonOf<Definition extends ReasonDefinition> =
     ? Reason<Code, z.output<Details>>
     : never;
 
-const reasonSchema = z.object({
+/** A Reason as it travels in a Refusal or a Clearance; the details are checked by its definition. */
+export const reasonSchema = z.object({
   code: z.string(),
   severity: z.enum(severities),
+  table: z.string(),
   row: z.string(),
   field: z.string().optional(),
   details: z.unknown(),

@@ -64,8 +64,25 @@ export async function askRules<DB>(
   write: WriteKind,
   rows: readonly { readonly id: string; readonly values?: object }[],
 ): Promise<void> {
+  const reasons = await answerRules(tx, context, table, write, rows);
+  if (reasons.length > 0)
+    throw new ORPCError("REFUSED", { status: refusal.REFUSED.status, data: { reasons } });
+}
+
+/**
+ * Every Reason the rules for this table and kind of write answer for these rows, each checked
+ * against the definition its rule names and given the table. The write paths throw them as a
+ * Refusal; the Clearance answers with them.
+ */
+export async function answerRules<DB>(
+  tx: Transaction<DB>,
+  context: StorageContext,
+  table: string,
+  write: WriteKind,
+  rows: readonly { readonly id: string; readonly values?: object }[],
+): Promise<Reason[]> {
   const rules = context.rules.rulesFor(table, write);
-  if (rules.length === 0) return;
+  if (rules.length === 0) return [];
   // The type of a rule's access already has no write; this stops a cast at runtime too.
   const reads = tx.withPlugin(recordTableWrites(new Set(), true));
   const reasons: Reason[] = [];
@@ -83,12 +100,12 @@ export async function askRules<DB>(
       reasons.push({
         code,
         severity: "blocking",
+        table,
         row,
         ...(field === undefined ? {} : { field }),
         details: definition.details.parse(details),
       });
     }
   }
-  if (reasons.length > 0)
-    throw new ORPCError("REFUSED", { status: refusal.REFUSED.status, data: { reasons } });
+  return reasons;
 }

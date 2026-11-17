@@ -30,7 +30,13 @@ test("a write a module's rule forbids arrives at the Port as a Refusal with type
 
   if (!isDefinedError(error) || error.code !== "REFUSED") throw new Error("Expected a Refusal");
   expect(error.data.reasons).toEqual([
-    { code: "pinned", severity: "blocking", row: note.id, details: { title: "Keep" } },
+    {
+      code: "pinned",
+      severity: "blocking",
+      table: "notes",
+      row: note.id,
+      details: { title: "Keep" },
+    },
   ]);
   const pinned = matchReason(pinnedNote, error.data.reasons[0]!);
   expectTypeOf(pinned?.details).toEqualTypeOf<{ title: string } | undefined>();

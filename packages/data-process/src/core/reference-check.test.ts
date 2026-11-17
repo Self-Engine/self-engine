@@ -36,6 +36,7 @@ test("a note a Live Row refers to is refused with the referring table and its co
     {
       code: "referenced",
       severity: "blocking",
+      table: "notes",
       row: note.id,
       details: { tables: [{ table: "note_links", count: 2 }] },
     },
@@ -84,6 +85,7 @@ function refusedFor(link: string, note: string) {
   return {
     code: "target_deleted",
     severity: "blocking",
+    table: "note_links",
     row: link,
     field: "note_id",
     details: { target: { table: "notes", id: note } },

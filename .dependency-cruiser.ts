@@ -36,7 +36,7 @@ export const ALLOWED_IMPORTS: AllowedImports = {
   // `spaces` and makes sure of the Personal Space at every start (D287).
   "data-process": ["data-protocol", "db", "spaces", "storage"],
   // `health`, the Table Change stream and the Backups; a Backup's Instant comes from `time`.
-  "data-protocol": ["time"],
+  "data-protocol": ["db", "time"],
   // The preload and the page share it; the failure states come from the protocol.
   "desktop-bridge": ["data-protocol"],
   // Timestamp generation returns the shared Instant brand (D223).
