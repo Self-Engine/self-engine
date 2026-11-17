@@ -123,11 +123,7 @@ async function tag(noteId: string, archived: boolean) {
     .execute();
 }
 
-function referencedBy(
-  note: string,
-  tables: { table: string; count: number }[],
-  table = "notes",
-) {
+function referencedBy(note: string, tables: { table: string; count: number }[], table = "notes") {
   return { code: "referenced", severity: "blocking", table, row: note, details: { tables } };
 }
 

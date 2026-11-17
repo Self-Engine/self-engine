@@ -19,3 +19,12 @@ export {
   tablesChangedContract,
   tablesChangedSchema,
 } from "./tables-changed.ts";
+export {
+  type Clearance,
+  clearanceContract,
+  clearanceSchema,
+  type ClearanceWrite,
+  clearanceWriteSchema,
+  type RowClearance,
+  rowClearanceSchema,
+} from "./clearance.ts";

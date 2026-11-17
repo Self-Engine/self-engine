@@ -74,7 +74,13 @@ test("a rule from above refuses a write through the module's own Operation with 
   if (!isDefinedError(error) || error.code !== "REFUSED") throw new Error("Expected a Refusal");
   const { reasons } = error.data;
   expect(reasons).toEqual([
-    { code: "exported", severity: "blocking", table: "notes", row: note.id, details: { title: "Exported plan" } },
+    {
+      code: "exported",
+      severity: "blocking",
+      table: "notes",
+      row: note.id,
+      details: { title: "Exported plan" },
+    },
   ]);
   const exported = matchReason(exportedNote, reasons[0]!);
   expectTypeOf(exported?.details).toEqualTypeOf<{ title: string } | undefined>();

@@ -42,7 +42,8 @@ export type ReasonOf<Definition extends ReasonDefinition> =
     ? Reason<Code, z.output<Details>>
     : never;
 
-const reasonSchema = z.object({
+/** A Reason as it travels in a Refusal or a Clearance; the details are checked by its definition. */
+export const reasonSchema = z.object({
   code: z.string(),
   severity: z.enum(severities),
   table: z.string(),

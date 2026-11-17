@@ -760,6 +760,9 @@ importers:
       '@orpc/contract':
         specifier: 'catalog:'
         version: 1.16.2
+      '@self-engine/db':
+        specifier: workspace:*
+        version: link:../db
       '@self-engine/time':
         specifier: workspace:*
         version: link:../time
