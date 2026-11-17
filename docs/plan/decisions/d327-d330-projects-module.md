@@ -116,7 +116,8 @@ Grundlage: der Stand auf `main` nach #293 und die alte App (nur gelesen, Pfad in
   lebenden Einträgen nur noch über den Sync. _Verworfen:_ eine eigene Abfrage „aktive Projekte
   plus diese eine Id“ (eine Runde zum Datenprozess je geöffnetem Formular, und sie müsste gelöschte
   Projekte am Port herausgeben, was D221 sonst überall ausschließt); der Lese-Baustein ohne
-  Archiv-Marke (eine zweite Abfrage an `projects` je Ansicht).
+  Archiv-Marke (eine zweite Abfrage an `projects` je Ansicht). _Regel 3: Wer ein gelöschtes oder
+  unbekanntes Ziel ablehnt, überholt durch D337 (der Rahmen, nicht die Operation)._
 
 ## Später, mit Vorschlag
 
