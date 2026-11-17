@@ -2,7 +2,7 @@ import { newId, type IdSources } from "@self-engine/db";
 import type { SpaceId } from "@self-engine/spaces";
 import type { Clock, Instant } from "@self-engine/time";
 import type { z } from "zod";
-import type { ProtectionRules } from "./rules.ts";
+import type { ProtectionRules } from "./registry.ts";
 
 /** What a frame builds each call's context from, set once per Data Process. */
 export interface ContextSources {

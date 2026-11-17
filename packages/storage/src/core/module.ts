@@ -4,7 +4,7 @@ import type { Transaction, CompiledQuery } from "kysely";
 import type { z } from "zod";
 import type { StorageContext } from "./context.ts";
 import type { SyncedTable } from "./convention.ts";
-import type { RegisteredRule } from "./rules.ts";
+import type { RegisteredRule } from "./registry.ts";
 
 export type StorageContract = Readonly<Record<string, AnyContractProcedure>>;
 export type RowMap = Readonly<Record<string, z.ZodObject>>;
