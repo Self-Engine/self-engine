@@ -1,7 +1,7 @@
 import { pageSchema, pageInputSchema } from "../../../src/core/index.ts";
 import { oc } from "@orpc/contract";
 import { instantSchema } from "@self-engine/time";
-import { idSchema } from "@self-engine/db/schema";
+import { defineReason, idSchema, refusal } from "@self-engine/db/schema";
 import { spaceIdSchema } from "@self-engine/spaces";
 import { z } from "zod";
 export const noteIdSchema = idSchema("Note");
@@ -12,6 +12,8 @@ export const noteSchema = z.object({
   title: z.string(),
   isPinned: z.boolean(),
 });
+/** The Reason of the module's Protection Rule: a pinned note is not deleted. */
+export const pinnedNote = defineReason("pinned", z.object({ title: z.string() }));
 const conflict = { data: z.object({ reason: z.literal("title_taken") }) };
 const byId = z.strictObject({ id: noteIdSchema });
 const storedNote = z.object({
@@ -29,7 +31,10 @@ export const notesContract = {
     .input(byId.extend({ title: z.string().min(1) }))
     .output(noteSchema)
     .errors({ NOT_FOUND: {}, CONFLICT: conflict }),
-  delete: oc.input(byId).output(storedNote).errors({ NOT_FOUND: {} }),
+  delete: oc
+    .input(byId)
+    .output(storedNote)
+    .errors({ NOT_FOUND: {}, ...refusal }),
   restore: oc.input(byId).output(storedNote).errors({ NOT_FOUND: {}, CONFLICT: conflict }),
   create: oc
     .input(z.strictObject({ title: z.string().min(1), isPinned: z.boolean() }))

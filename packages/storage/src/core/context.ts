@@ -2,6 +2,7 @@ import { newId, type IdSources } from "@self-engine/db";
 import type { SpaceId } from "@self-engine/spaces";
 import type { Clock, Instant } from "@self-engine/time";
 import type { z } from "zod";
+import type { ProtectionRules } from "./rules.ts";
 
 /** What a frame builds each call's context from, set once per Data Process. */
 export interface ContextSources {
@@ -12,12 +13,16 @@ export interface ContextSources {
    * test takes a fixed one from `@self-engine/spaces/testing`.
    */
   readonly spaceId: SpaceId;
+  /** Every Protection Rule of the Data Process; a write path asks them before it writes. */
+  readonly rules: ProtectionRules;
 }
 
 export interface StorageContext {
   readonly now: Instant;
   readonly clock: Clock;
   readonly spaceId: SpaceId;
+  /** The rules the write paths ask; a Bridge builds its context with the same ones (D332). */
+  readonly rules: ProtectionRules;
   /** The schema supplies the entity brand; generation never needs a cast in module code. */
   newId<Schema extends z.ZodType<string>>(schema: Schema): z.output<Schema>;
 }
@@ -30,6 +35,7 @@ export function createContext(sources: ContextSources): StorageContext {
     now: moment,
     clock,
     spaceId: sources.spaceId,
+    rules: sources.rules,
     newId: <Schema extends z.ZodType<string>>(_schema: Schema): z.output<Schema> =>
       newId<z.output<Schema>>(ids),
   };

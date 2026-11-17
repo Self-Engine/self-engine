@@ -1,5 +1,4 @@
 import { ORPCError } from "@orpc/server";
-import type { Instant } from "@self-engine/time";
 import type {
   Transaction,
   Insertable,
@@ -9,32 +8,17 @@ import type {
   Updateable,
 } from "kysely";
 import type { StorageContext } from "./context.ts";
+import type {
+  Archivable,
+  ArchivableTable,
+  Convention,
+  ConventionKey,
+  RowId,
+  SyncedTable,
+} from "./convention.ts";
 import type { ReadTransaction } from "./module.ts";
+import { askRules } from "./rules.ts";
 
-interface Convention {
-  id: string;
-  space_id: string;
-  created_at: Instant;
-  updated_at: Instant;
-  deleted_at: Instant | null;
-}
-type SyncedTable<DB> = {
-  [Table in keyof DB & string]: Table extends `local_${string}`
-    ? never
-    : DB[Table] extends Convention
-      ? Table
-      : never;
-}[keyof DB & string];
-/** The optional convention column of an archivable table (D327): an Instant or empty. */
-interface Archivable {
-  archived_at: Instant | null;
-}
-type ArchivableTable<DB> = {
-  [Table in SyncedTable<DB>]: DB[Table] extends Archivable ? Table : never;
-}[SyncedTable<DB>];
-/** The id of a row of a synchronized table, with its brand. */
-type RowId<DB, Table extends keyof DB> = DB[Table] extends Convention ? DB[Table]["id"] : never;
-type ConventionKey = keyof Convention | keyof Archivable;
 type Fields<Row> = Omit<Row, ConventionKey> & { [Key in ConventionKey]?: never };
 /** An edit's fields: a field left `undefined` is missing from the call and stays untouched. */
 type EditFields<Row> = { [Key in keyof Fields<Row>]?: Fields<Row>[Key] | undefined };
@@ -135,6 +119,7 @@ export function sharedWrites<DB>(tx: Transaction<DB>, context: StorageContext) {
     archived: boolean,
   ) {
     assertSynchronizedTable(table);
+    await askRules(tx, context, table, archived ? "archive" : "unarchive", [{ id }]);
     const result = await db
       .updateTable(String(table))
       .set({ archived_at: archived ? context.now : null, updated_at: context.now })
@@ -157,10 +142,12 @@ export function sharedWrites<DB>(tx: Transaction<DB>, context: StorageContext) {
     ) {
       // Also checks the reserved Local Table prefix at runtime for untyped callers.
       assertSynchronizedTable(table);
+      const values = writableFields(fields);
+      await askRules(tx, context, table, "insert", [{ id, values }]);
       const row = await db
         .insertInto(String(table))
         .values({
-          ...writableFields(fields),
+          ...values,
           id,
           space_id: context.spaceId,
           created_at: context.now,
@@ -177,19 +164,22 @@ export function sharedWrites<DB>(tx: Transaction<DB>, context: StorageContext) {
      * field left it reads instead: it answers with the live row, writes nothing, leaves
      * `updated_at` and announces no Table Change; an unknown id is still not found.
      */
-    update<Table extends SyncedTable<DB>>(
+    async update<Table extends SyncedTable<DB>>(
       table: Table,
       id: RowId<DB, Table>,
       fields: EditFields<Updateable<DB[Table]>>,
     ) {
       const values = writableFields(fields);
       if (Object.keys(values).length === 0) return reads.lookup(table, id);
+      await askRules(tx, context, table, "update", [{ id, values }]);
       return change(table, id, values, false);
     },
-    softDelete<Table extends SyncedTable<DB>>(table: Table, id: RowId<DB, Table>) {
+    async softDelete<Table extends SyncedTable<DB>>(table: Table, id: RowId<DB, Table>) {
+      await askRules(tx, context, table, "delete", [{ id }]);
       return change(table, id, { deleted_at: context.now }, false);
     },
-    restore<Table extends SyncedTable<DB>>(table: Table, id: RowId<DB, Table>) {
+    async restore<Table extends SyncedTable<DB>>(table: Table, id: RowId<DB, Table>) {
+      await askRules(tx, context, table, "restore", [{ id }]);
       return change(table, id, { deleted_at: null }, true);
     },
     archive<Table extends ArchivableTable<DB>>(table: Table, id: RowId<DB, Table>) {
