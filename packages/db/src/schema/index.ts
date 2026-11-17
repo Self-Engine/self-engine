@@ -15,6 +15,7 @@ export {
   referenced,
   refusal,
   severities,
+  targetDeleted,
   type Reason,
   type ReasonDefinition,
   type ReasonOf,

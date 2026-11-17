@@ -41,6 +41,7 @@ const MORE_TABLES = `
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL,
     deleted_at TEXT,
+    archived_at TEXT,
     space_id TEXT NOT NULL REFERENCES spaces(id) DEFERRABLE INITIALLY DEFERRED,
     parent_id TEXT REFERENCES folders(id) DEFERRABLE INITIALLY DEFERRED
   ) STRICT;
@@ -58,7 +59,7 @@ type Tables = TablesOf<typeof notesRowMap> & {
   note_links: Synced & { note_id: string; label: string };
   note_tags: Synced & { archived_at: Instant | null; note_id: string };
   local_note_marks: { note_id: string };
-  folders: Synced & { parent_id: string | null };
+  folders: Synced & { archived_at: Instant | null; parent_id: string | null };
   spaces: Synced;
 };
 
@@ -193,8 +194,8 @@ test("in a tree a parent with a live child is refused; once the child is deleted
   await db()
     .insertInto("folders")
     .values([
-      { ...parent, parent_id: null },
-      { ...child, parent_id: parent.id },
+      { ...parent, archived_at: null, parent_id: null },
+      { ...child, archived_at: null, parent_id: parent.id },
     ])
     .execute();
   const deleteFolder = (id: string) =>
@@ -271,4 +272,159 @@ test("a refused delete counts through an index too", async () => {
 
   expect(ran.filter(({ sql }) => /count\(/i.test(sql))).toHaveLength(2);
   expect((await recorded.plans()).filter((detail) => /^SCAN|AUTOMATIC/.test(detail))).toEqual([]);
+});
+
+/** The frame's writes on the tables of this test, in one transaction of their own. */
+function folderWrites<Result>(
+  write: (writes: ReturnType<typeof sharedWrites<Tables>>) => Promise<Result>,
+  spaceId = FIRST_SPACE_ID,
+) {
+  return database.kysely
+    .withPlugin(recorded.plugin)
+    .transaction()
+    .execute((transaction) =>
+      write(
+        sharedWrites(
+          transaction.withTables<Tables>(),
+          createContext({ ...createTestContext(), spaceId, rules }),
+        ),
+      ),
+    );
+}
+async function folder(
+  values: {
+    parent_id?: string | null;
+    deleted?: boolean;
+    archived?: boolean;
+    space_id?: string;
+  } = {},
+) {
+  const { deleted, archived, ...rest } = values;
+  const stored = {
+    ...row(),
+    parent_id: null,
+    ...rest,
+    deleted_at: deleted === true ? now : null,
+    archived_at: archived === true ? now : null,
+  };
+  await db().insertInto("folders").values(stored).execute();
+  return stored.id;
+}
+const nextId = () => row().id;
+function targetDeleted(child: string, parent: string) {
+  return {
+    code: "target_deleted",
+    severity: "blocking",
+    row: child,
+    field: "parent_id",
+    details: { target: { table: "folders", id: parent } },
+  };
+}
+
+test("a reference to an archived row is accepted on insert, update and restore", async () => {
+  const archived = await folder({ archived: true });
+  const child = nextId();
+
+  await folderWrites((writes) => writes.insert("folders", child, { parent_id: archived }));
+  await folderWrites((writes) => writes.update("folders", child, { parent_id: archived }));
+  await folderWrites((writes) => writes.softDelete("folders", child));
+  await expect(folderWrites((writes) => writes.restore("folders", child))).resolves.toMatchObject({
+    id: child,
+    parent_id: archived,
+  });
+});
+
+test("a reference to a row of another Space is refused like a deleted one", async () => {
+  const foreign = await folder({ space_id: SECOND_SPACE_ID });
+  const child = nextId();
+
+  await expect(
+    refusalOf(folderWrites((writes) => writes.insert("folders", child, { parent_id: foreign }))),
+  ).resolves.toEqual([targetDeleted(child, foreign)]);
+  await expect(
+    db().selectFrom("folders").select("id").where("id", "=", child).execute(),
+  ).resolves.toEqual([]);
+});
+
+test("an update that writes no reference runs no query for the check; an empty reference asks nothing", async () => {
+  const note = await client().create({ title: "Target", isPinned: false });
+  const linked = nextId();
+  await folderWrites((writes) =>
+    writes.insert("note_links", linked, { note_id: note.id, label: "Before" }),
+  );
+  const parent = await folder();
+  const child = await folder({ parent_id: parent });
+  ran.length = 0;
+
+  await folderWrites((writes) => writes.update("note_links", linked, { label: "After" }));
+  await folderWrites((writes) => writes.update("folders", child, { parent_id: null }));
+  await folderWrites((writes) => writes.insert("folders", nextId(), { parent_id: null }));
+
+  // Only the writes themselves.
+  expect(ran.map(({ sql }) => sql.split(" ")[0])).toEqual(["update", "update", "insert"]);
+});
+
+test("a row may refer to itself: the reference asks nothing, also on restore", async () => {
+  const self = nextId();
+  await folderWrites((writes) => writes.insert("folders", self, { parent_id: self }));
+  await folderWrites((writes) => writes.softDelete("folders", self));
+
+  await expect(folderWrites((writes) => writes.restore("folders", self))).resolves.toMatchObject({
+    id: self,
+  });
+});
+
+test("archive and unarchive succeed whatever the row refers to and whatever refers to it", async () => {
+  const gone = await folder({ deleted: true });
+  const middle = await folder({ parent_id: gone });
+  await folder({ parent_id: middle });
+
+  await expect(folderWrites((writes) => writes.archive("folders", middle))).resolves.toMatchObject({
+    archived_at: now,
+  });
+  await expect(
+    folderWrites((writes) => writes.unarchive("folders", middle)),
+  ).resolves.toMatchObject({ archived_at: null });
+});
+
+test("handed several rows, the restore rule answers per row with one lookup of the rows and one of the targets, each by primary key", async () => {
+  const live = await folder();
+  const gone = await folder({ deleted: true });
+  const fine = await folder({ parent_id: live, deleted: true });
+  const blocked = await folder({ parent_id: gone, deleted: true });
+  const orphan = await folder({ deleted: true });
+  ran.length = 0;
+
+  await expect(
+    refusalOf(
+      database.kysely
+        .withPlugin(recorded.plugin)
+        .transaction()
+        .execute((transaction) =>
+          askRules(
+            transaction,
+            createContext({ ...createTestContext(), rules }),
+            "folders",
+            "restore",
+            [fine, blocked, orphan].map((id) => ({ id })),
+          ),
+        ),
+    ),
+  ).resolves.toEqual([targetDeleted(blocked, gone)]);
+  expect(ran).toHaveLength(2);
+  const plans = await recorded.plans();
+  expect(plans).toHaveLength(2);
+  for (const plan of plans)
+    expect(plan).toMatch(/^SEARCH folders USING INDEX sqlite_autoindex_folders_1 \(id=\?\)$/);
+});
+
+test("an insert asks the target by primary key", async () => {
+  const note = await client().create({ title: "Target", isPinned: false });
+  ran.length = 0;
+
+  await folderWrites((writes) => writes.insert("note_tags", nextId(), { note_id: note.id }));
+
+  const plans = await recorded.plans();
+  expect(plans.filter((detail) => /^SCAN|AUTOMATIC/.test(detail))).toEqual([]);
+  expect(plans).toContain("SEARCH notes USING INDEX sqlite_autoindex_notes_1 (id=?)");
 });

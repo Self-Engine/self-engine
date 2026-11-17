@@ -11,13 +11,22 @@ const link = z.object({
   label: z.string(),
   noteId: noteIdSchema,
 });
+const byId = z.strictObject({ id: linkIdSchema });
 export const linksContract = {
   create: oc
     .input(z.strictObject({ noteId: noteIdSchema, label: z.string().min(1) }))
     .output(link)
+    .errors({ ...refusal }),
+  update: oc
+    .input(byId.extend({ noteId: noteIdSchema.optional(), label: z.string().min(1).optional() }))
+    .output(link)
     .errors({ NOT_FOUND: {}, ...refusal }),
   delete: oc
-    .input(z.strictObject({ id: linkIdSchema }))
+    .input(byId)
+    .output(link)
+    .errors({ NOT_FOUND: {}, ...refusal }),
+  restore: oc
+    .input(byId)
     .output(link)
     .errors({ NOT_FOUND: {}, ...refusal }),
   list: oc.input(z.strictObject({ title: z.string().optional() })).output(

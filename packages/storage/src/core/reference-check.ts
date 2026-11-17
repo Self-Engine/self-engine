@@ -1,5 +1,5 @@
 import type { Reference } from "@self-engine/db";
-import { referenced } from "@self-engine/db/schema";
+import { referenced, targetDeleted } from "@self-engine/db/schema";
 import type { Transaction } from "kysely";
 import type { StorageContext } from "./context.ts";
 import type { RegisteredRule, RuleAnswer } from "./registry.ts";
@@ -10,21 +10,122 @@ type Untyped = Transaction<Record<string, Record<string, string | null>>>;
 /**
  * The reference check, the Protection Rule the frame brings itself (D337, D338): no Live Row
  * refers to a deleted row. It is built once from the references the Data Process read at its
- * start, so no module writes code for it and no lower module learns of an upper one. Every
- * reference protects its target; an archived row is a Live Row.
+ * start, so no module writes code for it and no lower module learns of an upper one. It guards
+ * the three ways the sentence breaks: a delete of a target, and an insert, update or restore of
+ * a referring row. Every reference protects its target; an archived row is a Live Row, and
+ * archive and unarchive are not guarded.
  */
 export function referenceCheck(references: readonly Reference[]): {
   readonly rules: readonly RegisteredRule[];
 } {
   const targets = [...new Set(references.map(({ target }) => target))];
+  const referring = [...new Set(references.map(({ table }) => table))];
   return {
-    rules: targets.map((target) =>
-      deleteRule(
-        target,
-        references.filter((reference) => reference.target === target),
+    rules: [
+      ...targets.map((target) =>
+        deleteRule(
+          target,
+          references.filter((reference) => reference.target === target),
+        ),
       ),
-    ),
+      ...referring.flatMap((table) => {
+        const own = references.filter((reference) => reference.table === table);
+        return (["insert", "update", "restore"] as const).map((write) =>
+          targetRule(table, write, own),
+        );
+      }),
+    ],
   };
+}
+
+/** A row and the values of its reference columns, as written or as stored. */
+interface Referring {
+  readonly id: string;
+  readonly values: Readonly<Record<string, unknown>>;
+}
+
+/**
+ * A reference that is written or restored points to a Live Row of the same Space (D337). An
+ * update asks only for the reference columns it writes, so one that writes none runs no query;
+ * an empty optional reference and a row's reference to itself ask nothing. Each target table is
+ * asked once, by primary key, for every row; an unknown, deleted or foreign target is refused
+ * before the database's own foreign key error.
+ */
+function targetRule(
+  table: string,
+  write: "insert" | "update" | "restore",
+  references: readonly Reference[],
+): RegisteredRule {
+  return {
+    table,
+    write,
+    reasons: [targetDeleted],
+    async answer(
+      tx: Untyped,
+      context: StorageContext,
+      rows: readonly { readonly id: string; readonly values?: Referring["values"] }[],
+    ): Promise<readonly RuleAnswer<string, typeof targetDeleted>[]> {
+      const written: readonly Referring[] =
+        write === "restore"
+          ? await deletedRows(tx, context, table, references, rows)
+          : rows.map(({ id, values }) => ({ id, values: values ?? {} }));
+      const asked = written.flatMap(({ id, values }) =>
+        references.flatMap(({ column, target }) => {
+          const value = values[column];
+          return typeof value === "string" && !(target === table && value === id)
+            ? [{ row: id, column, target, id: value }]
+            : [];
+        }),
+      );
+      if (asked.length === 0) return [];
+      const live = new Set<string>();
+      for (const target of new Set(asked.map((reference) => reference.target))) {
+        const ids = asked.filter((reference) => reference.target === target).map(({ id }) => id);
+        const found = await tx
+          .selectFrom(target)
+          .select("id")
+          .where("id", "in", [...new Set(ids)])
+          .where("space_id", "=", context.spaceId)
+          .where("deleted_at", "is", null)
+          .execute();
+        for (const { id } of found) live.add(`${target} ${id}`);
+      }
+      return asked
+        .filter(({ target, id }) => !live.has(`${target} ${id}`))
+        .map(({ row, column, target, id }) => ({
+          code: targetDeleted.code,
+          row,
+          field: column,
+          details: { target: { table: target, id } },
+        }));
+    },
+  };
+}
+
+/**
+ * The deleted rows of this Space a restore names, with their reference columns, in one lookup by
+ * primary key. A live, unknown or foreign row gets no answer: the restore stays not found.
+ */
+async function deletedRows(
+  tx: Untyped,
+  context: StorageContext,
+  table: string,
+  references: readonly Reference[],
+  rows: readonly { readonly id: string }[],
+): Promise<readonly Referring[]> {
+  if (rows.length === 0) return [];
+  const found = await tx
+    .selectFrom(table)
+    .select(["id", ...references.map(({ column }) => column)])
+    .where(
+      "id",
+      "in",
+      rows.map(({ id }) => id),
+    )
+    .where("space_id", "=", context.spaceId)
+    .where("deleted_at", "is not", null)
+    .execute();
+  return found.map((row) => ({ id: row.id as string, values: row }));
 }
 
 /**

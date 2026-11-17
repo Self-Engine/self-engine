@@ -65,6 +65,16 @@ export const referenced = defineReason(
   }),
 );
 
+/**
+ * The other Reason of the reference check (D337): a written or restored reference names a row
+ * that is deleted, unknown or of another Space. Its field is the referring column; the details
+ * name the target, so that a caller can say what has to come back first.
+ */
+export const targetDeleted = defineReason(
+  "target_deleted",
+  z.object({ target: z.object({ table: z.string(), id: z.string() }) }),
+);
+
 /** The Reason with its details typed, when it is the defined one and its details fit. */
 export function matchReason<Definition extends ReasonDefinition>(
   definition: Definition,
