@@ -1,5 +1,6 @@
 import { sql } from "kysely";
 import type { Database } from "./database.ts";
+import { isLocalTable } from "./local-table.ts";
 
 export interface TableRow {
   readonly name: string;
@@ -77,7 +78,7 @@ export interface Reference {
 export async function referencesOf(database: Database): Promise<Reference[]> {
   const tables = (await tablesOf(database))
     .map(({ name }) => name)
-    .filter((name) => !name.startsWith("local_"));
+    .filter((name) => !isLocalTable(name));
   // SQLite resolves a referenced table's and column's name in any case.
   const byName = new Map(tables.map((name) => [name.toLowerCase(), name]));
   const references: Reference[] = [];

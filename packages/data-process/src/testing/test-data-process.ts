@@ -7,6 +7,7 @@ import type { SpaceSources } from "@self-engine/spaces";
 import {
   type BeforeMigrations,
   type DataModules,
+  type DataProcess,
   type DataProcessOptions,
   startDataProcess,
 } from "../core/index.ts";
@@ -35,6 +36,8 @@ export interface TestDataProcessOptions<Modules extends DataModules = DataModule
 export interface TestDataProcess {
   /** The database the core serves, for a test that checks what a call left behind. */
   readonly database: Database;
+  /** The core's sources of every frame's context, for a test that runs a lower function. */
+  readonly contextSources: DataProcess["contextSources"];
   /**
    * A new `MessageChannel` whose one end the core serves; returns the other end for a client,
    * like the main process hands a port to a window.
@@ -82,6 +85,7 @@ export async function startTestDataProcess<const Modules extends DataModules = D
   const ports: MessagePort[] = [];
   return {
     database,
+    contextSources: core.contextSources,
     openPort() {
       const { port1, port2 } = new MessageChannel();
       ports.push(port1, port2);

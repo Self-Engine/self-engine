@@ -1,24 +1,7 @@
-import type { Reason } from "@self-engine/db/schema";
-import type { Kysely, Transaction } from "kysely";
+import type { Clearance, ClearanceWrite, Reason, RowClearance } from "@self-engine/db/schema";
+import type { Transaction } from "kysely";
 import type { StorageContext } from "./context.ts";
-import type { Convention } from "./convention.ts";
-import type { WriteKind } from "./registry.ts";
-import { answerRules } from "./rules.ts";
-import { recordTableWrites } from "./table-writes.ts";
-
-/** The kinds of write on an existing row; an insert has no row to ask about yet (D339). */
-export type ClearanceWrite = Exclude<WriteKind, "insert">;
-
-/** What one kind of write would meet for one row. */
-export type Clearance =
-  | { readonly state: "free" }
-  | { readonly state: "blocked"; readonly reasons: Reason[] }
-  | { readonly state: "notFound" };
-
-export interface RowClearance {
-  readonly row: string;
-  readonly writes: Partial<Record<ClearanceWrite, Clearance>>;
-}
+import { answerRules, findsRow, rowsFound } from "./rules.ts";
 
 /**
  * The Clearance (D339): which of these kinds of write the rules block for these rows of a synced
@@ -36,26 +19,18 @@ export async function clearance<DB>(
   ids: readonly string[],
 ): Promise<RowClearance[]> {
   const asked = [...new Set(ids)];
-  // Like a Query's access, it throws on a write, so the Clearance never writes.
-  const reads = tx.withPlugin(recordTableWrites(new Set(), true));
-  // The caller checked that the table is synced; its convention columns are the frame's own.
-  const found = await (reads as unknown as Kysely<Record<string, Convention>>)
-    .selectFrom(table)
-    .select(["id", "deleted_at"])
-    .where("space_id", "=", context.spaceId)
-    .where("id", "in", asked)
-    .execute();
-  const deleted = new Map(found.map((row) => [row.id, row.deleted_at !== null]));
+  // The lookup only reads, and `answerRules` hands the rules an access that throws on a write.
+  const found = await rowsFound(tx, context, table, asked);
   const answers = new Map(
     asked.map((id) => [id, {} as Partial<Record<ClearanceWrite, Clearance>>]),
   );
   for (const write of new Set(writes)) {
-    const rows = asked.filter((id) => deleted.get(id) === (write === "restore"));
+    const rows = asked.filter((id) => findsRow(write, found.get(id)));
     const reasons =
       rows.length === 0
         ? []
         : await answerRules(
-            reads,
+            tx,
             context,
             table,
             write,

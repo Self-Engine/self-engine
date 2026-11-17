@@ -22,3 +22,13 @@ export {
   type ReasonOf,
   type Severity,
 } from "./reason.ts";
+export {
+  type Clearance,
+  clearanceSchema,
+  type ClearanceWrite,
+  clearanceWriteSchema,
+  type RowClearance,
+  rowClearanceSchema,
+  type WriteKind,
+  writeKinds,
+} from "./clearance.ts";

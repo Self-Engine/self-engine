@@ -5,6 +5,7 @@ import type { SchemaViolation } from "./violation.ts";
 
 import { columnsOf, foreignKeyListOf, referencesOf, tablesOf } from "../core/introspect.ts";
 import type { ColumnRow, ForeignKeyRow } from "../core/introspect.ts";
+import { isLocalTable } from "../core/local-table.ts";
 
 // `archived_at` is optional (D327); a DEFAULT on it would archive every new row.
 const TIMESTAMP_COLUMNS = ["created_at", "updated_at", "deleted_at", "archived_at"];
@@ -48,11 +49,6 @@ const REQUIRED_COLUMNS: readonly {
     fits: isNonNullText,
   },
 ];
-
-/** A Local Table is marked by exactly this prefix, in lower case. */
-function isLocalTable(name: string): boolean {
-  return name.startsWith("local_");
-}
 
 function columnRules(table: string, columns: readonly ColumnRow[]): string[] {
   const missingOrWrong = isLocalTable(table)

@@ -7,7 +7,7 @@ import type { ErasedStorageModule } from "@self-engine/storage";
  */
 export type DataModules = Readonly<Record<string, ErasedStorageModule>>;
 
-/** The tables of the mounted modules; a rule from above guards one of them (D331). */
+/** The synced tables of the mounted modules; a rule from above guards one of them (D331). */
 export type MountedTable<Modules extends DataModules> = {
-  [Name in keyof Modules]: keyof Modules[Name]["rowMap"] & string;
+  [Name in keyof Modules]: Exclude<keyof Modules[Name]["rowMap"] & string, `local_${string}`>;
 }[keyof Modules];

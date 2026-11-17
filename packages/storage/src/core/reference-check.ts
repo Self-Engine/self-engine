@@ -78,7 +78,7 @@ function targetRule(
         }),
       );
       if (asked.length === 0) return [];
-      const live = new Set<string>();
+      const live = new Map<string, Set<string>>();
       for (const target of new Set(asked.map((reference) => reference.target))) {
         const ids = asked.filter((reference) => reference.target === target).map(({ id }) => id);
         const found = await tx
@@ -88,10 +88,10 @@ function targetRule(
           .where("space_id", "=", context.spaceId)
           .where("deleted_at", "is", null)
           .execute();
-        for (const { id } of found) live.add(`${target} ${id}`);
+        live.set(target, new Set(found.map(({ id }) => id as string)));
       }
       return asked
-        .filter(({ target, id }) => !live.has(`${target} ${id}`))
+        .filter(({ target, id }) => !live.get(target)?.has(id))
         .map(({ row, column, target, id }) => ({
           code: targetDeleted.code,
           row,

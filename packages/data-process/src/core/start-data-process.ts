@@ -1,11 +1,12 @@
 import { type AnyRouter, os } from "@orpc/server";
 import type { Health, TablesChanged } from "@self-engine/data-protocol";
-import { referencesOf, type Database } from "@self-engine/db";
+import { isLocalTable, referencesOf, type Database } from "@self-engine/db";
 import type { SpaceSources } from "@self-engine/spaces";
 import {
   createFrame,
   protectionRules,
   referenceCheck,
+  type ContextSources,
   type ErasedStorageModule,
   type FrameOptions,
   type RegisteredRule,
@@ -47,6 +48,12 @@ export interface DataProcessOptions<Modules extends DataModules = DataModules> {
 export interface DataProcess {
   /** The outcome of the start, as `health` answers it: ready, or one of the failure states. */
   readonly health: Health;
+  /**
+   * The sources of every frame's context: the clock, the ids, the Space and the one registry of
+   * Protection Rules, the reference check included. A caller that runs a lower function in its
+   * own transaction builds its context from them, so no rule is lost. Absent in a failure state.
+   */
+  readonly contextSources: ContextSources | undefined;
   /** Answers the app contract on this port. Call it again for every new port. */
   serve(port: DataPort): void;
   /**
@@ -72,20 +79,21 @@ function unserved(module: ErasedStorageModule): AnyRouter {
 }
 
 /**
- * The rules of the modules and from above, for one registry. A rule from above for a table no
- * mounted module has fails the start, where an untyped module list hid it from the compiler.
+ * Fails the start for a rule from above that guards no synced table of a mounted module, where
+ * an untyped module list hid it from the compiler: no write path would ever ask it.
  */
-function registerRules(
+function checkRulesFromAbove(
   modules: readonly ErasedStorageModule[],
   fromAbove: readonly RegisteredRule[],
 ) {
-  const tables = new Set(modules.flatMap((module) => Object.keys(module.rowMap)));
+  const tables = new Set(
+    modules.flatMap((module) => Object.keys(module.rowMap)).filter((table) => !isLocalTable(table)),
+  );
   const stray = fromAbove.find((rule) => !tables.has(rule.table));
   if (stray !== undefined)
     throw new Error(
-      `A Protection Rule from above guards ${stray.table}, which no mounted module has`,
+      `A Protection Rule from above guards ${stray.table}, which no mounted module has as a synced table`,
     );
-  return [...modules, { rules: fromAbove }];
 }
 
 /**
@@ -104,7 +112,7 @@ export async function startDataProcess<const Modules extends DataModules>({
   report,
   backups,
 }: DataProcessOptions<Modules>): Promise<DataProcess> {
-  const registered = registerRules(Object.values(modules), fromAbove);
+  checkRulesFromAbove(Object.values(modules), fromAbove);
   const { health, space } = await startUp(
     database,
     Object.values(modules).flatMap((module) => module.migrations),
@@ -115,11 +123,18 @@ export async function startDataProcess<const Modules extends DataModules>({
   // One registry for every frame: a rule holds whoever writes its table (D332). The reference
   // check reads the foreign keys once, from the schema the migrations left (D337).
   const rules = protectionRules([
-    ...registered,
+    ...Object.values(modules),
+    { rules: fromAbove },
     ...(space === undefined ? [] : [referenceCheck(await referencesOf(database))]),
   ]);
-  const reportUnexpected = (entry: string, error: unknown) =>
-    report?.({ kind: "unexpected-error", entry, error });
+  const reportUnexpected = (entry: string, error: unknown) => {
+    try {
+      report?.({ kind: "unexpected-error", entry, error });
+    } catch (reportError) {
+      // Reporting cannot change the original failure.
+      void reportError;
+    }
+  };
   const contextSources =
     space === undefined
       ? undefined
@@ -140,6 +155,7 @@ export async function startDataProcess<const Modules extends DataModules>({
   );
   return {
     health,
+    contextSources,
     serve: createPortServer(
       createRouter({
         health,

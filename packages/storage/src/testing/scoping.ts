@@ -10,14 +10,14 @@ import { createSpaceRows, SECOND_SPACE_ID, THIRD_SPACE_ID } from "@self-engine/s
 import { createSeededDatabase, frameEntry } from "./kit-setup.ts";
 import { tableContents } from "./table-contents.ts";
 import type { ContractViolation } from "./violation.ts";
-import type { Database, TablesOf } from "@self-engine/db";
+import { isLocalTable, type Database, type TablesOf } from "@self-engine/db";
 import type { Seed } from "./seed.ts";
 
 function scopedTables(rowMap: RowMap) {
   return Object.entries(rowMap)
     .filter(
       ([name, schema]) =>
-        !name.startsWith("local_") &&
+        !isLocalTable(name) &&
         ["id", "space_id", "deleted_at"].every((column) => Object.hasOwn(schema.shape, column)),
     )
     .map(([name]) => name);

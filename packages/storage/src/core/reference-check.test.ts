@@ -244,8 +244,9 @@ test("handed several rows, the rule answers per row and asks each referring tabl
     referencedBy(first.id, [{ table: "note_links", count: 1 }]),
     referencedBy(second.id, [{ table: "note_tags", count: 2 }]),
   ]);
-  // One lookup, then one count per referring table, whatever the number of rows.
-  expect(forOne).toBe(3);
+  // One lookup, one count per referring table, and the Refusal's own lookup of the rows (that
+  // the write would find them), whatever the number of rows.
+  expect(forOne).toBe(4);
   expect(ran.length).toBe(forOne);
 });
 
@@ -412,9 +413,10 @@ test("handed several rows, the restore rule answers per row with one lookup of t
         ),
     ),
   ).resolves.toEqual([targetDeleted(blocked, gone)]);
-  expect(ran).toHaveLength(2);
+  // The rule's two lookups, then the Refusal's lookup that the restore would find its rows.
+  expect(ran).toHaveLength(3);
   const plans = await recorded.plans();
-  expect(plans).toHaveLength(2);
+  expect(plans).toHaveLength(3);
   for (const plan of plans)
     expect(plan).toMatch(/^SEARCH folders USING INDEX sqlite_autoindex_folders_1 \(id=\?\)$/);
 });

@@ -1,8 +1,5 @@
-import type { ReasonDefinition } from "@self-engine/db/schema";
+import type { ReasonDefinition, WriteKind } from "@self-engine/db/schema";
 import type { z } from "zod";
-
-/** The six kinds of write of the frame's write paths; a Protection Rule guards one (D331). */
-export type WriteKind = "insert" | "update" | "delete" | "restore" | "archive" | "unarchive";
 
 /** What a rule answers for one row: a Reason it names, with the details its schema takes. */
 export type RuleAnswer<Id, Definition> =
@@ -30,7 +27,10 @@ export interface ProtectionRules {
 
 const none: readonly RegisteredRule[] = [];
 
-/** One registry from the rules of every module (and later of the frame and from above). */
+/**
+ * One registry from the rules of every source: in the Data Process the modules, the rules from
+ * above and the frame's reference check, asked in that order.
+ */
 export function protectionRules(
   sources: readonly { readonly rules?: readonly RegisteredRule[] }[],
 ): ProtectionRules {

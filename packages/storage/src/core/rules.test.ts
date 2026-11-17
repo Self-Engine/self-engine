@@ -16,6 +16,7 @@ import {
   createContext,
   createFrame,
   defineStorageModule,
+  noProtectionRules,
   protectionRule,
   protectionRules,
   sharedWrites,
@@ -92,6 +93,49 @@ describe("the six write paths", () => {
       { write: "delete", rows: [{ id }] },
       { write: "restore", rows: [{ id }] },
     ]);
+  });
+
+  test("a row the write would not find stays not found, though every rule refuses it", async () => {
+    const always = defineReason("always", z.object({}));
+    rules = protectionRules([
+      {
+        rules: kinds.map((write) =>
+          protectionRule(cardsRowMap, {
+            table: "cards",
+            write,
+            reasons: [always],
+            async answer(_tx, _context, rows) {
+              return rows.map(({ id }) => ({ code: always.code, row: id, details: {} }));
+            },
+          }),
+        ),
+      },
+    ]);
+    const unknown = cardIdSchema.parse("01a1c0a2-f079-7000-8000-000000000009");
+    const live = cardIdSchema.parse("01a1c0a2-f079-7000-8000-000000000001");
+    const deleted = cardIdSchema.parse("01a1c0a2-f079-7000-8000-000000000002");
+    await database.kysely.transaction().execute(async (transaction) => {
+      const context = createContext({ ...createTestContext(), rules: noProtectionRules });
+      const writes = sharedWrites(transaction.withTables<CardRows>(), context);
+      await writes.insert("cards", live, { title: "Live" });
+      await writes.insert("cards", deleted, { title: "Deleted" });
+      await writes.softDelete("cards", deleted);
+    });
+    const notFound = { code: "NOT_FOUND" };
+    for (const id of [unknown, deleted]) {
+      await expect(write((w) => w.update("cards", id, { title: "New" }))).rejects.toMatchObject(
+        notFound,
+      );
+      await expect(write((w) => w.softDelete("cards", id))).rejects.toMatchObject(notFound);
+      await expect(write((w) => w.archive("cards", id))).rejects.toMatchObject(notFound);
+      await expect(write((w) => w.unarchive("cards", id))).rejects.toMatchObject(notFound);
+    }
+    for (const id of [unknown, live])
+      await expect(write((w) => w.restore("cards", id))).rejects.toMatchObject(notFound);
+    // A row the write finds is refused as before.
+    await expect(write((w) => w.softDelete("cards", live))).rejects.toMatchObject({
+      code: "REFUSED",
+    });
   });
 
   test("an update that writes no field asks no rule", async () => {

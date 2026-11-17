@@ -44,7 +44,7 @@ export interface PlatformBackups {
 export interface BackupProcedureOptions {
   /** Absent on a platform that keeps no Backups: every call then fails. */
   readonly backups: PlatformBackups | undefined;
-  /** Where a failure nobody expected goes, with the entry that failed. */
+  /** Where a failure nobody expected goes, with the entry that failed; it never throws. */
   readonly reportUnexpected: (entry: string, error: unknown) => void;
 }
 
@@ -59,14 +59,7 @@ export function backupProcedures({ backups, reportUnexpected }: BackupProcedureO
       if (backups === undefined) throw new Error("This Data Process keeps no Backups");
       return await work(backups);
     } catch (error) {
-      if (!(error instanceof ORPCError)) {
-        try {
-          reportUnexpected(`backups.${entry}`, error);
-        } catch (reportError) {
-          // Reporting cannot change the original failure.
-          void reportError;
-        }
-      }
+      if (!(error instanceof ORPCError)) reportUnexpected(`backups.${entry}`, error);
       throw error;
     }
   }

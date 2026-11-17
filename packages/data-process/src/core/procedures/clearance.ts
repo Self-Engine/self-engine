@@ -1,5 +1,5 @@
 import { ORPCError } from "@orpc/server";
-import type { Database } from "@self-engine/db";
+import { isLocalTable, type Database } from "@self-engine/db";
 import {
   clearance,
   createContext,
@@ -13,7 +13,7 @@ export interface ClearanceOptions {
   /** The sources of every frame's context; absent in a failure state, where no call is served. */
   readonly sources: ContextSources | undefined;
   readonly modules: readonly ErasedStorageModule[];
-  /** Where a failure nobody expected goes. */
+  /** Where a failure nobody expected goes; it never throws. */
   readonly reportUnexpected: (entry: string, error: unknown) => void;
 }
 
@@ -25,15 +25,16 @@ function syncedTables(modules: readonly ErasedStorageModule[]) {
   return new Map(
     modules.flatMap((module) =>
       Object.entries(module.rowMap)
-        .filter(([table]) => !table.startsWith("local_"))
+        .filter(([table]) => !isLocalTable(table))
         .map(([table, row]) => [table, Object.hasOwn(row.shape, "archived_at")] as const),
     ),
   );
 }
 
 /**
- * The protocol's `clearance` (D339): it reads in one transaction, through an access that cannot
- * write, so it announces no Table Change. The rules are those of every frame.
+ * The protocol's `clearance` (D339): it only reads, in one transaction outside any frame, so it
+ * announces no Table Change. The rules are those of every frame, asked through an access that
+ * cannot write.
  */
 export function clearanceProcedure({
   database,
@@ -58,12 +59,7 @@ export function clearanceProcedure({
           clearance(tx, createContext(sources), input.table, input.writes, input.rows),
         );
     } catch (error) {
-      try {
-        reportUnexpected("clearance", error);
-      } catch (reportError) {
-        // Reporting cannot change the original failure.
-        void reportError;
-      }
+      reportUnexpected("clearance", error);
       throw new ORPCError("INTERNAL_SERVER_ERROR");
     }
   });
