@@ -27,20 +27,25 @@ area above it. Soft deletion also means the database's own foreign keys never fi
   (`protectionRules`), handed to every frame in its context:
   - a module lists rules for its own tables under `rules` in `defineStorageModule`;
   - the composition passes rules from above to `startDataProcess({ rules })`, typed against
-    the mounted modules' tables; a rule for a table no mounted module has fails the start.
+    the mounted modules' synced tables; a rule for any other table, a Local Table included,
+    does not compile with a typed module list and fails the start with an untyped one.
     A typed way for an ordinary package (a Bridge) to state such a rule, whose row map is
     private to the module below, is not built yet;
   - the frame brings the reference check.
 - **The six write paths of `sharedWrites` ask the rules** for their table and kind of write
   before they write, in the same transaction. So a rule holds for every Operation, for a Bridge
   calling lower functions in its own transaction, and for each step of an Operation with
-  several writes. A write without a rule costs one lookup in memory. The lint rule
+  several writes. Such a caller builds its context from `DataProcess.contextSources`, which
+  carry the one registry, the reference check included. A write without a rule costs one
+  lookup in memory. The lint rule
   `self-engine/no-write-outside-write-paths` rejects an insert, update or delete of a synced
   table outside those paths; its exceptions are named in the rule (today the insert of the
   Personal Space).
 - **A refused write throws the Refusal**, `REFUSED` (HTTP status 422) with `{ reasons }`, at
   least one. It is the third expected failure beside `NOT_FOUND` and `CONFLICT`; the frame
-  passes it through and nothing is written. A Conflict stays a duplicate value its Contract
+  passes it through and nothing is written. A write that would not find its row answers
+  `NOT_FOUND` whatever a rule answers: before it throws the Refusal, the frame looks the rows up
+  once by primary key, so only a refused write pays that query. A Conflict stays a duplicate value its Contract
   lists. Every Operation's Contract spreads `refusal` from `@self-engine/db/schema` and lists
   no Reason's code, so a rule from above never changes a Contract. `ModuleEntries` accepts an
   Operation only with it and a Query only without it, and the contract kit checks it.
@@ -68,7 +73,7 @@ area above it. Soft deletion also means the database's own foreign keys never fi
 
 - **The Clearance** is one Query of the protocol Contract, `clearance`, for every module:
   `{ table, rows, writes }` with writes out of update, delete, restore, archive and unarchive.
-  It asks the same rules in a transaction that cannot write and answers per row and kind of
+  It asks the same rules, through an access that cannot write, and answers per row and kind of
   write `free`, `blocked` with the Reasons, or `notFound`. An update is asked without values,
   so a rule that needs them answers only at the write. An unmounted table, a Local Table and
   archive on a table that cannot be archived are invalid input.

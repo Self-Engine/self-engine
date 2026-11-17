@@ -253,8 +253,9 @@ export const pinnedNotesStay = protectionRule(notesRowMap, {
 - `rows` is a list: answer for all of them with one query, never one query per row. Insert and
   update rows also carry the `values` being written; an update carries only the fields it sets.
 - `tx` reads only; a write is a type error and fails at runtime.
-- Answer only for rows the write would find. A row that is unknown, deleted (for a delete) or of
-  another Space gets no answer, so the write still answers "not found".
+- A row the write would not find (unknown, deleted for a delete, or of another Space) answers
+  "not found" whatever the rule answers: the frame looks the rows of a refused write up before
+  it throws the Refusal. The rule need not check that its rows exist.
 - Answer only with Reasons the rule names. The frame adds the severity (`blocking`) and the
   table, and checks each answer's details against its definition; anything else is an
   unexpected error, not a Refusal.
@@ -268,7 +269,9 @@ written values answers only at the write.
 
 A Bridge or a module above guards a table of a module below with a **rule from above**: the
 composition passes it to `startDataProcess({ rules })`, typed against the mounted modules'
-tables, and the module below learns nothing of it. A typed way for an ordinary package to state
+synced tables, and the module below learns nothing of it. A caller that runs a lower function in
+its own transaction builds its context from the Data Process's `contextSources`, so the same
+rules, the reference check included, hold there. A typed way for an ordinary package to state
 such a rule is not built yet; today only a test or `data-process` can.
 
 **The reference check needs no code.** The frame reads every foreign key between synchronized

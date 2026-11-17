@@ -4,13 +4,12 @@ import { createSeededDatabase, frameEntry } from "./kit-setup.ts";
 import { returnsSeededRow } from "./scoping.ts";
 import type { Seed } from "./seed.ts";
 import type { ContractViolation } from "./violation.ts";
+import { isLocalTable } from "@self-engine/db";
 
 /** The module's own synchronized tables that carry the archive column (D327). */
 function archivableTables(rowMap: RowMap) {
   return Object.entries(rowMap)
-    .filter(
-      ([name, schema]) => !name.startsWith("local_") && Object.hasOwn(schema.shape, "archived_at"),
-    )
+    .filter(([name, schema]) => !isLocalTable(name) && Object.hasOwn(schema.shape, "archived_at"))
     .map(([name]) => name);
 }
 

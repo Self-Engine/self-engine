@@ -18,6 +18,7 @@ import type {
 } from "./convention.ts";
 import type { ReadTransaction } from "./module.ts";
 import { askRules } from "./rules.ts";
+import { isLocalTable } from "@self-engine/db";
 
 type Fields<Row> = Omit<Row, ConventionKey> & { [Key in ConventionKey]?: never };
 /** An edit's fields: a field left `undefined` is missing from the call and stays untouched. */
@@ -32,8 +33,7 @@ const CONVENTION_COLUMNS: readonly string[] = [
 ];
 
 function assertSynchronizedTable(table: string) {
-  if (table.startsWith("local_"))
-    throw new Error(`Shared entry requires a synchronized table: ${table}`);
+  if (isLocalTable(table)) throw new Error(`Shared entry requires a synchronized table: ${table}`);
 }
 
 function writableFields(fields: object) {

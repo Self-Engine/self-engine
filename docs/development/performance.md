@@ -544,7 +544,7 @@ same frame with an empty rule registry. The script stays in `.temp/`, outside ve
 
 | Case                                                       | In-memory | File     |
 | ---------------------------------------------------------- | --------- | -------- |
-| Refused delete of the project 5,000 entries refer to       | 0.315 ms  | 0.298 ms |
+| Refused delete of the project 5,000 entries refer to       | 0.336 ms  | 0.315 ms |
 | Successful delete of a project, with the check             | 0.069 ms  | 0.073 ms |
 | Successful delete of a project, without the check          | 0.038 ms  | 0.044 ms |
 | Insert of an entry with its project, with the check        | 0.059 ms  | 0.079 ms |
@@ -555,7 +555,10 @@ same frame with an empty rule registry. The script stays in `.temp/`, outside ve
 
 A delete that succeeds pays about **0.03 ms** for its one `EXISTS` lookup per referring column;
 an insert pays about **0.02 ms** for its primary-key lookup. A refusal also counts the referring
-rows, which is the cost of the 5,000 here, and so does a Clearance that finds a blocked row.
+rows, which is the cost of the 5,000 here, and so does a Clearance that finds a blocked row. A
+refusal then looks its rows up once more by primary key, so that a row the write would not find
+answers "not found" (about **0.02 ms**, re-measured with the same script after the review of
+#274; the other figures stayed within 0.03 ms).
 `EXPLAIN QUERY PLAN` of every statement of the refused delete and the insert shows only
 `SEARCH … USING INDEX`: the primary key of `projects` and the partial index
 `project_entries_project (project_id) WHERE deleted_at IS NULL`, never `SCAN` or an automatic

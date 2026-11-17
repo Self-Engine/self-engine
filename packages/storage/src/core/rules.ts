@@ -1,10 +1,15 @@
 import { ORPCError } from "@orpc/server";
 import type { TablesOf } from "@self-engine/db";
-import { refusal, type Reason, type ReasonDefinition } from "@self-engine/db/schema";
-import type { Transaction, Updateable } from "kysely";
+import {
+  refusal,
+  type Reason,
+  type ReasonDefinition,
+  type WriteKind,
+} from "@self-engine/db/schema";
+import type { Kysely, Transaction, Updateable } from "kysely";
 import type { StorageContext } from "./context.ts";
-import type { RuleAnswer, WriteKind } from "./registry.ts";
-import type { ConventionKey, RowId, SyncedTable } from "./convention.ts";
+import type { RuleAnswer } from "./registry.ts";
+import type { Convention, ConventionKey, RowId, SyncedTable } from "./convention.ts";
 import type { ReadTransaction, RowMap } from "./module.ts";
 import { recordTableWrites } from "./table-writes.ts";
 
@@ -55,7 +60,9 @@ export function protectionRule<
 /**
  * Asks the rules for this table and kind of write before a write path writes, in the same
  * transaction. Without a rule it costs one lookup in memory and no query. A Reason refuses the
- * write: it throws the Refusal, which the frame passes through like "not found".
+ * write: it throws the Refusal, which the frame passes through like "not found". A write that
+ * would not find its row answers "not found" whatever a rule says; only a refused write pays the
+ * one lookup by primary key that tells.
  */
 export async function askRules<DB>(
   tx: Transaction<DB>,
@@ -65,8 +72,39 @@ export async function askRules<DB>(
   rows: readonly { readonly id: string; readonly values?: object }[],
 ): Promise<void> {
   const reasons = await answerRules(tx, context, table, write, rows);
-  if (reasons.length > 0)
-    throw new ORPCError("REFUSED", { status: refusal.REFUSED.status, data: { reasons } });
+  if (reasons.length === 0) return;
+  if (write !== "insert") {
+    const found = await rowsFound(
+      tx,
+      context,
+      table,
+      rows.map(({ id }) => id),
+    );
+    if (rows.some(({ id }) => !findsRow(write, found.get(id)))) throw new ORPCError("NOT_FOUND");
+  }
+  throw new ORPCError("REFUSED", { status: refusal.REFUSED.status, data: { reasons } });
+}
+
+/** Whether these rows of the Space exist, by id, and whether each is deleted: one lookup. */
+export async function rowsFound<DB>(
+  tx: Transaction<DB>,
+  context: StorageContext,
+  table: string,
+  ids: readonly string[],
+): Promise<ReadonlyMap<string, boolean>> {
+  // The caller checked that the table is synced; its convention columns are the frame's own.
+  const found = await (tx as unknown as Kysely<Record<string, Convention>>)
+    .selectFrom(table)
+    .select(["id", "deleted_at"])
+    .where("space_id", "=", context.spaceId)
+    .where("id", "in", ids)
+    .execute();
+  return new Map(found.map((row) => [row.id, row.deleted_at !== null]));
+}
+
+/** A restore finds a deleted row; every other write on an existing row a Live Row. */
+export function findsRow(write: Exclude<WriteKind, "insert">, deleted: boolean | undefined) {
+  return deleted === (write === "restore");
 }
 
 /**

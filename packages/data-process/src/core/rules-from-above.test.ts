@@ -5,16 +5,8 @@ import type { ProtocolContract } from "@self-engine/data-protocol";
 import type { TablesOf } from "@self-engine/db";
 import { defineReason, matchReason } from "@self-engine/db/schema";
 import { createTestSources } from "@self-engine/db/testing";
-import type { SpaceId } from "@self-engine/spaces";
-import {
-  createContext,
-  protectionRule,
-  protectionRules,
-  sharedEntry,
-  type StorageContext,
-} from "@self-engine/storage";
+import { createContext, protectionRule, sharedEntry } from "@self-engine/storage";
 import { links, notes } from "@self-engine/storage/testing";
-import { sql } from "kysely";
 import { afterEach, expect, expectTypeOf, test } from "vite-plus/test";
 import { z } from "zod";
 import { startTestDataProcess, type TestDataProcess } from "../testing/index.ts";
@@ -103,15 +95,8 @@ test("when the module's rule and a rule from above both forbid a write, the Refu
 test("a lower function called in a foreign transaction is refused with the same Reasons and writes nothing", async () => {
   const { process, client } = await start();
   const note = await client.notes.create({ title: "Exported and pinned", isPinned: true });
-  // A Bridge builds its context the way the frame does: the Space and the same rules.
-  const { rows } = await sql<{ id: SpaceId }>`select id from spaces`.execute(
-    process.database.kysely,
-  );
-  const context: StorageContext = createContext({
-    ...sources,
-    spaceId: rows[0]!.id,
-    rules: protectionRules([notes, links, { rules: [exportedNotesStay] }]),
-  });
+  // A Bridge builds its context from the sources the frames get: the Space and the same rules.
+  const context = createContext(process.contextSources!);
 
   const flow = process.database.kysely.transaction().execute(async (transaction) => {
     const tx = transaction.withTables<TablesOf<typeof notes.rowMap>>();
@@ -140,4 +125,22 @@ test("a rule for a table no mounted module has fails the start", async () => {
       rules: [exportedNotesStay],
     }),
   ).rejects.toThrow("guards notes, which no mounted module has");
+});
+
+test("a rule for a Local Table fails the start", async () => {
+  const drafts = {
+    name: "drafts",
+    migrations: [],
+    contract: {},
+    rowMap: { local_drafts: z.object({ id: z.string() }) },
+    entries: {},
+  };
+  const draftsStay = { ...exportedNotesStay, table: "local_drafts" as const };
+  await expect(
+    startTestDataProcess({
+      modules: { notes, drafts },
+      // @ts-expect-error A Local Table has no rules: no write path writes it.
+      rules: [draftsStay],
+    }),
+  ).rejects.toThrow("guards local_drafts, which no mounted module has as a synced table");
 });

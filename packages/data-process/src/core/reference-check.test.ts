@@ -2,7 +2,9 @@ import { createORPCClient, isDefinedError, safe } from "@orpc/client";
 import { RPCLink } from "@orpc/client/message-port";
 import type { ContractRouterClient } from "@orpc/contract";
 import type { ProtocolContract } from "@self-engine/data-protocol";
+import type { TablesOf } from "@self-engine/db";
 import { idSchema, matchReason, referenced, targetDeleted } from "@self-engine/db/schema";
+import { createContext } from "@self-engine/storage";
 import { links, notes } from "@self-engine/storage/testing";
 import { afterEach, expect, expectTypeOf, test } from "vite-plus/test";
 import { startTestDataProcess, type TestDataProcess } from "../testing/index.ts";
@@ -45,6 +47,31 @@ test("a note a Live Row refers to is refused with the referring table and its co
   expectTypeOf(reason?.details.tables).toEqualTypeOf<
     { table: string; count: number }[] | undefined
   >();
+  await expect(client.notes.get({ id: note.id })).resolves.toEqual(note);
+});
+
+test("a lower function in a foreign transaction is refused by the reference check as the Port is", async () => {
+  const { process, client } = await start();
+  const note = await client.notes.create({ title: "Target", isPinned: false });
+  await client.links.create({ noteId: note.id, label: "Only" });
+  const { error } = await safe(client.notes.delete({ id: note.id }));
+  if (!isDefinedError(error) || error.code !== "REFUSED") throw new Error("Expected a Refusal");
+
+  // A caller with its own transaction takes the sources the Data Process built, rules included.
+  const context = createContext(process.contextSources!);
+  const flow = process.database.kysely
+    .transaction()
+    .execute(async (transaction) =>
+      notes.entries.delete.run(
+        transaction.withTables<TablesOf<typeof notes.rowMap>>(),
+        context,
+        { id: note.id },
+        "delete",
+        "notes",
+      ),
+    );
+
+  await expect(flow).rejects.toMatchObject({ code: "REFUSED", data: error.data });
   await expect(client.notes.get({ id: note.id })).resolves.toEqual(note);
 });
 
