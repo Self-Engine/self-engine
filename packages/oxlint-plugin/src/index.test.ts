@@ -7,6 +7,7 @@ import noImportTypeQuery from "./rules/no-import-type-query.ts";
 import noRawStorageSql from "./rules/no-raw-storage-sql.ts";
 import noQueryOrThrow from "./rules/no-query-or-throw.ts";
 import noSilentCatch from "./rules/no-silent-catch.ts";
+import noWriteOutsideWritePaths from "./rules/no-write-outside-write-paths.ts";
 
 describe("@self-engine/oxlint-plugin", () => {
   it("reports its rules as self-engine/<rule>", () => {
@@ -22,6 +23,7 @@ describe("@self-engine/oxlint-plugin", () => {
       "no-query-or-throw": noQueryOrThrow,
       "no-raw-storage-sql": noRawStorageSql,
       "no-silent-catch": noSilentCatch,
+      "no-write-outside-write-paths": noWriteOutsideWritePaths,
     });
   });
 });
