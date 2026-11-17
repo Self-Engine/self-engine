@@ -5,9 +5,9 @@ import { tablesChangedContract } from "./tables-changed.ts";
 
 /**
  * What the Data Process answers on every port, whatever modules it mounts: `health`, the Table
- * Change stream, the Backups of the database and the Clearance. It knows no module, so the data client, the
- * Data Process and the desktop app can import it without reaching a module (ADR 0006, no cycles
- * between packages).
+ * Change stream, the Backups of the database and the Clearance. It knows no module, so the data
+ * client, the Data Process and the desktop app can import it without reaching a module (ADR 0006,
+ * no cycles between packages).
  */
 export const protocolContract = {
   health: healthContract,
