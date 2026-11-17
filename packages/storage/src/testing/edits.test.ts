@@ -1,3 +1,4 @@
+import { refusal } from "@self-engine/db/schema";
 import { oc } from "@orpc/contract";
 import { ORPCError } from "@orpc/server";
 import { expect, test } from "vite-plus/test";
@@ -43,7 +44,7 @@ test("the kit fails an input that drops an unknown field silently", async () => 
       edit: oc
         .input(memoFields.edit.strip().refine(bodyDiffers, bodyRule))
         .output(memoSchema)
-        .errors({ NOT_FOUND: {} }),
+        .errors({ NOT_FOUND: {}, ...refusal }),
     },
   };
   await expect(checkContract(drops, seed, examples)).resolves.toEqual([

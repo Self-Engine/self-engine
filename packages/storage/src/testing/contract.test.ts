@@ -10,6 +10,7 @@ import {
   SqliteQueryCompiler,
 } from "kysely";
 import { z } from "zod";
+import { refusal } from "@self-engine/db/schema";
 import { defineStorageModule } from "../core/index.ts";
 import { checkContract } from "./index.ts";
 import { recordTableReads } from "./table-reads.ts";
@@ -169,6 +170,7 @@ test("the kit accepts an announcement for an update that rewrites identical valu
   const notes = announcementNotes;
   const unchanged = {
     ...notes,
+    contract: { list: notes.contract.list.errors({ ...refusal }) },
     entries: {
       ...notes.entries,
       list: {
@@ -325,6 +327,7 @@ test.each(["success", "wrong reason", "unexpected", "right reason"] as const)(
       contract: {
         echo: good.contract.echo.errors({
           CONFLICT: { data: z.object({ reason: z.literal("already_billed") }) },
+          ...refusal,
         }),
       },
     }).entries({
@@ -369,6 +372,7 @@ test("the kit names an undeclared conflict reason next to a triggered declared o
     contract: {
       echo: good.contract.echo.errors({
         CONFLICT: { data: z.object({ reason: z.literal("already_billed") }) },
+        ...refusal,
       }),
     },
   }).entries({
@@ -524,8 +528,12 @@ test("the kit catches by-id reads, by-id writes and bulk writes without scoping"
       get: oc.input(z.strictObject({ id: noteIdSchema })).output(z.string().nullable()),
       rename: oc
         .input(z.strictObject({ id: noteIdSchema, title: z.string() }))
-        .output(z.undefined()),
-      unpinAll: oc.input(z.undefined()).output(z.undefined()),
+        .output(z.undefined())
+        .errors({ ...refusal }),
+      unpinAll: oc
+        .input(z.undefined())
+        .output(z.undefined())
+        .errors({ ...refusal }),
     },
   }).entries({
     get: {
@@ -765,7 +773,7 @@ test.each(["missing", "wrong reason"])(
       contract: {
         create:
           declaration === "missing"
-            ? new ContractProcedure({ ...create["~orpc"], errorMap: {} })
+            ? new ContractProcedure({ ...create["~orpc"], errorMap: { ...refusal } })
             : create.errors({ CONFLICT: { data: z.object({ reason: z.literal("other") }) } }),
       },
       entries: { create: referenceNotes.entries.create },
@@ -891,4 +899,64 @@ test("a CTE name hides a table only inside the query that declares it", () => {
         ),
     ),
   ).toEqual(["note_links", "notes"]);
+});
+
+const refused = defineStorageModule({
+  name: "fixture",
+  contract: {
+    rename: oc
+      .input(z.strictObject({ text: z.string() }))
+      .output(z.string())
+      .errors({ ...refusal }),
+  },
+  migrations: [],
+  rowMap: {},
+}).entries({ rename: { kind: "operation", run: (_tx, _context, input) => input.text } });
+
+test("the kit passes an Operation that carries the Refusal", async () => {
+  await expect(checkContract(refused, seed, { rename: { text: "Valid" } })).resolves.toEqual([]);
+});
+
+test("the kit names an Operation that does not carry the Refusal", async () => {
+  const bare = {
+    ...refused,
+    contract: { rename: oc.input(z.strictObject({ text: z.string() })).output(z.string()) },
+  };
+  // @ts-expect-error The module definition already refuses an Operation without the Refusal.
+  const checked = checkContract(bare, seed, { rename: { text: "Valid" } });
+  await expect(checked).resolves.toEqual([
+    { entry: "rename", rule: "operation does not carry the Refusal" },
+  ]);
+});
+
+test("the kit names an Operation whose Contract lists its own REFUSED", async () => {
+  const ownCodes = {
+    ...refused,
+    contract: {
+      rename: oc
+        .input(z.strictObject({ text: z.string() }))
+        .output(z.string())
+        .errors({
+          REFUSED: {
+            status: 422,
+            data: z.object({ reasons: z.array(z.object({ code: z.literal("pinned") })) }),
+          },
+        }),
+    },
+  };
+  // @ts-expect-error The module definition only takes the shared building block.
+  const checked = checkContract(ownCodes, seed, { rename: { text: "Valid" } });
+  await expect(checked).resolves.toEqual([
+    { entry: "rename", rule: "operation does not carry the Refusal" },
+  ]);
+});
+
+test("the kit names a Query that carries the Refusal", async () => {
+  const refusingQuery = {
+    ...good,
+    contract: { echo: good.contract.echo.errors({ ...refusal }) },
+  };
+  // @ts-expect-error The module definition already refuses a Query with the Refusal.
+  const checked = checkContract(refusingQuery, seed, { echo: { text: "Valid" } });
+  await expect(checked).resolves.toEqual([{ entry: "echo", rule: "query carries the Refusal" }]);
 });

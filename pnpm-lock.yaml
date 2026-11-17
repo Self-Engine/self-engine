@@ -829,6 +829,9 @@ importers:
       '@self-engine/data-client':
         specifier: workspace:*
         version: link:../data-client
+      '@self-engine/db':
+        specifier: workspace:*
+        version: link:../db
       '@self-engine/shell':
         specifier: workspace:*
         version: link:../shell
