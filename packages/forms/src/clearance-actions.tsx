@@ -36,7 +36,9 @@ export function EditActionClearance({
       ? (state.data.find(({ row }) => row === query.rows[0])?.writes ?? {})
       : {};
   const descriptionId = (write: ClearanceWrite) => `${id}-${write}`;
-  const explanations = query.writes.flatMap((write) => {
+  // A kind of write asked twice is still one action with one explanation.
+  const requested = [...new Set(query.writes)];
+  const explanations = requested.flatMap((write) => {
     const answer = writes[write];
     if (answer?.state !== "blocked") return [];
     return [
@@ -48,7 +50,7 @@ export function EditActionClearance({
   return (
     <Context
       value={{
-        requested: query.writes,
+        requested,
         loading: state.status === "loading",
         writes,
         descriptionId,

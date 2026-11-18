@@ -3,26 +3,34 @@
 // field, and every other Reason in the shared Notice. The Reasons are the story's own, with their
 // texts composed as the app composes them, and the frame's `target_deleted`.
 
-import { useLingui } from "@lingui/react";
-import { Button, Stack } from "@mantine/core";
+import type { I18n } from "@lingui/core";
+import { I18nProvider, useLingui } from "@lingui/react";
+import { Button, Stack, TextInput } from "@mantine/core";
 import {
   DataProvider,
   type FrameReasons,
   type ReasonText,
   refusalTexts,
 } from "@self-engine/data-client/react";
-import { defineReason, type ReasonOf, referenced, targetDeleted } from "@self-engine/db/schema";
-import { activateLanguage } from "@self-engine/i18n";
+import type { FixedAnswers, FixedReason } from "@self-engine/data-client/testing";
+import { defineReason, referenced, targetDeleted } from "@self-engine/db/schema";
+import { activateLanguage, createI18n } from "@self-engine/i18n";
 import { clearNotices } from "@self-engine/ui/story-notices";
 import { holdTimers } from "@self-engine/ui/story-timers";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { expect, fn, userEvent, waitFor, within } from "storybook/test";
 import { z } from "zod";
-import { TextField, useOperationForm } from "../../index.ts";
+import {
+  ColorField,
+  OperationFormBody,
+  TextField,
+  useFieldBinding,
+  useOperationForm,
+} from "../../index.ts";
 import { exampleContract } from "./contract.ts";
 import { ExampleForm } from "./example-form.tsx";
 import { useCreateExample } from "./port.ts";
-import { type RecordingPort, recordingPortOf } from "./story-port.ts";
+import { CREATED, type RecordingPort, recordingPortOf } from "./story-port.ts";
 
 /** A rule of the story: some titles are kept for the archive. */
 const titleReserved = defineReason("title_reserved", z.object({ title: z.string() }));
@@ -41,8 +49,8 @@ const texts = refusalTexts(
   () => undefined,
 );
 
-/** A Reason as a Fixed Answer gives it: the frame sets the severity. */
-type StoryReason = Omit<ReasonOf<StoryReasons>, "severity">;
+/** A Reason as a Fixed Answer gives it: one of the story's, without the severity the frame sets. */
+type StoryReason = FixedReason<StoryReasons>;
 
 const TABLE = "example_entries";
 const ROW = "example-1";
@@ -96,10 +104,7 @@ const meta = {
   loaders: [loadRefused(RESERVED)],
   render: (_args, { loaded }) => (
     <DataProvider access={(loaded as Loaded).port.access} reasonTexts={texts}>
-      <Stack>
-        <SwitchLanguage />
-        <ExampleForm onSuccess={(loaded as Loaded).created} />
-      </Stack>
+      <ExampleForm onSuccess={(loaded as Loaded).created} />
     </DataProvider>
   ),
   // The notices live in Mantine's store, which outlives a story; they stay until the story ends.
@@ -236,7 +241,25 @@ export const ACheckOutranksAReasonAtTheSameField: Story = {
 };
 
 export const TheMessageFollowsALanguageSwitch: Story = {
-  loaders: [loadRefused(COLOR_DELETED)],
+  loaders: [
+    loadRefused(COLOR_DELETED),
+    // Its own instance: a switch still loading when the next story starts changes only this one.
+    async () => {
+      const i18n = createI18n();
+      await activateLanguage(i18n, "en");
+      return { i18n };
+    },
+  ],
+  render: (_args, { loaded }) => (
+    <I18nProvider i18n={(loaded as { readonly i18n: I18n }).i18n}>
+      <DataProvider access={(loaded as Loaded).port.access} reasonTexts={texts}>
+        <Stack>
+          <SwitchLanguage />
+          <ExampleForm onSuccess={(loaded as Loaded).created} />
+        </Stack>
+      </DataProvider>
+    </I18nProvider>
+  ),
   play: async ({ canvasElement }) => {
     const form = formIn(canvasElement);
     await fillInAndSave(form);
@@ -290,6 +313,206 @@ export const AReasonAtAFieldTheFormDoesNotShowGoesToTheNoticeWithTheEntry: Story
     ]);
     await expect(noticeOnScreen()?.querySelector(".mantine-Notification-title")?.textContent).toBe(
       "Kitchen",
+    );
+  },
+};
+
+/** What the example's create answers in a story of this file. */
+type CreateAnswer = NonNullable<
+  NonNullable<FixedAnswers<{ example: typeof exampleContract }, StoryReasons>["example"]>["create"]
+>;
+
+/**
+ * The example's Port, answering its creates in turn: the first with the first answer, and so on;
+ * the last answers every create after it. Each call waits until the story lets it through.
+ */
+function answersInTurn(...answers: readonly [CreateAnswer, ...CreateAnswer[]]) {
+  const ports = answers.map((create) =>
+    recordingPortOf(
+      { example: exampleContract },
+      { example: { create } },
+      { reasons: [referenced, targetDeleted, titleReserved, spaceFull] },
+    ),
+  );
+  let calls = 0;
+  let gate = Promise.withResolvers<void>();
+  return {
+    access: {
+      ...ports[0]!.access,
+      async call(module: string, entry: string, input: unknown, signal?: AbortSignal) {
+        const port = ports[Math.min(calls, ports.length - 1)]!;
+        calls += 1;
+        await gate.promise;
+        return port.access.call(module, entry, input, signal);
+      },
+    },
+    /** Lets the waiting call through; the next one waits again. */
+    release() {
+      gate.resolve();
+      gate = Promise.withResolvers<void>();
+    },
+  };
+}
+
+type TurnPort = ReturnType<typeof answersInTurn>;
+
+/** Saves and lets the answer in. */
+async function saveAndAnswer(form: ReturnType<typeof formIn>, port: TurnPort) {
+  await form.save();
+  port.release();
+  await saveEnded(form);
+}
+
+export const ARetryThatMeetsAConflictShowsTheConflictNotTheOldReason: Story = {
+  loaders: [() => ({ port: answersInTurn({ refused: [RESERVED] }, { conflict: "title_taken" }) })],
+  render: (_args, { loaded }) => (
+    <DataProvider access={(loaded as { port: TurnPort }).port.access} reasonTexts={texts}>
+      <ExampleForm onSuccess={() => undefined} />
+    </DataProvider>
+  ),
+  play: async ({ canvasElement, loaded }) => {
+    const { port } = loaded as { port: TurnPort };
+    const form = formIn(canvasElement);
+    await userEvent.type(form.title(), "Kitchen");
+    await userEvent.type(form.description(), "Paint the walls.");
+    await saveAndAnswer(form, port);
+    await expect(form.title()).toHaveAccessibleDescription("“Kitchen” is kept for the archive.");
+
+    // The next save, its title unchanged, meets another answer at the same field.
+    await userEvent.type(form.description(), " Twice.");
+    await saveAndAnswer(form, port);
+    await waitFor(() =>
+      expect(form.title()).toHaveAccessibleDescription("This title is already in use."),
+    );
+  },
+};
+
+export const ASaveThatSucceedsLeavesNoOldReason: Story = {
+  loaders: [() => ({ port: answersInTurn({ refused: [RESERVED] }, { data: CREATED }) })],
+  render: (_args, { loaded }) => (
+    <DataProvider access={(loaded as { port: TurnPort }).port.access} reasonTexts={texts}>
+      <ExampleForm onSuccess={() => undefined} />
+    </DataProvider>
+  ),
+  play: async ({ canvasElement, loaded }) => {
+    const { port } = loaded as { port: TurnPort };
+    const form = formIn(canvasElement);
+    await userEvent.type(form.title(), "Kitchen");
+    await userEvent.type(form.description(), "Paint the walls.");
+    await saveAndAnswer(form, port);
+    await expect(form.title()).toHaveAccessibleDescription("“Kitchen” is kept for the archive.");
+
+    await userEvent.type(form.description(), " Twice.");
+    await saveAndAnswer(form, port);
+    await expect(form.title()).not.toHaveAccessibleDescription(
+      "“Kitchen” is kept for the archive.",
+    );
+  },
+};
+
+/** The example form with a button beside it that chooses a color by code, as a module may. */
+function FormWithAColorSetByCode() {
+  const form = useOperationForm({
+    entry: exampleContract.create,
+    operation: useCreateExample(),
+    draft: { title: "", description: "", icon: null, color: "ocean" },
+    entryName: "Kitchen",
+  });
+  return (
+    <Stack>
+      <OperationFormBody form={form}>
+        <Stack>
+          <TextField form={form} label="Title" name="title" />
+          <TextField form={form} label="Description" name="description" />
+          <ColorField form={form} label="Color" name="color" />
+          <Button type="submit">Save</Button>
+        </Stack>
+      </OperationFormBody>
+      <Button onClick={() => form.setValue("color", "blue")}>Choose blue</Button>
+    </Stack>
+  );
+}
+
+export const AReasonAtAFieldChangedDuringTheSaveGoesToTheNotice: Story = {
+  loaders: [() => ({ port: answersInTurn({ refused: [COLOR_DELETED] }) })],
+  render: (_args, { loaded }) => (
+    <DataProvider access={(loaded as { port: TurnPort }).port.access} reasonTexts={texts}>
+      <FormWithAColorSetByCode />
+    </DataProvider>
+  ),
+  play: async ({ canvasElement, loaded }) => {
+    const { port } = loaded as { port: TurnPort };
+    const form = formIn(canvasElement);
+    await userEvent.type(form.title(), "Kitchen");
+    await userEvent.type(form.description(), "Paint the walls.");
+    await form.save();
+    // While the save of "ocean" waits, the module chooses another color.
+    await userEvent.click(within(canvasElement).getByRole("button", { name: "Choose blue" }));
+    port.release();
+
+    // The Reason speaks of the color that was sent, which the field no longer shows.
+    await expect(await reasonsInTheNotice()).toEqual(["The linked entry is no longer available."]);
+    await saveEnded(form);
+    await expect(form.color()).not.toHaveAccessibleDescription(
+      "The linked entry is no longer available.",
+    );
+  },
+};
+
+/** A form whose description is a field of the module's own that reports text with "?" unfinished. */
+function FormWithAnUnfinishedDescription() {
+  const form = useOperationForm({
+    entry: exampleContract.create,
+    operation: useCreateExample(),
+    draft: { title: "", description: "", icon: null, color: null },
+  });
+  const field = useFieldBinding(form, "description");
+  return (
+    <OperationFormBody form={form}>
+      <Stack>
+        <TextField form={form} label="Title" name="title" />
+        <TextInput
+          label="Description"
+          ref={field.ref}
+          error={field.error}
+          onBlur={field.onBlur}
+          onChange={(event) => {
+            const text = event.currentTarget.value;
+            if (text.includes("?")) field.onUnfinished();
+            else field.onChange(text);
+          }}
+        />
+        <Button type="submit">Save</Button>
+      </Stack>
+    </OperationFormBody>
+  );
+}
+
+export const TypingUnfinishedTextAnswersTheReasonAtItsField: Story = {
+  loaders: [() => ({ port: answersInTurn({ refused: [{ ...RESERVED, field: "description" }] }) })],
+  render: (_args, { loaded }) => (
+    <DataProvider access={(loaded as { port: TurnPort }).port.access} reasonTexts={texts}>
+      <FormWithAnUnfinishedDescription />
+    </DataProvider>
+  ),
+  play: async ({ canvasElement, loaded }) => {
+    const { port } = loaded as { port: TurnPort };
+    const form = formIn(canvasElement);
+    await userEvent.type(form.title(), "Kitchen");
+    await userEvent.type(form.description(), "Paint the walls.");
+    await saveAndAnswer(form, port);
+    await expect(form.description()).toHaveAccessibleDescription(
+      "“Kitchen” is kept for the archive.",
+    );
+
+    // Text that is no value yet is a change to the field: the Reason is answered at once, and
+    // the field's own message waits until the user leaves it, as before.
+    await userEvent.type(form.description(), "?");
+    await expect(form.description()).not.toHaveAccessibleDescription(
+      "“Kitchen” is kept for the archive.",
+    );
+    await expect(form.description()).not.toHaveAccessibleDescription(
+      "Complete or clear this field.",
     );
   },
 };

@@ -306,16 +306,21 @@ function createForm(latest: () => Latest, isEdit: boolean): MadeForm {
     show();
     return violations;
   };
+  // A Conflict or a Reason at the field is answered by any change to it, also text that is no
+  // value yet; whether one stood there.
+  const answerAt = (field: string) => {
+    const hadConflict = conflicts.delete(field);
+    const hadReason = refusedAt.delete(field);
+    return hadConflict || hadReason;
+  };
   const change = (field: string, value: unknown) => {
     // Without the forced update: the field already shows what was typed.
     latest().draft.setFieldValue(field, value, { forceUpdate: false });
     const wasUnfinished = unfinished.finish(field);
-    // A Conflict or a Reason at the field is answered by any change to it.
-    const hadConflict = conflicts.delete(field);
-    const hadReason = refusedAt.delete(field);
+    const answered = answerAt(field);
     values.notify(field);
     notifyChanged();
-    if (checkingEveryChange || hadConflict || hadReason) check();
+    if (checkingEveryChange || answered) check();
     else if (wasUnfinished) show();
   };
   const follow = () => {
@@ -365,25 +370,30 @@ function createForm(latest: () => Latest, isEdit: boolean): MadeForm {
       try {
         // What this save hands on: a value set while it runs was never sent and stays changed.
         const sent = structuredClone(input());
-        // A Reason goes to a field only if this form shows that field; the Notice tells the rest.
+        // The draft as this save sent it, to tell which fields changed while it ran.
+        const drafted = structuredClone(normalized());
+        // A Reason goes to a field only if this form shows that field and the field still holds
+        // what was sent: a change while the save ran answered it already. The Notice tells the rest.
         const result = await options.operation.run(sent, {
           ...(options.entryName !== undefined && { entry: options.entryName }),
-          showsField: (field) => elements.has(field),
+          showsField: (field) =>
+            elements.has(field) && sameValue(normalized()[field], drafted[field]),
         });
-        if (result.status === "conflict") {
-          if (result.field !== null) {
-            conflicts.set(result.field, result.text);
-            check();
-          }
-        }
+        // Every answer replaces the Reasons of the last refused save: they spoke of that save.
+        const hadReasons = refusedAt.size > 0;
+        refusedAt.clear();
         if (result.status === "refused") {
-          // This Refusal replaces the last one; the hook told every other Reason in its Notice.
-          refusedAt.clear();
+          // The hook told every other Reason in its Notice.
           for (const [field, text] of reasonsAtFields(result.atFields, latest)) {
             refusedAt.set(field, text);
           }
-          check();
         }
+        if (result.status === "conflict" && result.field !== null) {
+          conflicts.set(result.field, result.text);
+        }
+        if (result.status === "refused" || (result.status === "conflict" && result.field !== null))
+          check();
+        else if (hadReasons) show();
         if (result.status === "success") {
           stored = { ...stored, ...structuredClone(sent) };
           notifyChanged();
@@ -408,7 +418,9 @@ function createForm(latest: () => Latest, isEdit: boolean): MadeForm {
     setFromOutside: (field) => fromOutside.get(field) ?? 0,
     holdUnfinished(field, message) {
       unfinished.hold(field, message);
-      show();
+      // Its message waits until the user leaves the field, as before; the answered one goes now.
+      if (answerAt(field)) check();
+      else show();
     },
     leave(field) {
       unfinished.report(field);

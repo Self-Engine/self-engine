@@ -1,7 +1,13 @@
-import { DataProvider, clearanceQueryFor, type PortAccess } from "@self-engine/data-client/react";
+import {
+  type ClearanceQuery,
+  DataProvider,
+  clearanceQueryFor,
+  type PortAccess,
+} from "@self-engine/data-client/react";
 import { changingAnswers, fixedAnswers } from "@self-engine/data-client/testing";
 import { referenced } from "@self-engine/db/schema";
 import type { Meta, StoryObj } from "@storybook/react-vite";
+import { useSyncExternalStore } from "react";
 import { expect, fn, screen, userEvent, waitFor, within } from "storybook/test";
 import { ClearanceAction, EditDrawerForm, TextField, useOperationForm } from "../../index.ts";
 import { exampleContract } from "./contract.ts";
@@ -13,6 +19,8 @@ import type { ExampleTables } from "./tables.ts";
 const table = "example_entries";
 const query = clearanceQueryFor<ExampleTables>();
 const clearance = query({ table, rows: [CREATED.id], writes: ["delete", "archive"] });
+/** The Clearance Query of one row, as the edit form takes it. */
+type StoryQuery = ClearanceQuery & { readonly rows: readonly [string] };
 
 type Answer = "blocked" | "free" | "failed";
 
@@ -67,15 +75,39 @@ function portForStory(answer: Answer = "blocked") {
   };
 }
 
+/** Whether the form asks the Clearance; a story turns it off to compare with a form without. */
+function clearanceSwitch() {
+  let on = true;
+  const listeners = new Set<() => void>();
+  return {
+    on: () => on,
+    subscribe: (listener: () => void) => {
+      listeners.add(listener);
+      return () => {
+        listeners.delete(listener);
+      };
+    },
+    turnOff: () => {
+      on = false;
+      for (const listener of listeners) listener();
+    },
+  };
+}
+
 function EntryForm({
   onCancel,
   onArchive,
   onDelete,
+  query = clearance,
+  asks,
 }: {
   readonly onCancel: () => void;
   readonly onArchive: () => void;
   readonly onDelete: () => void;
+  readonly query?: StoryQuery;
+  readonly asks: ReturnType<typeof clearanceSwitch>;
 }) {
+  const withClearance = useSyncExternalStore(asks.subscribe, asks.on);
   const form = useOperationForm({
     entry: exampleContract.update,
     operation: useUpdateExample(),
@@ -86,7 +118,7 @@ function EntryForm({
     <EditDrawerForm
       form={form}
       onCancel={onCancel}
-      clearance={clearance}
+      {...(withClearance && { clearance: query })}
       actions={
         <>
           <ClearanceAction write="archive" onClick={onArchive} variant="subtle">
@@ -107,23 +139,35 @@ interface Loaded {
   readonly port: ReturnType<typeof portForStory>;
   readonly onArchive: () => void;
   readonly onDelete: () => void;
+  readonly query: StoryQuery;
+  readonly asks: ReturnType<typeof clearanceSwitch>;
 }
-const loadAnswer = (answer: Answer) => (): Loaded => ({
-  port: portForStory(answer),
-  onArchive: fn(),
-  onDelete: fn(),
-});
+const loadAnswer =
+  (answer: Answer, query: StoryQuery = clearance) =>
+  (): Loaded => ({
+    port: portForStory(answer),
+    onArchive: fn(),
+    onDelete: fn(),
+    query,
+    asks: clearanceSwitch(),
+  });
 
 const meta = {
   title: "Forms/Example form/Clearance",
   loaders: [loadStoryShell, loadAnswer("blocked")],
   render: (_args, { loaded }) => {
-    const { port, onArchive, onDelete } = loaded as Loaded;
+    const { port, onArchive, onDelete, query, asks } = loaded as Loaded;
     return (
       <DataProvider access={port.access}>
         <StoryDrawer>
           {({ onCancel }) => (
-            <EntryForm onCancel={onCancel} onArchive={onArchive} onDelete={onDelete} />
+            <EntryForm
+              onCancel={onCancel}
+              onArchive={onArchive}
+              onDelete={onDelete}
+              query={query}
+              asks={asks}
+            />
           )}
         </StoryDrawer>
       </DataProvider>
@@ -205,7 +249,7 @@ export const ABlockedDeleteInGerman: Story = {
 export const NothingBlockedLooksAsWithoutClearance: Story = {
   loaders: [loadStoryShell, loadAnswer("free")],
   play: async ({ loaded }) => {
-    const { port } = loaded as Loaded;
+    const { port, asks } = loaded as Loaded;
     const { drawer, title, archive, remove, live } = await drawnForm();
     const before = layoutOf(drawer, [title, archive, remove, live]);
     port.release();
@@ -215,6 +259,35 @@ export const NothingBlockedLooksAsWithoutClearance: Story = {
     await expect(layoutOf(drawer, [title, archive, remove, live])).toEqual(before);
     await expect(live).toBeEmptyDOMElement();
     await expect(live.getBoundingClientRect().height).toBe(0);
+
+    // The same form without a Clearance: its fields and actions stand where they stood.
+    const free = layoutOf(drawer, [title, archive, remove]);
+    asks.turnOff();
+    const canvas = within(drawer);
+    await waitFor(() => expect(canvas.queryByRole("status")).toBeNull());
+    await expect(
+      layoutOf(drawer, [
+        canvas.getByRole("textbox", { name: "Title" }),
+        canvas.getByRole("button", { name: "Archive" }),
+        canvas.getByRole("button", { name: "Delete" }),
+      ]),
+    ).toEqual(free);
+  },
+};
+
+export const AWriteAskedTwiceIsExplainedOnce: Story = {
+  loaders: [
+    loadStoryShell,
+    loadAnswer("blocked", query({ table, rows: [CREATED.id], writes: ["delete", "delete"] })),
+  ],
+  play: async ({ loaded }) => {
+    const { port } = loaded as Loaded;
+    const { remove, live } = await drawnForm();
+    port.release();
+    await waitFor(() => expect(remove).toBeDisabled());
+
+    await expect(live.childElementCount).toBe(1);
+    await expect(live).toHaveTextContent(/^Cannot be deleted: 2 entries refer to it\.$/);
   },
 };
 

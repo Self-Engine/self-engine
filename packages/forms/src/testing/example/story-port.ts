@@ -1,5 +1,6 @@
 // The Port of the example form's stories: Fixed Answers of the invented Contract (D255), with
-// every call written down, so a story asserts which call reached the Port.
+// every call of an entry written down, so a story asserts which call reached the Port. A
+// Clearance goes through its own method and is not written down.
 
 import type { PortAccess } from "@self-engine/data-client/react";
 import type { ReasonDefinition } from "@self-engine/data-client/react";
@@ -21,7 +22,10 @@ export interface PortCall {
 
 export interface RecordingPort {
   readonly access: PortAccess;
-  /** Every call that reached the Port, in order. */
+  /**
+   * Every call of an entry that reached the Port, in order. A Clearance is not among them: an
+   * empty list says nothing about it.
+   */
   readonly calls: PortCall[];
 }
 
