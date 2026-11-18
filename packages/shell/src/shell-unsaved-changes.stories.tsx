@@ -1,4 +1,4 @@
-import { Component, type ReactNode, useState } from "react";
+import { Component, type ReactNode, startTransition, useLayoutEffect, useState } from "react";
 import type { Meta } from "@storybook/react-vite";
 import { expect, screen, spyOn, userEvent, waitFor, within } from "storybook/test";
 import { z } from "zod";
@@ -406,6 +406,44 @@ export const ASaveThatEndsAfterItsEditorWasReplacedClosesNothing: Story = {
       await drawerGone();
     },
     moduleWith(async () => ({ default: EditorWhoseSaveWaits })),
+  ),
+  render: (args) => <ShellWithAReplaceableModule {...args} />,
+};
+
+/** Set by the play function: the next editor to mount ends the waiting save as it commits. */
+let endTheWaitingSaveAtNextMount = false;
+
+/** Ends the earlier editor's save while its own commit runs, before React's passive effects. */
+function EditorThatEndsTheWaitingSaveAsItMounts(props: EditDrawerProps) {
+  useLayoutEffect(() => {
+    if (!endTheWaitingSaveAtNextMount) return;
+    endTheWaitingSaveAtNextMount = false;
+    endWaitingSave();
+  }, []);
+  return <EditorWhoseSaveWaits {...props} />;
+}
+
+export const ASaveThatEndsWhileItsReplacementCommitsClosesNothing: Story = {
+  ...withDraft(
+    async (canvas, routing) => {
+      const replaced = await openDrawer(canvas);
+      await userEvent.type(replaced.draft, "x");
+      await userEvent.click(replaced.drawer.getByRole("button", { name: "Save draft" }));
+      endTheWaitingSaveAtNextMount = true;
+      // A transition leaves the passive effects of its commit for later, as a busy page does.
+      startTransition(replaceModule);
+      await waitFor(() => expect(endTheWaitingSaveAtNextMount).toBe(false));
+      await nextFrame();
+
+      await expect(routing.address.search()).toEqual({ edit: "entry" });
+      const drawer = within(screen.getByRole("dialog", { name: "Time" }));
+      await userEvent.type(drawer.getByRole("textbox", { name: "Draft" }), "y");
+      await userEvent.click(drawer.getByRole("button", { name: "Cancel draft" }));
+      await asked();
+      await answer("Discard");
+      await drawerGone();
+    },
+    moduleWith(async () => ({ default: EditorThatEndsTheWaitingSaveAsItMounts })),
   ),
   render: (args) => <ShellWithAReplaceableModule {...args} />,
 };

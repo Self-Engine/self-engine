@@ -1,15 +1,7 @@
 import { Trans } from "@lingui/react/macro";
 import { useWindowEvent } from "@mantine/hooks";
 import { confirm } from "@self-engine/ui";
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useLayoutEffect,
-  useRef,
-  useState,
-} from "react";
+import { createContext, useCallback, useContext, useLayoutEffect, useRef, useState } from "react";
 import { type LeaveGuard, type LeavingAddress, useShellRouting } from "./routing.tsx";
 import type { ViewSearch } from "./view-search.ts";
 
@@ -85,7 +77,10 @@ export function useEditDrawerExits(openEntryKey: string | undefined) {
   if (opening.key !== openEntryKey) setOpening({ key: openEntryKey, count: opening.count + 1 });
   const openNow = useRef(opening.count);
 
-  useEffect(() => {
+  // Within the commit that draws the new opening: a save's Promise continues only once that commit
+  // has returned, while passive effects may run later still, such as after a transition. So a save
+  // of the opening before, resolved while the new one commits, already finds itself replaced.
+  useLayoutEffect(() => {
     finished.current = false;
     openNow.current = opening.count;
   }, [opening.count]);
