@@ -12,7 +12,11 @@ const description = "Creates a thing.";
 const named = { name: "Studio" };
 
 /** What a Command is given; these Commands never call a Port nor show a notice. */
-const data: DataAccess = { access: NO_DATA_PROCESS, notify: () => undefined };
+const data: DataAccess = {
+  access: NO_DATA_PROCESS,
+  notify: () => undefined,
+  notifyRefused: () => undefined,
+};
 
 function inputCommand(run: (input: { name: string }) => unknown) {
   const definition = defineInputCommand({ description, schema, run });

@@ -11,6 +11,8 @@ import { createRoot } from "react-dom/client";
 import { AppLanguage, browserLanguages } from "./app-language.tsx";
 import { AppearanceProvider } from "./appearance.tsx";
 import { dataConnection, startPageData } from "./desktop-data.ts";
+import { appModules } from "./modules.ts";
+import { appReasonTexts } from "./reason-texts.ts";
 import { router } from "./router.ts";
 import { settingsStore } from "./settings-store.ts";
 
@@ -27,6 +29,9 @@ const dataAccess = startPageData(window, dataConnection, (name, options) =>
 // The first render needs the stored appearance and language; the Start Cache covers this wait.
 await settingsStore.load();
 
+// The text of every Reason a Protection Rule can refuse a change with (D334).
+const reasonTexts = appReasonTexts(appModules);
+
 const language = appLanguageOf(settingsStore, browserLanguages());
 const i18n = createI18n();
 // Nothing renders before the catalog is there, so no text shows in the wrong language. The Start
@@ -38,7 +43,7 @@ createRoot(container).render(
     <AppLanguage i18n={i18n} initialLanguage={language} store={settingsStore}>
       <AppearanceProvider>
         <FeedbackHost>
-          <DataProvider access={dataAccess}>
+          <DataProvider access={dataAccess} reasonTexts={reasonTexts}>
             <RouterProvider router={router} />
           </DataProvider>
         </FeedbackHost>

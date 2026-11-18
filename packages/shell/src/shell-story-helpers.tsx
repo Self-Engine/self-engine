@@ -175,7 +175,11 @@ export function storyRouting(initial: ViewSearch = {}): ShellRouting & {
 const routing = storyRouting();
 
 /** What the Shell hands its Commands in Stories: no Data Process answers, and notices are collected. */
-export const storyData: DataAccess = { access: NO_DATA_PROCESS, notify: fn() };
+export const storyData: DataAccess = {
+  access: NO_DATA_PROCESS,
+  notify: fn(),
+  notifyRefused: fn(),
+};
 
 /** What every Story file of the Shell spreads into its `meta`, next to its own `title`. */
 export const shellMeta = {

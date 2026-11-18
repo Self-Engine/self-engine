@@ -14,7 +14,7 @@ import { afterEach, expect, test } from "vite-plus/test";
 import { createDataConnection, type DataConnection } from "../index.ts";
 import { fixedAnswers } from "../testing/index.ts";
 import { type DataAccess, DataProvider, portAccessOf, portHooks } from "./index.ts";
-import { NOT_FOUND_NOTICE, UNEXPECTED_NOTICE } from "./operation-hook.ts";
+import { NOT_FOUND_NOTICE } from "./operation-hook.ts";
 
 // The hooks render outside `act`: answers arrive over a real port, at no moment a test can name.
 globalThis.IS_REACT_ACT_ENVIRONMENT = false;
@@ -148,10 +148,11 @@ test("a refused delete arrives as the Refusal a Fixed Answer with the same Reaso
   cleanups.push(() => connection.disconnect());
   connection.connect(process.openPort());
   await untilReady(connection);
-  const notices: MessageDescriptor[] = [];
+  const notices: unknown[] = [];
   const data: DataAccess = {
     access: portAccessOf(connection),
     notify: (notice) => notices.push(notice),
+    notifyRefused: (notice) => notices.push(notice),
   };
 
   const created = await createNote(data, { title: "Groceries", isPinned: true });
@@ -181,7 +182,10 @@ test("a refused delete arrives as the Refusal a Fixed Answer with the same Reaso
       { reasons: [pinnedNote] },
     ),
     notify: (notice) => notices.push(notice),
+    notifyRefused: (notice) => notices.push(notice),
   };
   expect(await deleteNote(fixed, { id: created.data.id })).toEqual(refused);
-  expect(notices).toEqual([UNEXPECTED_NOTICE, UNEXPECTED_NOTICE]);
+  // Both show the same shared Notice of a Refusal, and no notice of an error.
+  const shown = refused.status === "refused" ? { reasons: refused.reasons } : undefined;
+  expect(notices).toEqual([shown, shown]);
 });

@@ -8,6 +8,7 @@ import { createMemoryHistory, RouterProvider } from "@tanstack/react-router";
 import { useState } from "react";
 import { expect, screen, userEvent, waitFor, within } from "storybook/test";
 import { createAppRouter } from "./app-router.ts";
+import { appReasonTexts } from "./reason-texts.ts";
 import { settingsStore } from "./settings-store.ts";
 import { storyModules } from "./story-modules.ts";
 
@@ -34,6 +35,9 @@ export async function loadStoryApp() {
   ]);
 }
 
+/** The app's Reason texts, with the table names of the stories' modules. */
+const storyReasonTexts = appReasonTexts(storyModules);
+
 type AppRouter = ReturnType<typeof createAppRouter>;
 
 let lastRouter: AppRouter;
@@ -57,7 +61,7 @@ export function AppAt({ address, access }: AppAtProps) {
     return lastRouter;
   });
   return (
-    <DataProvider access={access}>
+    <DataProvider access={access} reasonTexts={storyReasonTexts}>
       <RouterProvider router={router} />
     </DataProvider>
   );

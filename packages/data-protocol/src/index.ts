@@ -36,4 +36,5 @@ export {
   referenced,
   type Refusal,
   type Severity,
+  targetDeleted,
 } from "@self-engine/db/schema";

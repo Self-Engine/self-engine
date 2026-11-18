@@ -24,7 +24,7 @@ import { loadStoryApp, storyModules } from "./story-app.tsx";
 
 /** These Views call no Port entry and show no notice, so any call fails the story. */
 const noAnswers = fixedAnswers({}, {});
-const noData = { access: noAnswers, notify: fn() };
+const noData = { access: noAnswers, notify: fn(), notifyRefused: fn() };
 
 const rendered = fn();
 const SelectedClient = memo(function SelectedClient() {

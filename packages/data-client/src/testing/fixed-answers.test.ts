@@ -7,7 +7,7 @@ import { referenced } from "@self-engine/data-protocol";
 import { notesContract, pinnedNote } from "@self-engine/storage/testing";
 import { act } from "react";
 import { afterEach, beforeEach, expect, test, vi } from "vite-plus/test";
-import { renderHook, settle, type ShownNotices, unmountHook } from "../react/hook-harness.ts";
+import { renderHook, settle, unmountHook } from "../react/hook-harness.ts";
 import { portHooks } from "../react/index.ts";
 import { answersByMount, fixedAnswers } from "./index.ts";
 
@@ -93,9 +93,10 @@ test("an unexpected answer fails a Query hook's first load", async () => {
 
 /** Runs the rename Operation once against `access` and returns its result and the notices. */
 async function rename(access: ReturnType<typeof fixedAnswers>) {
-  const notices: ShownNotices = [];
+  const notices: unknown[] = [];
   const hook = await renderHook({ access }, () => useRenameNote(), {
     notify: (notice) => notices.push(notice),
+    notifyRefused: (notice) => notices.push(notice),
   });
   let result: unknown;
   await act(async () => {
@@ -163,7 +164,8 @@ test("an Operation hook gets the Refusal with every Reason, blocking as the fram
       { ...referencedBy, field: "title", severity: "blocking" },
     ],
   });
-  expect(notices).toHaveLength(1);
+  // The shared Notice of a Refusal, with every Reason.
+  expect(notices).toEqual([{ reasons: (result as { reasons: unknown }).reasons }]);
 });
 
 test("a Reason nobody defined fails and names the entry and its code", () => {

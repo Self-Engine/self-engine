@@ -6,6 +6,7 @@ import type { Reason, Refusal, Severity } from "@self-engine/data-protocol";
 import { useMutation } from "@tanstack/react-query";
 import { useCallback, useState } from "react";
 import { type DataAccess, useDataContext } from "./provider.ts";
+import type { RefusalNoticeOptions } from "./refusal-notice.ts";
 
 /** Shown when the entry an Operation changes no longer exists, unless the module replaces it. */
 export const NOT_FOUND_NOTICE = msg`This entry no longer exists.`;
@@ -39,8 +40,8 @@ export type OperationHandling<Input, Reason extends string> = ([Reason] extends 
    */
   readonly notFound?: (input: Input) => void;
   /**
-   * Replaces the default announcement of a Refusal, for a caller that shows its Reasons itself.
-   * The caller receives the `refused` result either way.
+   * Replaces the shared Notice of a Refusal, for a caller that shows its Reasons itself. The
+   * caller receives the `refused` result either way.
    */
   readonly refused?: (refusal: Refusal, input: Input) => void;
 };
@@ -51,9 +52,8 @@ export type OperationHandling<Input, Reason extends string> = ([Reason] extends 
  * - `conflict`: a declared reason with the module's text and field, to show at that field. No
  *   notice; for a reason whose field is `null`, the notice with the text was shown instead.
  * - `notFound`: the entry is gone. A notice told the user, unless the module replaced it.
- * - `refused`: a Protection Rule refused the write and nothing changed; the Refusal's Reasons. A
- *   notice told the user, unless the module replaced it. Until the shared Notice of a Refusal
- *   exists, that is the general notice of an unexpected error.
+ * - `refused`: a Protection Rule refused the write and nothing changed; the Refusal's Reasons. The
+ *   shared Notice of a Refusal told the user every Reason, unless the module replaced it.
  * - `unexpected`: anything else; a general notice told the user.
  */
 export type OperationResult<Output, Reason extends string, Field extends string> =
@@ -72,8 +72,11 @@ export type OperationResult<Output, Reason extends string, Field extends string>
 
 /** What an Operation hook returns: the call, and whether one is running. */
 export interface OperationState<Input, Result> {
-  /** Calls the Operation; resolves with its result and never rejects. */
-  readonly run: (input: Input) => Promise<Result>;
+  /**
+   * Calls the Operation; resolves with its result and never rejects. `refusal` names the entry
+   * and adds one action to the Notice of a Refusal.
+   */
+  readonly run: (input: Input, refusal?: RefusalNoticeOptions) => Promise<Result>;
   /** True from a call until its result, so a button can lock against a second submit. */
   readonly running: boolean;
 }
@@ -162,18 +165,18 @@ function isObject(value: unknown): value is Readonly<Record<string, unknown>> {
  * caller.
  */
 async function runOperation(
-  { access, notify }: DataAccess,
+  { access, notify, notifyRefused }: DataAccess,
   module: string,
   entry: string,
   input: unknown,
   handling: Handling,
+  refusal: RefusalNoticeOptions = {},
 ): Promise<AnyResult> {
   const result = await callOperation(access, module, entry, input, handling);
   if (result.status === "conflict" && result.field === null) notify(result.text);
   if (result.status === "unexpected") notify(UNEXPECTED_NOTICE);
   if (result.status === "refused") {
-    // Until the shared Notice of a Refusal exists, it is announced as an unexpected error is.
-    if (handling.refused === undefined) notify(UNEXPECTED_NOTICE);
+    if (handling.refused === undefined) notifyRefused({ reasons: result.reasons, ...refusal });
     else handling.refused({ reasons: result.reasons }, input as never);
   }
   if (result.status === "notFound") {
@@ -181,6 +184,12 @@ async function runOperation(
     else handling.notFound(input as never);
   }
   return result;
+}
+
+/** One call of an Operation hook, as the query library hands it on. */
+interface Call<Input> {
+  readonly input: Input;
+  readonly refusal: RefusalNoticeOptions | undefined;
 }
 
 /**
@@ -199,17 +208,22 @@ export function operationHook<Input, Output, Reason extends string>(
       mutationKey: [module, entry],
       // The library passes its own context as a second argument, which the Port's call would
       // take for its options; only the input goes on.
-      mutationFn: (input: Input) => runOperation(data, module, entry, input, handling),
+      mutationFn: ({ input, refusal }: Call<Input>) =>
+        runOperation(data, module, entry, input, handling, refusal),
     });
     // The library's pending flag follows only the latest call, so overlapping calls are counted
     // here: `running` stays true until every call of this hook has its result, and a call of
     // another component on the same entry does not lock this one.
     const [outstanding, setOutstanding] = useState(0);
     const run = useCallback(
-      async (input: Input) => {
+      async (input: Input, refusal?: RefusalNoticeOptions) => {
         setOutstanding((count) => count + 1);
         try {
-          return (await mutateAsync(input)) as OperationResult<Output, Reason, FieldOf<Input>>;
+          return (await mutateAsync({ input, refusal })) as OperationResult<
+            Output,
+            Reason,
+            FieldOf<Input>
+          >;
         } finally {
           setOutstanding((count) => count - 1);
         }
@@ -222,12 +236,13 @@ export function operationHook<Input, Output, Reason extends string>(
 
 /**
  * An Operation as a function, for code outside React such as a Command (D261). It takes the Port
- * access and notice seam its caller was given, the ones the app gives `DataProvider`
- * (`useDataAccess`), and returns and announces what the hook would, through that seam.
+ * access and notice seams its caller was given, the ones the app gives `DataProvider`
+ * (`useDataAccess`), and returns and announces what the hook would, through those seams.
  */
 export type OperationFunction<Input, Output, Reason extends string> = (
   data: DataAccess,
   input: Input,
+  refusal?: RefusalNoticeOptions,
 ) => Promise<OperationResult<Output, Reason, FieldOf<Input>>>;
 
 /** The function form of the Operation `entry` of the module mounted as `module` (`portHooks`). */
@@ -236,8 +251,8 @@ export function operationFunction<Input, Output, Reason extends string>(
   entry: string,
   handling: Handling,
 ): OperationFunction<Input, Output, Reason> {
-  return (data, input) =>
-    runOperation(data, module, entry, input, handling) as Promise<
+  return (data, input, refusal) =>
+    runOperation(data, module, entry, input, handling, refusal) as Promise<
       OperationResult<Output, Reason, FieldOf<Input>>
     >;
 }

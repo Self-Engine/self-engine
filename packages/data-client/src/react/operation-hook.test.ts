@@ -17,7 +17,7 @@ import {
   type ShownNotices,
   unmountHook,
 } from "./hook-harness.ts";
-import { type DataAccess, portHooks, useDataAccess } from "./index.ts";
+import { type DataAccess, portHooks, type RefusedNotice, useDataAccess } from "./index.ts";
 import { NOT_FOUND_NOTICE, UNEXPECTED_NOTICE } from "./operation-hook.ts";
 
 const notesPort = portHooks<typeof notesContract>("notes");
@@ -202,19 +202,45 @@ const PINNED = {
 } as const;
 const AT_FIELD = { ...PINNED, field: "title" } as const;
 const REFUSED = new ORPCError("REFUSED", { status: 422, data: { reasons: [PINNED, AT_FIELD] } });
+const ARCHIVE = msg`Archive`;
 
-test("a Refusal returns as a result of its own with every Reason, and is announced until the Notice exists", async () => {
+test("a Refusal returns as a result of its own and shows the shared Notice with every Reason", async () => {
   const port = fakePort();
   port.answer("update", () => Promise.reject(REFUSED));
   const notices: ShownNotices = [];
+  const refusals: RefusedNotice[] = [];
   const rename = await renderHook(port, () => useRenameNote(), {
     notify: (notice) => notices.push(notice),
+    notifyRefused: (notice) => refusals.push(notice),
   });
 
   expect(await runOnce(rename)).toEqual({ status: "refused", reasons: [PINNED, AT_FIELD] });
   expect(rename.current().running).toBe(false);
-  // The stopgap until the shared Notice: announced the way an unexpected error is.
-  expect(notices).toEqual([UNEXPECTED_NOTICE]);
+  expect(refusals).toEqual([{ reasons: [PINNED, AT_FIELD] }]);
+  // A Refusal is not an error: no notice of one, and nothing to undo.
+  expect(notices).toEqual([]);
+});
+
+test("a page names the entry and adds one action to the Notice of a Refusal", async () => {
+  const port = fakePort();
+  port.answer("update", () => Promise.reject(REFUSED));
+  const refusals: RefusedNotice[] = [];
+  const rename = await renderHook(port, () => useRenameNote(), {
+    notifyRefused: (notice) => refusals.push(notice),
+  });
+  const archive = { label: ARCHIVE, run: vi.fn() };
+
+  let result: unknown;
+  act(() => {
+    void rename
+      .current()
+      .run(RENAME, { entry: "Groceries", action: archive })
+      .then((value) => (result = value));
+  });
+  await settle();
+
+  expect(result).toEqual({ status: "refused", reasons: [PINNED, AT_FIELD] });
+  expect(refusals).toEqual([{ reasons: [PINNED, AT_FIELD], entry: "Groceries", action: archive }]);
 });
 
 test("a page narrows a Refusal to one Reason by its definition and reads its details typed", async () => {
@@ -290,8 +316,13 @@ const renameNote = notesPort.run("update", {
 /** What a Command is given: the fake Port's access, and a list that collects the notices. */
 function commandData(port: { readonly access: DataAccess["access"] }) {
   const notices: ShownNotices = [];
-  const data: DataAccess = { access: port.access, notify: (notice) => notices.push(notice) };
-  return { data, notices };
+  const refusals: RefusedNotice[] = [];
+  const data: DataAccess = {
+    access: port.access,
+    notify: (notice) => notices.push(notice),
+    notifyRefused: (notice) => refusals.push(notice),
+  };
+  return { data, notices, refusals };
 }
 
 test("the function form returns the same results as the hook, over the access it is given", async () => {
@@ -334,18 +365,19 @@ test.each([
   },
 );
 
-test("the function form returns a Refusal as the hook does and announces it through its seam", async () => {
+test("the function form returns a Refusal as the hook does and shows its Notice through its seam", async () => {
   const port = fakePort();
-  const { data, notices } = commandData(port);
+  const { data, notices, refusals } = commandData(port);
   port.answer("update", () => Promise.reject(REFUSED));
 
-  const result = await renameNote(data, RENAME);
+  const result = await renameNote(data, RENAME, { entry: "Groceries" });
 
   expect(result).toEqual({ status: "refused", reasons: [PINNED, AT_FIELD] });
   expect(result.status === "refused" && findReason(result, pinnedNote)?.details.title).toBe(
     "Groceries",
   );
-  expect(notices).toEqual([UNEXPECTED_NOTICE]);
+  expect(refusals).toEqual([{ reasons: [PINNED, AT_FIELD], entry: "Groceries" }]);
+  expect(notices).toEqual([]);
 });
 
 test("a caller that shows a Refusal itself gets it instead of the announcement", async () => {
@@ -355,11 +387,12 @@ test("a caller that shows a Refusal itself gets it instead of the announcement",
     refused: (refusal, input) => shown.push([refusal.reasons.length, input.title]),
   });
   const port = fakePort();
-  const { data, notices } = commandData(port);
+  const { data, notices, refusals } = commandData(port);
   port.answer("update", () => Promise.reject(REFUSED));
 
   expect(await renameShowing(data, RENAME)).toMatchObject({ status: "refused" });
   expect(shown).toEqual([[2, "Beta"]]);
+  expect(refusals).toEqual([]);
   expect(notices).toEqual([]);
 });
 

@@ -671,6 +671,9 @@ importers:
       '@self-engine/data-protocol':
         specifier: workspace:*
         version: link:../data-protocol
+      '@self-engine/i18n':
+        specifier: workspace:*
+        version: link:../i18n
       '@self-engine/ui':
         specifier: workspace:*
         version: link:../ui

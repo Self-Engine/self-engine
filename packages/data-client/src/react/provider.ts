@@ -12,6 +12,13 @@ import {
   useRef,
 } from "react";
 import type { PortAccess } from "./port-access.ts";
+import {
+  type FrameReasons,
+  frameReasonTexts,
+  type RefusalTexts,
+  refusalTexts,
+} from "./reason-texts.ts";
+import { type RefusedNotice, showRefusal } from "./refusal-notice.ts";
 import { noticeFailedReload } from "./reload-notice.ts";
 
 /** Answers no View shows are dropped after this long (D250). */
@@ -27,6 +34,8 @@ export interface DataAccess {
   readonly access: PortAccess;
   /** Shows a notice of the building block, such as an Operation's unexpected error (D251). */
   readonly notify: (notice: MessageDescriptor) => void;
+  /** Shows the shared Notice of a Refusal a caller did not handle itself (D334). */
+  readonly notifyRefused: (notice: RefusedNotice) => void;
 }
 
 interface DataContext extends DataAccess {
@@ -131,8 +140,22 @@ export interface DataProviderProps {
    * default the feedback system shows them as error notices; a test collects them instead.
    */
   readonly notify?: (notice: MessageDescriptor) => void;
+  /**
+   * The text of every Reason the app's Protection Rules answer with, composed where the app is
+   * put together (`refusalTexts`). Without it, the frame's own Reasons have their texts and no
+   * table its name.
+   */
+  readonly reasonTexts?: RefusalTexts;
+  /**
+   * Where the Notice of a Refusal goes. By default the feedback system shows it with the
+   * `reasonTexts`; a test collects them instead.
+   */
+  readonly notifyRefused?: (notice: RefusedNotice) => void;
   readonly children?: ReactNode;
 }
+
+/** The texts a provider uses when it is given none: the frame's Reasons, no table names. */
+const FRAME_ONLY = refusalTexts<FrameReasons>(frameReasonTexts, () => undefined);
 
 /** Counts the accesses providers were given, to key the tree below each one's cache. */
 let accessGenerations = 0;
@@ -142,15 +165,17 @@ export function DataProvider({
   access,
   reportMisuse,
   notify = showNotice,
+  reasonTexts = FRAME_ONLY,
+  notifyRefused = (notice) => showRefusal(notice, reasonTexts),
   children,
 }: DataProviderProps): ReactNode {
   // The cache and the context live as long as the provider's access: another access starts with
   // no answers, so none of the old one shows. Callbacks are read through refs, so a parent that
   // passes them inline redraws no hook below.
-  const latest = useRef({ notify, reportMisuse });
+  const latest = useRef({ notify, notifyRefused, reportMisuse });
   useEffect(() => {
-    latest.current = { notify, reportMisuse };
-  }, [notify, reportMisuse]);
+    latest.current = { notify, notifyRefused, reportMisuse };
+  }, [notify, notifyRefused, reportMisuse]);
   // A Query hook stays bound to the cache it first drew with, so the tree below is drawn anew for
   // another access, keyed by its cache.
   const { cache, generation } = useMemo(
@@ -167,6 +192,7 @@ export function DataProvider({
     return {
       access,
       notify: (notice) => latest.current.notify(notice),
+      notifyRefused: (notice) => latest.current.notifyRefused(notice),
       checkQuery: (module, entry) => {
         const report = latest.current.reportMisuse ?? defaultReport();
         const name = `${module}.${entry}`;

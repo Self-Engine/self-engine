@@ -86,8 +86,14 @@ async function renderOverPort(drawerId?: string, initialName?: string) {
     return null;
   }
   const notices: MessageDescriptor[] = [];
-  // What a Command is given: the same access and notice seam as the provider (D261).
-  const data: DataAccess = { access, notify: (notice) => notices.push(notice) };
+  // What a Command is given: the same access and notice seams as the provider (D261).
+  const data: DataAccess = {
+    access,
+    notify: (notice) => notices.push(notice),
+    notifyRefused: ({ reasons }) => {
+      throw new Error(`No write is refused here: ${reasons.map(({ code }) => code).join()}`);
+    },
+  };
   const container = document.createElement("div");
   document.body.append(container);
   cleanups.push(() => container.remove());

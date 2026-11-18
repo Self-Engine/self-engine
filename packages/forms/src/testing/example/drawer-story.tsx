@@ -87,7 +87,7 @@ export function StoryDrawer({
         activeView={state.module.views[0]}
         contributions={[state.module]}
         settings={state.module}
-        data={{ access: NO_DATA_PROCESS, notify: () => {} }}
+        data={{ access: NO_DATA_PROCESS, notify: () => {}, notifyRefused: () => {} }}
         routing={state.routing}
         onModuleSidebarCollapsedCommit={() => {}}
         onModuleSidebarWidthCommit={() => {}}
