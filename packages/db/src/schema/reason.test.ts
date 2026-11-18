@@ -41,3 +41,11 @@ test("a Reason's definition gives its details typed when the code and the detail
     undefined,
   );
 });
+
+test("a Reason's details cannot transform their input: they are parsed where a rule answers and again where a caller matches", () => {
+  // @ts-expect-error A transform would run twice.
+  defineReason("counted", z.string().transform((text) => text.length));
+  // @ts-expect-error A default fills in where the input left a gap.
+  defineReason("titled", z.object({ title: z.string().default("Untitled") }));
+  expectTypeOf(defineReason("titled", z.object({ title: z.string().optional() })).code).toEqualTypeOf<"titled">();
+});

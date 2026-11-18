@@ -74,22 +74,30 @@ export interface Reference {
   readonly target: string;
 }
 
+/**
+ * An identifier as SQLite compares it: it folds only the ASCII letters, so "Ärzte" and "ärzte"
+ * stay two tables, which `toLowerCase` would merge.
+ */
+export function foldIdentifier(name: string): string {
+  return name.replace(/[A-Z]/g, (letter) => letter.toLowerCase());
+}
+
 /** Every reference between synchronized tables, read from the schema the migrations left. */
 export async function referencesOf(database: Database): Promise<Reference[]> {
   const tables = (await tablesOf(database))
     .map(({ name }) => name)
     .filter((name) => !isLocalTable(name));
-  // SQLite resolves a referenced table's and column's name in any case.
-  const byName = new Map(tables.map((name) => [name.toLowerCase(), name]));
+  // SQLite resolves a referenced table's and column's name in any ASCII case.
+  const byName = new Map(tables.map((name) => [foldIdentifier(name), name]));
   const references: Reference[] = [];
   for (const table of tables) {
     const keys = await foreignKeyListOf(database, table);
     for (const key of keys) {
-      const target = byName.get(key.table.toLowerCase());
+      const target = byName.get(foldIdentifier(key.table));
       if (
         target === undefined ||
-        key.from.toLowerCase() === "space_id" ||
-        (key.to !== null && key.to.toLowerCase() !== "id") ||
+        foldIdentifier(key.from) === "space_id" ||
+        (key.to !== null && foldIdentifier(key.to) !== "id") ||
         keys.some((other) => other.id === key.id && other !== key)
       )
         continue;
