@@ -59,7 +59,8 @@ while the rule and the tables it reads can belong to other packages.
   pinned to the bottom of the drawer: the text takes its room from the free space below the
   fields. Nothing is reserved while nothing is blocked. Table Changes leave the opening's
   answer alone: an action the opening did not ask about, such as "Unarchive" after an archive
-  elsewhere, is usable, and the write still checks the rules when the user acts.
+  elsewhere, is usable, also while the answer is pending, and the write still checks the rules
+  when the user acts.
 - Fixed Answers represent both kinds of result and validate each Reason against the definitions
   supplied by the story or test; a Refusal compiles only for an entry with the refusal block and
   needs one Reason at least. The Port access asks the Clearance through its own typed method,

@@ -75,6 +75,25 @@ function portForStory(answer: Answer = "blocked") {
   };
 }
 
+/** The Clearance Query the form is given now; a story gives it another, as a drawer may. */
+function querySwitch(first: StoryQuery) {
+  let current = first;
+  const listeners = new Set<() => void>();
+  return {
+    current: () => current,
+    subscribe: (listener: () => void) => {
+      listeners.add(listener);
+      return () => {
+        listeners.delete(listener);
+      };
+    },
+    change: (next: StoryQuery) => {
+      current = next;
+      for (const listener of listeners) listener();
+    },
+  };
+}
+
 /** Whether the form asks the Clearance; a story turns it off to compare with a form without. */
 function clearanceSwitch() {
   let on = true;
@@ -98,16 +117,17 @@ function EntryForm({
   onCancel,
   onArchive,
   onDelete,
-  query = clearance,
+  queries,
   asks,
 }: {
   readonly onCancel: () => void;
   readonly onArchive: () => void;
   readonly onDelete: () => void;
-  readonly query?: StoryQuery;
+  readonly queries: ReturnType<typeof querySwitch>;
   readonly asks: ReturnType<typeof clearanceSwitch>;
 }) {
   const withClearance = useSyncExternalStore(asks.subscribe, asks.on);
+  const query = useSyncExternalStore(queries.subscribe, queries.current);
   const form = useOperationForm({
     entry: exampleContract.update,
     operation: useUpdateExample(),
@@ -139,7 +159,7 @@ interface Loaded {
   readonly port: ReturnType<typeof portForStory>;
   readonly onArchive: () => void;
   readonly onDelete: () => void;
-  readonly query: StoryQuery;
+  readonly queries: ReturnType<typeof querySwitch>;
   readonly asks: ReturnType<typeof clearanceSwitch>;
 }
 const loadAnswer =
@@ -148,7 +168,7 @@ const loadAnswer =
     port: portForStory(answer),
     onArchive: fn(),
     onDelete: fn(),
-    query,
+    queries: querySwitch(query),
     asks: clearanceSwitch(),
   });
 
@@ -156,7 +176,7 @@ const meta = {
   title: "Forms/Example form/Clearance",
   loaders: [loadStoryShell, loadAnswer("blocked")],
   render: (_args, { loaded }) => {
-    const { port, onArchive, onDelete, query, asks } = loaded as Loaded;
+    const { port, onArchive, onDelete, queries, asks } = loaded as Loaded;
     return (
       <DataProvider access={port.access}>
         <StoryDrawer>
@@ -165,7 +185,7 @@ const meta = {
               onCancel={onCancel}
               onArchive={onArchive}
               onDelete={onDelete}
-              query={query}
+              queries={queries}
               asks={asks}
             />
           )}
@@ -304,5 +324,30 @@ export const AFailedClearanceLeavesTheActionsToTheWrite: Story = {
     await expect(remove).toBeEnabled();
     await userEvent.click(remove);
     await expect(onDelete).toHaveBeenCalledOnce();
+  },
+};
+
+const deleteOnly = query({ table, rows: [CREATED.id], writes: ["delete"] });
+
+export const AnActionTheOpeningDidNotAskAboutIsUsableWhileTheAnswerWaits: Story = {
+  loaders: [loadStoryShell, loadAnswer("blocked", deleteOnly)],
+  play: async ({ loaded }) => {
+    const { port, onArchive, onDelete, queries } = loaded as Loaded;
+    const { archive, remove, live } = await drawnForm();
+    // The drawer now presents a write its opening did not ask about, such as after a change.
+    queries.change(clearance);
+    await expect(port.calls).toEqual([{ entry: "clearance", input: deleteOnly }]);
+
+    await userEvent.click(archive);
+    await expect(onArchive).toHaveBeenCalledOnce();
+    await expect(remove).toHaveAttribute("aria-disabled", "true");
+    await userEvent.click(remove);
+    await expect(onDelete).not.toHaveBeenCalled();
+
+    // The answer explains only what the opening asked.
+    port.release();
+    await waitFor(() => expect(remove).toBeDisabled());
+    await expect(archive).toBeEnabled();
+    await expect(live).toHaveTextContent(/^Cannot be deleted: 2 entries refer to it\.$/);
   },
 };

@@ -1,13 +1,22 @@
 import type { RowClearance } from "@self-engine/data-protocol";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useDataContext } from "./provider.ts";
 
 import type { ClearanceQuery } from "./clearance-query.ts";
 
-export type ClearanceState =
+type ClearanceAnswer =
   | { readonly status: "loading" }
   | { readonly status: "loadFailed" }
   | { readonly status: "content"; readonly data: readonly RowClearance[] };
+
+/** The answer of an opening's Clearance, beside the Query it asked. */
+export type ClearanceState = ClearanceAnswer & {
+  /**
+   * The Query this opening asked, the one it was mounted with: a later Query given to the hook
+   * asks nothing, so what waits for this answer, and what it explains, comes from this one.
+   */
+  readonly query: ClearanceQuery;
+};
 
 /** The one call of an opening, with what calls it off and how many setups listen to it. */
 interface OpeningCall {
@@ -26,7 +35,7 @@ export function useClearance(input: ClearanceQuery): ClearanceState {
   const { access } = useDataContext();
   const [opening] = useState(() => ({ access, input }));
   const call = useRef<OpeningCall | undefined>(undefined);
-  const [state, setState] = useState<ClearanceState>({ status: "loading" });
+  const [state, setState] = useState<ClearanceAnswer>({ status: "loading" });
   useEffect(() => {
     let active = true;
     // Strict Mode replays the effect. Both setups listen to the same call.
@@ -58,5 +67,5 @@ export function useClearance(input: ClearanceQuery): ClearanceState {
       });
     };
   }, [opening]);
-  return state;
+  return useMemo(() => ({ ...state, query: opening.input }), [state, opening]);
 }

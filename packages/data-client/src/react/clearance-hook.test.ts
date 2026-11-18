@@ -12,7 +12,13 @@ import { createRoot } from "react-dom/client";
 import { afterEach, beforeEach, expect, expectTypeOf, test, vi } from "vite-plus/test";
 import { fixedAnswers } from "../testing/index.ts";
 import { fakePort, held, renderHook, settle, unmountHook } from "./hook-harness.ts";
-import { clearanceQueryFor, type ClearanceState, DataProvider, useClearance } from "./index.ts";
+import {
+  type ClearanceQuery,
+  clearanceQueryFor,
+  type ClearanceState,
+  DataProvider,
+  useClearance,
+} from "./index.ts";
 
 type NoteId = string & { readonly noteId: unique symbol };
 type LinkId = string & { readonly linkId: unique symbol };
@@ -56,11 +62,11 @@ test("a Clearance has blocked, free and not-found writes with Reasons like a Ref
     },
   );
   const clearance = vi.fn(access.clearance.bind(access));
-  const hook = await renderHook({ access: { ...access, clearance } }, () =>
-    useClearance(query({ table: "notes", rows: [row], writes: ["delete", "archive", "restore"] })),
-  );
+  const asked = query({ table: "notes", rows: [row], writes: ["delete", "archive", "restore"] });
+  const hook = await renderHook({ access: { ...access, clearance } }, () => useClearance(asked));
   expect(hook.current()).toEqual({
     status: "content",
+    query: asked,
     data: [
       {
         row,
@@ -140,6 +146,23 @@ function waitingClearance() {
 
 const deleteNote = query({ table: "notes", rows: [row], writes: ["delete"] });
 
+test("an opening asks once and says what it asked, also when given another Query later", async () => {
+  const { access, answer, free } = waitingClearance();
+  const clearance = vi.fn(access.clearance);
+  let given: ClearanceQuery = deleteNote;
+  const hook = await renderHook({ access: { ...access, clearance } }, () => useClearance(given));
+  given = query({ table: "notes", rows: [row], writes: ["delete", "archive"] });
+  await hook.redraw();
+  expect(hook.current()).toEqual({ status: "loading", query: deleteNote });
+
+  answer();
+  await vi.waitFor(() => expect(hook.current().status).toBe("content"));
+
+  expect(hook.current()).toEqual({ status: "content", data: free, query: deleteNote });
+  expect(clearance).toHaveBeenCalledOnce();
+  expect(clearance.mock.calls[0]?.[0]).toEqual(deleteNote);
+});
+
 test("a closed opening calls off its Clearance, so none waits for a Port no drawer reads", async () => {
   const { access, signals } = waitingClearance();
   const hook = await renderHook({ access }, () => useClearance(deleteNote));
@@ -176,6 +199,6 @@ test("an opening left on screen keeps one call through Strict Mode's replay and 
 
   expect(port.calls.filter(({ entry }) => entry === "clearance")).toHaveLength(1);
   expect(signals.map((signal) => signal.aborted)).toEqual([false]);
-  expect(state).toEqual({ status: "content", data: free });
+  expect(state).toEqual({ status: "content", data: free, query: deleteNote });
   act(() => root.unmount());
 });

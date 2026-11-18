@@ -320,7 +320,9 @@ The Data Process checks every input at the Port.
 `clearanceQueryFor<TablesOf<typeof rowMap>>()` to `useClearance`. It reads once per mount,
 through the Port access's own typed `clearance` method, and calls the read off when it unmounts
 before the answer, so none waits for a Port while the Data Process reconnects.
-The `content` answer lists each row's writes as `free`, `blocked` or `notFound`;
+Every state names the Query the opening asked as `query`: a Query given on a later
+render asks nothing, so derive what waits and what is explained from this one. The `content`
+answer lists each row's writes as `free`, `blocked` or `notFound`;
 `findReason` also accepts a blocked write. For a story, give `fixedAnswers` the `clearance`
 option with `{ table, row, writes }` fixtures. A blocked write takes `{ state: "blocked",
 reasons: [...] }` and checks each Reason against the definitions in the `reasons` option. Fixed

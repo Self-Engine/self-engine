@@ -30,14 +30,16 @@ export function EditActionClearance({
   const { i18n } = useLingui();
   const texts = useReasonTexts();
   const state = useClearance(query);
+  // What the opening asked, never a later Query: an action it did not ask about waits for nothing.
+  const asked = state.query;
   const id = useId();
   const writes =
     state.status === "content"
-      ? (state.data.find(({ row }) => row === query.rows[0])?.writes ?? {})
+      ? (state.data.find(({ row }) => row === asked.rows[0])?.writes ?? {})
       : {};
   const descriptionId = (write: ClearanceWrite) => `${id}-${write}`;
   // A kind of write asked twice is still one action with one explanation.
-  const requested = [...new Set(query.writes)];
+  const requested = [...new Set(asked.writes)];
   const explanations = requested.flatMap((write) => {
     const answer = writes[write];
     if (answer?.state !== "blocked") return [];
