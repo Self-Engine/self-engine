@@ -41,6 +41,14 @@ const EXCEPTIONS: readonly Exception[] = [
   },
 ];
 
+/** The text of a string literal or of a template without expressions; `undefined` otherwise. */
+function staticString(node: ESTree.Node | undefined): string | undefined {
+  if (node?.type === "Literal" && typeof node.value === "string") return node.value;
+  if (node?.type === "TemplateLiteral" && node.expressions.length === 0)
+    return node.quasis[0]?.value.cooked ?? undefined;
+  return undefined;
+}
+
 /**
  * The table a write builder is called with, without its alias, when the call names it as a
  * plain string; `undefined` when the code computes it.
@@ -48,16 +56,14 @@ const EXCEPTIONS: readonly Exception[] = [
 function tableOf(node: ESTree.MemberExpression): string | undefined {
   const call = node.parent;
   if (call.type !== "CallExpression" || call.callee !== node) return undefined;
-  const [argument] = call.arguments;
-  if (argument?.type !== "Literal" || typeof argument.value !== "string") return undefined;
-  return argument.value.split(/\s+as\s+/i)[0]?.trim();
+  return staticString(call.arguments[0])
+    ?.split(/\s+as\s+/i)[0]
+    ?.trim();
 }
 
 function propertyName(node: ESTree.MemberExpression): string | undefined {
   if (!node.computed && node.property.type === "Identifier") return node.property.name;
-  if (node.property.type === "Literal" && typeof node.property.value === "string")
-    return node.property.value;
-  return undefined;
+  return node.computed ? staticString(node.property) : undefined;
 }
 
 export default defineRule({

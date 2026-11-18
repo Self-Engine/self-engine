@@ -189,17 +189,14 @@ test("the Clearance writes nothing and announces no Table Change", async () => {
     rows: [note.id],
     writes: ["update", "delete", "restore"],
   });
-  // The next Table Change is the one of this write, not one of the Clearance.
-  await client.notes.update({ id: note.id, title: "Touched" });
+  // The next Table Change is the one of this write to another table, not one of the Clearance.
+  await client.links.create({ noteId: note.id, label: "Marker" });
 
   await expect(events.next()).resolves.toEqual({
     done: false,
-    value: { kind: "changed", tables: ["notes"] },
+    value: { kind: "changed", tables: ["note_links"] },
   });
-  await expect(client.notes.get({ id: note.id })).resolves.toMatchObject({
-    title: "Touched",
-    updatedAt: note.updatedAt,
-  });
+  await expect(client.notes.get({ id: note.id })).resolves.toEqual(note);
 });
 
 test("a row that is unknown, of another Space, or not in the state a write needs is not found, unlike a free row", async () => {

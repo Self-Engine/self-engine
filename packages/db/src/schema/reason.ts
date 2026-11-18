@@ -16,9 +16,22 @@ export interface ReasonDefinition<
   readonly details: Details;
 }
 
+/** What a details schema whose input and output differ is told instead of being accepted. */
+type Untransformed<Details extends z.ZodType> = [z.input<Details>] extends [z.output<Details>]
+  ? [z.output<Details>] extends [z.input<Details>]
+    ? unknown
+    : { readonly "details must not transform their input": never }
+  : { readonly "details must not transform their input": never };
+
+/**
+ * The details are parsed where a rule answers and again where a caller matches the Reason it
+ * received, so their schema must not transform its input: its input and output types must be the
+ * same, which rules out a transform that changes the type, a default and a coercion. A transform
+ * that keeps the type (a trim) is beyond the type; do not write one.
+ */
 export function defineReason<const Code extends string, Details extends z.ZodType>(
   code: Code,
-  details: Details,
+  details: Details & Untransformed<Details>,
 ): ReasonDefinition<Code, Details> {
   return { code, details };
 }

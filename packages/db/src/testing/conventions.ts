@@ -3,7 +3,13 @@ import type { Database } from "../core/index.ts";
 
 import type { SchemaViolation } from "./violation.ts";
 
-import { columnsOf, foreignKeyListOf, referencesOf, tablesOf } from "../core/introspect.ts";
+import {
+  columnsOf,
+  foldIdentifier,
+  foreignKeyListOf,
+  referencesOf,
+  tablesOf,
+} from "../core/introspect.ts";
 import type { ColumnRow, ForeignKeyRow } from "../core/introspect.ts";
 import { isLocalTable } from "../core/local-table.ts";
 
@@ -215,8 +221,9 @@ function isLiveRowIndex(index: IndexRow): boolean {
 }
 
 /**
- * `referring` are the columns of this table the reference check looks rows up by, in every Space
- * (D337): each must start an index, and such an index need not start with `space_id`.
+ * `referring` are the columns of this table the reference check looks Live Rows up by, in every
+ * Space (D337): each must start an index SQLite can use for that lookup, a full one or one partial
+ * on `deleted_at IS NULL`, and such an index need not start with `space_id`.
  */
 async function indexRules(
   database: Database,
@@ -249,15 +256,32 @@ async function indexRules(
     }
     const first = columns[0]?.name?.toLowerCase();
     if (first !== undefined && referring.some((column) => column.toLowerCase() === first)) {
-      indexed.add(first);
+      if (index.partial === 0 || isLiveRowIndex(index)) indexed.add(first);
     } else if (first !== "space_id") {
       rules.push(`index ${index.name} must start with space_id`);
     }
   }
   for (const column of referring)
     if (!indexed.has(column.toLowerCase()))
-      rules.push(`referring column ${column} must start an index`);
+      rules.push(
+        `referring column ${column} must start an index that is full or partial on deleted_at IS NULL`,
+      );
   return rules;
+}
+
+/**
+ * The reference check reads a reference from the values a write sets (D337), so SQLite must not
+ * fill one in: a referring column is either written or null, and has no DEFAULT but NULL.
+ */
+function defaultRules(columns: readonly ColumnRow[], referring: readonly string[]): string[] {
+  return referring
+    .filter((name) => {
+      const value = columns.find(
+        (column) => foldIdentifier(column.name) === foldIdentifier(name),
+      )?.dflt_value;
+      return value !== undefined && value !== null && value.toUpperCase() !== "NULL";
+    })
+    .map((name) => `referring column ${name} must not have a DEFAULT`);
 }
 
 /** Reads a database's schema after its migrations and reports every broken table convention. */
@@ -267,18 +291,15 @@ export async function checkConventions(database: Database): Promise<SchemaViolat
   const violations: SchemaViolation[] = [];
   for (const { name, strict, sql: createTable } of rows) {
     const columns = await columnsOf(database, name);
+    const referring = references.filter(({ table }) => table === name).map(({ column }) => column);
     const rules = [
       ...(strict === 1 ? [] : ["must be STRICT"]),
       ...columnRules(name, columns),
       ...foreignKeyRules(name, createTable),
       ...(await foreignKeyActionRules(database, name)),
       ...(await spaceKeyRules(database, name, columns)),
-      ...(await indexRules(
-        database,
-        name,
-        createTable,
-        references.filter(({ table }) => table === name).map(({ column }) => column),
-      )),
+      ...(await indexRules(database, name, createTable, referring)),
+      ...defaultRules(columns, referring),
     ];
     violations.push(...rules.map((rule) => ({ table: name, rule })));
   }

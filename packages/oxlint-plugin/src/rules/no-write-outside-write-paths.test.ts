@@ -35,6 +35,19 @@ describe("self-engine/no-write-outside-write-paths", () => {
     ).toEqual([[], [], []]);
   });
 
+  it("reports a write whose method is named by a string or a template without expressions", () => {
+    expect(
+      lintFixtures(RULE, [
+        'await tx["deleteFrom"]("notes").execute();',
+        "await tx[`deleteFrom`](`notes`).execute();",
+      ]).map((hits) => hits.length),
+    ).toEqual([1, 1]);
+  });
+
+  it("reads a table named by a template without expressions", () => {
+    expect(lintFixture(RULE, "await tx[`deleteFrom`](`local_audit`).execute();")).toEqual([]);
+  });
+
   it("reports a write whose table it cannot read, since it may be synced", () => {
     expect(
       lintFixtures(RULE, [

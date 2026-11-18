@@ -44,8 +44,10 @@ area above it. Soft deletion also means the database's own foreign keys never fi
 - **A refused write throws the Refusal**, `REFUSED` (HTTP status 422) with `{ reasons }`, at
   least one. It is the third expected failure beside `NOT_FOUND` and `CONFLICT`; the frame
   passes it through and nothing is written. A write that would not find its row answers
-  `NOT_FOUND` whatever a rule answers: before it throws the Refusal, the frame looks the rows up
-  once by primary key, so only a refused write pays that query. A Conflict stays a duplicate value its Contract
+  `NOT_FOUND` whatever a rule answers, and an archive or unarchive that would change nothing
+  answers with the row as it is, since it writes nothing a rule could guard: before it throws
+  the Refusal, the frame looks the rows up once by primary key, so only a refused write pays
+  that query. A Conflict stays a duplicate value its Contract
   lists. Every Operation's Contract spreads `refusal` from `@self-engine/db/schema` and lists
   no Reason's code, so a rule from above never changes a Contract. `ModuleEntries` accepts an
   Operation only with it and a Query only without it, and the contract kit checks it.
@@ -69,13 +71,16 @@ area above it. Soft deletion also means the database's own foreign keys never fi
   unarchive are not guarded. Counts are taken only for a refused row. A row's reference to
   itself does not protect it. An update that writes no reference column runs no query. An
   unknown or foreign row being deleted or restored gets no answer, so it stays "not found".
-  The conventions check requires an index that begins with every referring column.
+  The conventions check requires an index that begins with every referring column, full or
+  partial on `deleted_at IS NULL`, and no DEFAULT but NULL on it, since the check reads a
+  reference from the written values.
 
 - **The Clearance** is one Query of the protocol Contract, `clearance`, for every module:
   `{ table, rows, writes }` with writes out of update, delete, restore, archive and unarchive.
   It asks the same rules, through an access that cannot write, and answers per row and kind of
-  write `free`, `blocked` with the Reasons, or `notFound`. An update is asked without values,
-  so a rule that needs them answers only at the write. An unmounted table, a Local Table and
+  write `free`, `blocked` with the Reasons, or `notFound`. An archive or unarchive that would
+  change nothing is `free` without asking a rule, as at the write. An update is asked without
+  values, so a rule that needs them answers only at the write. An unmounted table, a Local Table and
   archive on a table that cannot be archived are invalid input.
 
 ## Consequences
