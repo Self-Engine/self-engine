@@ -328,6 +328,7 @@ function createForm(latest: () => Latest, isEdit: boolean): MadeForm {
     if (options.edit === undefined) return;
     const gone = options.edit.deleted === true;
     let followedNow = gone !== deleted;
+    let answered = false;
     deleted = gone;
     if (!gone && !sameValue(options.draft, followed)) {
       followed = structuredClone(options.draft);
@@ -344,13 +345,16 @@ function createForm(latest: () => Latest, isEdit: boolean): MadeForm {
         draft.setFieldValue(field, options.draft[field], { forceUpdate: false });
         countFromOutside(field);
       }
+      // A field that takes a new value changed, as by the user or by code: that answers what
+      // stood at it.
+      answered = taking.filter(answerAt).length > 0;
       stored = structuredClone(next);
       for (const field of taking) values.notify(field);
       followedNow = true;
     }
     if (!followedNow) return;
     notifyChanged();
-    if (checkingEveryChange) check();
+    if (checkingEveryChange || answered) check();
   };
   const form: OperationForm<never> = {
     async submit() {

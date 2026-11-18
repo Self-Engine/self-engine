@@ -6,6 +6,7 @@
 import type { I18n } from "@lingui/core";
 import { I18nProvider, useLingui } from "@lingui/react";
 import { Button, Stack, TextInput } from "@mantine/core";
+import { useState } from "react";
 import {
   DataProvider,
   type FrameReasons,
@@ -29,7 +30,7 @@ import {
 } from "../../index.ts";
 import { exampleContract } from "./contract.ts";
 import { ExampleForm } from "./example-form.tsx";
-import { useCreateExample } from "./port.ts";
+import { useCreateExample, useUpdateExample } from "./port.ts";
 import { CREATED, type RecordingPort, recordingPortOf } from "./story-port.ts";
 
 /** A rule of the story: some titles are kept for the archive. */
@@ -568,6 +569,65 @@ export const TypingUnfinishedTextAnswersTheReasonAtItsField: Story = {
     );
     await expect(form.description()).not.toHaveAccessibleDescription(
       "Complete or clear this field.",
+    );
+  },
+};
+
+/** An edit form of a stored entry, with buttons that store another title, as another window may. */
+function FormFollowingItsStoredTitle() {
+  const [title, setTitle] = useState("Original");
+  const form = useOperationForm({
+    entry: exampleContract.update,
+    operation: useUpdateExample(),
+    draft: { id: ROW, title, description: "Paint the walls.", icon: null, color: null },
+    edit: { identity: { id: ROW } },
+  });
+  return (
+    <Stack>
+      <OperationFormBody form={form}>
+        <Stack>
+          <TextField form={form} label="Title" name="title" />
+          <Button type="submit">Save</Button>
+        </Stack>
+      </OperationFormBody>
+      <Button onClick={() => setTitle("Kitchen")}>Store Kitchen</Button>
+      <Button onClick={() => setTitle("Hall")}>Store Hall</Button>
+    </Stack>
+  );
+}
+
+export const AStoredValueTheFieldFollowsAnswersTheReasonAtIt: Story = {
+  loaders: [
+    (): Loaded => ({
+      port: recordingPortOf(
+        { example: exampleContract },
+        { example: { update: { refused: [RESERVED] } } },
+        { reasons: [referenced, targetDeleted, titleReserved, spaceFull] },
+      ),
+      created: fn(),
+    }),
+  ],
+  render: (_args, { loaded }) => (
+    <DataProvider access={(loaded as Loaded).port.access} reasonTexts={texts}>
+      <FormFollowingItsStoredTitle />
+    </DataProvider>
+  ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const form = formIn(canvasElement);
+    await userEvent.clear(form.title());
+    await userEvent.type(form.title(), "Kitchen");
+    await form.save();
+    await waitFor(() =>
+      expect(form.title()).toHaveAccessibleDescription("“Kitchen” is kept for the archive."),
+    );
+
+    // Stored as typed, the field is unchanged again; then it follows the next stored title.
+    await userEvent.click(canvas.getByRole("button", { name: "Store Kitchen" }));
+    await userEvent.click(canvas.getByRole("button", { name: "Store Hall" }));
+    await waitFor(() => expect(form.title()).toHaveValue("Hall"));
+    await expect(form.title()).not.toHaveAccessibleDescription(
+      "“Kitchen” is kept for the archive.",
     );
   },
 };

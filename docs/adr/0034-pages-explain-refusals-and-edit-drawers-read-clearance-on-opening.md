@@ -20,7 +20,8 @@ while the rule and the tables it reads can belong to other packages.
   says, per call, that it shows that field; the form says so for the fields it renders that
   still hold the value the save sent, since a change while the save ran answered the Reason
   already. The form shows those Reasons at their fields and keeps the Draft until the field
-  changes, also by text that is no value yet, or the next save answers. It displays a Check at
+  changes, also by text that is no value yet or a stored value it follows, or the next save
+  answers. It displays a Check at
   the field first when both apply.
 - `DataProvider` supplies the shared Notice of a Refusal through `notifyRefused`. It shows every
   Reason no field of the caller shows, so none is lost. A caller can supply an entry name and
