@@ -8,7 +8,7 @@ const examplePort = portHooks<typeof exampleContract, ExampleTables>("example");
 
 export const useCreateExample = examplePort.operation("create", {
   conflicts: { title_taken: { field: "title", text: msg`This title is already in use.` } },
-  // A Reason at one of these columns is shown at its field (D334); `icon` and `id` are not mapped.
+  // A Reason at one of these columns is shown at its field (D334); `id`, `icon` and `archived_at` are not mapped.
   columns: { example_entries: { title: "title", description: "description", color_set: "color" } },
 });
 

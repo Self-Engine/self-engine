@@ -3,7 +3,7 @@
 // real core with the `notes` test module mounted, and Node's MessageChannel.
 
 import { startTestDataProcess, type TestDataProcess } from "@self-engine/data-process/testing";
-import { notes } from "@self-engine/storage/testing";
+import { notes, notesContract } from "@self-engine/storage/testing";
 import { afterEach, expect, test } from "vite-plus/test";
 import { createDataConnection, type DataConnection } from "../index.ts";
 import { portAccessOf } from "./port-access.ts";
@@ -16,10 +16,10 @@ afterEach(async () => {
   for (const process of started.splice(0)) await process.close();
 });
 
-async function connected(): Promise<{ process: TestDataProcess; connection: DataConnection }> {
+async function connected() {
   const process = await startTestDataProcess({ modules: { notes } });
   started.push(process);
-  const connection = createDataConnection();
+  const connection = createDataConnection<{ notes: typeof notesContract }>();
   connections.push(connection);
   connection.connect(process.openPort());
   await untilReady(connection);
@@ -88,4 +88,17 @@ test("reports a reconnect when ready again after the port was lost, not the firs
   connection.connect(process.openPort());
   await untilReady(connection);
   expect(reconnects).toBe(2);
+});
+
+test("calls the root Clearance Query through the Port", async () => {
+  const { connection } = await connected();
+  const access = portAccessOf(connection);
+  const note = await connection.client.notes.create({ title: "Alpha", isPinned: false });
+  await expect(
+    access.call("", "clearance", {
+      table: "notes",
+      rows: [note.id],
+      writes: ["delete"],
+    }),
+  ).resolves.toEqual([{ row: note.id, writes: { delete: { state: "free" } } }]);
 });

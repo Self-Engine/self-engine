@@ -29,4 +29,6 @@ export {
   type OperationFormBodyProps,
 } from "./form-body.tsx";
 
+export { ClearanceAction, type ClearanceActionProps } from "./clearance-actions.tsx";
+
 export type { FormTexts } from "./check.ts";

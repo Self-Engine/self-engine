@@ -26,7 +26,7 @@ import {
   type RefusedNotice,
   refusalTexts,
   useDataAccess,
-  useRefusalTexts,
+  useReasonTexts,
 } from "./index.ts";
 import { NOT_FOUND_NOTICE, UNEXPECTED_NOTICE } from "./operation-hook.ts";
 
@@ -592,7 +592,7 @@ test("the provider gives a form the texts of Reasons it was given, to show one a
   const describe = vi.spyOn(texts, "describe").mockReturnValue("The linked note was deleted.");
   const i18n = createI18n();
 
-  const given = await renderHook(fakePort(), () => useRefusalTexts(), { reasonTexts: texts });
+  const given = await renderHook(fakePort(), () => useReasonTexts(), { reasonTexts: texts });
 
   expect(given.current().describe(AT_FIELD, i18n)).toBe("The linked note was deleted.");
   expect(describe).toHaveBeenCalledWith(AT_FIELD, i18n);

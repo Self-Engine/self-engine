@@ -289,6 +289,14 @@ Input checks before saving are up to the form for now; there is no shared form h
 Data Process checks every input, so an input the Contract rejects comes back as `unexpected`.
 The template disables Save while the name is empty for that reason.
 
+**A Clearance.** Outside the form helper, pass a Query built with
+`clearanceQueryFor<TablesOf<typeof rowMap>>()` to `useClearance`. It reads once per mount.
+The `content` answer lists each row's writes as `free`, `blocked` or `notFound`;
+`findReason` also accepts a blocked write. For a story, give `fixedAnswers` the `clearance`
+option with `{ table, row, writes }` fixtures. A blocked write takes `{ state: "blocked",
+reasons: [...] }` and checks each Reason against the definitions in the `reasons` option.
+See the [form action slot](forms.md#action-slot-and-a-standalone-form) for the edit form.
+
 ## 4. Draw a list so that one changed row redraws one row
 
 A list that writes its rows inline in its `map` draws every row again on each reload: renaming

@@ -203,6 +203,30 @@ changes, like any other way out. A delete asks nothing.
 </EditDrawerForm>
 ```
 
+For an action that needs Clearance (D336, D339), define the Query for the module's tables
+and use a `ClearanceAction` in the slot. The Query checks the table, row id and kinds of write
+against the types of the Row Map. For example, with a type-only import of `projectsRowMap`:
+
+```tsx
+const query = clearanceQueryFor<TablesOf<typeof projectsRowMap>>();
+const clearance = query({ table: "projects", rows: [project.id], writes: ["delete"] });
+
+<EditDrawerForm
+  form={form}
+  onCancel={onCancel}
+  clearance={clearance}
+  actions={<ClearanceAction write="delete" onClick={deleteHere}>{t`Delete`}</ClearanceAction>}
+>
+  {/* fields */}
+</EditDrawerForm>;
+```
+
+List the kinds of write the slot shows in `writes`. The form opens immediately and asks once per
+opening. The action keeps its ordinary appearance while the answer is pending and ignores
+activation. When blocked, it is disabled and linked to its Reason text beneath the footer.
+The footer reserves the same space before and after the answer. A Table Change leaves the
+answer alone. The Operation still handles Refusals that arise while the form is open.
+
 Archive/Delete are Operations, never Draft fields. Outside the Edit Drawer, use
 `OperationFormBody` with the same `form` and fields and your own `type="submit"` button.
 It provides Check, locking, keys and the deleted-entry warning without registering a Shell

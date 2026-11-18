@@ -39,7 +39,7 @@ export interface DataAccess {
 }
 
 interface DataContext extends DataAccess {
-  /** The text of every Reason, for a form that shows one at its field. */
+  /** The text of every Reason, for a form or an action that shows one in place. */
   readonly reasonTexts: RefusalTexts;
   /** Reports, once per entry, a Query hook whose entry the Data Process calls an Operation. */
   readonly checkQuery: (module: string, entry: string) => void;
@@ -66,10 +66,11 @@ export function useDataAccess(): DataAccess {
 }
 
 /**
- * The texts of Reasons the nearest `DataProvider` was given, for a form that shows a Reason at
- * its field (D334) in the words the shared Notice would use.
+ * The texts of Reasons the nearest `DataProvider` was given, in the words the shared Notice
+ * uses: for a form that shows a Reason of a Refusal at its field (D334) and for an action a
+ * Clearance blocks (D336). The object stays the same while the provider's access does.
  */
-export function useRefusalTexts(): RefusalTexts {
+export function useReasonTexts(): RefusalTexts {
   return useDataContext().reasonTexts;
 }
 
