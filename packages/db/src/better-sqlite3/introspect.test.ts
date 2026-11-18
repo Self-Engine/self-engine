@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, expect, test } from "vite-plus/test";
-import { openDatabase } from "../better-sqlite3/index.ts";
-import type { Database } from "./database.ts";
-import { referencesOf } from "./introspect.ts";
+import { openDatabase } from "./index.ts";
+import type { Database } from "../core/index.ts";
+import { referencesOf } from "../core/index.ts";
 
 let database: Database;
 
