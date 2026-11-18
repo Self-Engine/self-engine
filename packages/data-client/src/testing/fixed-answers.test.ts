@@ -3,7 +3,8 @@
 // map of entry to answer, checked against the `notes` test module's Contract.
 
 import { msg } from "@lingui/core/macro";
-import { notesContract } from "@self-engine/storage/testing";
+import { referenced } from "@self-engine/data-protocol";
+import { notesContract, pinnedNote } from "@self-engine/storage/testing";
 import { act } from "react";
 import { afterEach, beforeEach, expect, test, vi } from "vite-plus/test";
 import { renderHook, settle, type ShownNotices, unmountHook } from "../react/hook-harness.ts";
@@ -129,6 +130,70 @@ test("an Operation returns its Fixed Answer and changes nothing", async () => {
   const { result } = await rename(access);
   expect(result).toEqual({ status: "success", data: { ...NOTE, title: "Errands" } });
   await expect(access.call("notes", "list", {})).resolves.toEqual([NOTE]);
+});
+
+// A Refusal is checked against the Reason definitions the story passes, as a conflict is checked
+// against the Contract: the frame's own and a module's alike.
+const PINNED = {
+  code: "pinned",
+  table: "notes",
+  row: NOTE.id,
+  details: { title: "Groceries" },
+} as const;
+
+test("an Operation hook gets the Refusal with every Reason, blocking as the frame sets it", async () => {
+  const referencedBy = {
+    code: "referenced" as const,
+    table: "notes",
+    row: NOTE.id,
+    details: { tables: [{ table: "attachments", count: 2 }] },
+  };
+  const access = fixedAnswers(
+    contracts,
+    { notes: { update: { refused: [PINNED, { ...referencedBy, field: "title" }] } } },
+    { reasons: [pinnedNote, referenced] },
+  );
+
+  const { result, notices } = await rename(access);
+
+  expect(result).toEqual({
+    status: "refused",
+    reasons: [
+      { ...PINNED, severity: "blocking" },
+      { ...referencedBy, field: "title", severity: "blocking" },
+    ],
+  });
+  expect(notices).toHaveLength(1);
+});
+
+test("a Reason nobody defined fails and names the entry and its code", () => {
+  expect(() =>
+    fixedAnswers(
+      contracts,
+      // @ts-expect-error The story passes no definition of `pinned`.
+      { notes: { update: { refused: [PINNED] } } },
+      { reasons: [referenced] },
+    ),
+  ).toThrow(/notes\.update.*"pinned"/);
+  // @ts-expect-error Without definitions, a story cannot fix a Refusal.
+  void (() => fixedAnswers(contracts, { notes: { update: { refused: [PINNED] } } }));
+});
+
+test("a Reason whose details do not fit its definition fails and names the detail", () => {
+  expect(() =>
+    fixedAnswers(
+      contracts,
+      // @ts-expect-error The details of `pinned` have a title.
+      { notes: { update: { refused: [{ ...PINNED, details: { name: "Groceries" } }] } } },
+      { reasons: [pinnedNote] },
+    ),
+  ).toThrow(/notes\.update.*"pinned".*title/);
+});
+
+test("a Refusal for an entry that cannot refuse fails and names the entry", () => {
+  expect(() =>
+    fixedAnswers(contracts, { notes: { get: { refused: [PINNED] } } }, { reasons: [pinnedNote] }),
+  ).toThrow(/notes\.get.*refus/);
 });
 
 test("answers by mount send each call to the access of its mount", async () => {

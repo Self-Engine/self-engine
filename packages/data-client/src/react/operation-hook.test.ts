@@ -5,7 +5,8 @@
 
 import { msg } from "@lingui/core/macro";
 import { ORPCError } from "@orpc/client";
-import type { notesContract } from "@self-engine/storage/testing";
+import { findReason } from "@self-engine/data-protocol";
+import { type notesContract, pinnedNote } from "@self-engine/storage/testing";
 import { act } from "react";
 import { afterEach, beforeEach, expect, test, vi } from "vite-plus/test";
 import {
@@ -190,6 +191,50 @@ test.each([
   expect(notices).toEqual([UNEXPECTED_NOTICE]);
 });
 
+// A Refusal (D334), as the Data Process sends it when a Protection Rule refuses the write: the
+// error `REFUSED` with every Reason. Here the `notes` module's own Reason: a pinned note stays.
+const PINNED = {
+  code: "pinned",
+  severity: "blocking",
+  table: "notes",
+  row: "note-0",
+  details: { title: "Groceries" },
+} as const;
+const AT_FIELD = { ...PINNED, field: "title" } as const;
+const REFUSED = new ORPCError("REFUSED", { status: 422, data: { reasons: [PINNED, AT_FIELD] } });
+
+test("a Refusal returns as a result of its own with every Reason, and is announced until the Notice exists", async () => {
+  const port = fakePort();
+  port.answer("update", () => Promise.reject(REFUSED));
+  const notices: ShownNotices = [];
+  const rename = await renderHook(port, () => useRenameNote(), {
+    notify: (notice) => notices.push(notice),
+  });
+
+  expect(await runOnce(rename)).toEqual({ status: "refused", reasons: [PINNED, AT_FIELD] });
+  expect(rename.current().running).toBe(false);
+  // The stopgap until the shared Notice: announced the way an unexpected error is.
+  expect(notices).toEqual([UNEXPECTED_NOTICE]);
+});
+
+test("a page narrows a Refusal to one Reason by its definition and reads its details typed", async () => {
+  const port = fakePort();
+  port.answer("update", () => Promise.reject(REFUSED));
+  const rename = await renderHook(port, () => useRenameNote());
+
+  const result = await runOnce(rename);
+  if (result.status !== "refused") throw new Error("The rename was not refused");
+  const pinned = findReason(result, pinnedNote);
+
+  expect(pinned).toEqual(PINNED);
+  const title: string | undefined = pinned?.details.title;
+  expect(title).toBe("Groceries");
+  // @ts-expect-error The details of `pinned` have no `titel`.
+  void pinned?.details.titel;
+  // @ts-expect-error Only a refused result carries Reasons.
+  void (() => findReason({ status: "notFound" }, pinnedNote));
+});
+
 test("the Operation's input, result and conflict texts are typed from the module's Contract", () => {
   // Compile-time checks: the type check of `pnpm verify` fails if any expectation breaks.
   const typed = async () => {
@@ -288,6 +333,45 @@ test.each([
     expect(notices).toEqual([notice]);
   },
 );
+
+test("the function form returns a Refusal as the hook does and announces it through its seam", async () => {
+  const port = fakePort();
+  const { data, notices } = commandData(port);
+  port.answer("update", () => Promise.reject(REFUSED));
+
+  const result = await renameNote(data, RENAME);
+
+  expect(result).toEqual({ status: "refused", reasons: [PINNED, AT_FIELD] });
+  expect(result.status === "refused" && findReason(result, pinnedNote)?.details.title).toBe(
+    "Groceries",
+  );
+  expect(notices).toEqual([UNEXPECTED_NOTICE]);
+});
+
+test("a caller that shows a Refusal itself gets it instead of the announcement", async () => {
+  const shown: unknown[] = [];
+  const renameShowing = notesPort.run("update", {
+    conflicts: { title_taken: { text: TITLE_TAKEN, field: "title" } },
+    refused: (refusal, input) => shown.push([refusal.reasons.length, input.title]),
+  });
+  const port = fakePort();
+  const { data, notices } = commandData(port);
+  port.answer("update", () => Promise.reject(REFUSED));
+
+  expect(await renameShowing(data, RENAME)).toMatchObject({ status: "refused" });
+  expect(shown).toEqual([[2, "Beta"]]);
+  expect(notices).toEqual([]);
+});
+
+test("a Refusal whose Reasons do not have the shape of the refusal block is unexpected", async () => {
+  const port = fakePort();
+  const { data, notices } = commandData(port);
+  const malformed = new ORPCError("REFUSED", { status: 422, data: { reasons: [] } });
+  port.answer("update", () => Promise.reject(malformed));
+
+  expect(await renameNote(data, RENAME)).toEqual({ status: "unexpected", error: malformed });
+  expect(notices).toEqual([UNEXPECTED_NOTICE]);
+});
 
 // A conflict without a field to show it at, such as undo's: the module says so with `field: null`,
 // and the building block shows the text as a notice itself.

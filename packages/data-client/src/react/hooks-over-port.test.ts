@@ -5,14 +5,16 @@
 
 import { msg } from "@lingui/core/macro";
 import type { MessageDescriptor } from "@lingui/core";
+import { findReason } from "@self-engine/data-protocol";
 import { startTestDataProcess, type TestDataProcess } from "@self-engine/data-process/testing";
-import { notes, type notesContract } from "@self-engine/storage/testing";
+import { notes, notesContract, pinnedNote } from "@self-engine/storage/testing";
 import { createElement, type ReactNode } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, expect, test } from "vite-plus/test";
 import { createDataConnection, type DataConnection } from "../index.ts";
-import { DataProvider, portAccessOf, portHooks } from "./index.ts";
-import { NOT_FOUND_NOTICE } from "./operation-hook.ts";
+import { fixedAnswers } from "../testing/index.ts";
+import { type DataAccess, DataProvider, portAccessOf, portHooks } from "./index.ts";
+import { NOT_FOUND_NOTICE, UNEXPECTED_NOTICE } from "./operation-hook.ts";
 
 // The hooks render outside `act`: answers arrive over a real port, at no moment a test can name.
 globalThis.IS_REACT_ACT_ENVIRONMENT = false;
@@ -130,4 +132,56 @@ test("each result of the notes module arrives as a value, and the list reloads o
   const after = await rendered.until((hooks) => titles(hooks).includes("Gamma"));
   expect(titles(after).toSorted()).toEqual(["Beta", "Gamma"]);
   expect(rendered.notices).toEqual([NOT_FOUND_NOTICE]);
+});
+
+// A Refusal (D334): the notes module's Protection Rule keeps a pinned note. The Data Process
+// refuses its delete, and a Fixed Answer with the same Reason gives a caller the same result.
+const deleteNote = notesPort.run("delete");
+const createNote = notesPort.run("create", {
+  conflicts: { title_taken: { text: TITLE_TAKEN, field: "title" } },
+});
+
+test("a refused delete arrives as the Refusal a Fixed Answer with the same Reason gives", async () => {
+  const process = await startTestDataProcess({ modules: { notes } });
+  cleanups.push(() => process.close());
+  const connection = createDataConnection();
+  cleanups.push(() => connection.disconnect());
+  connection.connect(process.openPort());
+  await untilReady(connection);
+  const notices: MessageDescriptor[] = [];
+  const data: DataAccess = {
+    access: portAccessOf(connection),
+    notify: (notice) => notices.push(notice),
+  };
+
+  const created = await createNote(data, { title: "Groceries", isPinned: true });
+  if (created.status !== "success") throw new Error("The note was not created");
+  const refused = await deleteNote(data, { id: created.data.id });
+
+  expect(refused.status === "refused" && findReason(refused, pinnedNote)?.details).toEqual({
+    title: "Groceries",
+  });
+  const fixed: DataAccess = {
+    access: fixedAnswers(
+      { notes: notesContract },
+      {
+        notes: {
+          delete: {
+            refused: [
+              {
+                code: "pinned",
+                table: "notes",
+                row: created.data.id,
+                details: { title: "Groceries" },
+              },
+            ],
+          },
+        },
+      },
+      { reasons: [pinnedNote] },
+    ),
+    notify: (notice) => notices.push(notice),
+  };
+  expect(await deleteNote(fixed, { id: created.data.id })).toEqual(refused);
+  expect(notices).toEqual([UNEXPECTED_NOTICE, UNEXPECTED_NOTICE]);
 });
