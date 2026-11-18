@@ -112,7 +112,9 @@ export function defineContribution<const Commands extends readonly ShellCommand[
 export function defineContribution<const Commands extends readonly ShellCommand[]>(
   contribution: ContributionInput<Commands>,
 ): ShellContribution {
-  const { commands, primaryAction, ...metadata } = contribution;
+  // Read by name, as the first overload promises them: a rest copies own properties alone.
+  const { commands, primaryAction, dataTexts, ...rest } = contribution;
+  const metadata = dataTexts === undefined ? rest : { ...rest, dataTexts };
   if (primaryAction) {
     return Object.assign(new ContributionAction(commands ?? [], primaryAction), metadata);
   }

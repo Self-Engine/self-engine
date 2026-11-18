@@ -118,3 +118,17 @@ test("a contribution promises data texts only when it was given them", () => {
   const named = defineContribution<readonly [], DataTexts>(base);
   void [missing, named];
 });
+
+test("a contribution keeps data texts its input reads through a getter", () => {
+  class WithTexts {
+    readonly id = base.id;
+    readonly name = base.name;
+    readonly icon = base.icon;
+    readonly color = base.color;
+    readonly views = base.views;
+    get dataTexts() {
+      return NO_DATA_TEXTS;
+    }
+  }
+  expect(defineContribution(new WithTexts()).dataTexts).toBe(NO_DATA_TEXTS);
+});
