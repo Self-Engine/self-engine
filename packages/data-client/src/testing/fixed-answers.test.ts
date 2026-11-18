@@ -163,6 +163,7 @@ test("an Operation hook gets the Refusal with every Reason, blocking as the fram
       { ...PINNED, severity: "blocking" },
       { ...referencedBy, field: "title", severity: "blocking" },
     ],
+    atFields: [],
   });
   // The shared Notice of a Refusal, with every Reason.
   expect(notices).toEqual([{ reasons: (result as { reasons: unknown }).reasons }]);

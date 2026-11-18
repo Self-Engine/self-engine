@@ -15,11 +15,15 @@ import {
 import { type QueryHook, queryHook, type ReloadHook, reloadHook } from "./query-hook.ts";
 
 /** The handling an Operation hook needs: required when the entry declares a conflict. */
-type HandlingArgument<Input, Reason extends string> = [Reason] extends [never]
-  ? [handling?: OperationHandling<Input, Reason>]
-  : [handling: OperationHandling<Input, Reason>];
+type HandlingArgument<Input, Reason extends string, Tables = never> = [Reason] extends [never]
+  ? [handling?: OperationHandling<Input, Reason, Tables>]
+  : [handling: OperationHandling<Input, Reason, Tables>];
 
-export interface PortHooks<Contract extends ModuleContract> {
+/**
+ * The hooks of one module. `Tables` are its tables by their columns, for a form that shows a
+ * Reason naming a column at its field (`columns` of the handling).
+ */
+export interface PortHooks<Contract extends ModuleContract, Tables = never> {
   /** The hook that reads the Query `entry`, typed from the Contract (D249). */
   query<Entry extends EntryName<Contract>>(
     entry: Entry,
@@ -30,7 +34,11 @@ export interface PortHooks<Contract extends ModuleContract> {
    */
   operation<Entry extends EntryName<Contract>>(
     entry: Entry,
-    ...handling: HandlingArgument<InputOf<Contract, Entry>, ConflictReasonOf<Contract, Entry>>
+    ...handling: HandlingArgument<
+      InputOf<Contract, Entry>,
+      ConflictReasonOf<Contract, Entry>,
+      Tables
+    >
   ): OperationHook<
     InputOf<Contract, Entry>,
     OutputOf<Contract, Entry>,
@@ -38,7 +46,8 @@ export interface PortHooks<Contract extends ModuleContract> {
   >;
   /**
    * The same Operation as a function of the Port access, for code outside React such as a
-   * Command (D261): same handling, same result, same default notices.
+   * Command (D261): same handling, same result, same default notices. It has no field to show a
+   * Reason at, so it maps no column.
    */
   run<Entry extends EntryName<Contract>>(
     entry: Entry,
@@ -60,7 +69,8 @@ export interface PortHooks<Contract extends ModuleContract> {
 /**
  * The hooks of the module mounted as `module`, typed from its Contract, which arrives as a type
  * only (D187). A module writes one line per hook and names no tables: which tables a Query reads
- * comes from the Data Process (D248).
+ * comes from the Data Process (D248). A module whose form shows a Reason at a field gives its
+ * tables as the second type, `TablesOf` of its Row Map, also as a type only.
  *
  * ```ts
  * const notesPort = portHooks<NotesContract>("notes");
@@ -70,7 +80,9 @@ export interface PortHooks<Contract extends ModuleContract> {
  * });
  * ```
  */
-export function portHooks<Contract extends ModuleContract>(module: string): PortHooks<Contract> {
+export function portHooks<Contract extends ModuleContract, Tables = never>(
+  module: string,
+): PortHooks<Contract, Tables> {
   return {
     query: (entry) => queryHook(module, entry),
     operation: (entry, handling = {}) => operationHook(module, entry, handling),

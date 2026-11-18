@@ -122,7 +122,10 @@ let mounted: { readonly root: Root; readonly container: HTMLElement } | undefine
 export async function renderHook<State>(
   port: Pick<FakePort, "access">,
   useHook: () => State,
-  options: Pick<DataProviderProps, "reportMisuse" | "notify" | "notifyRefused"> = {},
+  options: Pick<
+    DataProviderProps,
+    "reportMisuse" | "notify" | "notifyRefused" | "reasonTexts"
+  > = {},
 ): Promise<Rendered<State>> {
   let state: State | undefined;
   function Probe(): ReactNode {
@@ -133,7 +136,7 @@ export async function renderHook<State>(
   document.body.append(container);
   const root = createRoot(container);
   mounted = { root, container };
-  const { notify, notifyRefused, reportMisuse } = options;
+  const { notify, notifyRefused, reportMisuse, reasonTexts } = options;
   // New callbacks on every draw, as an app that writes them inline passes them.
   const draw = (visible: boolean) =>
     createElement(
@@ -145,6 +148,7 @@ export async function renderHook<State>(
           notifyRefused: (notice: RefusedNotice) => notifyRefused(notice),
         }),
         ...(reportMisuse && { reportMisuse: (problem: string) => reportMisuse(problem) }),
+        ...(reasonTexts && { reasonTexts }),
       },
       visible ? createElement(Probe) : null,
     );

@@ -28,23 +28,55 @@ export interface ConflictText<Field extends string> {
 type FieldOf<Input> = keyof Input & string;
 
 /**
+ * The input field that shows a Reason naming a column, by the module's table and the column as
+ * the database names it (D334): `{ time_entries: { project_id: "projectId" } }`. Only the
+ * module's tables, their columns and the fields of the entry's input compile.
+ */
+export type ColumnFields<Tables, Field extends string> = {
+  readonly [Table in keyof Tables & string]?: {
+    readonly [Column in keyof Tables[Table] & string]?: Field;
+  };
+};
+
+/**
  * How a module handles the expected errors of one Operation (D251). The types demand a text for
  * every conflict reason the Contract entry declares, and allow none for an entry without one.
+ * `Tables` are the module's tables by their columns (`TablesOf` of its Row Map); without them a
+ * Reason names no field the module can map.
  */
-export type OperationHandling<Input, Reason extends string> = ([Reason] extends [never]
+export type OperationHandling<Input, Reason extends string, Tables = never> = ([Reason] extends [
+  never,
+]
   ? { readonly conflicts?: never }
-  : { readonly conflicts: { readonly [Key in Reason]: ConflictText<FieldOf<Input>> } }) & {
-  /**
-   * Replaces the default "not found" notice. The caller receives the `notFound` result either
-   * way, to close what showed the entry.
-   */
-  readonly notFound?: (input: Input) => void;
-  /**
-   * Replaces the shared Notice of a Refusal, for a caller that shows its Reasons itself. The
-   * caller receives the `refused` result either way.
-   */
-  readonly refused?: (refusal: Refusal, input: Input) => void;
-};
+  : { readonly conflicts: { readonly [Key in Reason]: ConflictText<FieldOf<Input>> } }) &
+  ([Tables] extends [never]
+    ? { readonly columns?: never }
+    : {
+        /**
+         * The field that shows a Reason naming one of these columns, in the place of a
+         * Conflict's field. Such a Reason gets no Notice: the form shows it at that field. A
+         * Reason without a field, or at a column not named here, goes to the Notice.
+         */
+        readonly columns?: ColumnFields<Tables, FieldOf<Input>>;
+      }) & {
+    /**
+     * Replaces the default "not found" notice. The caller receives the `notFound` result either
+     * way, to close what showed the entry.
+     */
+    readonly notFound?: (input: Input) => void;
+    /**
+     * Replaces the shared Notice of a Refusal, for a caller that shows its Reasons itself: it gets
+     * the Reasons no field of `columns` shows, and is not called when a field shows every one.
+     * The caller receives the `refused` result either way.
+     */
+    readonly refused?: (refusal: Refusal, input: Input) => void;
+  };
+
+/** A Reason of a Refusal that names a column the module maps, with the input field it maps to. */
+export interface ReasonAtField<Field extends string> {
+  readonly field: Field;
+  readonly reason: Reason;
+}
 
 /**
  * What an Operation ended with, as a value; the hook throws for none of them (D251).
@@ -52,8 +84,10 @@ export type OperationHandling<Input, Reason extends string> = ([Reason] extends 
  * - `conflict`: a declared reason with the module's text and field, to show at that field. No
  *   notice; for a reason whose field is `null`, the notice with the text was shown instead.
  * - `notFound`: the entry is gone. A notice told the user, unless the module replaced it.
- * - `refused`: a Protection Rule refused the write and nothing changed; the Refusal's Reasons. The
- *   shared Notice of a Refusal told the user every Reason, unless the module replaced it.
+ * - `refused`: a Protection Rule refused the write and nothing changed; the Refusal's Reasons, and
+ *   in `atFields` those at a column the module maps, each with its field, for the form to show
+ *   there. The shared Notice of a Refusal told the user every other Reason, unless the module
+ *   replaced it.
  * - `unexpected`: anything else; a general notice told the user.
  */
 export type OperationResult<Output, Reason extends string, Field extends string> =
@@ -67,7 +101,10 @@ export type OperationResult<Output, Reason extends string, Field extends string>
           readonly text: MessageDescriptor;
         })
   | { readonly status: "notFound" }
-  | ({ readonly status: "refused" } & Refusal)
+  | ({
+      readonly status: "refused";
+      readonly atFields: readonly ReasonAtField<Field>[];
+    } & Refusal)
   | { readonly status: "unexpected"; readonly error: unknown };
 
 /** What an Operation hook returns: the call, and whether one is running. */
@@ -90,6 +127,9 @@ export type OperationHook<Input, Output, Reason extends string> = () => Operatio
 /** The runtime view of `OperationHandling`, without the types that tie it to an entry. */
 interface Handling {
   readonly conflicts?: Readonly<Record<string, ConflictText<string>>>;
+  readonly columns?: Readonly<
+    Record<string, Readonly<Record<string, string | undefined>> | undefined>
+  >;
   readonly notFound?: (input: never) => void;
   readonly refused?: (refusal: Refusal, input: never) => void;
 }
@@ -109,7 +149,7 @@ async function callOperation(
   } catch (error) {
     if (error instanceof ORPCError) {
       if (error.code === "NOT_FOUND") return { status: "notFound" };
-      const refused = error.code === "REFUSED" ? refusalOf(error.data) : undefined;
+      const refused = error.code === "REFUSED" ? refusalOf(error.data, handling) : undefined;
       if (refused !== undefined) return refused;
       const conflict = error.code === "CONFLICT" ? conflictOf(error.data, handling) : undefined;
       if (conflict !== undefined) return conflict;
@@ -132,10 +172,21 @@ function conflictOf(data: unknown, handling: Handling): AnyResult | undefined {
  * unexpected. Checked by hand, since the block's schema must not load at startup. The details stay
  * unknown until `findReason` checks them by their definition.
  */
-function refusalOf(data: unknown): AnyResult | undefined {
+function refusalOf(data: unknown, handling: Handling): AnyResult | undefined {
   const reasons: unknown = isObject(data) ? data["reasons"] : undefined;
   if (!Array.isArray(reasons) || reasons.length === 0 || !reasons.every(isReason)) return;
-  return { status: "refused", reasons };
+  const atFields = reasons.flatMap((reason) => {
+    const field = fieldOf(reason, handling);
+    return field === undefined ? [] : [{ field, reason }];
+  });
+  return { status: "refused", reasons, atFields };
+}
+
+/** The input field the module maps the Reason's table and column to, if it names one. */
+function fieldOf({ table, field }: Reason, { columns }: Handling): string | undefined {
+  if (field === undefined || columns === undefined || !Object.hasOwn(columns, table)) return;
+  const fields = columns[table];
+  return fields !== undefined && Object.hasOwn(fields, field) ? fields[field] : undefined;
 }
 
 /** Every severity, as a record so that a new one in the format does not compile until it is here. */
@@ -161,8 +212,8 @@ function isObject(value: unknown): value is Readonly<Record<string, unknown>> {
 
 /**
  * Calls the Operation and announces its "not found", refused and unexpected results and a conflict
- * without a field, as both the hook and the function form do; any other conflict is left to the
- * caller.
+ * without a field, as both the hook and the function form do; any other conflict, and a Reason at
+ * a column the module maps, is left to the caller.
  */
 async function runOperation(
   { access, notify, notifyRefused }: DataAccess,
@@ -176,8 +227,13 @@ async function runOperation(
   if (result.status === "conflict" && result.field === null) notify(result.text);
   if (result.status === "unexpected") notify(UNEXPECTED_NOTICE);
   if (result.status === "refused") {
-    if (handling.refused === undefined) notifyRefused({ reasons: result.reasons, ...refusal });
-    else handling.refused({ reasons: result.reasons }, input as never);
+    // A Reason a field shows is the form's; the Notice tells the others.
+    const atField = new Set(result.atFields.map(({ reason }) => reason));
+    const reasons = result.reasons.filter((reason) => !atField.has(reason));
+    // With every Reason at a field there is nothing for a Notice to say.
+    if (reasons.length > 0 && handling.refused === undefined)
+      notifyRefused({ reasons, ...refusal });
+    else if (reasons.length > 0) handling.refused?.({ reasons }, input as never);
   }
   if (result.status === "notFound") {
     if (handling.notFound === undefined) notify(NOT_FOUND_NOTICE);

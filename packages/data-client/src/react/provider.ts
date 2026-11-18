@@ -39,6 +39,8 @@ export interface DataAccess {
 }
 
 interface DataContext extends DataAccess {
+  /** The text of every Reason, for a form that shows one at its field. */
+  readonly reasonTexts: RefusalTexts;
   /** Reports, once per entry, a Query hook whose entry the Data Process calls an Operation. */
   readonly checkQuery: (module: string, entry: string) => void;
   /** Marks every answer of the Query `entry`, like a Table Change that names its tables. */
@@ -61,6 +63,14 @@ export function useDataContext(): DataContext {
  */
 export function useDataAccess(): DataAccess {
   return useDataContext();
+}
+
+/**
+ * The texts of Reasons the nearest `DataProvider` was given, for a form that shows a Reason at
+ * its field (D334) in the words the shared Notice would use.
+ */
+export function useRefusalTexts(): RefusalTexts {
+  return useDataContext().reasonTexts;
 }
 
 /**
@@ -172,10 +182,10 @@ export function DataProvider({
   // The cache and the context live as long as the provider's access: another access starts with
   // no answers, so none of the old one shows. Callbacks are read through refs, so a parent that
   // passes them inline redraws no hook below.
-  const latest = useRef({ notify, notifyRefused, reportMisuse });
+  const latest = useRef({ notify, notifyRefused, reportMisuse, reasonTexts });
   useEffect(() => {
-    latest.current = { notify, notifyRefused, reportMisuse };
-  }, [notify, notifyRefused, reportMisuse]);
+    latest.current = { notify, notifyRefused, reportMisuse, reasonTexts };
+  }, [notify, notifyRefused, reportMisuse, reasonTexts]);
   // A Query hook stays bound to the cache it first drew with, so the tree below is drawn anew for
   // another access, keyed by its cache.
   const { cache, generation } = useMemo(
@@ -191,6 +201,9 @@ export function DataProvider({
     const reported = new Set<string>();
     return {
       access,
+      reasonTexts: {
+        describe: (reason, i18n) => latest.current.reasonTexts.describe(reason, i18n),
+      },
       notify: (notice) => latest.current.notify(notice),
       notifyRefused: (notice) => latest.current.notifyRefused(notice),
       checkQuery: (module, entry) => {

@@ -6,7 +6,8 @@
 import { msg } from "@lingui/core/macro";
 import { ORPCError } from "@orpc/client";
 import { findReason } from "@self-engine/data-protocol";
-import { type notesContract, pinnedNote } from "@self-engine/storage/testing";
+import { createI18n } from "@self-engine/i18n";
+import { type notesContract, type NotesTables, pinnedNote } from "@self-engine/storage/testing";
 import { act } from "react";
 import { afterEach, beforeEach, expect, test, vi } from "vite-plus/test";
 import {
@@ -17,7 +18,16 @@ import {
   type ShownNotices,
   unmountHook,
 } from "./hook-harness.ts";
-import { type DataAccess, portHooks, type RefusedNotice, useDataAccess } from "./index.ts";
+import {
+  type DataAccess,
+  type FrameReasons,
+  frameReasonTexts,
+  portHooks,
+  type RefusedNotice,
+  refusalTexts,
+  useDataAccess,
+  useRefusalTexts,
+} from "./index.ts";
 import { NOT_FOUND_NOTICE, UNEXPECTED_NOTICE } from "./operation-hook.ts";
 
 const notesPort = portHooks<typeof notesContract>("notes");
@@ -214,7 +224,11 @@ test("a Refusal returns as a result of its own and shows the shared Notice with 
     notifyRefused: (notice) => refusals.push(notice),
   });
 
-  expect(await runOnce(rename)).toEqual({ status: "refused", reasons: [PINNED, AT_FIELD] });
+  expect(await runOnce(rename)).toEqual({
+    status: "refused",
+    reasons: [PINNED, AT_FIELD],
+    atFields: [],
+  });
   expect(rename.current().running).toBe(false);
   expect(refusals).toEqual([{ reasons: [PINNED, AT_FIELD] }]);
   // A Refusal is not an error: no notice of one, and nothing to undo.
@@ -239,7 +253,7 @@ test("a page names the entry and adds one action to the Notice of a Refusal", as
   });
   await settle();
 
-  expect(result).toEqual({ status: "refused", reasons: [PINNED, AT_FIELD] });
+  expect(result).toEqual({ status: "refused", reasons: [PINNED, AT_FIELD], atFields: [] });
   expect(refusals).toEqual([{ reasons: [PINNED, AT_FIELD], entry: "Groceries", action: archive }]);
 });
 
@@ -372,7 +386,7 @@ test("the function form returns a Refusal as the hook does and shows its Notice 
 
   const result = await renameNote(data, RENAME, { entry: "Groceries" });
 
-  expect(result).toEqual({ status: "refused", reasons: [PINNED, AT_FIELD] });
+  expect(result).toEqual({ status: "refused", reasons: [PINNED, AT_FIELD], atFields: [] });
   expect(result.status === "refused" && findReason(result, pinnedNote)?.details.title).toBe(
     "Groceries",
   );
@@ -469,4 +483,117 @@ test("the provider gives code below it its access and notice seam, to hand to a 
   expect(data.current().access).toBe(port.access);
   await renameNote(data.current(), RENAME);
   expect(notices).toEqual([NOT_FOUND_NOTICE]);
+});
+
+// A Reason that names a column (D334): the module names the input field for each column of its
+// tables where it names the field of a Conflict, and the form shows such a Reason at its field.
+const tablesPort = portHooks<typeof notesContract, NotesTables>("notes");
+const titleTaken = { title_taken: { text: TITLE_TAKEN, field: "title" } } as const;
+const useRenameAtField = tablesPort.operation("update", {
+  conflicts: titleTaken,
+  columns: { notes: { title: "title" } },
+});
+
+/** Renders the rename that maps the column `title`, collecting its Notices. */
+async function renameAtField(answer: ORPCError<string, unknown>) {
+  const port = fakePort();
+  port.answer("update", () => Promise.reject(answer));
+  const notices: ShownNotices = [];
+  const refusals: RefusedNotice[] = [];
+  const rename = await renderHook(port, () => useRenameAtField(), {
+    notify: (notice) => notices.push(notice),
+    notifyRefused: (notice) => refusals.push(notice),
+  });
+  return { result: await runOnce(rename), notices, refusals };
+}
+
+const refusedWith = (...reasons: readonly object[]) =>
+  new ORPCError("REFUSED", { status: 422, data: { reasons } });
+
+test("a Reason at a mapped column is left to the form at its field, and the Notice shows the others", async () => {
+  const { result, notices, refusals } = await renameAtField(REFUSED);
+
+  expect(result).toEqual({
+    status: "refused",
+    reasons: [PINNED, AT_FIELD],
+    atFields: [{ field: "title", reason: AT_FIELD }],
+  });
+  expect(refusals).toEqual([{ reasons: [PINNED] }]);
+  expect(notices).toEqual([]);
+});
+
+test("a Refusal whose every Reason is at a mapped field shows no Notice", async () => {
+  const { result, refusals } = await renameAtField(refusedWith(AT_FIELD));
+
+  expect(result).toMatchObject({ atFields: [{ field: "title", reason: AT_FIELD }] });
+  expect(refusals).toEqual([]);
+});
+
+test("a Reason at a column the module does not map, or of another table, goes to the Notice", async () => {
+  const unmapped = { ...PINNED, field: "is_pinned" };
+  const otherTable = { ...AT_FIELD, table: "note_links" };
+
+  const { result, refusals } = await renameAtField(refusedWith(unmapped, otherTable));
+
+  expect(result).toMatchObject({ atFields: [] });
+  expect(refusals).toEqual([{ reasons: [unmapped, otherTable] }]);
+});
+
+test("a caller that shows a Refusal itself gets only the Reasons no field shows", async () => {
+  const shown: unknown[] = [];
+  const useRenameShowing = tablesPort.operation("update", {
+    conflicts: titleTaken,
+    columns: { notes: { title: "title" } },
+    refused: (refusal) => shown.push(refusal.reasons),
+  });
+  const port = fakePort();
+  port.answer("update", () => Promise.reject(REFUSED));
+  const rename = await renderHook(port, () => useRenameShowing());
+
+  await runOnce(rename);
+  port.answer("update", () => Promise.reject(refusedWith(AT_FIELD)));
+  await runOnce(rename);
+
+  expect(shown).toEqual([[PINNED]]);
+});
+
+test("a form maps only columns of its module's tables, to fields of the entry's input", () => {
+  const typed = async () => {
+    const result = await useRenameAtField().run(RENAME);
+    if (result.status === "refused") {
+      const field: "id" | "title" = result.atFields[0]!.field;
+      void field;
+    }
+  };
+  tablesPort.operation("update", {
+    conflicts: titleTaken,
+    // @ts-expect-error The module has no table `memos`.
+    columns: { memos: { title: "title" } },
+  });
+  tablesPort.operation("update", {
+    conflicts: titleTaken,
+    // @ts-expect-error The table `notes` has no column `titel`.
+    columns: { notes: { titel: "title" } },
+  });
+  tablesPort.operation("update", {
+    conflicts: titleTaken,
+    // @ts-expect-error The input of `update` has no field `isPinned`.
+    columns: { notes: { is_pinned: "isPinned" } },
+  });
+  // @ts-expect-error Hooks built without the module's tables map no column.
+  notesPort.operation("update", { conflicts: titleTaken, columns: { notes: { title: "title" } } });
+  // @ts-expect-error The function form has no field to show a Reason at.
+  tablesPort.run("update", { conflicts: titleTaken, columns: { notes: { title: "title" } } });
+  expect(typeof typed).toBe("function");
+});
+
+test("the provider gives a form the texts of Reasons it was given, to show one at its field", async () => {
+  const texts = refusalTexts<FrameReasons>(frameReasonTexts, () => undefined);
+  const describe = vi.spyOn(texts, "describe").mockReturnValue("The linked note was deleted.");
+  const i18n = createI18n();
+
+  const given = await renderHook(fakePort(), () => useRefusalTexts(), { reasonTexts: texts });
+
+  expect(given.current().describe(AT_FIELD, i18n)).toBe("The linked note was deleted.");
+  expect(describe).toHaveBeenCalledWith(AT_FIELD, i18n);
 });

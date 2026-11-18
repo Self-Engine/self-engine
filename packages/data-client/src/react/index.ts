@@ -6,6 +6,8 @@ export {
   type OperationHandling,
   type OperationHook,
   type OperationResult,
+  type ColumnFields,
+  type ReasonAtField,
   type OperationState,
 } from "./operation-hook.ts";
 export { NO_DATA_PROCESS, type PortAccess, portAccessOf } from "./port-access.ts";
@@ -32,5 +34,6 @@ export {
   DataProvider,
   type DataProviderProps,
   useDataAccess,
+  useRefusalTexts,
 } from "./provider.ts";
 export type { QueryHook, QueryState, ReloadHook } from "./query-hook.ts";
