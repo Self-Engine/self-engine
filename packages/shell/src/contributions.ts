@@ -37,6 +37,12 @@ export interface EditDrawerProps {
    * nothing is unsaved or the person discards; then run the Operation and call `onDone`.
    */
   readonly confirmDiscard: () => Promise<boolean>;
+  /**
+   * Whether the drawer still has this opening open, read when asked: false from the moment the
+   * person leaves it, also while the drawer slides out, and once another opening took its place.
+   * For an action that can outlive the drawer, such as one in a Notice.
+   */
+  readonly isOpen: () => boolean;
 }
 
 interface ContributionMetadata {

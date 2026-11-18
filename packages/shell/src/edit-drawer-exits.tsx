@@ -62,7 +62,11 @@ export function useEscapeExit(enabled: boolean, close: () => void) {
   return frame;
 }
 
-/** `openEntryKey` names what the drawer has open, and leaving it is what the guard watches. */
+/**
+ * `openEntryKey` names what the drawer has open, leaving it is what the guard watches. It names
+ * one opening: an opening of the same entry again has another key, so that a save which ends after
+ * its opening was left knows it no longer speaks for what is open now.
+ */
 export function useEditDrawerExits(openEntryKey: string | undefined) {
   const { useLeaveGuard } = useShellRouting();
   const [checks] = useState(() => new Set<UnsavedCheck>());
@@ -71,19 +75,15 @@ export function useEditDrawerExits(openEntryKey: string | undefined) {
   const [questionOpen, setQuestionOpen] = useState(false);
   const finished = useRef(false);
   const closeButton = useRef<HTMLButtonElement>(null);
-  // Counts each change of what the drawer has open, closing included, so that a save which ends
-  // after its drawer was left knows it no longer speaks for what is open now.
-  const [opening, setOpening] = useState({ key: openEntryKey, count: 0 });
-  if (opening.key !== openEntryKey) setOpening({ key: openEntryKey, count: opening.count + 1 });
-  const openNow = useRef(opening.count);
+  const openNow = useRef(openEntryKey);
 
   // Within the commit that draws the new opening: a save's Promise continues only once that commit
   // has returned, while passive effects may run later still, such as after a transition. So a save
   // of the opening before, resolved while the new one commits, already finds itself replaced.
   useLayoutEffect(() => {
     finished.current = false;
-    openNow.current = opening.count;
-  }, [opening.count]);
+    openNow.current = openEntryKey;
+  }, [openEntryKey]);
 
   const register = useCallback(
     (check: UnsavedCheck) => {
@@ -129,20 +129,29 @@ export function useEditDrawerExits(openEntryKey: string | undefined) {
   useLeaveGuard(guard, openEntryKey !== undefined);
 
   /**
+   * Whether the opening `openedAs` names is still the one open: not once the person left it, also
+   * while the drawer slides out, nor once another opening took its place. Read when asked.
+   */
+  const isOpen = useCallback((openedAs: string) => openedAs === openNow.current, []);
+
+  /**
    * After a successful save or delete in the opening `openedAs` names: nothing is left to lose,
    * so the next exit passes. An opening that is no longer the open one lets nothing pass, and
    * the result says so: its drawer was left, and closing would close what is open now.
    */
-  const letNextExitPass = useCallback((openedAs: number) => {
-    if (openedAs !== openNow.current) return false;
-    finished.current = true;
-    return true;
-  }, []);
+  const letNextExitPass = useCallback(
+    (openedAs: string) => {
+      if (!isOpen(openedAs)) return false;
+      finished.current = true;
+      return true;
+    },
+    [isOpen],
+  );
 
   return {
     register,
     questionOpen,
-    opening: opening.count,
+    isOpen,
     letNextExitPass,
     confirmDiscard,
     closeButton,

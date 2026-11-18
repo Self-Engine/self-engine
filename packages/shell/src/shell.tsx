@@ -978,6 +978,9 @@ interface EditTarget {
 }
 
 const editTargetKey = ({ module, id }: EditTarget) => `${module.id}/${id}`;
+/** Names one opening of an entry: each opening counts, also one of the same entry again. */
+const openingKey = (target: EditTarget, opening: number) =>
+  `${editTargetKey(target)}#${String(opening)}`;
 
 /** The frame stays mounted whatever is open, so that closing can animate and return the focus. */
 function ModuleEditDrawer({ module }: { readonly module: ShellContribution | undefined }) {
@@ -1002,18 +1005,22 @@ function ModuleEditDrawer({ module }: { readonly module: ShellContribution | und
   const [entryTitle, setEntryTitle] = useState<string>();
   // Keyed by the opening as well: an editor mounted anew for the same entry, such as for a new
   // object of its module, is another opening, which a save of the one before cannot let pass.
-  const exits = useEditDrawerExits(target && `${editTargetKey(target)}#${String(openingNow)}`);
+  const exits = useEditDrawerExits(target && openingKey(target, openingNow));
   // Only writes the address. Whether that may happen is the guard's to decide.
   const close = () =>
     write((search) => {
       const { edit: _edit, ...rest } = search;
       return rest;
     });
-  // Bound to the opening drawn now: a save that ends after the person left this entry closes
-  // nothing, so it cannot close another entry past its unsaved-changes guard.
-  const { opening } = exits;
-  const done = () => {
-    if (exits.letNextExitPass(opening)) close();
+  // Bound to the opening the content was mounted for, also while it slides out: a save that ends
+  // after the person left this entry closes nothing, so it cannot close another entry past its
+  // unsaved-changes guard.
+  const shownOpening = shown && openingKey(shown, shown.opening);
+  const openingProps = shownOpening !== undefined && {
+    onDone: () => {
+      if (exits.letNextExitPass(shownOpening)) close();
+    },
+    isOpen: () => exits.isOpen(shownOpening),
   };
   // The question and the Command Palette are modals of Mantine, which listen on the window like
   // the drawer: while one is open, Esc is theirs.
@@ -1033,19 +1040,19 @@ function ModuleEditDrawer({ module }: { readonly module: ShellContribution | und
       closeButtonProps={{ "aria-label": t`Close editor`, ref: exits.closeButton }}
       styles={EDIT_DRAWER_STYLES}
     >
-      {shown?.module.editDrawer && (
+      {shown?.module.editDrawer && openingProps && (
         <EditDrawerTitleContext value={setEntryTitle}>
           <UnsavedChangesContext value={exits.register}>
             <LazyContribution
-              key={`${editTargetKey(shown)}#${String(shown.opening)}`}
+              key={shownOpening}
               components={loadedDrawer}
               fallback={<LoadingState />}
               load={shown.module.editDrawer}
               props={{
                 id: shown.id,
                 onCancel: close,
-                onDone: done,
                 confirmDiscard: exits.confirmDiscard,
+                ...openingProps,
               }}
             />
           </UnsavedChangesContext>

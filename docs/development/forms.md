@@ -196,6 +196,11 @@ An Operation that keeps the entry, such as archive, first awaits the Shell’s `
 and runs only when it answers true: it asks “Discard changes?” when the form holds unsaved
 changes, like any other way out. A delete asks nothing.
 
+An action that can outlive the drawer, such as the action of a Notice, asks the Shell’s
+`isOpen()` when it runs: it is false from the moment the person leaves this opening, also while
+the drawer still slides out. Only an open drawer speaks for what the person sees in it, as the
+`projects` drawer does before its Notice's Archive offers an undo.
+
 ## Action slot and a standalone form
 
 `EditDrawerForm` provides Save and Cancel. Put named Operations in `actions`, for example:

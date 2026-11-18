@@ -566,6 +566,39 @@ export const RefusedDeleteOffersArchiveWithUndo: Story = {
   },
 };
 
+/** The drawer was closed: its Archive cannot vouch for what the person saw, so it offers no undo. */
+export const RefusedDeleteArchivedFromTheNoticeWhileTheDrawerSlidesOutOffersNoUndo: Story = {
+  beforeEach: cleanNotices,
+  render: (args) => (
+    <AppAt
+      address={args.address}
+      testTableName={entryTableName}
+      access={storyPort(
+        { ...listOf(WEBSITE), delete: { refused: [referenceTo(WEBSITE)] } },
+        archivesTheWebsite,
+      )}
+    />
+  ),
+  play: async ({ canvas }) => {
+    const { drawer, title } = await openFromTheList(canvas);
+    const notice = await refusedDelete(drawer, WEBSITE.title);
+    await userEvent.click(drawer.getByRole("button", { name: "Cancel" }));
+    await waitFor(() => expect(editInAddress(storyRouter())).toBeUndefined());
+    // Still sliding out: its fields are on the page.
+    await expect(title).toBeInTheDocument();
+
+    await userEvent.click(notice.getByRole("button", { name: "Archive" }));
+
+    const archived = await screen.findByText("Project archived");
+    const archivedNotice = archived.closest<HTMLElement>(".mantine-Notification-root");
+    await expect(within(archivedNotice!).queryByRole("button", { name: "Undo" })).toBeNull();
+    await expect(port.calls).toEqual([
+      { entry: "delete", input: { id: WEBSITE.id } },
+      { entry: "archive", input: { id: WEBSITE.id } },
+    ]);
+  },
+};
+
 export const RefusedDeleteOfArchivedProjectHasNoAction: Story = {
   beforeEach: cleanNotices,
   args: { address: ARCHIVE },

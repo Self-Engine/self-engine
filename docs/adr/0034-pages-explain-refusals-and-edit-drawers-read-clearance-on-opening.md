@@ -31,6 +31,8 @@ while the rule and the tables it reads can belong to other packages.
   and still shows the project active, also when the discard confirmation is answered, that
   Archive uses the same discard confirmation, archive Operation and undo as the form; otherwise
   it archives without an undo, since the page cannot know whether its archive changed anything.
+  The Shell tells an editor at the moment it asks whether its opening is still open (`isOpen`);
+  a drawer that slides out after the person closed it is closed.
 - Each module puts the names of its synced tables (plural Lingui messages) and the texts of its
   own rules' Reasons into its Shell Contribution as data texts, made by `dataTexts` against its
   storage module through a type-only import: a synced table without a name, or a Reason of its
