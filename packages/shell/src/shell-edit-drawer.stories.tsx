@@ -439,3 +439,39 @@ export const EscapeInALayerOverTheDrawerClosesOnlyTheLayer: Story = {
     await waitFor(() => expect(drawer.isConnected).toBe(false));
   },
 };
+
+/** How often the drawer's content of each entry was mounted: once per opening. */
+const mounts: string[] = [];
+
+function CountingEditor({ id }: EditDrawerProps) {
+  const [mounted] = useState(() => {
+    mounts.push(id);
+    return mounts.length;
+  });
+  return <p>Opening {mounted}</p>;
+}
+
+const reopenRouting = storyRouting();
+
+export const ReopeningDuringTheExitIsANewOpening: Story = {
+  args: {
+    activeModule: { ...ENTRIES[1]!, editDrawer: async () => ({ default: CountingEditor }) },
+    children: <OpenEditor />,
+    routing: reopenRouting,
+  },
+  play: async ({ canvas }) => {
+    mounts.length = 0;
+    await userEvent.click(canvas.getByRole("button", { name: "Open editor" }));
+    const dialog = await screen.findByRole("dialog", { name: "Time" });
+    await within(dialog).findByText("Opening 1");
+    reopenRouting.address.writeSearch(({ edit: _edit, ...search }) => search);
+    await nextFrame();
+    await expect(dialog.isConnected).toBe(true);
+
+    // Back to the same entry before the frame has left: what the content read on its opening,
+    // such as a Clearance, is read anew.
+    reopenRouting.address.writeSearch((search) => ({ ...search, edit: "entry" }));
+    await waitFor(() => expect(within(dialog).getByText("Opening 2")).toBeInTheDocument());
+    await expect(mounts).toEqual(["entry", "entry"]);
+  },
+};

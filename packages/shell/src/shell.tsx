@@ -989,9 +989,13 @@ function ModuleEditDrawer({ module }: { readonly module: ShellContribution | und
   const target: EditTarget | undefined =
     module?.editDrawer && id !== undefined ? { module, id } : undefined;
   // The last target stays while the frame animates out. Drawer renders no children while closed,
-  // so the module's code still only loads when it first opens.
-  const [shown, setShown] = useState(target);
-  if (target && (target.module !== shown?.module || target.id !== shown.id)) setShown(target);
+  // so the module's code still only loads when it first opens. Each opening counts, also one of
+  // the same entry during the exit: the content mounts anew and reads what it reads on opening.
+  const [shown, setShown] = useState(target && { ...target, opening: 0 });
+  const [wasOpen, setWasOpen] = useState(target !== undefined);
+  if (target && (!wasOpen || target.module !== shown?.module || target.id !== shown.id))
+    setShown({ ...target, opening: (shown?.opening ?? 0) + 1 });
+  if (wasOpen !== (target !== undefined)) setWasOpen(target !== undefined);
   // Held here, beside the View, so that naming the entry does not re-render it.
   const [entryTitle, setEntryTitle] = useState<string>();
   const exits = useEditDrawerExits(target && editTargetKey(target));
@@ -1029,7 +1033,7 @@ function ModuleEditDrawer({ module }: { readonly module: ShellContribution | und
         <EditDrawerTitleContext value={setEntryTitle}>
           <UnsavedChangesContext value={exits.register}>
             <LazyContribution
-              key={editTargetKey(shown)}
+              key={`${editTargetKey(shown)}#${String(shown.opening)}`}
               components={loadedDrawer}
               fallback={<LoadingState />}
               load={shown.module.editDrawer}

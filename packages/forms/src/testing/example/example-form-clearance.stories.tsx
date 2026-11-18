@@ -14,7 +14,9 @@ const table = "example_entries";
 const query = clearanceQueryFor<ExampleTables>();
 const clearance = query({ table, rows: [CREATED.id], writes: ["delete", "archive"] });
 
-function portForStory() {
+type Answer = "blocked" | "free" | "failed";
+
+function portForStory(answer: Answer = "blocked") {
   const fixed = fixedAnswers(
     {},
     {},
@@ -25,17 +27,20 @@ function portForStory() {
           table,
           row: CREATED.id,
           writes: {
-            delete: {
-              state: "blocked",
-              reasons: [
-                {
-                  code: "referenced",
-                  table,
-                  row: CREATED.id,
-                  details: { tables: [{ table: "example_links", count: 2 }] },
-                },
-              ],
-            },
+            delete:
+              answer === "blocked"
+                ? {
+                    state: "blocked",
+                    reasons: [
+                      {
+                        code: "referenced",
+                        table,
+                        row: CREATED.id,
+                        details: { tables: [{ table: "example_links", count: 2 }] },
+                      },
+                    ],
+                  }
+                : { state: "free" },
             archive: { state: "free" },
           },
         },
@@ -50,6 +55,7 @@ function portForStory() {
     async call(module, entry, input, signal) {
       calls.push({ entry, input });
       await held.promise;
+      if (answer === "failed") throw new Error("The Clearance did not answer");
       return port.access.call(module, entry, input, signal);
     },
   };
@@ -102,12 +108,15 @@ interface Loaded {
   readonly onArchive: () => void;
   readonly onDelete: () => void;
 }
+const loadAnswer = (answer: Answer) => (): Loaded => ({
+  port: portForStory(answer),
+  onArchive: fn(),
+  onDelete: fn(),
+});
+
 const meta = {
   title: "Forms/Example form/Clearance",
-  loaders: [
-    loadStoryShell,
-    (): Loaded => ({ port: portForStory(), onArchive: fn(), onDelete: fn() }),
-  ],
+  loaders: [loadStoryShell, loadAnswer("blocked")],
   render: (_args, { loaded }) => {
     const { port, onArchive, onDelete } = loaded as Loaded;
     return (
@@ -123,6 +132,29 @@ const meta = {
 } satisfies Meta;
 export default meta;
 type Story = StoryObj<typeof meta>;
+
+/** Where these elements are, relative to the animated drawer so its transition is outside it. */
+function layoutOf(drawer: HTMLElement, elements: readonly HTMLElement[]) {
+  const drawerX = drawer.getBoundingClientRect().x;
+  return elements.map((element) => {
+    const { x, y, width, height } = element.getBoundingClientRect();
+    return [x - drawerX, y, width, height];
+  });
+}
+
+/** The open drawer's form and its two actions, once they are drawn. */
+async function drawnForm() {
+  const drawer = await screen.findByRole("dialog", { name: "Example" });
+  const canvas = within(drawer);
+  const title = await canvas.findByRole("textbox", { name: "Title" });
+  return {
+    drawer,
+    title,
+    archive: canvas.getByRole("button", { name: "Archive" }),
+    remove: canvas.getByRole("button", { name: "Delete" }),
+    live: canvas.getByRole("status"),
+  };
+}
 
 export const ABlockedDeleteExplainsWhy: Story = {
   play: async ({ loaded, globals }) => {
@@ -141,15 +173,9 @@ export const ABlockedDeleteExplainsWhy: Story = {
     await expect(title).toHaveValue("Kitchen extension");
     await expect(port.calls).toEqual([{ entry: "clearance", input: clearance }]);
 
-    // Measure relative to the animated drawer so its opening transition is outside the check.
-    const layout = () => {
-      const drawerX = drawer.getBoundingClientRect().x;
-      return [title, archive, remove, live].map((element) => {
-        const { x, y, width, height } = element.getBoundingClientRect();
-        return [x - drawerX, y, width, height];
-      });
-    };
-    const before = layout();
+    // Nothing is reserved while nothing is blocked: the live region is there, without height.
+    await expect(live.getBoundingClientRect().height).toBe(0);
+    const before = layoutOf(drawer, [title, archive, remove]);
     port.release();
     const reason =
       globals.language === "de"
@@ -160,7 +186,9 @@ export const ABlockedDeleteExplainsWhy: Story = {
     await expect(remove).toBeDisabled();
     await expect(remove).toHaveAccessibleDescription(reason);
     await expect(archive).toBeEnabled();
-    await expect(layout()).toEqual(before);
+    // The text takes its room from the free space above the footer: fields and footer stay.
+    await expect(layoutOf(drawer, [title, archive, remove])).toEqual(before);
+    await expect(live.getBoundingClientRect().height).toBeGreaterThan(0);
     await userEvent.click(archive);
     await expect(onArchive).toHaveBeenCalledOnce();
     port.change();
@@ -172,4 +200,36 @@ export const ABlockedDeleteExplainsWhy: Story = {
 export const ABlockedDeleteInGerman: Story = {
   ...ABlockedDeleteExplainsWhy,
   globals: { language: "de" },
+};
+
+export const NothingBlockedLooksAsWithoutClearance: Story = {
+  loaders: [loadStoryShell, loadAnswer("free")],
+  play: async ({ loaded }) => {
+    const { port } = loaded as Loaded;
+    const { drawer, title, archive, remove, live } = await drawnForm();
+    const before = layoutOf(drawer, [title, archive, remove, live]);
+    port.release();
+    await waitFor(() => expect(remove).not.toHaveAttribute("aria-disabled"));
+
+    await expect(remove).toBeEnabled();
+    await expect(layoutOf(drawer, [title, archive, remove, live])).toEqual(before);
+    await expect(live).toBeEmptyDOMElement();
+    await expect(live.getBoundingClientRect().height).toBe(0);
+  },
+};
+
+export const AFailedClearanceLeavesTheActionsToTheWrite: Story = {
+  loaders: [loadStoryShell, loadAnswer("failed")],
+  play: async ({ loaded }) => {
+    const { port, onDelete } = loaded as Loaded;
+    const { remove } = await drawnForm();
+    await expect(remove).toHaveAttribute("aria-disabled", "true");
+    port.release();
+
+    // The write still asks the rules: a failed Clearance locks nothing.
+    await waitFor(() => expect(remove).not.toHaveAttribute("aria-disabled"));
+    await expect(remove).toBeEnabled();
+    await userEvent.click(remove);
+    await expect(onDelete).toHaveBeenCalledOnce();
+  },
 };

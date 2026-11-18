@@ -1,5 +1,5 @@
 import { useLingui } from "@lingui/react";
-import { Box, Button, type ButtonProps, type ElementProps, Stack } from "@mantine/core";
+import { Box, Button, type ButtonProps, type ElementProps } from "@mantine/core";
 import {
   type Clearance,
   type ClearanceQuery,
@@ -35,14 +35,14 @@ export function EditActionClearance({
       ? (state.data.find(({ row }) => row === query.rows[0])?.writes ?? {})
       : {};
   const descriptionId = (write: ClearanceWrite) => `${id}-${write}`;
-  const explanations = query.writes.map((write) => {
+  const explanations = query.writes.flatMap((write) => {
     const answer = writes[write];
-    if (answer?.state !== "blocked") return null;
-    return (
+    if (answer?.state !== "blocked") return [];
+    return [
       <div key={write} id={descriptionId(write)}>
         {answer.reasons.map((reason) => texts.describe(reason, i18n)).join(" ")}
-      </div>
-    );
+      </div>,
+    ];
   });
   return (
     <Context
@@ -53,20 +53,23 @@ export function EditActionClearance({
         descriptionId,
       }}
     >
-      <Stack mt="auto" gap="xs">
-        {children}
-        {/* Mounted before the answer so changes are announced. Reserve the same space in all
-            states, with scrolling available for longer texts. */}
+      {/* Pushed to the bottom of the drawer with the footer. A blocked action's text takes its
+          room above the footer, from the free space below the fields: while the fields do not
+          fill the drawer, its arrival moves nothing. The live region is mounted before the
+          answer, empty and without height, so the text is announced when it arrives. */}
+      <Box mt="auto">
         <Box
           role="status"
           aria-live="polite"
           aria-atomic="true"
           fz="sm"
-          style={{ blockSize: "4.5em", overflow: "auto", overflowWrap: "anywhere" }}
+          mb={explanations.length > 0 ? "xs" : 0}
+          style={{ overflowWrap: "anywhere" }}
         >
           {explanations}
         </Box>
-      </Stack>
+        {children}
+      </Box>
     </Context>
   );
 }
