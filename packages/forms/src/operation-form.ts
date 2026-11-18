@@ -2,12 +2,14 @@ import type { MessageDescriptor } from "@lingui/core";
 import { useForm, type UseFormReturnType } from "@mantine/form";
 import type { AnyContractProcedure, InferSchemaInput } from "@orpc/contract";
 import {
+  type DataAccess,
   describeReasons,
   type OperationResult,
   type OperationState,
   type Reason,
   type RefusalTexts,
   type RunOptions,
+  useDataAccess,
   useReasonTexts,
 } from "@self-engine/data-client/react";
 import { useLayoutEffect, useRef, useState } from "react";
@@ -158,6 +160,8 @@ interface Latest {
   readonly draft: UseFormReturnType<Values>;
   /** The text of a Reason the form shows at its field, as the shared Notice would word it. */
   readonly reasonTexts: RefusalTexts;
+  /** The shared Notice of a Refusal, for a Reason whose field changed before the form took it. */
+  readonly notifyRefused: DataAccess["notifyRefused"];
   /** The options without the types that tie them to one entry. */
   readonly options: {
     readonly draft: Values;
@@ -198,14 +202,20 @@ export function useOperationForm<Entry extends AnyContractProcedure, Result exte
 ): OperationForm<Draft<InputOfEntry<Entry>>> {
   const draft = useForm<Values>({ mode: "uncontrolled", initialValues: options.draft });
   const reasonTexts = useReasonTexts();
+  const { notifyRefused } = useDataAccess();
   // Read when the user acts, never while drawing: the latest Operation state and callback.
-  const latest = useRef<Latest>({ draft, reasonTexts, options } as unknown as Latest);
+  const latest = useRef<Latest>({
+    draft,
+    reasonTexts,
+    notifyRefused,
+    options,
+  } as unknown as Latest);
   const [{ form, follow }] = useState(() =>
     createForm(() => latest.current, options.edit !== undefined),
   );
   // Before the browser paints: no frame shows a field's old value beside the new entry (D324).
   useLayoutEffect(() => {
-    latest.current = { draft, reasonTexts, options } as unknown as Latest;
+    latest.current = { draft, reasonTexts, notifyRefused, options } as unknown as Latest;
     follow();
   });
   return form;
@@ -379,21 +389,26 @@ function createForm(latest: () => Latest, isEdit: boolean): MadeForm {
         // A Reason goes to a field only if this form shows that field and the field still holds
         // what was sent: a change while the save ran, also to text that is no value yet, answered
         // it already. The Notice tells the rest.
-        const result = await options.operation.run(sent, {
-          ...(options.entryName !== undefined && { entry: options.entryName }),
-          showsField: (field) =>
-            elements.has(field) &&
-            !unfinished.holds(field) &&
-            sameValue(normalized()[field], drafted[field]),
-        });
+        const showsAsSent = (field: string) =>
+          elements.has(field) &&
+          !unfinished.holds(field) &&
+          sameValue(normalized()[field], drafted[field]);
+        const entry = options.entryName === undefined ? {} : { entry: options.entryName };
+        const result = await options.operation.run(sent, { ...entry, showsField: showsAsSent });
         // Every answer replaces the Reasons of the last refused save: they spoke of that save.
         const hadReasons = refusedAt.size > 0;
         refusedAt.clear();
         if (result.status === "refused") {
-          // The hook told every other Reason in its Notice.
-          for (const [field, text] of reasonsAtFields(result.atFields, latest)) {
+          // The hook told every other Reason in its Notice. A field can change, or go, between
+          // the hook's answer and this moment, such as by code the Notice runs: asked again here,
+          // a Reason that no longer describes its field goes to a Notice of its own.
+          const atFields = result.atFields.filter(({ field }) => showsAsSent(field));
+          for (const [field, text] of reasonsAtFields(atFields, latest)) {
             refusedAt.set(field, text);
           }
+          const elsewhere = result.atFields.filter((at) => !atFields.includes(at));
+          if (elsewhere.length > 0)
+            latest().notifyRefused({ reasons: elsewhere.map(({ reason }) => reason), ...entry });
         }
         if (result.status === "conflict" && result.field !== null) {
           conflicts.set(result.field, result.text);

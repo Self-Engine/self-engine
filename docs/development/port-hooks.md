@@ -267,7 +267,8 @@ Only the module's tables, their columns and the fields of the entry's input comp
 whose `portHooks` has no tables maps none, and the function form (`run`) maps none, since it has
 no field. A mapped Reason goes to its field only when the caller says, in the call's options,
 that it shows that field (`showsField: (field) => boolean`); the form helper says so for the
-fields it renders ([forms guide](forms.md)). Such a Reason comes back in `atFields` with its
+fields it renders, and gives a Reason whose field changed before it took the answer to the
+provider's `notifyRefused` itself ([forms guide](forms.md)). Such a Reason comes back in `atFields` with its
 field, and the Notice tells only the others; with every Reason at a field there is no Notice,
 and `refused` of the handling gets only the others too. Every other Reason goes to the Notice:
 one without a field, one at a column not named here, and one whose field the caller does not

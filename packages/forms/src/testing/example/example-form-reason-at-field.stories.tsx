@@ -6,11 +6,13 @@
 import type { I18n } from "@lingui/core";
 import { I18nProvider, useLingui } from "@lingui/react";
 import { Button, Stack, TextInput } from "@mantine/core";
-import { useState } from "react";
+import { useLayoutEffect, useState } from "react";
+import { flushSync } from "react-dom";
 import {
   DataProvider,
   type FrameReasons,
   type ReasonText,
+  type RefusedNotice,
   refusalTexts,
 } from "@self-engine/data-client/react";
 import type { FixedAnswers, FixedReason } from "@self-engine/data-client/testing";
@@ -631,3 +633,88 @@ export const AStoredValueTheFieldFollowsAnswersTheReasonAtIt: Story = {
     );
   },
 };
+
+/** What the shared Notice runs as it appears in the next story: code that changes the form. */
+let whenNoticed: () => void = () => undefined;
+
+/**
+ * The example form with its color "ocean"; as the first Notice appears, it chooses blue by code,
+ * or draws the form without its color field.
+ */
+function FormTheNoticeChanges({ removesTheColor }: { readonly removesTheColor: boolean }) {
+  const [colorShown, setColorShown] = useState(true);
+  const form = useOperationForm({
+    entry: exampleContract.create,
+    operation: useCreateExample(),
+    draft: { title: "", description: "", icon: null, color: "ocean" },
+    entryName: "Kitchen",
+  });
+  useLayoutEffect(() => {
+    whenNoticed = removesTheColor
+      ? () => flushSync(() => setColorShown(false))
+      : () => form.setValue("color", "blue");
+  });
+  return (
+    <OperationFormBody form={form}>
+      <Stack>
+        <TextField form={form} label="Title" name="title" />
+        <TextField form={form} label="Description" name="description" />
+        {colorShown && <ColorField form={form} label="Color" name="color" />}
+        <Button type="submit">Save</Button>
+      </Stack>
+    </OperationFormBody>
+  );
+}
+
+/**
+ * A save of "ocean" refused at its color and with a Reason no field shows: the first Notice runs
+ * code that changes the color field before the form takes the answer.
+ */
+const changedAsTheNoticeAppears = (removesTheColor: boolean): Story => {
+  const notices: RefusedNotice[] = [];
+  return {
+    loaders: [loadRefused(COLOR_DELETED, FULL)],
+    beforeEach: () => {
+      notices.length = 0;
+    },
+    render: (_args, { loaded }) => (
+      <DataProvider
+        access={(loaded as Loaded).port.access}
+        reasonTexts={texts}
+        notifyRefused={(notice) => {
+          notices.push(notice);
+          const run = whenNoticed;
+          whenNoticed = () => undefined;
+          run();
+        }}
+      >
+        <FormTheNoticeChanges removesTheColor={removesTheColor} />
+      </DataProvider>
+    ),
+    play: async ({ canvasElement }) => {
+      const form = formIn(canvasElement);
+      await userEvent.type(form.title(), "Kitchen");
+      await userEvent.type(form.description(), "Paint the walls.");
+      await form.save();
+      await saveEnded(form);
+
+      // Each Reason is told once: the color's no longer describes its field, so a Notice tells it.
+      await waitFor(() =>
+        expect(notices.map(({ reasons }) => reasons.map(({ code }) => code))).toEqual([
+          ["space_full"],
+          ["target_deleted"],
+        ]),
+      );
+      await expect(notices[1]?.entry).toBe("Kitchen");
+      if (!removesTheColor)
+        await expect(form.color()).not.toHaveAccessibleDescription(
+          "The linked entry is no longer available.",
+        );
+    },
+  };
+};
+
+export const AReasonAtAFieldThatChangesAsTheNoticeAppearsGoesToANotice =
+  changedAsTheNoticeAppears(false);
+export const AReasonAtAFieldThatGoesAsTheNoticeAppearsGoesToANotice =
+  changedAsTheNoticeAppears(true);

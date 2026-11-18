@@ -131,11 +131,13 @@ Nothing is reported before Save. A failed Check calls no Operation, shows messag
 the first affected field and starts checking the whole Draft on every change. A Conflict
 stays at its field until that field changes, and so does a Reason of a refused save at a field the
 Operation maps its column to: the field shows the Reason's text, the one the shared Notice would
-show, in the App Language. Text that is no value yet counts as a change too, and so does a new stored value the field
-follows. The next answer to a
-save replaces the Reasons of the last one. Every other Reason goes to that Notice, the Draft stays
-and the form stays open: one at a field the form does not show, and one at a field that changed
-while the save ran. A violation of a Check outranks a Conflict or a Reason at the same field.
+show, in the App Language. Text that is no value yet counts as a change too, and so does a new
+stored value the field follows. The next answer to a save replaces the Reasons of the last one.
+Every other Reason goes to that Notice, the Draft stays and the form stays open: one at a field the
+form does not show, and one at a field that changed while the save ran. The form asks again when
+it takes the answer: a Reason whose field changed or went after the hook's answer, such as by code
+the first Notice runs, goes to a Notice of its own through the provider's `notifyRefused`, never to
+its field. A violation of a Check outranks a Conflict or a Reason at the same field.
 Unexpected failure preserves input; Data Client owns its Notice. Success and not-found call `onDone`; `onSuccess(data)` optionally consumes
 the successful answer. Pass the Shell’s `onDone`, so a completed save bypasses the leave guard.
 

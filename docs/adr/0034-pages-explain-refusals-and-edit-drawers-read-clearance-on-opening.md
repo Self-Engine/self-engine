@@ -19,7 +19,8 @@ while the rule and the tables it reads can belong to other packages.
   Reason's table and column to an input field. A Reason goes to its field only when the caller
   says, per call, that it shows that field; the form says so for the fields it renders that
   still hold the value the save sent, since a change while the save ran answered the Reason
-  already. The form shows those Reasons at their fields and keeps the Draft until the field
+  already, and asks again when it takes the answer: a Reason whose field changed or went after
+  the hook's answer goes to a Notice of its own. The form shows those Reasons at their fields and keeps the Draft until the field
   changes, also by text that is no value yet or a stored value it follows, or the next save
   answers. It displays a Check at
   the field first when both apply.
