@@ -150,12 +150,13 @@ same function across renders. A Query over tables never needs it.
 An Operation hook returns `{ run, running }`. `run(input)` resolves with a result and never
 rejects:
 
-| `status`     | Fields                    | The building block’s Notice                                   |
-| ------------ | ------------------------- | ------------------------------------------------------------- |
-| `success`    | `data`                    | none                                                          |
-| `conflict`   | `reason`, `field`, `text` | none: show `text` at `field`; `text` when `field` is `null`   |
-| `notFound`   | none                      | “This entry no longer exists.”, unless the module replaces it |
-| `unexpected` | `error`                   | “Something went wrong, and the change was not saved.”         |
+| `status`     | Fields                    | The building block’s Notice                                    |
+| ------------ | ------------------------- | -------------------------------------------------------------- |
+| `success`    | `data`                    | none                                                           |
+| `conflict`   | `reason`, `field`, `text` | none: show `text` at `field`; `text` when `field` is `null`    |
+| `notFound`   | none                      | “This entry no longer exists.”, unless the module replaces it  |
+| `refused`    | `reasons`                 | the `unexpected` Notice for now, unless the module replaces it |
+| `unexpected` | `error`                   | “Something went wrong, and the change was not saved.”          |
 
 `running` is true while any call of this hook instance waits for its result; use it to lock the
 submit button and the fields, since what is typed during a save is lost when the drawer closes.
@@ -210,6 +211,23 @@ Never show a Notice from the module yourself: what the building block lacks is a
 **Replacing “not found”.** Pass `notFound: (input) => { … }` in the handling to run instead of
 the default Notice, where the module knows better. The caller still receives
 `{ status: "notFound" }`.
+
+**A Refusal.** When a Protection Rule refuses the write, nothing changed and the result is
+`{ status: "refused", reasons }`, every Reason with its code, severity, table, row, field and
+details. Ask it for one Reason by that Reason's definition, imported from the package that defines
+it, and read its details typed:
+
+```ts
+import { findReason, referenced } from "@self-engine/db/schema";
+
+if (result.status === "refused") {
+  const tables = findReason(result, referenced)?.details.tables; // undefined without that Reason
+}
+```
+
+Until the shared Notice of a Refusal exists, the building block announces a Refusal with the
+`unexpected` Notice. Pass `refused: (refusal, input) => { … }` in the handling to show it
+yourself instead; the caller still receives the `refused` result.
 
 Input checks before saving are up to the form for now; there is no shared form helper yet. The
 Data Process checks every input, so an input the Contract rejects comes back as `unexpected`.
@@ -290,12 +308,17 @@ story fixes for it:
 | `"unexpected"`      | A failed call.                                                         |
 | `{ conflict: "…" }` | The entry’s conflict with that reason.                                 |
 | `"notFound"`        | The entry’s “not found”.                                               |
+| `{ refused: […] }`  | The entry’s Refusal with these Reasons, each `blocking`.               |
 
 Each answer is checked when `fixedAnswers` is called, and the story fails naming the entry and,
 for data, the field: data the output schema rejects, a reason the entry does not declare,
-“not found” for an entry that does not declare it, or an entry the Contract lacks. A View that
-calls an entry without an answer fails the story with “No Fixed Answer for …”. Write `data` as
-the schema’s input: ids and timestamps are plain strings.
+“not found” for an entry that does not declare it, a Refusal for an entry without the `refusal`
+block, or an entry the Contract lacks. Each Reason of a Refusal is one whose definition the story
+passes in `reasons`, the frame's own included
+(`fixedAnswers(contracts, answers, { reasons: [referenced, pinnedNote] })`), with details that
+definition accepts; any other fails to compile and fails the story. A View that calls an entry
+without an answer fails the story with “No Fixed Answer for …”. Write `data` as the schema’s
+input: ids and timestamps are plain strings.
 
 Give the module a `./testing` entry that holds its Contract values, sample rows and one helper,
 as [`placeholder-alpha/src/testing/index.ts`](../../packages/placeholder-alpha/src/testing/index.ts)

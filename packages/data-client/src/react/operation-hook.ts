@@ -1,6 +1,8 @@
 import type { MessageDescriptor } from "@lingui/core";
 import { msg } from "@lingui/core/macro";
 import { ORPCError } from "@orpc/client";
+// Types only: the hook loads at startup, where the Reason's schemas must not (startup check).
+import type { Reason, Refusal, Severity } from "@self-engine/data-protocol";
 import { useMutation } from "@tanstack/react-query";
 import { useCallback, useState } from "react";
 import { type DataAccess, useDataContext } from "./provider.ts";
@@ -36,6 +38,11 @@ export type OperationHandling<Input, Reason extends string> = ([Reason] extends 
    * way, to close what showed the entry.
    */
   readonly notFound?: (input: Input) => void;
+  /**
+   * Replaces the default announcement of a Refusal, for a caller that shows its Reasons itself.
+   * The caller receives the `refused` result either way.
+   */
+  readonly refused?: (refusal: Refusal, input: Input) => void;
 };
 
 /**
@@ -44,6 +51,9 @@ export type OperationHandling<Input, Reason extends string> = ([Reason] extends 
  * - `conflict`: a declared reason with the module's text and field, to show at that field. No
  *   notice; for a reason whose field is `null`, the notice with the text was shown instead.
  * - `notFound`: the entry is gone. A notice told the user, unless the module replaced it.
+ * - `refused`: a Protection Rule refused the write and nothing changed; the Refusal's Reasons. A
+ *   notice told the user, unless the module replaced it. Until the shared Notice of a Refusal
+ *   exists, that is the general notice of an unexpected error.
  * - `unexpected`: anything else; a general notice told the user.
  */
 export type OperationResult<Output, Reason extends string, Field extends string> =
@@ -57,6 +67,7 @@ export type OperationResult<Output, Reason extends string, Field extends string>
           readonly text: MessageDescriptor;
         })
   | { readonly status: "notFound" }
+  | ({ readonly status: "refused" } & Refusal)
   | { readonly status: "unexpected"; readonly error: unknown };
 
 /** What an Operation hook returns: the call, and whether one is running. */
@@ -77,11 +88,12 @@ export type OperationHook<Input, Output, Reason extends string> = () => Operatio
 interface Handling {
   readonly conflicts?: Readonly<Record<string, ConflictText<string>>>;
   readonly notFound?: (input: never) => void;
+  readonly refused?: (refusal: Refusal, input: never) => void;
 }
 
 type AnyResult = OperationResult<unknown, string, string>;
 
-/** Calls the entry and sorts its answer into the four results. */
+/** Calls the entry and sorts its answer into the five results. */
 async function callOperation(
   access: DataAccess["access"],
   module: string,
@@ -94,6 +106,8 @@ async function callOperation(
   } catch (error) {
     if (error instanceof ORPCError) {
       if (error.code === "NOT_FOUND") return { status: "notFound" };
+      const refused = error.code === "REFUSED" ? refusalOf(error.data) : undefined;
+      if (refused !== undefined) return refused;
       const conflict = error.code === "CONFLICT" ? conflictOf(error.data, handling) : undefined;
       if (conflict !== undefined) return conflict;
     }
@@ -111,8 +125,41 @@ function conflictOf(data: unknown, handling: Handling): AnyResult | undefined {
 }
 
 /**
- * Calls the Operation and announces its "not found" and unexpected results and a conflict without
- * a field, as both the hook and the function form do; any other conflict is left to the caller.
+ * The Refusal with its Reasons, in the shape of the shared `refusal` block; malformed is
+ * unexpected. Checked by hand, since the block's schema must not load at startup. The details stay
+ * unknown until `findReason` checks them by their definition.
+ */
+function refusalOf(data: unknown): AnyResult | undefined {
+  const reasons: unknown = isObject(data) ? data["reasons"] : undefined;
+  if (!Array.isArray(reasons) || reasons.length === 0 || !reasons.every(isReason)) return;
+  return { status: "refused", reasons };
+}
+
+/** Every severity, as a record so that a new one in the format does not compile until it is here. */
+const SEVERITIES: Readonly<Record<Severity, true>> = { blocking: true, warning: true };
+
+function isReason(value: unknown): value is Reason {
+  if (!isObject(value)) return false;
+  const { code, severity, table, row, field } = value;
+  return (
+    typeof code === "string" &&
+    typeof severity === "string" &&
+    Object.hasOwn(SEVERITIES, severity) &&
+    typeof table === "string" &&
+    typeof row === "string" &&
+    (field === undefined || typeof field === "string") &&
+    "details" in value
+  );
+}
+
+function isObject(value: unknown): value is Readonly<Record<string, unknown>> {
+  return typeof value === "object" && value !== null;
+}
+
+/**
+ * Calls the Operation and announces its "not found", refused and unexpected results and a conflict
+ * without a field, as both the hook and the function form do; any other conflict is left to the
+ * caller.
  */
 async function runOperation(
   { access, notify }: DataAccess,
@@ -124,6 +171,11 @@ async function runOperation(
   const result = await callOperation(access, module, entry, input, handling);
   if (result.status === "conflict" && result.field === null) notify(result.text);
   if (result.status === "unexpected") notify(UNEXPECTED_NOTICE);
+  if (result.status === "refused") {
+    // Until the shared Notice of a Refusal exists, it is announced as an unexpected error is.
+    if (handling.refused === undefined) notify(UNEXPECTED_NOTICE);
+    else handling.refused({ reasons: result.reasons }, input as never);
+  }
   if (result.status === "notFound") {
     if (handling.notFound === undefined) notify(NOT_FOUND_NOTICE);
     else handling.notFound(input as never);
@@ -133,7 +185,8 @@ async function runOperation(
 
 /**
  * The Operation hook for the entry `entry` of the module mounted as `module` (`portHooks`).
- * It announces "not found" and unexpected errors itself, and leaves a conflict to the form.
+ * It announces "not found", a Refusal and unexpected errors itself, and leaves a conflict to the
+ * form.
  */
 export function operationHook<Input, Output, Reason extends string>(
   module: string,

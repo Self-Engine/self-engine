@@ -107,3 +107,30 @@ export function matchReason<Definition extends ReasonDefinition>(
     ? ({ ...reason, details: details.data } as ReasonOf<Definition>)
     : undefined;
 }
+
+/** A refused write (D334): every Reason the Protection Rules answered with, at least one. */
+export interface Refusal {
+  readonly reasons: readonly Reason[];
+}
+
+/**
+ * The first Reason of the Refusal that is the defined one, with its details typed; `undefined`
+ * when it carries none whose code and details fit the definition. A page asks only for Reasons of
+ * packages it may import, since the definition is an import.
+ *
+ * ```ts
+ * if (result.status === "refused") {
+ *   const tables = findReason(result, referenced)?.details.tables;
+ * }
+ * ```
+ */
+export function findReason<Definition extends ReasonDefinition>(
+  refused: Refusal,
+  definition: Definition,
+): ReasonOf<Definition> | undefined {
+  for (const reason of refused.reasons) {
+    const matched = matchReason(definition, reason);
+    if (matched !== undefined) return matched;
+  }
+  return undefined;
+}

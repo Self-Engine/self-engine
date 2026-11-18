@@ -1,6 +1,12 @@
 import { expect, expectTypeOf, test } from "vite-plus/test";
 import { z } from "zod";
-import { defineReason, matchReason, refusal, type Reason } from "@self-engine/db/schema";
+import {
+  defineReason,
+  findReason,
+  matchReason,
+  refusal,
+  type Reason,
+} from "@self-engine/db/schema";
 
 const referenced = defineReason("referenced", z.object({ table: z.string(), count: z.number() }));
 const pinned = defineReason("pinned", z.object({ title: z.string() }));
@@ -52,4 +58,32 @@ test("a Reason's details cannot transform their input: they are parsed where a r
   expectTypeOf(
     defineReason("titled", z.object({ title: z.string().optional() })).code,
   ).toEqualTypeOf<"titled">();
+});
+
+test("a Refusal answers the first Reason that is the defined one, with its details typed", () => {
+  const reason = (code: string, details: unknown): Reason => ({
+    code,
+    severity: "blocking",
+    table: "projects",
+    row,
+    details,
+  });
+  const refused = {
+    reasons: [
+      reason("pinned", { title: "Website" }),
+      reason("referenced", { table: "tasks" }),
+      reason("referenced", { table: "time_entries", count: 12 }),
+    ],
+  };
+
+  const found = findReason(refused, referenced);
+
+  // The first `referenced` has details of another shape, so the second one answers.
+  expect(found).toEqual(refused.reasons[2]);
+  expectTypeOf(found).toEqualTypeOf<
+    Reason<"referenced", { table: string; count: number }> | undefined
+  >();
+  // @ts-expect-error The details of `referenced` have no `amount`.
+  void found?.details.amount;
+  expect(findReason({ reasons: [refused.reasons[0]!] }, referenced)).toBeUndefined();
 });

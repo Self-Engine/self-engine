@@ -20,7 +20,8 @@ export {
   tablesChangedSchema,
 } from "./tables-changed.ts";
 export { clearanceContract } from "./clearance.ts";
-// The Clearance's shapes live beside the Reason they carry, so the storage frame shares them.
+// The Clearance's and the Refusal's shapes live beside the Reason they carry, so the storage
+// frame shares them.
 export {
   type Clearance,
   clearanceSchema,
@@ -28,4 +29,11 @@ export {
   clearanceWriteSchema,
   type RowClearance,
   rowClearanceSchema,
+  findReason,
+  type Reason,
+  type ReasonDefinition,
+  type ReasonOf,
+  referenced,
+  type Refusal,
+  type Severity,
 } from "@self-engine/db/schema";
