@@ -1,7 +1,7 @@
 import { createRouterClient } from "@orpc/server";
 import { oc } from "@orpc/contract";
 import type { TablesOf } from "@self-engine/db";
-import { defineReason, type FrameReasons, refusal } from "@self-engine/db/schema";
+import { defineReason, type FrameReasons, refusal, targetDeleted } from "@self-engine/db/schema";
 import type { KyselyPlugin } from "kysely";
 import { afterEach, beforeEach, describe, expect, expectTypeOf, test } from "vite-plus/test";
 import { z } from "zod";
@@ -434,6 +434,24 @@ describe("the Reasons a rule answers with stay in the types (D334)", () => {
   test("a module keeps the Reasons of its rules, so the page can ask a text for each", () => {
     type ModuleReasons = NonNullable<(typeof notes)["rules"]>[number]["reasons"][number];
     expectTypeOf<ModuleReasons>().toEqualTypeOf<typeof pinnedNote>();
+  });
+
+  test("a module's rule answers only with the Reasons it declares, also without `protectionRule`", () => {
+    const { rules: _rules, ...withoutRules } = notes;
+    defineStorageModule({
+      ...withoutRules,
+      rules: [
+        {
+          table: "notes",
+          write: "delete",
+          reasons: [pinnedNote],
+          // @ts-expect-error `target_deleted` is not a Reason this rule declares.
+          answer: async () => [
+            { code: targetDeleted.code, row: "n1", details: { target: { table: "x", id: "y" } } },
+          ],
+        },
+      ],
+    });
   });
 
   test("the reference check answers only with the frame's Reasons", () => {

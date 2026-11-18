@@ -32,8 +32,29 @@ type DataTextsInput<Module extends StorageModuleShape> = [Module] extends [never
     : { readonly tableNames: TableNames<TablesOfModule<Module>> } & ([
         ReasonsOfModule<Module>,
       ] extends [never]
-        ? { readonly reasonTexts?: ReasonTexts<never> }
+        ? { readonly reasonTexts?: NoReasonTexts }
         : { readonly reasonTexts: ReasonTexts<ReasonsOfModule<Module>> });
+
+/** The texts of a module whose rules answer with no Reason: none at all. */
+type NoReasonTexts = Readonly<Record<string, never>>;
+
+/**
+ * Each key of `Given` beyond `Allowed` as `never`, so that a map held in a variable, which skips
+ * the check of a fresh literal for extra keys, does not bring a name or text nobody asked for.
+ */
+type NoExtraKeys<Given, Allowed extends PropertyKey> = {
+  readonly [Key in Exclude<keyof Given, Allowed>]: never;
+};
+
+/** The keys `texts` gives beyond those its storage module calls for, each as `never`. */
+type ExtraKeysOf<Texts, Module extends StorageModuleShape> = (Texts extends {
+  readonly tableNames: infer Names;
+}
+  ? { readonly tableNames: NoExtraKeys<Names, TablesOfModule<Module>> }
+  : unknown) &
+  (Texts extends { readonly reasonTexts: infer Given }
+    ? { readonly reasonTexts: NoExtraKeys<Given, ReasonsOfModule<Module>["code"]> }
+    : unknown);
 
 declare const checked: unique symbol;
 
@@ -60,8 +81,8 @@ export interface DataTexts {
  * ```
  */
 export function dataTexts<Module extends StorageModuleShape = never>() {
-  return (
-    texts: DataTextsInput<Module>,
+  return <const Texts extends DataTextsInput<Module>>(
+    texts: Texts & ExtraKeysOf<Texts, Module>,
   ): DataTexts & {
     readonly tableNames: TableNames<TablesOfModule<Module>>;
     readonly reasonTexts: ReasonTexts<ReasonsOfModule<Module>>;

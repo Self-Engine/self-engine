@@ -14,7 +14,8 @@ export type RuleAnswer<Id, Definition> =
 
 /**
  * A rule as the registry holds it, once `protectionRule` checked it against its row map. It keeps
- * the Reasons it answers with, so the page side can demand a text for each (D334).
+ * the Reasons it answers with, so the page side can demand a text for each (D334), and answers
+ * only with those; the registry holds every rule with the broad default.
  */
 export interface RegisteredRule<
   Table extends string = string,
@@ -23,7 +24,7 @@ export interface RegisteredRule<
   readonly table: Table;
   readonly write: WriteKind;
   readonly reasons: readonly Reasons[];
-  answer(...args: never[]): Promise<readonly RuleAnswer<string, ReasonDefinition>[]>;
+  answer(...args: never[]): Promise<readonly RuleAnswer<string, Reasons>[]>;
 }
 
 /** Every rule of a Data Process, by table and kind of write. */

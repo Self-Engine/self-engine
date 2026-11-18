@@ -90,13 +90,19 @@ type ContributionInput<Commands extends readonly ShellCommand[]> = ContributionM
     : NoInfer<Extract<Commands[number], PersonCommand>>;
 };
 
-/** Infer command ids from commands alone, then check the direct main-action reference. */
+/**
+ * Infer command ids from commands alone, then check the direct main-action reference. A
+ * contribution given its `dataTexts` keeps them in its type, which the app's module list asks for.
+ */
 export function defineContribution<
-  const Commands extends readonly ShellCommand[] = readonly [],
-  const Texts extends DataTexts | undefined = undefined,
+  const Commands extends readonly ShellCommand[],
+  const Texts extends DataTexts,
 >(
-  contribution: ContributionInput<Commands> & { readonly dataTexts?: Texts },
-): ShellContribution & (Texts extends DataTexts ? { readonly dataTexts: Texts } : unknown);
+  contribution: ContributionInput<Commands> & { readonly dataTexts: Texts },
+): ShellContribution & { readonly dataTexts: Texts };
+export function defineContribution<const Commands extends readonly ShellCommand[] = readonly []>(
+  contribution: ContributionInput<Commands>,
+): ShellContribution;
 export function defineContribution<const Commands extends readonly ShellCommand[]>(
   contribution: ContributionInput<Commands>,
 ): ShellContribution {
