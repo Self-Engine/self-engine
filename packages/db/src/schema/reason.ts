@@ -95,6 +95,13 @@ export const targetDeleted = defineReason(
   z.object({ target: z.object({ table: z.string(), id: z.string() }) }),
 );
 
+/**
+ * The Reasons of the frame's reference check (D337). Its rules are typed against this list, so a
+ * new Reason of the frame does not compile until it is listed here, and the page's texts for the
+ * frame (`frameReasonTexts` of the data client) do not compile until it has one.
+ */
+export type FrameReasons = typeof referenced | typeof targetDeleted;
+
 /** The Reason with its details typed, when it is the defined one and its details fit. */
 export function matchReason<Definition extends ReasonDefinition>(
   definition: Definition,

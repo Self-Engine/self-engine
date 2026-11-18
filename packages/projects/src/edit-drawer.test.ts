@@ -9,11 +9,9 @@ import type { ContractRouterClient } from "@orpc/contract";
 import { createDataConnection } from "@self-engine/data-client";
 import {
   DataProvider,
-  frameReasonTexts,
   portAccessOf,
   refusalTexts,
   useDataAccess,
-  type FrameReasons,
 } from "@self-engine/data-client/react";
 import { startTestDataProcess } from "@self-engine/data-process/testing";
 import { Shell, type ShellRouting, type ViewAddress, type ViewSearch } from "@self-engine/shell";
@@ -36,7 +34,7 @@ afterEach(async () => {
 function renderDrawer(id: string, realAccess: ReturnType<typeof portAccessOf>) {
   const access = { ...realAccess, call: vi.fn(realAccess.call.bind(realAccess)) };
   const i18n = setupI18n({ locale: "en", messages: { en: {} } });
-  const reasonTexts = refusalTexts<FrameReasons>(frameReasonTexts, (table) =>
+  const reasonTexts = refusalTexts([], (table) =>
     table === "project_entries" ? projectEntriesTableNames.project_entries : undefined,
   );
   let search: ViewSearch = { edit: id };

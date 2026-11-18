@@ -51,7 +51,8 @@ export const ALLOWED_IMPORTS: AllowedImports = {
   // Its contracts and data entries (D252); the root entry stays with the shell and the UI, and
   // reads and writes through the data building block.
   "placeholder-alpha": ["data-client", "db", "forms", "icons", "shell", "storage", "time", "ui"],
-  "placeholder-beta": ["shell", "icons"],
+  // A module without data names that in its contribution (`NO_DATA_TEXTS` of the data client).
+  "placeholder-beta": ["data-client", "shell", "icons"],
   // The first real module (#273): its Contract, data entry, Views and form. Icon and color come
   // from the names of `icons` and `theme` (ADR 0029).
   projects: ["data-client", "db", "forms", "icons", "shell", "storage", "theme", "time", "ui"],

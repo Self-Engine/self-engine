@@ -1,6 +1,6 @@
 import { msg, plural } from "@lingui/core/macro";
 import type { TablesOf } from "@self-engine/db";
-import type { TableNames } from "@self-engine/shell";
+import type { TableNames } from "@self-engine/data-client/react";
 import type { SyncedTable } from "@self-engine/storage";
 import type { projectEntriesRowMap } from "./data/rows.ts";
 

@@ -12,12 +12,7 @@ import {
   useRef,
 } from "react";
 import type { PortAccess } from "./port-access.ts";
-import {
-  type FrameReasons,
-  frameReasonTexts,
-  type RefusalTexts,
-  refusalTexts,
-} from "./reason-texts.ts";
+import { type RefusalTexts, refusalTexts } from "./reason-texts.ts";
 import { type RefusedNotice, showRefusal } from "./refusal-notice.ts";
 import { noticeFailedReload } from "./reload-notice.ts";
 
@@ -166,7 +161,7 @@ export interface DataProviderProps {
 }
 
 /** The texts a provider uses when it is given none: the frame's Reasons, no table names. */
-const FRAME_ONLY = refusalTexts<FrameReasons>(frameReasonTexts, () => undefined);
+const FRAME_ONLY = refusalTexts([], () => undefined);
 
 /** Counts the accesses providers were given, to key the tree below each one's cache. */
 let accessGenerations = 0;

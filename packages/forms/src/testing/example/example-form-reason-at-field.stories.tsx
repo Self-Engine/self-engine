@@ -8,7 +8,6 @@ import { Button, Stack } from "@mantine/core";
 import {
   DataProvider,
   type FrameReasons,
-  frameReasonTexts,
   type ReasonText,
   refusalTexts,
 } from "@self-engine/data-client/react";
@@ -37,8 +36,8 @@ const titleReservedText: ReasonText<typeof titleReserved> = ({ details }) =>
 const spaceFullText: ReasonText<typeof spaceFull> = ({ details }) =>
   `This space holds no more than ${String(details.limit)} entries.`;
 
-const texts = refusalTexts<StoryReasons>(
-  { ...frameReasonTexts, title_reserved: titleReservedText, space_full: spaceFullText },
+const texts = refusalTexts(
+  [{ title_reserved: titleReservedText, space_full: spaceFullText }],
   () => undefined,
 );
 

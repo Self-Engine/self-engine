@@ -1,6 +1,11 @@
 // @vitest-environment happy-dom
 
-import { findReason, referenced } from "@self-engine/data-protocol";
+import {
+  type Archivable,
+  type Convention,
+  findReason,
+  referenced,
+} from "@self-engine/data-protocol";
 import { afterEach, beforeEach, expect, expectTypeOf, test, vi } from "vite-plus/test";
 import { fixedAnswers } from "../testing/index.ts";
 import { renderHook, unmountHook } from "./hook-harness.ts";
@@ -9,9 +14,9 @@ import { clearanceQueryFor, useClearance } from "./index.ts";
 type NoteId = string & { readonly noteId: unique symbol };
 type LinkId = string & { readonly linkId: unique symbol };
 type Tables = {
-  notes: { id: NoteId; archived_at: string | null };
-  links: { id: LinkId };
-  local_cache: { id: string };
+  notes: Convention & Archivable & { id: NoteId };
+  links: Convention & { id: LinkId };
+  local_cache: Convention;
 };
 const query = clearanceQueryFor<Tables>();
 const row = "note-1" as NoteId;

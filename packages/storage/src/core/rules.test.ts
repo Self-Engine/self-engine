@@ -1,7 +1,7 @@
 import { createRouterClient } from "@orpc/server";
 import { oc } from "@orpc/contract";
 import type { TablesOf } from "@self-engine/db";
-import { defineReason, refusal } from "@self-engine/db/schema";
+import { defineReason, type FrameReasons, refusal } from "@self-engine/db/schema";
 import type { KyselyPlugin } from "kysely";
 import { afterEach, beforeEach, describe, expect, expectTypeOf, test } from "vite-plus/test";
 import { z } from "zod";
@@ -19,6 +19,7 @@ import {
   noProtectionRules,
   protectionRule,
   protectionRules,
+  referenceCheck,
   sharedWrites,
   type ProtectionRules,
   type RegisteredRule,
@@ -426,5 +427,17 @@ describe("the types of a rule", () => {
       reasons: [],
       answer: async () => [],
     });
+  });
+});
+
+describe("the Reasons a rule answers with stay in the types (D334)", () => {
+  test("a module keeps the Reasons of its rules, so the page can ask a text for each", () => {
+    type ModuleReasons = NonNullable<(typeof notes)["rules"]>[number]["reasons"][number];
+    expectTypeOf<ModuleReasons>().toEqualTypeOf<typeof pinnedNote>();
+  });
+
+  test("the reference check answers only with the frame's Reasons", () => {
+    type CheckReasons = ReturnType<typeof referenceCheck>["rules"][number]["reasons"][number];
+    expectTypeOf<CheckReasons>().toEqualTypeOf<FrameReasons>();
   });
 });

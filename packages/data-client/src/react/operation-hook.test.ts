@@ -20,8 +20,6 @@ import {
 } from "./hook-harness.ts";
 import {
   type DataAccess,
-  type FrameReasons,
-  frameReasonTexts,
   portHooks,
   type RefusedNotice,
   refusalTexts,
@@ -588,7 +586,7 @@ test("a form maps only columns of its module's tables, to fields of the entry's 
 });
 
 test("the provider gives a form the texts of Reasons it was given, to show one at its field", async () => {
-  const texts = refusalTexts<FrameReasons>(frameReasonTexts, () => undefined);
+  const texts = refusalTexts([], () => undefined);
   const describe = vi.spyOn(texts, "describe").mockReturnValue("The linked note was deleted.");
   const i18n = createI18n();
 

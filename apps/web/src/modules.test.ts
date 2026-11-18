@@ -1,22 +1,22 @@
 import { expect, test } from "vite-plus/test";
 import { activateLanguage, createI18n, formatCountedList } from "@self-engine/i18n";
 import { auditSettingsArea } from "@self-engine/settings-area/audit";
-import {
-  auditCommands,
-  type ShellContribution,
-  shellCommands,
-  validateContributions,
-} from "@self-engine/shell";
+import { auditCommands, shellCommands, validateContributions } from "@self-engine/shell";
+import { contribution as beta } from "@self-engine/placeholder-beta";
 import { createModuleList } from "./module-list.ts";
 import { appModules } from "./modules.ts";
 
 const { contributions, settings } = appModules;
 
-function mountWithoutNames(module: ShellContribution) {
-  // @ts-expect-error Mounting requires an explicit table name map.
-  createModuleList([module]);
+function mountWithoutDataTexts() {
+  const { dataTexts: _checked, ...withoutTexts } = beta;
+  // @ts-expect-error Mounting requires the module's data texts.
+  createModuleList([withoutTexts]);
+  // @ts-expect-error A literal of names is no proof: only `dataTexts` checks them against the
+  // module's storage module, so `tableNames: {}` of a module with data cannot be mounted.
+  createModuleList([{ ...withoutTexts, dataTexts: { tableNames: {}, reasonTexts: {} } }]);
 }
-void mountWithoutNames;
+void mountWithoutDataTexts;
 
 test("the app mounts projects and no placeholder module (D315)", () => {
   expect(appModules.modules.map((module) => module.id)).toEqual(["projects"]);
@@ -71,7 +71,7 @@ test("a list of table counts follows the App Language, including its conjunction
 test("two mounted modules cannot claim the same synced table", async () => {
   const { contribution: alpha } = await import("@self-engine/placeholder-alpha");
   const { contribution: beta } = await import("@self-engine/placeholder-beta");
-  expect(() => createModuleList([alpha, { ...beta, tableNames: alpha.tableNames }])).toThrow(
+  expect(() => createModuleList([alpha, { ...beta, dataTexts: alpha.dataTexts }])).toThrow(
     "Duplicate synced table name: placeholder_alpha_entries",
   );
 });

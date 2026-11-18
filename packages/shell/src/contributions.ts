@@ -1,6 +1,6 @@
 import type { PersonCommand, ShellCommand } from "./commands.ts";
 import type { MessageDescriptor } from "@lingui/core";
-import type { CountedName } from "@self-engine/i18n";
+import type { DataTexts } from "@self-engine/data-client/react";
 import type { IconProps } from "@self-engine/icons";
 import type { ColorSetName } from "@self-engine/theme";
 import type { ComponentType } from "react";
@@ -39,9 +39,6 @@ export interface EditDrawerProps {
   readonly confirmDiscard: () => Promise<boolean>;
 }
 
-/** One plural name for each synced table a module owns. */
-export type TableNames<Table extends string = string> = Readonly<Record<Table, CountedName>>;
-
 interface ContributionMetadata {
   readonly id: string;
   readonly name: MessageDescriptor;
@@ -52,7 +49,12 @@ interface ContributionMetadata {
   readonly groups?: () => Promise<{ readonly default: ComponentType }>;
   readonly editDrawer?: () => Promise<{ readonly default: ComponentType<EditDrawerProps> }>;
   readonly sharedSearch?: readonly string[];
-  readonly tableNames?: TableNames;
+  /**
+   * The names of the module's synced tables and the texts of its rules' Reasons, made by
+   * `dataTexts` of `@self-engine/data-client/react` against its storage module; `NO_DATA_TEXTS`
+   * for a module without data. The app's module list mounts no module without them.
+   */
+  readonly dataTexts?: DataTexts;
 }
 
 /** Private state prevents object literals and spreads from forging checked membership. */
@@ -91,13 +93,10 @@ type ContributionInput<Commands extends readonly ShellCommand[]> = ContributionM
 /** Infer command ids from commands alone, then check the direct main-action reference. */
 export function defineContribution<
   const Commands extends readonly ShellCommand[] = readonly [],
-  const Names extends TableNames = TableNames,
+  const Texts extends DataTexts | undefined = undefined,
 >(
-  contribution: ContributionInput<Commands> & { readonly tableNames: Names },
-): ShellContribution & { readonly tableNames: Names };
-export function defineContribution<const Commands extends readonly ShellCommand[] = readonly []>(
-  contribution: ContributionInput<Commands>,
-): ShellContribution;
+  contribution: ContributionInput<Commands> & { readonly dataTexts?: Texts },
+): ShellContribution & (Texts extends DataTexts ? { readonly dataTexts: Texts } : unknown);
 export function defineContribution<const Commands extends readonly ShellCommand[]>(
   contribution: ContributionInput<Commands>,
 ): ShellContribution {

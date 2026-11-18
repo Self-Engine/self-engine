@@ -1,9 +1,8 @@
 import { msg, plural } from "@lingui/core/macro";
-import type { TablesOf } from "@self-engine/db";
+import { dataTexts } from "@self-engine/data-client/react";
 import { ProjectsIcon } from "@self-engine/icons";
-import { defineContribution, type ShellCommand, type TableNames } from "@self-engine/shell";
-import type { SyncedTable } from "@self-engine/storage";
-import type { entriesRowMap } from "./data/rows.ts";
+import { defineContribution, type ShellCommand } from "@self-engine/shell";
+import type { placeholderAlpha } from "./data/index.ts";
 
 const createEntry = {
   id: "create-entry",
@@ -34,9 +33,12 @@ export const contribution = defineContribution({
   name: msg`Placeholder Alpha`,
   icon: ProjectsIcon,
   color: "blue",
-  tableNames: {
-    placeholder_alpha_entries: (count) => msg`${plural(count, { one: "entry", other: "entries" })}`,
-  },
+  dataTexts: dataTexts<typeof placeholderAlpha>()({
+    tableNames: {
+      placeholder_alpha_entries: (count) =>
+        msg`${plural(count, { one: "entry", other: "entries" })}`,
+    },
+  }),
   views: [
     { id: "overview", title: msg`Overview`, load: loadEntries },
     {
@@ -50,4 +52,4 @@ export const contribution = defineContribution({
   editDrawer: () => import("./edit-drawer.tsx"),
   groups: () => import("./groups.tsx"),
   sharedSearch: ["client"],
-}) satisfies { readonly tableNames: TableNames<SyncedTable<TablesOf<typeof entriesRowMap>>> };
+});

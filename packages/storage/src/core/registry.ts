@@ -12,11 +12,17 @@ export type RuleAnswer<Id, Definition> =
       }
     : never;
 
-/** A rule as the registry holds it, once `protectionRule` checked it against its row map. */
-export interface RegisteredRule<Table extends string = string> {
+/**
+ * A rule as the registry holds it, once `protectionRule` checked it against its row map. It keeps
+ * the Reasons it answers with, so the page side can demand a text for each (D334).
+ */
+export interface RegisteredRule<
+  Table extends string = string,
+  Reasons extends ReasonDefinition = ReasonDefinition,
+> {
   readonly table: Table;
   readonly write: WriteKind;
-  readonly reasons: readonly ReasonDefinition[];
+  readonly reasons: readonly Reasons[];
   answer(...args: never[]): Promise<readonly RuleAnswer<string, ReasonDefinition>[]>;
 }
 

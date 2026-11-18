@@ -1,5 +1,5 @@
 import type { Reference } from "@self-engine/db";
-import { referenced, targetDeleted } from "@self-engine/db/schema";
+import { type FrameReasons, referenced, targetDeleted } from "@self-engine/db/schema";
 import type { Transaction } from "kysely";
 import type { StorageContext } from "./context.ts";
 import type { RegisteredRule, RuleAnswer } from "./registry.ts";
@@ -16,7 +16,7 @@ type Untyped = Transaction<Record<string, Record<string, string | null>>>;
  * archive and unarchive are not guarded.
  */
 export function referenceCheck(references: readonly Reference[]): {
-  readonly rules: readonly RegisteredRule[];
+  readonly rules: readonly RegisteredRule<string, FrameReasons>[];
 } {
   const targets = [...new Set(references.map(({ target }) => target))];
   const referring = [...new Set(references.map(({ table }) => table))];
@@ -55,7 +55,7 @@ function targetRule(
   table: string,
   write: "insert" | "update" | "restore",
   references: readonly Reference[],
-): RegisteredRule {
+): RegisteredRule<string, typeof targetDeleted> {
   return {
     table,
     write,
@@ -133,7 +133,10 @@ async function deletedRows(
  * referring table at once and stops at the first referring row of each; only a refused row is
  * counted, with one count per referring column. A row's reference to itself does not protect it.
  */
-function deleteRule(target: string, referring: readonly Reference[]): RegisteredRule {
+function deleteRule(
+  target: string,
+  referring: readonly Reference[],
+): RegisteredRule<string, typeof referenced> {
   return {
     table: target,
     write: "delete",

@@ -14,7 +14,6 @@ export {
   validateContributions,
   defineContribution,
   type ShellContribution,
-  type TableNames,
   type ShellView,
   type ViewPageProps,
   type EditDrawerProps,

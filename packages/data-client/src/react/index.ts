@@ -2,6 +2,7 @@
 // imports the query library. The app mounts its DataProvider at startup.
 export { type ClearanceState, useClearance } from "./clearance-hook.ts";
 export { type ClearanceQuery, clearanceQueryFor } from "./clearance-query.ts";
+export { type DataTexts, dataTexts, NO_DATA_TEXTS, type TableNames } from "./data-texts.ts";
 export type { Clearance, ClearanceWrite, RowClearance } from "@self-engine/data-protocol";
 export {
   type ConflictText,
@@ -18,6 +19,7 @@ export { type PortHooks, portHooks } from "./port-hooks.ts";
 // The Reasons' types, for the app's list of Reasons and a page that asks for one (D334).
 export type { Reason, ReasonDefinition, Refusal } from "@self-engine/data-protocol";
 export {
+  type AnyReasonText,
   type FrameReasons,
   frameReasonTexts,
   type ReasonText,

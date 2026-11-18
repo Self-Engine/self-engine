@@ -1056,6 +1056,9 @@ importers:
       '@mantine/core':
         specifier: 'catalog:'
         version: 9.8.0(@mantine/hooks@9.8.0(react@19.3.1))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
+      '@self-engine/data-client':
+        specifier: workspace:*
+        version: link:../data-client
       '@self-engine/icons':
         specifier: workspace:*
         version: link:../icons

@@ -1,14 +1,13 @@
 import type { AnyContractProcedure, InferSchemaInput, InferSchemaOutput } from "@orpc/contract";
 import type { Migration, TablesOf } from "@self-engine/db";
-import type { refusal } from "@self-engine/db/schema";
+import type { ReasonDefinition, refusal, RowMap } from "@self-engine/db/schema";
 import type { Transaction, CompiledQuery } from "kysely";
-import type { z } from "zod";
 import type { StorageContext } from "./context.ts";
 import type { SyncedTable } from "./convention.ts";
 import type { RegisteredRule } from "./registry.ts";
 
+export type { RowMap };
 export type StorageContract = Readonly<Record<string, AnyContractProcedure>>;
-export type RowMap = Readonly<Record<string, z.ZodObject>>;
 export type ReadTransaction<Rows> = Pick<Transaction<Rows>, "selectFrom" | "selectNoFrom">;
 type Handler<Tx, Input, Output> = (
   tx: Tx,
@@ -86,6 +85,7 @@ export interface StorageModule<
   Contract extends StorageContract,
   Rows extends RowMap,
   Name extends string = string,
+  Reasons extends ReasonDefinition = ReasonDefinition,
 > {
   /**
    * The module's namespace in the app contract; page cursors carry it (D259). Kept as its
@@ -98,8 +98,11 @@ export interface StorageModule<
   readonly entries: ModuleEntries<Contract, Rows>;
   /** Unique index name to the reason code declared by the contract. */
   readonly conflicts?: Readonly<Record<string, string>>;
-  /** Protection Rules for the module's own tables, each stated with `protectionRule` (D331). */
-  readonly rules?: readonly RegisteredRule<SyncedTable<TablesOf<Rows>>>[];
+  /**
+   * Protection Rules for the module's own tables, each stated with `protectionRule` (D331). Their
+   * Reasons stay in the type: the module's page side names a text for each (`dataTexts`).
+   */
+  readonly rules?: readonly RegisteredRule<SyncedTable<TablesOf<Rows>>, Reasons>[];
 }
 
 /** Everything a module declares before its entries: name, Contract, row map and migrations. */
@@ -107,7 +110,8 @@ export type StorageModuleDefinition<
   Contract extends StorageContract,
   Rows extends RowMap,
   Name extends string = string,
-> = Omit<StorageModule<Contract, Rows, Name>, "entries">;
+  Reasons extends ReasonDefinition = ReasonDefinition,
+> = Omit<StorageModule<Contract, Rows, Name, Reasons>, "entries">;
 
 /**
  * Defines a module in two steps (refines D259): the Contract and row map are fixed first, so
@@ -117,11 +121,13 @@ export function defineStorageModule<
   const Contract extends StorageContract,
   const Rows extends RowMap,
   const Name extends string,
->(definition: StorageModuleDefinition<Contract, Rows, Name>) {
+  // A module without rules answers with no Reason.
+  Reasons extends ReasonDefinition = never,
+>(definition: StorageModuleDefinition<Contract, Rows, Name, Reasons>) {
   return {
     entries<const Entries extends ModuleEntries<Contract, Rows>>(
       entries: Entries,
-    ): StorageModule<Contract, Rows, Name> & { readonly entries: Entries } {
+    ): StorageModule<Contract, Rows, Name, Reasons> & { readonly entries: Entries } {
       return { ...definition, entries };
     },
   };

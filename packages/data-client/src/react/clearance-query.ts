@@ -1,4 +1,9 @@
-import type { ClearanceWrite } from "@self-engine/data-protocol";
+import type {
+  ArchivableTable,
+  ClearanceWrite,
+  RowId,
+  SyncedTable,
+} from "@self-engine/data-protocol";
 
 type NonEmpty<Value> = readonly [Value, ...Value[]];
 
@@ -17,19 +22,16 @@ declare const checkedQuery: unique symbol;
 /** A Clearance Query checked against the tables of the calling module. */
 export type ClearanceQuery = ClearanceInput & { readonly [checkedQuery]: true };
 
+/** One Query per synced table, with its ids, and archive and unarchive only where it archives. */
 type ModuleClearanceQuery<Tables> = {
-  [Table in keyof Tables & string]: Table extends `local_${string}`
-    ? never
-    : Tables[Table] extends { id: infer Id extends string }
-      ? ClearanceInput<
-          Table,
-          Id,
-          "archived_at" extends keyof Tables[Table]
-            ? ClearanceWrite
-            : Exclude<ClearanceWrite, "archive" | "unarchive">
-        >
-      : never;
-}[keyof Tables & string];
+  [Table in SyncedTable<Tables>]: ClearanceInput<
+    Table,
+    RowId<Tables, Table> & string,
+    Table extends ArchivableTable<Tables>
+      ? ClearanceWrite
+      : Exclude<ClearanceWrite, "archive" | "unarchive">
+  >;
+}[SyncedTable<Tables>];
 
 /** Bind queries to a module's synced tables and their branded ids, given its TablesOf<RowMap>. */
 export function clearanceQueryFor<Tables>() {

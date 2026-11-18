@@ -17,8 +17,6 @@ import { expect, fn, screen, userEvent, waitFor, within } from "storybook/test";
 import { fixedAnswers } from "../testing/index.ts";
 import {
   DataProvider,
-  type FrameReasons,
-  frameReasonTexts,
   portHooks,
   type ReasonText,
   type RefusalAction,
@@ -34,9 +32,8 @@ const NOTE_ID = "019a7c4e-0000-7000-8000-000000000001";
 const pinnedText: ReasonText<typeof pinnedNote> = ({ details }) =>
   `“${details.title}” is pinned. Unpin it first.`;
 
-const texts = refusalTexts<FrameReasons | typeof pinnedNote>(
-  { ...frameReasonTexts, pinned: pinnedText },
-  (table) => (table === "notes" ? notesTableNames.notes : undefined),
+const texts = refusalTexts([{ pinned: pinnedText }], (table) =>
+  table === "notes" ? notesTableNames.notes : undefined,
 );
 
 const REFERENCED = {

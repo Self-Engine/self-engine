@@ -2,13 +2,7 @@ import type { I18n } from "@lingui/core";
 import { msg, plural } from "@lingui/core/macro";
 // Types only: the texts load at startup with the hook, where the Reasons' schemas must not
 // (startup check). The details are typed from the schemas all the same.
-import type {
-  Reason,
-  ReasonDefinition,
-  ReasonOf,
-  referenced,
-  targetDeleted,
-} from "@self-engine/data-protocol";
+import type { FrameReasons, Reason, ReasonDefinition, ReasonOf } from "@self-engine/data-protocol";
 import { type CountedName, formatCountedList } from "@self-engine/i18n";
 
 /** What the text of a Reason is given besides the Reason. */
@@ -34,6 +28,9 @@ export type ReasonTexts<Definitions extends ReasonDefinition> = {
   readonly [Definition in Definitions as Definition["code"]]: ReasonText<Definition>;
 };
 
+/** The text of a Reason as the app holds it, by its code: it takes the Reason of that code. */
+export type AnyReasonText = (reason: never, context: ReasonTextContext) => string;
+
 /** Every Reason's text the app shows, composed where the app is put together. */
 export interface RefusalTexts {
   /** The Reason as a sentence in the language of `i18n`. */
@@ -47,35 +44,40 @@ export const UNDESCRIBED_REASON = msg`This change is not allowed.`;
 const UNNAMED_TABLE: CountedName = (count) =>
   msg`${plural(count, { one: "entry", other: "entries" })}`;
 
-/** Asks for the list of Reasons by name instead of taking whatever texts were given. */
-type Named<Definitions extends ReasonDefinition> = [Definitions] extends [never]
-  ? { readonly "name every Reason definition as the type argument": never }
-  : ReasonTexts<Definitions>;
-
 /**
- * The texts of the app's Reasons, for the `DataProvider`. The type argument is the list of every
- * Reason definition the app's Protection Rules answer with: a definition without its text does
- * not compile. `tableName` is the module list's lookup of table names.
+ * The texts of the app's Reasons, for the `DataProvider`: the frame's own (`frameReasonTexts`)
+ * and those of `sources`, each module's `reasonTexts` of its data texts (`dataTexts`) and the
+ * texts of the rules registered from above. `tableName` is the module list's lookup of table
+ * names. Two texts for one code are a composition error and throw.
  */
-export function refusalTexts<Definitions extends ReasonDefinition = never>(
-  texts: Named<NoInfer<Definitions>>,
+export function refusalTexts(
+  sources: readonly Readonly<Record<string, AnyReasonText>>[],
   tableName: (table: string) => CountedName | undefined,
 ): RefusalTexts {
-  // The runtime view: a text takes the Reason of its code.
-  const byCode = texts as Readonly<Record<string, ReasonText<ReasonDefinition>>>;
+  const byCode = new Map<string, AnyReasonText>();
+  for (const texts of [frameReasonTexts as Readonly<Record<string, AnyReasonText>>, ...sources]) {
+    for (const [code, text] of Object.entries(texts)) {
+      if (byCode.has(code)) throw new Error(`Two texts for the Reason ${code}`);
+      byCode.set(code, text);
+    }
+  }
   const named = (table: string) => tableName(table) ?? UNNAMED_TABLE;
   return {
     describe(reason, i18n) {
-      if (!Object.hasOwn(byCode, reason.code)) return i18n._(UNDESCRIBED_REASON);
+      const text = byCode.get(reason.code);
+      if (text === undefined) return i18n._(UNDESCRIBED_REASON);
       // The Data Process checked the details against the definition of this code when the rule
       // answered, and page and Data Process are one build: the text takes them as typed.
-      return byCode[reason.code]!(reason as ReasonOf<ReasonDefinition>, { i18n, tableName: named });
+      return (text as ReasonText<ReasonDefinition>)(reason as ReasonOf<ReasonDefinition>, {
+        i18n,
+        tableName: named,
+      });
     },
   };
 }
 
-/** The two Reasons of the frame's reference check (D337). */
-export type FrameReasons = typeof referenced | typeof targetDeleted;
+/** The two Reasons of the frame's reference check (D337), listed beside their definitions. */
+export type { FrameReasons };
 
 /**
  * The texts of the frame's Reasons. Their definitions belong to the storage frame, which has no

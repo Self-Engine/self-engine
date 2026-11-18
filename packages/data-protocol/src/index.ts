@@ -30,6 +30,7 @@ export {
   type RowClearance,
   rowClearanceSchema,
   findReason,
+  type FrameReasons,
   type Reason,
   type ReasonDefinition,
   type ReasonOf,
@@ -37,4 +38,15 @@ export {
   type Refusal,
   type Severity,
   targetDeleted,
+} from "@self-engine/db/schema";
+// The table convention, so the page side checks names and Clearance Queries against the same
+// synced tables the Data Process has (D225, D335, D339).
+export type {
+  Archivable,
+  ArchivableTable,
+  Convention,
+  RowId,
+  RowMap,
+  SyncedTable,
+  TablesOf,
 } from "@self-engine/db/schema";

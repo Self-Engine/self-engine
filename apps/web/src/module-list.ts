@@ -1,3 +1,4 @@
+import type { AnyReasonText, DataTexts } from "@self-engine/data-client/react";
 import type { CountedName } from "@self-engine/i18n";
 import { createSettingsArea } from "@self-engine/settings-area";
 import { type ShellContribution, validateContributions } from "@self-engine/shell";
@@ -22,9 +23,12 @@ export interface ModuleList {
   readonly find: (id: string) => ShellContribution | undefined;
   /** The plural message for a mounted synced table, keyed by its SQL name. */
   readonly tableName: (table: string) => CountedName | undefined;
+  /** The texts of the Reasons the mounted modules' rules answer with, one set per module. */
+  readonly reasonTexts: readonly Readonly<Record<string, AnyReasonText>>[];
 }
 
-type MountedContribution = ShellContribution & Required<Pick<ShellContribution, "tableNames">>;
+/** A module the list mounts: its data texts are checked against its storage module. */
+type MountedContribution = ShellContribution & { readonly dataTexts: DataTexts };
 
 /** What every route reads from the router's context: the modules it mounts. */
 export interface AppRouterContext {
@@ -50,7 +54,7 @@ export function createModuleList(
   validateContributions(contributions);
   const tableNames = new Map<string, CountedName>();
   for (const module of modules) {
-    for (const [table, name] of Object.entries(module.tableNames)) {
+    for (const [table, name] of Object.entries(module.dataTexts.tableNames)) {
       if (tableNames.has(table)) throw new Error(`Duplicate synced table name: ${table}`);
       tableNames.set(table, name);
     }
@@ -62,5 +66,6 @@ export function createModuleList(
     startAddress: defaultAddress(modules[0]),
     find: (id) => contributions.find((module) => module.id === id),
     tableName: (table) => tableNames.get(table),
+    reasonTexts: modules.map((module) => module.dataTexts.reasonTexts),
   };
 }
