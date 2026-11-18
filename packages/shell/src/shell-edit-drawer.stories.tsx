@@ -451,16 +451,25 @@ function CountingEditor({ id }: EditDrawerProps) {
   return <p>Opening {mounted}</p>;
 }
 
-const reopenRouting = storyRouting();
+/** A routing of its own for each run of the story, so that a replay starts with the drawer closed. */
+interface Reopening {
+  readonly routing: ReturnType<typeof storyRouting>;
+}
 
 export const ReopeningDuringTheExitIsANewOpening: Story = {
   args: {
     activeModule: { ...ENTRIES[1]!, editDrawer: async () => ({ default: CountingEditor }) },
     children: <OpenEditor />,
-    routing: reopenRouting,
   },
-  play: async ({ canvas }) => {
-    mounts.length = 0;
+  loaders: [
+    (): Reopening => {
+      mounts.length = 0;
+      return { routing: storyRouting() };
+    },
+  ],
+  render: (args, { loaded }) => <Shell {...args} routing={(loaded as Reopening).routing} />,
+  play: async ({ canvas, loaded }) => {
+    const { routing: reopenRouting } = loaded as Reopening;
     await userEvent.click(canvas.getByRole("button", { name: "Open editor" }));
     const dialog = await screen.findByRole("dialog", { name: "Time" });
     await within(dialog).findByText("Opening 1");

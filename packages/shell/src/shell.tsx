@@ -993,12 +993,16 @@ function ModuleEditDrawer({ module }: { readonly module: ShellContribution | und
   // the same entry during the exit: the content mounts anew and reads what it reads on opening.
   const [shown, setShown] = useState(target && { ...target, opening: 0 });
   const [wasOpen, setWasOpen] = useState(target !== undefined);
-  if (target && (!wasOpen || target.module !== shown?.module || target.id !== shown.id))
-    setShown({ ...target, opening: (shown?.opening ?? 0) + 1 });
+  const opensAnew =
+    target !== undefined && (!wasOpen || target.module !== shown?.module || target.id !== shown.id);
+  const openingNow = opensAnew ? (shown?.opening ?? 0) + 1 : (shown?.opening ?? 0);
+  if (opensAnew) setShown({ ...target, opening: openingNow });
   if (wasOpen !== (target !== undefined)) setWasOpen(target !== undefined);
   // Held here, beside the View, so that naming the entry does not re-render it.
   const [entryTitle, setEntryTitle] = useState<string>();
-  const exits = useEditDrawerExits(target && editTargetKey(target));
+  // Keyed by the opening as well: an editor mounted anew for the same entry, such as for a new
+  // object of its module, is another opening, which a save of the one before cannot let pass.
+  const exits = useEditDrawerExits(target && `${editTargetKey(target)}#${String(openingNow)}`);
   // Only writes the address. Whether that may happen is the guard's to decide.
   const close = () =>
     write((search) => {

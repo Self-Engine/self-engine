@@ -374,6 +374,42 @@ export const ASaveThatEndsAfterItsDrawerWasLeftClosesNothing = withDraft(
   moduleWith(async () => ({ default: EditorWhoseSaveWaits })),
 );
 
+/** Lets the play function hand the Shell a new object of the same module, as a hot reload does. */
+let replaceModule: () => void = () => undefined;
+
+function ShellWithAReplaceableModule(props: ShellProps) {
+  const [module, setModule] = useState(props.activeModule);
+  // oxlint-disable-next-line typescript/no-misused-spread -- The story's module is a plain object.
+  replaceModule = () => setModule((current) => current && { ...current });
+  return <Shell {...props} activeModule={module} />;
+}
+
+export const ASaveThatEndsAfterItsEditorWasReplacedClosesNothing: Story = {
+  ...withDraft(
+    async (canvas, routing) => {
+      const replaced = await openDrawer(canvas);
+      await userEvent.type(replaced.draft, "x");
+      await userEvent.click(replaced.drawer.getByRole("button", { name: "Save draft" }));
+      replaceModule();
+      // The same entry in a new editor, with a change of its own.
+      const drawer = within(await screen.findByRole("dialog", { name: "Time" }));
+      await waitFor(() => expect(drawer.getByRole("textbox", { name: "Draft" })).toHaveValue(""));
+      await userEvent.type(drawer.getByRole("textbox", { name: "Draft" }), "y");
+      endWaitingSave();
+      await nextFrame();
+
+      await expect(routing.address.search()).toEqual({ edit: "entry" });
+      await expect(drawer.getByRole("textbox", { name: "Draft" })).toHaveValue("y");
+      await userEvent.click(drawer.getByRole("button", { name: "Cancel draft" }));
+      await asked();
+      await answer("Discard");
+      await drawerGone();
+    },
+    moduleWith(async () => ({ default: EditorWhoseSaveWaits })),
+  ),
+  render: (args) => <ShellWithAReplaceableModule {...args} />,
+};
+
 function CheckThatSaysYes() {
   useUnsavedChanges(() => true);
   return <p>Second check</p>;
