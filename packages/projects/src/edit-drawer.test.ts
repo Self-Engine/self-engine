@@ -110,6 +110,15 @@ function renderDrawer(id: string, realAccess: ReturnType<typeof portAccessOf>) {
   return { access, reopen: () => address.writeSearch(() => ({ edit: id })) };
 }
 
+/**
+ * Waits until the page shows what the check expects. The drawer's code loads on demand and the
+ * Shell reveals it no sooner than 300 ms, so in a full, parallel test run the default second of
+ * `vi.waitFor` can pass before the first drawer is there.
+ */
+function shown<Value>(check: () => Value | Promise<Value>): Promise<Value> {
+  return vi.waitFor(check, { timeout: 3_000 });
+}
+
 function button(dialog: Element, label: string) {
   const found = [...dialog.querySelectorAll("button")].find((item) => item.textContent === label);
   if (found === undefined) throw new Error(`Missing ${label} button`);
@@ -142,7 +151,7 @@ test("a new reference refuses a delete from a stale drawer and blocks it on the 
     Reflect.deleteProperty(document, "fonts");
   });
   const { access, reopen } = renderDrawer(project.id, portAccessOf(connection));
-  const remove = await vi.waitFor(() => {
+  const remove = await shown(() => {
     const remove = button(drawer(), "Delete");
     expect(remove.getAttribute("aria-disabled")).toBeNull();
     expect(remove.disabled).toBe(false);
@@ -152,7 +161,7 @@ test("a new reference refuses a delete from a stale drawer and blocks it on the 
   remove.click();
 
   const reason = "Cannot be deleted: 1 project entry refers to it.";
-  await vi.waitFor(() => {
+  await shown(() => {
     const notice = document.querySelector('[role="alert"]');
     expect(notice?.textContent).toContain(reason);
     expect(notice?.textContent).toContain("Website");
@@ -162,9 +171,9 @@ test("a new reference refuses a delete from a stale drawer and blocks it on the 
   await expect(client.projects.active({})).resolves.toEqual([project]);
 
   button(drawer(), "Cancel").click();
-  await vi.waitFor(() => expect(document.querySelector('[role="dialog"]')).toBeNull());
+  await shown(() => expect(document.querySelector('[role="dialog"]')).toBeNull());
   reopen();
-  const blocked = await vi.waitFor(() => {
+  const blocked = await shown(() => {
     const remove = button(drawer(), "Delete");
     expect(remove.disabled).toBe(true);
     expect(button(drawer(), "Archive").disabled).toBe(false);
@@ -179,9 +188,9 @@ test("a new reference refuses a delete from a stale drawer and blocks it on the 
   await client.projectEntries.delete({ id: reference.id });
   expect(blocked.disabled).toBe(true);
   button(drawer(), "Cancel").click();
-  await vi.waitFor(() => expect(document.querySelector('[role="dialog"]')).toBeNull());
+  await shown(() => expect(document.querySelector('[role="dialog"]')).toBeNull());
   reopen();
-  await vi.waitFor(() => {
+  await shown(() => {
     const remove = button(drawer(), "Delete");
     expect(remove.getAttribute("aria-disabled")).toBeNull();
     expect(remove.disabled).toBe(false);
@@ -226,8 +235,8 @@ async function refusingDrawer() {
   });
   keeping = false;
   const { access } = renderDrawer(project.id, portAccessOf(connection));
-  await vi.waitFor(() => expect(access.clearance).toHaveBeenCalled());
-  const archive = await vi.waitFor(() => {
+  await shown(() => expect(access.clearance).toHaveBeenCalled());
+  const archive = await shown(() => {
     const archive = button(drawer(), "Archive");
     expect(archive.getAttribute("aria-disabled")).toBeNull();
     return archive;
@@ -238,7 +247,7 @@ async function refusingDrawer() {
 
 /** The Notice of a Refusal on screen, once it names this text. */
 const refusalNotice = (text: string) =>
-  vi.waitFor(() => {
+  shown(() => {
     const notice = document.querySelector('[role="alert"]');
     expect(notice?.textContent).toContain(text);
     return notice!;
@@ -259,7 +268,7 @@ test("the Notice of a refused save names the project the form edits", async () =
   // React reads the value through the input's own setter, as typing sets it.
   Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!.call(title, "Web");
   title.dispatchEvent(new Event("input", { bubbles: true }));
-  await vi.waitFor(() => expect(button(drawer(), "Save").disabled).toBe(false));
+  await shown(() => expect(button(drawer(), "Save").disabled).toBe(false));
   button(drawer(), "Save").click();
 
   const notice = await refusalNotice("This change is not allowed.");
@@ -285,7 +294,7 @@ async function refusedDelete() {
     Reflect.deleteProperty(document, "fonts");
   });
   renderDrawer(project.id, portAccessOf(connection));
-  const remove = await vi.waitFor(() => {
+  const remove = await shown(() => {
     const remove = button(drawer(), "Delete");
     expect(remove.getAttribute("aria-disabled")).toBeNull();
     expect(remove.disabled).toBe(false);
@@ -305,11 +314,11 @@ test("the Notice's Archive, taken after the project was archived elsewhere, offe
   const { client, project, archiveOffer } = await refusedDelete();
   await client.projects.archive({ id: project.id });
   // The open drawer follows the stored project: it is archived now.
-  await vi.waitFor(() => expect(button(drawer(), "Unarchive")).toBeDefined());
+  await shown(() => expect(button(drawer(), "Unarchive")).toBeDefined());
 
   archiveOffer.click();
 
-  await vi.waitFor(() => expect(noticeTexts()).toContain("Project archived"));
+  await shown(() => expect(noticeTexts()).toContain("Project archived"));
   expect(noticeTexts().some((text) => text?.includes("Undo"))).toBe(false);
   await expect(client.projects.archived({})).resolves.toMatchObject([{ id: project.id }]);
 });
@@ -317,11 +326,11 @@ test("the Notice's Archive, taken after the project was archived elsewhere, offe
 test("the Notice's Archive, taken after the drawer closed, archives without claiming an undo", async () => {
   const { client, project, archiveOffer } = await refusedDelete();
   button(drawer(), "Cancel").click();
-  await vi.waitFor(() => expect(document.querySelector('[role="dialog"]')).toBeNull());
+  await shown(() => expect(document.querySelector('[role="dialog"]')).toBeNull());
 
   archiveOffer.click();
 
-  await vi.waitFor(() => expect(noticeTexts()).toContain("Project archived"));
+  await shown(() => expect(noticeTexts()).toContain("Project archived"));
   expect(noticeTexts().some((text) => text?.includes("Undo"))).toBe(false);
   await expect(client.projects.archived({})).resolves.toMatchObject([{ id: project.id }]);
 });
@@ -332,10 +341,10 @@ test("the Notice's Archive, confirmed after the project was archived elsewhere m
   const title = drawer().querySelector("input")!;
   Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!.call(title, "Web");
   title.dispatchEvent(new Event("input", { bubbles: true }));
-  await vi.waitFor(() => expect(button(drawer(), "Save").disabled).toBe(false));
+  await shown(() => expect(button(drawer(), "Save").disabled).toBe(false));
 
   archiveOffer.click();
-  const question = await vi.waitFor(() => {
+  const question = await shown(() => {
     const found = [...document.querySelectorAll('[role="dialog"]')].find((dialog) =>
       dialog.textContent?.includes("Discard changes?"),
     );
@@ -346,10 +355,10 @@ test("the Notice's Archive, confirmed after the project was archived elsewhere m
   await client.projects.archive({ id: project.id });
   const theDrawer = () =>
     [...document.querySelectorAll('[role="dialog"]')].find((dialog) => dialog !== question)!;
-  await vi.waitFor(() => expect(button(theDrawer(), "Unarchive")).toBeDefined());
+  await shown(() => expect(button(theDrawer(), "Unarchive")).toBeDefined());
   button(question, "Discard").click();
 
-  await vi.waitFor(() => expect(noticeTexts()).toContain("Project archived"));
+  await shown(() => expect(noticeTexts()).toContain("Project archived"));
   expect(noticeTexts().some((text) => text?.includes("Undo"))).toBe(false);
   await expect(client.projects.archived({})).resolves.toMatchObject([{ id: project.id }]);
 });
