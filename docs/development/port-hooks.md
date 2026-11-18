@@ -325,7 +325,9 @@ render asks nothing, so derive what waits and what is explained from this one. T
 answer lists each row's writes as `free`, `blocked` or `notFound`;
 `findReason` also accepts a blocked write. For a story, give `fixedAnswers` the `clearance`
 option with `{ table, row, writes }` fixtures. A blocked write takes `{ state: "blocked",
-reasons: [...] }` and checks each Reason against the definitions in the `reasons` option. Fixed
+reasons: [...] }` and checks each Reason against the definitions in the `reasons` option; a Reason
+that names another row or table than its fixture fails at setup, since the Data Process answers a
+row only with the Reasons for that row. Fixed
 Answers answer as the Data Process does: they read only the table, rows and writes of a query,
 answer each asked row once in the order first asked, and give every call its own copy.
 See the [form action slot](forms.md#action-slot-and-a-standalone-form) for the edit form.

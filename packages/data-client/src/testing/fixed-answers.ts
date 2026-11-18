@@ -246,7 +246,15 @@ function clearanceAnswer(
         answer.state === "blocked"
           ? {
               ...answer,
-              reasons: answer.reasons.map((reason) => checkReason(name, reason, defined)),
+              reasons: answer.reasons.map((reason) => {
+                // The Data Process answers a row with the Reasons for that row of the asked table.
+                if (reason.table !== table || reason.row !== row) {
+                  throw new Error(
+                    `Fixed Answer for ${name}: a Reason of ${reason.table}/${reason.row} cannot block it.`,
+                  );
+                }
+                return checkReason(name, reason, defined);
+              }),
             }
           : answer,
       ]),

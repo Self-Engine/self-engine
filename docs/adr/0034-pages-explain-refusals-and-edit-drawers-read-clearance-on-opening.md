@@ -64,8 +64,8 @@ while the rule and the tables it reads can belong to other packages.
 - Fixed Answers represent both kinds of result and validate each Reason against the definitions
   supplied by the story or test; a Refusal compiles only for an entry with the refusal block and
   needs one Reason at least. The Port access asks the Clearance through its own typed method,
-  which Fixed Answers implement as the Data Process answers: they read the table, rows and
-  writes of a query, answer each asked row once, and give every call its own copy;
+  which Fixed Answers implement as the Data Process answers: they reject at setup a blocked
+  answer whose Reason names another row or table, read the table, rows and writes of a query, answer each asked row once, and give every call its own copy;
   `answersByMount` routes a Clearance by its table to the mount the story names. The production startup audit keeps runtime Contracts, schema
   definitions and forms on demand.
 

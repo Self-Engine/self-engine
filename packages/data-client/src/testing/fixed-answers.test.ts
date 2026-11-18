@@ -272,6 +272,31 @@ function twoNotesCleared() {
   );
 }
 
+test("a blocked Clearance fails at setup when a Reason cites another row or table than its answer", () => {
+  const blockedBy = (reason: typeof PINNED | (Omit<typeof PINNED, "table"> & { table: string })) =>
+    fixedAnswers(
+      contracts,
+      {},
+      {
+        reasons: [pinnedNote],
+        clearance: [
+          {
+            table: "notes",
+            row: NOTE.id,
+            writes: { delete: { state: "blocked", reasons: [reason] } },
+          },
+        ],
+      },
+    );
+  expect(() => blockedBy({ ...PINNED, row: OTHER })).toThrow(
+    `Fixed Answer for clearance for notes/${NOTE.id}: a Reason of notes/${OTHER} cannot block it.`,
+  );
+  expect(() => blockedBy({ ...PINNED, table: "links" })).toThrow(
+    `Fixed Answer for clearance for notes/${NOTE.id}: a Reason of links/${NOTE.id} cannot block it.`,
+  );
+  expect(() => blockedBy(PINNED)).not.toThrow();
+});
+
 test("the Clearance answers each asked row once, in the order first asked, as the Data Process does", async () => {
   const answers = await twoNotesCleared().clearance({
     table: "notes",
