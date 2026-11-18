@@ -298,12 +298,13 @@ test("a blocked Clearance fails at setup when a Reason cites another row or tabl
 });
 
 test("the Clearance answers each asked row once, in the order first asked, as the Data Process does", async () => {
+  // Asked in an order that is not the ids' own, so neither sorted nor last-asked order passes.
   const answers = await twoNotesCleared().clearance({
     table: "notes",
-    rows: [NOTE.id, OTHER, NOTE.id],
+    rows: [OTHER, NOTE.id, OTHER],
     writes: ["delete", "delete"],
   });
-  expect(answers.map(({ row }) => row)).toEqual([NOTE.id, OTHER]);
+  expect(answers.map(({ row }) => row)).toEqual([OTHER, NOTE.id]);
 });
 
 test("the Clearance reads only what the Port sends of a query: its table, rows and writes", async () => {

@@ -73,12 +73,13 @@ test("a Refusal answers the first Reason that is the defined one, with its detai
       reason("pinned", { title: "Website" }),
       reason("referenced", { table: "tasks" }),
       reason("referenced", { table: "time_entries", count: 12 }),
+      reason("referenced", { table: "invoices", count: 3 }),
     ],
   };
 
   const found = findReason(refused, referenced);
 
-  // The first `referenced` has details of another shape, so the second one answers.
+  // The first `referenced` has details of another shape, so the second one answers, not a later.
   expect(found).toEqual(refused.reasons[2]);
   expectTypeOf(found).toEqualTypeOf<
     Reason<"referenced", { table: string; count: number }> | undefined
