@@ -488,6 +488,61 @@ function FormWithAnUnfinishedDescription() {
   );
 }
 
+/** The same form, with a button beside it that reports the description unfinished by code. */
+function FormWithADescriptionReportedUnfinishedByCode() {
+  const form = useOperationForm({
+    entry: exampleContract.create,
+    operation: useCreateExample(),
+    draft: { title: "", description: "", icon: null, color: null },
+    entryName: "Kitchen",
+  });
+  const field = useFieldBinding(form, "description");
+  return (
+    <Stack>
+      <OperationFormBody form={form}>
+        <Stack>
+          <TextField form={form} label="Title" name="title" />
+          <TextInput
+            label="Description"
+            ref={field.ref}
+            error={field.error}
+            onBlur={field.onBlur}
+            onChange={(event) => field.onChange(event.currentTarget.value)}
+          />
+          <Button type="submit">Save</Button>
+        </Stack>
+      </OperationFormBody>
+      <Button onClick={() => field.onUnfinished()}>Report unfinished</Button>
+    </Stack>
+  );
+}
+
+export const AReasonAtAFieldThatTurnedUnfinishedDuringTheSaveGoesToTheNotice: Story = {
+  loaders: [() => ({ port: answersInTurn({ refused: [{ ...RESERVED, field: "description" }] }) })],
+  render: (_args, { loaded }) => (
+    <DataProvider access={(loaded as { port: TurnPort }).port.access} reasonTexts={texts}>
+      <FormWithADescriptionReportedUnfinishedByCode />
+    </DataProvider>
+  ),
+  play: async ({ canvasElement, loaded }) => {
+    const { port } = loaded as { port: TurnPort };
+    const form = formIn(canvasElement);
+    await userEvent.type(form.title(), "Kitchen");
+    await userEvent.type(form.description(), "Paint the walls.");
+    await form.save();
+    // The form locks its fields while a save waits, so only code can report text unfinished then.
+    await userEvent.click(within(canvasElement).getByRole("button", { name: "Report unfinished" }));
+    port.release();
+
+    // The Reason speaks of the description that was sent, which the field no longer holds.
+    await expect(await reasonsInTheNotice()).toEqual(["“Kitchen” is kept for the archive."]);
+    await saveEnded(form);
+    await expect(form.description()).not.toHaveAccessibleDescription(
+      "“Kitchen” is kept for the archive.",
+    );
+  },
+};
+
 export const TypingUnfinishedTextAnswersTheReasonAtItsField: Story = {
   loaders: [() => ({ port: answersInTurn({ refused: [{ ...RESERVED, field: "description" }] }) })],
   render: (_args, { loaded }) => (

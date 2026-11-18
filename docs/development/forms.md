@@ -70,8 +70,8 @@ module's tables as well, `portHooks<typeof contract, TablesOf<typeof rowMap>>(mo
 name there the field for each column such a Reason may name (`columns`,
 [hooks guide](port-hooks.md)), such as a project field for `project_id`. The form shows such a
 Reason at its field only when it renders that field and the field still holds the value the save
-sent; every other Reason goes to the shared Notice with the others, so none is lost. A taken
-title is checked by the Operation, not while typing.
+sent, with no text in it that is no value yet; every other Reason goes to the shared Notice with
+the others, so none is lost. A taken title is checked by the Operation, not while typing.
 
 ## Create: fields and the module’s own texts
 

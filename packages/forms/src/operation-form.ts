@@ -373,11 +373,14 @@ function createForm(latest: () => Latest, isEdit: boolean): MadeForm {
         // The draft as this save sent it, to tell which fields changed while it ran.
         const drafted = structuredClone(normalized());
         // A Reason goes to a field only if this form shows that field and the field still holds
-        // what was sent: a change while the save ran answered it already. The Notice tells the rest.
+        // what was sent: a change while the save ran, also to text that is no value yet, answered
+        // it already. The Notice tells the rest.
         const result = await options.operation.run(sent, {
           ...(options.entryName !== undefined && { entry: options.entryName }),
           showsField: (field) =>
-            elements.has(field) && sameValue(normalized()[field], drafted[field]),
+            elements.has(field) &&
+            !unfinished.holds(field) &&
+            sameValue(normalized()[field], drafted[field]),
         });
         // Every answer replaces the Reasons of the last refused save: they spoke of that save.
         const hadReasons = refusedAt.size > 0;
