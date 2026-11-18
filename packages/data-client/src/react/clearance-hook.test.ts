@@ -5,11 +5,14 @@ import {
   type Convention,
   findReason,
   referenced,
+  type RowClearance,
 } from "@self-engine/data-protocol";
+import { act, createElement, StrictMode } from "react";
+import { createRoot } from "react-dom/client";
 import { afterEach, beforeEach, expect, expectTypeOf, test, vi } from "vite-plus/test";
 import { fixedAnswers } from "../testing/index.ts";
-import { renderHook, unmountHook } from "./hook-harness.ts";
-import { clearanceQueryFor, useClearance } from "./index.ts";
+import { fakePort, held, renderHook, settle, unmountHook } from "./hook-harness.ts";
+import { clearanceQueryFor, type ClearanceState, DataProvider, useClearance } from "./index.ts";
 
 type NoteId = string & { readonly noteId: unique symbol };
 type LinkId = string & { readonly linkId: unique symbol };
@@ -116,4 +119,63 @@ test("a Clearance Query types table names, row ids and archivable writes togethe
   query({ table: "local_cache", rows: ["cache-1"], writes: ["delete"] });
   // @ts-expect-error A Clearance needs at least one row.
   query({ table: "notes", rows: [], writes: ["delete"] });
+});
+
+/** A fake Port whose Clearance waits until the test answers it, with the signal of each call. */
+function waitingClearance() {
+  const port = fakePort();
+  const answer = held<readonly RowClearance[]>();
+  const signals: AbortSignal[] = [];
+  const access = {
+    ...port.access,
+    clearance: (request: Parameters<typeof port.access.clearance>[0], signal?: AbortSignal) => {
+      if (signal !== undefined) signals.push(signal);
+      return port.access.clearance(request, signal);
+    },
+  };
+  port.answerClearance(() => answer.promise);
+  const free: readonly RowClearance[] = [{ row, writes: { delete: { state: "free" } } }];
+  return { port, access, signals, answer: () => answer.resolve(free), free };
+}
+
+const deleteNote = query({ table: "notes", rows: [row], writes: ["delete"] });
+
+test("a closed opening calls off its Clearance, so none waits for a Port no drawer reads", async () => {
+  const { access, signals } = waitingClearance();
+  const hook = await renderHook({ access }, () => useClearance(deleteNote));
+  expect(signals).toHaveLength(1);
+  expect(signals[0]?.aborted).toBe(false);
+
+  await hook.show(false);
+
+  expect(signals[0]?.aborted).toBe(true);
+});
+
+test("an opening left on screen keeps one call through Strict Mode's replay and gets its answer", async () => {
+  const { port, access, signals, answer, free } = waitingClearance();
+  let state: ClearanceState | undefined;
+  function Probe() {
+    state = useClearance(deleteNote);
+    return null;
+  }
+  const container = document.createElement("div");
+  const root = createRoot(container);
+  act(() =>
+    root.render(
+      createElement(
+        StrictMode,
+        null,
+        createElement(DataProvider, { access }, createElement(Probe)),
+      ),
+    ),
+  );
+  await settle();
+
+  answer();
+  await settle();
+
+  expect(port.calls.filter(({ entry }) => entry === "clearance")).toHaveLength(1);
+  expect(signals.map((signal) => signal.aborted)).toEqual([false]);
+  expect(state).toEqual({ status: "content", data: free });
+  act(() => root.unmount());
 });

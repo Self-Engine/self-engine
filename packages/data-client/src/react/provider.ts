@@ -177,11 +177,12 @@ export function DataProvider({
 }: DataProviderProps): ReactNode {
   // The cache and the context live as long as the provider's access: another access starts with
   // no answers, so none of the old one shows. Callbacks are read through refs, so a parent that
-  // passes them inline redraws no hook below.
-  const latest = useRef({ notify, notifyRefused, reportMisuse, reasonTexts });
+  // passes them inline redraws no hook below. The Reason texts are data, not a callback: another
+  // set redraws what reads them, so pass one made once, as the app's composition does.
+  const latest = useRef({ notify, notifyRefused, reportMisuse });
   useEffect(() => {
-    latest.current = { notify, notifyRefused, reportMisuse, reasonTexts };
-  }, [notify, notifyRefused, reportMisuse, reasonTexts]);
+    latest.current = { notify, notifyRefused, reportMisuse };
+  }, [notify, notifyRefused, reportMisuse]);
   // A Query hook stays bound to the cache it first drew with, so the tree below is drawn anew for
   // another access, keyed by its cache.
   const { cache, generation } = useMemo(
@@ -197,9 +198,8 @@ export function DataProvider({
     const reported = new Set<string>();
     return {
       access,
-      reasonTexts: {
-        describe: (reason, i18n) => latest.current.reasonTexts.describe(reason, i18n),
-      },
+      // Not through a ref: a Reason drawn in this render already reads the texts given now.
+      reasonTexts,
       notify: (notice) => latest.current.notify(notice),
       notifyRefused: (notice) => latest.current.notifyRefused(notice),
       checkQuery: (module, entry) => {
@@ -217,7 +217,7 @@ export function DataProvider({
         });
       },
     };
-  }, [access, cache]);
+  }, [access, cache, reasonTexts]);
 
   useEffect(() => {
     const stopTables = access.onTablesChanged((tables) => {

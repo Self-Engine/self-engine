@@ -9,7 +9,7 @@ import { act } from "react";
 import { afterEach, beforeEach, expect, test, vi } from "vite-plus/test";
 import { renderHook, settle, unmountHook } from "../react/hook-harness.ts";
 import { portHooks } from "../react/index.ts";
-import { answersByMount, fixedAnswers } from "./index.ts";
+import { answersByMount, type FixedReason, fixedAnswers } from "./index.ts";
 
 const notesPort = portHooks<typeof notesContract>("notes");
 const useNoteList = notesPort.query("list");
@@ -91,19 +91,23 @@ test("an unexpected answer fails a Query hook's first load", async () => {
   expect(list.current().status).toBe("loadFailed");
 });
 
-/** Runs the rename Operation once against `access` and returns its result and the notices. */
+/**
+ * Runs the rename Operation once against `access` and returns its result, the ordinary notices
+ * and the Notices of a Refusal, each collected apart.
+ */
 async function rename(access: ReturnType<typeof fixedAnswers>) {
   const notices: unknown[] = [];
+  const refusals: unknown[] = [];
   const hook = await renderHook({ access }, () => useRenameNote(), {
     notify: (notice) => notices.push(notice),
-    notifyRefused: (notice) => notices.push(notice),
+    notifyRefused: (notice) => refusals.push(notice),
   });
   let result: unknown;
   await act(async () => {
     result = await hook.current().run({ id: NOTE.id as never, title: "Errands" });
   });
   await settle();
-  return { result, notices };
+  return { result, notices, refusals };
 }
 
 test("an Operation hook gets the conflict, with the module's text and field", async () => {
@@ -113,15 +117,17 @@ test("an Operation hook gets the conflict, with the module's text and field", as
   expect(outcome).toEqual({
     result: { status: "conflict", reason: "title_taken", field: "title", text: TITLE_TAKEN },
     notices: [],
+    refusals: [],
   });
 });
 
 test('an Operation hook gets "not found", and its notice shows', async () => {
-  const { result, notices } = await rename(
+  const { result, notices, refusals } = await rename(
     fixedAnswers(contracts, { notes: { update: "notFound" } }),
   );
   expect(result).toEqual({ status: "notFound" });
   expect(notices).toHaveLength(1);
+  expect(refusals).toEqual([]);
 });
 
 test("an Operation returns its Fixed Answer and changes nothing", async () => {
@@ -155,7 +161,7 @@ test("an Operation hook gets the Refusal with every Reason, blocking as the fram
     { reasons: [pinnedNote, referenced] },
   );
 
-  const { result, notices } = await rename(access);
+  const { result, notices, refusals } = await rename(access);
 
   expect(result).toEqual({
     status: "refused",
@@ -165,8 +171,9 @@ test("an Operation hook gets the Refusal with every Reason, blocking as the fram
     ],
     atFields: [],
   });
-  // The shared Notice of a Refusal, with every Reason.
-  expect(notices).toEqual([{ reasons: (result as { reasons: unknown }).reasons }]);
+  // The shared Notice of a Refusal, with every Reason, and no ordinary notice.
+  expect(refusals).toEqual([{ reasons: (result as { reasons: unknown }).reasons }]);
+  expect(notices).toEqual([]);
 });
 
 test("a Reason nobody defined fails and names the entry and its code", () => {
@@ -234,6 +241,68 @@ test("the Clearance answers through its own typed method, and a call without a f
   expect(reports).toEqual(["No Fixed Answer for clearance, which the story called."]);
 });
 
+test("a Fixed Reason is one defined Reason: its code picks the details it takes", () => {
+  const pinned: FixedReason<typeof pinnedNote | typeof referenced> = PINNED;
+  const mixed: FixedReason<typeof pinnedNote | typeof referenced> = {
+    ...PINNED,
+    // @ts-expect-error The details of `pinned` have a title, not the tables of `referenced`.
+    details: { tables: [{ table: "links", count: 1 }] },
+  };
+  expect([pinned, mixed]).toHaveLength(2);
+});
+
+const OTHER = "019a7c4e-0000-7000-8000-000000000002";
+
+/** Fixed Clearance answers for two notes: the first one's delete is blocked. */
+function twoNotesCleared() {
+  return fixedAnswers(
+    contracts,
+    {},
+    {
+      reasons: [pinnedNote],
+      clearance: [
+        {
+          table: "notes",
+          row: NOTE.id,
+          writes: { delete: { state: "blocked", reasons: [PINNED] } },
+        },
+        { table: "notes", row: OTHER, writes: { delete: { state: "free" } } },
+      ],
+    },
+  );
+}
+
+test("the Clearance answers each asked row once, in the order first asked, as the Data Process does", async () => {
+  const answers = await twoNotesCleared().clearance({
+    table: "notes",
+    rows: [NOTE.id, OTHER, NOTE.id],
+    writes: ["delete", "delete"],
+  });
+  expect(answers.map(({ row }) => row)).toEqual([NOTE.id, OTHER]);
+});
+
+test("the Clearance reads only what the Port sends of a query: its table, rows and writes", async () => {
+  const query = { table: "notes", rows: [OTHER], writes: ["delete"], source: "drawer" } as const;
+  await expect(twoNotesCleared().clearance(query)).resolves.toEqual([
+    { row: OTHER, writes: { delete: { state: "free" } } },
+  ]);
+});
+
+test("each Clearance answer is its own: changing one leaves the next as fixed", async () => {
+  const access = twoNotesCleared();
+  const asked = { table: "notes", rows: [NOTE.id], writes: ["delete"] } as const;
+  const [first] = await access.clearance(asked);
+  const blocked = first?.writes.delete;
+  if (blocked?.state !== "blocked") throw new Error("Expected a blocked delete");
+  (blocked.reasons as unknown[]).length = 0;
+
+  const [next] = await access.clearance(asked);
+  expect(next?.writes.delete).toEqual({
+    state: "blocked",
+    reasons: [{ ...PINNED, severity: "blocking" }],
+  });
+});
+
 test("answers by mount send each call to the access of its mount", async () => {
   const notes = fixedAnswers(contracts, { notes: { list: { data: [NOTE] } } });
   const archive = fixedAnswers({ archive: notesContract }, { archive: { list: { data: [] } } });
@@ -254,4 +323,22 @@ test("answers by mount fail a call to a mount without an access and name the ent
     "No Fixed Answer for backups.list, which the story called.",
   );
   expect(reports).toEqual(["No Fixed Answer for backups.list, which the story called."]);
+});
+
+test("answers by mount send a Clearance to the access its table is routed to", async () => {
+  const reports: string[] = [];
+  const access = answersByMount(
+    { notes: fixedAnswers(contracts, {}), archive: twoNotesCleared() },
+    { clearance: { notes: "archive" }, report: (problem) => reports.push(problem) },
+  );
+
+  await expect(
+    access.clearance({ table: "notes", rows: [OTHER], writes: ["delete"] }),
+  ).resolves.toEqual([{ row: OTHER, writes: { delete: { state: "free" } } }]);
+  await expect(
+    access.clearance({ table: "links", rows: [OTHER], writes: ["delete"] }),
+  ).rejects.toThrow("No Fixed Answer for clearance of links, which the story called.");
+  expect(reports).toEqual(["No Fixed Answer for clearance of links, which the story called."]);
+  // @ts-expect-error A table is routed to one of the mounts given.
+  answersByMount({ notes: fixedAnswers(contracts, {}) }, { clearance: { notes: "archive" } });
 });

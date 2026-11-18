@@ -8,7 +8,7 @@ import { act, createElement, type ReactNode } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { vi } from "vite-plus/test";
 import { DataProvider, type DataProviderProps } from "./provider.ts";
-import type { PortAccess } from "./port-access.ts";
+import type { ClearanceRequest, PortAccess } from "./port-access.ts";
 import type { RefusedNotice } from "./refusal-notice.ts";
 
 declare global {
@@ -36,6 +36,13 @@ export interface FakePort {
    * A thrown error or a rejected promise is the entry's error.
    */
   answer(entry: string, run: (input: unknown) => unknown): void;
+  /**
+   * What the root Clearance Query answers; called once per call, like `answer`. A thrown error or
+   * a rejected promise is its error.
+   */
+  answerClearance(
+    run: (request: ClearanceRequest) => readonly RowClearance[] | Promise<readonly RowClearance[]>,
+  ): void;
   /** Delivers a Table Change, as the Data Process does after a commit. */
   changeTables(tables: TablesChanged): void;
   /** Reports a reconnect to the Data Process. */
@@ -61,7 +68,7 @@ export function fakePort(queries: QueryTables = NOTES_QUERIES): FakePort {
     calls,
     access: {
       call,
-      // The harness's answers are untyped; a test answers ".clearance" with the protocol's rows.
+      // Called and written down like a root entry; `answerClearance` gives its answer.
       clearance: (request) => call("", "clearance", request) as Promise<readonly RowClearance[]>,
       describeEntry(module, entry) {
         const reads = queries[module]?.[entry];
@@ -78,6 +85,9 @@ export function fakePort(queries: QueryTables = NOTES_QUERIES): FakePort {
     },
     answer(entry, run) {
       answers.set(`notes.${entry}`, run);
+    },
+    answerClearance(run) {
+      answers.set(".clearance", (input) => run(input as ClearanceRequest));
     },
     changeTables(tables) {
       for (const listener of tablesListeners) listener(tables);
@@ -107,8 +117,11 @@ export async function settle(): Promise<void> {
 export interface Rendered<State> {
   /** The state of the last render. */
   current(): State;
-  /** Draws the provider again with new callbacks, as a parent that renders again does. */
-  redraw(): Promise<void>;
+  /**
+   * Draws the provider again with new callbacks, as a parent that renders again does; with
+   * `options`, it is given these from now on.
+   */
+  redraw(options?: HookOptions): Promise<void>;
   /** Shows or hides the hook, as a View that is shown or left. */
   show(visible: boolean): Promise<void>;
 }
@@ -116,7 +129,14 @@ export interface Rendered<State> {
 /** The notices the building block showed, collected instead of reaching the feedback system. */
 export type ShownNotices = MessageDescriptor[];
 
-let mounted: { readonly root: Root; readonly container: HTMLElement } | undefined;
+/** What `renderHook` gives the `DataProvider` besides the Port access. */
+export type HookOptions = Pick<
+  DataProviderProps,
+  "reportMisuse" | "notify" | "notifyRefused" | "reasonTexts"
+>;
+
+/** Every root `renderHook` drew since the last `unmountHook`, also several in one test. */
+const mounted: { readonly root: Root; readonly container: HTMLElement }[] = [];
 
 /**
  * Renders `useHook` below a `DataProvider` over the Port access, fake or Fixed Answers, and lets
@@ -125,10 +145,7 @@ let mounted: { readonly root: Root; readonly container: HTMLElement } | undefine
 export async function renderHook<State>(
   port: Pick<FakePort, "access">,
   useHook: () => State,
-  options: Pick<
-    DataProviderProps,
-    "reportMisuse" | "notify" | "notifyRefused" | "reasonTexts"
-  > = {},
+  options: HookOptions = {},
 ): Promise<Rendered<State>> {
   let state: State | undefined;
   function Probe(): ReactNode {
@@ -138,11 +155,12 @@ export async function renderHook<State>(
   const container = document.createElement("div");
   document.body.append(container);
   const root = createRoot(container);
-  mounted = { root, container };
-  const { notify, notifyRefused, reportMisuse, reasonTexts } = options;
+  mounted.push({ root, container });
+  let given = options;
   // New callbacks on every draw, as an app that writes them inline passes them.
-  const draw = (visible: boolean) =>
-    createElement(
+  const draw = (visible: boolean) => {
+    const { notify, notifyRefused, reportMisuse, reasonTexts } = given;
+    return createElement(
       DataProvider,
       {
         access: port.access,
@@ -155,6 +173,7 @@ export async function renderHook<State>(
       },
       visible ? createElement(Probe) : null,
     );
+  };
   act(() => root.render(draw(true)));
   await settle();
   return {
@@ -162,7 +181,8 @@ export async function renderHook<State>(
       if (state === undefined) throw new Error("The hook has not rendered");
       return state;
     },
-    async redraw() {
+    async redraw(next) {
+      if (next !== undefined) given = next;
       act(() => root.render(draw(true)));
       await settle();
     },
@@ -173,11 +193,10 @@ export async function renderHook<State>(
   };
 }
 
-/** Unmounts what `renderHook` drew; for `afterEach`. */
+/** Unmounts everything `renderHook` drew; for `afterEach`. */
 export function unmountHook(): void {
-  if (mounted === undefined) return;
-  const { root, container } = mounted;
-  act(() => root.unmount());
-  container.remove();
-  mounted = undefined;
+  for (const { root, container } of mounted.splice(0)) {
+    act(() => root.unmount());
+    container.remove();
+  }
 }

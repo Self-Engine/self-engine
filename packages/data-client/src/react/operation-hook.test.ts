@@ -256,6 +256,21 @@ test("a page names the entry and adds one action to the Notice of a Refusal", as
   expect(refusals).toEqual([{ reasons: [PINNED, AT_FIELD], entry: "Groceries", action: archive }]);
 });
 
+test("a page's options add to the Notice of a Refusal and never replace its Reasons", async () => {
+  const port = fakePort();
+  port.answer("update", () => Promise.reject(REFUSED));
+  const refusals: RefusedNotice[] = [];
+  const rename = await renderHook(port, () => useRenameNote(), {
+    notifyRefused: (notice) => refusals.push(notice),
+  });
+  // A variable passes the type check with more than the options name, as a spread could bring.
+  const options = { entry: "Groceries", reasons: [] };
+
+  await runOnce(rename, RENAME, options);
+
+  expect(refusals).toEqual([{ reasons: [PINNED, AT_FIELD], entry: "Groceries" }]);
+});
+
 test("a page narrows a Refusal to one Reason by its definition and reads its details typed", async () => {
   const port = fakePort();
   port.answer("update", () => Promise.reject(REFUSED));
@@ -538,10 +553,11 @@ test("a Reason at a mapped column whose field the caller does not show goes to t
 });
 
 test("a Refusal whose every Reason is at a mapped field shows no Notice", async () => {
-  const { result, refusals } = await renameAtField(refusedWith(AT_FIELD));
+  const { result, notices, refusals } = await renameAtField(refusedWith(AT_FIELD));
 
   expect(result).toMatchObject({ atFields: [{ field: "title", reason: AT_FIELD }] });
   expect(refusals).toEqual([]);
+  expect(notices).toEqual([]);
 });
 
 test("a Reason at a column the module does not map, or of another table, goes to the Notice", async () => {
@@ -612,4 +628,18 @@ test("the provider gives a form the texts of Reasons it was given, to show one a
 
   expect(given.current().describe(AT_FIELD, i18n)).toBe("The linked note was deleted.");
   expect(describe).toHaveBeenCalledWith(AT_FIELD, i18n);
+});
+
+test("new texts given to the provider reach a Reason drawn in the same render", async () => {
+  const i18n = createI18n();
+  const before = refusalTexts([{ pinned: () => "Before." }], () => undefined);
+  const after = refusalTexts([{ pinned: () => "After." }], () => undefined);
+
+  const text = await renderHook(fakePort(), () => useReasonTexts().describe(PINNED, i18n), {
+    reasonTexts: before,
+  });
+  expect(text.current()).toBe("Before.");
+  await text.redraw({ reasonTexts: after });
+
+  expect(text.current()).toBe("After.");
 });

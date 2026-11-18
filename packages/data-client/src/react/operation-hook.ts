@@ -243,7 +243,7 @@ async function runOperation(
   entry: string,
   input: unknown,
   handling: Handling,
-  { showsField = NO_FIELD, ...refusal }: RunOptions = {},
+  { showsField = NO_FIELD, entry: name, action }: RunOptions = {},
 ): Promise<AnyResult> {
   const result = await callOperation(access, module, entry, input, handling, showsField);
   if (result.status === "conflict" && result.field === null) notify(result.text);
@@ -252,9 +252,14 @@ async function runOperation(
     // A Reason a field shows is the form's; the Notice tells the others.
     const atField = new Set(result.atFields.map(({ reason }) => reason));
     const reasons = result.reasons.filter((reason) => !atField.has(reason));
-    // With every Reason at a field there is nothing for a Notice to say.
+    // With every Reason at a field there is nothing for a Notice to say. Only the options the
+    // Notice takes go on: a caller's object may hold more than its type names.
     if (reasons.length > 0 && handling.refused === undefined)
-      notifyRefused({ reasons, ...refusal });
+      notifyRefused({
+        reasons,
+        ...(name !== undefined && { entry: name }),
+        ...(action && { action }),
+      });
     else if (reasons.length > 0) handling.refused?.({ reasons }, input as never);
   }
   if (result.status === "notFound") {

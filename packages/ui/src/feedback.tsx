@@ -176,7 +176,11 @@ export interface NotifyRefusedOptions {
  * "Undo", since there is nothing to take back.
  */
 export function notifyRefused({ entry, reasons, action }: NotifyRefusedOptions) {
+  let taken = false;
   const take = () => {
+    // The notice stays clickable while it slides out, so the second click of a double click lands.
+    if (taken) return;
+    taken = true;
     notifications.hide(id);
     action?.run();
   };

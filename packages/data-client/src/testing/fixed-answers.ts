@@ -49,8 +49,11 @@ export type FixedAnswer<
         ? { readonly refused: readonly [FixedReason<Defined>, ...FixedReason<Defined>[]] }
         : never);
 
-/** A Reason of a Fixed Answer: as the frame sends it, but for the severity, which it sets. */
-type FixedReason<Definition> = Definition extends ReasonDefinition
+/**
+ * A Reason of a Fixed Answer: as the frame sends it, but for the severity, which it sets. Over
+ * several definitions it is one of them, whose code picks the details it takes.
+ */
+export type FixedReason<Definition> = Definition extends ReasonDefinition
   ? Omit<ReasonOf<Definition>, "severity">
   : never;
 
@@ -194,17 +197,36 @@ function noAnswer(
  * answersByMount({ notes: notesAnswers(), backups: backupAnswers({ list: { data: [] } }) });
  * ```
  */
-export function answersByMount(
-  accesses: Readonly<Record<string, PortAccess>>,
-  { report = (problem) => console.error(problem) }: Pick<FixedAnswerOptions, "report"> = {},
+export function answersByMount<Mounts extends Readonly<Record<string, PortAccess>>>(
+  accesses: Mounts,
+  {
+    report = (problem) => console.error(problem),
+    clearance = {},
+  }: Pick<FixedAnswerOptions, "report"> & {
+    /**
+     * The mount whose access answers the Clearance of each table, by the table's SQL name, which
+     * need not be the mount's: `{ project_entries: "projectEntries" }`. A Clearance of another
+     * table fails like a call without an answer.
+     */
+    readonly clearance?: Readonly<Record<string, keyof Mounts & string>>;
+  } = {},
 ): PortAccess {
+  const accessOf = (mount: string | undefined) =>
+    mount !== undefined && Object.hasOwn(accesses, mount) ? accesses[mount] : undefined;
   return {
     ...NO_DATA_PROCESS,
     call(module, entry, input, signal) {
-      const access = Object.hasOwn(accesses, module) ? accesses[module] : undefined;
+      const access = accessOf(module);
       return access === undefined
         ? noAnswer(module, entry, report)
         : access.call(module, entry, input, signal);
+    },
+    clearance(request, signal) {
+      const mount = Object.hasOwn(clearance, request.table) ? clearance[request.table] : undefined;
+      const access = accessOf(mount);
+      return access === undefined
+        ? noAnswer("", `clearance of ${request.table}`, report)
+        : access.clearance(request, signal);
     },
   };
 }
@@ -235,9 +257,15 @@ function clearanceAnswer(
     tableAnswers.set(row, checked.writes);
     byTable.set(table, tableAnswers);
   }
-  return async (input) => {
-    const { table, rows, writes } = clearanceContract["~orpc"].inputSchema!.parse(input);
-    return rows.map((row) => {
+  return async ({ table: asked, rows: askedRows, writes: askedWrites }) => {
+    // What the Port sends of a query, as `portAccessOf` does, checked as the Data Process does.
+    const { table, rows, writes } = clearanceContract["~orpc"].inputSchema!.parse({
+      table: asked,
+      rows: askedRows,
+      writes: askedWrites,
+    });
+    // One answer per asked row, in the order first asked, as the Data Process answers.
+    return [...new Set(rows)].map((row) => {
       const answers = byTable.get(table)?.get(row);
       const picked: RowClearance["writes"] = {};
       for (const write of writes) {
@@ -247,7 +275,8 @@ function clearanceAnswer(
           report(problem);
           throw new Error(problem);
         }
-        picked[write] = answer;
+        // A copy per answer, as the Port delivers it: a change to one leaves the fixture.
+        picked[write] = structuredClone(answer);
       }
       return { row, writes: picked };
     });

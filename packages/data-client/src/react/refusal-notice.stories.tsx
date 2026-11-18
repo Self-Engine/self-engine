@@ -12,7 +12,7 @@ import { notesTableNames } from "@self-engine/storage/testing/table-names";
 import { clearNotices } from "@self-engine/ui/story-notices";
 import { holdTimers } from "@self-engine/ui/story-timers";
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { expect, fn, screen, userEvent, waitFor, within } from "storybook/test";
 import { fixedAnswers } from "../testing/index.ts";
 import {
@@ -65,12 +65,15 @@ interface DeleteProps {
 
 /** A button that deletes the note "Groceries", which the Fixed Answers refuse. */
 function DeleteGroceries({ pinned = false, action }: DeleteProps) {
-  const [access] = useState(() =>
-    fixedAnswers(
-      { notes: notesContract },
-      { notes: { delete: { refused: pinned ? [REFERENCED, PINNED] : [REFERENCED] } } },
-      { reasons: [referenced, targetDeleted, pinnedNote] },
-    ),
+  // Built anew when `pinned` changes, such as from the Controls, so a delete refuses as it says.
+  const access = useMemo(
+    () =>
+      fixedAnswers(
+        { notes: notesContract },
+        { notes: { delete: { refused: pinned ? [REFERENCED, PINNED] : [REFERENCED] } } },
+        { reasons: [referenced, targetDeleted, pinnedNote] },
+      ),
+    [pinned],
   );
   return (
     <DataProvider access={access} reasonTexts={texts}>
@@ -149,6 +152,33 @@ export const SeveralReasonsAreAllListed: Story = {
       "“Groceries” is pinned. Unpin it first.",
     ]);
     await expect(notice.queryByRole("button", { name: "Undo" })).toBeNull();
+  },
+};
+
+/** `DeleteGroceries` whose `pinned` the person switches, as the Controls switch an arg. */
+function PinnedSwitch() {
+  const [pinned, setPinned] = useState(false);
+  return (
+    <>
+      <Button onClick={() => setPinned(true)} variant="default">
+        Pin Groceries
+      </Button>
+      <DeleteGroceries pinned={pinned} />
+    </>
+  );
+}
+
+export const AChangedPinRefusesWithTheNewReasons: Story = {
+  args: {},
+  render: () => <PinnedSwitch />,
+  play: async () => {
+    await userEvent.click(screen.getByRole("button", { name: "Pin Groceries" }));
+    const notice = await refuse();
+    const reasons = notice.getAllByRole("listitem").map((item) => item.textContent);
+    await expect(reasons).toEqual([
+      "Cannot be deleted: 12 notes and 1 entry refer to it.",
+      "“Groceries” is pinned. Unpin it first.",
+    ]);
   },
 };
 
