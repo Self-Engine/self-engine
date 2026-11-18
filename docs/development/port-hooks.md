@@ -285,9 +285,8 @@ definition there without its text does not compile. The frame's own Reasons, `re
 `target_deleted`, have their texts in `frameReasonTexts`. A Reason whose code has no text, which
 only a definition missing from `AppReasons` can cause, reads “This change is not allowed.”
 
-Input checks before saving are up to the form for now; there is no shared form helper yet. The
-Data Process checks every input, so an input the Contract rejects comes back as `unexpected`.
-The template disables Save while the name is empty for that reason.
+Use the shared [form helper](forms.md) to check the input against the Contract before saving.
+The Data Process checks every input at the Port.
 
 **A Clearance.** Outside the form helper, pass a Query built with
 `clearanceQueryFor<TablesOf<typeof rowMap>>()` to `useClearance`. It reads once per mount.

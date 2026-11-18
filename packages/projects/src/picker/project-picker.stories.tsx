@@ -98,7 +98,7 @@ interface Loaded {
 interface Args {
   readonly project: ProjectReference | null;
   readonly optional: boolean;
-  readonly projects: ProjectsAnswers;
+  readonly projects: Pick<ProjectsAnswers, "active" | "archived">;
 }
 
 const ENTRY_ID = "entry-1";

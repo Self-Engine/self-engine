@@ -4,15 +4,19 @@
 import type { PortAccess } from "@self-engine/data-client/react";
 import {
   changingAnswers,
+  type FixedAnswer,
   type FixedAnswerOptions,
   type FixedAnswers,
   fixedAnswers,
 } from "@self-engine/data-client/testing";
+import { referenced } from "@self-engine/db/schema";
+import type { z } from "zod";
 import {
   type ProjectId,
   projectIdSchema,
   type ProjectReference,
   projectReferenceSchema,
+  type projectSchema,
   projectsContract,
 } from "../contracts/index.ts";
 
@@ -21,7 +25,14 @@ export { projectEntriesTableNames } from "../../test/project-entries-module/tabl
 const contracts = { projects: projectsContract };
 
 /** What each entry of `projects` answers in a story. */
-export type ProjectsAnswers = NonNullable<FixedAnswers<typeof contracts>["projects"]>;
+type ListAnswer = FixedAnswer<readonly z.input<typeof projectSchema>[], never>;
+export type ProjectsAnswers = NonNullable<
+  FixedAnswers<typeof contracts, typeof referenced>["projects"]
+> & {
+  readonly active?: ListAnswer;
+  readonly archived?: ListAnswer;
+};
+export type ProjectsAnswerOptions = Omit<FixedAnswerOptions<typeof referenced>, "reasons">;
 
 /** A well-formed project id, numbered: what the Data Process would hand out. */
 export function sampleProjectId(index: number): ProjectId {
@@ -65,7 +76,7 @@ export const TAX_2025 = project(11, { title: "Tax 2025", archivedAt: "2026-02-01
  * archived list two, in the order of creation. An Operation changes nothing: no Table Change
  * follows.
  */
-export const SUCCEEDING: ProjectsAnswers = {
+export const SUCCEEDING = {
   active: { data: [WEBSITE, GARDEN, TAX, DOCTORS, WORK, CAR] },
   archived: { data: [TAX_2025, OLD_SHOP] },
   archive: { data: { ...WEBSITE, archivedAt: "2026-11-12T12:00:00.000Z" } },
@@ -74,14 +85,27 @@ export const SUCCEEDING: ProjectsAnswers = {
   edit: { data: WEBSITE },
   delete: { data: WEBSITE },
   restore: { data: WEBSITE },
-};
+} satisfies ProjectsAnswers;
 
 /** The Port access of a story: `answers` over the succeeding ones, checked against the Contract. */
 export function projectsAnswers(
   answers: ProjectsAnswers = {},
-  options?: FixedAnswerOptions,
+  options: ProjectsAnswerOptions = {},
 ): PortAccess {
-  return fixedAnswers(contracts, { projects: { ...SUCCEEDING, ...answers } }, options);
+  const projects = { ...SUCCEEDING, ...answers };
+  const clearance = [projects.active, projects.archived].flatMap((answer) =>
+    typeof answer === "object" && "data" in answer
+      ? answer.data.map(({ id, archivedAt }) => ({
+          table: "projects",
+          row: id,
+          writes: {
+            delete: { state: "free" as const },
+            [archivedAt === null ? "archive" : "unarchive"]: { state: "free" as const },
+          },
+        }))
+      : [],
+  );
+  return fixedAnswers(contracts, { projects }, { clearance, ...options, reasons: [referenced] });
 }
 
 export interface PortCall {
@@ -112,9 +136,11 @@ const TABLE = "projects";
 export function projectsStoryPort(
   first: ProjectsAnswers = {},
   afterCall?: (call: PortCall, port: ProjectsStoryPort) => void,
+  options?: ProjectsAnswerOptions,
 ): ProjectsStoryPort {
-  const changing = changingAnswers(projectsAnswers(first), {
+  const changing = changingAnswers(projectsAnswers(first, options), {
     projects: { active: [TABLE], archived: [TABLE] },
+    "": { clearance: [] },
   });
   const calls: PortCall[] = [];
   const port: ProjectsStoryPort = {
@@ -131,7 +157,7 @@ export function projectsStoryPort(
         return answer;
       },
     },
-    change: (next) => changing.change(projectsAnswers(next), [TABLE]),
+    change: (next) => changing.change(projectsAnswers(next, options), [TABLE]),
   };
   return port;
 }

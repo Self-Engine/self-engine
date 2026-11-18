@@ -6,8 +6,10 @@
 import {
   OLD_SHOP,
   type PortCall,
+  type ProjectsAnswerOptions,
   type ProjectsAnswers,
   type ProjectsStoryPort,
+  projectEntriesTableNames,
   projectsAnswers,
   projectsStoryPort,
   sampleProjectId,
@@ -60,10 +62,52 @@ let port = projectsStoryPort();
 function storyPort(
   answers: ProjectsAnswers,
   afterCall?: (call: PortCall, of: ProjectsStoryPort) => void,
+  options?: ProjectsAnswerOptions,
 ) {
-  port = projectsStoryPort(answers, afterCall);
+  port = projectsStoryPort(answers, afterCall, options);
   return port.access;
 }
+
+const referenceTo = (project: StoredProject) => ({
+  code: "referenced" as const,
+  table: "projects",
+  row: project.id,
+  details: { tables: [{ table: "project_entries", count: 2 }] },
+});
+const REFERENCE_REASON = "Cannot be deleted: 2 project entries refer to it.";
+const entryTableName = (table: string) =>
+  table === "project_entries" ? projectEntriesTableNames.project_entries : undefined;
+
+export const DeleteBlockedByReferences: Story = {
+  render: (args) => (
+    <AppAt
+      address={args.address}
+      testTableName={entryTableName}
+      access={storyPort(listOf(WEBSITE), undefined, {
+        clearance: [
+          {
+            table: "projects",
+            row: WEBSITE.id,
+            writes: {
+              delete: { state: "blocked", reasons: [referenceTo(WEBSITE)] },
+              archive: { state: "free" },
+            },
+          },
+        ],
+      })}
+    />
+  ),
+  play: async ({ canvas }) => {
+    const { drawer } = await openFromTheList(canvas);
+    await expect(await drawer.findByText(REFERENCE_REASON)).toBeVisible();
+    const remove = drawer.getByRole("button", { name: "Delete" });
+    await expect(remove).toBeDisabled();
+    await expect(remove).toHaveAccessibleDescription(REFERENCE_REASON);
+    await expect(drawer.getByRole("button", { name: "Archive" })).toBeEnabled();
+    await userEvent.click(remove);
+    await expect(port.calls).toEqual([]);
+  },
+};
 
 const meta = {
   title: "App/Projects/Edit",
@@ -467,6 +511,81 @@ export const TheArchivedProjectsDrawerInGerman: Story = {
 const archivesTheWebsite = (call: PortCall, of: ProjectsStoryPort) => {
   if (call.entry === "archive")
     of.change(listsOf(OTHERS, [{ ...WEBSITE, archivedAt: ARCHIVED_AT }]));
+};
+
+const cleanNotices = () => {
+  clearNotices();
+  return keepNoticesOpen();
+};
+
+async function refusedDelete(drawer: Canvas, entry: string) {
+  const remove = drawer.getByRole("button", { name: "Delete" });
+  await waitFor(() => expect(remove).not.toHaveAttribute("aria-disabled", "true"));
+  await expect(remove).toBeEnabled();
+  await userEvent.click(remove);
+  const reason = await screen.findByText(REFERENCE_REASON);
+  const notice = reason.closest<HTMLElement>(".mantine-Notification-root");
+  if (notice === null) throw new Error("The Refusal has no Notice");
+  const feedback = within(notice);
+  await waitFor(() => expect(feedback.getByText(entry)).toBeVisible());
+  await expect(feedback.queryByRole("button", { name: "Undo" })).toBeNull();
+  return feedback;
+}
+
+export const RefusedDeleteOffersArchiveWithUndo: Story = {
+  beforeEach: cleanNotices,
+  render: (args) => (
+    <AppAt
+      address={args.address}
+      testTableName={entryTableName}
+      access={storyPort(
+        { ...listOf(WEBSITE), delete: { refused: [referenceTo(WEBSITE)] } },
+        (call, of) => {
+          archivesTheWebsite(call, of);
+          if (call.entry === "unarchive") of.change(listsOf([WEBSITE, ...OTHERS], []));
+        },
+      )}
+    />
+  ),
+  play: async ({ canvas }) => {
+    const { drawer, title } = await openFromTheList(canvas);
+    await userEvent.type(title, " changed");
+    const notice = await refusedDelete(drawer, WEBSITE.title);
+    await expect(title).toHaveValue("Website changed");
+    await userEvent.click(notice.getByRole("button", { name: "Archive" }));
+    await answer("Discard");
+    await noDrawer();
+    await expect(await screen.findByText("Project archived")).toBeVisible();
+    await undoLast();
+    await expect(await canvas.findByRole("button", { name: WEBSITE.title })).toBeVisible();
+    await expect(port.calls).toEqual([
+      { entry: "delete", input: { id: WEBSITE.id } },
+      { entry: "archive", input: { id: WEBSITE.id } },
+      { entry: "unarchive", input: { id: WEBSITE.id } },
+    ]);
+  },
+};
+
+export const RefusedDeleteOfArchivedProjectHasNoAction: Story = {
+  beforeEach: cleanNotices,
+  args: { address: ARCHIVE },
+  render: (args) => (
+    <AppAt
+      address={args.address}
+      testTableName={entryTableName}
+      access={storyPort({
+        ...listsOf([], [OLD_SHOP]),
+        delete: { refused: [referenceTo(OLD_SHOP)] },
+      })}
+    />
+  ),
+  play: async ({ canvas }) => {
+    const { drawer } = await openFromTheList(canvas, OLD_SHOP.title);
+    const notice = await refusedDelete(drawer, OLD_SHOP.title);
+    await expect(notice.queryByRole("button", { name: "Archive" })).toBeNull();
+    await expect(drawer.getByRole("button", { name: "Unarchive" })).toBeEnabled();
+    await expect(port.calls).toEqual([{ entry: "delete", input: { id: OLD_SHOP.id } }]);
+  },
 };
 
 /**

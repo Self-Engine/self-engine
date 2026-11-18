@@ -26,8 +26,8 @@ export const UNUSED_ANSWER_LIFETIME_MS = 5 * 60 * 1000;
 
 /**
  * What code outside React needs to call an Operation, such as a Command (D261): the Port access
- * and the one seam every notice of the building block goes through, both the ones the nearest
- * `DataProvider` was given. A story or test that substitutes them collects the notices too.
+ * and the Notice callbacks the nearest `DataProvider` was given. A story or test can substitute
+ * them and collect the Notices.
  */
 export interface DataAccess {
   /** How calls reach the Data Process. */

@@ -36,18 +36,17 @@ is spent drawing.
   the same for every module. The Port access comes from outside, so a story substitutes it.
   A module’s hooks live inside the module and are released to others only on demand. The hook
   for page lists comes with the list that draws only what is visible (#137).
-- **Expected errors are values.** An Operation returns success, a conflict with its reason,
-  not found, or unexpected, and throws for none of them. The module gives every conflict reason
+- **Expected errors are values.** An Operation returns success, a Conflict with its reason,
+  not found, a Refusal with its Reasons, or unexpected. The module gives every conflict reason
   of an entry a translated text and a field, or states `field: null` where no field can show it;
   the types demand all of them. The building block announces “not found”, which a module may
   replace, unexpected errors, and the text of a conflict without a field.
 - **Commands reach the Port through their context.** Every Command context carries the Port
-  access the app gives the building block together with its notice seam, and the building block
-  offers each Operation as a function of both, with the same result and the same default Notices
-  as the hook.
-- **One notice seam.** Every Notice of the building block (an Operation’s, a failed reload’s, a
-  conflict without a field) goes through the `notify` of the `DataProvider`, which shows it
-  through the feedback system unless a story or test collects it.
+  access and Notice callbacks the app gives the building block. The building block offers
+  each Operation as a function with the same result and default Notices as the hook.
+- **The provider supplies the Notice callbacks.** `DataProvider` uses `notify` for Notices with
+  one message and `notifyRefused` for the shared Notice of a Refusal (ADR 0034). Both use the
+  feedback system by default, and stories and tests can collect them.
 - **The web app has no Data Process yet.** Without the desktop app the connection stops at
   startup: the page shows the state the desktop app shows when its data cannot be reached,
   without the retry, and every call fails at once instead of waiting behind it.

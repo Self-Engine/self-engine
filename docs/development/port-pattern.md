@@ -507,6 +507,19 @@ is the app's start address. The router hands that list to its routes through its
 app's stories mount their own list, [`apps/web/src/story-modules.ts`](../../apps/web/src/story-modules.ts):
 the placeholder modules beside every module of the app, so add a new module there too.
 
+In the Shell Contribution's `tableNames`, give every synced table one Lingui plural message
+for its singular and plural names. Check the map against
+`TableNames<SyncedTable<TablesOf<typeof rowMap>>>` with a type-only Row Map import, as
+[`projects`](../../packages/projects/src/index.ts) does. The app's module list makes these names
+available to the reference check's Reason text.
+
+Give each Reason a typed text in its owning package's UI and include its definition and text
+in the app's composition. The [Port hooks guide](port-hooks.md#3-change-data-with-an-operation-hook)
+shows how to write the text, use the shared Notice with a way out, and map a Reason to a field.
+An Edit Drawer reads Clearance once per opening for the actions it shows. Use the shared
+[form action slot](forms.md#action-slot-and-a-standalone-form) to show blocked actions and their
+Reasons. Leave the write in charge of checking again when an action is taken.
+
 A module never leaves the module list without a plan for its tables: nothing removes them yet
 (#214). A database that recorded a migration the list no longer has is refused as written by a
 newer app, naming that migration, as the desktop's runtime test shows for a dev database from

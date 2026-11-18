@@ -1,11 +1,7 @@
 // The building block for reading and changing data through a Port (D249): the only place that
-// imports the query library. Nothing at startup imports this entry.
-export {
-  type ClearanceQuery,
-  type ClearanceState,
-  clearanceQueryFor,
-  useClearance,
-} from "./clearance-hook.ts";
+// imports the query library. The app mounts its DataProvider at startup.
+export { type ClearanceState, useClearance } from "./clearance-hook.ts";
+export { type ClearanceQuery, clearanceQueryFor } from "./clearance-query.ts";
 export type { Clearance, ClearanceWrite, RowClearance } from "@self-engine/data-protocol";
 export {
   type ConflictText,

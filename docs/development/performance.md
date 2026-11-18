@@ -563,3 +563,28 @@ answers "not found" (about **0.02 ms**, re-measured with the same script after t
 `SEARCH … USING INDEX`: the primary key of `projects` and the partial index
 `project_entries_project (project_id) WHERE deleted_at IS NULL`, never `SCAN` or an automatic
 index. The storage frame's tests assert the same for the `notes` and `note-links` test modules.
+
+## Project Edit Drawer Clearance (#328)
+
+The first opening of a stored project with no references was measured on an Apple M3 Pro
+(arm64, Node 26.13.1). Each sample opened the drawer from the loaded Active View in a fresh
+React root and Query cache, using Happy DOM and a real test Data Process over MessagePort.
+The module code and connection were warm. The control omitted the form's Clearance prop,
+and the experiment sent one Clearance Query for Delete and Archive. After 10 warm-up pairs,
+40 pairs alternated the run order. The observer timed the first Title input and the point
+at which Delete accepted activation. These are DOM timings, before browser paint and
+without the desktop drawer animation.
+
+| First opening measurement | Without Clearance p50 / p95 | With Clearance p50 / p95 |
+| ------------------------- | --------------------------- | ------------------------ |
+| Click to Title input      | 8.83 / 10.34 ms             | 9.02 / 12.99 ms          |
+| Click to usable Delete    | 8.92 / 10.43 ms             | 10.24 / 14.02 ms         |
+
+The median difference was **0.19 ms** for the fields and **1.32 ms** for Delete. The request
+runs alongside opening the form. The Data Process timings with 50,000 references are in
+[Protection Rules (#274)](#protection-rules-274).
+
+Production startup JavaScript before and after this slice was **855,478 bytes** in 19 chunks
+against the **889,856-byte** limit. The first wiring placed the 30-byte Query builder in a
+shared startup chunk. Giving the builder its own module behind the same export kept it with
+the lazy drawer.

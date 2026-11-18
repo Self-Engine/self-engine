@@ -94,7 +94,7 @@ area above it. Soft deletion also means the database's own foreign keys never fi
   (D338), a write path for many rows, the data check after a sync, and rules from the desktop
   app's composition. A device can still delete a row that another references offline (D306); a
   Read Piece keeps marking deleted targets.
-- The Refusal reaches the pages with #313.
+- The renderer handles the Refusal and Clearance as described in ADR 0034.
 
 ## Considered Options
 
