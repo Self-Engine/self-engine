@@ -141,10 +141,22 @@ function FoundProject({
   // The Notice of a refused delete can outlive what the drawer knows. Only while the drawer is
   // open and still shows the project active does its Archive change what the person saw, and
   // offer the undo; otherwise the project may be archived already, by someone else, and an undo
-  // would unarchive that. It never asks to discard a draft in another drawer.
+  // would unarchive that. It never asks to discard a draft in another drawer. Asked again right
+  // before the write: the project may be archived elsewhere while the question is open.
+  const vouchesForArchive = () => mounted.current && shownActive.current;
+  const archiveWithoutUndoHere = () => archiveWithoutUndo(project.id, { entry: project.title });
   const archiveFromNotice = () => {
-    if (mounted.current && shownActive.current) archiveHere();
-    else void archiveWithoutUndo(project.id, { entry: project.title });
+    if (!vouchesForArchive()) {
+      void archiveWithoutUndoHere();
+      return;
+    }
+    void leave(
+      () =>
+        vouchesForArchive()
+          ? archive(project.id, { entry: project.title })
+          : archiveWithoutUndoHere(),
+      true,
+    )();
   };
   const deleteHere = leave(
     () =>

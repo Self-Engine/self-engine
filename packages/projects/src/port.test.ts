@@ -107,7 +107,8 @@ async function renderOverPort() {
       i18n,
       children: createElement(MantineProvider, {
         env: "test",
-        children: createElement(DataProvider, { access, notify: data.notify }, readers),
+        // The same seams as the Commands get, so a hook meets the same fail-fast Refusal.
+        children: createElement(DataProvider, data, readers),
       }),
     }),
   );

@@ -187,6 +187,10 @@ test("a new reference refuses a delete from a stale drawer and blocks it on the 
     expect(remove.disabled).toBe(false);
   });
   expect(access.clearance).toHaveBeenCalledTimes(3);
+  // The answer frees the delete: a failed Clearance would leave it usable as well.
+  await expect(access.clearance.mock.results[2]?.value).resolves.toMatchObject([
+    { row: project.id, writes: { delete: { state: "free" } } },
+  ]);
 });
 
 /**
@@ -316,6 +320,34 @@ test("the Notice's Archive, taken after the drawer closed, archives without clai
   await vi.waitFor(() => expect(document.querySelector('[role="dialog"]')).toBeNull());
 
   archiveOffer.click();
+
+  await vi.waitFor(() => expect(noticeTexts()).toContain("Project archived"));
+  expect(noticeTexts().some((text) => text?.includes("Undo"))).toBe(false);
+  await expect(client.projects.archived({})).resolves.toMatchObject([{ id: project.id }]);
+});
+
+test("the Notice's Archive, confirmed after the project was archived elsewhere meanwhile, offers no undo", async () => {
+  const { client, project, archiveOffer } = await refusedDelete();
+  // A change in the drawer: its Archive asks before it discards it.
+  const title = drawer().querySelector("input")!;
+  Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!.call(title, "Web");
+  title.dispatchEvent(new Event("input", { bubbles: true }));
+  await vi.waitFor(() => expect(button(drawer(), "Save").disabled).toBe(false));
+
+  archiveOffer.click();
+  const question = await vi.waitFor(() => {
+    const found = [...document.querySelectorAll('[role="dialog"]')].find((dialog) =>
+      dialog.textContent?.includes("Discard changes?"),
+    );
+    expect(found).toBeDefined();
+    return found!;
+  });
+  // While the question is open, the project is archived elsewhere and the drawer follows.
+  await client.projects.archive({ id: project.id });
+  const theDrawer = () =>
+    [...document.querySelectorAll('[role="dialog"]')].find((dialog) => dialog !== question)!;
+  await vi.waitFor(() => expect(button(theDrawer(), "Unarchive")).toBeDefined());
+  button(question, "Discard").click();
 
   await vi.waitFor(() => expect(noticeTexts()).toContain("Project archived"));
   expect(noticeTexts().some((text) => text?.includes("Undo"))).toBe(false);

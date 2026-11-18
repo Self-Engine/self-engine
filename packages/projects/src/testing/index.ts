@@ -87,25 +87,52 @@ export const SUCCEEDING = {
   restore: { data: WEBSITE },
 } satisfies ProjectsAnswers;
 
-/** The Port access of a story: `answers` over the succeeding ones, checked against the Contract. */
+/** The table of `projects`, as the Data Process's Query-to-tables list names it (D248). */
+const TABLE = "projects";
+
+/**
+ * The Port access of a story: `answers` over the succeeding ones, checked against the Contract,
+ * with a free Clearance for every listed project that `options.clearance` overrides per write.
+ */
 export function projectsAnswers(
   answers: ProjectsAnswers = {},
   options: ProjectsAnswerOptions = {},
 ): PortAccess {
   const projects = { ...SUCCEEDING, ...answers };
-  const clearance = [projects.active, projects.archived].flatMap((answer) =>
-    typeof answer === "object" && "data" in answer
-      ? answer.data.map(({ id, archivedAt }) => ({
-          table: "projects",
-          row: id,
-          writes: {
-            delete: { state: "free" as const },
-            [archivedAt === null ? "archive" : "unarchive"]: { state: "free" as const },
-          },
-        }))
-      : [],
+  // Every listed project is free to delete and to archive or unarchive, once: a project in both
+  // lists takes its entry of the active list, as the drawer's lookup does.
+  const listed = new Map<string, boolean>();
+  for (const answer of [projects.active, projects.archived]) {
+    if (typeof answer !== "object" || !("data" in answer)) continue;
+    for (const { id, archivedAt } of answer.data) {
+      if (!listed.has(id)) listed.set(id, archivedAt === null);
+    }
+  }
+  type Row = NonNullable<ProjectsAnswerOptions["clearance"]>[number];
+  const rows = new Map<string, Row>(
+    [...listed].map(([row, active]) => [
+      row,
+      {
+        table: TABLE,
+        row,
+        writes: {
+          delete: { state: "free" },
+          [active ? "archive" : "unarchive"]: { state: "free" },
+        },
+      },
+    ]),
   );
-  return fixedAnswers(contracts, { projects }, { clearance, ...options, reasons: [referenced] });
+  // A story's answers replace the defaults write by write; every other write keeps its default.
+  for (const given of options.clearance ?? []) {
+    const key = given.table === TABLE ? given.row : `${given.table}/${given.row}`;
+    const fallback = given.table === TABLE ? rows.get(given.row) : undefined;
+    rows.set(key, { ...given, writes: { ...fallback?.writes, ...given.writes } });
+  }
+  return fixedAnswers(
+    contracts,
+    { projects },
+    { ...options, clearance: [...rows.values()], reasons: [referenced] },
+  );
 }
 
 export interface PortCall {
@@ -125,9 +152,6 @@ export interface ProjectsStoryPort {
   /** Answers `next` over the succeeding answers from now on, and delivers the Table Change. */
   readonly change: (next: ProjectsAnswers) => void;
 }
-
-/** The table of `projects`, as the Data Process's Query-to-tables list names it (D248). */
-const TABLE = "projects";
 
 /**
  * A story Port that answers `first` over the succeeding answers. `afterCall` runs after each
