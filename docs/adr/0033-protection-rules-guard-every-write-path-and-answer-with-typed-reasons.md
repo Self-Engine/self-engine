@@ -30,7 +30,8 @@ area above it. Soft deletion also means the database's own foreign keys never fi
     the mounted modules' synced tables; a rule for any other table, a Local Table included,
     does not compile with a typed module list and fails the start with an untyped one.
     A typed way for an ordinary package (a Bridge) to state such a rule, whose row map is
-    private to the module below, is not built yet;
+    private to the module below, is not built yet: the module below will release what a rule
+    from above may see, built with the first rule that needs it (D341);
   - the frame brings the reference check.
 - **The six write paths of `sharedWrites` ask the rules** for their table and kind of write
   before they write, in the same transaction. So a rule holds for every Operation, for a Bridge

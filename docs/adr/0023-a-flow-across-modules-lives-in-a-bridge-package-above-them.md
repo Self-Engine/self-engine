@@ -64,7 +64,8 @@ calendar, is built on them.
   A rule from above is registered where the Data Process is started, `startDataProcess({ rules
   })`, typed against the mounted modules' tables, and joins the modules' rules in one registry;
   the module below and its Contract learn nothing of it. A typed way for an ordinary package to
-  state such a rule is not built yet, and the desktop app registers none
+  state such a rule is not built yet (it comes with the first such rule, D341), and the desktop
+  app registers none
   ([ADR 0022](0022-the-desktop-app-owns-the-module-list-and-the-data-protocol-what-crosses-modules.md)).
 
 ## Consequences

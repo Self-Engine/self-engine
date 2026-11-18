@@ -1,7 +1,7 @@
 # Schicht 4: Projekte und Zeit
 
-Stand: 2026-11-17 · Status: **entschieden** (D303–D316, Formular-Helfer D317–D326, `projects`
-D327–D330, Schutzregeln D331–D340), Spec #271, Issues #272–#277 und #313 sowie #109, #110 und #213
+Stand: 2026-11-18 · Status: **entschieden** (D303–D316, Formular-Helfer D317–D326, `projects`
+D327–D330, Schutzregeln D331–D341), Spec #271, Issues #272–#277 und #313 sowie #109, #110 und #213
 
 Schicht 4 ist der erste Fachmeilenstein: das erste, was in der App sichtbar und nutzbar ist. Sie
 ist bewusst schmal. Der Owner nutzt die alte App weiter, bis die neue ihn überzeugt (D315).
@@ -93,13 +93,15 @@ mit erzeugten Daten von zwei Jahren, D193).
   Reihenfolge von Hand, Tags (#111), Kunden als Modul unter `projects`, Aufgaben als Modul darüber.
 - **Abrechnung:** Satz, Währung, Festpreis und Anstellung als Abrechnungsbedingungen, der
   Bezahlt-Zustand und Auszahlungen, mit `money` (#105) und Finanzen (D305). Die Schutzregel „ein
-  ausgezahlter Zeiteintrag ist nicht löschbar“ meldet die Brücke an (D331).
+  ausgezahlter Zeiteintrag ist nicht löschbar“ meldet die Brücke an (D331). Dieses Arbeitspaket
+  baut zuerst die Freigabe, über die eine Regel von oben ihre Typen bekommt (D341).
 - **Papierkorb:** endgültiges Löschen über eine benannte Operation, Fristen und eine Ansicht
   „Gelöscht“ (D306, D316). Hier entscheidet sich, ob die Zeiteinträge eines Projekts beim Löschen
   mitgehen, mit Warnung (D338).
 - **Schutzregeln:** Warnungen mit Bestätigung, Feldsperren, Regeln mit Aufrufer und Schreibwege für
   viele Zeilen, je mit dem ersten echten Fall (D340); ein Verweis, der beim Löschen seines Ziels
-  stehen bleibt, mit den Tags (#111, D338).
+  stehen bleibt, mit den Tags (#111, D338); die Freigabe einer Tabelle für Regeln von oben mit der
+  ersten solchen Regel (D341).
 - **Import:** Schicht 5 beginnt mit Projekten und Zeiteinträgen (D316).
 
 ## Offen

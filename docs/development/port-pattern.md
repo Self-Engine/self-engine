@@ -277,7 +277,9 @@ composition passes it to `startDataProcess({ rules })`, typed against the mounte
 synced tables, and the module below learns nothing of it. A caller that runs a lower function in
 its own transaction builds its context from the Data Process's `contextSources`, so the same
 rules, the reference check included, hold there. A typed way for an ordinary package to state
-such a rule is not built yet; today only a test or `data-process` can.
+such a rule is not built yet; today only a test or `data-process` can. The first package that
+needs one builds it: the module below releases, per table, what a rule from above may see (the
+table, the row id and chosen fields), the way it releases a Read Piece (D341).
 
 **The reference check needs no code.** The frame reads every foreign key between synchronized
 tables when the Data Process starts and guards it: a row that a Live Row refers to is not
