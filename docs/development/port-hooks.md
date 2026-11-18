@@ -304,7 +304,7 @@ dataTexts: dataTexts<typeof timeEntries>()({
 
 A synced table without a name, or a Reason of the module's rules without a text, does not
 compile, nor does a name or a text the storage module does not call for, also from a map held in
-a variable; a module without data gives `NO_DATA_TEXTS`, and the app's module list mounts no
+a variable or one of several maps; a module without data gives `NO_DATA_TEXTS`, and the app's module list mounts no
 module without data texts. The frame's own Reasons, `referenced` and `target_deleted`, have their
 texts in `frameReasonTexts`, which `refusalTexts` always includes. The texts of rules registered
 from above are listed by hand in `apps/web/src/reason-texts.ts` (`ReasonsFromAbove`): the

@@ -62,6 +62,19 @@ test("names or texts held in a variable are checked for extra keys as well (comp
   expect(texts.tableNames).toEqual(notesTableNames);
 });
 
+test("a map that may be one of several is checked for the extra keys of each (compile-time checks)", () => {
+  const withATypo = { ...notesTableNames, notez: () => msg`notes` };
+  const withAnother = { ...notesTableNames, wrong: () => msg`wrong` };
+  const namesFor = (typo: boolean) => (typo ? withATypo : withAnother);
+  // @ts-expect-error Either map names a table the module does not have.
+  dataTexts<typeof notes>()({ tableNames: namesFor(true), reasonTexts: { pinned } });
+  const withReferenced = { pinned, referenced: () => "Referred to." };
+  const withTargetDeleted = { pinned, target_deleted: () => "Gone." };
+  const textsFor = (referred: boolean) => (referred ? withReferenced : withTargetDeleted);
+  // @ts-expect-error Either map has a text for a Reason the module's rules do not answer with.
+  dataTexts<typeof notes>()({ tableNames: notesTableNames, reasonTexts: textsFor(true) });
+});
+
 test("a module whose rules answer with no Reason gives no Reason texts (compile-time checks)", () => {
   const plain = dataTexts<NoRules>()({ tableNames: notesTableNames });
   expect(plain.reasonTexts).toEqual({});

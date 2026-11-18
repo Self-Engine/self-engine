@@ -39,7 +39,7 @@ while the rule and the tables it reads can belong to other packages.
   own rules' Reasons into its Shell Contribution as data texts, made by `dataTexts` against its
   storage module through a type-only import: a synced table without a name, or a Reason of its
   rules without a text, does not compile, nor does a name or text the storage module does not
-  call for, also from a map held in a variable; a rule answers only with the Reasons it
+  call for, also from a map held in a variable or one of several maps; a rule answers only with the Reasons it
   declares. The app's module list mounts no module without data texts. The module list resolves the names by SQL table. The frame's Reasons are listed
   beside their definitions, and the reference check is typed against that list. The texts of
   rules registered from above are listed by hand in the app (`apps/web/src/reason-texts.ts`).

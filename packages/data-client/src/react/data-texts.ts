@@ -38,12 +38,16 @@ type DataTextsInput<Module extends StorageModuleShape> = [Module] extends [never
 /** The texts of a module whose rules answer with no Reason: none at all. */
 type NoReasonTexts = Readonly<Record<string, never>>;
 
+/** Every key of every map `Given` may be: `keyof` of a union names only the keys all share. */
+type KeysOfEach<Given> = Given extends unknown ? keyof Given : never;
+
 /**
  * Each key of `Given` beyond `Allowed` as `never`, so that a map held in a variable, which skips
- * the check of a fresh literal for extra keys, does not bring a name or text nobody asked for.
+ * the check of a fresh literal for extra keys, does not bring a name or text nobody asked for;
+ * also not when the map is one of several, each with keys of its own.
  */
 type NoExtraKeys<Given, Allowed extends PropertyKey> = {
-  readonly [Key in Exclude<keyof Given, Allowed>]: never;
+  readonly [Key in Exclude<KeysOfEach<Given>, Allowed>]?: never;
 };
 
 /** The keys `texts` gives beyond those its storage module calls for, each as `never`. */
