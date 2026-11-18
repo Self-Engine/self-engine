@@ -9,8 +9,20 @@ export function idSchema<const Name extends string>(_name: Name) {
 export const sqliteBoolean = z.union([z.literal(0), z.literal(1)]);
 
 export { entryFields, type FieldList } from "./entry-fields.ts";
+export type {
+  Archivable,
+  ArchivableTable,
+  Convention,
+  ConventionKey,
+  RowId,
+  RowMap,
+  SyncedTable,
+  TablesOf,
+} from "./tables.ts";
 export {
   defineReason,
+  findReason,
+  type FrameReasons,
   matchReason,
   referenced,
   reasonSchema,
@@ -20,6 +32,7 @@ export {
   type Reason,
   type ReasonDefinition,
   type ReasonOf,
+  type Refusal,
   type Severity,
 } from "./reason.ts";
 export {

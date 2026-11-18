@@ -12,6 +12,8 @@ import {
   useRef,
 } from "react";
 import type { PortAccess } from "./port-access.ts";
+import { type RefusalTexts, refusalTexts } from "./reason-texts.ts";
+import { type RefusedNotice, showRefusal } from "./refusal-notice.ts";
 import { noticeFailedReload } from "./reload-notice.ts";
 
 /** Answers no View shows are dropped after this long (D250). */
@@ -19,17 +21,21 @@ export const UNUSED_ANSWER_LIFETIME_MS = 5 * 60 * 1000;
 
 /**
  * What code outside React needs to call an Operation, such as a Command (D261): the Port access
- * and the one seam every notice of the building block goes through, both the ones the nearest
- * `DataProvider` was given. A story or test that substitutes them collects the notices too.
+ * and the Notice callbacks the nearest `DataProvider` was given. A story or test can substitute
+ * them and collect the Notices.
  */
 export interface DataAccess {
   /** How calls reach the Data Process. */
   readonly access: PortAccess;
   /** Shows a notice of the building block, such as an Operation's unexpected error (D251). */
   readonly notify: (notice: MessageDescriptor) => void;
+  /** Shows the shared Notice of a Refusal a caller did not handle itself (D334). */
+  readonly notifyRefused: (notice: RefusedNotice) => void;
 }
 
 interface DataContext extends DataAccess {
+  /** The text of every Reason, for a form or an action that shows one in place. */
+  readonly reasonTexts: RefusalTexts;
   /** Reports, once per entry, a Query hook whose entry the Data Process calls an Operation. */
   readonly checkQuery: (module: string, entry: string) => void;
   /** Marks every answer of the Query `entry`, like a Table Change that names its tables. */
@@ -52,6 +58,15 @@ export function useDataContext(): DataContext {
  */
 export function useDataAccess(): DataAccess {
   return useDataContext();
+}
+
+/**
+ * The texts of Reasons the nearest `DataProvider` was given, in the words the shared Notice
+ * uses: for a form that shows a Reason of a Refusal at its field (D334) and for an action a
+ * Clearance blocks (D336). The object stays the same while the provider's access does.
+ */
+export function useReasonTexts(): RefusalTexts {
+  return useDataContext().reasonTexts;
 }
 
 /**
@@ -131,8 +146,22 @@ export interface DataProviderProps {
    * default the feedback system shows them as error notices; a test collects them instead.
    */
   readonly notify?: (notice: MessageDescriptor) => void;
+  /**
+   * The text of every Reason the app's Protection Rules answer with, composed where the app is
+   * put together (`refusalTexts`). Without it, the frame's own Reasons have their texts and no
+   * table its name.
+   */
+  readonly reasonTexts?: RefusalTexts;
+  /**
+   * Where the Notice of a Refusal goes. By default the feedback system shows it with the
+   * `reasonTexts`; a test collects them instead.
+   */
+  readonly notifyRefused?: (notice: RefusedNotice) => void;
   readonly children?: ReactNode;
 }
+
+/** The texts a provider uses when it is given none: the frame's Reasons, no table names. */
+const FRAME_ONLY = refusalTexts([], () => undefined);
 
 /** Counts the accesses providers were given, to key the tree below each one's cache. */
 let accessGenerations = 0;
@@ -142,15 +171,18 @@ export function DataProvider({
   access,
   reportMisuse,
   notify = showNotice,
+  reasonTexts = FRAME_ONLY,
+  notifyRefused = (notice) => showRefusal(notice, reasonTexts),
   children,
 }: DataProviderProps): ReactNode {
   // The cache and the context live as long as the provider's access: another access starts with
   // no answers, so none of the old one shows. Callbacks are read through refs, so a parent that
-  // passes them inline redraws no hook below.
-  const latest = useRef({ notify, reportMisuse });
+  // passes them inline redraws no hook below. The Reason texts are data, not a callback: another
+  // set redraws what reads them, so pass one made once, as the app's composition does.
+  const latest = useRef({ notify, notifyRefused, reportMisuse });
   useEffect(() => {
-    latest.current = { notify, reportMisuse };
-  }, [notify, reportMisuse]);
+    latest.current = { notify, notifyRefused, reportMisuse };
+  }, [notify, notifyRefused, reportMisuse]);
   // A Query hook stays bound to the cache it first drew with, so the tree below is drawn anew for
   // another access, keyed by its cache.
   const { cache, generation } = useMemo(
@@ -166,7 +198,10 @@ export function DataProvider({
     const reported = new Set<string>();
     return {
       access,
+      // Not through a ref: a Reason drawn in this render already reads the texts given now.
+      reasonTexts,
       notify: (notice) => latest.current.notify(notice),
+      notifyRefused: (notice) => latest.current.notifyRefused(notice),
       checkQuery: (module, entry) => {
         const report = latest.current.reportMisuse ?? defaultReport();
         const name = `${module}.${entry}`;
@@ -182,7 +217,7 @@ export function DataProvider({
         });
       },
     };
-  }, [access, cache]);
+  }, [access, cache, reasonTexts]);
 
   useEffect(() => {
     const stopTables = access.onTablesChanged((tables) => {

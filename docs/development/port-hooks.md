@@ -76,9 +76,13 @@ connection stops at startup, the page shows that the data cannot be reached, wit
 and its access is `NO_DATA_PROCESS`, whose every call fails at once (D263). A module never
 mounts a provider itself, except in a story or test.
 
-Every Notice of the building block goes through one seam, the provider’s `notify`: by default
-the feedback system shows it, translated while it is on screen; a story or test passes its own
-to collect them.
+Every Notice of the building block goes through one of two seams of the provider: `notify` for
+a text, and `notifyRefused` for the shared Notice of a Refusal (step 3). By default the feedback
+system shows them, translated while they are on screen; a story or test passes its own to
+collect them. The app also gives the provider `reasonTexts`, the text of every Reason
+(step 3, “Texts of Reasons”). Unlike the seams, they are not read through a ref: a Reason drawn
+in the render that gives new texts already reads them, and a new set redraws what reads them, so
+pass one set made once.
 
 ## 2. Read with a Query hook
 
@@ -150,12 +154,13 @@ same function across renders. A Query over tables never needs it.
 An Operation hook returns `{ run, running }`. `run(input)` resolves with a result and never
 rejects:
 
-| `status`     | Fields                    | The building block’s Notice                                   |
-| ------------ | ------------------------- | ------------------------------------------------------------- |
-| `success`    | `data`                    | none                                                          |
-| `conflict`   | `reason`, `field`, `text` | none: show `text` at `field`; `text` when `field` is `null`   |
-| `notFound`   | none                      | “This entry no longer exists.”, unless the module replaces it |
-| `unexpected` | `error`                   | “Something went wrong, and the change was not saved.”         |
+| `status`     | Fields                    | The building block’s Notice                                                                                                                             |
+| ------------ | ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `success`    | `data`                    | none                                                                                                                                                    |
+| `conflict`   | `reason`, `field`, `text` | none: show `text` at `field`; `text` when `field` is `null`                                                                                             |
+| `notFound`   | none                      | “This entry no longer exists.”, unless the module replaces it                                                                                           |
+| `refused`    | `reasons`, `atFields`     | the shared Notice of a Refusal with the Reasons not in `atFields`, unless the module replaces it; none when every Reason is at a field the caller shows |
+| `unexpected` | `error`                   | “Something went wrong, and the change was not saved.”                                                                                                   |
 
 `running` is true while any call of this hook instance waits for its result; use it to lock the
 submit button and the fields, since what is typed during a save is lost when the drawer closes.
@@ -211,9 +216,121 @@ Never show a Notice from the module yourself: what the building block lacks is a
 the default Notice, where the module knows better. The caller still receives
 `{ status: "notFound" }`.
 
-Input checks before saving are up to the form for now; there is no shared form helper yet. The
-Data Process checks every input, so an input the Contract rejects comes back as `unexpected`.
-The template disables Save while the name is empty for that reason.
+**A Refusal.** When a Protection Rule refuses the write, nothing changed and the result is
+`{ status: "refused", reasons, atFields }`, every Reason with its code, severity, table, row, field
+and details, and in `atFields` those the caller shows at a field (below). Ask it for one Reason by that Reason's definition, imported from the package that defines
+it, and read its details typed:
+
+```ts
+import { findReason, referenced } from "@self-engine/db/schema";
+
+if (result.status === "refused") {
+  const tables = findReason(result, referenced)?.details.tables; // undefined without that Reason
+}
+```
+
+The building block shows the shared Notice of a Refusal: the entry, then every Reason as its
+text, in the App Language and following a switch of it, in the warning colors and never with
+“Undo”. A page names the entry and may add one way out, per call:
+
+```ts
+const result = await remove.run(
+  { id: project.id },
+  { entry: project.title, action: { label: msg`Archive`, run: () => void archive(project) } },
+);
+```
+
+The Notice takes only `entry` and `action` of these options; nothing in them replaces the
+Reasons, and the action runs once, also on a double click. The function form takes the same as
+its third argument (`deleteProject(data, input, { entry })`).
+Pass `refused: (refusal, input) => { … }` in the handling to show the Refusal yourself instead;
+the caller still receives the `refused` result.
+
+**A Reason at a field.** A Reason may name a column of the row it refuses, as the database names
+it: the frame's `target_deleted` names the referring column, such as `project_id`. Where a form
+shows that column, name its field in the handling, beside the fields of the Conflicts, by table
+and column. Give `portHooks` the module's tables as a second type, `TablesOf` of its Row Map,
+imported as a type only like the Contract:
+
+```ts
+import type { TablesOf } from "@self-engine/db";
+import type { timeEntriesContract } from "./contracts/index.ts";
+import type { timeEntriesRowMap } from "./data/rows.ts";
+
+const port = portHooks<typeof timeEntriesContract, TablesOf<typeof timeEntriesRowMap>>("time");
+export const useEditTimeEntry = port.operation("edit", {
+  columns: { time_entries: { project_id: "projectId" } },
+});
+```
+
+Only the module's tables, their columns and the fields of the entry's input compile; a module
+whose `portHooks` has no tables maps none, and the function form (`run`) maps none, since it has
+no field. A mapped Reason goes to its field only when the caller says, in the call's options,
+that it shows that field (`showsField: (field) => boolean`); the form helper says so for the
+fields it renders, and gives a Reason whose field changed before it took the answer to the
+provider's `notifyRefused` itself ([forms guide](forms.md)). Such a Reason comes back in `atFields` with its
+field, and the Notice tells only the others; with every Reason at a field there is no Notice,
+and `refused` of the handling gets only the others too. Every other Reason goes to the Notice:
+one without a field, one at a column not named here, and one whose field the caller does not
+show, such as from a button of the drawer. None is lost.
+
+**Texts of Reasons.** The package that defines a Reason writes its text in its UI part, a
+`ReasonText` that gets the Reason with its details typed, the App Language and the names of the
+tables (D334, D335). Import the definition as a type only: the texts load at startup with the
+hooks, and a definition's schema would bring Zod's full build into the start.
+
+```ts
+import { msg } from "@lingui/core/macro";
+import type { ReasonText } from "@self-engine/data-client/react";
+import type { billed } from "./contracts/reasons.ts";
+
+export const billedText: ReasonText<typeof billed> = ({ details }, { i18n }) =>
+  i18n._(msg`It was billed on ${details.invoice}.`);
+```
+
+A module hands the texts of its own rules' Reasons to the app in its Shell Contribution, beside
+the names of its synced tables, as data texts made by `dataTexts` against its storage module,
+which the root entry imports as a type only:
+
+```ts
+import { dataTexts } from "@self-engine/data-client/react";
+import type { timeEntries } from "./data/index.ts";
+
+dataTexts: dataTexts<typeof timeEntries>()({
+  tableNames: { time_entries: (count) => msg`${plural(count, { one: "time entry", other: "time entries" })}` },
+  reasonTexts: { billed: billedText },
+}),
+```
+
+A synced table without a name, or a Reason of the module's rules without a text, does not
+compile, nor does a name or a text the storage module does not call for, also from a map held in
+a variable or one of several maps; a module without data gives `NO_DATA_TEXTS`, and the app's module list mounts no
+module without data texts. The frame's own Reasons, `referenced` and `target_deleted`, have their
+texts in `frameReasonTexts`, which `refusalTexts` always includes. The texts of rules registered
+from above are listed by hand in `apps/web/src/reason-texts.ts` (`ReasonsFromAbove`): the
+desktop app composes the Data Process, and the web app imports nothing of it, so the compiler
+cannot see such a rule there. Two texts for one code throw when the app composes them. A Reason
+whose code has no text, which only a missing rule from above can cause, reads “This change is
+not allowed.” Several Reasons at one place read as one text through `describeReasons`.
+
+Use the shared [form helper](forms.md) to check the input against the Contract before saving.
+The Data Process checks every input at the Port.
+
+**A Clearance.** Outside the form helper, pass a Query built with
+`clearanceQueryFor<TablesOf<typeof rowMap>>()` to `useClearance`. It reads once per mount,
+through the Port access's own typed `clearance` method, and calls the read off when it unmounts
+before the answer, so none waits for a Port while the Data Process reconnects.
+Every state names the Query the opening asked as `query`: a Query given on a later
+render asks nothing, so derive what waits and what is explained from this one. The `content`
+answer lists each row's writes as `free`, `blocked` or `notFound`;
+`findReason` also accepts a blocked write. For a story, give `fixedAnswers` the `clearance`
+option with `{ table, row, writes }` fixtures. A blocked write takes `{ state: "blocked",
+reasons: [...] }` and checks each Reason against the definitions in the `reasons` option; a Reason
+that names another row or table than its fixture fails at setup, since the Data Process answers a
+row only with the Reasons for that row. Fixed
+Answers answer as the Data Process does: they read only the table, rows and writes of a query,
+answer each asked row once in the order first asked, and give every call its own copy.
+See the [form action slot](forms.md#action-slot-and-a-standalone-form) for the edit form.
 
 ## 4. Draw a list so that one changed row redraws one row
 
@@ -254,8 +371,8 @@ yours with `pnpm renders` ([performance checks](performance.md#compare-component
 ## 5. Call an Operation from a Command
 
 A Command runs outside React and cannot use a hook. Every Command, of every kind, gets in its
-context as `data` what the app gives `DataProvider`: the Port access and the notice seam
-(`{ access, notify }`, from `useDataAccess()`). Build the Operation’s function form next to its
+context as `data` what the app gives `DataProvider`: the Port access and the notice seams
+(`{ access, notify, notifyRefused }`, from `useDataAccess()`). Build the Operation’s function form next to its
 hook with `run` instead of `operation`; it takes the same handling and returns the same result,
 with the same default Notices through the same seam:
 
@@ -290,12 +407,18 @@ story fixes for it:
 | `"unexpected"`      | A failed call.                                                         |
 | `{ conflict: "…" }` | The entry’s conflict with that reason.                                 |
 | `"notFound"`        | The entry’s “not found”.                                               |
+| `{ refused: […] }`  | The entry’s Refusal with these Reasons, each `blocking`.               |
 
 Each answer is checked when `fixedAnswers` is called, and the story fails naming the entry and,
 for data, the field: data the output schema rejects, a reason the entry does not declare,
-“not found” for an entry that does not declare it, or an entry the Contract lacks. A View that
-calls an entry without an answer fails the story with “No Fixed Answer for …”. Write `data` as
-the schema’s input: ids and timestamps are plain strings.
+“not found” for an entry that does not declare it, a Refusal for an entry without the `refusal`
+block (for a Query it does not compile either) or without a Reason, or an entry the Contract
+lacks. Each Reason of a Refusal is one whose definition the story
+passes in `reasons`, the frame's own included
+(`fixedAnswers(contracts, answers, { reasons: [referenced, pinnedNote] })`), with details that
+definition accepts; any other fails to compile and fails the story. A View that calls an entry
+without an answer fails the story with “No Fixed Answer for …”. Write `data` as the schema’s
+input: ids and timestamps are plain strings.
 
 Give the module a `./testing` entry that holds its Contract values, sample rows and one helper,
 as [`placeholder-alpha/src/testing/index.ts`](../../packages/placeholder-alpha/src/testing/index.ts)
@@ -330,10 +453,12 @@ each conflict at its field, and an entry gone while editing
 
 A story that shows more than one owner’s data, such as the whole app with the settings, joins
 their accesses with `answersByMount` from the same entry: each mount is answered by the access
-its owner’s helper built.
+its owner’s helper built. A Clearance names a table, not a mount: the `clearance` option routes
+each table to the mount whose access answers it, and a Clearance of a table not named fails.
 
 ```ts
 answersByMount({ placeholderAlpha: placeholderAlphaAnswers(), backups: backupAnswers() });
+answersByMount({ projects: projectsAnswers() }, { clearance: { projects: "projects" } });
 ```
 
 A Fixed Answer never changes: an Operation returns its answer and changes nothing, and no Table
@@ -357,9 +482,9 @@ const connection = createDataConnection();
 connection.connect(process.openPort());
 // wait until connection.getState().status is "ready", then:
 const access = portAccessOf(connection);
-const data = { access, notify: (notice) => notices.push(notice) }; // what a Command gets
-// render the hooks under <DataProvider access={access} notify={data.notify}>, run each
-// Operation, and wait for the render whose Query answer shows the change.
+const data = { access, notify: (n) => notices.push(n), notifyRefused: (n) => refusals.push(n) };
+// render the hooks under <DataProvider {...data}>, so a hook and a Command share the same notice
+// seams, run each Operation, and wait for the render whose Query answer shows the change.
 ```
 
 A module may not import `data-process` from its code. Add it as a devDependency and to the

@@ -30,8 +30,10 @@ the startup chunks merely because a View can open an Edit Drawer.
 - `OperationFormBody` owns submit, locking, duplicate prevention, keyboard submit and the
   persistent warning for an entry deleted elsewhere. `EditDrawerForm` adds Save, Cancel,
   an action slot and registration with the Shell’s leave guard. Conflicts stay at fields;
-  unexpected results keep input. Success and not-found call the supplied completion callback.
-  Data Client continues to own transient Notices.
+  a Refusal's mapped Reasons are shown at their fields when the form renders them (otherwise in
+  the shared Notice), and failed saves keep input. Success
+  and not-found call the supplied completion callback. The action slot can show the Reasons
+  for actions the Clearance blocks. Data Client owns transient Notices (ADR 0034).
 - One value comparison answers both Save and the leave guard. Create can always attempt a
   save; unchanged edits cannot. Edit sends identity plus changed fields, expanding tied
   groups declared beside Contract rules. Empty optional text is normalized to null when

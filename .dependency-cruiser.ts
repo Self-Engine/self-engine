@@ -30,8 +30,9 @@ export const ALLOWED_IMPORTS: AllowedImports = {
   // desktop app's module list imports it.
   contracts: ["data-protocol", "projects"],
   // The building block tells the user through `ui`'s feedback system. It takes the protocol from
-  // `data-protocol`, which knows no module, so no cycle runs through a module (ADR 0006).
-  "data-client": ["data-protocol", "ui"],
+  // `data-protocol`, which knows no module, so no cycle runs through a module (ADR 0006). The
+  // texts of the frame's Reasons list tables with `i18n`'s counted names (D335).
+  "data-client": ["data-protocol", "i18n", "ui"],
   // The core knows no module: the app passes its module list in. It runs the migration of
   // `spaces` and makes sure of the Personal Space at every start (D287).
   "data-process": ["data-protocol", "db", "spaces", "storage"],
@@ -50,7 +51,8 @@ export const ALLOWED_IMPORTS: AllowedImports = {
   // Its contracts and data entries (D252); the root entry stays with the shell and the UI, and
   // reads and writes through the data building block.
   "placeholder-alpha": ["data-client", "db", "forms", "icons", "shell", "storage", "time", "ui"],
-  "placeholder-beta": ["shell", "icons"],
+  // A module without data names that in its contribution (`NO_DATA_TEXTS` of the data client).
+  "placeholder-beta": ["data-client", "shell", "icons"],
   // The first real module (#273): its Contract, data entry, Views and form. Icon and color come
   // from the names of `icons` and `theme` (ADR 0029).
   projects: ["data-client", "db", "forms", "icons", "shell", "storage", "theme", "time", "ui"],
@@ -68,8 +70,8 @@ export const ALLOWED_IMPORTS: AllowedImports = {
     "time",
     "ui",
   ],
-  // The Port access type only, which every Command is given (D261).
-  shell: ["data-client", "icons", "theme", "ui"],
+  // The Port access type (D261) and plural names of synced tables (D335).
+  shell: ["data-client", "i18n", "icons", "theme", "ui"],
   // The Space below Storage (D287): its table, its id and the Personal Space of a database.
   spaces: ["db", "time"],
   storage: ["db", "spaces", "time"],
@@ -120,12 +122,12 @@ const DEV_ONLY_FILE = String.raw`\.(?:test|stories)\.[cm]?[jt]sx?$`;
 
 /**
  * Code that runs in the renderer: the web app, the Component Catalog, the data client and the
- * desktop bridge. The data client's test and story files are exempt: they start the real data
- * process core.
+ * desktop bridge. The data client's tests and stories may start the real Data Process, and
+ * its testing entry validates Fixed Answers with the protocol schemas.
  */
 const RENDERER = {
   path: "^(?:apps/(?:web|component-catalog)|packages/(?:data-client|desktop-bridge))/",
-  pathNot: `^packages/data-client/.*${DEV_ONLY_FILE}`,
+  pathNot: `^packages/data-client/(?:src/testing/|.*${DEV_ONLY_FILE})`,
 };
 
 /**

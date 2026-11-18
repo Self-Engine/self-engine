@@ -39,3 +39,16 @@ export type ConflictReasonOf<
       : never
     : never
   : never;
+
+/**
+ * Whether the entry carries the shared `refusal` block, as every Operation does (D334): only such
+ * an entry may be refused. `false` for a Query.
+ */
+export type CarriesRefusal<
+  Contract extends ModuleContract,
+  Entry extends EntryName<Contract>,
+> = Contract[Entry] extends AnyContractProcedure
+  ? Contract[Entry]["~orpc"]["errorMap"] extends { readonly REFUSED: unknown }
+    ? true
+    : false
+  : false;

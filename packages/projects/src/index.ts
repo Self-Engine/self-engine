@@ -1,6 +1,9 @@
-import { msg } from "@lingui/core/macro";
+import { msg, plural } from "@lingui/core/macro";
+import { dataTexts } from "@self-engine/data-client/react";
 import { ProjectsIcon } from "@self-engine/icons";
 import { defineContribution, type ShellCommand } from "@self-engine/shell";
+// A type only: the storage module stays out of the start; its tables and rules type the texts.
+import type { projects } from "./data/index.ts";
 
 const newProject = {
   id: "new-project",
@@ -23,6 +26,11 @@ export const contribution = defineContribution({
   name: msg`Projects`,
   icon: ProjectsIcon,
   color: "violet",
+  dataTexts: dataTexts<typeof projects>()({
+    tableNames: {
+      projects: (count) => msg`${plural(count, { one: "project", other: "projects" })}`,
+    },
+  }),
   views: [
     {
       id: "active",

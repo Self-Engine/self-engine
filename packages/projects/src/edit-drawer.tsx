@@ -1,6 +1,10 @@
+import { msg } from "@lingui/core/macro";
 import { useLingui } from "@lingui/react/macro";
 import { Button } from "@mantine/core";
+import { clearanceQueryFor, type ClearanceQuery } from "@self-engine/data-client/react";
+import type { TablesOf } from "@self-engine/db";
 import {
+  ClearanceAction,
   ColorField,
   type Draft,
   EditDrawerForm,
@@ -13,7 +17,7 @@ import {
 import { type EditDrawerProps, useEditDrawerTitle } from "@self-engine/shell";
 import { ErrorState, QueryStateBlock } from "@self-engine/ui";
 import type { ReactNode } from "react";
-import { useRef, useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import type { z } from "zod";
 import {
   type ProjectId,
@@ -21,6 +25,7 @@ import {
   projectIdSchema,
   projectsContract,
 } from "./contracts/index.ts";
+import type { projectsRowMap } from "./data/rows.ts";
 import { NEW_PROJECT_ID } from "./project-address.ts";
 import {
   ACTIVE_PROJECTS,
@@ -32,11 +37,14 @@ import {
   useEditProject,
 } from "./port.ts";
 import {
-  type Leave,
+  useArchiveWithoutUndo,
   useArchiveWithUndo,
   useDeleteWithUndo,
   useUnarchiveWithUndo,
 } from "./with-undo.tsx";
+
+const projectClearance = clearanceQueryFor<TablesOf<typeof projectsRowMap>>();
+const ARCHIVE_PROJECT = msg({ message: "Archive", context: "Archive a project" });
 
 /**
  * The Edit Drawer of `projects`. It loads on demand with the Contract, whose input schema the form
@@ -92,33 +100,79 @@ function FoundProject({
 }: EditDrawerProps & { readonly found: Project | undefined }) {
   const remove = useDeleteWithUndo();
   const archive = useArchiveWithUndo();
+  const archiveWithoutUndo = useArchiveWithoutUndo();
   const unarchive = useUnarchiveWithUndo();
   const [last, setLast] = useState(found);
   const [leaving, setLeaving] = useState(false);
   // The lock of a named Operation. A ref beside the state: two activations in one tick both
   // read the state before it changes.
   const busy = useRef(false);
+  const mounted = useRef(false);
+  useLayoutEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
   if (!leaving && found !== undefined && found !== last) setLast(found);
   const project = leaving ? last : (found ?? last);
+  // What the open drawer knows of the stored project now, for an action that runs later.
+  const shownActive = useRef(false);
+  useLayoutEffect(() => {
+    shownActive.current = found?.archivedAt === null;
+  });
   if (project === undefined) return <NotFound {...props} />;
-  const leave = (operation: Leave, asks: boolean) => async () => {
+  const leave = (operation: () => Promise<boolean>, asks: boolean) => async () => {
     if (busy.current) return;
     busy.current = true;
     const goes = !asks || (await props.confirmDiscard());
     if (goes) setLeaving(true);
     // Once the project is left, the lock stays: the drawer is closing.
-    if (goes && (await operation(project.id))) return props.onDone();
+    if (goes && (await operation())) return props.onDone();
     busy.current = false;
     setLeaving(false);
   };
-  const archiveOrUnarchive = leave(project.archivedAt === null ? archive : unarchive, true);
-  const deleteHere = leave(remove, false);
+  const active = project.archivedAt === null;
+  const archiveOrUnarchive = leave(
+    () => (active ? archive : unarchive)(project.id, { entry: project.title }),
+    true,
+  );
+  const archiveHere = () => void archiveOrUnarchive();
+  // The Notice of a refused delete can outlive what the drawer knows. Only while the drawer is
+  // open and still shows the project active does its Archive change what the person saw, and
+  // offer the undo; otherwise the project may be archived already, by someone else, and an undo
+  // would unarchive that. Closed, also while it still slides out, the drawer vouches for nothing,
+  // and it never asks to discard a draft in another drawer. Asked again right before the write:
+  // the project may be archived elsewhere while the question is open.
+  const vouchesForArchive = () => mounted.current && props.isOpen() && shownActive.current;
+  const archiveWithoutUndoHere = () => archiveWithoutUndo(project.id, { entry: project.title });
+  const archiveFromNotice = () => {
+    if (!vouchesForArchive()) {
+      void archiveWithoutUndoHere();
+      return;
+    }
+    void leave(
+      () =>
+        vouchesForArchive()
+          ? archive(project.id, { entry: project.title })
+          : archiveWithoutUndoHere(),
+      true,
+    )();
+  };
+  const deleteHere = leave(
+    () =>
+      remove(project.id, {
+        entry: project.title,
+        ...(active && { action: { label: ARCHIVE_PROJECT, run: archiveFromNotice } }),
+      }),
+    false,
+  );
   return (
     <EditForm
       {...props}
       project={project}
       deleted={found === undefined && !leaving}
-      onArchive={() => void archiveOrUnarchive()}
+      onArchive={archiveHere}
       onDelete={() => void deleteHere()}
     />
   );
@@ -168,8 +222,9 @@ function EditForm({
   readonly onArchive: () => void;
   readonly onDelete: () => void;
 }) {
-  const { t } = useLingui();
+  const { t, i18n } = useLingui();
   useEditDrawerTitle(project.title);
+  const archiveWrite = project.archivedAt === null ? "archive" : "unarchive";
   const form = useOperationForm({
     entry: projectsContract.edit,
     operation: useEditProject(),
@@ -182,24 +237,28 @@ function EditForm({
     },
     edit: { identity: { id: project.id }, deleted },
     emptyTextFields: ["description"],
+    entryName: project.title,
     onDone,
   });
   return (
     <ProjectFields
       form={form}
       onCancel={onCancel}
+      clearance={projectClearance({
+        table: "projects",
+        rows: [project.id],
+        writes: ["delete", archiveWrite],
+      })}
       actions={
         // Named Operations, never fields (D322, D323): archiving locks nothing, so an archived
         // project is edited and deleted here like an active one.
         <>
-          <Button onClick={onArchive} variant="subtle">
-            {project.archivedAt === null
-              ? t({ message: "Archive", context: "Archive a project" })
-              : t`Unarchive`}
-          </Button>
-          <Button onClick={onDelete} variant="subtle">
+          <ClearanceAction write={archiveWrite} onClick={onArchive} variant="subtle">
+            {archiveWrite === "archive" ? i18n._(ARCHIVE_PROJECT) : t`Unarchive`}
+          </ClearanceAction>
+          <ClearanceAction write="delete" onClick={onDelete} variant="subtle">
             {t`Delete`}
-          </Button>
+          </ClearanceAction>
         </>
       }
     />
@@ -213,14 +272,21 @@ function ProjectFields({
   form,
   onCancel,
   actions,
+  clearance,
 }: {
   readonly form: OperationForm<ProjectDraft>;
   readonly onCancel: () => void;
   readonly actions?: ReactNode;
+  readonly clearance?: ClearanceQuery & { readonly rows: readonly [string] };
 }) {
   const { t } = useLingui();
   return (
-    <EditDrawerForm form={form} onCancel={onCancel} actions={actions}>
+    <EditDrawerForm
+      form={form}
+      onCancel={onCancel}
+      actions={actions}
+      {...(clearance && { clearance })}
+    >
       <TextField form={form} name="title" label={t`Title`} />
       <LongTextField form={form} name="description" label={t`Description`} />
       <IconField form={form} name="icon" label={t`Icon`} />

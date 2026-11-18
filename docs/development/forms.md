@@ -65,7 +65,13 @@ in the form.
 
 Build hooks with `portHooks<typeof contract>(mountName)` as in [the hooks guide](port-hooks.md).
 Give every Conflict reason its `msg` descriptor and field there; use `field: null` for a
-Conflict no field can show. A taken title is checked by the Operation, not while typing.
+Conflict no field can show. To show a Reason of a Refusal at a field, build them with the
+module's tables as well, `portHooks<typeof contract, TablesOf<typeof rowMap>>(mountName)`, and
+name there the field for each column such a Reason may name (`columns`,
+[hooks guide](port-hooks.md)), such as a project field for `project_id`. The form shows such a
+Reason at its field only when it renders that field and the field still holds the value the save
+sent, with no text in it that is no value yet; every other Reason goes to the shared Notice with
+the others, so none is lost. A taken title is checked by the Operation, not while typing.
 
 ## Create: fields and the module’s own texts
 
@@ -123,8 +129,16 @@ No raw Zod message reaches the screen.
 
 Nothing is reported before Save. A failed Check calls no Operation, shows messages, focuses
 the first affected field and starts checking the whole Draft on every change. A Conflict
-stays at its field until that field changes. Unexpected failure preserves input; Data Client
-owns its Notice. Success and not-found call `onDone`; `onSuccess(data)` optionally consumes
+stays at its field until that field changes, and so does a Reason of a refused save at a field the
+Operation maps its column to: the field shows the Reason's text, the one the shared Notice would
+show, in the App Language; like the language, new Reason texts of the `DataProvider` reach it. Text that is no value yet counts as a change too, and so does a new
+stored value the field follows. The next answer to a save replaces the Reasons of the last one.
+Every other Reason goes to that Notice, the Draft stays and the form stays open: one at a field the
+form does not show, and one at a field that changed while the save ran. The form asks again when
+it takes the answer: a Reason whose field changed or went after the hook's answer, such as by code
+the first Notice runs, goes to a Notice of its own through the provider's `notifyRefused`, never to
+its field. A violation of a Check outranks a Conflict or a Reason at the same field.
+Unexpected failure preserves input; Data Client owns its Notice. Success and not-found call `onDone`; `onSuccess(data)` optionally consumes
 the successful answer. Pass the Shell’s `onDone`, so a completed save bypasses the leave guard.
 
 ## Edit: changed fields and following the entry
@@ -144,6 +158,8 @@ const form = useOperationForm({
   },
   edit: { identity: { id: project.id }, deleted },
   emptyTextFields: ["description"],
+  // The Notice of a refused save names the project.
+  entryName: project.title,
   onDone,
 });
 ```
@@ -183,6 +199,11 @@ An Operation that keeps the entry, such as archive, first awaits the Shell’s `
 and runs only when it answers true: it asks “Discard changes?” when the form holds unsaved
 changes, like any other way out. A delete asks nothing.
 
+An action that can outlive the drawer, such as the action of a Notice, asks the Shell’s
+`isOpen()` when it runs: it is false from the moment the person leaves this opening, also while
+the drawer still slides out. Only an open drawer speaks for what the person sees in it, as the
+`projects` drawer does before its Notice's Archive offers an undo.
+
 ## Action slot and a standalone form
 
 `EditDrawerForm` provides Save and Cancel. Put named Operations in `actions`, for example:
@@ -196,6 +217,41 @@ changes, like any other way out. A delete asks nothing.
   {/* fields */}
 </EditDrawerForm>
 ```
+
+For an action that needs Clearance (D336, D339), define the Query for the module's tables
+and use a `ClearanceAction` in the slot. The Query checks the table, row id and kinds of write
+against the types of the Row Map. For example, with a type-only import of `projectsRowMap`:
+
+```tsx
+const query = clearanceQueryFor<TablesOf<typeof projectsRowMap>>();
+const clearance = query({ table: "projects", rows: [project.id], writes: ["delete"] });
+
+<EditDrawerForm
+  form={form}
+  onCancel={onCancel}
+  clearance={clearance}
+  actions={<ClearanceAction write="delete" onClick={deleteHere}>{t`Delete`}</ClearanceAction>}
+>
+  {/* fields */}
+</EditDrawerForm>;
+```
+
+List the kinds of write the slot shows in `writes`; one listed twice is still one action with one
+explanation. The form opens immediately and asks once per opening; reopening the same entry, also
+while the drawer still slides out, is a new opening and asks again, and a drawer that closes before
+the answer calls its question off. The action keeps its ordinary appearance while the answer is pending and ignores
+activation. When blocked, it is disabled and linked to its Reason text, which appears in a live
+region above the footer. The footer stays pinned to the bottom of the drawer and the text takes
+its room from the free space below the fields, so its arrival moves nothing; nothing is
+reserved while nothing is blocked. When the fields fill the drawer, the footer moves down by the
+height of the text, once, when the answer arrives. A Clearance that fails leaves the actions
+usable: the write checks the rules anyway. A Table Change leaves the answer alone, so an action
+the opening did not ask about, such as "Unarchive" after an archive elsewhere, is usable. The
+Operation still handles Refusals that arise while the form is open.
+
+Name the entry once with `entryName` (its title) in `useOperationForm`: the Notice of every
+refused save names it. A call of your own, such as Archive, passes it per call as
+`{ entry: project.title }`.
 
 Archive/Delete are Operations, never Draft fields. Outside the Edit Drawer, use
 `OperationFormBody` with the same `form` and fields and your own `type="submit"` button.
@@ -243,7 +299,7 @@ for the local text pattern.
 
 Drive fields, buttons and keys; observe visible messages and the Port calls, never helper
 internals. The example stories in `packages/forms/src/testing/example/` cover multi-field
-Checks, own texts, field binding, changed groups, flow and external changes using Fixed
+Checks, own texts, field binding, changed groups, flow, external changes and Reasons at fields using Fixed
 Answers and Changing Answers. Add stories for your module’s own rules and texts. Prove the
 module flow over the test Data Process, as in the [`port.test.ts`](../../packages/projects/src/port.test.ts)
 of `projects`, including invalid input sent past the form. Run `pnpm check`, then `pnpm verify`. Measure first-open

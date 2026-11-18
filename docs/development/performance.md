@@ -563,3 +563,49 @@ answers "not found" (about **0.02 ms**, re-measured with the same script after t
 `SEARCH … USING INDEX`: the primary key of `projects` and the partial index
 `project_entries_project (project_id) WHERE deleted_at IS NULL`, never `SCAN` or an automatic
 index. The storage frame's tests assert the same for the `notes` and `note-links` test modules.
+
+## Project Edit Drawer Clearance (#328)
+
+The first opening of a stored project with no references was measured on an Apple M3 Pro
+(arm64, Node 26.13.1). Each sample opened the drawer from the loaded Active View in a fresh
+React root and Query cache, using Happy DOM and a real test Data Process over MessagePort.
+The module code and connection were warm. The control omitted the form's Clearance prop,
+and the experiment sent one Clearance Query for Delete and Archive. After 10 warm-up pairs,
+40 pairs alternated the run order. The observer timed the first Title input and the point
+at which Delete accepted activation. These are DOM timings in Happy DOM, not in a browser:
+before any paint, without the desktop drawer animation, and with the drawer's code already
+loaded.
+
+| First opening measurement | Without Clearance p50 / p95 | With Clearance p50 / p95 |
+| ------------------------- | --------------------------- | ------------------------ |
+| Click to Title input      | 8.83 / 10.34 ms             | 9.02 / 12.99 ms          |
+| Click to usable Delete    | 8.92 / 10.43 ms             | 10.24 / 14.02 ms         |
+
+The median difference was **0.19 ms** for the fields and **1.32 ms** for Delete. The request
+runs alongside opening the form. The Data Process timings with 50,000 references are in
+[Protection Rules (#274)](#protection-rules-274).
+
+The first opening in the built app, as the [form guide](forms.md#prove-the-form) asks for, was
+measured after the review, on the same machine (Node 26.13.0, Electron 45.2.3), with the method
+of [Forms: first opening](#forms-first-opening-290) and a second mark for the frame after Delete
+accepts activation. Each of 12 alternating runs per build was a fresh app session on a copy of
+a data folder holding two projects, so the drawer's chunk loaded on demand; the window was
+hidden and 1280 × 800. The table gives medians with their range.
+
+| Build                        | First opening, Title input | First opening, usable Delete | Second opening   |
+| ---------------------------- | -------------------------- | ---------------------------- | ---------------- |
+| Before this package (`main`) | 330.3 ms (323.9–336.6)     | 330.3 ms (323.9–336.6)       | 40.8 (37.5–46.1) |
+| With the package             | 331.4 ms (322.4–343.6)     | 345.1 ms (337.6–360.6)       | 38.9 (38.2–46.2) |
+
+The fields appear no later than before. On the first opening of a session Delete accepts
+activation **13.6 ms** (8.3–17.0) after the Title input, one or two frames, while the Clearance
+is on its way; on later openings the answer is there before the fields are visible. The 330 ms
+are the Shell's reveal of lazy drawer content, as described under
+[Forms: first opening](#forms-first-opening-290). These are timings in a hidden window, so a
+paint is bounded by animation frames, not observed, and the Start Cache was warm for both
+builds.
+
+Production startup JavaScript before and after this slice was **855,478 bytes** in 19 chunks
+against the **889,856-byte** limit. The first wiring placed the 30-byte Query builder in a
+shared startup chunk. Giving the builder its own module behind the same export kept it with
+the lazy drawer.

@@ -106,3 +106,5 @@ export const notes = defineStorageModule({
   }),
 });
 export { noteTitles } from "./read-piece.ts";
+/** The tables of `notes` by their columns, for a test of a form that maps a column to a field. */
+export type { NotesTables } from "./rows.ts";

@@ -14,12 +14,15 @@ test("foreign row maps are private while released read pieces and contract ids m
     'import { notesRowMap } from "./rows.ts";',
     'import * as clock from "@self-engine/time";',
     'import type { RowMap } from "@self-engine/storage";',
+    'import type { RowMap } from "@self-engine/db/schema";',
+    'export type { RowMap } from "@self-engine/db/schema";',
+    'import type { RowMap } from "@self-engine/data-protocol";',
     'export * from "@self-engine/notes/data";',
     'export { noteTitles } from "@self-engine/notes/data";',
     'const load = () => import("@self-engine/notes/data");',
   ]);
   expect(results.map((result) => result.length)).toEqual([
-    1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 1, 0, 1,
+    1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1,
   ]);
   expect(results[0]?.[0]).toContain("released read piece");
 });

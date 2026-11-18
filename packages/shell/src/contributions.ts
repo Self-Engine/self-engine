@@ -1,5 +1,6 @@
 import type { PersonCommand, ShellCommand } from "./commands.ts";
 import type { MessageDescriptor } from "@lingui/core";
+import type { DataTexts } from "@self-engine/data-client/react";
 import type { IconProps } from "@self-engine/icons";
 import type { ColorSetName } from "@self-engine/theme";
 import type { ComponentType } from "react";
@@ -36,6 +37,12 @@ export interface EditDrawerProps {
    * nothing is unsaved or the person discards; then run the Operation and call `onDone`.
    */
   readonly confirmDiscard: () => Promise<boolean>;
+  /**
+   * Whether the drawer still has this opening open, read when asked: false from the moment the
+   * person leaves it, also while the drawer slides out, and once another opening took its place.
+   * For an action that can outlive the drawer, such as one in a Notice.
+   */
+  readonly isOpen: () => boolean;
 }
 
 interface ContributionMetadata {
@@ -48,6 +55,12 @@ interface ContributionMetadata {
   readonly groups?: () => Promise<{ readonly default: ComponentType }>;
   readonly editDrawer?: () => Promise<{ readonly default: ComponentType<EditDrawerProps> }>;
   readonly sharedSearch?: readonly string[];
+  /**
+   * The names of the module's synced tables and the texts of its rules' Reasons, made by
+   * `dataTexts` of `@self-engine/data-client/react` against its storage module; `NO_DATA_TEXTS`
+   * for a module without data. The app's module list mounts no module without them.
+   */
+  readonly dataTexts?: DataTexts;
 }
 
 /** Private state prevents object literals and spreads from forging checked membership. */
@@ -76,16 +89,32 @@ export type ShellContribution = ContributionMetadata &
     | ContributionAction
   );
 
-/** Infer command ids from commands alone, then check the direct main-action reference. */
+type ContributionInput<Commands extends readonly ShellCommand[]> = ContributionMetadata & {
+  readonly commands?: Commands;
+  readonly primaryAction?: string extends Commands[number]["id"]
+    ? never
+    : NoInfer<Extract<Commands[number], PersonCommand>>;
+};
+
+/**
+ * Infer command ids from commands alone, then check the direct main-action reference. A
+ * contribution given its `dataTexts` keeps them in its type, which the app's module list asks for.
+ */
+export function defineContribution<
+  const Commands extends readonly ShellCommand[],
+  const Texts extends DataTexts,
+>(
+  contribution: ContributionInput<Commands> & { readonly dataTexts: Texts },
+): ShellContribution & { readonly dataTexts: Texts };
 export function defineContribution<const Commands extends readonly ShellCommand[] = readonly []>(
-  contribution: ContributionMetadata & {
-    readonly commands?: Commands;
-    readonly primaryAction?: string extends Commands[number]["id"]
-      ? never
-      : NoInfer<Extract<Commands[number], PersonCommand>>;
-  },
+  contribution: ContributionInput<Commands>,
+): ShellContribution;
+export function defineContribution<const Commands extends readonly ShellCommand[]>(
+  contribution: ContributionInput<Commands>,
 ): ShellContribution {
-  const { commands, primaryAction, ...metadata } = contribution;
+  // Read by name, as the first overload promises them: a rest copies own properties alone.
+  const { commands, primaryAction, dataTexts, ...rest } = contribution;
+  const metadata = dataTexts === undefined ? rest : { ...rest, dataTexts };
   if (primaryAction) {
     return Object.assign(new ContributionAction(commands ?? [], primaryAction), metadata);
   }

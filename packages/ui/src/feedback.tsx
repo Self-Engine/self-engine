@@ -1,7 +1,7 @@
 import "@mantine/notifications/styles.css";
 
 import { Trans, useLingui } from "@lingui/react/macro";
-import { Button, Group, MantineThemeProvider } from "@mantine/core";
+import { Button, Group, List, MantineThemeProvider, Stack } from "@mantine/core";
 import { modals, ModalsProvider } from "@mantine/modals";
 import { notifications, Notifications, notificationsStore } from "@mantine/notifications";
 import { roleColor } from "@self-engine/theme";
@@ -153,6 +153,62 @@ async function runUndo(undo: NotifyUndoableOptions["undo"]) {
     // The user is told. Why it failed is the module's to log, since only the module knows.
     notifyError({ message: <Trans>That could not be undone.</Trans> });
   }
+}
+
+/** One way out a notice offers, such as "Archive" beside a refused delete. */
+export interface NoticeAction {
+  readonly label: ReactNode;
+  readonly run: () => void;
+}
+
+export interface NotifyRefusedOptions {
+  /** The entry the refused change concerns, by the name the person knows it by. */
+  readonly entry?: ReactNode;
+  /** Why it was refused: one text for each Reason, at least one. */
+  readonly reasons: readonly [ReactNode, ...ReactNode[]];
+  /** One way out; the notice closes when it is taken. */
+  readonly action?: NoticeAction;
+}
+
+/**
+ * Tells the user that a change was refused and nothing happened (D334): the entry, then every
+ * Reason. In the warning colors, since a Refusal is an answer and not a fault, and never with
+ * "Undo", since there is nothing to take back.
+ */
+export function notifyRefused({ entry, reasons, action }: NotifyRefusedOptions) {
+  let taken = false;
+  const take = () => {
+    // The notice stays clickable while it slides out, so the second click of a double click lands.
+    if (taken) return;
+    taken = true;
+    notifications.hide(id);
+    action?.run();
+  };
+  const id = notifications.show({
+    title: entry,
+    color: roleColor("warning"),
+    message: (
+      <Stack gap="xs">
+        {reasons.length === 1 ? (
+          reasons[0]
+        ) : (
+          <List size="sm">
+            {reasons.map((reason, index) => (
+              // The texts have no identity of their own and never change order.
+              <List.Item key={index}>{reason}</List.Item>
+            ))}
+          </List>
+        )}
+        {action && (
+          <Group justify="flex-end">
+            <Button onClick={take} size="compact-sm" variant="subtle">
+              {action.label}
+            </Button>
+          </Group>
+        )}
+      </Stack>
+    ),
+  });
 }
 
 /** What each open undoable notice would do if taken back, by the id of the notice. */

@@ -1,11 +1,19 @@
 import type { MessageDescriptor } from "@lingui/core";
 import { useForm, type UseFormReturnType } from "@mantine/form";
 import type { AnyContractProcedure, InferSchemaInput } from "@orpc/contract";
-import type { OperationResult, OperationState } from "@self-engine/data-client/react";
+import {
+  type DataAccess,
+  describeReasons,
+  type OperationResult,
+  type OperationState,
+  type Reason,
+  type RunOptions,
+  useDataAccess,
+} from "@self-engine/data-client/react";
 import { useLayoutEffect, useRef, useState } from "react";
 import { checkDraft, type FormTexts, type InputSchema } from "./check.ts";
 import { FieldListeners } from "./field-listeners.ts";
-import { FieldMessages } from "./field-messages.ts";
+import { FieldMessages, type FieldText } from "./field-messages.ts";
 import { UnfinishedTexts } from "./unfinished-texts.ts";
 
 /** The input that an entry of a Contract takes, as its input schema accepts it. */
@@ -70,6 +78,11 @@ export interface OperationFormOptions<
   };
   /** Nullable text fields: an empty or whitespace-only input hands on null, never empty text. */
   readonly emptyTextFields?: readonly (keyof InputOfEntry<Entry> & string)[];
+  /**
+   * The entry the form edits, by the name the person knows it by, such as its title: the Notice
+   * of a refused save names it (D334). Give it once here; every save passes it on.
+   */
+  readonly entryName?: string;
   /** Called once the Operation succeeded, with its answer. */
   readonly onSuccess?: (data: SuccessData<Result>) => void;
   /** Closes the form after success or a not-found result. */
@@ -117,6 +130,7 @@ export interface FormBinding {
   readonly unfinished: Pick<UnfinishedTexts, "any" | "subscribe">;
   readonly messages: FieldMessages;
   readonly isChanged: () => boolean;
+  readonly isEdit: boolean;
   /** Whether "Save" may submit: not while editing without a change, nor once the entry is deleted. */
   readonly canSubmit: () => boolean;
   /** The entry the form edits was deleted elsewhere (D324). */
@@ -142,6 +156,8 @@ type Values = Record<string, unknown>;
 
 interface Latest {
   readonly draft: UseFormReturnType<Values>;
+  /** The shared Notice of a Refusal, for a Reason whose field changed before the form took it. */
+  readonly notifyRefused: DataAccess["notifyRefused"];
   /** The options without the types that tie them to one entry. */
   readonly options: {
     readonly draft: Values;
@@ -152,8 +168,11 @@ interface Latest {
     };
     readonly emptyTextFields?: readonly string[];
     readonly entry: AnyContractProcedure;
+    readonly entryName?: string;
     readonly texts?: FormTexts;
-    readonly operation: { readonly run: (input: Values) => Promise<AnyResult> };
+    readonly operation: {
+      readonly run: (input: Values, options: RunOptions) => Promise<AnyResult>;
+    };
     readonly onSuccess?: (data: unknown) => void;
     readonly onDone?: () => void;
   };
@@ -178,12 +197,15 @@ export function useOperationForm<Entry extends AnyContractProcedure, Result exte
   options: OperationFormOptions<Entry, Result>,
 ): OperationForm<Draft<InputOfEntry<Entry>>> {
   const draft = useForm<Values>({ mode: "uncontrolled", initialValues: options.draft });
+  const { notifyRefused } = useDataAccess();
   // Read when the user acts, never while drawing: the latest Operation state and callback.
-  const latest = useRef<Latest>({ draft, options } as unknown as Latest);
-  const [{ form, follow }] = useState(() => createForm(() => latest.current));
+  const latest = useRef<Latest>({ draft, notifyRefused, options } as unknown as Latest);
+  const [{ form, follow }] = useState(() =>
+    createForm(() => latest.current, options.edit !== undefined),
+  );
   // Before the browser paints: no frame shows a field's old value beside the new entry (D324).
   useLayoutEffect(() => {
-    latest.current = { draft, options } as unknown as Latest;
+    latest.current = { draft, notifyRefused, options } as unknown as Latest;
     follow();
   });
   return form;
@@ -195,7 +217,7 @@ interface MadeForm {
   readonly follow: () => void;
 }
 
-function createForm(latest: () => Latest): MadeForm {
+function createForm(latest: () => Latest, isEdit: boolean): MadeForm {
   const messages = new FieldMessages();
   const values = new FieldListeners();
   const fromOutside = new Map<string, number>();
@@ -203,6 +225,8 @@ function createForm(latest: () => Latest): MadeForm {
     fromOutside.set(field, (fromOutside.get(field) ?? 0) + 1);
   const unfinished = new UnfinishedTexts();
   const conflicts = new Map<string, MessageDescriptor>();
+  // The Reasons of the last refused save at the fields the Operation maps their columns to (D334).
+  const refusedAt = new Map<string, FieldText>();
   const elements = new Map<string, HTMLElement>();
   const changedListeners = new Set<() => void>();
   const normalize = (values: Values): Values => {
@@ -265,25 +289,38 @@ function createForm(latest: () => Latest): MadeForm {
   // From the first failed save on, every change checks the whole draft (D321).
   let checkingEveryChange = false;
   let violations: ReadonlyMap<string, MessageDescriptor> = new Map();
-  // A violation outranks a Conflict at the same field, and a field's text that is no value
-  // outranks what the schema says of its older value.
+  // A violation outranks a Conflict or a Reason at the same field, and a field's text that is no
+  // value outranks what the schema says of its older value.
   const show = () =>
-    messages.replace(new Map([...conflicts, ...violations, ...unfinished.shown()]));
+    messages.replace(
+      new Map<string, FieldText>([
+        ...conflicts,
+        ...refusedAt,
+        ...violations,
+        ...unfinished.shown(),
+      ]),
+    );
   const check = (): ReadonlyMap<string, MessageDescriptor> => {
     const { options } = latest();
     violations = checkDraft(inputSchemaOf(options.entry), input(), options.texts);
     show();
     return violations;
   };
+  // A Conflict or a Reason at the field is answered by any change to it, also text that is no
+  // value yet; whether one stood there.
+  const answerAt = (field: string) => {
+    const hadConflict = conflicts.delete(field);
+    const hadReason = refusedAt.delete(field);
+    return hadConflict || hadReason;
+  };
   const change = (field: string, value: unknown) => {
     // Without the forced update: the field already shows what was typed.
     latest().draft.setFieldValue(field, value, { forceUpdate: false });
     const wasUnfinished = unfinished.finish(field);
-    // A Conflict at the field is answered by any change to it.
-    const hadConflict = conflicts.delete(field);
+    const answered = answerAt(field);
     values.notify(field);
     notifyChanged();
-    if (checkingEveryChange || hadConflict) check();
+    if (checkingEveryChange || answered) check();
     else if (wasUnfinished) show();
   };
   const follow = () => {
@@ -291,6 +328,7 @@ function createForm(latest: () => Latest): MadeForm {
     if (options.edit === undefined) return;
     const gone = options.edit.deleted === true;
     let followedNow = gone !== deleted;
+    let answered = false;
     deleted = gone;
     if (!gone && !sameValue(options.draft, followed)) {
       followed = structuredClone(options.draft);
@@ -307,13 +345,16 @@ function createForm(latest: () => Latest): MadeForm {
         draft.setFieldValue(field, options.draft[field], { forceUpdate: false });
         countFromOutside(field);
       }
+      // A field that takes a new value changed, as by the user or by code: that answers what
+      // stood at it.
+      answered = taking.filter(answerAt).length > 0;
       stored = structuredClone(next);
       for (const field of taking) values.notify(field);
       followedNow = true;
     }
     if (!followedNow) return;
     notifyChanged();
-    if (checkingEveryChange) check();
+    if (checkingEveryChange || answered) check();
   };
   const form: OperationForm<never> = {
     async submit() {
@@ -333,13 +374,38 @@ function createForm(latest: () => Latest): MadeForm {
       try {
         // What this save hands on: a value set while it runs was never sent and stays changed.
         const sent = structuredClone(input());
-        const result = await options.operation.run(sent);
-        if (result.status === "conflict") {
-          if (result.field !== null) {
-            conflicts.set(result.field, result.text);
-            check();
+        // The draft as this save sent it, to tell which fields changed while it ran.
+        const drafted = structuredClone(normalized());
+        // A Reason goes to a field only if this form shows that field and the field still holds
+        // what was sent: a change while the save ran, also to text that is no value yet, answered
+        // it already. The Notice tells the rest.
+        const showsAsSent = (field: string) =>
+          elements.has(field) &&
+          !unfinished.holds(field) &&
+          sameValue(normalized()[field], drafted[field]);
+        const entry = options.entryName === undefined ? {} : { entry: options.entryName };
+        const result = await options.operation.run(sent, { ...entry, showsField: showsAsSent });
+        // Every answer replaces the Reasons of the last refused save: they spoke of that save.
+        const hadReasons = refusedAt.size > 0;
+        refusedAt.clear();
+        if (result.status === "refused") {
+          // The hook told every other Reason in its Notice. A field can change, or go, between
+          // the hook's answer and this moment, such as by code the Notice runs: asked again here,
+          // a Reason that no longer describes its field goes to a Notice of its own.
+          const atFields = result.atFields.filter(({ field }) => showsAsSent(field));
+          for (const [field, text] of reasonsAtFields(atFields)) {
+            refusedAt.set(field, text);
           }
+          const elsewhere = result.atFields.filter((at) => !atFields.includes(at));
+          if (elsewhere.length > 0)
+            latest().notifyRefused({ reasons: elsewhere.map(({ reason }) => reason), ...entry });
         }
+        if (result.status === "conflict" && result.field !== null) {
+          conflicts.set(result.field, result.text);
+        }
+        if (result.status === "refused" || (result.status === "conflict" && result.field !== null))
+          check();
+        else if (hadReasons) show();
         if (result.status === "success") {
           stored = { ...stored, ...structuredClone(sent) };
           notifyChanged();
@@ -364,7 +430,9 @@ function createForm(latest: () => Latest): MadeForm {
     setFromOutside: (field) => fromOutside.get(field) ?? 0,
     holdUnfinished(field, message) {
       unfinished.hold(field, message);
-      show();
+      // Its message waits until the user leaves the field, as before; the answered one goes now.
+      if (answerAt(field)) check();
+      else show();
     },
     leave(field) {
       unfinished.report(field);
@@ -373,6 +441,7 @@ function createForm(latest: () => Latest): MadeForm {
     unfinished,
     messages,
     isChanged,
+    isEdit,
     canSubmit,
     isDeleted: () => deleted,
     subscribeChanged(listener) {
@@ -394,6 +463,28 @@ function createForm(latest: () => Latest): MadeForm {
     },
   });
   return { form, follow };
+}
+
+/**
+ * The text each field shows for the Reasons at it: several at one field read one after the other,
+ * as the shared Notice words them. Each text is built while the field shows it, in the language
+ * and with the Reason texts of the moment.
+ */
+function reasonsAtFields(
+  atFields: readonly { readonly field: string; readonly reason: Reason }[],
+): ReadonlyMap<string, FieldText> {
+  const byField = Map.groupBy(atFields, ({ field }) => field);
+  return new Map(
+    [...byField].map(([field, at]) => [
+      field,
+      (i18n, reasonTexts) =>
+        describeReasons(
+          reasonTexts,
+          at.map(({ reason }) => reason),
+          i18n,
+        ),
+    ]),
+  );
 }
 
 function inputSchemaOf(entry: AnyContractProcedure): InputSchema {

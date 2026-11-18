@@ -9,12 +9,19 @@ import { setupI18n, type MessageDescriptor } from "@lingui/core";
 import { I18nProvider } from "@lingui/react";
 import { MantineProvider } from "@mantine/core";
 import { createDataConnection, type DataConnection } from "@self-engine/data-client";
-import { type DataAccess, DataProvider, portAccessOf } from "@self-engine/data-client/react";
+import {
+  type DataAccess,
+  DataProvider,
+  portAccessOf,
+  type RefusedNotice,
+} from "@self-engine/data-client/react";
 import { startTestDataProcess } from "@self-engine/data-process/testing";
 import { runCommand } from "@self-engine/shell";
 import { createElement, type ReactNode } from "react";
 import { createRoot } from "react-dom/client";
 import { afterEach, expect, test } from "vite-plus/test";
+import { projectEntries } from "../test/project-entries-module/data/index.ts";
+import type { ProjectId } from "./contracts/index.ts";
 import { projects } from "./data/index.ts";
 import { contribution } from "./index.ts";
 import {
@@ -23,6 +30,7 @@ import {
   createProject,
   useActiveProjects,
   useArchivedProjects,
+  useDeleteProject,
 } from "./port.ts";
 
 declare global {
@@ -51,9 +59,14 @@ function untilReady(connection: DataConnection): Promise<void> {
 
 type List = ReturnType<typeof useActiveProjects>;
 
-/** The test Data Process with `projects`, two readers of "Active" for two open Views, and one of "Archive". */
-async function renderOverPort() {
-  const process = await startTestDataProcess({ modules: { projects } });
+/**
+ * The test Data Process with `projects`, two readers of "Active" for two open Views, one of
+ * "Archive" and the delete hook. `withEntries` mounts a module whose entries refer to projects.
+ */
+async function renderOverPort({ withEntries = false } = {}) {
+  const process = await startTestDataProcess({
+    modules: withEntries ? { projects, projectEntries } : { projects },
+  });
   cleanups.push(() => process.close());
   const connection = createDataConnection();
   cleanups.push(() => connection.disconnect());
@@ -82,9 +95,24 @@ async function renderOverPort() {
     for (const check of waiting) check();
     return null;
   }
+  let remove: ReturnType<typeof useDeleteProject>["run"] | undefined;
+  function Deleter(): ReactNode {
+    remove = useDeleteProject().run;
+    return null;
+  }
   const notices: MessageDescriptor[] = [];
-  // What a Command is given: the same access and notice seam as the provider (D261).
-  const data: DataAccess = { access, notify: (notice) => notices.push(notice) };
+  const refusals: RefusedNotice[] = [];
+  // A test that meets no Refusal fails if one reaches the seam; one that does takes them.
+  cleanups.push(() => {
+    const codes = refusals.flatMap(({ reasons }) => reasons.map(({ code }) => code));
+    if (codes.length > 0) throw new Error(`No write is refused here: ${codes.join()}`);
+  });
+  // What a Command is given: the same access and notice seams as the provider (D261).
+  const data: DataAccess = {
+    access,
+    notify: (notice) => notices.push(notice),
+    notifyRefused: (notice) => refusals.push(notice),
+  };
   const container = document.createElement("div");
   document.body.append(container);
   cleanups.push(() => container.remove());
@@ -94,6 +122,7 @@ async function renderOverPort() {
     createElement(Reader, { index: 0, key: 0 }),
     createElement(Reader, { index: 1, key: 1 }),
     createElement(ArchiveReader, { key: "archive" }),
+    createElement(Deleter, { key: "delete" }),
   ];
   const i18n = setupI18n({ locale: "en", messages: { en: {} } });
   root.render(
@@ -101,7 +130,8 @@ async function renderOverPort() {
       i18n,
       children: createElement(MantineProvider, {
         env: "test",
-        children: createElement(DataProvider, { access, notify: data.notify }, readers),
+        // The same seams as the Commands get, so a hook's Refusal reaches the same one.
+        children: createElement(DataProvider, data, readers),
       }),
     }),
   );
@@ -110,6 +140,13 @@ async function renderOverPort() {
     data,
     notices,
     calls,
+    /** Deletes through the Operation hook, under the provider. */
+    deleteProject: (id: ProjectId) => {
+      if (remove === undefined) throw new Error("The delete hook has not drawn yet");
+      return remove({ id }, { entry: "Website" });
+    },
+    /** The Notices of Refusals so far, which the test then expects; none is left over. */
+    takeRefusals: () => refusals.splice(0),
     /** Resolves once both readers show `matches`. */
     until(matches: (list: List) => boolean): Promise<List> {
       return new Promise((resolve) => {
@@ -337,6 +374,24 @@ test("a delete leaves every open View, and restore brings the project back as it
   const back = await rendered.until((list) => titles(list)?.length === 1);
   expect(back.status === "content" && back.data).toEqual([created.data]);
   expect(await callPort(rendered.data, "restore", { id })).toEqual({ error: "NOT_FOUND" });
+});
+
+test("a refused delete through the hook reaches the same Refusal seam as a Command's", async () => {
+  const rendered = await renderOverPort({ withEntries: true });
+  const created = await createProject(rendered.data, { title: "Website" });
+  if (created.status !== "success") throw new Error("Not created");
+  await rendered.data.access.call("projectEntries", "create", {
+    projectId: created.data.id,
+    label: "Work",
+  });
+
+  const result = await rendered.deleteProject(created.data.id);
+
+  expect(result.status).toBe("refused");
+  expect(rendered.takeRefusals()).toEqual([
+    { entry: "Website", reasons: [expect.objectContaining({ code: "referenced" })] },
+  ]);
+  expect(rendered.notices).toEqual([]);
 });
 
 test("a project comes back even when another project carries its title by now", async () => {

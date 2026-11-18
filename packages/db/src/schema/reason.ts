@@ -95,6 +95,13 @@ export const targetDeleted = defineReason(
   z.object({ target: z.object({ table: z.string(), id: z.string() }) }),
 );
 
+/**
+ * The Reasons of the frame's reference check (D337). Its rules are typed against this list, so a
+ * new Reason of the frame does not compile until it is listed here, and the page's texts for the
+ * frame (`frameReasonTexts` of the data client) do not compile until it has one.
+ */
+export type FrameReasons = typeof referenced | typeof targetDeleted;
+
 /** The Reason with its details typed, when it is the defined one and its details fit. */
 export function matchReason<Definition extends ReasonDefinition>(
   definition: Definition,
@@ -106,4 +113,31 @@ export function matchReason<Definition extends ReasonDefinition>(
   return details.success
     ? ({ ...reason, details: details.data } as ReasonOf<Definition>)
     : undefined;
+}
+
+/** A refused write (D334): every Reason the Protection Rules answered with, at least one. */
+export interface Refusal {
+  readonly reasons: readonly Reason[];
+}
+
+/**
+ * The first Reason of the Refusal that is the defined one, with its details typed; `undefined`
+ * when it carries none whose code and details fit the definition. A page asks only for Reasons of
+ * packages it may import, since the definition is an import.
+ *
+ * ```ts
+ * if (result.status === "refused") {
+ *   const tables = findReason(result, referenced)?.details.tables;
+ * }
+ * ```
+ */
+export function findReason<Definition extends ReasonDefinition>(
+  refused: Refusal,
+  definition: Definition,
+): ReasonOf<Definition> | undefined {
+  for (const reason of refused.reasons) {
+    const matched = matchReason(definition, reason);
+    if (matched !== undefined) return matched;
+  }
+  return undefined;
 }

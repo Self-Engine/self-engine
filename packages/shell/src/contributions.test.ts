@@ -1,3 +1,4 @@
+import { type DataTexts, NO_DATA_TEXTS } from "@self-engine/data-client/react";
 import { describe, expect, test } from "vite-plus/test";
 import { z } from "zod";
 import {
@@ -103,3 +104,31 @@ function commandMembershipContract() {
   defineContribution({ ...base, primaryAction: create });
 }
 void commandMembershipContract;
+
+test("a contribution promises data texts only when it was given them", () => {
+  const texts = NO_DATA_TEXTS;
+  const withTexts = defineContribution({ ...base, dataTexts: texts });
+  expect(withTexts.dataTexts).toBe(texts);
+  const promised: DataTexts = withTexts.dataTexts;
+  void promised;
+  const without = defineContribution(base);
+  // @ts-expect-error A contribution made without data texts does not claim to have them.
+  const missing: DataTexts = without.dataTexts;
+  // @ts-expect-error Naming the type of the data texts does not make them optional.
+  const named = defineContribution<readonly [], DataTexts>(base);
+  void [missing, named];
+});
+
+test("a contribution keeps data texts its input reads through a getter", () => {
+  class WithTexts {
+    readonly id = base.id;
+    readonly name = base.name;
+    readonly icon = base.icon;
+    readonly color = base.color;
+    readonly views = base.views;
+    get dataTexts() {
+      return NO_DATA_TEXTS;
+    }
+  }
+  expect(defineContribution(new WithTexts()).dataTexts).toBe(NO_DATA_TEXTS);
+});

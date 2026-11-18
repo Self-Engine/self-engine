@@ -25,7 +25,8 @@ export const notesRowMap = {
     is_pinned: sqliteBoolean,
   }),
 };
-export type NoteRow = TablesOf<typeof notesRowMap>["notes"];
+export type NotesTables = TablesOf<typeof notesRowMap>;
+export type NoteRow = NotesTables["notes"];
 
 export type Note = z.output<typeof noteSchema>;
 

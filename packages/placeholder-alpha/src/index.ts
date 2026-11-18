@@ -1,6 +1,8 @@
-import { msg } from "@lingui/core/macro";
+import { msg, plural } from "@lingui/core/macro";
+import { dataTexts } from "@self-engine/data-client/react";
 import { ProjectsIcon } from "@self-engine/icons";
 import { defineContribution, type ShellCommand } from "@self-engine/shell";
+import type { placeholderAlpha } from "./data/index.ts";
 
 const createEntry = {
   id: "create-entry",
@@ -31,6 +33,12 @@ export const contribution = defineContribution({
   name: msg`Placeholder Alpha`,
   icon: ProjectsIcon,
   color: "blue",
+  dataTexts: dataTexts<typeof placeholderAlpha>()({
+    tableNames: {
+      placeholder_alpha_entries: (count) =>
+        msg`${plural(count, { one: "entry", other: "entries" })}`,
+    },
+  }),
   views: [
     { id: "overview", title: msg`Overview`, load: loadEntries },
     {

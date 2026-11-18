@@ -1,3 +1,5 @@
+import type { AnyReasonText, DataTexts } from "@self-engine/data-client/react";
+import type { CountedName } from "@self-engine/i18n";
 import { createSettingsArea } from "@self-engine/settings-area";
 import { type ShellContribution, validateContributions } from "@self-engine/shell";
 import { version } from "../package.json";
@@ -19,7 +21,14 @@ export interface ModuleList {
   /** The address the app starts on: the first View of the first module. */
   readonly startAddress: string;
   readonly find: (id: string) => ShellContribution | undefined;
+  /** The plural message for a mounted synced table, keyed by its SQL name. */
+  readonly tableName: (table: string) => CountedName | undefined;
+  /** The texts of the Reasons the mounted modules' rules answer with, one set per module. */
+  readonly reasonTexts: readonly Readonly<Record<string, AnyReasonText>>[];
 }
+
+/** A module the list mounts: its data texts are checked against its storage module. */
+type MountedContribution = ShellContribution & { readonly dataTexts: DataTexts };
 
 /** What every route reads from the router's context: the modules it mounts. */
 export interface AppRouterContext {
@@ -30,9 +39,9 @@ export function defaultAddress(module: ShellContribution) {
   return `/${module.id}/${module.views[0].id}`;
 }
 
-/** Throws when two contributions claim one address, so a wrong list fails at load. */
+/** Throws when two contributions claim an address or a synced table. */
 export function createModuleList(
-  modules: readonly [ShellContribution, ...ShellContribution[]],
+  modules: readonly [MountedContribution, ...MountedContribution[]],
 ): ModuleList {
   const settings = createSettingsArea({
     store: settingsStore,
@@ -43,11 +52,20 @@ export function createModuleList(
   });
   const contributions = [...modules, settings];
   validateContributions(contributions);
+  const tableNames = new Map<string, CountedName>();
+  for (const module of modules) {
+    for (const [table, name] of Object.entries(module.dataTexts.tableNames)) {
+      if (tableNames.has(table)) throw new Error(`Duplicate synced table name: ${table}`);
+      tableNames.set(table, name);
+    }
+  }
   return {
     modules,
     settings,
     contributions,
     startAddress: defaultAddress(modules[0]),
     find: (id) => contributions.find((module) => module.id === id),
+    tableName: (table) => tableNames.get(table),
+    reasonTexts: modules.map((module) => module.dataTexts.reasonTexts),
   };
 }

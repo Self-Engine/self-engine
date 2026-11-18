@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vite-plus/test";
-import { FieldMessages } from "./field-messages.ts";
+import { FieldMessages, type FieldText } from "./field-messages.ts";
+
+/** The numbers of a descriptor the field shows. */
+const valuesOf = (message: FieldText | undefined) =>
+  typeof message === "object" ? message.values : undefined;
 
 /** How often the field `count` heard of a change to its message. */
 function heardBy(messages: FieldMessages): { count: number } {
@@ -19,7 +23,7 @@ describe("FieldMessages", () => {
     messages.replace(shown());
     messages.replace(shown());
 
-    expect(messages.of("count")?.values).toEqual({ limit: 1n });
+    expect(valuesOf(messages.of("count"))).toEqual({ limit: 1n });
     expect(heard.count).toBe(1);
   });
 
@@ -30,7 +34,19 @@ describe("FieldMessages", () => {
     messages.replace(new Map([["count", { id: "at-most", values: { limit: 1 } }]]));
     messages.replace(new Map([["count", { id: "at-most", values: { limit: 2 } }]]));
 
-    expect(messages.of("count")?.values).toEqual({ limit: 2 });
+    expect(valuesOf(messages.of("count"))).toEqual({ limit: 2 });
+    expect(heard.count).toBe(2);
+  });
+
+  it("tells the field of a built text once, and of another one again", () => {
+    const messages = new FieldMessages();
+    const heard = heardBy(messages);
+    const reason = () => "The linked project was deleted.";
+
+    messages.replace(new Map([["count", reason]]));
+    messages.replace(new Map([["count", reason]]));
+    messages.replace(new Map([["count", () => "The linked project was deleted."]]));
+
     expect(heard.count).toBe(2);
   });
 });

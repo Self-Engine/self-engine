@@ -8,6 +8,7 @@ import {
   notifyDone,
   notifyError,
   notifyProgress,
+  notifyRefused,
   notifyUndoable,
   undoLatest,
 } from "./index.ts";
@@ -198,6 +199,21 @@ export const UndoHidesTheNoticeAtOnceAndRunsOnceOnADoubleClick: Story = {
     await userEvent.dblClick(undoButton(notice));
     await expect(undo).toHaveBeenCalledOnce();
     await noticeGone("Entry deleted");
+  },
+};
+
+export const ARefusedNoticeRunsItsActionOnceOnADoubleClick: Story = {
+  play: async () => {
+    const run = fn();
+    notifyRefused({
+      entry: "Website",
+      reasons: ["Cannot be deleted: 1 project entry refers to it."],
+      action: { label: "Archive", run },
+    });
+    const notice = await noticeWith("Cannot be deleted: 1 project entry refers to it.");
+    await userEvent.dblClick(within(notice).getByRole("button", { name: "Archive" }));
+    await expect(run).toHaveBeenCalledOnce();
+    await noticeGone("Cannot be deleted: 1 project entry refers to it.");
   },
 };
 

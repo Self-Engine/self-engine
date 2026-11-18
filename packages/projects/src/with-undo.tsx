@@ -1,5 +1,6 @@
 import { Trans } from "@lingui/react/macro";
-import { notifyUndoable } from "@self-engine/ui";
+import type { RefusalNoticeOptions } from "@self-engine/data-client/react";
+import { notifyDone, notifyUndoable } from "@self-engine/ui";
 import { type ReactNode, useCallback } from "react";
 import {
   type Project,
@@ -9,10 +10,13 @@ import {
   useUnarchiveProject,
 } from "./port.ts";
 
-type Run = (input: { readonly id: Project["id"] }) => Promise<{ readonly status: string }>;
+type Run = (
+  input: { readonly id: Project["id"] },
+  refusal?: RefusalNoticeOptions,
+) => Promise<{ readonly status: string }>;
 
 /** Whether the project is left: changed, or gone already. False when the Operation failed. */
-export type Leave = (id: Project["id"]) => Promise<boolean>;
+type Leave = (id: Project["id"], refusal?: RefusalNoticeOptions) => Promise<boolean>;
 
 /**
  * Runs `change` at once and, when it succeeded, shows `message` in a Notice whose undo runs
@@ -20,8 +24,8 @@ export type Leave = (id: Project["id"]) => Promise<boolean>;
  */
 function useWithUndo(change: Run, undo: Run, message: ReactNode): Leave {
   return useCallback(
-    async (id: Project["id"]) => {
-      const changed = await change({ id });
+    async (id: Project["id"], refusal?: RefusalNoticeOptions) => {
+      const changed = await change({ id }, refusal);
       // The building block has announced it: a project that is gone is left, a failure is not.
       if (changed.status !== "success") return changed.status === "notFound";
       notifyUndoable({
@@ -53,6 +57,24 @@ export function useDeleteWithUndo(): Leave {
 /** Archives with undo, which unarchives (D327). */
 export function useArchiveWithUndo(): Leave {
   return useWithUndo(useArchiveProject().run, useUnarchiveProject().run, ARCHIVED);
+}
+
+/**
+ * Archives without offering undo, for a caller that cannot know whether its archive changed the
+ * project: an archive of an archived project writes nothing (D327), and an undo would then
+ * unarchive what someone else archived. The Notice still says that the project is archived.
+ */
+export function useArchiveWithoutUndo(): Leave {
+  const archive = useArchiveProject().run;
+  return useCallback(
+    async (id: Project["id"], refusal?: RefusalNoticeOptions) => {
+      const archived = await archive({ id }, refusal);
+      if (archived.status !== "success") return archived.status === "notFound";
+      notifyDone({ message: ARCHIVED });
+      return true;
+    },
+    [archive],
+  );
 }
 
 /** Unarchives with undo, which archives again (D327). */

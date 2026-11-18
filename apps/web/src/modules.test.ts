@@ -1,9 +1,22 @@
 import { expect, test } from "vite-plus/test";
-import { auditCommands, shellCommands, validateContributions } from "@self-engine/shell";
+import { activateLanguage, createI18n, formatCountedList } from "@self-engine/i18n";
 import { auditSettingsArea } from "@self-engine/settings-area/audit";
+import { auditCommands, shellCommands, validateContributions } from "@self-engine/shell";
+import { contribution as beta } from "@self-engine/placeholder-beta";
+import { createModuleList } from "./module-list.ts";
 import { appModules } from "./modules.ts";
 
 const { contributions, settings } = appModules;
+
+function mountWithoutDataTexts() {
+  const { dataTexts: _checked, ...withoutTexts } = beta;
+  // @ts-expect-error Mounting requires the module's data texts.
+  createModuleList([withoutTexts]);
+  // @ts-expect-error A literal of names is no proof: only `dataTexts` checks them against the
+  // module's storage module, so `tableNames: {}` of a module with data cannot be mounted.
+  createModuleList([{ ...withoutTexts, dataTexts: { tableNames: {}, reasonTexts: {} } }]);
+}
+void mountWithoutDataTexts;
 
 test("the app mounts projects and no placeholder module (D315)", () => {
   expect(appModules.modules.map((module) => module.id)).toEqual(["projects"]);
@@ -18,6 +31,49 @@ test("a module is found by its id, the settings area too, and an uninstalled one
   expect(appModules.find("projects")?.id).toBe("projects");
   expect(appModules.find("settings")).toBe(settings);
   expect(appModules.find("placeholder-alpha")).toBeUndefined();
+});
+
+test("the app can look up a synced table's singular and plural names in both languages", async () => {
+  const name = appModules.tableName("projects");
+  if (!name) throw new Error("The projects table has no name");
+  const i18n = createI18n();
+
+  await activateLanguage(i18n, "en");
+  expect(i18n._(name(1))).toBe("project");
+  expect(i18n._(name(2))).toBe("projects");
+
+  await activateLanguage(i18n, "de");
+  expect(i18n._(name(1))).toBe("Projekt");
+  expect(i18n._(name(2))).toBe("Projekte");
+  expect(appModules.tableName("placeholder_alpha_entries")).toBeUndefined();
+  expect(appModules.tableName("toString")).toBeUndefined();
+});
+
+test("a list of table counts follows the App Language, including its conjunction and plurals", async () => {
+  const { storyModules } = await import("./story-modules.ts");
+  const entry = storyModules.tableName("placeholder_alpha_entries");
+  const project = storyModules.tableName("projects");
+  if (!entry || !project) throw new Error("The story modules must name their tables");
+  const counted = [
+    { name: entry, count: 1200 },
+    { name: project, count: 1 },
+    { name: project, count: 2 },
+  ];
+  const i18n = createI18n();
+
+  await activateLanguage(i18n, "en");
+  expect(formatCountedList(i18n, counted)).toBe("1,200 entries, 1 project and 2 projects");
+
+  await activateLanguage(i18n, "de");
+  expect(formatCountedList(i18n, counted)).toBe("1.200 Einträge, 1 Projekt und 2 Projekte");
+});
+
+test("two mounted modules cannot claim the same synced table", async () => {
+  const { contribution: alpha } = await import("@self-engine/placeholder-alpha");
+  const { contribution: beta } = await import("@self-engine/placeholder-beta");
+  expect(() => createModuleList([alpha, { ...beta, dataTexts: alpha.dataTexts }])).toThrow(
+    "Duplicate synced table name: placeholder_alpha_entries",
+  );
 });
 
 // The Command Palette and the View Shortcuts list the Commands of these contributions.

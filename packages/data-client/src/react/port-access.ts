@@ -1,5 +1,12 @@
-import type { TablesChanged } from "@self-engine/data-protocol";
+import type { ClearanceWrite, RowClearance, TablesChanged } from "@self-engine/data-protocol";
 import type { DataConnection, EntryDescription } from "../data-connection.ts";
+
+/** What the root Clearance Query is asked (D339): its input as the protocol takes it. */
+export interface ClearanceRequest {
+  readonly table: string;
+  readonly rows: readonly string[];
+  readonly writes: readonly ClearanceWrite[];
+}
 
 /**
  * Everything the building block needs from the Data Process (D249). The app passes the real one
@@ -7,8 +14,10 @@ import type { DataConnection, EntryDescription } from "../data-connection.ts";
  * connection themselves.
  */
 export interface PortAccess {
-  /** Calls the entry `entry` of the module mounted as `module`; rejects with its error. */
+  /** Calls a Port entry, with an empty mount name for a root entry; rejects with its error. */
   call(module: string, entry: string, input: unknown, signal?: AbortSignal): Promise<unknown>;
+  /** Asks the root Clearance Query, typed by the protocol; rejects with its error. */
+  clearance(request: ClearanceRequest, signal?: AbortSignal): Promise<readonly RowClearance[]>;
   /** Whether the entry is a Query and which tables it reads; `undefined` until connected. */
   describeEntry(module: string, entry: string): EntryDescription | undefined;
   /** Calls `listener` with the tables of each Table Change; returns the function that stops it. */
@@ -29,6 +38,7 @@ export interface PortAccess {
 export const NO_DATA_PROCESS: PortAccess = {
   call: (module, entry) =>
     Promise.reject(new Error(`No Data Process answers ${module}.${entry} on this page`)),
+  clearance: () => Promise.reject(new Error("No Data Process answers the Clearance on this page")),
   describeEntry: () => undefined,
   onTablesChanged: () => () => undefined,
   onReconnected: () => () => undefined,
@@ -42,14 +52,22 @@ export function portAccessOf(connection: DataConnection): PortAccess {
   // The app contract types only the cross-module procedures; a module's entries are reached by
   // name through the client's proxy, typed by the hook from the module's own Contract.
   const client = connection.client as unknown as Readonly<
-    Record<string, Readonly<Record<string, Procedure>>>
+    Record<string, Procedure | Readonly<Record<string, Procedure>>>
   >;
   return {
     call(module, entry, input, signal) {
-      const procedure = client[module]?.[entry];
+      const procedure =
+        module === ""
+          ? (client[entry] as Procedure | undefined)
+          : (client[module] as Readonly<Record<string, Procedure>> | undefined)?.[entry];
       if (procedure === undefined) return Promise.reject(new Error(`No entry ${module}.${entry}`));
       return procedure(input, signal === undefined ? {} : { signal });
     },
+    clearance: ({ table, rows, writes }, signal) =>
+      connection.client.clearance(
+        { table, rows: [...rows], writes: [...writes] },
+        signal === undefined ? {} : { signal },
+      ),
     describeEntry: (module, entry) => connection.describeEntry(module, entry),
     onTablesChanged: (listener) => connection.onTablesChanged(listener),
     onReconnected(listener) {

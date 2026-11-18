@@ -8,6 +8,8 @@ import { createMemoryHistory, RouterProvider } from "@tanstack/react-router";
 import { useState } from "react";
 import { expect, screen, userEvent, waitFor, within } from "storybook/test";
 import { createAppRouter } from "./app-router.ts";
+import type { ModuleList } from "./module-list.ts";
+import { appReasonTexts } from "./reason-texts.ts";
 import { settingsStore } from "./settings-store.ts";
 import { storyModules } from "./story-modules.ts";
 
@@ -34,6 +36,9 @@ export async function loadStoryApp() {
   ]);
 }
 
+/** The app's Reason texts, with the table names of the stories' modules. */
+const storyReasonTexts = appReasonTexts(storyModules);
+
 type AppRouter = ReturnType<typeof createAppRouter>;
 
 let lastRouter: AppRouter;
@@ -48,16 +53,26 @@ export interface AppAtProps {
    * or the page's real connection.
    */
   readonly access: PortAccess;
+  /** Names of tables contributed by a story's test modules. */
+  readonly testTableName?: ModuleList["tableName"];
 }
 
 /** The whole app at `address`, on a history that stays in memory, with its own query cache. */
-export function AppAt({ address, access }: AppAtProps) {
+export function AppAt({ address, access, testTableName }: AppAtProps) {
   const [router] = useState(() => {
     lastRouter = createAppRouter(createMemoryHistory({ initialEntries: [address] }), storyModules);
     return lastRouter;
   });
+  const [reasonTexts] = useState(() =>
+    testTableName === undefined
+      ? storyReasonTexts
+      : appReasonTexts({
+          ...storyModules,
+          tableName: (table) => testTableName(table) ?? storyModules.tableName(table),
+        }),
+  );
   return (
-    <DataProvider access={access}>
+    <DataProvider access={access} reasonTexts={reasonTexts}>
       <RouterProvider router={router} />
     </DataProvider>
   );
