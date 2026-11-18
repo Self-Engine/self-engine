@@ -65,11 +65,13 @@ in the form.
 
 Build hooks with `portHooks<typeof contract>(mountName)` as in [the hooks guide](port-hooks.md).
 Give every Conflict reason its `msg` descriptor and field there; use `field: null` for a
-Conflict no field can show. Name there too the field for each column a Reason of a Refusal may
-name (`columns`, [hooks guide](port-hooks.md)), such as a project field for `project_id`. The
-form shows such a Reason at its field only when it renders that field; a Reason at a field it
-does not render goes to the shared Notice with the others, so none is lost. A taken title is
-checked by the Operation, not while typing.
+Conflict no field can show. To show a Reason of a Refusal at a field, build them with the
+module's tables as well, `portHooks<typeof contract, TablesOf<typeof rowMap>>(mountName)`, and
+name there the field for each column such a Reason may name (`columns`,
+[hooks guide](port-hooks.md)), such as a project field for `project_id`. The form shows such a
+Reason at its field only when it renders that field and the field still holds the value the save
+sent; every other Reason goes to the shared Notice with the others, so none is lost. A taken
+title is checked by the Operation, not while typing.
 
 ## Create: fields and the module’s own texts
 
@@ -129,10 +131,11 @@ Nothing is reported before Save. A failed Check calls no Operation, shows messag
 the first affected field and starts checking the whole Draft on every change. A Conflict
 stays at its field until that field changes, and so does a Reason of a refused save at a field the
 Operation maps its column to: the field shows the Reason's text, the one the shared Notice would
-show, in the App Language. Every other Reason goes to that Notice, the Draft stays and the form
-stays open. A violation of a Check outranks a Conflict or a Reason at the same field. A Reason at
-a field the form does not show logs an error, which fails the story. Unexpected failure preserves
-input; Data Client owns its Notice. Success and not-found call `onDone`; `onSuccess(data)` optionally consumes
+show, in the App Language. Text that is no value yet counts as a change too. The next answer to a
+save replaces the Reasons of the last one. Every other Reason goes to that Notice, the Draft stays
+and the form stays open: one at a field the form does not show, and one at a field that changed
+while the save ran. A violation of a Check outranks a Conflict or a Reason at the same field.
+Unexpected failure preserves input; Data Client owns its Notice. Success and not-found call `onDone`; `onSuccess(data)` optionally consumes
 the successful answer. Pass the Shell’s `onDone`, so a completed save bypasses the leave guard.
 
 ## Edit: changed fields and following the entry
@@ -225,9 +228,10 @@ const clearance = query({ table: "projects", rows: [project.id], writes: ["delet
 </EditDrawerForm>;
 ```
 
-List the kinds of write the slot shows in `writes`. The form opens immediately and asks once per
-opening; reopening the same entry, also while the drawer still slides out, is a new opening and
-asks again. The action keeps its ordinary appearance while the answer is pending and ignores
+List the kinds of write the slot shows in `writes`; one listed twice is still one action with one
+explanation. The form opens immediately and asks once per opening; reopening the same entry, also
+while the drawer still slides out, is a new opening and asks again, and a drawer that closes before
+the answer calls its question off. The action keeps its ordinary appearance while the answer is pending and ignores
 activation. When blocked, it is disabled and linked to its Reason text, which appears in a live
 region above the footer. The footer stays pinned to the bottom of the drawer and the text takes
 its room from the free space below the fields, so its arrival moves nothing; nothing is

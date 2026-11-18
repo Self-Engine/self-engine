@@ -521,8 +521,10 @@ Give each Reason a typed text in its owning package's UI: a module's own rules h
 data texts; a rule registered from above lists its definition and text by hand in the app's
 composition (`apps/web/src/reason-texts.ts`). The [Port hooks guide](port-hooks.md#3-change-data-with-an-operation-hook)
 shows how to write the text, use the shared Notice with a way out, and map a Reason to a field.
-An Edit Drawer reads Clearance once per opening for the actions it shows; reopening the same
-entry is a new opening. Use the shared
+An Edit Drawer reads Clearance once per opening for the kinds of write its actions stand for
+when it opens; reopening the same entry is a new opening. An action the opening did not ask
+about, such as "Unarchive" after the entry was archived elsewhere while the drawer stayed open,
+is usable without an answer, and its write checks the rules (D336, D339). Use the shared
 [form action slot](forms.md#action-slot-and-a-standalone-form) to show blocked actions and their
 Reasons. Leave the write in charge of checking again when an action is taken.
 
