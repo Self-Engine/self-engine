@@ -261,3 +261,63 @@ test("the Notice of a refused save names the project the form edits", async () =
   const notice = await refusalNotice("This change is not allowed.");
   expect(notice.textContent).toContain("Website");
 });
+
+/** The project "Website", referenced, in an open drawer whose delete was just refused. */
+async function refusedDelete() {
+  const process = await startTestDataProcess({ modules: { projects, projectEntries } });
+  cleanups.push(() => process.close());
+  const client = createORPCClient<
+    ContractRouterClient<{
+      projects: typeof projects.contract;
+      projectEntries: typeof projectEntries.contract;
+    }>
+  >(new RPCLink({ port: process.openPort() }));
+  const project = await client.projects.create({ title: "Website" });
+  const connection = createDataConnection();
+  cleanups.push(() => connection.disconnect());
+  connection.connect(process.openPort());
+  Object.defineProperty(document, "fonts", { configurable: true, value: new EventTarget() });
+  cleanups.push(() => {
+    Reflect.deleteProperty(document, "fonts");
+  });
+  renderDrawer(project.id, portAccessOf(connection));
+  const remove = await vi.waitFor(() => {
+    const remove = button(drawer(), "Delete");
+    expect(remove.getAttribute("aria-disabled")).toBeNull();
+    expect(remove.disabled).toBe(false);
+    return remove;
+  });
+  await client.projectEntries.create({ projectId: project.id, label: "Work" });
+  remove.click();
+  const notice = await refusalNotice("Cannot be deleted");
+  return { client, project, archiveOffer: button(notice, "Archive") };
+}
+
+/** The notices on screen now, by their text. */
+const noticeTexts = () =>
+  [...document.querySelectorAll(".mantine-Notification-root")].map((notice) => notice.textContent);
+
+test("the Notice's Archive, taken after the project was archived elsewhere, offers no undo", async () => {
+  const { client, project, archiveOffer } = await refusedDelete();
+  await client.projects.archive({ id: project.id });
+  // The open drawer follows the stored project: it is archived now.
+  await vi.waitFor(() => expect(button(drawer(), "Unarchive")).toBeDefined());
+
+  archiveOffer.click();
+
+  await vi.waitFor(() => expect(noticeTexts()).toContain("Project archived"));
+  expect(noticeTexts().some((text) => text?.includes("Undo"))).toBe(false);
+  await expect(client.projects.archived({})).resolves.toMatchObject([{ id: project.id }]);
+});
+
+test("the Notice's Archive, taken after the drawer closed, archives without claiming an undo", async () => {
+  const { client, project, archiveOffer } = await refusedDelete();
+  button(drawer(), "Cancel").click();
+  await vi.waitFor(() => expect(document.querySelector('[role="dialog"]')).toBeNull());
+
+  archiveOffer.click();
+
+  await vi.waitFor(() => expect(noticeTexts()).toContain("Project archived"));
+  expect(noticeTexts().some((text) => text?.includes("Undo"))).toBe(false);
+  await expect(client.projects.archived({})).resolves.toMatchObject([{ id: project.id }]);
+});

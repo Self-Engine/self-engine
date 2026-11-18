@@ -36,7 +36,12 @@ import {
   useCreateProject,
   useEditProject,
 } from "./port.ts";
-import { useArchiveWithUndo, useDeleteWithUndo, useUnarchiveWithUndo } from "./with-undo.tsx";
+import {
+  useArchiveWithoutUndo,
+  useArchiveWithUndo,
+  useDeleteWithUndo,
+  useUnarchiveWithUndo,
+} from "./with-undo.tsx";
 
 const projectClearance = clearanceQueryFor<TablesOf<typeof projectsRowMap>>();
 const ARCHIVE_PROJECT = msg({ message: "Archive", context: "Archive a project" });
@@ -95,6 +100,7 @@ function FoundProject({
 }: EditDrawerProps & { readonly found: Project | undefined }) {
   const remove = useDeleteWithUndo();
   const archive = useArchiveWithUndo();
+  const archiveWithoutUndo = useArchiveWithoutUndo();
   const unarchive = useUnarchiveWithUndo();
   const [last, setLast] = useState(found);
   const [leaving, setLeaving] = useState(false);
@@ -110,16 +116,15 @@ function FoundProject({
   }, []);
   if (!leaving && found !== undefined && found !== last) setLast(found);
   const project = leaving ? last : (found ?? last);
+  // What the open drawer knows of the stored project now, for an action that runs later.
+  const shownActive = useRef(false);
+  useLayoutEffect(() => {
+    shownActive.current = found?.archivedAt === null;
+  });
   if (project === undefined) return <NotFound {...props} />;
   const leave = (operation: () => Promise<boolean>, asks: boolean) => async () => {
     if (busy.current) return;
     busy.current = true;
-    // The Notice can outlive the drawer. Its action still changes this project, without asking
-    // to discard a draft in another drawer.
-    if (!mounted.current) {
-      if (!(await operation())) busy.current = false;
-      return;
-    }
     const goes = !asks || (await props.confirmDiscard());
     if (goes) setLeaving(true);
     // Once the project is left, the lock stays: the drawer is closing.
@@ -133,11 +138,19 @@ function FoundProject({
     true,
   );
   const archiveHere = () => void archiveOrUnarchive();
+  // The Notice of a refused delete can outlive what the drawer knows. Only while the drawer is
+  // open and still shows the project active does its Archive change what the person saw, and
+  // offer the undo; otherwise the project may be archived already, by someone else, and an undo
+  // would unarchive that. It never asks to discard a draft in another drawer.
+  const archiveFromNotice = () => {
+    if (mounted.current && shownActive.current) archiveHere();
+    else void archiveWithoutUndo(project.id, { entry: project.title });
+  };
   const deleteHere = leave(
     () =>
       remove(project.id, {
         entry: project.title,
-        ...(active && { action: { label: ARCHIVE_PROJECT, run: archiveHere } }),
+        ...(active && { action: { label: ARCHIVE_PROJECT, run: archiveFromNotice } }),
       }),
     false,
   );

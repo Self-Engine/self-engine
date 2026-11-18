@@ -1,6 +1,6 @@
 import { Trans } from "@lingui/react/macro";
 import type { RefusalNoticeOptions } from "@self-engine/data-client/react";
-import { notifyUndoable } from "@self-engine/ui";
+import { notifyDone, notifyUndoable } from "@self-engine/ui";
 import { type ReactNode, useCallback } from "react";
 import {
   type Project,
@@ -57,6 +57,24 @@ export function useDeleteWithUndo(): Leave {
 /** Archives with undo, which unarchives (D327). */
 export function useArchiveWithUndo(): Leave {
   return useWithUndo(useArchiveProject().run, useUnarchiveProject().run, ARCHIVED);
+}
+
+/**
+ * Archives without offering undo, for a caller that cannot know whether its archive changed the
+ * project: an archive of an archived project writes nothing (D327), and an undo would then
+ * unarchive what someone else archived. The Notice still says that the project is archived.
+ */
+export function useArchiveWithoutUndo(): Leave {
+  const archive = useArchiveProject().run;
+  return useCallback(
+    async (id: Project["id"], refusal?: RefusalNoticeOptions) => {
+      const archived = await archive({ id }, refusal);
+      if (archived.status !== "success") return archived.status === "notFound";
+      notifyDone({ message: ARCHIVED });
+      return true;
+    },
+    [archive],
+  );
 }
 
 /** Unarchives with undo, which archives again (D327). */
