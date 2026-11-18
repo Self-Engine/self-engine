@@ -1,5 +1,6 @@
 import type { MessageDescriptor } from "@lingui/core";
 import { useLingui } from "@lingui/react";
+import { useReasonTexts } from "@self-engine/data-client/react";
 import { memo, useCallback, useMemo, useSyncExternalStore } from "react";
 import { textOf } from "./field-messages.ts";
 import { bindingOf, type FormBinding, type OperationForm } from "./operation-form.ts";
@@ -86,7 +87,10 @@ export function useFieldBinding<FormDraft, Name extends FieldName<FormDraft>>(
   return { value, setFromOutside, error, ref, ...handlers };
 }
 
-/** The message of `field`, translated; the field draws again only when it or the language changes. */
+/**
+ * The message of `field`, translated; the field draws again only when it, the language or the
+ * provider's Reason texts change.
+ */
 export function useFieldMessage(binding: FormBinding, field: string): string | undefined {
   const message = useSyncExternalStore(
     useCallback(
@@ -96,7 +100,9 @@ export function useFieldMessage(binding: FormBinding, field: string): string | u
     () => binding.messages.of(field),
   );
   const { i18n } = useLingui();
-  return message && textOf(message, i18n);
+  // Read here, like the language: new texts reach a Reason this field already shows.
+  const reasonTexts = useReasonTexts();
+  return message && textOf(message, i18n, reasonTexts);
 }
 
 /** The callback ref that registers the element of `field` with the form. */

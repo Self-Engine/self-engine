@@ -1,16 +1,17 @@
 import type { I18n, MessageDescriptor } from "@lingui/core";
+import type { RefusalTexts } from "@self-engine/data-client/react";
 import { FieldListeners } from "./field-listeners.ts";
 
 /**
- * What a field shows: a descriptor, or a text built in the language of the moment, such as the
- * text of a Reason (D334). Each is turned into text while the field shows it, so it follows a
- * language switch.
+ * What a field shows: a descriptor, or a text built in the language and with the Reason texts of
+ * the moment, such as the text of a Reason (D334). Each is turned into text while the field shows
+ * it, so it follows a language switch and new Reason texts alike.
  */
-export type FieldText = MessageDescriptor | ((i18n: I18n) => string);
+export type FieldText = MessageDescriptor | ((i18n: I18n, reasonTexts: RefusalTexts) => string);
 
-/** The text of `message` in the language of `i18n`. */
-export function textOf(message: FieldText, i18n: I18n): string {
-  return typeof message === "function" ? message(i18n) : i18n._(message);
+/** The text of `message` in the language of `i18n`, with the Reason texts `reasonTexts`. */
+export function textOf(message: FieldText, i18n: I18n, reasonTexts: RefusalTexts): string {
+  return typeof message === "function" ? message(i18n, reasonTexts) : i18n._(message);
 }
 
 /**

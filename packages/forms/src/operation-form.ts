@@ -7,10 +7,8 @@ import {
   type OperationResult,
   type OperationState,
   type Reason,
-  type RefusalTexts,
   type RunOptions,
   useDataAccess,
-  useReasonTexts,
 } from "@self-engine/data-client/react";
 import { useLayoutEffect, useRef, useState } from "react";
 import { checkDraft, type FormTexts, type InputSchema } from "./check.ts";
@@ -158,8 +156,6 @@ type Values = Record<string, unknown>;
 
 interface Latest {
   readonly draft: UseFormReturnType<Values>;
-  /** The text of a Reason the form shows at its field, as the shared Notice would word it. */
-  readonly reasonTexts: RefusalTexts;
   /** The shared Notice of a Refusal, for a Reason whose field changed before the form took it. */
   readonly notifyRefused: DataAccess["notifyRefused"];
   /** The options without the types that tie them to one entry. */
@@ -201,21 +197,15 @@ export function useOperationForm<Entry extends AnyContractProcedure, Result exte
   options: OperationFormOptions<Entry, Result>,
 ): OperationForm<Draft<InputOfEntry<Entry>>> {
   const draft = useForm<Values>({ mode: "uncontrolled", initialValues: options.draft });
-  const reasonTexts = useReasonTexts();
   const { notifyRefused } = useDataAccess();
   // Read when the user acts, never while drawing: the latest Operation state and callback.
-  const latest = useRef<Latest>({
-    draft,
-    reasonTexts,
-    notifyRefused,
-    options,
-  } as unknown as Latest);
+  const latest = useRef<Latest>({ draft, notifyRefused, options } as unknown as Latest);
   const [{ form, follow }] = useState(() =>
     createForm(() => latest.current, options.edit !== undefined),
   );
   // Before the browser paints: no frame shows a field's old value beside the new entry (D324).
   useLayoutEffect(() => {
-    latest.current = { draft, reasonTexts, notifyRefused, options } as unknown as Latest;
+    latest.current = { draft, notifyRefused, options } as unknown as Latest;
     follow();
   });
   return form;
@@ -403,7 +393,7 @@ function createForm(latest: () => Latest, isEdit: boolean): MadeForm {
           // the hook's answer and this moment, such as by code the Notice runs: asked again here,
           // a Reason that no longer describes its field goes to a Notice of its own.
           const atFields = result.atFields.filter(({ field }) => showsAsSent(field));
-          for (const [field, text] of reasonsAtFields(atFields, latest)) {
+          for (const [field, text] of reasonsAtFields(atFields)) {
             refusedAt.set(field, text);
           }
           const elsewhere = result.atFields.filter((at) => !atFields.includes(at));
@@ -476,20 +466,20 @@ function createForm(latest: () => Latest, isEdit: boolean): MadeForm {
 }
 
 /**
- * The text each field shows for the Reasons at it: several at one field read one after the other.
- * Each text is built while the field shows it, in the language of the moment.
+ * The text each field shows for the Reasons at it: several at one field read one after the other,
+ * as the shared Notice words them. Each text is built while the field shows it, in the language
+ * and with the Reason texts of the moment.
  */
 function reasonsAtFields(
   atFields: readonly { readonly field: string; readonly reason: Reason }[],
-  latest: () => Latest,
 ): ReadonlyMap<string, FieldText> {
   const byField = Map.groupBy(atFields, ({ field }) => field);
   return new Map(
     [...byField].map(([field, at]) => [
       field,
-      (i18n) =>
+      (i18n, reasonTexts) =>
         describeReasons(
-          latest().reasonTexts,
+          reasonTexts,
           at.map(({ reason }) => reason),
           i18n,
         ),

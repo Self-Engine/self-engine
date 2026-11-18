@@ -718,3 +718,45 @@ export const AReasonAtAFieldThatChangesAsTheNoticeAppearsGoesToANotice =
   changedAsTheNoticeAppears(false);
 export const AReasonAtAFieldThatGoesAsTheNoticeAppearsGoesToANotice =
   changedAsTheNoticeAppears(true);
+
+/** The same Reason texts, with another wording for the reserved title. */
+const rewordedTexts = refusalTexts(
+  [
+    {
+      title_reserved: ({ details }) => `“${details.title}” stays in the archive.`,
+      space_full: spaceFullText,
+    } satisfies { title_reserved: ReasonText<typeof titleReserved>; space_full: unknown },
+  ],
+  () => undefined,
+);
+
+/** The example form under a provider whose Reason texts a button replaces, as the app may. */
+function FormUnderTextsThatChange({ access }: { readonly access: Loaded["port"]["access"] }) {
+  const [reasonTexts, setReasonTexts] = useState(texts);
+  return (
+    <DataProvider access={access} reasonTexts={reasonTexts}>
+      <Stack>
+        <Button onClick={() => setReasonTexts(rewordedTexts)}>Reword</Button>
+        <ExampleForm onSuccess={() => undefined} />
+      </Stack>
+    </DataProvider>
+  );
+}
+
+export const AReasonAtAFieldFollowsNewReasonTexts: Story = {
+  render: (_args, { loaded }) => (
+    <FormUnderTextsThatChange access={(loaded as Loaded).port.access} />
+  ),
+  play: async ({ canvasElement }) => {
+    const form = formIn(canvasElement);
+    await fillInAndSave(form);
+    await waitFor(() =>
+      expect(form.title()).toHaveAccessibleDescription("“Kitchen” is kept for the archive."),
+    );
+
+    await userEvent.click(within(canvasElement).getByRole("button", { name: "Reword" }));
+    await waitFor(() =>
+      expect(form.title()).toHaveAccessibleDescription("“Kitchen” stays in the archive."),
+    );
+  },
+};
