@@ -65,7 +65,9 @@ in the form.
 
 Build hooks with `portHooks<typeof contract>(mountName)` as in [the hooks guide](port-hooks.md).
 Give every Conflict reason its `msg` descriptor and field there; use `field: null` for a
-Conflict no field can show. A taken title is checked by the Operation, not while typing.
+Conflict no field can show. Name there too the field for each column a Reason of a Refusal may
+name (`columns`, [hooks guide](port-hooks.md)), such as a project field for `project_id`. A
+taken title is checked by the Operation, not while typing.
 
 ## Create: fields and the module’s own texts
 
@@ -123,8 +125,12 @@ No raw Zod message reaches the screen.
 
 Nothing is reported before Save. A failed Check calls no Operation, shows messages, focuses
 the first affected field and starts checking the whole Draft on every change. A Conflict
-stays at its field until that field changes. Unexpected failure preserves input; Data Client
-owns its Notice. Success and not-found call `onDone`; `onSuccess(data)` optionally consumes
+stays at its field until that field changes, and so does a Reason of a refused save at a field the
+Operation maps its column to: the field shows the Reason's text, the one the shared Notice would
+show, in the App Language. Every other Reason goes to that Notice, the Draft stays and the form
+stays open. A violation of a Check outranks a Conflict or a Reason at the same field. A Reason at
+a field the form does not show logs an error, which fails the story. Unexpected failure preserves
+input; Data Client owns its Notice. Success and not-found call `onDone`; `onSuccess(data)` optionally consumes
 the successful answer. Pass the Shell’s `onDone`, so a completed save bypasses the leave guard.
 
 ## Edit: changed fields and following the entry
@@ -243,7 +249,7 @@ for the local text pattern.
 
 Drive fields, buttons and keys; observe visible messages and the Port calls, never helper
 internals. The example stories in `packages/forms/src/testing/example/` cover multi-field
-Checks, own texts, field binding, changed groups, flow and external changes using Fixed
+Checks, own texts, field binding, changed groups, flow, external changes and Reasons at fields using Fixed
 Answers and Changing Answers. Add stories for your module’s own rules and texts. Prove the
 module flow over the test Data Process, as in the [`port.test.ts`](../../packages/projects/src/port.test.ts)
 of `projects`, including invalid input sent past the form. Run `pnpm check`, then `pnpm verify`. Measure first-open

@@ -215,8 +215,8 @@ the default Notice, where the module knows better. The caller still receives
 `{ status: "notFound" }`.
 
 **A Refusal.** When a Protection Rule refuses the write, nothing changed and the result is
-`{ status: "refused", reasons }`, every Reason with its code, severity, table, row, field and
-details. Ask it for one Reason by that Reason's definition, imported from the package that defines
+`{ status: "refused", reasons, atFields }`, every Reason with its code, severity, table, row, field
+and details, and in `atFields` those a form shows at a field (below). Ask it for one Reason by that Reason's definition, imported from the package that defines
 it, and read its details typed:
 
 ```ts
@@ -241,6 +241,30 @@ const result = await remove.run(
 The function form takes the same as its third argument (`deleteProject(data, input, { entry })`).
 Pass `refused: (refusal, input) => { … }` in the handling to show the Refusal yourself instead;
 the caller still receives the `refused` result.
+
+**A Reason at a field.** A Reason may name a column of the row it refuses, as the database names
+it: the frame's `target_deleted` names the referring column, such as `project_id`. Where a form
+shows that column, name its field in the handling, beside the fields of the Conflicts, by table
+and column. Give `portHooks` the module's tables as a second type, `TablesOf` of its Row Map,
+imported as a type only like the Contract:
+
+```ts
+import type { TablesOf } from "@self-engine/db";
+import type { timeEntriesContract } from "./contracts/index.ts";
+import type { timeEntriesRowMap } from "./data/rows.ts";
+
+const port = portHooks<typeof timeEntriesContract, TablesOf<typeof timeEntriesRowMap>>("time");
+export const useEditTimeEntry = port.operation("edit", {
+  columns: { time_entries: { project_id: "projectId" } },
+});
+```
+
+Only the module's tables, their columns and the fields of the entry's input compile; a module
+whose `portHooks` has no tables maps none, and the function form (`run`) maps none, since it has
+no field. Such a Reason comes back in `atFields` with its field, and the Notice tells only the
+others; with every Reason at a field there is no Notice, and `refused` of the handling gets only
+the others too. The form helper shows each at its field ([forms guide](forms.md)). A Reason
+without a field, or at a column not named here, goes to the Notice.
 
 **Texts of Reasons.** The package that defines a Reason writes its text in its UI part, a
 `ReasonText` that gets the Reason with its details typed, the App Language and the names of the

@@ -1,6 +1,7 @@
 import type { MessageDescriptor } from "@lingui/core";
 import { useLingui } from "@lingui/react";
 import { memo, useCallback, useMemo, useSyncExternalStore } from "react";
+import { textOf } from "./field-messages.ts";
 import { bindingOf, type FormBinding, type OperationForm } from "./operation-form.ts";
 import { UNFINISHED } from "./unfinished-texts.ts";
 
@@ -95,7 +96,7 @@ export function useFieldMessage(binding: FormBinding, field: string): string | u
     () => binding.messages.of(field),
   );
   const { i18n } = useLingui();
-  return message && i18n._(message);
+  return message && textOf(message, i18n);
 }
 
 /** The callback ref that registers the element of `field` with the form. */

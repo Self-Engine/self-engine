@@ -2,9 +2,11 @@
 // every call written down, so a story asserts which call reached the Port.
 
 import type { PortAccess } from "@self-engine/data-client/react";
+import type { ReasonDefinition } from "@self-engine/data-client/react";
 import {
   changingAnswers,
   type Contracts,
+  type FixedAnswerOptions,
   type FixedAnswers,
   fixedAnswers,
 } from "@self-engine/data-client/testing";
@@ -39,12 +41,16 @@ export function recordingPort(
   return recordingPortOf(contracts, { example: answers });
 }
 
-/** A Port of other `contracts` that answers what `answers` fixes and writes down each call. */
-export function recordingPortOf<Of extends Contracts>(
+/**
+ * A Port of other `contracts` that answers what `answers` fixes and writes down each call; a
+ * Refusal carries Reasons of the definitions in `options.reasons`.
+ */
+export function recordingPortOf<Of extends Contracts, Reasons extends ReasonDefinition = never>(
   of: Of,
-  answers: FixedAnswers<Of>,
+  answers: FixedAnswers<Of, NoInfer<Reasons>>,
+  options?: FixedAnswerOptions<Reasons>,
 ): RecordingPort {
-  const fixed = fixedAnswers(of, answers);
+  const fixed = fixedAnswers(of, answers, options);
   const calls: PortCall[] = [];
   return {
     calls,

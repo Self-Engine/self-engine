@@ -1,11 +1,17 @@
 import type { MessageDescriptor } from "@lingui/core";
 import { useForm, type UseFormReturnType } from "@mantine/form";
 import type { AnyContractProcedure, InferSchemaInput } from "@orpc/contract";
-import type { OperationResult, OperationState } from "@self-engine/data-client/react";
+import {
+  type OperationResult,
+  type OperationState,
+  type Reason,
+  type RefusalTexts,
+  useRefusalTexts,
+} from "@self-engine/data-client/react";
 import { useLayoutEffect, useRef, useState } from "react";
 import { checkDraft, type FormTexts, type InputSchema } from "./check.ts";
 import { FieldListeners } from "./field-listeners.ts";
-import { FieldMessages } from "./field-messages.ts";
+import { FieldMessages, type FieldText } from "./field-messages.ts";
 import { UnfinishedTexts } from "./unfinished-texts.ts";
 
 /** The input that an entry of a Contract takes, as its input schema accepts it. */
@@ -142,6 +148,8 @@ type Values = Record<string, unknown>;
 
 interface Latest {
   readonly draft: UseFormReturnType<Values>;
+  /** The text of a Reason the form shows at its field, as the shared Notice would word it. */
+  readonly reasonTexts: RefusalTexts;
   /** The options without the types that tie them to one entry. */
   readonly options: {
     readonly draft: Values;
@@ -178,12 +186,13 @@ export function useOperationForm<Entry extends AnyContractProcedure, Result exte
   options: OperationFormOptions<Entry, Result>,
 ): OperationForm<Draft<InputOfEntry<Entry>>> {
   const draft = useForm<Values>({ mode: "uncontrolled", initialValues: options.draft });
+  const reasonTexts = useRefusalTexts();
   // Read when the user acts, never while drawing: the latest Operation state and callback.
-  const latest = useRef<Latest>({ draft, options } as unknown as Latest);
+  const latest = useRef<Latest>({ draft, reasonTexts, options } as unknown as Latest);
   const [{ form, follow }] = useState(() => createForm(() => latest.current));
   // Before the browser paints: no frame shows a field's old value beside the new entry (D324).
   useLayoutEffect(() => {
-    latest.current = { draft, options } as unknown as Latest;
+    latest.current = { draft, reasonTexts, options } as unknown as Latest;
     follow();
   });
   return form;
@@ -203,6 +212,8 @@ function createForm(latest: () => Latest): MadeForm {
     fromOutside.set(field, (fromOutside.get(field) ?? 0) + 1);
   const unfinished = new UnfinishedTexts();
   const conflicts = new Map<string, MessageDescriptor>();
+  // The Reasons of the last refused save at the fields the Operation maps their columns to (D334).
+  const refusedAt = new Map<string, FieldText>();
   const elements = new Map<string, HTMLElement>();
   const changedListeners = new Set<() => void>();
   const normalize = (values: Values): Values => {
@@ -265,10 +276,17 @@ function createForm(latest: () => Latest): MadeForm {
   // From the first failed save on, every change checks the whole draft (D321).
   let checkingEveryChange = false;
   let violations: ReadonlyMap<string, MessageDescriptor> = new Map();
-  // A violation outranks a Conflict at the same field, and a field's text that is no value
-  // outranks what the schema says of its older value.
+  // A violation outranks a Conflict or a Reason at the same field, and a field's text that is no
+  // value outranks what the schema says of its older value.
   const show = () =>
-    messages.replace(new Map([...conflicts, ...violations, ...unfinished.shown()]));
+    messages.replace(
+      new Map<string, FieldText>([
+        ...conflicts,
+        ...refusedAt,
+        ...violations,
+        ...unfinished.shown(),
+      ]),
+    );
   const check = (): ReadonlyMap<string, MessageDescriptor> => {
     const { options } = latest();
     violations = checkDraft(inputSchemaOf(options.entry), input(), options.texts);
@@ -279,11 +297,12 @@ function createForm(latest: () => Latest): MadeForm {
     // Without the forced update: the field already shows what was typed.
     latest().draft.setFieldValue(field, value, { forceUpdate: false });
     const wasUnfinished = unfinished.finish(field);
-    // A Conflict at the field is answered by any change to it.
+    // A Conflict or a Reason at the field is answered by any change to it.
     const hadConflict = conflicts.delete(field);
+    const hadReason = refusedAt.delete(field);
     values.notify(field);
     notifyChanged();
-    if (checkingEveryChange || hadConflict) check();
+    if (checkingEveryChange || hadConflict || hadReason) check();
     else if (wasUnfinished) show();
   };
   const follow = () => {
@@ -340,6 +359,19 @@ function createForm(latest: () => Latest): MadeForm {
             check();
           }
         }
+        if (result.status === "refused") {
+          // This Refusal replaces the last one; the hook told every other Reason in its Notice.
+          refusedAt.clear();
+          for (const [field, text] of reasonsAtFields(result.atFields, latest)) {
+            if (!elements.has(field)) {
+              console.error(
+                `The Operation shows a Reason at "${field}", but the form shows no field of that name.`,
+              );
+            }
+            refusedAt.set(field, text);
+          }
+          check();
+        }
         if (result.status === "success") {
           stored = { ...stored, ...structuredClone(sent) };
           notifyChanged();
@@ -394,6 +426,23 @@ function createForm(latest: () => Latest): MadeForm {
     },
   });
   return { form, follow };
+}
+
+/**
+ * The text each field shows for the Reasons at it: several at one field read one after the other.
+ * Each text is built while the field shows it, in the language of the moment.
+ */
+function reasonsAtFields(
+  atFields: readonly { readonly field: string; readonly reason: Reason }[],
+  latest: () => Latest,
+): ReadonlyMap<string, FieldText> {
+  const byField = Map.groupBy(atFields, ({ field }) => field);
+  return new Map(
+    [...byField].map(([field, at]) => [
+      field,
+      (i18n) => at.map(({ reason }) => latest().reasonTexts.describe(reason, i18n)).join(" "),
+    ]),
+  );
 }
 
 function inputSchemaOf(entry: AnyContractProcedure): InputSchema {
