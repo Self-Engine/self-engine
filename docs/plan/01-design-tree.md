@@ -51,7 +51,7 @@ Pro Runde werden nur 2–3 Fragen gestellt; die Nummern sind stabil.
       - ✅ Platzhalter verlassen die App, Reihenfolge in neun Schritten (D315, D316)
       - ✅ Formular-Helfer gegrillt: Prüfung mit dem Vertrag, `@mantine/form`, Paket `forms`, Bearbeiten schickt nur geänderte Felder (D317–D326, #213)
       - ✅ `projects` gegrillt: Archiv im Speicher-Rahmen, Titel nicht eindeutig, Muster des Bearbeitens, Projekt-Verweis (D327–D330, #273)
-      - ✅ Schutzregeln gegrillt: ein System, Verhindern an den Schreibwegen, Ablehnung mit typisierten Gründen, Auskunft, Verweis-Prüfung, zwei Pakete (D331–D340, #274, #313)
+      - ✅ Schutzregeln gegrillt: ein System, Verhindern an den Schreibwegen, Ablehnung mit typisierten Gründen, Auskunft, Verweis-Prüfung, zwei Pakete (D331–D340, #274, #313); Typen einer Regel von oben über eine Freigabe des Moduls darunter, gebaut mit dem ersten Fall (D341)
       - ⏳ Paket-Grillings: #109, #110, `time-tracking` (#275, #277), ständiger Platz (#276)
     - ⏳ Schicht 5 Import (beginnt mit Projekten und Zeiteinträgen, D316)
   - ⏳ Reihenfolge nach Schicht 5 bis zum Stichtag (weitere Module, Sync, Mobile)

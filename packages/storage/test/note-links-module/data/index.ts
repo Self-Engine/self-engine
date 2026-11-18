@@ -1,4 +1,3 @@
-import { ORPCError } from "@orpc/server";
 import {
   defineStorageModule,
   sharedEntry,
@@ -16,22 +15,37 @@ export const links = defineStorageModule({
 }).entries({
   create: {
     kind: "operation",
+    // The frame's reference check refuses a note that is deleted, unknown or foreign (D337).
     async run(tx, context, input) {
-      // A missing target is the caller's mistake, not a server fault: look it up through
-      // the owner's read piece before writing. SQLite's foreign-key error names no column.
-      const target = await tx
-        .selectFrom(noteTitles(tx, context, "target"))
-        .select("target.id")
-        .where("target.id", "=", input.noteId)
-        .where("target.deletedAt", "is", null)
-        .executeTakeFirst();
-      if (target === undefined) throw new ORPCError("NOT_FOUND");
       return toLink(
         await sharedWrites(tx, context).insert("note_links", context.newId(linkIdSchema), {
           note_id: input.noteId,
           label: input.label,
         }),
       );
+    },
+  },
+  update: {
+    kind: "operation",
+    async run(tx, context, input) {
+      return toLink(
+        await sharedWrites(tx, context).update("note_links", input.id, {
+          note_id: input.noteId,
+          label: input.label,
+        }),
+      );
+    },
+  },
+  delete: {
+    kind: "operation",
+    async run(tx, context, input) {
+      return toLink(await sharedWrites(tx, context).softDelete("note_links", input.id));
+    },
+  },
+  restore: {
+    kind: "operation",
+    async run(tx, context, input) {
+      return toLink(await sharedWrites(tx, context).restore("note_links", input.id));
     },
   },
   list: smallSetList(

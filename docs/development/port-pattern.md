@@ -34,7 +34,9 @@ renderer side, in [the second guide](port-hooks.md); start it once step 7 is don
 Copy the shape of [`notes/contracts/index.ts`](../../packages/storage/test/notes-module/contracts/index.ts):
 use Zod schemas and `oc.input(...).output(...).errors(...)`. Share entity id schemas and
 `Instant` through pure schema/value entries. Declare `NOT_FOUND` where applicable and
-`CONFLICT` with the operation’s allowed reason codes. Write normal output schemas that
+`CONFLICT` with the operation’s allowed reason codes. Every Operation carries the Refusal: spread
+`refusal` from `@self-engine/db/schema` into its `.errors()`, and list no Reason's code; a Query
+does not carry it. An Operation without it does not compile, and the contract kit fails it. Write normal output schemas that
 preserve values: no transforms, defaults, coercion or other conversions. Tests and development
 check outputs; the packaged app skips that check. Inputs are always checked in the Data Process before a lower function runs.
 Forms also check with the same input schema for field feedback (D317), but the Data Process
@@ -58,9 +60,10 @@ export const memoFields = entryFields(memoIdSchema, {
 });
 // create: title required, body and color may be missing (then empty).
 // edit: the id, every field optional; null clears body or color, never the title.
-create: oc.input(memoFields.create.refine(bodyDiffers, bodyRule)).output(memoSchema),
+create: oc.input(memoFields.create.refine(bodyDiffers, bodyRule)).output(memoSchema)
+  .errors({ ...refusal }),
 edit: oc.input(memoFields.edit.refine(bodyDiffers, bodyRule)).output(memoSchema)
-  .errors({ NOT_FOUND: {} }),
+  .errors({ NOT_FOUND: {}, ...refusal }),
 ```
 
 A field whose schema accepts `null` is optional; every other field is required. Declare a rule
@@ -107,6 +110,16 @@ Apply [ADR 0019](../adr/0019-row-maps-are-the-single-source-of-storage-types.md)
 
 - Indexes on synchronized tables begin with `space_id`; unique indexes are partial on
   `WHERE deleted_at IS NULL`. The primary key’s automatic index is exempt, as are Local Tables.
+- Every column with a foreign key to a synchronized table other than `spaces` needs an index
+  that begins with it, because the reference check looks referring rows up by that column in
+  every Space (step 3). Such an index need not begin with `space_id`; a partial one on
+  `WHERE deleted_at IS NULL` is enough, as in
+  [`note-links`](../../packages/storage/test/note-links-module/data/migrations/0002.sql):
+
+  ```sql
+  CREATE INDEX note_links_note ON note_links (note_id) WHERE deleted_at IS NULL;
+  ```
+
 - Local Tables have the `local_` prefix and their own shape. Shared synchronized-row helpers
   do not accept them. Nothing synchronized may depend on a Local Table.
 
@@ -118,8 +131,9 @@ Apply [ADR 0019](../adr/0019-row-maps-are-the-single-source-of-storage-types.md)
 
 Done when `checkAgreement(migrations, rowMap)` and `checkConventions(database)` return no
 violations, as in the notes tests. `checkConventions` names a synchronized table whose
-`space_id` lacks the key to `spaces(id)` or refers elsewhere, and any foreign key that carries an
-action or is not deferred, with its parent.
+`space_id` lacks the key to `spaces(id)` or refers elsewhere, any foreign key that carries an
+action or is not deferred, with its parent, and a referring column without an index that starts
+with it (full, or partial on `deleted_at IS NULL`) or with a `DEFAULT` other than NULL.
 
 ## 3. Implement the data entry
 
@@ -172,7 +186,8 @@ as [`cards/data/index.ts`](../../packages/storage/test/cards-module/data/index.t
   and sets `updated_at`. Both are ordinary changes that announce the table, and they lock
   nothing: an archived row can still be updated, deleted and restored.
 - Archiving an archived row, or unarchiving one that is not archived, answers with the row as it is, keeps
-  the first Instant and writes nothing, so nothing is announced.
+  the first Instant and writes nothing, so nothing is announced. A Protection Rule cannot refuse
+  it, since nothing is written, and the Clearance answers `free` for it without asking a rule.
 - Both answer `NOT_FOUND` for an unknown or deleted id and for a row of another Space.
 - Archived and deleted are independent: `softDelete` and `restore` leave `archived_at`, so a
   deleted archived row comes back archived.
@@ -182,8 +197,10 @@ as [`cards/data/index.ts`](../../packages/storage/test/cards-module/data/index.t
   does; its Edit Drawer finds an entry in either list and offers "Archive" or "Unarchive" beside
   "Delete", each closing the drawer with undo in a Notice.
 
-For joins, aggregates and multi-row changes, use ordinary Kysely builders and explicitly
-apply Space and live-row filters where required. Raw SQL and raw executors in storage are
+For joins and aggregates, use ordinary Kysely builders and explicitly apply Space and live-row
+filters where required. Synced rows change only through the write paths, one row per call;
+`self-engine/no-write-outside-write-paths` rejects an insert, update or delete of a synced table
+anywhere else, and a write path for many rows is not built (D333). Raw SQL and raw executors in storage are
 rejected by `self-engine/no-raw-storage-sql`, including `sql` in read-only expressions.
 Use `eb.fn` for SQL functions in storage queries; migration SQL remains separate.
 
@@ -193,6 +210,85 @@ index enforce uniqueness, rather than querying first. Unique indexes over the sa
 must map to the same reason: SQLite's diagnostic cannot distinguish their partial predicates. Restore into a reused title produces the
 same conflict as create. Throw `ORPCError("CONFLICT", { data: { reason } })` for a business
 conflict that no index expresses. Errors carry codes/reasons for the renderer to translate.
+
+### Protection Rules
+
+A rule about stored state, such as "a pinned note is not deleted", is a Protection Rule, not code
+in an Operation ([ADR 0033](../adr/0033-protection-rules-guard-every-write-path-and-answer-with-typed-reasons.md)).
+The frame asks it at its write paths, so it holds for every Operation, for a Bridge calling the
+module's lower functions, and for the Clearance. A flow, a choice between options and invalid
+input are not rules: they stay in the Operation and the Contract.
+
+**Define each Reason once**, beside the Contract that pages import, with a fixed code and a
+schema for its details, as [`notes/contracts/index.ts`](../../packages/storage/test/notes-module/contracts/index.ts) does:
+
+```ts
+export const pinnedNote = defineReason("pinned", z.object({ title: z.string() }));
+```
+
+**State the rule** with your row map, which types its table, its rows and its reads, and list it
+under `rules` in `defineStorageModule`, as [`notes/data/index.ts`](../../packages/storage/test/notes-module/data/index.ts) does:
+
+```ts
+export const pinnedNotesStay = protectionRule(notesRowMap, {
+  table: "notes",
+  write: "delete", // insert, update, delete, restore, archive or unarchive
+  reasons: [pinnedNote],
+  async answer(tx, context, rows) {
+    const pinned = await sharedEntry(tx, context)
+      .live("notes")
+      .select(["id", "title"])
+      .where(
+        "id",
+        "in",
+        rows.map((row) => row.id),
+      )
+      .where("is_pinned", "=", 1)
+      .execute();
+    return pinned.map((note) => ({
+      code: pinnedNote.code,
+      row: note.id,
+      details: { title: note.title },
+    }));
+  },
+});
+```
+
+- `rows` is a list: answer for all of them with one query, never one query per row. Insert and
+  update rows also carry the `values` being written; an update carries only the fields it sets.
+- `tx` reads only; a write is a type error and fails at runtime.
+- A row the write would not find (unknown, deleted for a delete, or of another Space) answers
+  "not found" whatever the rule answers: the frame looks the rows of a refused write up before
+  it throws the Refusal. The rule need not check that its rows exist. The same lookup lets an
+  archive or unarchive that would change nothing through with the row as it is.
+- Answer only with Reasons the rule names. The frame adds the severity (`blocking`) and the
+  table, and checks each answer's details against its definition; anything else is an
+  unexpected error, not a Refusal.
+- Any answer refuses the write: the Operation throws `REFUSED` with every Reason, writes
+  nothing, and the Contract needs nothing beyond `...refusal`.
+
+A caller asks beforehand with the protocol's Query `clearance` (`{ table, rows, writes }`): it
+calls the same rules without writing and answers per row and kind of write `free`, `blocked`
+with the Reasons, or `notFound`. An update is asked without values, so a rule that needs the
+written values answers only at the write.
+
+A Bridge or a module above guards a table of a module below with a **rule from above**: the
+composition passes it to `startDataProcess({ rules })`, typed against the mounted modules'
+synced tables, and the module below learns nothing of it. A caller that runs a lower function in
+its own transaction builds its context from the Data Process's `contextSources`, so the same
+rules, the reference check included, hold there. A typed way for an ordinary package to state
+such a rule is not built yet; today only a test or `data-process` can. The first package that
+needs one builds it: the module below releases, per table, what a rule from above may see (the
+table, the row id and chosen fields), the way it releases a Read Piece (D341).
+
+**The reference check needs no code.** The frame reads every foreign key between synchronized
+tables when the Data Process starts and guards it: a row that a Live Row refers to is not
+deleted (Reason `referenced`, each referring table with its count), and a reference to a
+deleted, unknown or foreign row is not inserted, updated or restored (Reason `target_deleted`,
+with the column as its field and the target). An archived row is a Live Row: it protects its
+target and stays a valid one. What a module owes it is the index on every referring column
+(step 2). Test it as [`guarded.test.ts`](../../packages/projects/src/data/guarded.test.ts) does
+for `projects`.
 
 Done when every entry uses the supplied transaction and context, maps its result to its
 contract shape, and has the appropriate query/operation marker and conflict mapping.
@@ -255,13 +351,12 @@ in one query. `tx` and `sharedEntry(tx, context)` are typed from the row map by 
 definition; write no transaction type and no type argument by hand. Its left join retains the link when the target is absent or in another Space;
 a deleted target retains its title and explicit deletion mark.
 
-An operation that stores a reference to another module's row looks the target up through the
-read piece first and answers `NOT_FOUND` when it is missing, deleted or in another Space; the
-contract entry declares that error. SQLite's foreign-key error does not name the constraint,
-so the frame cannot translate it, and without the lookup a missing target would reach the
-caller as an internal error. The lookup is one primary-key read per write. Filter and sort by released
-columns in that same query. Declare allowed package dependencies in both `package.json` and
-`ALLOWED_IMPORTS` in `.dependency-cruiser.ts`.
+An operation that stores a reference to another module's row writes it without a lookup of its
+own: the frame's reference check (step 3) reads the target by primary key and refuses a missing,
+deleted or foreign one with `REFUSED` and the Reason `target_deleted`, which the contract entry
+carries through `...refusal`, as `create` of note-links shows. Filter and sort by released
+columns in the read piece's query. Declare allowed package dependencies in both `package.json`
+and `ALLOWED_IMPORTS` in `.dependency-cruiser.ts`.
 
 ### Refer to a project
 
@@ -283,10 +378,10 @@ twice:
   Piece gives.
 
 **Hiding archived projects is display, not a rule.** An Operation that stores a project's id
-looks it up through the Read Piece with `deletedAt` `null` and answers `NOT_FOUND` for a deleted
-or unknown project only. It accepts an archived one: an import of old entries, an entry a device
+does not look the project up: the reference check refuses a deleted or unknown project with
+`target_deleted` (step 3) and accepts an archived one. An import of old entries, an entry a device
 wrote offline while another archived the project, and every edit that sends the project along
-must not fail. Never filter that lookup on `archivedAt`.
+must not fail.
 
 **The form hands the reference to the picker.** A form of the module binds the project picker
 from `@self-engine/projects/picker` to the draft field that holds the id, and gives it the stored

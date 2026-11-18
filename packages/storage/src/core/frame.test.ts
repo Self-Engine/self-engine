@@ -1,3 +1,4 @@
+import { refusal } from "@self-engine/db/schema";
 import type { TablesOf } from "@self-engine/db";
 import { MessageChannel } from "node:worker_threads";
 import { createORPCClient } from "@orpc/client";
@@ -15,6 +16,7 @@ import {
   type ContextSources,
   type FrameReport,
   type SpaceId,
+  type StorageContract,
   type StorageModule,
 } from "./index.ts";
 import { createTestContext, createTestDatabase } from "../testing/index.ts";
@@ -24,14 +26,15 @@ afterEach(async () => {
   for (const cleanup of cleanups.splice(0).reverse()) await cleanup();
 });
 
-async function connect(
-  module: StorageModule<typeof notes.contract, typeof notes.rowMap> = notes,
+// A test may give an entry of the notes Contract another kind; the client still speaks notes.
+async function connect<Contract extends StorageContract>(
+  module?: StorageModule<Contract, typeof notes.rowMap>,
   checkOutputs = true,
   announce: (tables: ReadonlySet<string>) => void = () => {},
 ) {
   const database = await createTestDatabase(notes);
   cleanups.push(() => database.close());
-  const router = createFrame(module, {
+  const router = createFrame(module ?? notes, {
     database,
     sources: createTestContext(),
     checkOutputs,
@@ -501,10 +504,10 @@ test("zero-row writes and compiled but unexecuted writes announce nothing", asyn
   const announcements: ReadonlySet<string>[] = [];
   const module = {
     ...notes,
+    contract: { ...notes.contract, list: notes.contract.list.errors({ ...refusal }) },
     entries: {
       ...notes.entries,
       list: {
-        ...notes.entries.list,
         kind: "operation" as const,
         async run(tx: Parameters<typeof notes.entries.create.run>[0]) {
           await tx
@@ -740,7 +743,10 @@ test.each([true, false])(
           ...notes,
           contract: {
             ...notes.contract,
-            create: new ContractProcedure({ ...notes.contract.create["~orpc"], errorMap: {} }),
+            create: new ContractProcedure({
+              ...notes.contract.create["~orpc"],
+              errorMap: { ...refusal },
+            }),
           },
         },
         {

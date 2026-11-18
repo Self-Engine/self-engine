@@ -2,11 +2,12 @@ import { declaresConflict } from "../core/conflict-declared.ts";
 import { checkConflicts, type ConflictExamples } from "./conflicts.ts";
 import { acceptsUnknownField, checkEdits } from "./edits.ts";
 import { seedScoping, returnsSeededRow, checkEntryScoping, scopedRowsChanged } from "./scoping.ts";
+import { queryPlan } from "./statements.ts";
 import { isDeepStrictEqual } from "node:util";
 import type { InferContractRouterInputs } from "@orpc/contract";
 import { call, ORPCError } from "@orpc/server";
-import { uniqueIndexes, type TablesOf } from "@self-engine/db";
-import { CompiledQuery, type Transaction } from "kysely";
+import { isLocalTable, uniqueIndexes, type TablesOf } from "@self-engine/db";
+import type { Transaction } from "kysely";
 import { z } from "zod";
 import {
   createContext,
@@ -20,6 +21,7 @@ import { QueryWriteError } from "../core/table-writes.ts";
 import { recordTableReads } from "./table-reads.ts";
 import { createTestDatabase } from "./helpers.ts";
 import { createSeededDatabase, frameEntry } from "./kit-setup.ts";
+import { checkRefusal } from "./refusal.ts";
 
 import type { ContractViolation } from "./violation.ts";
 export type { ContractViolation } from "./violation.ts";
@@ -107,6 +109,7 @@ export async function checkContract<Contract extends StorageContract, Rows exten
     await schemaDatabase.close();
   }
   for (const [entry, procedure] of Object.entries(module.contract)) {
+    violations.push(...checkRefusal(entry, procedure, module.entries[entry]?.kind));
     if (!Object.hasOwn(examples, entry)) {
       violations.push({ entry, rule: "missing example" });
       continue;
@@ -145,16 +148,14 @@ export async function checkContract<Contract extends StorageContract, Rows exten
                 ),
               );
             for (const [index, query] of compiled.entries()) {
-              const plan = await database.kysely.executeQuery<{ detail: string }>(
-                CompiledQuery.raw(`EXPLAIN QUERY PLAN ${query.sql}`, [...query.parameters]),
-              );
-              if (plan.rows.some(({ detail }) => /TEMP B-TREE.*ORDER BY/i.test(detail))) {
+              const plan = await queryPlan(database, query);
+              if (plan.some((detail) => /TEMP B-TREE.*ORDER BY/i.test(detail))) {
                 violations.push({ entry, rule: "page query sorts without an index" });
                 break;
               }
               if (
                 index > 0 &&
-                !plan.rows.some(({ detail }) =>
+                !plan.some((detail) =>
                   /(?:USING (?:COVERING )?INDEX|USING INTEGER PRIMARY KEY).*\b(?!space_id\b)\w+\)?[<>]/i.test(
                     detail,
                   ),
@@ -187,7 +188,7 @@ export async function checkContract<Contract extends StorageContract, Rows exten
           async (transaction) => {
             const tx = transaction.withTables<Record<string, { deleted_at: string | null }>>();
             for (const [table, schema] of Object.entries(module.rowMap)) {
-              if (!table.startsWith("local_") && Object.hasOwn(schema.shape, "deleted_at"))
+              if (!isLocalTable(table) && Object.hasOwn(schema.shape, "deleted_at"))
                 await tx.deleteFrom(table).where("deleted_at", "is not", null).execute();
             }
           },

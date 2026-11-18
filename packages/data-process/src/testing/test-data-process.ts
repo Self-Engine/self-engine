@@ -7,12 +7,15 @@ import type { SpaceSources } from "@self-engine/spaces";
 import {
   type BeforeMigrations,
   type DataModules,
+  type DataProcess,
   type DataProcessOptions,
   startDataProcess,
 } from "../core/index.ts";
 
-export interface TestDataProcessOptions {
-  readonly modules?: DataModules;
+export interface TestDataProcessOptions<Modules extends DataModules = DataModules> {
+  readonly modules?: Modules;
+  /** Passed to the core: Protection Rules from above for tables of the mounted modules. */
+  readonly rules?: DataProcessOptions<Modules>["rules"];
   /** The clock and ids of every call and of the Personal Space; the start finds the Space. */
   readonly sources?: SpaceSources;
   readonly checkOutputs?: boolean;
@@ -33,6 +36,8 @@ export interface TestDataProcessOptions {
 export interface TestDataProcess {
   /** The database the core serves, for a test that checks what a call left behind. */
   readonly database: Database;
+  /** The core's sources of every frame's context, for a test that runs a lower function. */
+  readonly contextSources: DataProcess["contextSources"];
   /**
    * A new `MessageChannel` whose one end the core serves; returns the other end for a client,
    * like the main process hands a port to a window.
@@ -48,13 +53,14 @@ export interface TestDataProcess {
  * The real core of the data process over a real SQLite database, reached through Node's
  * `MessageChannel` instead of Electron: the main seam of the contract layer (spec #29).
  */
-export async function startTestDataProcess(
-  options: TestDataProcessOptions = {},
+export async function startTestDataProcess<const Modules extends DataModules = DataModules>(
+  options: TestDataProcessOptions<Modules> = {},
 ): Promise<TestDataProcess> {
   const database = options.database ?? openDatabase(":memory:");
   let core;
   try {
-    core = await startDataProcess({
+    // The rules were checked against `Modules` at the call; the fixture list mounts no table.
+    core = await startDataProcess<DataModules>({
       database,
       modules: options.modules ?? {
         fixture: {
@@ -65,6 +71,7 @@ export async function startTestDataProcess(
           entries: {},
         },
       },
+      ...(options.rules === undefined ? {} : { rules: options.rules }),
       sources: options.sources ?? createTestSources("2026-01-01T00:00:00.000Z"),
       checkOutputs: options.checkOutputs ?? true,
       ...(options.report === undefined ? {} : { report: options.report }),
@@ -78,6 +85,7 @@ export async function startTestDataProcess(
   const ports: MessagePort[] = [];
   return {
     database,
+    contextSources: core.contextSources,
     openPort() {
       const { port1, port2 } = new MessageChannel();
       ports.push(port1, port2);

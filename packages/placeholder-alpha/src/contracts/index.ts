@@ -1,5 +1,5 @@
 import { oc } from "@orpc/contract";
-import { idSchema } from "@self-engine/db/schema";
+import { idSchema, refusal } from "@self-engine/db/schema";
 import { z } from "zod";
 
 export const entryIdSchema = idSchema("PlaceholderAlphaEntry");
@@ -13,11 +13,20 @@ const nameTaken = { data: z.object({ reason: z.literal("name_taken") }) };
 /** The module's Port (D252): mounted as `placeholderAlpha` in the app contract. */
 export const placeholderAlphaContract = {
   list: oc.input(z.strictObject({})).output(z.array(entrySchema)),
-  create: oc.input(z.strictObject({ name })).output(entrySchema).errors({ CONFLICT: nameTaken }),
+  create: oc
+    .input(z.strictObject({ name }))
+    .output(entrySchema)
+    .errors({ CONFLICT: nameTaken, ...refusal }),
   rename: oc
     .input(byId.extend({ name }))
     .output(entrySchema)
-    .errors({ NOT_FOUND: {}, CONFLICT: nameTaken }),
-  delete: oc.input(byId).output(entrySchema).errors({ NOT_FOUND: {} }),
-  restore: oc.input(byId).output(entrySchema).errors({ NOT_FOUND: {}, CONFLICT: nameTaken }),
+    .errors({ NOT_FOUND: {}, CONFLICT: nameTaken, ...refusal }),
+  delete: oc
+    .input(byId)
+    .output(entrySchema)
+    .errors({ NOT_FOUND: {}, ...refusal }),
+  restore: oc
+    .input(byId)
+    .output(entrySchema)
+    .errors({ NOT_FOUND: {}, CONFLICT: nameTaken, ...refusal }),
 };

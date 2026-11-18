@@ -1,4 +1,5 @@
 import { oc } from "@orpc/contract";
+import { refusal } from "@self-engine/db/schema";
 import { expect, expectTypeOf, test } from "vite-plus/test";
 import { z } from "zod";
 import { notesRowMap } from "../../test/notes-module/data/rows.ts";
@@ -14,7 +15,7 @@ import {
 const contract = {
   read: oc.output(z.string()),
   list: oc.output(z.array(z.string())),
-  write: oc.output(z.string()),
+  write: oc.output(z.string()).errors({ ...refusal }),
 };
 
 test("a query entry declares the tables it reads and an operation declares none", () => {

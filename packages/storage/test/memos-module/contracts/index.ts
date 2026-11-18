@@ -1,6 +1,6 @@
 // Test-only reference for the edit pattern (D329, ADR 0032); no runtime entry imports it.
 import { oc } from "@orpc/contract";
-import { entryFields, idSchema } from "@self-engine/db/schema";
+import { entryFields, idSchema, refusal } from "@self-engine/db/schema";
 import { instantSchema } from "@self-engine/time";
 import { z } from "zod";
 
@@ -37,10 +37,16 @@ const byId = z.strictObject({ id: memoIdSchema });
 
 export const memosContract = {
   list: oc.input(z.strictObject({})).output(z.array(memoSchema)),
-  create: oc.input(memoFields.create.refine(bodyDiffers, bodyRule)).output(memoSchema),
+  create: oc
+    .input(memoFields.create.refine(bodyDiffers, bodyRule))
+    .output(memoSchema)
+    .errors({ ...refusal }),
   edit: oc
     .input(memoFields.edit.refine(bodyDiffers, bodyRule))
     .output(memoSchema)
-    .errors({ NOT_FOUND: {} }),
-  delete: oc.input(byId).output(memoSchema).errors({ NOT_FOUND: {} }),
+    .errors({ NOT_FOUND: {}, ...refusal }),
+  delete: oc
+    .input(byId)
+    .output(memoSchema)
+    .errors({ NOT_FOUND: {}, ...refusal }),
 };

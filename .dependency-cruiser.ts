@@ -36,15 +36,16 @@ export const ALLOWED_IMPORTS: AllowedImports = {
   // `spaces` and makes sure of the Personal Space at every start (D287).
   "data-process": ["data-protocol", "db", "spaces", "storage"],
   // `health`, the Table Change stream and the Backups; a Backup's Instant comes from `time`.
-  "data-protocol": ["time"],
+  "data-protocol": ["db", "time"],
   // The preload and the page share it; the failure states come from the protocol.
   "desktop-bridge": ["data-protocol"],
   // Timestamp generation returns the shared Instant brand (D223).
   db: ["time"],
   // The form helper (D325): it submits through an Operation hook of the data building block, binds
   // the pickers of `ui` and registers with the Shell's Edit Drawer. It imports no module; a
-  // module's own picker reaches a form through the helper's binding.
-  forms: ["data-client", "shell", "ui"],
+  // module's own picker reaches a form through the helper's binding. Its example Contract carries
+  // the Refusal from the schema entry of `db`, as every module's Contract does (D334).
+  forms: ["data-client", "db", "shell", "ui"],
   icons: ["theme"],
   // Its contracts and data entries (D252); the root entry stays with the shell and the UI, and
   // reads and writes through the data building block.
@@ -93,8 +94,8 @@ export const TEST_ONLY_IMPORTS: AllowedImports = {
   // The test Data Process, to run the module's hooks end to end without the app (#33).
   "placeholder-alpha": ["data-process"],
   // The test Data Process, to run the module's hooks and form end to end without the app, and
-  // the Space rows a test of the Read Piece moves a project into.
-  projects: ["data-process", "spaces"],
+  // the Space rows a test of the Read Piece moves a project into, and the protocol's Clearance.
+  projects: ["data-process", "data-protocol", "spaces"],
   // The app's catalogs, so a story of the icon field switches the language as the Settings do.
   ui: ["i18n"],
 };

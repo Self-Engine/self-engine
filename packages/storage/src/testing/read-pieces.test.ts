@@ -1,10 +1,12 @@
 import { createRouterClient } from "@orpc/server";
 import { createSpaceRows, SECOND_SPACE_ID } from "@self-engine/spaces/testing";
 import { expect, test } from "vite-plus/test";
-import type { TablesOf } from "@self-engine/db";
+import { referencesOf, type TablesOf } from "@self-engine/db";
 import {
   createContext,
   createFrame,
+  protectionRules,
+  referenceCheck,
   sharedEntry,
   smallSetList,
   type ReadTransaction,
@@ -12,6 +14,7 @@ import {
 } from "../core/index.ts";
 import { checkContract, createTestContext, createTestDatabase, type Seed } from "./index.ts";
 import { noteIdSchema } from "../../test/notes-module/contracts/index.ts";
+import { linkIdSchema } from "../../test/note-links-module/contracts/index.ts";
 import { notes, noteTitles } from "../../test/notes-module/data/index.ts";
 import { links } from "../../test/note-links-module/data/index.ts";
 import { linksRowMap, toLink } from "../../test/note-links-module/data/rows.ts";
@@ -108,11 +111,14 @@ test("a target that later lands in another Space is not joined or available to t
   }
 });
 
-test("creating a link answers not found for a missing, deleted or foreign-Space target", async () => {
+test("the frame refuses a link to a missing, deleted or foreign-Space note; the Operation does not look", async () => {
   const database = await createTestDatabase(links, [notes]);
   try {
     await createSpaceRows(database.kysely, [{ id: SECOND_SPACE_ID }]);
-    const sources = createTestContext();
+    const sources = {
+      ...createTestContext(),
+      rules: protectionRules([referenceCheck(await referencesOf(database))]),
+    };
     const noteClient = createRouterClient(
       createFrame(notes, { database, sources, checkOutputs: true }),
     );
@@ -134,7 +140,8 @@ test("creating a link answers not found for a missing, deleted or foreign-Space 
     const missing = noteIdSchema.parse("00000000-0000-7000-8000-0000000000ff");
     for (const noteId of [missing, deleted.id, foreign.id])
       await expect(client.create({ noteId, label: "Link" })).rejects.toMatchObject({
-        code: "NOT_FOUND",
+        code: "REFUSED",
+        data: { reasons: [{ code: "target_deleted", field: "note_id" }] },
       });
     expect(await client.list({})).toEqual([]);
   } finally {
@@ -156,6 +163,12 @@ const linksSeed: Seed<typeof links.rowMap> = async (tx, context) => {
     noteId: noteIdSchema.parse(note.id),
     label: "Seed link",
   });
+  // A deleted link to the live note, for the restore example; it gets the fourth id.
+  const removed = await links.entries.create.run(tx, context, {
+    noteId: noteIdSchema.parse("01a1cfa1-0a00-7000-8000-000000000000"),
+    label: "Deleted link",
+  });
+  await links.entries.delete.run(tx, context, { id: linkIdSchema.parse(removed.id) });
   // Foreign targets stay released even when deleted; only owned rows are isolated.
   await notes.entries.delete.run(tx.withTables(), context, { id: note.id });
 };
@@ -164,6 +177,10 @@ const linksExamples = {
     noteId: noteIdSchema.parse("01a1cfa1-0a00-7000-8000-000000000000"),
     label: "New link",
   },
+  // The seed link, which gets the third deterministic id.
+  update: { id: linkIdSchema.parse("01a1cfa1-0a00-7000-8000-000000000002"), label: "Renamed" },
+  delete: { id: linkIdSchema.parse("01a1cfa1-0a00-7000-8000-000000000002") },
+  restore: { id: linkIdSchema.parse("01a1cfa1-0a00-7000-8000-000000000003") },
   list: {},
 };
 

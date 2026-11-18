@@ -3,8 +3,15 @@ import type { Database } from "../core/index.ts";
 
 import type { SchemaViolation } from "./violation.ts";
 
-import { columnsOf, foreignKeyListOf, tablesOf } from "./introspect.ts";
-import type { ColumnRow, ForeignKeyRow } from "./introspect.ts";
+import {
+  columnsOf,
+  foldIdentifier,
+  foreignKeyListOf,
+  referencesOf,
+  tablesOf,
+} from "../core/introspect.ts";
+import type { ColumnRow, ForeignKeyRow } from "../core/introspect.ts";
+import { isLocalTable } from "../core/local-table.ts";
 
 // `archived_at` is optional (D327); a DEFAULT on it would archive every new row.
 const TIMESTAMP_COLUMNS = ["created_at", "updated_at", "deleted_at", "archived_at"];
@@ -48,11 +55,6 @@ const REQUIRED_COLUMNS: readonly {
     fits: isNonNullText,
   },
 ];
-
-/** A Local Table is marked by exactly this prefix, in lower case. */
-function isLocalTable(name: string): boolean {
-  return name.startsWith("local_");
-}
 
 function columnRules(table: string, columns: readonly ColumnRow[]): string[] {
   const missingOrWrong = isLocalTable(table)
@@ -218,10 +220,16 @@ function isLiveRowIndex(index: IndexRow): boolean {
   );
 }
 
+/**
+ * `referring` are the columns of this table the reference check looks Live Rows up by, in every
+ * Space (D337): each must start an index SQLite can use for that lookup, a full one or one partial
+ * on `deleted_at IS NULL`, and such an index need not start with `space_id`.
+ */
 async function indexRules(
   database: Database,
   table: string,
   createTable: string,
+  referring: readonly string[],
 ): Promise<string[]> {
   if (isLocalTable(table)) return [];
   const { rows } = await sql<IndexRow>`
@@ -237,6 +245,7 @@ async function indexRules(
       () =>
         "must not have an inline UNIQUE constraint; use a partial unique index starting with space_id WHERE deleted_at IS NULL",
     );
+  const indexed = new Set<string>();
   for (const index of rows) {
     if (index.origin === "pk" || index.origin === "u") continue;
     const { rows: columns } = await sql<{ name: string | null }>`
@@ -245,26 +254,52 @@ async function indexRules(
     if (index.unique === 1 && !isLiveRowIndex(index)) {
       rules.push(`unique index ${index.name} must be partial on deleted_at IS NULL`);
     }
-    if (columns[0]?.name?.toLowerCase() !== "space_id") {
+    const first = columns[0]?.name?.toLowerCase();
+    if (first !== undefined && referring.some((column) => column.toLowerCase() === first)) {
+      if (index.partial === 0 || isLiveRowIndex(index)) indexed.add(first);
+    } else if (first !== "space_id") {
       rules.push(`index ${index.name} must start with space_id`);
     }
   }
+  for (const column of referring)
+    if (!indexed.has(column.toLowerCase()))
+      rules.push(
+        `referring column ${column} must start an index that is full or partial on deleted_at IS NULL`,
+      );
   return rules;
+}
+
+/**
+ * The reference check reads a reference from the values a write sets (D337), so SQLite must not
+ * fill one in: a referring column is either written or null, and has no DEFAULT but NULL.
+ */
+function defaultRules(columns: readonly ColumnRow[], referring: readonly string[]): string[] {
+  return referring
+    .filter((name) => {
+      const value = columns.find(
+        (column) => foldIdentifier(column.name) === foldIdentifier(name),
+      )?.dflt_value;
+      return value !== undefined && value !== null && value.toUpperCase() !== "NULL";
+    })
+    .map((name) => `referring column ${name} must not have a DEFAULT`);
 }
 
 /** Reads a database's schema after its migrations and reports every broken table convention. */
 export async function checkConventions(database: Database): Promise<SchemaViolation[]> {
   const rows = await tablesOf(database);
+  const references = await referencesOf(database);
   const violations: SchemaViolation[] = [];
   for (const { name, strict, sql: createTable } of rows) {
     const columns = await columnsOf(database, name);
+    const referring = references.filter(({ table }) => table === name).map(({ column }) => column);
     const rules = [
       ...(strict === 1 ? [] : ["must be STRICT"]),
       ...columnRules(name, columns),
       ...foreignKeyRules(name, createTable),
       ...(await foreignKeyActionRules(database, name)),
       ...(await spaceKeyRules(database, name, columns)),
-      ...(await indexRules(database, name, createTable)),
+      ...(await indexRules(database, name, createTable, referring)),
+      ...defaultRules(columns, referring),
     ];
     violations.push(...rules.map((rule) => ({ table: name, rule })));
   }

@@ -219,6 +219,108 @@ describe("checkConventions", () => {
     });
   });
 
+  // The reference check looks a referring row up by its column, in every Space (D337).
+  describe("a referring column", () => {
+    const PROJECTS = `CREATE TABLE projects (${SYNCED_COLUMNS}) STRICT;`;
+    const REFERRING_INDEX_RULE =
+      "referring column project_id must start an index that is full or partial on deleted_at IS NULL";
+    const NOTES = `CREATE TABLE notes (
+      ${SYNCED_COLUMNS},
+      project_id TEXT REFERENCES projects (id) DEFERRABLE INITIALLY DEFERRED
+    ) STRICT;`;
+
+    test("is reported without an index that starts with it", async () => {
+      await database.executeScript(`${PROJECTS} ${NOTES}`);
+
+      await expect(checkConventions(database)).resolves.toEqual([
+        { table: "notes", rule: REFERRING_INDEX_RULE },
+      ]);
+    });
+
+    test("is reported when it is only the second column of an index", async () => {
+      await database.executeScript(`
+        ${PROJECTS} ${NOTES}
+        CREATE INDEX notes_project ON notes (space_id, project_id);
+      `);
+
+      await expect(checkConventions(database)).resolves.toEqual([
+        { table: "notes", rule: REFERRING_INDEX_RULE },
+      ]);
+    });
+
+    test.each([
+      ["a plain index", "CREATE INDEX notes_project ON notes (project_id)"],
+      [
+        "an index of the Live Rows",
+        "CREATE INDEX notes_project ON notes (project_id) WHERE deleted_at IS NULL",
+      ],
+      ["a longer index", "CREATE INDEX notes_project ON notes (project_id, created_at)"],
+    ])("passes with %s, which need not start with space_id", async (_name, index) => {
+      await database.executeScript(`${PROJECTS} ${NOTES} ${index};`);
+
+      await expect(checkConventions(database)).resolves.toEqual([]);
+    });
+
+    test("is reported when only a partial index other than the Live Rows' starts with it", async () => {
+      await database.executeScript(`
+        ${PROJECTS} ${NOTES}
+        CREATE INDEX notes_project ON notes (project_id) WHERE deleted_at IS NOT NULL;
+      `);
+
+      await expect(checkConventions(database)).resolves.toEqual([
+        { table: "notes", rule: REFERRING_INDEX_RULE },
+      ]);
+    });
+
+    test("is reported with a DEFAULT, which would fill a reference the check never saw", async () => {
+      await database.executeScript(`
+        ${PROJECTS}
+        CREATE TABLE notes (
+          ${SYNCED_COLUMNS},
+          project_id TEXT DEFAULT 'p' REFERENCES projects (id) DEFERRABLE INITIALLY DEFERRED
+        ) STRICT;
+        CREATE INDEX notes_project ON notes (project_id);
+      `);
+
+      await expect(checkConventions(database)).resolves.toEqual([
+        { table: "notes", rule: "referring column project_id must not have a DEFAULT" },
+      ]);
+    });
+
+    test("may default to NULL, which refers to nothing", async () => {
+      await database.executeScript(`
+        ${PROJECTS}
+        CREATE TABLE notes (
+          ${SYNCED_COLUMNS},
+          project_id TEXT DEFAULT NULL REFERENCES projects (id) DEFERRABLE INITIALLY DEFERRED
+        ) STRICT;
+        CREATE INDEX notes_project ON notes (project_id);
+      `);
+
+      await expect(checkConventions(database)).resolves.toEqual([]);
+    });
+
+    test("is not space_id, which needs no index of its own", async () => {
+      await database.executeScript(`
+        CREATE TABLE spaces (${SYNCED_COLUMNS}) STRICT;
+        CREATE TABLE notes (${SYNCED_COLUMNS}) STRICT;
+      `);
+
+      await expect(checkConventions(database)).resolves.toEqual([]);
+    });
+
+    test("needs no index on a Local Table", async () => {
+      await database.executeScript(`
+        ${PROJECTS}
+        CREATE TABLE local_marks (
+          project_id TEXT REFERENCES projects (id) DEFERRABLE INITIALLY DEFERRED
+        ) STRICT;
+      `);
+
+      await expect(checkConventions(database)).resolves.toEqual([]);
+    });
+  });
+
   describe("the required columns", () => {
     const ID_RULE = "must have id as its TEXT primary key";
     const CREATED_RULE = "must have created_at as non-null TEXT";

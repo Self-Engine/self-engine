@@ -1,17 +1,19 @@
 import { backupsContract } from "./backups.ts";
+import { clearanceContract } from "./clearance.ts";
 import { healthContract } from "./health.ts";
 import { tablesChangedContract } from "./tables-changed.ts";
 
 /**
  * What the Data Process answers on every port, whatever modules it mounts: `health`, the Table
- * Change stream and the Backups of the database. It knows no module, so the data client, the
- * Data Process and the desktop app can import it without reaching a module (ADR 0006, no cycles
- * between packages).
+ * Change stream, the Backups of the database and the Clearance. It knows no module, so the data
+ * client, the Data Process and the desktop app can import it without reaching a module (ADR 0006,
+ * no cycles between packages).
  */
 export const protocolContract = {
   health: healthContract,
   tablesChanged: tablesChangedContract,
   backups: backupsContract,
+  clearance: clearanceContract,
 };
 
 /** The renderer imports only this type, so no schema loads at startup (D187). */

@@ -1,6 +1,7 @@
 import type { AnyRouter } from "@orpc/server";
 import { type Health, PROTOCOL_PROCEDURES, type QueryTables } from "@self-engine/data-protocol";
 import { type BackupProcedureOptions, backupProcedures } from "./procedures/backups.ts";
+import { type ClearanceOptions, clearanceProcedure } from "./procedures/clearance.ts";
 import { healthProcedure } from "./procedures/health.ts";
 import { tablesChangedProcedure } from "./procedures/tables-changed.ts";
 import { refuseUnlessReady } from "./refuse-unless-ready.ts";
@@ -13,6 +14,7 @@ export interface RouterOptions {
   /** Sent with the opening event of every Table Change stream (D248). */
   readonly queries: QueryTables;
   readonly backups: BackupProcedureOptions;
+  readonly clearance: ClearanceOptions;
 }
 
 /**
@@ -24,6 +26,7 @@ export function createRouter({
   tablesChanged,
   queries,
   backups,
+  clearance,
   moduleRouter,
 }: RouterOptions) {
   for (const name of PROTOCOL_PROCEDURES) {
@@ -35,5 +38,6 @@ export function createRouter({
     health: healthProcedure(health),
     tablesChanged: tablesChangedProcedure(tablesChanged, queries),
     backups: backupProcedures(backups),
+    clearance: clearanceProcedure(clearance),
   });
 }

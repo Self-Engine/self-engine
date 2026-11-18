@@ -29,8 +29,10 @@
     "zod": "catalog:"
   },
   "devDependencies": {
+    "@orpc/client": "catalog:",
     "@orpc/server": "catalog:",
     "@self-engine/data-process": "workspace:*",
+    "@self-engine/data-protocol": "workspace:*",
     "@self-engine/spaces": "workspace:*",
     "@storybook/react-vite": "catalog:",
     "@types/node": "catalog:",

@@ -530,3 +530,36 @@ Medians; the ranges overlap (Shell 78–102 against 82–123 ms, first opening 3
 given under "Forms: first opening": the Shell reveals lazy drawer content no sooner than 300 ms
 after its fallback. These are not desktop numbers; the check in the built desktop app was not
 run for #306.
+
+## Protection Rules (#274)
+
+Measured during #322 on an Apple M3 Pro, Node 26.13.0, without the hop between processes:
+`projects` and the `project-entries` test module behind their frames, called through an oRPC
+router client, output checks off as in the packaged app, once on **in-memory SQLite** and once on
+a **file** opened with the app's pragmas (write-ahead log, `synchronous = NORMAL`). The database
+holds **1,000 projects and 50,000 entries**: 5,000 refer to one project, 50 to each of 900 more,
+and 99 projects have none. Each figure is the median of **101 calls after 31 warm-up calls**; two
+further runs of the whole measurement stayed within 0.03 ms of these. "Without the check" is the
+same frame with an empty rule registry. The script stays in `.temp/`, outside version control.
+
+| Case                                                       | In-memory | File     |
+| ---------------------------------------------------------- | --------- | -------- |
+| Refused delete of the project 5,000 entries refer to       | 0.336 ms  | 0.315 ms |
+| Successful delete of a project, with the check             | 0.069 ms  | 0.073 ms |
+| Successful delete of a project, without the check          | 0.038 ms  | 0.044 ms |
+| Insert of an entry with its project, with the check        | 0.059 ms  | 0.079 ms |
+| Insert of an entry with its project, without the check     | 0.040 ms  | 0.060 ms |
+| Clearance of delete and archive, the project of 5,000      | 0.285 ms  | 0.290 ms |
+| Clearance of delete and archive, a project without entries | 0.046 ms  | 0.049 ms |
+| Clearance of delete and archive, 100 projects of 50        | 0.615 ms  | 0.610 ms |
+
+A delete that succeeds pays about **0.03 ms** for its one `EXISTS` lookup per referring column;
+an insert pays about **0.02 ms** for its primary-key lookup. A refusal also counts the referring
+rows, which is the cost of the 5,000 here, and so does a Clearance that finds a blocked row. A
+refusal then looks its rows up once more by primary key, so that a row the write would not find
+answers "not found" (about **0.02 ms**, re-measured with the same script after the review of
+#274; the other figures stayed within 0.03 ms).
+`EXPLAIN QUERY PLAN` of every statement of the refused delete and the insert shows only
+`SEARCH … USING INDEX`: the primary key of `projects` and the partial index
+`project_entries_project (project_id) WHERE deleted_at IS NULL`, never `SCAN` or an automatic
+index. The storage frame's tests assert the same for the `notes` and `note-links` test modules.
