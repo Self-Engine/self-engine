@@ -39,6 +39,7 @@ export interface DataAccess {
 }
 
 interface DataContext extends DataAccess {
+  readonly reasonTexts: RefusalTexts;
   /** Reports, once per entry, a Query hook whose entry the Data Process calls an Operation. */
   readonly checkQuery: (module: string, entry: string) => void;
   /** Marks every answer of the Query `entry`, like a Table Change that names its tables. */
@@ -61,6 +62,11 @@ export function useDataContext(): DataContext {
  */
 export function useDataAccess(): DataAccess {
   return useDataContext();
+}
+
+/** The shared Reason texts configured by the nearest DataProvider. */
+export function useReasonTexts(): RefusalTexts {
+  return useDataContext().reasonTexts;
 }
 
 /**
@@ -191,6 +197,7 @@ export function DataProvider({
     const reported = new Set<string>();
     return {
       access,
+      reasonTexts,
       notify: (notice) => latest.current.notify(notice),
       notifyRefused: (notice) => latest.current.notifyRefused(notice),
       checkQuery: (module, entry) => {
@@ -208,7 +215,7 @@ export function DataProvider({
         });
       },
     };
-  }, [access, cache]);
+  }, [access, cache, reasonTexts]);
 
   useEffect(() => {
     const stopTables = access.onTablesChanged((tables) => {

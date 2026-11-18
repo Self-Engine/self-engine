@@ -117,6 +117,7 @@ export interface FormBinding {
   readonly unfinished: Pick<UnfinishedTexts, "any" | "subscribe">;
   readonly messages: FieldMessages;
   readonly isChanged: () => boolean;
+  readonly isEdit: boolean;
   /** Whether "Save" may submit: not while editing without a change, nor once the entry is deleted. */
   readonly canSubmit: () => boolean;
   /** The entry the form edits was deleted elsewhere (D324). */
@@ -180,7 +181,9 @@ export function useOperationForm<Entry extends AnyContractProcedure, Result exte
   const draft = useForm<Values>({ mode: "uncontrolled", initialValues: options.draft });
   // Read when the user acts, never while drawing: the latest Operation state and callback.
   const latest = useRef<Latest>({ draft, options } as unknown as Latest);
-  const [{ form, follow }] = useState(() => createForm(() => latest.current));
+  const [{ form, follow }] = useState(() =>
+    createForm(() => latest.current, options.edit !== undefined),
+  );
   // Before the browser paints: no frame shows a field's old value beside the new entry (D324).
   useLayoutEffect(() => {
     latest.current = { draft, options } as unknown as Latest;
@@ -195,7 +198,7 @@ interface MadeForm {
   readonly follow: () => void;
 }
 
-function createForm(latest: () => Latest): MadeForm {
+function createForm(latest: () => Latest, isEdit: boolean): MadeForm {
   const messages = new FieldMessages();
   const values = new FieldListeners();
   const fromOutside = new Map<string, number>();
@@ -373,6 +376,7 @@ function createForm(latest: () => Latest): MadeForm {
     unfinished,
     messages,
     isChanged,
+    isEdit,
     canSubmit,
     isDeleted: () => deleted,
     subscribeChanged(listener) {

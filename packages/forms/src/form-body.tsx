@@ -6,8 +6,10 @@ import {
   type SyntheticEvent,
   useSyncExternalStore,
 } from "react";
+import type { ClearanceQuery } from "@self-engine/data-client/react";
 import { useUnsavedChanges } from "@self-engine/shell";
 import { WarningAlert } from "@self-engine/ui/warning-alert";
+import { EditActionClearance } from "./clearance-actions.tsx";
 import { bindingOf, type FormBinding, type OperationForm } from "./operation-form.ts";
 
 export interface OperationFormBodyProps {
@@ -95,23 +97,43 @@ export function OperationFormBody({ form, children }: OperationFormBodyProps) {
 export interface EditDrawerFormProps extends OperationFormBodyProps {
   readonly onCancel: () => void;
   readonly actions?: ReactNode;
+  /** The entry and the kinds of write shown as ClearanceActions. Read when the edit form opens. */
+  readonly clearance?: ClearanceQuery & { readonly rows: readonly [string] };
 }
 
 /** Fields written by the module, with the shared Edit Drawer actions. */
-export function EditDrawerForm({ form, onCancel, actions, children }: EditDrawerFormProps) {
+export function EditDrawerForm({
+  form,
+  onCancel,
+  actions,
+  clearance,
+  children,
+}: EditDrawerFormProps) {
   const { t } = useLingui();
   const binding = bindingOf(form);
   const canSubmit = useSyncExternalStore(binding.subscribeChanged, binding.canSubmit);
   useUnsavedChanges(binding.isChanged);
+  const footer = (
+    <Group justify="flex-end" mt="auto">
+      {actions && <Group me="auto">{actions}</Group>}
+      <Button type="button" variant="default" onClick={onCancel}>{t`Cancel`}</Button>
+      <Button type="submit" disabled={!canSubmit}>{t`Save`}</Button>
+    </Group>
+  );
   return (
     <OperationFormBody form={form}>
       <Stack flex={1}>
         {children}
-        <Group justify="flex-end" mt="auto">
-          {actions && <Group me="auto">{actions}</Group>}
-          <Button type="button" variant="default" onClick={onCancel}>{t`Cancel`}</Button>
-          <Button type="submit" disabled={!canSubmit}>{t`Save`}</Button>
-        </Group>
+        {clearance !== undefined && binding.isEdit ? (
+          <EditActionClearance
+            key={JSON.stringify([clearance.table, clearance.rows[0]])}
+            query={clearance}
+          >
+            {footer}
+          </EditActionClearance>
+        ) : (
+          footer
+        )}
       </Stack>
     </OperationFormBody>
   );

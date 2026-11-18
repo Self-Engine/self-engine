@@ -121,12 +121,12 @@ const DEV_ONLY_FILE = String.raw`\.(?:test|stories)\.[cm]?[jt]sx?$`;
 
 /**
  * Code that runs in the renderer: the web app, the Component Catalog, the data client and the
- * desktop bridge. The data client's test and story files are exempt: they start the real data
- * process core.
+ * desktop bridge. The data client's tests and stories may start the real Data Process, and
+ * its testing entry validates Fixed Answers with the protocol schemas.
  */
 const RENDERER = {
   path: "^(?:apps/(?:web|component-catalog)|packages/(?:data-client|desktop-bridge))/",
-  pathNot: `^packages/data-client/.*${DEV_ONLY_FILE}`,
+  pathNot: `^packages/data-client/(?:src/testing/|.*${DEV_ONLY_FILE})`,
 };
 
 /**

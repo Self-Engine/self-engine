@@ -7,7 +7,7 @@ import type { DataConnection, EntryDescription } from "../data-connection.ts";
  * connection themselves.
  */
 export interface PortAccess {
-  /** Calls the entry `entry` of the module mounted as `module`; rejects with its error. */
+  /** Calls a Port entry, with an empty mount name for a root entry; rejects with its error. */
   call(module: string, entry: string, input: unknown, signal?: AbortSignal): Promise<unknown>;
   /** Whether the entry is a Query and which tables it reads; `undefined` until connected. */
   describeEntry(module: string, entry: string): EntryDescription | undefined;
@@ -42,11 +42,14 @@ export function portAccessOf(connection: DataConnection): PortAccess {
   // The app contract types only the cross-module procedures; a module's entries are reached by
   // name through the client's proxy, typed by the hook from the module's own Contract.
   const client = connection.client as unknown as Readonly<
-    Record<string, Readonly<Record<string, Procedure>>>
+    Record<string, Procedure | Readonly<Record<string, Procedure>>>
   >;
   return {
     call(module, entry, input, signal) {
-      const procedure = client[module]?.[entry];
+      const procedure =
+        module === ""
+          ? (client[entry] as Procedure | undefined)
+          : (client[module] as Readonly<Record<string, Procedure>> | undefined)?.[entry];
       if (procedure === undefined) return Promise.reject(new Error(`No entry ${module}.${entry}`));
       return procedure(input, signal === undefined ? {} : { signal });
     },
