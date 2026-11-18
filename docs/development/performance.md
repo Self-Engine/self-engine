@@ -576,11 +576,6 @@ at which Delete accepted activation. These are DOM timings in Happy DOM, not in 
 before any paint, without the desktop drawer animation, and with the drawer's code already
 loaded.
 
-The first opening in the built app, with the drawer's chunk loading on demand and the browser
-painting, as the [form guide](forms.md#prove-the-form) asks for, is **not measured yet**: no
-script of this repo times it in a real browser without starting the desktop app (`pnpm renders`
-counts renders against the dev server and times nothing). That measurement is open.
-
 | First opening measurement | Without Clearance p50 / p95 | With Clearance p50 / p95 |
 | ------------------------- | --------------------------- | ------------------------ |
 | Click to Title input      | 8.83 / 10.34 ms             | 9.02 / 12.99 ms          |
@@ -589,6 +584,26 @@ counts renders against the dev server and times nothing). That measurement is op
 The median difference was **0.19 ms** for the fields and **1.32 ms** for Delete. The request
 runs alongside opening the form. The Data Process timings with 50,000 references are in
 [Protection Rules (#274)](#protection-rules-274).
+
+The first opening in the built app, as the [form guide](forms.md#prove-the-form) asks for, was
+measured after the review, on the same machine (Node 26.13.0, Electron 45.2.3), with the method
+of [Forms: first opening](#forms-first-opening-290) and a second mark for the frame after Delete
+accepts activation. Each of 12 alternating runs per build was a fresh app session on a copy of
+a data folder holding two projects, so the drawer's chunk loaded on demand; the window was
+hidden and 1280 × 800. The table gives medians with their range.
+
+| Build                        | First opening, Title input | First opening, usable Delete | Second opening   |
+| ---------------------------- | -------------------------- | ---------------------------- | ---------------- |
+| Before this package (`main`) | 330.3 ms (323.9–336.6)     | 330.3 ms (323.9–336.6)       | 40.8 (37.5–46.1) |
+| With the package             | 331.4 ms (322.4–343.6)     | 345.1 ms (337.6–360.6)       | 38.9 (38.2–46.2) |
+
+The fields appear no later than before. On the first opening of a session Delete accepts
+activation **13.6 ms** (8.3–17.0) after the Title input, one or two frames, while the Clearance
+is on its way; on later openings the answer is there before the fields are visible. The 330 ms
+are the Shell's reveal of lazy drawer content, as described under
+[Forms: first opening](#forms-first-opening-290). These are timings in a hidden window, so a
+paint is bounded by animation frames, not observed, and the Start Cache was warm for both
+builds.
 
 Production startup JavaScript before and after this slice was **855,478 bytes** in 19 chunks
 against the **889,856-byte** limit. The first wiring placed the 30-byte Query builder in a
