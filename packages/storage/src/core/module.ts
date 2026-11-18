@@ -113,21 +113,44 @@ export type StorageModuleDefinition<
   Reasons extends ReasonDefinition = ReasonDefinition,
 > = Omit<StorageModule<Contract, Rows, Name, Reasons>, "entries">;
 
+/** A rule of the module's own tables, as `defineStorageModule` takes it before checking it. */
+type ModuleRule<Rows extends RowMap> = RegisteredRule<SyncedTable<TablesOf<Rows>>>;
+
+/**
+ * Each rule as it may answer: with the Reasons it declares itself, never with those of another
+ * rule of the module, which the frame would reject at runtime as a Reason the rule did not name.
+ */
+type AnsweringOwnReasons<Rules extends readonly RegisteredRule[]> = {
+  readonly [Index in keyof Rules]: Rules[Index] extends {
+    readonly reasons: readonly (infer Declared extends ReasonDefinition)[];
+  }
+    ? RegisteredRule<Rules[Index]["table"], Declared>
+    : never;
+};
+
+/** The Reasons the rules of a module declare, together. */
+type ReasonsOf<Rules extends readonly RegisteredRule[]> = Rules[number]["reasons"][number];
+
 /**
  * Defines a module in two steps (refines D259): the Contract and row map are fixed first, so
  * the entries, including list builders, take `tx` and `input` from them without written types.
+ * Each rule is checked on its own, so its answer takes only the Reasons it declares.
  */
 export function defineStorageModule<
   const Contract extends StorageContract,
   const Rows extends RowMap,
   const Name extends string,
   // A module without rules answers with no Reason.
-  Reasons extends ReasonDefinition = never,
->(definition: StorageModuleDefinition<Contract, Rows, Name, Reasons>) {
+  const Rules extends readonly ModuleRule<Rows>[] = readonly [],
+>(
+  definition: Omit<StorageModuleDefinition<Contract, Rows, Name>, "rules"> & {
+    readonly rules?: Rules & AnsweringOwnReasons<Rules>;
+  },
+) {
   return {
     entries<const Entries extends ModuleEntries<Contract, Rows>>(
       entries: Entries,
-    ): StorageModule<Contract, Rows, Name, Reasons> & { readonly entries: Entries } {
+    ): StorageModule<Contract, Rows, Name, ReasonsOf<Rules>> & { readonly entries: Entries } {
       return { ...definition, entries };
     },
   };

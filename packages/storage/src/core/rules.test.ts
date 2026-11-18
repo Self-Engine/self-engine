@@ -454,6 +454,47 @@ describe("the Reasons a rule answers with stay in the types (D334)", () => {
     });
   });
 
+  test("each rule of a module answers only with its own Reasons, not with another rule's", () => {
+    const { rules: _rules, ...withoutRules } = notes;
+    const target = { target: { table: "x", id: "y" } };
+    defineStorageModule({
+      ...withoutRules,
+      rules: [
+        {
+          table: "notes",
+          write: "delete",
+          reasons: [pinnedNote],
+          // @ts-expect-error `target_deleted` is the update rule's Reason, not this rule's.
+          answer: async () => [{ code: targetDeleted.code, row: "n1", details: target }],
+        },
+        {
+          table: "notes",
+          write: "update",
+          reasons: [targetDeleted],
+          answer: async () => [{ code: targetDeleted.code, row: "n1", details: target }],
+        },
+      ],
+    });
+  });
+
+  test("a module whose rules declare different Reasons keeps them all", () => {
+    const { rules: _rules, ...withoutRules } = notes;
+    const module = defineStorageModule({
+      ...withoutRules,
+      rules: [
+        pinnedNotesStay,
+        protectionRule(notesRowMap, {
+          table: "notes",
+          write: "update",
+          reasons: [targetDeleted],
+          answer: async () => [],
+        }),
+      ],
+    }).entries(notes.entries);
+    type ModuleReasons = NonNullable<(typeof module)["rules"]>[number]["reasons"][number];
+    expectTypeOf<ModuleReasons>().toEqualTypeOf<typeof pinnedNote | typeof targetDeleted>();
+  });
+
   test("the reference check answers only with the frame's Reasons", () => {
     type CheckReasons = ReturnType<typeof referenceCheck>["rules"][number]["reasons"][number];
     expectTypeOf<CheckReasons>().toEqualTypeOf<FrameReasons>();
