@@ -76,9 +76,11 @@ connection stops at startup, the page shows that the data cannot be reached, wit
 and its access is `NO_DATA_PROCESS`, whose every call fails at once (D263). A module never
 mounts a provider itself, except in a story or test.
 
-Every Notice of the building block goes through one seam, the provider’s `notify`: by default
-the feedback system shows it, translated while it is on screen; a story or test passes its own
-to collect them.
+Every Notice of the building block goes through one of two seams of the provider: `notify` for
+a text, and `notifyRefused` for the shared Notice of a Refusal (step 3). By default the feedback
+system shows them, translated while they are on screen; a story or test passes its own to
+collect them. The app also gives the provider `reasonTexts`, the text of every Reason
+(step 3, “Texts of Reasons”).
 
 ## 2. Read with a Query hook
 
@@ -150,13 +152,13 @@ same function across renders. A Query over tables never needs it.
 An Operation hook returns `{ run, running }`. `run(input)` resolves with a result and never
 rejects:
 
-| `status`     | Fields                    | The building block’s Notice                                    |
-| ------------ | ------------------------- | -------------------------------------------------------------- |
-| `success`    | `data`                    | none                                                           |
-| `conflict`   | `reason`, `field`, `text` | none: show `text` at `field`; `text` when `field` is `null`    |
-| `notFound`   | none                      | “This entry no longer exists.”, unless the module replaces it  |
-| `refused`    | `reasons`                 | the `unexpected` Notice for now, unless the module replaces it |
-| `unexpected` | `error`                   | “Something went wrong, and the change was not saved.”          |
+| `status`     | Fields                    | The building block’s Notice                                   |
+| ------------ | ------------------------- | ------------------------------------------------------------- |
+| `success`    | `data`                    | none                                                          |
+| `conflict`   | `reason`, `field`, `text` | none: show `text` at `field`; `text` when `field` is `null`   |
+| `notFound`   | none                      | “This entry no longer exists.”, unless the module replaces it |
+| `refused`    | `reasons`                 | the shared Notice of a Refusal, unless the module replaces it |
+| `unexpected` | `error`                   | “Something went wrong, and the change was not saved.”         |
 
 `running` is true while any call of this hook instance waits for its result; use it to lock the
 submit button and the fields, since what is typed during a save is lost when the drawer closes.
@@ -225,9 +227,39 @@ if (result.status === "refused") {
 }
 ```
 
-Until the shared Notice of a Refusal exists, the building block announces a Refusal with the
-`unexpected` Notice. Pass `refused: (refusal, input) => { … }` in the handling to show it
-yourself instead; the caller still receives the `refused` result.
+The building block shows the shared Notice of a Refusal: the entry, then every Reason as its
+text, in the App Language and following a switch of it, in the warning colors and never with
+“Undo”. A page names the entry and may add one way out, per call:
+
+```ts
+const result = await remove.run(
+  { id: project.id },
+  { entry: project.title, action: { label: msg`Archive`, run: () => void archive(project) } },
+);
+```
+
+The function form takes the same as its third argument (`deleteProject(data, input, { entry })`).
+Pass `refused: (refusal, input) => { … }` in the handling to show the Refusal yourself instead;
+the caller still receives the `refused` result.
+
+**Texts of Reasons.** The package that defines a Reason writes its text in its UI part, a
+`ReasonText` that gets the Reason with its details typed, the App Language and the names of the
+tables (D334, D335). Import the definition as a type only: the texts load at startup with the
+hooks, and a definition's schema would bring Zod's full build into the start.
+
+```ts
+import type { ReasonText } from "@self-engine/data-client/react";
+import type { billed } from "./contracts/reasons.ts";
+
+export const billedText: ReasonText<typeof billed> = ({ details }, { i18n }) =>
+  i18n._(msg`It was billed on ${details.invoice}.`);
+```
+
+The app names every Reason definition its Protection Rules answer with in `AppReasons`
+(`apps/web/src/reason-texts.ts`) and composes the texts with `refusalTexts<AppReasons>(…)`; a
+definition there without its text does not compile. The frame's own Reasons, `referenced` and
+`target_deleted`, have their texts in `frameReasonTexts`. A Reason whose code has no text, which
+only a definition missing from `AppReasons` can cause, reads “This change is not allowed.”
 
 Input checks before saving are up to the form for now; there is no shared form helper yet. The
 Data Process checks every input, so an input the Contract rejects comes back as `unexpected`.
@@ -272,8 +304,8 @@ yours with `pnpm renders` ([performance checks](performance.md#compare-component
 ## 5. Call an Operation from a Command
 
 A Command runs outside React and cannot use a hook. Every Command, of every kind, gets in its
-context as `data` what the app gives `DataProvider`: the Port access and the notice seam
-(`{ access, notify }`, from `useDataAccess()`). Build the Operation’s function form next to its
+context as `data` what the app gives `DataProvider`: the Port access and the notice seams
+(`{ access, notify, notifyRefused }`, from `useDataAccess()`). Build the Operation’s function form next to its
 hook with `run` instead of `operation`; it takes the same handling and returns the same result,
 with the same default Notices through the same seam:
 
@@ -380,7 +412,7 @@ const connection = createDataConnection();
 connection.connect(process.openPort());
 // wait until connection.getState().status is "ready", then:
 const access = portAccessOf(connection);
-const data = { access, notify: (notice) => notices.push(notice) }; // what a Command gets
+const data = { access, notify: (n) => notices.push(n), notifyRefused: (n) => refusals.push(n) };
 // render the hooks under <DataProvider access={access} notify={data.notify}>, run each
 // Operation, and wait for the render whose Query answer shows the change.
 ```
