@@ -36,7 +36,11 @@ afterEach(async () => {
 });
 
 function renderDrawer(id: string, realAccess: ReturnType<typeof portAccessOf>) {
-  const access = { ...realAccess, call: vi.fn(realAccess.call.bind(realAccess)) };
+  const access = {
+    ...realAccess,
+    call: vi.fn(realAccess.call.bind(realAccess)),
+    clearance: vi.fn(realAccess.clearance.bind(realAccess)),
+  };
   const i18n = setupI18n({ locale: "en", messages: { en: {} } });
   const reasonTexts = refusalTexts([], (table) =>
     table === "project_entries" ? projectEntriesTableNames.project_entries : undefined,
@@ -170,7 +174,7 @@ test("a new reference refuses a delete from a stale drawer and blocks it on the 
   expect(document.getElementById(descriptionId ?? "")?.textContent).toBe(reason);
   blocked.click();
   expect(access.call.mock.calls.filter(([, entry]) => entry === "delete")).toHaveLength(1);
-  expect(access.call.mock.calls.filter(([, entry]) => entry === "clearance")).toHaveLength(2);
+  expect(access.clearance).toHaveBeenCalledTimes(2);
 
   await client.projectEntries.delete({ id: reference.id });
   expect(blocked.disabled).toBe(true);
@@ -182,7 +186,7 @@ test("a new reference refuses a delete from a stale drawer and blocks it on the 
     expect(remove.getAttribute("aria-disabled")).toBeNull();
     expect(remove.disabled).toBe(false);
   });
-  expect(access.call.mock.calls.filter(([, entry]) => entry === "clearance")).toHaveLength(3);
+  expect(access.clearance).toHaveBeenCalledTimes(3);
 });
 
 /**
@@ -218,9 +222,7 @@ async function refusingDrawer() {
   });
   keeping = false;
   const { access } = renderDrawer(project.id, portAccessOf(connection));
-  await vi.waitFor(() =>
-    expect(access.call.mock.calls.some(([, entry]) => entry === "clearance")).toBe(true),
-  );
+  await vi.waitFor(() => expect(access.clearance).toHaveBeenCalled());
   const archive = await vi.waitFor(() => {
     const archive = button(drawer(), "Archive");
     expect(archive.getAttribute("aria-disabled")).toBeNull();

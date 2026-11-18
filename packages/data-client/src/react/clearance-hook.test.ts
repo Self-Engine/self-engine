@@ -52,8 +52,8 @@ test("a Clearance has blocked, free and not-found writes with Reasons like a Ref
       ],
     },
   );
-  const call = vi.fn(access.call.bind(access));
-  const hook = await renderHook({ access: { ...access, call } }, () =>
+  const clearance = vi.fn(access.clearance.bind(access));
+  const hook = await renderHook({ access: { ...access, clearance } }, () =>
     useClearance(query({ table: "notes", rows: [row], writes: ["delete", "archive", "restore"] })),
   );
   expect(hook.current()).toEqual({
@@ -75,10 +75,10 @@ test("a Clearance has blocked, free and not-found writes with Reasons like a Ref
   expect(findReason(deletion, referenced)?.details.tables[0]?.count).toBe(2);
 
   await hook.redraw();
-  expect(call).toHaveBeenCalledTimes(1);
+  expect(clearance).toHaveBeenCalledTimes(1);
   await hook.show(false);
   await hook.show(true);
-  expect(call).toHaveBeenCalledTimes(2);
+  expect(clearance).toHaveBeenCalledTimes(2);
 });
 
 test("a Fixed Clearance fails at setup for a Reason nobody defined", () => {

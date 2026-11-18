@@ -193,10 +193,45 @@ test("a Reason whose details do not fit its definition fails and names the detai
   ).toThrow(/notes\.update.*"pinned".*title/);
 });
 
-test("a Refusal for an entry that cannot refuse fails and names the entry", () => {
+test("a Refusal for an entry that cannot refuse does not compile, and fails and names the entry", () => {
   expect(() =>
-    fixedAnswers(contracts, { notes: { get: { refused: [PINNED] } } }, { reasons: [pinnedNote] }),
+    fixedAnswers(
+      contracts,
+      // @ts-expect-error A Query carries no refusal block, so it is never refused.
+      { notes: { get: { refused: [PINNED] } } },
+      { reasons: [pinnedNote] },
+    ),
   ).toThrow(/notes\.get.*refus/);
+});
+
+test("a Refusal without a Reason, or not a list of them, fails at setup and names the entry", () => {
+  // Untyped input, as a story's JSON could give it: the types require one Reason at least.
+  const refusedWith = (refused: unknown) =>
+    fixedAnswers(contracts, { notes: { update: { refused } } } as never, { reasons: [pinnedNote] });
+  expect(() => refusedWith([])).toThrow(/notes\.update.*refus/);
+  expect(() => refusedWith("pinned")).toThrow(/notes\.update.*refus/);
+});
+
+test("the Clearance answers through its own typed method, and a call without a fixture fails", async () => {
+  const reports: string[] = [];
+  const row = NOTE.id;
+  const access = fixedAnswers(
+    contracts,
+    {},
+    {
+      reasons: [pinnedNote],
+      clearance: [{ table: "notes", row, writes: { delete: { state: "free" } } }],
+      report: (problem) => reports.push(problem),
+    },
+  );
+  await expect(
+    access.clearance({ table: "notes", rows: [row], writes: ["delete"] }),
+  ).resolves.toEqual([{ row, writes: { delete: { state: "free" } } }]);
+  const without = fixedAnswers(contracts, {}, { report: (problem) => reports.push(problem) });
+  await expect(
+    without.clearance({ table: "notes", rows: [row], writes: ["delete"] }),
+  ).rejects.toThrow("No Fixed Answer for clearance, which the story called.");
+  expect(reports).toEqual(["No Fixed Answer for clearance, which the story called."]);
 });
 
 test("answers by mount send each call to the access of its mount", async () => {

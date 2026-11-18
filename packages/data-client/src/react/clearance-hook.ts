@@ -16,16 +16,15 @@ export type ClearanceState =
 export function useClearance(input: ClearanceQuery): ClearanceState {
   const { access } = useDataContext();
   const [opening] = useState(() => ({ access, input }));
-  const inFlight = useRef<Promise<unknown> | undefined>(undefined);
+  const inFlight = useRef<Promise<readonly RowClearance[]> | undefined>(undefined);
   const [state, setState] = useState<ClearanceState>({ status: "loading" });
   useEffect(() => {
     let active = true;
     // Strict Mode replays the effect. Both setups listen to the same call.
-    inFlight.current ??= opening.access.call("", "clearance", opening.input);
+    inFlight.current ??= opening.access.clearance(opening.input);
     void inFlight.current.then(
       (data) => {
-        // The protocol types the answer that crossed the Port.
-        if (active) setState({ status: "content", data: data as RowClearance[] });
+        if (active) setState({ status: "content", data });
       },
       () => {
         // The caller can render loadFailed; the Operation still enforces the same rules.

@@ -2,7 +2,7 @@
 // access whose answers, Table Changes and reconnects a test drives by hand (D249). Fake timers
 // stand in for the clock: the query library batches its updates on `setTimeout(0)`.
 
-import type { QueryTables, TablesChanged } from "@self-engine/data-protocol";
+import type { QueryTables, RowClearance, TablesChanged } from "@self-engine/data-protocol";
 import type { MessageDescriptor } from "@lingui/core";
 import { act, createElement, type ReactNode } from "react";
 import { createRoot, type Root } from "react-dom/client";
@@ -47,19 +47,22 @@ export function fakePort(queries: QueryTables = NOTES_QUERIES): FakePort {
   const answers = new Map<string, (input: unknown) => unknown>();
   const tablesListeners = new Set<(tables: TablesChanged) => void>();
   const reconnectListeners = new Set<() => void>();
+  function call(module: string, entry: string, input: unknown): Promise<unknown> {
+    calls.push({ module, entry, input });
+    const run = answers.get(`${module}.${entry}`);
+    if (run === undefined) return Promise.reject(new Error(`No answer for ${entry}`));
+    try {
+      return Promise.resolve(run(input));
+    } catch (error) {
+      return Promise.reject(error instanceof Error ? error : new Error(String(error)));
+    }
+  }
   return {
     calls,
     access: {
-      call(module, entry, input) {
-        calls.push({ module, entry, input });
-        const run = answers.get(`${module}.${entry}`);
-        if (run === undefined) return Promise.reject(new Error(`No answer for ${entry}`));
-        try {
-          return Promise.resolve(run(input));
-        } catch (error) {
-          return Promise.reject(error instanceof Error ? error : new Error(String(error)));
-        }
-      },
+      call,
+      // The harness's answers are untyped; a test answers ".clearance" with the protocol's rows.
+      clearance: (request) => call("", "clearance", request) as Promise<readonly RowClearance[]>,
       describeEntry(module, entry) {
         const reads = queries[module]?.[entry];
         return reads === undefined ? { kind: "operation" } : { kind: "query", reads };

@@ -23,6 +23,7 @@ export function changingAnswers(first: PortAccess, queries: QueryTables): Changi
     access: {
       ...NO_DATA_PROCESS,
       call: (module, entry, input, signal) => answers.call(module, entry, input, signal),
+      clearance: (request, signal) => answers.clearance(request, signal),
       describeEntry(module, entry) {
         const reads = queries[module]?.[entry];
         return reads === undefined ? { kind: "operation" } : { kind: "query", reads };

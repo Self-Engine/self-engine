@@ -4,7 +4,8 @@
 
 import { startTestDataProcess, type TestDataProcess } from "@self-engine/data-process/testing";
 import { notes, notesContract } from "@self-engine/storage/testing";
-import { afterEach, expect, test } from "vite-plus/test";
+import type { RowClearance } from "@self-engine/data-protocol";
+import { afterEach, expect, expectTypeOf, test } from "vite-plus/test";
 import { createDataConnection, type DataConnection } from "../index.ts";
 import { portAccessOf } from "./port-access.ts";
 
@@ -90,15 +91,17 @@ test("reports a reconnect when ready again after the port was lost, not the firs
   expect(reconnects).toBe(2);
 });
 
-test("calls the root Clearance Query through the Port", async () => {
+test("asks the root Clearance Query through the Port, typed by the protocol", async () => {
   const { connection } = await connected();
   const access = portAccessOf(connection);
   const note = await connection.client.notes.create({ title: "Alpha", isPinned: false });
-  await expect(
-    access.call("", "clearance", {
-      table: "notes",
-      rows: [note.id],
-      writes: ["delete"],
-    }),
-  ).resolves.toEqual([{ row: note.id, writes: { delete: { state: "free" } } }]);
+  const answer = access.clearance({ table: "notes", rows: [note.id], writes: ["delete"] });
+
+  expectTypeOf(answer).resolves.toEqualTypeOf<readonly RowClearance[]>();
+  await expect(answer).resolves.toEqual([{ row: note.id, writes: { delete: { state: "free" } } }]);
+  // Never called: only its type is checked.
+  const unknownWrite = () =>
+    // @ts-expect-error The protocol knows no write "publish".
+    access.clearance({ table: "notes", rows: [note.id], writes: ["publish"] });
+  expect(typeof unknownWrite).toBe("function");
 });

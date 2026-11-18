@@ -10,8 +10,13 @@ import {
   type RowClearance,
   rowClearanceSchema,
 } from "@self-engine/data-protocol";
-import type { ConflictReasonOf, EntryName, ModuleContract } from "../react/contract-types.ts";
-import { NO_DATA_PROCESS, type PortAccess } from "../react/port-access.ts";
+import type {
+  CarriesRefusal,
+  ConflictReasonOf,
+  EntryName,
+  ModuleContract,
+} from "../react/contract-types.ts";
+import { type ClearanceRequest, NO_DATA_PROCESS, type PortAccess } from "../react/port-access.ts";
 
 /**
  * What one Port entry answers in a story or component test (D255):
@@ -21,12 +26,18 @@ import { NO_DATA_PROCESS, type PortAccess } from "../react/port-access.ts";
  * - `"unexpected"`: the call fails for a reason the entry does not declare.
  * - `{ conflict }`: the entry's `CONFLICT` with one of the reasons it declares.
  * - `"notFound"`: the entry's `NOT_FOUND`, for an entry that declares it.
- * - `{ refused }`: the Refusal `REFUSED` with these Reasons, for an entry that carries the shared
- *   `refusal` block. Each Reason is one whose definition the story passes in `reasons`, the
- *   frame's own (`referenced`, `targetDeleted`) included, with details its definition accepts;
- *   the severity is "blocking", which is all the frame sets (D338).
+ * - `{ refused }`: the Refusal `REFUSED` with at least one Reason, for an entry that carries the
+ *   shared `refusal` block (`Refusable`); for a Query it does not compile. Each Reason is one
+ *   whose definition the story passes in `reasons`, the frame's own (`referenced`,
+ *   `targetDeleted`) included, with details its definition accepts; the severity is "blocking",
+ *   which is all the frame sets (D338).
  */
-export type FixedAnswer<Data, ConflictReason extends string, Defined = never> =
+export type FixedAnswer<
+  Data,
+  ConflictReason extends string,
+  Defined = never,
+  Refusable extends boolean = true,
+> =
   | { readonly data: Data }
   | "loading"
   | "unexpected"
@@ -34,7 +45,9 @@ export type FixedAnswer<Data, ConflictReason extends string, Defined = never> =
   | ([ConflictReason] extends [never] ? never : { readonly conflict: ConflictReason })
   | ([Defined] extends [never]
       ? never
-      : { readonly refused: readonly [FixedReason<Defined>, ...FixedReason<Defined>[]] });
+      : Refusable extends true
+        ? { readonly refused: readonly [FixedReason<Defined>, ...FixedReason<Defined>[]] }
+        : never);
 
 /** A Reason of a Fixed Answer: as the frame sends it, but for the severity, which it sets. */
 type FixedReason<Definition> = Definition extends ReasonDefinition
@@ -60,7 +73,8 @@ export type FixedAnswers<Of extends Contracts, Reasons extends ReasonDefinition 
     readonly [Entry in EntryName<Of[Module]>]?: FixedAnswer<
       DataOf<Of[Module][Entry]>,
       ConflictReasonOf<Of[Module], Entry>,
-      Reasons
+      Reasons,
+      CarriesRefusal<Of[Module], Entry>
     >;
   };
 };
@@ -131,7 +145,8 @@ export function fixedAnswers<Of extends Contracts, Reasons extends ReasonDefinit
     reasons.map((definition) => [definition.code, definition]),
   );
   const checked = new Map<string, (input: unknown) => Promise<unknown>>();
-  if (clearance.length > 0) checked.set(".clearance", clearanceAnswer(clearance, defined, report));
+  const clearanceAnswers =
+    clearance.length > 0 ? clearanceAnswer(clearance, defined, report) : undefined;
   for (const [module, entries] of Object.entries(answers as Record<string, object | undefined>)) {
     for (const [entry, answer] of Object.entries(entries ?? {})) {
       const procedure = contracts[module]?.[entry];
@@ -150,12 +165,24 @@ export function fixedAnswers<Of extends Contracts, Reasons extends ReasonDefinit
     ...NO_DATA_PROCESS,
     call(module, entry, input) {
       const answer = checked.get(`${module}.${entry}`);
-      if (answer !== undefined) return answer(input);
-      const problem = `No Fixed Answer for ${module === "" ? entry : `${module}.${entry}`}, which the story called.`;
-      report(problem);
-      return Promise.reject(new Error(problem));
+      return answer === undefined ? noAnswer(module, entry, report) : answer(input);
     },
+    clearance: (request) =>
+      clearanceAnswers === undefined
+        ? noAnswer("", "clearance", report)
+        : clearanceAnswers(request),
   };
+}
+
+/** Reports a call no Fixed Answer answers, naming its entry; the call fails either way. */
+function noAnswer(
+  module: string,
+  entry: string,
+  report: (problem: string) => void,
+): Promise<never> {
+  const problem = `No Fixed Answer for ${module === "" ? entry : `${module}.${entry}`}, which the story called.`;
+  report(problem);
+  return Promise.reject(new Error(problem));
 }
 
 /**
@@ -175,10 +202,9 @@ export function answersByMount(
     ...NO_DATA_PROCESS,
     call(module, entry, input, signal) {
       const access = Object.hasOwn(accesses, module) ? accesses[module] : undefined;
-      if (access !== undefined) return access.call(module, entry, input, signal);
-      const problem = `No Fixed Answer for ${module === "" ? entry : `${module}.${entry}`}, which the story called.`;
-      report(problem);
-      return Promise.reject(new Error(problem));
+      return access === undefined
+        ? noAnswer(module, entry, report)
+        : access.call(module, entry, input, signal);
     },
   };
 }
@@ -188,7 +214,7 @@ function clearanceAnswer(
   rows: readonly FixedClearanceRow<ReasonDefinition>[],
   defined: ReadonlyMap<string, ReasonDefinition>,
   report: (problem: string) => void,
-): (input: unknown) => Promise<readonly RowClearance[]> {
+): (input: ClearanceRequest) => Promise<readonly RowClearance[]> {
   const byTable = new Map<string, Map<string, RowClearance["writes"]>>();
   for (const { table, row, writes } of rows) {
     const name = `clearance for ${table}/${row}`;
@@ -252,11 +278,20 @@ function answerOf(
     return () => Promise.reject(new ORPCError("CONFLICT", { data: { reason } }));
   }
   if ("refused" in answer) {
-    if (!("REFUSED" in errorMap)) {
+    const refused = errorMap["REFUSED"];
+    if (refused === undefined) {
       throw new Error(`Fixed Answer for ${name}: the entry carries no refusal block.`);
     }
-    const reasons = answer.refused.map((reason) => checkReason(name, reason, defined));
-    const refused = errorMap["REFUSED"];
+    // Untyped input may give anything: a Refusal is a list of one Reason at least.
+    const given: unknown = answer.refused;
+    if (!Array.isArray(given) || given.length === 0) {
+      throw new Error(`Fixed Answer for ${name}: a refusal carries a list of one Reason at least.`);
+    }
+    const reasons = (given as readonly Omit<Reason, "severity">[]).map((reason) =>
+      checkReason(name, reason, defined),
+    );
+    // The envelope as the entry's own refusal block takes it.
+    if (refused.data !== undefined) checkData(name, refused.data, { reasons }, "its refusal block");
     return () =>
       Promise.reject(new ORPCError("REFUSED", { status: refused?.status, data: { reasons } }));
   }

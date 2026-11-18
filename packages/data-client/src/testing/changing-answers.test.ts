@@ -8,6 +8,7 @@ import { changingAnswers } from "./changing-answers.ts";
 /** An access whose every call answers `value`. */
 const answering = (value: string): PortAccess => ({
   call: () => Promise.resolve(value),
+  clearance: () => Promise.resolve([{ row: value, writes: {} }]),
   describeEntry: () => undefined,
   onTablesChanged: () => () => undefined,
   onReconnected: () => () => undefined,
@@ -18,6 +19,9 @@ const QUERIES = { notes: { list: ["notes"] } };
 test("calls answer from the first access until a change, then from the next", async () => {
   const port = changingAnswers(answering("before"), QUERIES);
   await expect(port.access.call("notes", "list", {})).resolves.toBe("before");
+  await expect(
+    port.access.clearance({ table: "notes", rows: ["n"], writes: ["delete"] }),
+  ).resolves.toEqual([{ row: "before", writes: {} }]);
 
   port.change(answering("after"), ["notes"]);
 

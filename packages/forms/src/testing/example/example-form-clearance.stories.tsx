@@ -52,11 +52,11 @@ function portForStory(answer: Answer = "blocked") {
   const held = Promise.withResolvers<void>();
   const access: PortAccess = {
     ...port.access,
-    async call(module, entry, input, signal) {
-      calls.push({ entry, input });
+    async clearance(request, signal) {
+      calls.push({ entry: "clearance", input: request });
       await held.promise;
       if (answer === "failed") throw new Error("The Clearance did not answer");
-      return port.access.call(module, entry, input, signal);
+      return port.access.clearance(request, signal);
     },
   };
   return {
