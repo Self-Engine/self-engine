@@ -216,7 +216,7 @@ the default Notice, where the module knows better. The caller still receives
 
 **A Refusal.** When a Protection Rule refuses the write, nothing changed and the result is
 `{ status: "refused", reasons, atFields }`, every Reason with its code, severity, table, row, field
-and details, and in `atFields` those a form shows at a field (below). Ask it for one Reason by that Reason's definition, imported from the package that defines
+and details, and in `atFields` those the caller shows at a field (below). Ask it for one Reason by that Reason's definition, imported from the package that defines
 it, and read its details typed:
 
 ```ts
@@ -261,10 +261,13 @@ export const useEditTimeEntry = port.operation("edit", {
 
 Only the module's tables, their columns and the fields of the entry's input compile; a module
 whose `portHooks` has no tables maps none, and the function form (`run`) maps none, since it has
-no field. Such a Reason comes back in `atFields` with its field, and the Notice tells only the
-others; with every Reason at a field there is no Notice, and `refused` of the handling gets only
-the others too. The form helper shows each at its field ([forms guide](forms.md)). A Reason
-without a field, or at a column not named here, goes to the Notice.
+no field. A mapped Reason goes to its field only when the caller says, in the call's options,
+that it shows that field (`showsField: (field) => boolean`); the form helper says so for the
+fields it renders ([forms guide](forms.md)). Such a Reason comes back in `atFields` with its
+field, and the Notice tells only the others; with every Reason at a field there is no Notice,
+and `refused` of the handling gets only the others too. Every other Reason goes to the Notice:
+one without a field, one at a column not named here, and one whose field the caller does not
+show, such as from a button of the drawer. None is lost.
 
 **Texts of Reasons.** The package that defines a Reason writes its text in its UI part, a
 `ReasonText` that gets the Reason with its details typed, the App Language and the names of the
@@ -279,17 +282,36 @@ export const billedText: ReasonText<typeof billed> = ({ details }, { i18n }) =>
   i18n._(msg`It was billed on ${details.invoice}.`);
 ```
 
-The app names every Reason definition its Protection Rules answer with in `AppReasons`
-(`apps/web/src/reason-texts.ts`) and composes the texts with `refusalTexts<AppReasons>(…)`; a
-definition there without its text does not compile. The frame's own Reasons, `referenced` and
-`target_deleted`, have their texts in `frameReasonTexts`. A Reason whose code has no text, which
-only a definition missing from `AppReasons` can cause, reads “This change is not allowed.”
+A module hands the texts of its own rules' Reasons to the app in its Shell Contribution, beside
+the names of its synced tables, as data texts made by `dataTexts` against its storage module,
+which the root entry imports as a type only:
+
+```ts
+import { dataTexts } from "@self-engine/data-client/react";
+import type { timeEntries } from "./data/index.ts";
+
+dataTexts: dataTexts<typeof timeEntries>()({
+  tableNames: { time_entries: (count) => msg`${plural(count, { one: "time entry", other: "time entries" })}` },
+  reasonTexts: { billed: billedText },
+}),
+```
+
+A synced table without a name, or a Reason of the module's rules without a text, does not
+compile; a module without data gives `NO_DATA_TEXTS`, and the app's module list mounts no
+module without data texts. The frame's own Reasons, `referenced` and `target_deleted`, have their
+texts in `frameReasonTexts`, which `refusalTexts` always includes. The texts of rules registered
+from above are listed by hand in `apps/web/src/reason-texts.ts` (`ReasonsFromAbove`): the
+desktop app composes the Data Process, and the web app imports nothing of it, so the compiler
+cannot see such a rule there. Two texts for one code throw when the app composes them. A Reason
+whose code has no text, which only a missing rule from above can cause, reads “This change is
+not allowed.” Several Reasons at one place read as one text through `describeReasons`.
 
 Use the shared [form helper](forms.md) to check the input against the Contract before saving.
 The Data Process checks every input at the Port.
 
 **A Clearance.** Outside the form helper, pass a Query built with
-`clearanceQueryFor<TablesOf<typeof rowMap>>()` to `useClearance`. It reads once per mount.
+`clearanceQueryFor<TablesOf<typeof rowMap>>()` to `useClearance`. It reads once per mount,
+through the Port access's own typed `clearance` method.
 The `content` answer lists each row's writes as `free`, `blocked` or `notFound`;
 `findReason` also accepts a blocked write. For a story, give `fixedAnswers` the `clearance`
 option with `{ table, row, writes }` fixtures. A blocked write takes `{ state: "blocked",
@@ -376,7 +398,8 @@ story fixes for it:
 Each answer is checked when `fixedAnswers` is called, and the story fails naming the entry and,
 for data, the field: data the output schema rejects, a reason the entry does not declare,
 “not found” for an entry that does not declare it, a Refusal for an entry without the `refusal`
-block, or an entry the Contract lacks. Each Reason of a Refusal is one whose definition the story
+block (for a Query it does not compile either) or without a Reason, or an entry the Contract
+lacks. Each Reason of a Refusal is one whose definition the story
 passes in `reasons`, the frame's own included
 (`fixedAnswers(contracts, answers, { reasons: [referenced, pinnedNote] })`), with details that
 definition accepts; any other fails to compile and fails the story. A View that calls an entry

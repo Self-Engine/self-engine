@@ -16,36 +16,58 @@ while the rule and the tables it reads can belong to other packages.
 
 - An Operation hook or function returns `refused` with its Reasons. A caller can look up a
   particular Reason by its definition and read its typed details. An Operation hook can map a
-  Reason's table and column to an input field. The form shows those Reasons at their fields and
-  keeps the Draft. It displays a Check at the field first when both apply.
-- `DataProvider` supplies the shared Notice of a Refusal through `notifyRefused`. It shows the
-  applicable Reasons that remain after field mapping. A caller can supply an entry name and one
-  action per call, or handle the Refusal through the Operation's handling options. There is
-  no undo for a Refusal. The projects Edit Drawer offers Archive on a refused delete of an
-  active project, using the same discard confirmation, archive Operation and undo as the form.
-- Each module names its synced tables with plural Lingui messages in its Shell Contribution.
-  The map is checked against its Row Map through a type-only import. The app's module list
-  resolves the names by SQL table. The package that owns a Reason supplies its text with typed
-  details. The app lists the definitions and composes their texts for `DataProvider`. The
-  reference check uses table names, counts and the App Language's list and plural rules. Notice
-  and form texts are rendered in the active language.
+  Reason's table and column to an input field. A Reason goes to its field only when the caller
+  says, per call, that it shows that field; the form says so for the fields it renders. The form
+  shows those Reasons at their fields and keeps the Draft. It displays a Check at the field
+  first when both apply.
+- `DataProvider` supplies the shared Notice of a Refusal through `notifyRefused`. It shows every
+  Reason no field of the caller shows, so none is lost. A caller can supply an entry name and
+  one action per call, the form its entry name once, or handle the Refusal through the
+  Operation's handling options. There is no undo for a Refusal. The projects Edit Drawer offers
+  Archive on a refused delete of an active project. While the drawer is open and still shows
+  the project active, that Archive uses the same discard confirmation, archive Operation and
+  undo as the form; otherwise it archives without an undo, since the page cannot know whether
+  its archive changed anything.
+- Each module puts the names of its synced tables (plural Lingui messages) and the texts of its
+  own rules' Reasons into its Shell Contribution as data texts, made by `dataTexts` against its
+  storage module through a type-only import: a synced table without a name, or a Reason of its
+  rules without a text, does not compile, and the app's module list mounts no module without
+  data texts. The module list resolves the names by SQL table. The frame's Reasons are listed
+  beside their definitions, and the reference check is typed against that list. The texts of
+  rules registered from above are listed by hand in the app (`apps/web/src/reason-texts.ts`).
+  The app composes all texts for `DataProvider`. The reference check uses table names, counts
+  and the App Language's list and plural rules. Notice and form texts are rendered in the
+  active language.
 - An Edit Drawer asks for one row's Clearance once per opening, naming the kinds of write it
-  presents. `clearanceQueryFor` checks the table, row ids and write kinds against the module's
-  tables. Fields are usable while the answer is pending. Requested actions keep their ordinary
-  appearance and ignore activation until the answer arrives. A blocked action is disabled with
-  an accessible description in the space reserved below the footer. Table Changes leave the
-  opening's answer alone, and the write still checks the rules when the user acts.
+  presents; reopening the same entry, also during the drawer's exit, is a new opening.
+  `clearanceQueryFor` checks the table, row ids and write kinds against the module's tables.
+  Fields are usable while the answer is pending. Requested actions keep their ordinary
+  appearance and ignore activation until the answer arrives; a Clearance that fails leaves
+  them usable, since the write checks the rules anyway. A blocked action is disabled, and its
+  text, its accessible description, appears in a live region above the footer, which stays
+  pinned to the bottom of the drawer: the text takes its room from the free space below the
+  fields. Nothing is reserved while nothing is blocked. Table Changes leave the opening's
+  answer alone: an action the opening did not ask about, such as "Unarchive" after an archive
+  elsewhere, is usable, and the write still checks the rules when the user acts.
 - Fixed Answers represent both kinds of result and validate each Reason against the definitions
-  supplied by the story or test. The production startup audit keeps runtime Contracts, schema
+  supplied by the story or test; a Refusal compiles only for an entry with the refusal block and
+  needs one Reason at least. The Port access asks the Clearance through its own typed method,
+  which Fixed Answers implement. The production startup audit keeps runtime Contracts, schema
   definitions and forms on demand.
 
 ## Consequences
 
 A lower module can show the Reason for a rule from above without importing the rule or the
-referring module. Composition checks that every listed definition has a text. The list itself
-must be kept aligned with the definitions wired into the Data Process. The compiler checks the
-names used in a Clearance Query and column map. The caller still chooses the write represented
-by each button and the input field where a Reason belongs.
+referring module. The compiler checks a module's table names and its own rules' texts against
+its storage module, but not that the storage module a contribution names is the one the Data
+Process mounts beside it. The Reasons of rules registered from above are listed by hand in the
+web app, because the desktop app composes the Data Process and the web app imports nothing of
+it. The compiler checks the names used in a Clearance Query and column map. The caller still
+chooses the write represented by each button and the input field where a Reason belongs.
+
+When the fields fill the drawer, the footer moves down by the height of a blocked action's text,
+once, when the answer arrives. An undo offered right after an archive can still meet an archive
+from elsewhere that landed after the drawer's last Table Change.
 
 The [Port hooks guide](../development/port-hooks.md) and the [form guide](../development/forms.md)
 document how to wire the pattern. Pre-save field locks remain for the first rule that needs them.

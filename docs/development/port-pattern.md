@@ -195,7 +195,9 @@ as [`cards/data/index.ts`](../../packages/storage/test/cards-module/data/index.t
 - A Query for an archive View reads ``live(table).where(`${table}.archived_at`, "is not", null)``,
   as the `archived` Query of [`projects/data/index.ts`](../../packages/projects/src/data/index.ts)
   does; its Edit Drawer finds an entry in either list and offers "Archive" or "Unarchive" beside
-  "Delete", each closing the drawer with undo in a Notice.
+  "Delete", each closing the drawer with undo in a Notice. An archive the page cannot vouch for,
+  such as one taken from a Notice after the drawer closed, offers no undo: it may have written
+  nothing, and the undo would unarchive someone else's archive.
 
 For joins and aggregates, use ordinary Kysely builders and explicitly apply Space and live-row
 filters where required. Synced rows change only through the write paths, one row per call;
@@ -507,16 +509,20 @@ is the app's start address. The router hands that list to its routes through its
 app's stories mount their own list, [`apps/web/src/story-modules.ts`](../../apps/web/src/story-modules.ts):
 the placeholder modules beside every module of the app, so add a new module there too.
 
-In the Shell Contribution's `tableNames`, give every synced table one Lingui plural message
-for its singular and plural names. Check the map against
-`TableNames<SyncedTable<TablesOf<typeof rowMap>>>` with a type-only Row Map import, as
-[`projects`](../../packages/projects/src/index.ts) does. The app's module list makes these names
-available to the reference check's Reason text.
+In the Shell Contribution's `dataTexts`, made by `dataTexts<typeof storageModule>()` with a
+type-only import of the module's storage module, give every synced table one Lingui plural
+message for its singular and plural names, and every Reason of the module's own rules its typed
+text, as [`projects`](../../packages/projects/src/index.ts) does; a module without data gives
+`NO_DATA_TEXTS`. A missing name or text does not compile, and the app's module list mounts no
+module without data texts. It makes the names available to the reference check's Reason text
+and the texts to the shared Notice.
 
-Give each Reason a typed text in its owning package's UI and include its definition and text
-in the app's composition. The [Port hooks guide](port-hooks.md#3-change-data-with-an-operation-hook)
+Give each Reason a typed text in its owning package's UI: a module's own rules hand theirs in its
+data texts; a rule registered from above lists its definition and text by hand in the app's
+composition (`apps/web/src/reason-texts.ts`). The [Port hooks guide](port-hooks.md#3-change-data-with-an-operation-hook)
 shows how to write the text, use the shared Notice with a way out, and map a Reason to a field.
-An Edit Drawer reads Clearance once per opening for the actions it shows. Use the shared
+An Edit Drawer reads Clearance once per opening for the actions it shows; reopening the same
+entry is a new opening. Use the shared
 [form action slot](forms.md#action-slot-and-a-standalone-form) to show blocked actions and their
 Reasons. Leave the write in charge of checking again when an action is taken.
 

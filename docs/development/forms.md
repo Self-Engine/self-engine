@@ -66,8 +66,10 @@ in the form.
 Build hooks with `portHooks<typeof contract>(mountName)` as in [the hooks guide](port-hooks.md).
 Give every Conflict reason its `msg` descriptor and field there; use `field: null` for a
 Conflict no field can show. Name there too the field for each column a Reason of a Refusal may
-name (`columns`, [hooks guide](port-hooks.md)), such as a project field for `project_id`. A
-taken title is checked by the Operation, not while typing.
+name (`columns`, [hooks guide](port-hooks.md)), such as a project field for `project_id`. The
+form shows such a Reason at its field only when it renders that field; a Reason at a field it
+does not render goes to the shared Notice with the others, so none is lost. A taken title is
+checked by the Operation, not while typing.
 
 ## Create: fields and the module’s own texts
 
@@ -150,6 +152,8 @@ const form = useOperationForm({
   },
   edit: { identity: { id: project.id }, deleted },
   emptyTextFields: ["description"],
+  // The Notice of a refused save names the project.
+  entryName: project.title,
   onDone,
 });
 ```
@@ -222,10 +226,20 @@ const clearance = query({ table: "projects", rows: [project.id], writes: ["delet
 ```
 
 List the kinds of write the slot shows in `writes`. The form opens immediately and asks once per
-opening. The action keeps its ordinary appearance while the answer is pending and ignores
-activation. When blocked, it is disabled and linked to its Reason text beneath the footer.
-The footer reserves the same space before and after the answer. A Table Change leaves the
-answer alone. The Operation still handles Refusals that arise while the form is open.
+opening; reopening the same entry, also while the drawer still slides out, is a new opening and
+asks again. The action keeps its ordinary appearance while the answer is pending and ignores
+activation. When blocked, it is disabled and linked to its Reason text, which appears in a live
+region above the footer. The footer stays pinned to the bottom of the drawer and the text takes
+its room from the free space below the fields, so its arrival moves nothing; nothing is
+reserved while nothing is blocked. When the fields fill the drawer, the footer moves down by the
+height of the text, once, when the answer arrives. A Clearance that fails leaves the actions
+usable: the write checks the rules anyway. A Table Change leaves the answer alone, so an action
+the opening did not ask about, such as "Unarchive" after an archive elsewhere, is usable. The
+Operation still handles Refusals that arise while the form is open.
+
+Name the entry once with `entryName` (its title) in `useOperationForm`: the Notice of every
+refused save names it. A call of your own, such as Archive, passes it per call as
+`{ entry: project.title }`.
 
 Archive/Delete are Operations, never Draft fields. Outside the Edit Drawer, use
 `OperationFormBody` with the same `form` and fields and your own `type="submit"` button.

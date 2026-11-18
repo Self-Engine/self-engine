@@ -572,8 +572,14 @@ React root and Query cache, using Happy DOM and a real test Data Process over Me
 The module code and connection were warm. The control omitted the form's Clearance prop,
 and the experiment sent one Clearance Query for Delete and Archive. After 10 warm-up pairs,
 40 pairs alternated the run order. The observer timed the first Title input and the point
-at which Delete accepted activation. These are DOM timings, before browser paint and
-without the desktop drawer animation.
+at which Delete accepted activation. These are DOM timings in Happy DOM, not in a browser:
+before any paint, without the desktop drawer animation, and with the drawer's code already
+loaded.
+
+The first opening in the built app, with the drawer's chunk loading on demand and the browser
+painting, as the [form guide](forms.md#prove-the-form) asks for, is **not measured yet**: no
+script of this repo times it in a real browser without starting the desktop app (`pnpm renders`
+counts renders against the dev server and times nothing). That measurement is open.
 
 | First opening measurement | Without Clearance p50 / p95 | With Clearance p50 / p95 |
 | ------------------------- | --------------------------- | ------------------------ |

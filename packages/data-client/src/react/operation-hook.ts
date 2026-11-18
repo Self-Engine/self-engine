@@ -54,8 +54,10 @@ export type OperationHandling<Input, Reason extends string, Tables = never> = ([
     : {
         /**
          * The field that shows a Reason naming one of these columns, in the place of a
-         * Conflict's field. Such a Reason gets no Notice: the form shows it at that field. A
-         * Reason without a field, or at a column not named here, goes to the Notice.
+         * Conflict's field. Such a Reason gets no Notice when the caller shows that field
+         * (`showsField` of the call's options), as the form does for the fields it renders. A
+         * Reason without a field, at a column not named here, or at a field the caller does not
+         * show, goes to the Notice.
          */
         readonly columns?: ColumnFields<Tables, FieldOf<Input>>;
       }) & {
