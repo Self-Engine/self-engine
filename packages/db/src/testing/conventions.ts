@@ -298,12 +298,7 @@ export async function checkConventions(database: Database): Promise<SchemaViolat
       ...foreignKeyRules(name, createTable),
       ...(await foreignKeyActionRules(database, name)),
       ...(await spaceKeyRules(database, name, columns)),
-      ...(await indexRules(
-        database,
-        name,
-        createTable,
-        referring,
-      )),
+      ...(await indexRules(database, name, createTable, referring)),
       ...defaultRules(columns, referring),
     ];
     violations.push(...rules.map((rule) => ({ table: name, rule })));

@@ -9,13 +9,7 @@ import {
 import type { Kysely, Transaction, Updateable } from "kysely";
 import type { StorageContext } from "./context.ts";
 import type { RuleAnswer } from "./registry.ts";
-import type {
-  Archivable,
-  Convention,
-  ConventionKey,
-  RowId,
-  SyncedTable,
-} from "./convention.ts";
+import type { Archivable, Convention, ConventionKey, RowId, SyncedTable } from "./convention.ts";
 import type { ReadTransaction, RowMap } from "./module.ts";
 import { recordTableWrites } from "./table-writes.ts";
 

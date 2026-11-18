@@ -161,9 +161,9 @@ describe("the six write paths", () => {
       const writes = sharedWrites(transaction.withTables<CardRows>(), context);
       return [
         await writes.insert("cards", active, { title: "Active" }),
-        await writes.insert("cards", archived, { title: "Archived" }).then(() =>
-          writes.archive("cards", archived),
-        ),
+        await writes
+          .insert("cards", archived, { title: "Archived" })
+          .then(() => writes.archive("cards", archived)),
       ];
     });
     const answered = await database.kysely.transaction().execute(async (transaction) => {
