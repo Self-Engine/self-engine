@@ -26,7 +26,7 @@ import {
   useDataAccess,
   useReasonTexts,
 } from "./index.ts";
-import { NOT_FOUND_NOTICE, UNEXPECTED_NOTICE } from "./operation-hook.ts";
+import { NOT_FOUND_NOTICE, type RunOptions, UNEXPECTED_NOTICE } from "./operation-hook.ts";
 
 const notesPort = portHooks<typeof notesContract>("notes");
 const TITLE_TAKEN = msg`A note with this title already exists.`;
@@ -106,15 +106,16 @@ test("the hook reports running while any of its calls is outstanding, and only i
 });
 
 /** Runs the Operation once and lets its answer in. */
-async function runOnce<Result>(
-  rendered: { current(): { run(input: typeof RENAME): Promise<Result> } },
+async function runOnce<Result, Options = never>(
+  rendered: { current(): { run(input: typeof RENAME, options?: Options): Promise<Result> } },
   input = RENAME,
+  options?: Options,
 ): Promise<Result> {
   let result: Result | undefined;
   act(() => {
     void rendered
       .current()
-      .run(input)
+      .run(input, options)
       .then((value) => (result = value));
   });
   await settle();
@@ -492,8 +493,14 @@ const useRenameAtField = tablesPort.operation("update", {
   columns: { notes: { title: "title" } },
 });
 
-/** Renders the rename that maps the column `title`, collecting its Notices. */
-async function renameAtField(answer: ORPCError<string, unknown>) {
+/**
+ * Renders the rename that maps the column `title`, collecting its Notices; it runs as a form that
+ * shows the field `title` unless `options` say otherwise.
+ */
+async function renameAtField(
+  answer: ORPCError<string, unknown>,
+  options: RunOptions<"id" | "title"> = { showsField: (field) => field === "title" },
+) {
   const port = fakePort();
   port.answer("update", () => Promise.reject(answer));
   const notices: ShownNotices = [];
@@ -502,7 +509,7 @@ async function renameAtField(answer: ORPCError<string, unknown>) {
     notify: (notice) => notices.push(notice),
     notifyRefused: (notice) => refusals.push(notice),
   });
-  return { result: await runOnce(rename), notices, refusals };
+  return { result: await runOnce(rename, RENAME, options), notices, refusals };
 }
 
 const refusedWith = (...reasons: readonly object[]) =>
@@ -518,6 +525,16 @@ test("a Reason at a mapped column is left to the form at its field, and the Noti
   });
   expect(refusals).toEqual([{ reasons: [PINNED] }]);
   expect(notices).toEqual([]);
+});
+
+test("a Reason at a mapped column whose field the caller does not show goes to the Notice", async () => {
+  // A form without the field, and a caller that is no form, such as a button of the drawer.
+  for (const options of [{ showsField: () => false }, {}]) {
+    const { result, refusals } = await renameAtField(REFUSED, options);
+
+    expect(result).toEqual({ status: "refused", reasons: [PINNED, AT_FIELD], atFields: [] });
+    expect(refusals).toEqual([{ reasons: [PINNED, AT_FIELD] }]);
+  }
 });
 
 test("a Refusal whose every Reason is at a mapped field shows no Notice", async () => {
@@ -547,10 +564,11 @@ test("a caller that shows a Refusal itself gets only the Reasons no field shows"
   const port = fakePort();
   port.answer("update", () => Promise.reject(REFUSED));
   const rename = await renderHook(port, () => useRenameShowing());
+  const showsTitle: RunOptions<"id" | "title"> = { showsField: (field) => field === "title" };
 
-  await runOnce(rename);
+  await runOnce(rename, RENAME, showsTitle);
   port.answer("update", () => Promise.reject(refusedWith(AT_FIELD)));
-  await runOnce(rename);
+  await runOnce(rename, RENAME, showsTitle);
 
   expect(shown).toEqual([[PINNED]]);
 });

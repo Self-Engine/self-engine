@@ -16,7 +16,7 @@ import { activateLanguage } from "@self-engine/i18n";
 import { clearNotices } from "@self-engine/ui/story-notices";
 import { holdTimers } from "@self-engine/ui/story-timers";
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { expect, fn, spyOn, userEvent, waitFor, within } from "storybook/test";
+import { expect, fn, userEvent, waitFor, within } from "storybook/test";
 import { z } from "zod";
 import { TextField, useOperationForm } from "../../index.ts";
 import { exampleContract } from "./contract.ts";
@@ -253,12 +253,16 @@ export const TheMessageFollowsALanguageSwitch: Story = {
   },
 };
 
-/** A form that maps the column `description` but shows no description field: a module's error. */
+/**
+ * A form that maps the column `description` but shows no description field, and names the entry
+ * the Notice of a refused save concerns.
+ */
 function FormWithoutItsDescription({ created }: { readonly created: () => void }) {
   const form = useOperationForm({
     entry: exampleContract.create,
     operation: useCreateExample(),
     draft: { title: "Kitchen", description: "Paint the walls.", icon: null, color: null },
+    entryName: "Kitchen",
     onSuccess: created,
   });
   return (
@@ -269,25 +273,23 @@ function FormWithoutItsDescription({ created }: { readonly created: () => void }
   );
 }
 
-export const AReasonAtAFieldTheFormDoesNotShowFailsTheStoryGate: Story = {
-  loaders: [loadRefused({ ...RESERVED, field: "description" })],
+export const AReasonAtAFieldTheFormDoesNotShowGoesToTheNoticeWithTheEntry: Story = {
+  loaders: [loadRefused({ ...RESERVED, field: "description" }, FULL)],
   render: (_args, { loaded }) => (
     <DataProvider access={(loaded as Loaded).port.access} reasonTexts={texts}>
       <FormWithoutItsDescription created={(loaded as Loaded).created} />
     </DataProvider>
   ),
   play: async ({ canvasElement }) => {
-    // Only this deliberate failure consumes the error; ordinary stories fail on console.error.
-    const reported = spyOn(console, "error").mockImplementation(() => undefined);
-    try {
-      await userEvent.click(within(canvasElement).getByRole("button", { name: "Save" }));
-      await waitFor(() =>
-        expect(reported).toHaveBeenCalledWith(
-          'The Operation shows a Reason at "description", but the form shows no field of that name.',
-        ),
-      );
-    } finally {
-      reported.mockRestore();
-    }
+    await userEvent.click(within(canvasElement).getByRole("button", { name: "Save" }));
+
+    // No Reason is lost: the one whose field is not on screen joins the Notice, under the entry.
+    await expect(await reasonsInTheNotice()).toEqual([
+      "“Kitchen” is kept for the archive.",
+      "This space holds no more than 3 entries.",
+    ]);
+    await expect(noticeOnScreen()?.querySelector(".mantine-Notification-title")?.textContent).toBe(
+      "Kitchen",
+    );
   },
 };

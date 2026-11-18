@@ -13,6 +13,7 @@ export {
   type ColumnFields,
   type ReasonAtField,
   type OperationState,
+  type RunOptions,
 } from "./operation-hook.ts";
 export { NO_DATA_PROCESS, type PortAccess, portAccessOf } from "./port-access.ts";
 export { type PortHooks, portHooks } from "./port-hooks.ts";

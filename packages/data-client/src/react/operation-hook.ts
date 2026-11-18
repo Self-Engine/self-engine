@@ -85,9 +85,9 @@ export interface ReasonAtField<Field extends string> {
  *   notice; for a reason whose field is `null`, the notice with the text was shown instead.
  * - `notFound`: the entry is gone. A notice told the user, unless the module replaced it.
  * - `refused`: a Protection Rule refused the write and nothing changed; the Refusal's Reasons, and
- *   in `atFields` those at a column the module maps, each with its field, for the form to show
- *   there. The shared Notice of a Refusal told the user every other Reason, unless the module
- *   replaced it.
+ *   in `atFields` those at a column the module maps whose field the caller shows (`showsField`),
+ *   each with its field, for the form to show there. The shared Notice of a Refusal told the user
+ *   every other Reason, unless the module replaced it.
  * - `unexpected`: anything else; a general notice told the user.
  */
 export type OperationResult<Output, Reason extends string, Field extends string> =
@@ -107,13 +107,24 @@ export type OperationResult<Output, Reason extends string, Field extends string>
     } & Refusal)
   | { readonly status: "unexpected"; readonly error: unknown };
 
+/**
+ * What a caller adds to one call of an Operation hook: the entry and one action for the Notice of
+ * a Refusal, and the fields it shows a Reason at.
+ */
+export interface RunOptions<Field extends string = string> extends RefusalNoticeOptions {
+  /**
+   * Whether the caller shows a Reason at `field`, the field `columns` maps the Reason's column
+   * to: a form answers for the fields it renders. Such a Reason is in `atFields` and not in the
+   * Notice. A Reason no caller shows at a field goes to the Notice, so none is lost; without
+   * this, every Reason does.
+   */
+  readonly showsField?: (field: Field) => boolean;
+}
+
 /** What an Operation hook returns: the call, and whether one is running. */
 export interface OperationState<Input, Result> {
-  /**
-   * Calls the Operation; resolves with its result and never rejects. `refusal` names the entry
-   * and adds one action to the Notice of a Refusal.
-   */
-  readonly run: (input: Input, refusal?: RefusalNoticeOptions) => Promise<Result>;
+  /** Calls the Operation; resolves with its result and never rejects. */
+  readonly run: (input: Input, options?: RunOptions<FieldOf<Input>>) => Promise<Result>;
   /** True from a call until its result, so a button can lock against a second submit. */
   readonly running: boolean;
 }
@@ -143,13 +154,15 @@ async function callOperation(
   entry: string,
   input: unknown,
   handling: Handling,
+  showsField: (field: string) => boolean,
 ): Promise<AnyResult> {
   try {
     return { status: "success", data: await access.call(module, entry, input) };
   } catch (error) {
     if (error instanceof ORPCError) {
       if (error.code === "NOT_FOUND") return { status: "notFound" };
-      const refused = error.code === "REFUSED" ? refusalOf(error.data, handling) : undefined;
+      const refused =
+        error.code === "REFUSED" ? refusalOf(error.data, handling, showsField) : undefined;
       if (refused !== undefined) return refused;
       const conflict = error.code === "CONFLICT" ? conflictOf(error.data, handling) : undefined;
       if (conflict !== undefined) return conflict;
@@ -172,12 +185,16 @@ function conflictOf(data: unknown, handling: Handling): AnyResult | undefined {
  * unexpected. Checked by hand, since the block's schema must not load at startup. The details stay
  * unknown until `findReason` checks them by their definition.
  */
-function refusalOf(data: unknown, handling: Handling): AnyResult | undefined {
+function refusalOf(
+  data: unknown,
+  handling: Handling,
+  showsField: (field: string) => boolean,
+): AnyResult | undefined {
   const reasons: unknown = isObject(data) ? data["reasons"] : undefined;
   if (!Array.isArray(reasons) || reasons.length === 0 || !reasons.every(isReason)) return;
   const atFields = reasons.flatMap((reason) => {
     const field = fieldOf(reason, handling);
-    return field === undefined ? [] : [{ field, reason }];
+    return field === undefined || !showsField(field) ? [] : [{ field, reason }];
   });
   return { status: "refused", reasons, atFields };
 }
@@ -210,10 +227,13 @@ function isObject(value: unknown): value is Readonly<Record<string, unknown>> {
   return typeof value === "object" && value !== null;
 }
 
+/** No field shows a Reason: the caller is no form, such as a button or a Command. */
+const NO_FIELD = () => false;
+
 /**
  * Calls the Operation and announces its "not found", refused and unexpected results and a conflict
  * without a field, as both the hook and the function form do; any other conflict, and a Reason at
- * a column the module maps, is left to the caller.
+ * a field the caller shows, is left to the caller.
  */
 async function runOperation(
   { access, notify, notifyRefused }: DataAccess,
@@ -221,9 +241,9 @@ async function runOperation(
   entry: string,
   input: unknown,
   handling: Handling,
-  refusal: RefusalNoticeOptions = {},
+  { showsField = NO_FIELD, ...refusal }: RunOptions = {},
 ): Promise<AnyResult> {
-  const result = await callOperation(access, module, entry, input, handling);
+  const result = await callOperation(access, module, entry, input, handling, showsField);
   if (result.status === "conflict" && result.field === null) notify(result.text);
   if (result.status === "unexpected") notify(UNEXPECTED_NOTICE);
   if (result.status === "refused") {
@@ -245,7 +265,7 @@ async function runOperation(
 /** One call of an Operation hook, as the query library hands it on. */
 interface Call<Input> {
   readonly input: Input;
-  readonly refusal: RefusalNoticeOptions | undefined;
+  readonly options: RunOptions | undefined;
 }
 
 /**
@@ -264,18 +284,19 @@ export function operationHook<Input, Output, Reason extends string>(
       mutationKey: [module, entry],
       // The library passes its own context as a second argument, which the Port's call would
       // take for its options; only the input goes on.
-      mutationFn: ({ input, refusal }: Call<Input>) =>
-        runOperation(data, module, entry, input, handling, refusal),
+      mutationFn: ({ input, options }: Call<Input>) =>
+        runOperation(data, module, entry, input, handling, options),
     });
     // The library's pending flag follows only the latest call, so overlapping calls are counted
     // here: `running` stays true until every call of this hook has its result, and a call of
     // another component on the same entry does not lock this one.
     const [outstanding, setOutstanding] = useState(0);
     const run = useCallback(
-      async (input: Input, refusal?: RefusalNoticeOptions) => {
+      async (input: Input, options?: RunOptions<FieldOf<Input>>) => {
         setOutstanding((count) => count + 1);
         try {
-          return (await mutateAsync({ input, refusal })) as OperationResult<
+          // The field names are the input's; the runtime view takes any.
+          return (await mutateAsync({ input, options: options as RunOptions })) as OperationResult<
             Output,
             Reason,
             FieldOf<Input>

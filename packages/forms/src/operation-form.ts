@@ -6,6 +6,7 @@ import {
   type OperationState,
   type Reason,
   type RefusalTexts,
+  type RunOptions,
   useReasonTexts,
 } from "@self-engine/data-client/react";
 import { useLayoutEffect, useRef, useState } from "react";
@@ -76,6 +77,11 @@ export interface OperationFormOptions<
   };
   /** Nullable text fields: an empty or whitespace-only input hands on null, never empty text. */
   readonly emptyTextFields?: readonly (keyof InputOfEntry<Entry> & string)[];
+  /**
+   * The entry the form edits, by the name the person knows it by, such as its title: the Notice
+   * of a refused save names it (D334). Give it once here; every save passes it on.
+   */
+  readonly entryName?: string;
   /** Called once the Operation succeeded, with its answer. */
   readonly onSuccess?: (data: SuccessData<Result>) => void;
   /** Closes the form after success or a not-found result. */
@@ -161,8 +167,11 @@ interface Latest {
     };
     readonly emptyTextFields?: readonly string[];
     readonly entry: AnyContractProcedure;
+    readonly entryName?: string;
     readonly texts?: FormTexts;
-    readonly operation: { readonly run: (input: Values) => Promise<AnyResult> };
+    readonly operation: {
+      readonly run: (input: Values, options: RunOptions) => Promise<AnyResult>;
+    };
     readonly onSuccess?: (data: unknown) => void;
     readonly onDone?: () => void;
   };
@@ -355,7 +364,11 @@ function createForm(latest: () => Latest, isEdit: boolean): MadeForm {
       try {
         // What this save hands on: a value set while it runs was never sent and stays changed.
         const sent = structuredClone(input());
-        const result = await options.operation.run(sent);
+        // A Reason goes to a field only if this form shows that field; the Notice tells the rest.
+        const result = await options.operation.run(sent, {
+          ...(options.entryName !== undefined && { entry: options.entryName }),
+          showsField: (field) => elements.has(field),
+        });
         if (result.status === "conflict") {
           if (result.field !== null) {
             conflicts.set(result.field, result.text);
@@ -366,11 +379,6 @@ function createForm(latest: () => Latest, isEdit: boolean): MadeForm {
           // This Refusal replaces the last one; the hook told every other Reason in its Notice.
           refusedAt.clear();
           for (const [field, text] of reasonsAtFields(result.atFields, latest)) {
-            if (!elements.has(field)) {
-              console.error(
-                `The Operation shows a Reason at "${field}", but the form shows no field of that name.`,
-              );
-            }
             refusedAt.set(field, text);
           }
           check();

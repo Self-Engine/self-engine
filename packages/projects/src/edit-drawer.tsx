@@ -128,7 +128,10 @@ function FoundProject({
     setLeaving(false);
   };
   const active = project.archivedAt === null;
-  const archiveOrUnarchive = leave(() => (active ? archive : unarchive)(project.id), true);
+  const archiveOrUnarchive = leave(
+    () => (active ? archive : unarchive)(project.id, { entry: project.title }),
+    true,
+  );
   const archiveHere = () => void archiveOrUnarchive();
   const deleteHere = leave(
     () =>
@@ -208,6 +211,7 @@ function EditForm({
     },
     edit: { identity: { id: project.id }, deleted },
     emptyTextFields: ["description"],
+    entryName: project.title,
     onDone,
   });
   return (

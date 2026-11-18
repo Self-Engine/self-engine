@@ -14,15 +14,19 @@ import {
   useDataAccess,
 } from "@self-engine/data-client/react";
 import { startTestDataProcess } from "@self-engine/data-process/testing";
+import { defineReason } from "@self-engine/db/schema";
 import { Shell, type ShellRouting, type ViewAddress, type ViewSearch } from "@self-engine/shell";
+import { protectionRule } from "@self-engine/storage";
 import { FeedbackHost } from "@self-engine/ui";
 import { clearNotices } from "@self-engine/ui/story-notices";
 import { createElement } from "react";
 import { createRoot } from "react-dom/client";
 import { afterEach, expect, test, vi } from "vite-plus/test";
+import { z } from "zod";
 import { projectEntries } from "../test/project-entries-module/data/index.ts";
 import { projectEntriesTableNames } from "../test/project-entries-module/table-names.ts";
 import { projects } from "./data/index.ts";
+import { projectsRowMap } from "./data/rows.ts";
 import { contribution } from "./index.ts";
 
 const cleanups: (() => void | Promise<void>)[] = [];
@@ -179,4 +183,79 @@ test("a new reference refuses a delete from a stale drawer and blocks it on the 
     expect(remove.disabled).toBe(false);
   });
   expect(access.call.mock.calls.filter(([, entry]) => entry === "clearance")).toHaveLength(3);
+});
+
+/**
+ * A rule from above that refuses every archive and every edit of a project once armed: armed
+ * after the drawer's Clearance, it is what changed since the drawer opened.
+ */
+const kept = defineReason("kept", z.object({}));
+let keeping = false;
+const keepsProjects = (["archive", "update"] as const).map((write) =>
+  protectionRule(projectsRowMap, {
+    table: "projects",
+    write,
+    reasons: [kept],
+    answer: async (_tx, _context, rows) =>
+      keeping ? rows.map(({ id }) => ({ code: kept.code, row: id, details: {} })) : [],
+  }),
+);
+
+/** The project "Website" in an open drawer, over a Data Process whose rules refuse it all. */
+async function refusingDrawer() {
+  const process = await startTestDataProcess({ modules: { projects }, rules: keepsProjects });
+  cleanups.push(() => process.close());
+  const client = createORPCClient<ContractRouterClient<{ projects: typeof projects.contract }>>(
+    new RPCLink({ port: process.openPort() }),
+  );
+  const project = await client.projects.create({ title: "Website" });
+  const connection = createDataConnection();
+  cleanups.push(() => connection.disconnect());
+  connection.connect(process.openPort());
+  Object.defineProperty(document, "fonts", { configurable: true, value: new EventTarget() });
+  cleanups.push(() => {
+    Reflect.deleteProperty(document, "fonts");
+  });
+  keeping = false;
+  const { access } = renderDrawer(project.id, portAccessOf(connection));
+  await vi.waitFor(() =>
+    expect(access.call.mock.calls.some(([, entry]) => entry === "clearance")).toBe(true),
+  );
+  const archive = await vi.waitFor(() => {
+    const archive = button(drawer(), "Archive");
+    expect(archive.getAttribute("aria-disabled")).toBeNull();
+    return archive;
+  });
+  keeping = true;
+  return archive;
+}
+
+/** The Notice of a Refusal on screen, once it names this text. */
+const refusalNotice = (text: string) =>
+  vi.waitFor(() => {
+    const notice = document.querySelector('[role="alert"]');
+    expect(notice?.textContent).toContain(text);
+    return notice!;
+  });
+
+test("the Notice of a refused archive names the project", async () => {
+  const archive = await refusingDrawer();
+  archive.click();
+
+  const notice = await refusalNotice("This change is not allowed.");
+  expect(notice.textContent).toContain("Website");
+  expect(notice.textContent).not.toContain("Undo");
+});
+
+test("the Notice of a refused save names the project the form edits", async () => {
+  await refusingDrawer();
+  const title = drawer().querySelector("input")!;
+  // React reads the value through the input's own setter, as typing sets it.
+  Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!.call(title, "Web");
+  title.dispatchEvent(new Event("input", { bubbles: true }));
+  await vi.waitFor(() => expect(button(drawer(), "Save").disabled).toBe(false));
+  button(drawer(), "Save").click();
+
+  const notice = await refusalNotice("This change is not allowed.");
+  expect(notice.textContent).toContain("Website");
 });
