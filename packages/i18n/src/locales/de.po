@@ -1375,8 +1375,8 @@ msgid "The last automatic backup failed"
 msgstr "Die letzte automatische Sicherung ist fehlgeschlagen"
 
 #: packages/data-client/src/react/reason-texts.ts
-msgid "The linked {name} was deleted."
-msgstr "Der verknüpfte Eintrag ({name}) wurde gelöscht."
+msgid "The linked {name} is no longer available."
+msgstr "Der verknüpfte Eintrag ({name}) ist nicht mehr verfügbar."
 
 #: packages/placeholder-beta/src/overview.tsx
 msgid "The minimal module View."

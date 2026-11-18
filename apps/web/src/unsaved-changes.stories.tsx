@@ -383,6 +383,7 @@ function holdingCreate(access: PortAccess): PortAccess {
       if (entry === "create") await new Promise<void>((resolve) => (answerCreate = resolve));
       return access.call(module, entry, input, signal);
     },
+    clearance: (request, signal) => access.clearance(request, signal),
     describeEntry: (module, entry) => access.describeEntry(module, entry),
     onTablesChanged: (listener) => access.onTablesChanged(listener),
     onReconnected: (listener) => access.onReconnected(listener),

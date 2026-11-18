@@ -21,6 +21,7 @@ export { type PortHooks, portHooks } from "./port-hooks.ts";
 export type { Reason, ReasonDefinition, Refusal } from "@self-engine/data-protocol";
 export {
   type AnyReasonText,
+  describeReasons,
   type FrameReasons,
   frameReasonTexts,
   type ReasonText,

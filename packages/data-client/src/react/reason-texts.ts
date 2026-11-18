@@ -37,6 +37,18 @@ export interface RefusalTexts {
   readonly describe: (reason: Reason, i18n: I18n) => string;
 }
 
+/**
+ * Several Reasons as one text, each sentence after the other: what a blocked action's description
+ * and a field's message show when more than one Reason stands there.
+ */
+export function describeReasons(
+  texts: RefusalTexts,
+  reasons: readonly Reason[],
+  i18n: I18n,
+): string {
+  return reasons.map((reason) => texts.describe(reason, i18n)).join(" ");
+}
+
 /** Shown for a Reason whose code has no text, which a compiled app never meets. */
 export const UNDESCRIBED_REASON = msg`This change is not allowed.`;
 
@@ -102,6 +114,6 @@ export const frameReasonTexts: ReasonTexts<FrameReasons> = {
   },
   target_deleted: ({ details }, { i18n, tableName }) => {
     const name = i18n._(tableName(details.target.table)(1));
-    return i18n._(msg`The linked ${name} was deleted.`);
+    return i18n._(msg`The linked ${name} is no longer available.`);
   },
 };

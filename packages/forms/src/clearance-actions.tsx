@@ -4,6 +4,7 @@ import {
   type Clearance,
   type ClearanceQuery,
   type ClearanceWrite,
+  describeReasons,
   useClearance,
   useReasonTexts,
 } from "@self-engine/data-client/react";
@@ -40,7 +41,7 @@ export function EditActionClearance({
     if (answer?.state !== "blocked") return [];
     return [
       <div key={write} id={descriptionId(write)}>
-        {answer.reasons.map((reason) => texts.describe(reason, i18n)).join(" ")}
+        {describeReasons(texts, answer.reasons, i18n)}
       </div>,
     ];
   });

@@ -241,13 +241,13 @@ export const TheMessageFollowsALanguageSwitch: Story = {
     const form = formIn(canvasElement);
     await fillInAndSave(form);
     await waitFor(() =>
-      expect(form.color()).toHaveAccessibleDescription("The linked entry was deleted."),
+      expect(form.color()).toHaveAccessibleDescription("The linked entry is no longer available."),
     );
 
     await userEvent.click(within(canvasElement).getByRole("button", { name: "Deutsch" }));
     await waitFor(() =>
       expect(form.color()).toHaveAccessibleDescription(
-        "Der verknüpfte Eintrag (Eintrag) wurde gelöscht.",
+        "Der verknüpfte Eintrag (Eintrag) ist nicht mehr verfügbar.",
       ),
     );
   },

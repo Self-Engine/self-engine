@@ -6,7 +6,7 @@ import type { Reason, referenced } from "@self-engine/data-protocol";
 import { activateLanguage, createI18n } from "@self-engine/i18n";
 import { notesTableNames } from "@self-engine/storage/testing/table-names";
 import { expect, test } from "vite-plus/test";
-import { type ReasonText, refusalTexts } from "./reason-texts.ts";
+import { describeReasons, type ReasonText, refusalTexts } from "./reason-texts.ts";
 
 // The frame's texts come along by themselves; the modules' texts are the first argument.
 const texts = refusalTexts([], (table) => (table === "notes" ? notesTableNames.notes : undefined));
@@ -52,13 +52,14 @@ test("a refused delete names each referring table with its count, in English and
   );
 });
 
-test("a reference to a deleted entry names that entry's table", async () => {
+test("a reference to an entry that is gone names that entry's table, without saying why", async () => {
+  // The frame answers so for a deleted, an unknown and another Space's target alike (ADR 0033).
   const i18n = createI18n();
   await activateLanguage(i18n, "en");
-  expect(texts.describe(TARGET_DELETED, i18n)).toBe("The linked note was deleted.");
+  expect(texts.describe(TARGET_DELETED, i18n)).toBe("The linked note is no longer available.");
   await activateLanguage(i18n, "de");
   expect(texts.describe(TARGET_DELETED, i18n)).toBe(
-    "Der verknüpfte Eintrag (Notiz) wurde gelöscht.",
+    "Der verknüpfte Eintrag (Notiz) ist nicht mehr verfügbar.",
   );
 });
 
@@ -92,4 +93,12 @@ test("a text reads its Reason's details typed (compile-time checks)", () => {
   // @ts-expect-error The details of `referenced` have no `tabels`.
   const misspelled: ReasonText<typeof referenced> = (r) => r.details.tabels;
   expect([tables, misspelled].every((text) => typeof text === "function")).toBe(true);
+});
+
+test("several Reasons read as one text, each sentence after the other", async () => {
+  const i18n = createI18n();
+  await activateLanguage(i18n, "en");
+  expect(
+    describeReasons(texts, [referencedBy([{ table: "notes", count: 1 }]), TARGET_DELETED], i18n),
+  ).toBe("Cannot be deleted: 1 note refers to it. The linked note is no longer available.");
 });

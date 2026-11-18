@@ -2,6 +2,7 @@ import type { MessageDescriptor } from "@lingui/core";
 import { useForm, type UseFormReturnType } from "@mantine/form";
 import type { AnyContractProcedure, InferSchemaInput } from "@orpc/contract";
 import {
+  describeReasons,
   type OperationResult,
   type OperationState,
   type Reason,
@@ -452,7 +453,12 @@ function reasonsAtFields(
   return new Map(
     [...byField].map(([field, at]) => [
       field,
-      (i18n) => at.map(({ reason }) => latest().reasonTexts.describe(reason, i18n)).join(" "),
+      (i18n) =>
+        describeReasons(
+          latest().reasonTexts,
+          at.map(({ reason }) => reason),
+          i18n,
+        ),
     ]),
   );
 }
