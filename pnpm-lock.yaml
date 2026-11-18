@@ -1264,6 +1264,9 @@ importers:
       '@self-engine/data-client':
         specifier: workspace:*
         version: link:../data-client
+      '@self-engine/i18n':
+        specifier: workspace:*
+        version: link:../i18n
       '@self-engine/icons':
         specifier: workspace:*
         version: link:../icons
@@ -1351,6 +1354,9 @@ importers:
         specifier: 'catalog:'
         version: 4.6.7
     devDependencies:
+      '@lingui/core':
+        specifier: 'catalog:'
+        version: 6.12.0(@babel/core@8.1.0)
       '@orpc/client':
         specifier: 'catalog:'
         version: 1.16.2

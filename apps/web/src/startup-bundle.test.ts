@@ -344,6 +344,20 @@ describe("the web app's startup rules", () => {
     });
   });
 
+  it("rejects a runtime import from a module's Row Map at startup", () => {
+    const contribution = "/repo/packages/projects/src/index.ts";
+    const rows = "/repo/packages/projects/src/data/rows.ts";
+    const result = inspectStartup(
+      [chunk("main.js", { isEntry: true, modules: { [contribution]: {}, [rows]: {} } })],
+      new Set(),
+      STARTUP_RULES,
+      (id) => (id === rows ? [contribution] : []),
+    );
+    expect(result.problems).toEqual([
+      `A module's storage code entered the startup bundle, imported by ${contribution}: import its Row Map only as a type in its Shell Contribution.`,
+    ]);
+  });
+
   describe("the project picker", () => {
     const pickerEntry = "/repo/packages/projects/src/picker/index.tsx";
     const drawer = "/repo/packages/time-tracking/src/edit-drawer.tsx";

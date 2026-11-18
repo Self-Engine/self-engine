@@ -7,6 +7,22 @@ msgstr ""
 "X-Generator: @lingui/cli\n"
 "Language: en\n"
 
+#: packages/placeholder-alpha/src/index.ts
+msgid "{count, plural, one {entry} other {entries}}"
+msgstr "{count, plural, one {entry} other {entries}}"
+
+#: packages/storage/test/notes-module/table-names.ts
+msgid "{count, plural, one {note} other {notes}}"
+msgstr "{count, plural, one {note} other {notes}}"
+
+#: packages/projects/test/project-entries-module/table-names.ts
+msgid "{count, plural, one {project entry} other {project entries}}"
+msgstr "{count, plural, one {project entry} other {project entries}}"
+
+#: packages/projects/src/index.ts
+msgid "{count, plural, one {project} other {projects}}"
+msgstr "{count, plural, one {project} other {projects}}"
+
 #: packages/forms/src/violation-texts.ts
 msgid "{maximum, plural, one {At most # character.} other {At most # characters.}}"
 msgstr "{maximum, plural, one {At most # character.} other {At most # characters.}}"

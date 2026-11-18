@@ -7,5 +7,6 @@ export const contribution = {
   name: msg`Placeholder Beta`,
   icon: ProjectsIcon,
   color: "teal",
+  tableNames: {},
   views: [{ id: "overview", title: msg`Overview`, load: () => import("./overview.tsx") }],
 } satisfies ShellContribution;

@@ -52,6 +52,17 @@ export const STARTUP_RULES = {
         "import it as a type in startup code, and at runtime only in an Edit Drawer that loads on demand, where a form checks with its input schema.",
     },
     {
+      // A table name is renderer metadata. Its tie to the Row Map is type-only (D335).
+      name: "A module's storage code",
+      path: "/src/data/",
+      instead: "import its Row Map only as a type in its Shell Contribution.",
+    },
+    {
+      name: "Storage",
+      path: "/packages/storage/src/core/",
+      instead: "import storage types only in the renderer.",
+    },
+    {
       // The id schema and the field-list building block that derives create and edit inputs
       // (D329). They build Zod schemas, so they load with a Contract, never at startup.
       name: "The shared schemas of db",

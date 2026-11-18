@@ -12,6 +12,7 @@ export { createContext, type StorageContext, type ContextSources } from "./conte
 // The id of a Space is `spaces`' own; modules take it from here for their row maps (D287).
 export { spaceIdSchema, type SpaceId } from "@self-engine/spaces";
 export { sharedEntry, sharedWrites } from "./shared-entry.ts";
+export type { SyncedTable } from "./convention.ts";
 export { protectionRule, type ProtectionRule, type RuleRow, type WrittenValues } from "./rules.ts";
 export { referenceCheck } from "./reference-check.ts";
 export { clearance } from "./clearance.ts";

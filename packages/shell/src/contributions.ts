@@ -1,5 +1,6 @@
 import type { PersonCommand, ShellCommand } from "./commands.ts";
 import type { MessageDescriptor } from "@lingui/core";
+import type { CountedName } from "@self-engine/i18n";
 import type { IconProps } from "@self-engine/icons";
 import type { ColorSetName } from "@self-engine/theme";
 import type { ComponentType } from "react";
@@ -38,6 +39,9 @@ export interface EditDrawerProps {
   readonly confirmDiscard: () => Promise<boolean>;
 }
 
+/** One plural name for each synced table a module owns. */
+export type TableNames<Table extends string = string> = Readonly<Record<Table, CountedName>>;
+
 interface ContributionMetadata {
   readonly id: string;
   readonly name: MessageDescriptor;
@@ -48,6 +52,7 @@ interface ContributionMetadata {
   readonly groups?: () => Promise<{ readonly default: ComponentType }>;
   readonly editDrawer?: () => Promise<{ readonly default: ComponentType<EditDrawerProps> }>;
   readonly sharedSearch?: readonly string[];
+  readonly tableNames?: TableNames;
 }
 
 /** Private state prevents object literals and spreads from forging checked membership. */
@@ -76,14 +81,25 @@ export type ShellContribution = ContributionMetadata &
     | ContributionAction
   );
 
+type ContributionInput<Commands extends readonly ShellCommand[]> = ContributionMetadata & {
+  readonly commands?: Commands;
+  readonly primaryAction?: string extends Commands[number]["id"]
+    ? never
+    : NoInfer<Extract<Commands[number], PersonCommand>>;
+};
+
 /** Infer command ids from commands alone, then check the direct main-action reference. */
+export function defineContribution<
+  const Commands extends readonly ShellCommand[] = readonly [],
+  const Names extends TableNames = TableNames,
+>(
+  contribution: ContributionInput<Commands> & { readonly tableNames: Names },
+): ShellContribution & { readonly tableNames: Names };
 export function defineContribution<const Commands extends readonly ShellCommand[] = readonly []>(
-  contribution: ContributionMetadata & {
-    readonly commands?: Commands;
-    readonly primaryAction?: string extends Commands[number]["id"]
-      ? never
-      : NoInfer<Extract<Commands[number], PersonCommand>>;
-  },
+  contribution: ContributionInput<Commands>,
+): ShellContribution;
+export function defineContribution<const Commands extends readonly ShellCommand[]>(
+  contribution: ContributionInput<Commands>,
 ): ShellContribution {
   const { commands, primaryAction, ...metadata } = contribution;
   if (primaryAction) {

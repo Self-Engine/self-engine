@@ -1,6 +1,9 @@
-import { msg } from "@lingui/core/macro";
+import { msg, plural } from "@lingui/core/macro";
+import type { TablesOf } from "@self-engine/db";
 import { ProjectsIcon } from "@self-engine/icons";
-import { defineContribution, type ShellCommand } from "@self-engine/shell";
+import { defineContribution, type ShellCommand, type TableNames } from "@self-engine/shell";
+import type { SyncedTable } from "@self-engine/storage";
+import type { projectsRowMap } from "./data/rows.ts";
 
 const newProject = {
   id: "new-project",
@@ -23,6 +26,9 @@ export const contribution = defineContribution({
   name: msg`Projects`,
   icon: ProjectsIcon,
   color: "violet",
+  tableNames: {
+    projects: (count) => msg`${plural(count, { one: "project", other: "projects" })}`,
+  },
   views: [
     {
       id: "active",
@@ -38,4 +44,4 @@ export const contribution = defineContribution({
   commands: [newProject, createProject],
   primaryAction: newProject,
   editDrawer: () => import("./edit-drawer.tsx"),
-});
+}) satisfies { readonly tableNames: TableNames<SyncedTable<TablesOf<typeof projectsRowMap>>> };

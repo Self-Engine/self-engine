@@ -68,8 +68,8 @@ export const ALLOWED_IMPORTS: AllowedImports = {
     "time",
     "ui",
   ],
-  // The Port access type only, which every Command is given (D261).
-  shell: ["data-client", "icons", "theme", "ui"],
+  // The Port access type (D261) and plural names of synced tables (D335).
+  shell: ["data-client", "i18n", "icons", "theme", "ui"],
   // The Space below Storage (D287): its table, its id and the Personal Space of a database.
   spaces: ["db", "time"],
   storage: ["db", "spaces", "time"],

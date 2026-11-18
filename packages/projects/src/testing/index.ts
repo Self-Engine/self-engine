@@ -16,6 +16,8 @@ import {
   projectsContract,
 } from "../contracts/index.ts";
 
+export { projectEntriesTableNames } from "../../test/project-entries-module/table-names.ts";
+
 const contracts = { projects: projectsContract };
 
 /** What each entry of `projects` answers in a story. */
