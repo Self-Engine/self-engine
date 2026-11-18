@@ -9,7 +9,13 @@ import {
 import type { Kysely, Transaction, Updateable } from "kysely";
 import type { StorageContext } from "./context.ts";
 import type { RuleAnswer } from "./registry.ts";
-import type { Convention, ConventionKey, RowId, SyncedTable } from "./convention.ts";
+import type {
+  Archivable,
+  Convention,
+  ConventionKey,
+  RowId,
+  SyncedTable,
+} from "./convention.ts";
 import type { ReadTransaction, RowMap } from "./module.ts";
 import { recordTableWrites } from "./table-writes.ts";
 
@@ -61,8 +67,9 @@ export function protectionRule<
  * Asks the rules for this table and kind of write before a write path writes, in the same
  * transaction. Without a rule it costs one lookup in memory and no query. A Reason refuses the
  * write: it throws the Refusal, which the frame passes through like "not found". A write that
- * would not find its row answers "not found" whatever a rule says; only a refused write pays the
- * one lookup by primary key that tells.
+ * would not find its row answers "not found" whatever a rule says, and an archive or unarchive
+ * that would change nothing writes nothing a rule could guard, so its Reasons fall away; only a
+ * refused write pays the one lookup by primary key that tells.
  */
 export async function askRules<DB>(
   tx: Transaction<DB>,
@@ -71,7 +78,7 @@ export async function askRules<DB>(
   write: WriteKind,
   rows: readonly { readonly id: string; readonly values?: object }[],
 ): Promise<void> {
-  const reasons = await answerRules(tx, context, table, write, rows);
+  let reasons = await answerRules(tx, context, table, write, rows);
   if (reasons.length === 0) return;
   if (write !== "insert") {
     const found = await rowsFound(
@@ -79,32 +86,67 @@ export async function askRules<DB>(
       context,
       table,
       rows.map(({ id }) => id),
+      isArchiveWrite(write),
     );
     if (rows.some(({ id }) => !findsRow(write, found.get(id)))) throw new ORPCError("NOT_FOUND");
+    reasons = reasons.filter(({ row }) => changesRow(write, found.get(row)));
+    if (reasons.length === 0) return;
   }
   throw new ORPCError("REFUSED", { status: refusal.REFUSED.status, data: { reasons } });
 }
 
-/** Whether these rows of the Space exist, by id, and whether each is deleted: one lookup. */
+/** A row of the Space as the lookup found it; `archived` is read only for archive and unarchive. */
+export interface FoundRow {
+  readonly deleted: boolean;
+  readonly archived: boolean;
+}
+
+export function isArchiveWrite(write: WriteKind): write is "archive" | "unarchive" {
+  return write === "archive" || write === "unarchive";
+}
+
+/**
+ * Whether these rows of the Space exist, by id, whether each is deleted and, on an archivable
+ * table when asked, whether it is archived: one lookup.
+ */
 export async function rowsFound<DB>(
   tx: Transaction<DB>,
   context: StorageContext,
   table: string,
   ids: readonly string[],
-): Promise<ReadonlyMap<string, boolean>> {
-  // The caller checked that the table is synced; its convention columns are the frame's own.
-  const found = await (tx as unknown as Kysely<Record<string, Convention>>)
+  archivable = false,
+): Promise<ReadonlyMap<string, FoundRow>> {
+  // The caller checked that the table is synced; its convention columns are the frame's own, and
+  // it asks for `archived_at` only on a table that has it.
+  const found = await (tx as unknown as Kysely<Record<string, Convention & Archivable>>)
     .selectFrom(table)
-    .select(["id", "deleted_at"])
+    .select(archivable ? ["id", "deleted_at", "archived_at"] : ["id", "deleted_at"])
     .where("space_id", "=", context.spaceId)
     .where("id", "in", ids)
     .execute();
-  return new Map(found.map((row) => [row.id, row.deleted_at !== null]));
+  return new Map(
+    found.map((row) => [
+      row.id,
+      {
+        deleted: row.deleted_at !== null,
+        archived: "archived_at" in row && row.archived_at !== null,
+      },
+    ]),
+  );
 }
 
 /** A restore finds a deleted row; every other write on an existing row a Live Row. */
-export function findsRow(write: Exclude<WriteKind, "insert">, deleted: boolean | undefined) {
-  return deleted === (write === "restore");
+export function findsRow(write: Exclude<WriteKind, "insert">, found: FoundRow | undefined) {
+  return found !== undefined && found.deleted === (write === "restore");
+}
+
+/**
+ * Whether a write would change the row it finds: archive and unarchive change only a row whose
+ * state differs (D327); every other write changes it.
+ */
+export function changesRow(write: Exclude<WriteKind, "insert">, found: FoundRow | undefined) {
+  if (!isArchiveWrite(write) || found === undefined) return true;
+  return found.archived !== (write === "archive");
 }
 
 /**

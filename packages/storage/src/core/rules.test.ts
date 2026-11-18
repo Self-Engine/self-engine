@@ -138,6 +138,45 @@ describe("the six write paths", () => {
     });
   });
 
+  test("an archive or unarchive that changes nothing answers with the row as it is, though every rule refuses it", async () => {
+    const always = defineReason("always", z.object({}));
+    rules = protectionRules([
+      {
+        rules: (["archive", "unarchive"] as const).map((write) =>
+          protectionRule(cardsRowMap, {
+            table: "cards",
+            write,
+            reasons: [always],
+            async answer(_tx, _context, rows) {
+              return rows.map(({ id }) => ({ code: always.code, row: id, details: {} }));
+            },
+          }),
+        ),
+      },
+    ]);
+    const active = cardIdSchema.parse("01a1c0a2-f079-7000-8000-000000000001");
+    const archived = cardIdSchema.parse("01a1c0a2-f079-7000-8000-000000000002");
+    const stored = await database.kysely.transaction().execute(async (transaction) => {
+      const context = createContext({ ...createTestContext(), rules: noProtectionRules });
+      const writes = sharedWrites(transaction.withTables<CardRows>(), context);
+      return [
+        await writes.insert("cards", active, { title: "Active" }),
+        await writes.insert("cards", archived, { title: "Archived" }).then(() =>
+          writes.archive("cards", archived),
+        ),
+      ];
+    });
+    const answered = await database.kysely.transaction().execute(async (transaction) => {
+      const context = createContext({ ...createTestContext(), rules });
+      const writes = sharedWrites(transaction.withTables<CardRows>(), context);
+      return [await writes.unarchive("cards", active), await writes.archive("cards", archived)];
+    });
+    expect(answered).toEqual(stored);
+    const refused = { code: "REFUSED" };
+    await expect(write((w) => w.archive("cards", active))).rejects.toMatchObject(refused);
+    await expect(write((w) => w.unarchive("cards", archived))).rejects.toMatchObject(refused);
+  });
+
   test("an update that writes no field asks no rule", async () => {
     const id = cardIdSchema.parse("01a1c0a2-f079-7000-8000-000000000001");
     await write((writes) => writes.insert("cards", id, { title: "First" }));

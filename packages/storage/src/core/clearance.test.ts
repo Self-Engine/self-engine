@@ -42,7 +42,7 @@ const rules = protectionRules([
   },
 ]);
 
-test("archive and unarchive of a Live Row, archived or not, ask their rules; an update is asked without values", async () => {
+test("an archive or unarchive that changes nothing is free and asks no rule, as at the write; an update is asked without values", async () => {
   database = await createTestDatabase(cards);
   asked.length = 0;
   const id = cardIdSchema.parse("01a1c0a2-f079-7000-8000-000000000001");
@@ -82,11 +82,10 @@ test("archive and unarchive of a Live Row, archived or not, ask their rules; an 
     reasons: [{ code: "locked", severity: "blocking", table: "cards", row: id, details: {} }],
   };
   expect(answer).toEqual([
-    { row: id, writes: { update: blocked, archive: blocked, unarchive: blocked } },
+    { row: id, writes: { update: blocked, archive: { state: "free" }, unarchive: blocked } },
   ]);
   expect(asked).toEqual([
     { write: "update", rows: [{ id, values: {} }] },
-    { write: "archive", rows: [{ id }] },
     { write: "unarchive", rows: [{ id }] },
   ]);
 });

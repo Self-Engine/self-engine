@@ -132,7 +132,8 @@ Apply [ADR 0019](../adr/0019-row-maps-are-the-single-source-of-storage-types.md)
 Done when `checkAgreement(migrations, rowMap)` and `checkConventions(database)` return no
 violations, as in the notes tests. `checkConventions` names a synchronized table whose
 `space_id` lacks the key to `spaces(id)` or refers elsewhere, any foreign key that carries an
-action or is not deferred, with its parent, and a referring column without its index.
+action or is not deferred, with its parent, and a referring column without an index that starts
+with it (full, or partial on `deleted_at IS NULL`) or with a `DEFAULT` other than NULL.
 
 ## 3. Implement the data entry
 
@@ -185,7 +186,8 @@ as [`cards/data/index.ts`](../../packages/storage/test/cards-module/data/index.t
   and sets `updated_at`. Both are ordinary changes that announce the table, and they lock
   nothing: an archived row can still be updated, deleted and restored.
 - Archiving an archived row, or unarchiving one that is not archived, answers with the row as it is, keeps
-  the first Instant and writes nothing, so nothing is announced.
+  the first Instant and writes nothing, so nothing is announced. A Protection Rule cannot refuse
+  it, since nothing is written, and the Clearance answers `free` for it without asking a rule.
 - Both answer `NOT_FOUND` for an unknown or deleted id and for a row of another Space.
 - Archived and deleted are independent: `softDelete` and `restore` leave `archived_at`, so a
   deleted archived row comes back archived.
@@ -195,8 +197,10 @@ as [`cards/data/index.ts`](../../packages/storage/test/cards-module/data/index.t
   does; its Edit Drawer finds an entry in either list and offers "Archive" or "Unarchive" beside
   "Delete", each closing the drawer with undo in a Notice.
 
-For joins, aggregates and multi-row changes, use ordinary Kysely builders and explicitly
-apply Space and live-row filters where required. Raw SQL and raw executors in storage are
+For joins and aggregates, use ordinary Kysely builders and explicitly apply Space and live-row
+filters where required. Synced rows change only through the write paths, one row per call;
+`self-engine/no-write-outside-write-paths` rejects an insert, update or delete of a synced table
+anywhere else, and a write path for many rows is not built (D333). Raw SQL and raw executors in storage are
 rejected by `self-engine/no-raw-storage-sql`, including `sql` in read-only expressions.
 Use `eb.fn` for SQL functions in storage queries; migration SQL remains separate.
 
@@ -255,7 +259,8 @@ export const pinnedNotesStay = protectionRule(notesRowMap, {
 - `tx` reads only; a write is a type error and fails at runtime.
 - A row the write would not find (unknown, deleted for a delete, or of another Space) answers
   "not found" whatever the rule answers: the frame looks the rows of a refused write up before
-  it throws the Refusal. The rule need not check that its rows exist.
+  it throws the Refusal. The rule need not check that its rows exist. The same lookup lets an
+  archive or unarchive that would change nothing through with the row as it is.
 - Answer only with Reasons the rule names. The frame adds the severity (`blocking`) and the
   table, and checks each answer's details against its definition; anything else is an
   unexpected error, not a Refusal.
@@ -344,13 +349,12 @@ in one query. `tx` and `sharedEntry(tx, context)` are typed from the row map by 
 definition; write no transaction type and no type argument by hand. Its left join retains the link when the target is absent or in another Space;
 a deleted target retains its title and explicit deletion mark.
 
-An operation that stores a reference to another module's row looks the target up through the
-read piece first and answers `NOT_FOUND` when it is missing, deleted or in another Space; the
-contract entry declares that error. SQLite's foreign-key error does not name the constraint,
-so the frame cannot translate it, and without the lookup a missing target would reach the
-caller as an internal error. The lookup is one primary-key read per write. Filter and sort by released
-columns in that same query. Declare allowed package dependencies in both `package.json` and
-`ALLOWED_IMPORTS` in `.dependency-cruiser.ts`.
+An operation that stores a reference to another module's row writes it without a lookup of its
+own: the frame's reference check (step 3) reads the target by primary key and refuses a missing,
+deleted or foreign one with `REFUSED` and the Reason `target_deleted`, which the contract entry
+carries through `...refusal`, as `create` of note-links shows. Filter and sort by released
+columns in the read piece's query. Declare allowed package dependencies in both `package.json`
+and `ALLOWED_IMPORTS` in `.dependency-cruiser.ts`.
 
 ### Refer to a project
 
