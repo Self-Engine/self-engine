@@ -633,3 +633,21 @@ the JSON parse and schema check of the value. `EXPLAIN QUERY PLAN` shows
 `SEARCH settings USING INDEX settings_live_key (space_id=? AND key=?)`, never `SCAN`. A Query that
 reads a Setting reloads after every change of any Setting (D352); its answer stays the same, so
 nothing redraws.
+
+## Loading and saving Settings through the Port (#356)
+
+Measured on an Apple M3 Pro with Node 26.13.1 and file-backed SQLite using the app's pragmas.
+The test Data Process served the real Port over a Node MessageChannel, with output checks off
+as in the packaged app. The Personal Space held 50 Settings with small JSON values. Ranges
+below are the medians of three runs, each with 1,001 timed calls after 100 warm-up calls.
+
+| Call                       | Median round trip |
+| -------------------------- | ----------------- |
+| Load all 50 Settings       | 0.159–0.221 ms    |
+| Save one existing Setting  | 0.086–0.164 ms    |
+| Save ten existing Settings | 0.306–0.378 ms    |
+
+Loading reads the Space's live rows in one query. A nonempty save reads the sent keys in one
+query and writes each distinct key through a standard shared write in the same transaction.
+The measurement covers the Port call through its reply. The page's reload after the Table
+Change belongs to the adapter slice.
