@@ -446,3 +446,42 @@ test("after a refused first read, the window ends on the database's values once 
   await expect(moved).resolves.toEqual([{ key: "i18n.language", value: "de" }]);
   expect(copy.stored.get("appearance.accent")).toBe("grape");
 });
+
+test("behind the local copy, two quick writes end on the last value, though a late Table Change answers late", async () => {
+  const dataProcess = startPort();
+  const connection = connect(dataProcess);
+  await untilReady(connection);
+  const slow = slowed(connection);
+  const copy = createTestAdapter({ "appearance.accent": "green" });
+  const store = windowStore(slow.connection, copy);
+  await store.load();
+  // The local copy's first read of the database, which moves the copy's entry into it.
+  await slow.loads.reach(1);
+  await slow.saves.reach(1);
+  await settle();
+  const seen: string[] = [];
+  store.subscribe(() => seen.push(store.read(accent)));
+  const releaseTableChanges = slow.holdTableChanges();
+
+  store.write(accent, "first");
+  await slow.saves.reach(2);
+  // The Table Change of the first save arrives late; the read it starts answers with "first"
+  // only after the second save finished.
+  const read = slow.holdNextLoad();
+  const loadsBefore = slow.loads.count();
+  releaseTableChanges();
+  await read.arrived;
+  store.write(accent, "last");
+  await slow.saves.reach(3);
+  await settle();
+  read.release();
+  await slow.loads.reach(loadsBefore + 2);
+  await settle();
+
+  expect(seen).toEqual(["first", "last"]);
+  expect(store.read(accent)).toBe("last");
+  expect(copy.stored.get("appearance.accent")).toBe("last");
+  await expect(createSettingsPortAdapter(connect(dataProcess)).load()).resolves.toEqual([
+    { key: "appearance.accent", value: "last" },
+  ]);
+});
