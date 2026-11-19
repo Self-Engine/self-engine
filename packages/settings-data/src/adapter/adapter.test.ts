@@ -6,6 +6,8 @@
 import { createDataConnection, type DataConnection } from "@self-engine/data-client";
 import { startTestDataProcess, type TestDataProcess } from "@self-engine/data-process/testing";
 import type { TablesChanged } from "@self-engine/data-protocol";
+import { createMigrationRunner } from "@self-engine/db";
+import { openDatabase } from "@self-engine/db/better-sqlite3";
 import {
   createLocalCopyAdapter,
   createSettingsStore,
@@ -394,4 +396,53 @@ test("behind the local copy, the database wins, gets what it lacked, and keeps i
   expect(first).toEqual(["green", "de"]);
   expect(copy.stored.get("appearance.accent")).toBe("grape");
   expect(restarted.read(accent)).toBe("grape");
+});
+
+/** A Data Process with the Port mounted that refuses every call: its database is newer. */
+async function startRefusing(): Promise<TestDataProcess> {
+  const database = openDatabase(":memory:");
+  await createMigrationRunner(database, [
+    { name: "future/0001", sql: "CREATE TABLE future (id TEXT PRIMARY KEY) STRICT;" },
+  ]).run();
+  const started = await startTestDataProcess({ database, modules: { settings } });
+  cleanups.push(() => started.close());
+  return started;
+}
+
+test("after a refused first read, the window ends on the database's values once the Data Process is ready", async () => {
+  const dataProcess = startPort();
+  const observerConnection = connect(dataProcess);
+  const observer = createSettingsPortAdapter(observerConnection);
+  await observer.save([{ key: "appearance.accent", value: "grape" }]);
+  await untilReady(observerConnection);
+  const moved = nextReport(observer, ["i18n.language"]);
+  const connection: SettingsConnection = createDataConnection();
+  cleanups.push(() => connection.disconnect());
+  connection.connect((await startRefusing()).openPort());
+  const refused = Promise.withResolvers<void>();
+  const copy = createTestAdapter({ "appearance.accent": "green", "i18n.language": "de" });
+  const store = createSettingsStore({
+    adapters: {
+      synced: createLocalCopyAdapter({
+        copy,
+        database: createSettingsPortAdapter(connection),
+        onError: ({ operation }) => {
+          if (operation === "load") refused.resolve();
+        },
+      }),
+      device: createTestAdapter(),
+    },
+    onError: (failure) => {
+      throw failure.error;
+    },
+  });
+  await store.load();
+  await refused.promise;
+
+  // The main process restarts the Data Process on a ready database, as after a restore.
+  connection.connect((await dataProcess).openPort());
+
+  await untilStoreReads(store, accent, "grape");
+  await expect(moved).resolves.toEqual([{ key: "i18n.language", value: "de" }]);
+  expect(copy.stored.get("appearance.accent")).toBe("grape");
 });

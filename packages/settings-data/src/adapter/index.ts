@@ -35,8 +35,9 @@ function sameJson(a: JsonValue | undefined, b: JsonValue | undefined): boolean {
  *
  * - `load` answers with the rows; `save` writes the batch in one Operation. Both reject when the
  *   Data Process rejects the call (D117).
- * - While someone listens, a Table Change of a table `load` reads, and every return of the
- *   connection to `ready` after it was lost, makes it read the rows again and report what differs
+ * - While someone listens, a Table Change of a table `load` reads, every return of the
+ *   connection to `ready` after it was lost, and its first `ready` after a failed `load`, make it
+ *   read the rows again and report what differs
  *   from what it last knew. A removed row is reported as absent.
  * - A read that overlaps a save of this adapter is dropped and repeated once no save is running,
  *   so a report is never older than the last finished save (late echoes).
@@ -56,6 +57,8 @@ export function createSettingsPortAdapter(connection: SettingsPortConnection): S
   /** A read for a report runs. */
   let reading = false;
   let stopListening: (() => void) | undefined;
+  /** The last `load` failed: the database's rows are unknown until a read succeeds. */
+  let loadFailed = false;
 
   function report(entries: readonly ReportedSettingEntry[]): void {
     for (const listener of listeners) listener(entries);
@@ -122,9 +125,9 @@ export function createSettingsPortAdapter(connection: SettingsPortConnection): S
     });
     const stopState = connection.subscribe(() => {
       const ready = connection.getState().status === "ready";
-      // The first ready answers the store's own load; a later one follows a lost port, while
-      // which Table Changes went unheard.
-      if (ready && wasReady) void readForReport();
+      // The first ready answers the store's own load, unless that load failed; a later one
+      // follows a lost port, while which Table Changes went unheard.
+      if (ready && (wasReady || loadFailed)) void readForReport();
       if (ready) wasReady = true;
     });
     return () => {
@@ -135,7 +138,14 @@ export function createSettingsPortAdapter(connection: SettingsPortConnection): S
 
   return {
     load: async () => {
-      const rows = await port.load({});
+      let rows: readonly SettingEntry[];
+      try {
+        rows = await port.load({});
+      } catch (thrown) {
+        loadFailed = true;
+        throw thrown;
+      }
+      loadFailed = false;
       known = new Map(rows.map(({ key, value }) => [key, value]));
       return rows;
     },

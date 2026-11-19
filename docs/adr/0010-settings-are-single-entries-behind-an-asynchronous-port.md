@@ -29,7 +29,11 @@ travel with a Backup. Older versions need to preserve entries they do not unders
 - **The database wins.** The first successful database load reports its values and moves
   entries from the original local copy that the load lacks, one entry per save. This runs on
   the first load of each store instance, so later starts find the keys that already moved and
-  leave them alone. The local copy takes the database's loaded and reported values and writes
+  leave them alone. If the first database load fails, the next report of the database repeats
+  it, the move included: the Port adapter reads and reports the rows on the connection's first
+  `ready` after a failed load, as after a refused call to a Data Process that later restarts
+  ready. A database that holds no Setting reports nothing, so its move waits for a later report
+  or the next start, and the page keeps the copy's values meanwhile. The local copy takes the database's loaded and reported values and writes
   local changes to the copy after the database save succeeds. When the database reports a row
   as removed, the adapter forgets it in the copy and the store falls back to the default.
   An unreadable value reads as the declared default. A failed local load starts from defaults
@@ -44,7 +48,8 @@ travel with a Backup. Older versions need to preserve entries they do not unders
   kit. The save Operation declares no Conflict for that reason because it replaces the value
   of an existing key.
 - **Every connected window follows the Table Change.** The Port adapter asks for current
-  entries when a Table Change names a table its load Query reads, and on reconnect. It
+  entries when a Table Change names a table its load Query reads, on reconnect, and on the
+  first `ready` after its `load` failed. It
   reports differences from the entries it last knew. A refresh read that overlaps the
   adapter's own save is dropped and repeated after the save, so a late answer cannot undo
   a finished save. The local copy also repeats its initial read if one of its writes overlaps it.

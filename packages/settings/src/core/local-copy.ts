@@ -21,7 +21,8 @@ export interface LocalCopyOptions {
  * - `load` answers from the copy, so the first render never waits. The first `load` also reads
  *   the database: it reports its rows, which win where the copy differs, and moves every entry of
  *   the copy the database lacks into it. Calls that wait for the database simply stay unanswered,
- *   and the app runs on the copy.
+ *   and the app runs on the copy. If that read fails, the next report of the database repeats it,
+ *   the move included.
  * - `save` writes the database, then the copy. A failed save leaves the copy on the database's
  *   state (D117).
  * - Every report of the database is written into the copy, a removed row included, and then
@@ -40,6 +41,8 @@ export function createLocalCopyAdapter({
   /** Counts every start and end of a write, so a read can tell that one overlapped it. */
   let saveEvents = 0;
   let loaded = false;
+  /** The copy's entries while the first read of the database failed: the next report retries. */
+  let unread: readonly SettingEntry[] | undefined;
 
   function report(operation: StorageOperation, thrown: unknown): void {
     try {
@@ -85,6 +88,7 @@ export function createLocalCopyAdapter({
       try {
         rows = await database.load();
       } catch (thrown) {
+        unread = copied;
         report("load", thrown);
         return;
       }
@@ -140,7 +144,12 @@ export function createLocalCopyAdapter({
       // A wrapper per subscription, so the same function subscribed twice stops one at a time.
       const entry = (entries: readonly ReportedSettingEntry[]) => listener(entries);
       listeners.add(entry);
-      stopDatabase ??= database.subscribe((entries) => void take(entries));
+      stopDatabase ??= database.subscribe((entries) => {
+        // A report after a failed first read says the database answers again: read all of it.
+        const copied = unread;
+        unread = undefined;
+        void (copied === undefined ? take(entries) : readDatabase(copied));
+      });
       return () => {
         listeners.delete(entry);
         if (listeners.size > 0) return;

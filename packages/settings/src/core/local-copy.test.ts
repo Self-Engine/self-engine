@@ -158,6 +158,28 @@ it("stays on the copy and reports the failure when the database cannot be read",
   expect(failures).toEqual(["load"]);
 });
 
+it("reads the database again, and moves, once it reports after a failed first read", async () => {
+  const copy = createTestAdapter({ "test.accent": "green", "test.language": "de" });
+  const database = createTestAdapter({ "test.accent": "grape" });
+  const repair = database.failLoads();
+  const { store, failures } = storeOver(copy, database);
+  await store.load();
+  await settle();
+
+  repair();
+  database.changeFromOutside([{ key: "test.theme", value: "dark" }]);
+  await settle();
+
+  expect(store.read(accent)).toBe("grape");
+  expect(Object.fromEntries(database.stored)).toEqual({
+    "test.accent": "grape",
+    "test.language": "de",
+    "test.theme": "dark",
+  });
+  expect(Object.fromEntries(copy.stored)).toEqual(Object.fromEntries(database.stored));
+  expect(failures).toEqual(["load"]);
+});
+
 it("ends on the database's values when the copy cannot be read", async () => {
   const copy = createTestAdapter({ "test.accent": "green" });
   copy.failLoads();
