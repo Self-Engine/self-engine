@@ -1,4 +1,5 @@
 export type { DataPort } from "./serve.ts";
+export { startSetting, type StartSetting } from "@self-engine/settings-rows";
 export type { BeforeMigrations } from "./startup.ts";
 export {
   type DataProcess,
