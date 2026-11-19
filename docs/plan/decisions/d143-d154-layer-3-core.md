@@ -60,7 +60,9 @@ Grundlage: [`research-layer-3-core.md`](../research-layer-3-core.md).
   ausdrücklich. Eine einzige Funktion löst die Zeitzone auf; kennt die Laufzeit den Namen nicht,
   gilt die Gerätezeitzone und das Fehlerprotokoll bekommt einen Eintrag. _Verworfen:_ Historie der
   Zeitzone (jede Tagesberechnung bräuchte sie, Sync-Konflikte verschöben Tage rückwirkend; kann
-  später ergänzt werden), Gerätezeitzone als Autorität, Zeitzone an jedem Eintrag.
+  später ergänzt werden), Gerätezeitzone als Autorität, Zeitzone an jedem Eintrag. _Für
+  Zeiteinträge bestätigt und ergänzt durch D342: Ein Zeiteintrag speichert zusätzlich die
+  Zeitzone, in der er entstand; gerechnet wird weiter mit der Einstellung._
 - **D148 (L3.6) `time` wird Datei für Datei übernommen, mit Pflicht-Uhr und Typen bis in die
   Zeile.** Übernommen werden Typen, Uhr, Zonen, Kalender, relative Tage, Formatierung,
   Geräte-Brücke und Zonenliste mit ihren Tests; `legacy.ts` entfällt; die Testuhr kommt nach
