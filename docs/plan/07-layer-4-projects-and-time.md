@@ -1,7 +1,7 @@
 # Schicht 4: Projekte und Zeit
 
-Stand: 2026-11-19 · Status: **entschieden** (D303–D316, Formular-Helfer D317–D326, `projects`
-D327–D330, Schutzregeln D331–D341, `time-tracking` D342–D350), Spec #271, Issues #272–#277, #313 und #332 sowie #109, #110 und #213
+Stand: 2026-11-20 · Status: **entschieden** (D303–D316, Formular-Helfer D317–D326, `projects`
+D327–D330, Schutzregeln D331–D341, `time-tracking` D342–D350, Einstellungen D351–D356, Modulanzeige D357–D360), Spec #271, Issues #272–#277, #313 und #332 sowie #109, #110 und #213
 
 Schicht 4 ist der erste Fachmeilenstein: das erste, was in der App sichtbar und nutzbar ist. Sie
 ist bewusst schmal. Der Owner nutzt die alte App weiter, bis die neue ihn überzeugt (D315).
@@ -36,8 +36,10 @@ ist bewusst schmal. Der Owner nutzt die alte App weiter, bis die neue ihn überz
 | L4.28 | Zeitumstellung | Das Formular löst die doppelte Stunde ohne Nachfrage auf; eine übersprungene Uhrzeit ist kein Wert (D347) |
 | L4.29 | Uhr der Oberfläche | Eine Uhr von der App, zwei Hooks für „jetzt“ und „heute“, ein gemeinsamer Taktgeber; alles liegt in `time` mit einem eigenen Einstieg für React (D348) |
 | L4.30 | Stoppen | Der Eintrag bekommt die Id des Timers; Rückgängig ist eine eigene Operation in einer Transaktion; wer einen Timer laufen lässt, stoppt zuerst jeden anderen (D349) |
+| L4.31 | Abfrage der Woche | Die Seite rechnet die Woche und nennt eine Spanne von Kalendertagen; der Datenprozess liest nur die Zeitzone, in der Transaktion über den Kontext (D352, D354) |
 | L4.11 | Projektseite | Keine in Schicht 4; #201 wird mit ihr gegrillt (D313) |
 | L4.12 | Hülle | Ein ständiger Platz, den ein Modul füllt; erster Nutzer ist der Timer (D314) |
+| L4.32 | Modulanzeige | Der ständige Platz heißt Modulanzeige und steht rechts in der Kopfzeile des Inhalts, in voller Form oder Kurzform; sie darf eine Fläche der Hülle öffnen; das Modul reicht beide als später ladenden Code im Hüllen-Beitrag (D357–D360) |
 | L4.13 | Platzhalter | Verlassen die App mit `projects`, bleiben Testobjekte; kein Modul-Abbau (D315) |
 | L4.14 | Reihenfolge | Neun Schritte, `time-tracking` in zwei Paketen (D316); das Schutz-Paket ist in Datenprozess und Oberfläche geteilt (D340); die Uhr der Oberfläche und die Felder für Datum und Uhrzeit sind ein eigenes Paket vor #275 (D350) |
 
@@ -80,12 +82,12 @@ Schicht 3 unter Spec #103.
 | 3 | `projects`; die Platzhalter verlassen die App | #273 | D303–D306, D313, D315, D327–D330 | #213, #272 |
 | 4 | Schutzregeln im Datenprozess: Schreibwege, Ablehnung, Verweis-Prüfung, Auskunft | #274 | D306, D307, D331–D340 | #272 |
 | 4b | Ablehnung und Auskunft in der Oberfläche; die Projekt-Schublade | #313 | D334–D336, D339, D340 | #274 |
-| 5 | Einstellungen in der Datenbank | #109 | D62, D113 ff. | – |
-| 6 | Zeitzone und Wochenstart | #110, verkleinert | D147, D153, D316 | #109 |
+| 5 | Einstellungen in der Datenbank | #109 | D62, D113 ff., D351, D352 | – |
+| 6 | Zeitzone und Wochenstart | #110, verkleinert | D147, D153, D316, D353–D356 | #109 |
 | 6b | Uhr der Oberfläche und Felder für Datum und Uhrzeit | #332 | D344, D345, D347, D348, D350 | – |
-| 7 | `time-tracking`, Teil 1: Einträge, Formular, Wochenansicht | #275 | D303, D304, D308, D311, D313, D342–D346 | #110, #273, #274, #313, #332 |
-| 8 | Ständiger Platz in der Hülle | #276 | D314 | – |
-| 9 | `time-tracking`, Teil 2: Timer und Markierung der Überschneidungen | #277 | D310, D311, D314, D344, D345, D348, D349 | #275, #276 |
+| 7 | `time-tracking`, Teil 1: Einträge, Formular, Wochenansicht | #275 | D303, D304, D308, D311, D313, D342–D346, D352–D354 | #110, #273, #274, #313, #332 |
+| 8 | Ständiger Platz in der Hülle (Modulanzeige) | #276 | D314, D357–D360 | – |
+| 9 | `time-tracking`, Teil 2: Timer und Markierung der Überschneidungen | #277 | D310, D311, D314, D344, D345, D348, D349, D357–D359 | #275, #276 |
 
 Drei Pakete tragen eine Messung als Abnahmekriterium: die Schutzregeln (Prüfungen mit 50.000
 Zeilen, D332), der ständige Platz (Start und Neuzeichnen, D314) und die Wochenansicht (Abfragezeit

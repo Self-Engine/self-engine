@@ -180,7 +180,7 @@ Grundlage: der Stand auf `main` nach #263 und die alte App (nur gelesen, Pfad in
   enthält nur die Timer-Abfrage und die Anzeige, nicht die Ansichten des Moduls. Dazu kommt eine
   Abfrage beim Start. Die Anzeige zeichnet nur sich selbst neu. Der Platz ist reserviert, bevor
   der Code da ist, damit nichts springt. Das Paket bekommt eine Messung als Abnahmekriterium.
-  _Verworfen:_ nur Befehle zum Starten und Stoppen ohne Anzeige.
+  _Verworfen:_ nur Befehle zum Starten und Stoppen ohne Anzeige. _Ausgeführt durch D357–D360._
 - **D315 Die Platzhalter verlassen die App, wenn `projects` eingehängt wird, und bleiben
   Testobjekte; ein Modul-Abbau wird dafür nicht gebaut (klärt den offenen Punkt aus D252).**
   `placeholder-alpha` und `placeholder-beta` verschwinden aus Navbar, Modulliste des

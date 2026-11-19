@@ -6,7 +6,8 @@
   Speicher; Schreiben ändert sofort das Abbild und speichert im Hintergrund. _Grund:_ Ab #34 ist
   jeder Zugriff asynchron, und Standardwerte im ersten Render würden Farben aufblitzen lassen und
   den Start Cache überschreiben. _Verworfen:_ jetzt synchron und in #34 umbauen; asynchrones
-  Lesen mit Ladezustand in jeder Komponente.
+  Lesen mit Ladezustand in jeder Komponente. _Ergänzt durch D351: Ab #109 lädt der erste Render
+  die synchronisierten Einstellungen aus einer lokalen Kopie, und die Datenbank gewinnt._
 - **D114 Fenstergröße und -position sind keine Einstellungen** (verfeinert D62): Der Hauptprozess
   braucht sie, bevor ein Renderer läuft, und erreicht kein `localStorage`. Sie liegen als eigene
   Datei im `userData`-Ordner des Kanals und gehören dem Hauptprozess (#24). Geräteeinstellungen

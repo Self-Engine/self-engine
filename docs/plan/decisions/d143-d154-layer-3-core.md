@@ -62,7 +62,9 @@ Grundlage: [`research-layer-3-core.md`](../research-layer-3-core.md).
   Zeitzone (jede Tagesberechnung bräuchte sie, Sync-Konflikte verschöben Tage rückwirkend; kann
   später ergänzt werden), Gerätezeitzone als Autorität, Zeitzone an jedem Eintrag. _Für
   Zeiteinträge bestätigt und ergänzt durch D342: Ein Zeiteintrag speichert zusätzlich die
-  Zeitzone, in der er entstand; gerechnet wird weiter mit der Einstellung._
+  Zeitzone, in der er entstand; gerechnet wird weiter mit der Einstellung. Ausgeführt durch D352
+  und D353: Der Datenprozess liest die Einstellung in der Transaktion über den Kontext und
+  schreibt die Gerätezone beim Start, wenn sie fehlt._
 - **D148 (L3.6) `time` wird Datei für Datei übernommen, mit Pflicht-Uhr und Typen bis in die
   Zeile.** Übernommen werden Typen, Uhr, Zonen, Kalender, relative Tage, Formatierung,
   Geräte-Brücke und Zonenliste mit ihren Tests; `legacy.ts` entfällt; die Testuhr kommt nach
@@ -144,7 +146,10 @@ Grundlage: [`research-layer-3-core.md`](../research-layer-3-core.md).
   Wochenstart, Standardwährung), werden in `contracts` deklariert, reine Oberflächen-Einstellungen
   bleiben in `apps/web`. `formatMoney` hält `Intl.NumberFormat`-Objekte pro Gebietsschema und
   Währung vor. Standard-Stundensatz und Rundung gehören in Schicht 4. _Verworfen:_ eigene
-  Regionen-Einstellung sofort, Standardwährung fest auf `USD`, doppelte Deklaration.
+  Regionen-Einstellung sofort, Standardwährung fest auf `USD`, doppelte Deklaration. _Die
+  Deklaration in `contracts` ist überholt durch D356: Der Besitzer eines Werts deklariert dessen
+  Einstellungen. Den Wochenstart liest nur die Oberfläche (D354); gespeichert ist er als Name des
+  Tages (D355)._
 - **D154 (L3.12) Schicht 3 wird in acht Arbeitspakete geschnitten, jedes wird einzeln gegrillt.**
   Spec #103 mit den Unter-Issues #104 bis #111; aus jedem entstehen nach seinem Grilling Spec und
   Teil-Tickets, wie bei #14 bis #20 und #30. Nur #107 (ADR und Glossar) braucht kein Grilling. Alle

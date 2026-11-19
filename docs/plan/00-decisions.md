@@ -62,6 +62,8 @@ den Vermerk `_Überholt durch D<n>._`
 | [D331–D340](decisions/d331-d340-protection-rules.md) | 2026-11-17 | Schutzregeln: ein System, Verhindern an den Schreibwegen, Ablehnung mit typisierten Gründen, Auskunft, Verweis-Prüfung, Arten von Verweisen, zwei Pakete | #274, #313 |
 | [D341](decisions/d341-types-of-a-rule-from-above.md) | 2026-11-18 | Beim Bau von #274 entschieden: Das Modul darunter gibt frei, was eine Regel von oben sehen darf; gebaut mit dem ersten echten Fall | #274 |
 | [D342–D350](decisions/d342-d350-time-tracking.md) | 2026-11-19 | `time-tracking`: Zeitzone am Eintrag, Tagesanteile über Mitternacht, ganze Sekunden, Anzeige rundet auf, keine Dauer von Hand, Zeitumstellung im Formular, Uhr der Oberfläche, Stoppen über zwei Tabellen, Uhr und Felder als eigenes Arbeitspaket | #275, #277, #332, #110, #276 |
+| [D351–D356](decisions/d351-d356-settings-in-the-database.md) | 2026-11-20 | Einstellungen in der Datenbank, Zeitzone und Wochenstart: lokale Kopie für den ersten Render, Lesen im Datenprozess über den Kontext, Gerätezone beim Start, Abfrage über eine Spanne von Tagen, Wochenstart als Name des Tages, der Besitzer deklariert | #109, #110, #275 |
+| [D357–D360](decisions/d357-d360-module-indicator.md) | 2026-11-20 | Modulanzeige, der ständige Platz in der Hülle: rechts in der Kopfzeile des Inhalts in voller Form oder Kurzform, eine Fläche der Hülle, zwei später ladende Bausteine im Hüllen-Beitrag, die Namen „Module Indicator“ und „Indicator Panel“ | #276, #277 |
 
 D109 und D110 sind doppelt vergeben, in den Runden 18 und 19. Wer eine der beiden nennt, nennt die
 Runde dazu.

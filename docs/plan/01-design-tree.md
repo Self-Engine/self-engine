@@ -53,7 +53,8 @@ Pro Runde werden nur 2–3 Fragen gestellt; die Nummern sind stabil.
       - ✅ `projects` gegrillt: Archiv im Speicher-Rahmen, Titel nicht eindeutig, Muster des Bearbeitens, Projekt-Verweis (D327–D330, #273)
       - ✅ Schutzregeln gegrillt: ein System, Verhindern an den Schreibwegen, Ablehnung mit typisierten Gründen, Auskunft, Verweis-Prüfung, zwei Pakete (D331–D340, #274, #313); Typen einer Regel von oben über eine Freigabe des Moduls darunter, gebaut mit dem ersten Fall (D341)
       - ✅ `time-tracking` gegrillt: Zeitzone am Eintrag, Tagesanteile über Mitternacht, ganze Sekunden, Anzeige rundet auf, Zeitumstellung im Formular, Uhr der Oberfläche in `time`, Stoppen über zwei Tabellen, Uhr und Felder als eigenes Arbeitspaket (D342–D350, #275, #277, #332)
-      - ⏳ Paket-Grillings: #109, #110, ständiger Platz (#276)
+      - ✅ Einstellungen gegrillt: lokale Kopie für den ersten Render, Lesen im Datenprozess über den Kontext, Gerätezone beim Start, Abfrage über eine Spanne von Tagen, Wochenstart als Name des Tages, der Besitzer deklariert (D351–D356, #109, #110)
+      - ✅ Ständiger Platz gegrillt: Modulanzeige rechts in der Kopfzeile des Inhalts, Fläche der Hülle, zwei später ladende Bausteine im Hüllen-Beitrag (D357–D360, #276)
     - ⏳ Schicht 5 Import (beginnt mit Projekten und Zeiteinträgen, D316)
   - ⏳ Reihenfolge nach Schicht 5 bis zum Stichtag (weitere Module, Sync, Mobile)
   - ⏳ Zeitpunkt Organisations-Spaces & Policies

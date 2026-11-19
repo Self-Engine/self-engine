@@ -1,6 +1,6 @@
 # Schicht 3: Gemeinsamer Kern
 
-Stand: 2026-11-10 · Status: **entschieden** (D143–D154), Spec #103, Issues #104–#111 · Recherche:
+Stand: 2026-11-20 · Status: **entschieden** (D143–D154), Spec #103, Issues #104–#111 · Recherche:
 [`research-layer-3-core.md`](research-layer-3-core.md)
 
 ## Entschieden
@@ -23,6 +23,7 @@ Stand: 2026-11-10 · Status: **entschieden** (D143–D154), Spec #103, Issues #1
 | L3.10 | Abläufe | Brücken-Pakete über den Modulen, gemeinsame Transaktion, Schutzregeln (D152) |
 | L3.11 | Einstellungen | Region aus der Sprache, Wochenstart, Standardwährung, Deklaration in `contracts` (D153) |
 | – | Einstellungen | Grilling zu Schicht 4: Standard-Stundensatz gehört zur Abrechnung, Rundung zur Zeiterfassung nach Schicht 4; #110 wird ohne die Standardwährung gebaut (D305, D309, D316, ändern D153) |
+| – | Einstellungen | Grilling zu #109 und #110: lokale Kopie für den ersten Render, der Datenprozess liest eine Einstellung in der Transaktion über den Kontext und schreibt die Gerätezone beim Start, den Wochenstart liest nur die Oberfläche, gespeichert als Name des Tages, der Besitzer eines Werts deklariert dessen Einstellungen (D351–D356, ändern D153) |
 | L3.12 | Zuschnitt in Issues | Acht Arbeitspakete, jedes wird einzeln gegrillt (D154) |
 
 ## Aufbau
@@ -62,8 +63,8 @@ geschnitten. Gebaut wird in der Reihenfolge aus D279: #104, #108, dann Schicht 4
 | #264 | Ein Feld für Icon und Emoji, mit Emoji-Auswahl | D299–D302, [ADR 0029](../adr/0029-an-entrys-icon-and-color-are-names-written-strictly-read-unchanged-and-drawn-by-one-mark.md) | – |
 | #107 | ADR und Glossar für Brücken | D152 | – |
 | #108 | `spaces` | D144, D286–D290 | #29, #32 |
-| #109 | Einstellungen in der Datenbank (ersetzt #34) | D62, D113 ff. | #33, #108 |
-| #110 | Eine Zeitzone und die Kern-Einstellungen; die Standardwährung wandert zu #105 (D316) | D147, D153, D316 | #21, #23, #104, #109 |
+| #109 | Einstellungen in der Datenbank (ersetzt #34) | D62, D113 ff., D351, D352 | #33, #108 |
+| #110 | Eine Zeitzone und die Kern-Einstellungen; die Standardwährung wandert zu #105 (D316) | D147, D153, D316, D353–D356 | #21, #23, #104, #109 |
 | #111 | `tags` mit Brücken der Module | D150 | #33, #108 |
 
 ## Offen
