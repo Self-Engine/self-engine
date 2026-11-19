@@ -1,14 +1,16 @@
 // The page's adapter for the `synced` scope over the Settings Port (D351, D119). It runs outside
-// React, over the page's data connection, and loads before the first render: it imports types
-// only, so the startup bundle gains this file and nothing else.
+// React, over the page's data connection, and loads before the first render: besides types it
+// imports only `@self-engine/settings`, which the startup bundle holds already.
 
 import type { ContractRouterClient } from "@orpc/contract";
 import type { DataConnection } from "@self-engine/data-client";
-import type {
-  JsonValue,
-  ReportedSettingEntry,
-  SettingEntry,
-  SettingsAdapter,
+import {
+  createListeners,
+  type JsonValue,
+  type ReportedSettingEntry,
+  sameJson,
+  type SettingEntry,
+  type SettingsAdapter,
 } from "@self-engine/settings";
 import type { settingsContract } from "../contracts/index.ts";
 
@@ -26,8 +28,9 @@ export interface SettingsPortConnection extends Pick<
   readonly client: { readonly [MOUNT]: ContractRouterClient<typeof settingsContract> };
 }
 
-function sameJson(a: JsonValue | undefined, b: JsonValue | undefined): boolean {
-  return JSON.stringify(a) === JSON.stringify(b);
+/** The rows by key. */
+function byKey(rows: readonly SettingEntry[]): Map<string, JsonValue> {
+  return new Map(rows.map(({ key, value }) => [key, value]));
 }
 
 /**
@@ -45,7 +48,7 @@ function sameJson(a: JsonValue | undefined, b: JsonValue | undefined): boolean {
  */
 export function createSettingsPortAdapter(connection: SettingsPortConnection): SettingsAdapter {
   const port = connection.client[MOUNT];
-  const listeners = new Set<(entries: readonly ReportedSettingEntry[]) => void>();
+  const listeners = createListeners<readonly ReportedSettingEntry[]>(startListening);
   /** The entries as the adapter last knew them: from its last load, read or finished save. */
   let known = new Map<string, JsonValue>();
   /** Saves that started and have not finished. */
@@ -56,17 +59,12 @@ export function createSettingsPortAdapter(connection: SettingsPortConnection): S
   let wanted = false;
   /** A read for a report runs. */
   let reading = false;
-  let stopListening: (() => void) | undefined;
   /** The last `load` failed: the database's rows are unknown until a read succeeds. */
   let loadFailed = false;
 
-  function report(entries: readonly ReportedSettingEntry[]): void {
-    for (const listener of listeners) listener(entries);
-  }
-
   /** What `rows` changes against `known`, which it then replaces. */
   function takeRows(rows: readonly SettingEntry[]): ReportedSettingEntry[] {
-    const next = new Map(rows.map(({ key, value }) => [key, value]));
+    const next = byKey(rows);
     const changed: ReportedSettingEntry[] = [];
     for (const [key, value] of next) {
       if (!known.has(key) || !sameJson(known.get(key), value)) changed.push({ key, value });
@@ -85,7 +83,7 @@ export function createSettingsPortAdapter(connection: SettingsPortConnection): S
     reading = true;
     try {
       // A save that runs will end with `saveEnded`, which asks again.
-      while (wanted && saving === 0 && listeners.size > 0) {
+      while (wanted && saving === 0 && listeners.active()) {
         wanted = false;
         const before = saveEvents;
         let rows: readonly SettingEntry[];
@@ -100,7 +98,7 @@ export function createSettingsPortAdapter(connection: SettingsPortConnection): S
           continue;
         }
         const changed = takeRows(rows);
-        if (changed.length > 0) report(changed);
+        if (changed.length > 0) listeners.emit(changed);
       }
     } finally {
       reading = false;
@@ -146,7 +144,7 @@ export function createSettingsPortAdapter(connection: SettingsPortConnection): S
         throw thrown;
       }
       loadFailed = false;
-      known = new Map(rows.map(({ key, value }) => [key, value]));
+      known = byKey(rows);
       return rows;
     },
     save: async (entries) => {
@@ -159,17 +157,6 @@ export function createSettingsPortAdapter(connection: SettingsPortConnection): S
         saveEnded();
       }
     },
-    subscribe: (listener) => {
-      // A wrapper per subscription, so the same function subscribed twice stops one at a time.
-      const entry = (entries: readonly ReportedSettingEntry[]) => listener(entries);
-      listeners.add(entry);
-      stopListening ??= startListening();
-      return () => {
-        listeners.delete(entry);
-        if (listeners.size > 0) return;
-        stopListening?.();
-        stopListening = undefined;
-      };
-    },
+    subscribe: listeners.add,
   };
 }

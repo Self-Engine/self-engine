@@ -5,9 +5,10 @@
 // and the full build may not (docs/development/performance.md).
 import { safeParse } from "zod/v4/core";
 import type { ReportedSettingEntry, SettingEntry, SettingsAdapter } from "./adapter.ts";
-import { type SettingsStorageFailure, storageFailure, type StorageOperation } from "./failure.ts";
+import { reportFailure, type SettingsStorageFailure, type StorageOperation } from "./failure.ts";
 import {
   type JsonValue,
+  sameJson,
   type SettingChange,
   settingChange,
   type SettingDeclaration,
@@ -45,10 +46,6 @@ function perScope<T>(make: () => T): Record<SettingScope, T> {
   return Object.fromEntries(SCOPES.map((scope) => [scope, make()])) as Record<SettingScope, T>;
 }
 
-function sameJson(a: JsonValue | undefined, b: JsonValue | undefined): boolean {
-  return JSON.stringify(a) === JSON.stringify(b);
-}
-
 export function createSettingsStore({ adapters, onError }: SettingsStoreOptions): SettingsStore {
   const snapshot = perScope(() => new Map<string, JsonValue>());
   // A schema builds a new object on every parse, and `useSyncExternalStore` needs the same one.
@@ -61,11 +58,7 @@ export function createSettingsStore({ adapters, onError }: SettingsStoreOptions)
   let loaded = false;
 
   function report(operation: StorageOperation, scope: SettingScope, thrown: unknown): void {
-    try {
-      onError(storageFailure(thrown, operation, scope));
-    } catch {
-      // A broken reporter must not stop the app any more than the failure it reports.
-    }
+    reportFailure(onError, thrown, operation, scope);
   }
 
   async function loadScopes(): Promise<void> {

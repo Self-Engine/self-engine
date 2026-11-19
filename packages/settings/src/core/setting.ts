@@ -9,6 +9,11 @@ export type JsonValue =
   | readonly JsonValue[]
   | { readonly [key: string]: JsonValue };
 
+/** Whether two entries hold the same value; `undefined` stands for an absent entry. */
+export function sameJson(a: JsonValue | undefined, b: JsonValue | undefined): boolean {
+  return JSON.stringify(a) === JSON.stringify(b);
+}
+
 /** Synced Settings can follow the user between devices, Device Settings stay on one device. */
 export type SettingScope = "synced" | "device";
 

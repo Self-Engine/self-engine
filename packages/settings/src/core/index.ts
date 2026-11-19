@@ -1,4 +1,5 @@
 export type { ReportedSettingEntry, SettingEntry, SettingsAdapter } from "./adapter.ts";
+export { createListeners, type Listeners } from "./listeners.ts";
 export {
   createLocalSettingsAdapter,
   type LocalSettingsAdapter,
@@ -11,6 +12,7 @@ export { createLocalCopyAdapter, type LocalCopyOptions } from "./local-copy.ts";
 export {
   defineSetting,
   type JsonValue,
+  sameJson,
   type SettingChange,
   settingChange,
   type SettingDeclaration,

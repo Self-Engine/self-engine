@@ -3,7 +3,8 @@
 // as a report, and where they differ, the database wins.
 
 import type { ReportedSettingEntry, SettingEntry, SettingsAdapter } from "./adapter.ts";
-import { type SettingsStorageFailure, storageFailure, type StorageOperation } from "./failure.ts";
+import { reportFailure, type SettingsStorageFailure, type StorageOperation } from "./failure.ts";
+import { createListeners } from "./listeners.ts";
 import type { LocalSettingsAdapter } from "./local-adapter.ts";
 
 export interface LocalCopyOptions {
@@ -34,22 +35,24 @@ export function createLocalCopyAdapter({
   database,
   onError,
 }: LocalCopyOptions): SettingsAdapter {
-  const listeners = new Set<(entries: readonly ReportedSettingEntry[]) => void>();
-  let stopDatabase: (() => void) | undefined;
+  /** The copy's entries while the first read of the database failed: the next report retries. */
+  let unread: readonly SettingEntry[] | undefined;
+  const listeners = createListeners<readonly ReportedSettingEntry[]>(() =>
+    database.subscribe((entries) => {
+      // A report after a failed first read says the database answers again: read all of it.
+      const copied = unread;
+      unread = undefined;
+      void (copied === undefined ? take(entries) : readDatabase(copied));
+    }),
+  );
   /** Every write to the database, in order: the moves and the store's saves. */
   let writes: Promise<void> = Promise.resolve();
   /** Counts every start and end of a write, so a read can tell that one overlapped it. */
   let saveEvents = 0;
   let loaded = false;
-  /** The copy's entries while the first read of the database failed: the next report retries. */
-  let unread: readonly SettingEntry[] | undefined;
 
   function report(operation: StorageOperation, thrown: unknown): void {
-    try {
-      onError(storageFailure(thrown, operation, "synced"));
-    } catch {
-      // A broken reporter must not stop the app any more than the failure it reports.
-    }
+    reportFailure(onError, thrown, operation, "synced");
   }
 
   /** Writes the copy; a failure leaves the app running on what the store holds. */
@@ -72,7 +75,7 @@ export function createLocalCopyAdapter({
   async function take(entries: readonly ReportedSettingEntry[]): Promise<void> {
     if (entries.length === 0) return;
     await writeCopy(entries);
-    for (const listener of listeners) listener(entries);
+    listeners.emit(entries);
   }
 
   /**
@@ -140,22 +143,6 @@ export function createLocalCopyAdapter({
       await inOrder(() => database.save(entries));
       await writeCopy(entries);
     },
-    subscribe: (listener) => {
-      // A wrapper per subscription, so the same function subscribed twice stops one at a time.
-      const entry = (entries: readonly ReportedSettingEntry[]) => listener(entries);
-      listeners.add(entry);
-      stopDatabase ??= database.subscribe((entries) => {
-        // A report after a failed first read says the database answers again: read all of it.
-        const copied = unread;
-        unread = undefined;
-        void (copied === undefined ? take(entries) : readDatabase(copied));
-      });
-      return () => {
-        listeners.delete(entry);
-        if (listeners.size > 0) return;
-        stopDatabase?.();
-        stopDatabase = undefined;
-      };
-    },
+    subscribe: listeners.add,
   };
 }

@@ -24,3 +24,20 @@ export function storageFailure(
   const error = new Error(`Settings ${operation} failed in scope "${scope}": ${kind}`);
   return { error, operation, scope };
 }
+
+/**
+ * Hands the failure for `thrown` to `onError`. A throwing `onError` is ignored: a broken reporter
+ * must not stop the app any more than the failure it reports.
+ */
+export function reportFailure(
+  onError: (failure: SettingsStorageFailure) => void,
+  thrown: unknown,
+  operation: StorageOperation,
+  scope: SettingScope,
+): void {
+  try {
+    onError(storageFailure(thrown, operation, scope));
+  } catch {
+    // Safe to ignore: see above.
+  }
+}
