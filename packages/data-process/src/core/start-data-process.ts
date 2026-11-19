@@ -120,8 +120,7 @@ export async function startDataProcess<const Modules extends DataModules>({
     database,
     Object.values(modules).flatMap((module) => module.migrations),
     sources,
-    startSettings,
-    beforeMigrations,
+    { startSettings, beforeMigrations },
   );
   const tablesChanged = createTablesChangedPublisher();
   // One registry for every frame: a rule holds whoever writes its table (D332). The reference

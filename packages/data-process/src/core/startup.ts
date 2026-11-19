@@ -57,6 +57,12 @@ export type Startup =
   | { readonly health: Exclude<Health, HealthFailure>; readonly space: Space }
   | { readonly health: HealthFailure; readonly space?: undefined };
 
+export interface StartUpOptions {
+  /** Synced Settings to write if they are missing. Default: none. */
+  readonly startSettings?: readonly StartSetting[] | undefined;
+  readonly beforeMigrations?: BeforeMigrations | undefined;
+}
+
 /**
  * Runs the migrations of `spaces` and `settings` with the mounted modules' (D287, D352).
  * When they leave the database ready, makes sure the Personal Space exists (D288), then
@@ -66,8 +72,7 @@ export async function startUp(
   database: Database,
   migrations: readonly Migration[],
   sources: SpaceSources,
-  startSettings: readonly StartSetting[] = [],
-  beforeMigrations?: BeforeMigrations,
+  { startSettings = [], beforeMigrations }: StartUpOptions = {},
 ): Promise<Startup> {
   const health = await migrate(
     database,
