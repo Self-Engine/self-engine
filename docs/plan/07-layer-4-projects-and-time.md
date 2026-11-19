@@ -1,7 +1,7 @@
 # Schicht 4: Projekte und Zeit
 
 Stand: 2026-11-19 · Status: **entschieden** (D303–D316, Formular-Helfer D317–D326, `projects`
-D327–D330, Schutzregeln D331–D341, `time-tracking` D342–D349), Spec #271, Issues #272–#277 und #313 sowie #109, #110 und #213
+D327–D330, Schutzregeln D331–D341, `time-tracking` D342–D350), Spec #271, Issues #272–#277, #313 und #332 sowie #109, #110 und #213
 
 Schicht 4 ist der erste Fachmeilenstein: das erste, was in der App sichtbar und nutzbar ist. Sie
 ist bewusst schmal. Der Owner nutzt die alte App weiter, bis die neue ihn überzeugt (D315).
@@ -39,7 +39,7 @@ ist bewusst schmal. Der Owner nutzt die alte App weiter, bis die neue ihn überz
 | L4.11 | Projektseite | Keine in Schicht 4; #201 wird mit ihr gegrillt (D313) |
 | L4.12 | Hülle | Ein ständiger Platz, den ein Modul füllt; erster Nutzer ist der Timer (D314) |
 | L4.13 | Platzhalter | Verlassen die App mit `projects`, bleiben Testobjekte; kein Modul-Abbau (D315) |
-| L4.14 | Reihenfolge | Neun Schritte, `time-tracking` in zwei Paketen (D316); das Schutz-Paket ist in Datenprozess und Oberfläche geteilt (D340) |
+| L4.14 | Reihenfolge | Neun Schritte, `time-tracking` in zwei Paketen (D316); das Schutz-Paket ist in Datenprozess und Oberfläche geteilt (D340); die Uhr der Oberfläche und die Felder für Datum und Uhrzeit sind ein eigenes Paket vor #275 (D350) |
 
 ## Aufbau
 
@@ -82,7 +82,8 @@ Schicht 3 unter Spec #103.
 | 4b | Ablehnung und Auskunft in der Oberfläche; die Projekt-Schublade | #313 | D334–D336, D339, D340 | #274 |
 | 5 | Einstellungen in der Datenbank | #109 | D62, D113 ff. | – |
 | 6 | Zeitzone und Wochenstart | #110, verkleinert | D147, D153, D316 | #109 |
-| 7 | `time-tracking`, Teil 1: Einträge, Formular, Wochenansicht | #275 | D303, D304, D308, D311, D313, D342–D348 | #110, #273, #274, #313 |
+| 6b | Uhr der Oberfläche und Felder für Datum und Uhrzeit | #332 | D344, D345, D347, D348, D350 | – |
+| 7 | `time-tracking`, Teil 1: Einträge, Formular, Wochenansicht | #275 | D303, D304, D308, D311, D313, D342–D346 | #110, #273, #274, #313, #332 |
 | 8 | Ständiger Platz in der Hülle | #276 | D314 | – |
 | 9 | `time-tracking`, Teil 2: Timer und Markierung der Überschneidungen | #277 | D310, D311, D314, D344, D345, D348, D349 | #275, #276 |
 
@@ -90,7 +91,7 @@ Drei Pakete tragen eine Messung als Abnahmekriterium: die Schutzregeln (Prüfung
 Zeilen, D332), der ständige Platz (Start und Neuzeichnen, D314) und die Wochenansicht (Abfragezeit
 mit erzeugten Daten von zwei Jahren, D193).
 
-#313 trägt eine höhere Nummer als #275 und kommt doch davor (D340).
+#313 und #332 tragen eine höhere Nummer als #275 und kommen doch davor (D340, D350).
 
 ## Nach Schicht 4
 
@@ -130,6 +131,6 @@ mit erzeugten Daten von zwei Jahren, D193).
   [Runde 40](decisions/d303-d316-layer-4-projects-and-time.md); die zu `projects` sind in
   [Runde 42](decisions/d327-d330-projects-module.md) beantwortet, die zum Schutz-Paket in
   [Runde 43](decisions/d331-d340-protection-rules.md), die zu `time-tracking` in
-  [Runde 45](decisions/d342-d349-time-tracking.md).
+  [Runde 45](decisions/d342-d350-time-tracking.md).
 - Was ein Abgleich mit zwei Zeilen macht, die ein eindeutiger Index nicht beide zulässt (D328,
   Sync-Phase).

@@ -1,4 +1,4 @@
-# Runde 45 (2026-11-19): `time-tracking` (#275 und #277, ergänzt D147, schärft D308 und D310, füllt die Lücke aus ADR 0027)
+# Runde 45 (2026-11-19): `time-tracking` (#275, #277 und #332, ergänzt D147, schärft D308 und D310, füllt die Lücke aus ADR 0027, ändert die Reihenfolge aus D316)
 
 Grundlage: der Stand auf `main` nach #330 und die alte App (nur gelesen, Pfad in
 `research-layer-3-core.md`).
@@ -165,13 +165,26 @@ Grundlage: der Stand auf `main` nach #330 und die alte App (nur gelesen, Pfad in
   in einer Transaktion und löst eine Tabellenmeldung aus. _Verworfen:_ das Rückgängig ablehnen,
   während ein anderer Timer läuft (der Knopf wäre sichtbar und täte nichts); eine Spalte am
   Eintrag für die Herkunft; eine neue Id für den Eintrag.
+- **D350 Die Uhr der Oberfläche und die Felder für Datum und Uhrzeit werden ein eigenes
+  Arbeitspaket vor #275 (ändert die Reihenfolge aus D316).** #332 baut die Uhr mit Taktgeber, Hooks
+  und Anzeigeformaten in `time` (D348) und die Felder für Kalendertag, Uhrzeit und „Datum, Beginn,
+  Ende“ in `forms` samt der Auflösung der Zeitumstellung (D347). Es hat keinen Blocker und braucht
+  kein eigenes Grilling. #275 hängt daran. _Gründe:_ Die Grenze liegt bei rund 4.500 neuen Zeilen;
+  die letzten Arbeitspakete lagen bei 4.121, 4.990, 5.885 und 6.152. #275 mit Modul, Uhr und
+  Feldern läge geschätzt deutlich über 6.000. Ein Arbeitspaket hat einen Integrationszweig und
+  einen Pull Request: Blieben Uhr und Felder in #275, landete nichts davon, bevor #109 und #110
+  gegrillt und gebaut sind. Beide Teile bekommen die Zeitzone als Argument und lesen keine
+  Einstellung. _Preis:_ #332 trägt eine höhere Nummer als #275 und blockiert es doch, wie #313
+  (D340). Uhr und Felder entstehen vor ihrem ersten echten Nutzer und werden an Stories und Tests
+  gezeigt. _Verworfen:_ alles in #275.
 
 ## Später, mit Vorschlag
 
-Diese Fragen gehen mit ihrer vorgeschlagenen Antwort in die Spezifikationen von #275 und #277. Wer
+Diese Fragen gehen mit ihrer vorgeschlagenen Antwort in die Spezifikationen von #275, #277 und
+#332. Wer
 baut, darf anders entscheiden und nennt es im Pull Request.
 
-**Zeiteintrag und Formular (#275)**
+**Zeiteintrag und Formular (#275, das Feld für die Zeit in #332)**
 
 - **Zeitzone am Eintrag:** Gespeichert wird die Zeitzone der Einstellung in dem Moment, in dem
   die Zeile entsteht, beim Timer also beim Stoppen. Die Spalte ist Pflicht, und ein Bearbeiten
@@ -244,6 +257,3 @@ baut, darf anders entscheiden und nennt es im Pull Request.
 - **Zeitzone eines Eintrags:** sie anzeigen, mit ihr rechnen oder sie ändern (D342).
 - **Zeiteintrag und Sync:** was gilt, wenn zwei Geräte verschiedene Zeit haben (aus Runde 36).
   Sync-Phase.
-- **Reihenfolge des Baus:** Die Uhr der Oberfläche in `time` und die Felder für Datum und Uhrzeit
-  in `forms` bekommen die Zeitzone als Argument und lassen sich vor #110 bauen. Der Schnitt der
-  Slices entscheidet das.
