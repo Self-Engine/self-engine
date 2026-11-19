@@ -729,6 +729,9 @@ importers:
       '@self-engine/db':
         specifier: workspace:*
         version: link:../db
+      '@self-engine/settings-rows':
+        specifier: workspace:*
+        version: link:../settings-rows
       '@self-engine/spaces':
         specifier: workspace:*
         version: link:../spaces
@@ -1375,6 +1378,12 @@ importers:
       '@self-engine/db':
         specifier: workspace:*
         version: link:../db
+      '@self-engine/settings':
+        specifier: workspace:*
+        version: link:../settings
+      '@self-engine/settings-rows':
+        specifier: workspace:*
+        version: link:../settings-rows
       '@self-engine/spaces':
         specifier: workspace:*
         version: link:../spaces

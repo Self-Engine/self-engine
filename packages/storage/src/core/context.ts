@@ -1,4 +1,6 @@
 import { newId, type IdSources } from "@self-engine/db";
+import type { JsonValue, SettingDeclaration } from "@self-engine/settings";
+import { readSetting, type SettingsReader } from "@self-engine/settings-rows";
 import type { SpaceId } from "@self-engine/spaces";
 import type { Clock, Instant } from "@self-engine/time";
 import type { z } from "zod";
@@ -25,6 +27,16 @@ export interface StorageContext {
   readonly rules: ProtectionRules;
   /** The schema supplies the entity brand; generation never needs a cast in module code. */
   newId<Schema extends z.ZodType<string>>(schema: Schema): z.output<Schema>;
+  /**
+   * A Synced Setting of the call's Space, read through the call's `tx` (D352): the stored value
+   * if it passes the declaration's schema, otherwise the declared default. Never writes. A Query
+   * that reads one names `SETTINGS_TABLE` among its reads; the contract kit fails it otherwise.
+   * A Device Setting does not compile: it stays on its device.
+   */
+  readSetting<DB, T extends JsonValue>(
+    tx: SettingsReader<DB>,
+    setting: SettingDeclaration<T, "synced">,
+  ): Promise<T>;
 }
 
 export function createContext(sources: ContextSources): StorageContext {
@@ -38,5 +50,6 @@ export function createContext(sources: ContextSources): StorageContext {
     rules: sources.rules,
     newId: <Schema extends z.ZodType<string>>(_schema: Schema): z.output<Schema> =>
       newId<z.output<Schema>>(ids),
+    readSetting: (tx, setting) => readSetting(tx, sources.spaceId, setting),
   };
 }

@@ -36,17 +36,15 @@ export async function createSettingRows<DB>(
   db: Kysely<DB>,
   settings: readonly TestSettingRow[],
 ): Promise<SettingRow[]> {
-  const rows = settings.map(
-    (setting): SettingRow => ({
-      id: nextId(),
-      created_at: WRITTEN_AT,
-      updated_at: WRITTEN_AT,
-      deleted_at: null,
-      space_id: setting.spaceId ?? FIRST_SPACE_ID,
-      key: setting.key,
-      value: setting.text ?? JSON.stringify(setting.value),
-    }),
-  );
+  const rows = settings.map((setting): SettingRow => ({
+    id: nextId(),
+    created_at: WRITTEN_AT,
+    updated_at: WRITTEN_AT,
+    deleted_at: null,
+    space_id: setting.spaceId ?? FIRST_SPACE_ID,
+    key: setting.key,
+    value: setting.text ?? JSON.stringify(setting.value),
+  }));
   // The caller's tables say nothing about `settings`; the migration of `settings` is what this needs.
   const settingsDb = db as unknown as Kysely<SettingsTables>;
   if (rows.length > 0) await settingsDb.insertInto("settings").values(rows).execute();

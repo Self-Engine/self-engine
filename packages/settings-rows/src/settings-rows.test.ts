@@ -81,7 +81,10 @@ describe("readSetting", () => {
     { row: "is missing", rows: [] },
     { row: "fails the schema", rows: [{ key: workHours.key, value: -2 }] },
     { row: "is no JSON", rows: [{ key: workHours.key, text: "{eight" }] },
-    { row: "is another Space's", rows: [{ key: workHours.key, value: 6, spaceId: SECOND_SPACE_ID }] },
+    {
+      row: "is another Space's",
+      rows: [{ key: workHours.key, value: 6, spaceId: SECOND_SPACE_ID }],
+    },
   ])("answers with the default when the row $row, and writes nothing", async ({ rows }) => {
     const database = await migrated();
     await createSettingRows(database.kysely, rows);
@@ -101,10 +104,9 @@ describe("readSetting", () => {
     expect(read).toBe(5);
   });
 
-  test("takes only a Synced Setting", () => {
-    const database = openDatabase(":memory:");
-    open.push(database);
+  test("takes only a Synced Setting", async () => {
+    const database = await migrated();
     // @ts-expect-error A Device Setting stays on its device; the database holds none.
-    void readSetting(database.kysely, FIRST_SPACE_ID, compact).catch(() => {});
+    await expect(readSetting(database.kysely, FIRST_SPACE_ID, compact)).resolves.toBe(false);
   });
 });

@@ -11,6 +11,7 @@ import {
   type Space,
   type SpaceSources,
 } from "@self-engine/spaces";
+import { settingsMigrations } from "@self-engine/settings-rows";
 import { sql } from "kysely";
 
 /** Runs before the pending migrations, only when some are pending: the backup's place (D94). */
@@ -53,7 +54,7 @@ export type Startup =
   | { readonly health: HealthFailure; readonly space?: undefined };
 
 /**
- * Runs the migration of `spaces` with the mounted modules' (D287), then, only when they left the
+ * Runs the migrations of `spaces` and `settings` with the mounted modules' (D287, D352), then, only when they left the
  * database ready, makes sure the Personal Space exists, in a transaction of its own (D288). A
  * failure state creates no Space. A database whose Personal Space is broken, two of them or a
  * deleted one, makes the start throw like any unexpected failure: nothing is picked.
@@ -64,7 +65,11 @@ export async function startUp(
   sources: SpaceSources,
   beforeMigrations?: BeforeMigrations,
 ): Promise<Startup> {
-  const health = await migrate(database, [...spacesMigrations, ...migrations], beforeMigrations);
+  const health = await migrate(
+    database,
+    [...spacesMigrations, ...settingsMigrations, ...migrations],
+    beforeMigrations,
+  );
   if (health.state !== "ready") return { health };
   return { health, space: await ensurePersonalSpace(database, sources) };
 }

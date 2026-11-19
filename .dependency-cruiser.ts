@@ -33,9 +33,9 @@ export const ALLOWED_IMPORTS: AllowedImports = {
   // `data-protocol`, which knows no module, so no cycle runs through a module (ADR 0006). The
   // texts of the frame's Reasons list tables with `i18n`'s counted names (D335).
   "data-client": ["data-protocol", "i18n", "ui"],
-  // The core knows no module: the app passes its module list in. It runs the migration of
-  // `spaces` and makes sure of the Personal Space at every start (D287).
-  "data-process": ["data-protocol", "db", "spaces", "storage"],
+  // The core knows no module: the app passes its module list in. It runs the migrations of
+  // `spaces` and `settings` and makes sure of the Personal Space at every start (D287, D352).
+  "data-process": ["data-protocol", "db", "settings-rows", "spaces", "storage"],
   // `health`, the Table Change stream and the Backups; a Backup's Instant comes from `time`.
   "data-protocol": ["db", "time"],
   // The preload and the page share it; the failure states come from the protocol.
@@ -77,7 +77,9 @@ export const ALLOWED_IMPORTS: AllowedImports = {
   shell: ["data-client", "i18n", "icons", "theme", "ui"],
   // The Space below Storage (D287): its table, its id and the Personal Space of a database.
   spaces: ["db", "time"],
-  storage: ["db", "spaces", "time"],
+  // The context of every call reads a Setting through `settings-rows` (D352), typed by the
+  // declaration of `settings`.
+  storage: ["db", "settings", "settings-rows", "spaces", "time"],
   time: [],
   ui: ["icons", "theme"],
 };

@@ -17,7 +17,10 @@ export type SettingScope = "synced" | "device";
  * declared scope, so a reader that takes only Synced Settings rejects a Device Setting at compile
  * time.
  */
-export interface SettingDeclaration<T extends JsonValue, Scope extends SettingScope = SettingScope> {
+export interface SettingDeclaration<
+  T extends JsonValue,
+  Scope extends SettingScope = SettingScope,
+> {
   /** Permanent, like a Theme id, and starts with the owner's name: `appearance.accent`. */
   readonly key: string;
   readonly scope: Scope;

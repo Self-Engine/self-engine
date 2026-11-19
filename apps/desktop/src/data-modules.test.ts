@@ -30,7 +30,7 @@ test("the app mounts projects and no placeholder: its migrations and Queries are
   );
   await expect(client.health()).resolves.toMatchObject({
     state: "ready",
-    migrations: ["projects/0001", "spaces/0001"],
+    migrations: ["projects/0001", "settings/0001", "spaces/0001"],
   });
   const events = await client.tablesChanged();
   await expect(events.next()).resolves.toEqual({
