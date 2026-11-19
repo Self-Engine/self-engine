@@ -560,6 +560,9 @@ importers:
       '@self-engine/settings-area':
         specifier: workspace:*
         version: link:../../packages/settings-area
+      '@self-engine/settings-data':
+        specifier: workspace:*
+        version: link:../../packages/settings-data
       '@self-engine/shell':
         specifier: workspace:*
         version: link:../../packages/shell

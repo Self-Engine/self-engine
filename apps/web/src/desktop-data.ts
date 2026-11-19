@@ -1,6 +1,15 @@
 import { createDataConnection, type DataConnection } from "@self-engine/data-client";
 import { NO_DATA_PROCESS, type PortAccess, portAccessOf } from "@self-engine/data-client/react";
 import { CONNECTION_MARK, type DesktopBridge, readPageMessage } from "@self-engine/desktop-bridge";
+import type { settingsContract } from "@self-engine/settings-data/contracts";
+
+/**
+ * The modules the page calls directly, outside a View's hooks: the Settings Port, which the
+ * store's adapter reaches before the first render (D351). Their Contracts arrive as types only.
+ */
+export interface PageModules {
+  readonly settings: typeof settingsContract;
+}
 
 /** A window message, as far as the handoff reads it. */
 export type PortMessage = Pick<MessageEvent, "origin" | "data" | "ports">;
@@ -15,7 +24,7 @@ export interface DesktopDataWindow {
  * The page's one connection to the data process. It connects only in the desktop app; on the web
  * it is stopped from the start, so the page shows that the data cannot be reached (D263).
  */
-export const dataConnection: DataConnection = createDataConnection();
+export const dataConnection: DataConnection<PageModules> = createDataConnection();
 
 /** A page's window, as far as the start of its data reads it. */
 export type PageDataWindow = DesktopDataWindow & {

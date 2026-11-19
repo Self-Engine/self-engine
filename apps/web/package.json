@@ -22,6 +22,7 @@
     "@self-engine/projects": "workspace:*",
     "@self-engine/settings": "workspace:*",
     "@self-engine/settings-area": "workspace:*",
+    "@self-engine/settings-data": "workspace:*",
     "@self-engine/shell": "workspace:*",
     "@self-engine/theme": "workspace:*",
     "@self-engine/ui": "workspace:*",
