@@ -7,6 +7,7 @@ import { createDataConnection, type DataConnection } from "@self-engine/data-cli
 import { startTestDataProcess, type TestDataProcess } from "@self-engine/data-process/testing";
 import type { TablesChanged } from "@self-engine/data-protocol";
 import {
+  createLocalCopyAdapter,
   createSettingsStore,
   defineSetting,
   type ReportedSettingEntry,
@@ -325,4 +326,72 @@ test("after a reconnect the adapter reads the rows again and reports what change
   connection.connect((await dataProcess).openPort());
 
   await expect(reported).resolves.toEqual([{ key: "appearance.accent", value: "grape" }]);
+});
+
+/** The store of a window, as the desktop app composes it: the local copy in front of the Port. */
+function windowStore(
+  connection: SettingsPortConnection,
+  copy: ReturnType<typeof createTestAdapter>,
+) {
+  return createSettingsStore({
+    adapters: {
+      synced: createLocalCopyAdapter({
+        copy,
+        database: createSettingsPortAdapter(connection),
+        onError: (failure) => {
+          throw failure.error;
+        },
+      }),
+      device: createTestAdapter(),
+    },
+    onError: (failure) => {
+      throw failure.error;
+    },
+  });
+}
+
+const language = defineSetting({
+  key: "i18n.language",
+  scope: "synced",
+  default: "system",
+  schema: z.string(),
+});
+
+/** Resolves once `store` reads `expected` for `setting`, at once if it does already. */
+function untilStoreReads(
+  store: ReturnType<typeof windowStore>,
+  setting: typeof accent,
+  expected: string,
+): Promise<void> {
+  return new Promise((resolve) => {
+    if (store.read(setting) === expected) return resolve();
+    const unsubscribe = store.subscribe(() => {
+      if (store.read(setting) !== expected) return;
+      unsubscribe();
+      resolve();
+    });
+  });
+}
+
+test("behind the local copy, the database wins, gets what it lacked, and keeps it over a restart", async () => {
+  const dataProcess = startPort();
+  const observerConnection = connect(dataProcess);
+  const observer = createSettingsPortAdapter(observerConnection);
+  await observer.save([{ key: "appearance.accent", value: "grape" }]);
+  await untilReady(observerConnection);
+  const moved = nextReport(observer, ["i18n.language"]);
+  const copy = createTestAdapter({ "appearance.accent": "green", "i18n.language": "de" });
+  const store = windowStore(connect(dataProcess), copy);
+
+  await store.load();
+  const first = [store.read(accent), store.read(language)];
+  await untilStoreReads(store, accent, "grape");
+  await expect(moved).resolves.toEqual([{ key: "i18n.language", value: "de" }]);
+  const restarted = windowStore(connect(dataProcess), createTestAdapter());
+  await restarted.load();
+  await untilStoreReads(restarted, language, "de");
+
+  expect(first).toEqual(["green", "de"]);
+  expect(copy.stored.get("appearance.accent")).toBe("grape");
+  expect(restarted.read(accent)).toBe("grape");
 });
