@@ -1,7 +1,7 @@
 import { newId, type Database } from "@self-engine/db";
 import type { JsonValue, SettingDeclaration } from "@self-engine/settings";
 import type { SpaceId, SpaceSources } from "@self-engine/spaces";
-import type { SettingId, SettingsTables } from "./rows.ts";
+import { SETTINGS_TABLE, type SettingId, type SettingsTables } from "./rows.ts";
 
 const entry = Symbol("start Setting");
 
@@ -29,7 +29,7 @@ export async function writeMissingSettings(
   const db = database.kysely.withTables<SettingsTables>();
   const entries = settings.map((setting) => setting[entry]);
   const existing = await db
-    .selectFrom("settings")
+    .selectFrom(SETTINGS_TABLE)
     .select("key")
     .where("space_id", "=", spaceId)
     .where(
@@ -49,6 +49,7 @@ export async function writeMissingSettings(
   const ids = { clock: () => now, random: sources.ids.random };
   await db.transaction().execute(async (tx) => {
     await tx
+      // The literal name: the write-path lint rule names this insert as an exception by it.
       .insertInto("settings")
       .values(
         missing.map(({ key, value }) => ({

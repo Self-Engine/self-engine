@@ -11,5 +11,5 @@ export {
   type SettingRow,
   type SettingsTables,
 } from "./rows.ts";
-export { readSetting, type SettingsReader } from "./read.ts";
+export { parseStoredValue, readSetting, type SettingsReader } from "./read.ts";
 export { startSetting, writeMissingSettings, type StartSetting } from "./start.ts";

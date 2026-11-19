@@ -1,4 +1,9 @@
-import { SETTINGS_TABLE, settingIdSchema, settingsRowMap } from "@self-engine/settings-rows";
+import {
+  parseStoredValue,
+  SETTINGS_TABLE,
+  settingIdSchema,
+  settingsRowMap,
+} from "@self-engine/settings-rows";
 import { defineStorageModule, sharedEntry, sharedWrites, smallSetList } from "@self-engine/storage";
 import { settingEntrySchema, settingsContract } from "../contracts/index.ts";
 
@@ -17,14 +22,8 @@ export const settings = defineStorageModule({
       .execute();
     const entries = [];
     for (const { key, value } of rows) {
-      let decoded: unknown;
-      try {
-        decoded = JSON.parse(value);
-      } catch {
-        // Leave an unreadable value in the database.
-        continue;
-      }
-      const entry = settingEntrySchema.safeParse({ key, value: decoded });
+      // A value that is no JSON stays in the database and fails the check: it is left out.
+      const entry = settingEntrySchema.safeParse({ key, value: parseStoredValue(value) });
       if (entry.success) entries.push(entry.data);
     }
     return entries;
