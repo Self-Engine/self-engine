@@ -11,6 +11,7 @@ import {
   settingChange,
   type SettingDeclaration,
   type SettingScope,
+  settingValue,
 } from "./setting.ts";
 
 export interface SettingsStore {
@@ -191,8 +192,7 @@ export function createSettingsStore({ adapters, onError }: SettingsStoreOptions)
       if (stored === undefined) return setting.default;
       const cached = parsed.get(setting);
       if (cached?.stored === stored) return cached.value as T;
-      const result = safeParse(setting.schema, stored);
-      const value = result.success ? result.data : setting.default;
+      const value = settingValue(setting, stored);
       parsed.set(setting, { stored, value });
       return value;
     },

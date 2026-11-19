@@ -13,6 +13,7 @@ export {
   settingChange,
   type SettingDeclaration,
   type SettingScope,
+  settingValue,
 } from "./setting.ts";
 export {
   createSettingsStore,

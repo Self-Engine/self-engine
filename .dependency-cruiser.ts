@@ -70,6 +70,9 @@ export const ALLOWED_IMPORTS: AllowedImports = {
     "time",
     "ui",
   ],
+  // The Settings table below Storage (D352), as `spaces` is: its rows refer to a Space, and its
+  // read checks a value against the declaration of `settings`, which imports no repo package.
+  "settings-rows": ["db", "settings", "spaces", "time"],
   // The Port access type (D261) and plural names of synced tables (D335).
   shell: ["data-client", "i18n", "icons", "theme", "ui"],
   // The Space below Storage (D287): its table, its id and the Personal Space of a database.
