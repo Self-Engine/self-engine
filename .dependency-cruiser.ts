@@ -28,7 +28,7 @@ export const ALLOWED_IMPORTS: AllowedImports = {
   backup: ["data-protocol", "db", "time"],
   // Composes the protocol and the modules' contracts (D187): `contracts → module`. Only the
   // desktop app's module list imports it.
-  contracts: ["data-protocol", "projects"],
+  contracts: ["data-protocol", "projects", "settings-data"],
   // The building block tells the user through `ui`'s feedback system. It takes the protocol from
   // `data-protocol`, which knows no module, so no cycle runs through a module (ADR 0006). The
   // texts of the frame's Reasons list tables with `i18n`'s counted names (D335).
@@ -70,6 +70,8 @@ export const ALLOWED_IMPORTS: AllowedImports = {
     "time",
     "ui",
   ],
+  // The Settings Port uses the row map of the table migrated by the Data Process (D352).
+  "settings-data": ["db", "settings-rows", "storage"],
   // The Settings table below Storage (D352), as `spaces` is: its rows refer to a Space, and its
   // read checks a value against the declaration of `settings`, which imports no repo package.
   "settings-rows": ["db", "settings", "spaces", "time"],
@@ -103,6 +105,8 @@ export const TEST_ONLY_IMPORTS: AllowedImports = {
   // The test Data Process, to run the module's hooks and form end to end without the app, and
   // the Space rows a test of the Read Piece moves a project into, and the protocol's Clearance.
   projects: ["data-process", "data-protocol", "spaces"],
+  // Exercise the Settings Port over the Data Process with the store's readonly entries.
+  "settings-data": ["data-process", "data-protocol", "settings"],
   // The app's catalogs, so a story of the icon field switches the language as the Settings do.
   ui: ["i18n"],
 };
