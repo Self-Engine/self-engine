@@ -1,16 +1,11 @@
-import { defineSetting, type LocalSettingsStorage } from "@self-engine/settings";
+import type { LocalSettingsStorage } from "@self-engine/settings";
+import { APPEARANCE_SETTINGS, appLanguageOf } from "@self-engine/settings-area/settings";
 import type { SettingsPortConnection } from "@self-engine/settings-data/adapter";
 import { settle } from "@self-engine/settings/testing";
-import { expect, it } from "vite-plus/test";
-import { z } from "zod/mini";
+import { expect, it, vi } from "vite-plus/test";
 import { createAppSettingsStore } from "./app-settings.ts";
 
-const accent = defineSetting({
-  key: "appearance.accent",
-  scope: "synced",
-  default: "blue",
-  schema: z.string(),
-});
+const { accent, colorMode, lightTheme } = APPEARANCE_SETTINGS;
 
 const ACCENT_ITEM = "self-engine:settings:synced:appearance.accent";
 
@@ -36,6 +31,7 @@ type PortRows = Awaited<ReturnType<SettingsPortConnection["client"]["settings"][
 /** A ready data connection whose Settings Port answers `load` with `rows` once released. */
 function heldPort(rows: PortRows) {
   const answer = Promise.withResolvers<void>();
+  const save = vi.fn(async () => {});
   const connection: SettingsPortConnection = {
     getState: () => ({ status: "ready" }),
     subscribe: () => () => {},
@@ -47,11 +43,11 @@ function heldPort(rows: PortRows) {
           await answer.promise;
           return rows;
         },
-        save: async () => {},
+        save,
       },
     },
   };
-  return { connection, answer: answer.resolve };
+  return { connection, answer: answer.resolve, save };
 }
 
 it("keeps the Synced Settings in localStorage without a Data Process, as the web app does", async () => {
@@ -78,4 +74,31 @@ it("starts the desktop app from the copy and ends on the database's value", asyn
   expect(first).toBe("green");
   expect(store.read(accent)).toBe("grape");
   expect(items.get(ACCENT_ITEM)).toBe('"grape"');
+});
+
+it("loads the stored App Language and Theme while the desktop Port never answers", async () => {
+  const { environment } = memoryStorage({
+    "self-engine:settings:synced:i18n.language": '"de"',
+    "self-engine:settings:synced:appearance.lightTheme": '"warm"',
+  });
+  const port = heldPort([]);
+  const store = createAppSettingsStore(environment, port.connection, () => {});
+
+  await store.load();
+
+  expect(appLanguageOf(store, ["en"])).toBe("de");
+  expect(store.read(lightTheme)).toBe("warm");
+});
+
+it("keeps desktop Device Settings in localStorage", async () => {
+  const { items, environment } = memoryStorage();
+  const port = heldPort([]);
+  const store = createAppSettingsStore(environment, port.connection, () => {});
+  await store.load();
+
+  store.write(colorMode, "dark");
+  await settle();
+
+  expect(items.get("self-engine:settings:device:appearance.colorMode")).toBe('"dark"');
+  expect(port.save).not.toHaveBeenCalled();
 });

@@ -25,23 +25,37 @@ afterEach(async () => {
   await database.close();
 });
 
-test("a Query answers with the stored Setting, typed by its declaration", async () => {
-  await createSettingRows(database.kysely, [{ key: workdayHours.key, value: 6 }]);
-  const hours: number = await call(frame.hours, undefined);
-  expect(hours).toBe(6);
-});
+test.each([
+  { text: "6", expected: 6 },
+  { text: undefined, expected: 8 },
+  { text: "{broken", expected: 8 },
+  { text: "30", expected: 8 },
+])(
+  "a Query and an Operation read a typed Setting with stored text $text",
+  async ({ text, expected }) => {
+    if (text !== undefined)
+      await createSettingRows(database.kysely, [{ key: workdayHours.key, text }]);
 
-test("a Query answers with the declared default when the row is missing", async () => {
-  await expect(call(frame.hours, undefined)).resolves.toBe(8);
-});
+    const query: number = await call(frame.hours, undefined);
+    const operation: number = await call(frame.readHours, undefined);
+
+    expect(query).toBe(expected);
+    expect(operation).toBe(expected);
+  },
+);
+
+const examples = { hours: undefined, readHours: undefined };
 
 test("the contract kit passes a Query that names the Settings table among its reads", async () => {
-  await expect(checkContract(workday, () => {}, { hours: undefined })).resolves.toEqual([]);
+  await expect(checkContract(workday, () => {}, examples)).resolves.toEqual([]);
 });
 
 test("the contract kit fails a Query that reads a Setting and does not name the table", async () => {
-  const forgetful = { ...workday, entries: { hours: { ...workday.entries.hours, reads: [] } } };
-  await expect(checkContract(forgetful, () => {}, { hours: undefined })).resolves.toEqual([
+  const forgetful = {
+    ...workday,
+    entries: { ...workday.entries, hours: { ...workday.entries.hours, reads: [] } },
+  };
+  await expect(checkContract(forgetful, () => {}, examples)).resolves.toEqual([
     { entry: "hours", rule: "query reads an undeclared table: settings" },
   ]);
 });

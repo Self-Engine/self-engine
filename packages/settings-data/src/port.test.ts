@@ -1,3 +1,6 @@
+import { mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { createORPCClient } from "@orpc/client";
 import { RPCLink } from "@orpc/client/message-port";
 import type { ContractRouterClient } from "@orpc/contract";
@@ -7,6 +10,7 @@ import {
   type TestDataProcessOptions,
 } from "@self-engine/data-process/testing";
 import type { ProtocolContract } from "@self-engine/data-protocol";
+import { openDatabase } from "@self-engine/db/better-sqlite3";
 import { defineReason } from "@self-engine/db/schema";
 import type { SettingEntry } from "@self-engine/settings";
 import { settingsRowMap } from "@self-engine/settings-rows";
@@ -20,9 +24,11 @@ import { settings } from "./data/index.ts";
 type Client = ContractRouterClient<ProtocolContract & { settings: typeof settingsContract }>;
 
 const started: TestDataProcess[] = [];
+const folders: string[] = [];
 
 afterEach(async () => {
   for (const dataProcess of started.splice(0)) await dataProcess.close();
+  for (const folder of folders.splice(0)) rmSync(folder, { recursive: true, force: true });
 });
 
 async function start(
@@ -59,6 +65,29 @@ test("a save replaces and inserts entries together and leaves unsent entries alo
       { key: "i18n.language", value: "de" },
     ]),
   );
+});
+
+test("Synced appearance and App Language survive a Data Process restart", async () => {
+  const folder = mkdtempSync(join(tmpdir(), "self-engine-settings-port-"));
+  folders.push(folder);
+  const path = join(folder, "data.sqlite");
+  const entries: readonly SettingEntry[] = [
+    { key: "appearance.lightTheme", value: "warm" },
+    { key: "appearance.darkTheme", value: "cool" },
+    { key: "appearance.accent", value: "green" },
+    { key: "appearance.backgroundTint", value: true },
+    { key: "i18n.language", value: "de" },
+  ];
+  const first = await start({ database: openDatabase(path) });
+  await first.client.settings.save({ entries });
+  await first.dataProcess.close();
+  started.pop();
+
+  const restarted = await start({ database: openDatabase(path) });
+  const loaded = await restarted.client.settings.load({});
+
+  expect(loaded).toHaveLength(entries.length);
+  expect(loaded).toEqual(expect.arrayContaining<unknown>([...entries]));
 });
 
 test("unknown keys round-trip with their JSON values, including null", async () => {

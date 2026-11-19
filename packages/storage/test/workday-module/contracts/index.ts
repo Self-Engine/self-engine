@@ -1,5 +1,6 @@
 // Test-only reference for reading a Setting (D352); no runtime entry imports it.
 import { oc } from "@orpc/contract";
+import { refusal } from "@self-engine/db/schema";
 import { defineSetting } from "@self-engine/settings";
 import { z } from "zod";
 
@@ -13,4 +14,5 @@ export const workdayHours = defineSetting({
 
 export const workdayContract = {
   hours: oc.output(z.int()),
+  readHours: oc.output(z.int()).errors(refusal),
 };
