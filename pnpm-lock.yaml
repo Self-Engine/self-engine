@@ -1264,9 +1264,15 @@ importers:
       '@orpc/contract':
         specifier: 'catalog:'
         version: 1.16.2
+      '@self-engine/data-client':
+        specifier: workspace:*
+        version: link:../data-client
       '@self-engine/db':
         specifier: workspace:*
         version: link:../db
+      '@self-engine/settings':
+        specifier: workspace:*
+        version: link:../settings
       '@self-engine/settings-rows':
         specifier: workspace:*
         version: link:../settings-rows
@@ -1286,9 +1292,6 @@ importers:
       '@self-engine/data-protocol':
         specifier: workspace:*
         version: link:../data-protocol
-      '@self-engine/settings':
-        specifier: workspace:*
-        version: link:../settings
       '@types/node':
         specifier: 24.19.2
         version: 24.19.2

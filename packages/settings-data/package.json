@@ -5,12 +5,15 @@
   "license": "AGPL-3.0-only",
   "type": "module",
   "exports": {
+    "./adapter": "./src/adapter/index.ts",
     "./contracts": "./src/contracts/index.ts",
     "./data": "./src/data/index.ts"
   },
   "dependencies": {
     "@orpc/contract": "catalog:",
+    "@self-engine/data-client": "workspace:*",
     "@self-engine/db": "workspace:*",
+    "@self-engine/settings": "workspace:*",
     "@self-engine/settings-rows": "workspace:*",
     "@self-engine/storage": "workspace:*",
     "zod": "catalog:"
@@ -19,7 +22,6 @@
     "@orpc/client": "catalog:",
     "@self-engine/data-process": "workspace:*",
     "@self-engine/data-protocol": "workspace:*",
-    "@self-engine/settings": "workspace:*",
     "@types/node": "catalog:",
     "vite-plus": "catalog:"
   }
