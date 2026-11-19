@@ -120,8 +120,10 @@ Grundlage: der Stand auf `main` nach #331.
   `contracts` importiert den Contract jedes Moduls; ein Modul, das seine Einstellungen von dort
   läse, ergäbe einen Zyklus, den die Grenzprüfung ablehnt. Besitzer des Werts und Besitzer der
   Deklaration bleiben derselbe. _Preis:_ Dieser Einstieg von `time` importiert `settings`; der
-  Haupteinstieg von `time` bleibt ohne Paket des Repos (D143). _Verworfen:_ ein neues Paket nur
-  für die Einstellungen des Kerns; `contracts` (Zyklus).
+  Haupteinstieg von `time` bleibt ohne Paket des Repos (D143). `settings` selbst bleibt deshalb
+  ohne Importe aus dem Repo (D116): `db` importiert `time`, also liegt die Tabelle der
+  Einstellungen in einem anderen Paket. _Verworfen:_ ein neues Paket nur für die Einstellungen
+  des Kerns; `contracts` (Zyklus).
 
 ## Später, mit Vorschlag
 
@@ -133,11 +135,11 @@ baut, darf anders entscheiden und nennt es im Pull Request.
 - **Zeilenformat:** wie im Issue: eine Zeile pro Einstellung mit `key` und `value` als JSON-Text
   nach den Konventionen. Ein Modul besitzt eine Einstellung über den Präfix ihres Schlüssels.
 - **Space:** Jede Einstellung gehört zum persönlichen Space.
-- **Lage im Code:** Tabelle, Migration und Lesefunktion liegen unter `storage`, wie `spaces`; die
-  Migration läuft beim Start des Datenprozesses mit. Laden und Speichern der Seite sind ein Modul
-  mit Contract über dem Rahmen, damit Transaktion, Tabellenmeldung und Contract-Kit greifen. Es
-  liegt in einem eigenen Paket, weil `storage` die Lesefunktion importiert und ein Paket mit dem
-  Modul sonst einen Zyklus ergäbe.
+- **Lage im Code:** Tabelle, Migration und Lesefunktion liegen in einem eigenen Paket unter
+  `storage`, wie `spaces`; die Migration läuft beim Start des Datenprozesses mit. Laden und
+  Speichern der Seite sind ein Modul mit Contract über dem Rahmen, damit Transaktion,
+  Tabellenmeldung und Contract-Kit greifen. Es liegt in einem zweiten Paket, weil `storage` die
+  Lesefunktion importiert und ein Paket mit beidem einen Zyklus ergäbe.
 - **Werte beim Start:** Der Datenprozess bekommt eine Liste von Einstellungen mit Wert, die er
   schreibt, wenn ihre Zeile fehlt. Die App nennt darin die Zeitzone des Geräts (D353), ein Test
   eine feste.
