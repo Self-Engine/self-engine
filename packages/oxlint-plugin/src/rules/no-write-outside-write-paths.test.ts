@@ -76,20 +76,23 @@ describe("self-engine/no-write-outside-write-paths", () => {
     expect(lintFixture(RULE, 'await tx.selectFrom("notes").selectAll().execute();')).toEqual([]);
   });
 
-  it("accepts a named exception and nothing beside it", () => {
-    const insert = 'await tx.insertInto("spaces").values(row).execute();';
+  it.each([
+    { path: "spaces/src/personal-space.ts", table: "spaces" },
+    { path: "settings-rows/src/start.ts", table: "settings" },
+  ])("accepts an insert of $table only in its named exception", ({ path, table }) => {
+    const insert = `await tx.insertInto("${table}").values(row).execute();`;
     const [named, elsewhere] = lintFixtures(
       RULE,
       [
-        { path: "personal-space.ts", source: insert },
-        { path: "shared-space.ts", source: insert },
+        { path, source: insert },
+        { path: "another-package/src/index.ts", source: insert },
       ],
-      "packages/spaces/src",
+      "packages",
     );
     const [otherWrite] = lintFixtures(
       RULE,
-      [{ path: "personal-space.ts", source: 'await tx.deleteFrom("spaces").execute();' }],
-      "packages/spaces/src",
+      [{ path, source: `await tx.deleteFrom("${table}").execute();` }],
+      "packages",
     );
     expect([named, elsewhere?.length, otherWrite?.length]).toEqual([[], 1, 1]);
   });

@@ -10,12 +10,14 @@ import type { ContractRouterClient } from "@orpc/contract";
 import type { ProtocolContract } from "@self-engine/data-protocol";
 import { createMigrationRunner, type Database, type Migration } from "@self-engine/db";
 import { openDatabase } from "@self-engine/db/better-sqlite3";
+import { settingsMigrations, type SettingsTables } from "@self-engine/settings-rows";
 import { spacesMigrations } from "@self-engine/spaces";
 import { createSpaceRows, FIRST_SPACE_ID, SECOND_SPACE_ID } from "@self-engine/spaces/testing";
-import { notes } from "@self-engine/storage/testing";
+import { notes, workdayHours } from "@self-engine/storage/testing";
 import { requireInstant } from "@self-engine/time/testing";
 import { afterEach, expect, test } from "vite-plus/test";
 import { startTestDataProcess, type TestDataProcess } from "../testing/index.ts";
+import { startSetting } from "./index.ts";
 
 type Client = ContractRouterClient<ProtocolContract & { notes: typeof notes.contract }>;
 
@@ -130,19 +132,32 @@ test.each([
     known: [time],
     ran: [time, { name: "time/0002", sql: "CREATE TABLE time_breaks (id TEXT) STRICT;" }],
   },
-])("a start that ends in $state reports it and creates no Space", async ({ state, known, ran }) => {
-  const database = openDatabase(":memory:");
-  // The table of `spaces` exists from an earlier start, so only the start can have left it empty.
-  await createMigrationRunner(database, [...spacesMigrations, ...ran]).run();
-  const dataProcess = await startTestDataProcess({ database, migrations: known });
-  started.push(dataProcess);
-  const client: ContractRouterClient<ProtocolContract> = createORPCClient(
-    new RPCLink({ port: dataProcess.openPort() }),
-  );
+])(
+  "a start that ends in $state creates neither a Space nor a Setting",
+  async ({ state, known, ran }) => {
+    const database = openDatabase(":memory:");
+    await createMigrationRunner(database, [
+      ...spacesMigrations,
+      ...settingsMigrations,
+      ...ran,
+    ]).run();
+    const dataProcess = await startTestDataProcess({
+      database,
+      migrations: known,
+      startSettings: [startSetting(workdayHours, 6)],
+    });
+    started.push(dataProcess);
+    const client: ContractRouterClient<ProtocolContract> = createORPCClient(
+      new RPCLink({ port: dataProcess.openPort() }),
+    );
 
-  await expect(client.health()).resolves.toEqual({ state, migration: "time/0002" });
-  expect(await spaceCount(database)).toBe(0);
-});
+    await expect(client.health()).resolves.toEqual({ state, migration: "time/0002" });
+    expect(await spaceCount(database)).toBe(0);
+    await expect(
+      database.kysely.withTables<SettingsTables>().selectFrom("settings").selectAll().execute(),
+    ).resolves.toEqual([]);
+  },
+);
 
 test("a failed first migration leaves no table of Spaces and no Space", async () => {
   const dataProcess = await startTestDataProcess({

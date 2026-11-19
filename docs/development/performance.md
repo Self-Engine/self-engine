@@ -634,6 +634,15 @@ the JSON parse and schema check of the value. `EXPLAIN QUERY PLAN` shows
 reads a Setting reloads after every change of any Setting (D352); its answer stays the same, so
 nothing redraws.
 
+### Settings written at startup (#355)
+
+On an Apple M3 Pro with Node 26.13.1 and SQLite 3.53.4, a start with one listed Setting
+added a median **0.015 ms** when the row existed and **0.059 ms** when it was missing,
+relative to an empty list. The figures are paired differences across 1,001 starts after
+334 warm-up starts per case, using one already migrated SQLite file with the app's
+pragmas and calling the Data Process core directly. The empty list runs no Settings
+SQL. An existing row takes one lookup and no write transaction.
+
 ## Loading and saving Settings through the Port (#356)
 
 Measured on an Apple M3 Pro with Node 26.13.1 and file-backed SQLite using the app's pragmas.

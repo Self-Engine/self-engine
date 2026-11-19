@@ -1,5 +1,5 @@
-// The Settings table below Storage (D352), as `spaces` is: its row map, its migration and the
-// read of one Setting. No Contract and no entry a page can call; Storage puts the read on the
+// The Settings table below Storage (D352), as `spaces` is: its row map, its migration, the
+// read of one Setting and the writes at startup. Storage puts the read on the
 // context of every Operation and Query.
 
 export {
@@ -12,3 +12,4 @@ export {
   type SettingsTables,
 } from "./rows.ts";
 export { readSetting, type SettingsReader } from "./read.ts";
+export { startSetting, writeMissingSettings, type StartSetting } from "./start.ts";

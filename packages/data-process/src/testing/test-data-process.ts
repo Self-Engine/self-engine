@@ -18,6 +18,8 @@ export interface TestDataProcessOptions<Modules extends DataModules = DataModule
   readonly rules?: DataProcessOptions<Modules>["rules"];
   /** The clock and ids of every call and of the Personal Space; the start finds the Space. */
   readonly sources?: SpaceSources;
+  /** Passed to the core: Synced Settings to write if they are missing. */
+  readonly startSettings?: DataProcessOptions["startSettings"];
   readonly checkOutputs?: boolean;
   readonly report?: DataProcessOptions["report"];
   /** Migration-only fixture for startup tests; module call tests supply modules instead. */
@@ -73,6 +75,7 @@ export async function startTestDataProcess<const Modules extends DataModules = D
       },
       ...(options.rules === undefined ? {} : { rules: options.rules }),
       sources: options.sources ?? createTestSources("2026-01-01T00:00:00.000Z"),
+      ...(options.startSettings === undefined ? {} : { startSettings: options.startSettings }),
       checkOutputs: options.checkOutputs ?? true,
       ...(options.report === undefined ? {} : { report: options.report }),
       ...(options.beforeMigrations && { beforeMigrations: options.beforeMigrations }),
