@@ -609,3 +609,27 @@ Production startup JavaScript before and after this slice was **855,478 bytes** 
 against the **889,856-byte** limit. The first wiring placed the 30-byte Query builder in a
 shared startup chunk. Giving the builder its own module behind the same export kept it with
 the lazy drawer.
+
+## A Setting read (#109)
+
+Measured during #354 on an Apple M3 Pro, Node 26.13.0, SQLite 3.53.4, without the hop between
+processes, once on **in-memory SQLite** and once on a **file** opened with the app's pragmas. The
+Settings table holds 50 rows of the Space. "Framed call" is a Query of a test module behind its
+frame, called through `call` with output checks off as in the packaged app; "without the read"
+is a second Query of the same module that answers a constant. "The read alone" is
+`readSetting` inside one open transaction. Each figure is the median of **1,001 calls after 31
+warm-up calls**, from the last of three rounds; the second round stayed within 0.002 ms of it, the first ran up
+to 0.004 ms slower while the process warmed up. The
+script stays in `.temp/`, outside version control.
+
+| Case                        | In-memory | File     |
+| --------------------------- | --------- | -------- |
+| Framed call with the read   | 0.022 ms  | 0.024 ms |
+| Framed call without a read  | 0.008 ms  | 0.009 ms |
+| The read alone, one Setting | 0.012 ms  | 0.012 ms |
+
+One Setting read adds about **0.013–0.015 ms** to a call: building the statement, one lookup and
+the JSON parse and schema check of the value. `EXPLAIN QUERY PLAN` shows
+`SEARCH settings USING INDEX settings_live_key (space_id=? AND key=?)`, never `SCAN`. A Query that
+reads a Setting reloads after every change of any Setting (D352); its answer stays the same, so
+nothing redraws.
