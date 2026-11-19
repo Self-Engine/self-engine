@@ -12,7 +12,7 @@ Stand: 2026-11-10 · Status: **entschieden** (D143–D154), Spec #103, Issues #1
 | – | Spaces | Grilling zu #108: Fremdschlüssel auf `spaces` als geprüfte Regel, Paket unter `storage` ohne Vertrag, ein persönlicher Space über eine Transaktion statt über einen Index, Tabelle und Begriffe (D286–D290, ändern D143 und D144) |
 | L3.3 | Geld | `INTEGER` in der kleinsten Einheit, eigener Katalog, einmal gerundet, keine Kurse (D145) |
 | L3.4 | Geld | Eingabe und Anzeige in `money`, `_minor` im Namen, Zod-Schemas im Paket (D146) |
-| L3.5 | Zeit | Eine Zeitzone als Synced Setting, keine Historie, Tageslogik nie in SQL (D147) |
+| L3.5 | Zeit | Eine Zeitzone als Synced Setting, keine Historie, Tageslogik nie in SQL (D147); ein Zeiteintrag speichert zusätzlich die Zeitzone, in der er entstand (D342) |
 | L3.6 | Zeit | Übernahme mit Pflicht-Uhr, Typen bis in die Zeile, Lint-Regeln (D148); `Instant` entsteht vorab in #31 (D223) |
 | L3.7 | Zeit | Ergänzungen aus unabhängiger Prüfung (D149) |
 | – | Zeit | Grilling zu #104: für die neue App geschnitten, Temporal im Inneren, fünf Zeitwerte, strenge Lint-Regel, Prüfung in Electrons Laufzeit (D279–D285, ändern D148 und D149) |

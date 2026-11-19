@@ -1,7 +1,7 @@
 # Schicht 4: Projekte und Zeit
 
-Stand: 2026-11-18 · Status: **entschieden** (D303–D316, Formular-Helfer D317–D326, `projects`
-D327–D330, Schutzregeln D331–D341), Spec #271, Issues #272–#277 und #313 sowie #109, #110 und #213
+Stand: 2026-11-19 · Status: **entschieden** (D303–D316, Formular-Helfer D317–D326, `projects`
+D327–D330, Schutzregeln D331–D341, `time-tracking` D342–D349), Spec #271, Issues #272–#277 und #313 sowie #109, #110 und #213
 
 Schicht 4 ist der erste Fachmeilenstein: das erste, was in der App sichtbar und nutzbar ist. Sie
 ist bewusst schmal. Der Owner nutzt die alte App weiter, bis die neue ihn überzeugt (D315).
@@ -29,6 +29,13 @@ ist bewusst schmal. Der Owner nutzt die alte App weiter, bis die neue ihn überz
 | L4.21 | Ablehnung | Ein dritter erwarteter Fehler neben „nicht gefunden“ und dem Konflikt; jeder Grund ist typisiert definiert, und die App kompiliert nur, wenn jeder einen Text hat; jedes Modul benennt seine Tabellen (D334, D335) |
 | L4.22 | Auskunft | Außerhalb eines Formulars kommt die Ablehnung nach dem Klick; das Bearbeitungsformular fragt beim Öffnen und zeigt Gesperrtes vorab; die Auskunft fragt nach Tabelle und Art des Schreibens und liest nur (D336, D339) |
 | L4.23 | Verweise | Die Verweis-Prüfung schützt Löschen des Ziels, Wiederherstellen und Anlegen oder Ändern mit Verweis; ein Verweis schützt, geht mit oder bleibt, jetzt schützt jeder (D337, D338) |
+| L4.24 | Zeitzone am Eintrag | Ein Zeiteintrag bleibt ein genauer Zeitpunkt, den die aktuelle Zeitzone einordnet, und speichert daneben die Zeitzone, in der er entstand (D342, ergänzt D147) |
+| L4.25 | Mitternacht | Ein Eintrag bleibt eine Zeile und erscheint an jedem Tag, den er berührt, mit seinem Tagesanteil; die Anteile ergeben zusammen seine Dauer (D343) |
+| L4.26 | Genauigkeit | Beginn und Ende auf ganzen Sekunden, das Ende mindestens eine Sekunde nach dem Beginn; Schicht 4 rundet die Dauer nicht, die Anzeige rundet auf die volle Minute auf (D344, D345) |
+| L4.27 | Dauer | Keine Eingabe: Die Operation rechnet sie aus Beginn und Ende (D346) |
+| L4.28 | Zeitumstellung | Das Formular löst die doppelte Stunde ohne Nachfrage auf; eine übersprungene Uhrzeit ist kein Wert (D347) |
+| L4.29 | Uhr der Oberfläche | Eine Uhr von der App, zwei Hooks für „jetzt“ und „heute“, ein gemeinsamer Taktgeber; alles liegt in `time` mit einem eigenen Einstieg für React (D348) |
+| L4.30 | Stoppen | Der Eintrag bekommt die Id des Timers; Rückgängig ist eine eigene Operation in einer Transaktion; wer einen Timer laufen lässt, stoppt zuerst jeden anderen (D349) |
 | L4.11 | Projektseite | Keine in Schicht 4; #201 wird mit ihr gegrillt (D313) |
 | L4.12 | Hülle | Ein ständiger Platz, den ein Modul füllt; erster Nutzer ist der Timer (D314) |
 | L4.13 | Platzhalter | Verlassen die App mit `projects`, bleiben Testobjekte; kein Modul-Abbau (D315) |
@@ -54,9 +61,10 @@ Was ein Zeiteintrag speichert (D308):
 
 | Spalte | Bedeutung |
 |---|---|
-| `started_at`, `ended_at` | Wo der Eintrag im Tag liegt, wie gemessen oder eingetragen. Nie gerundet. |
+| `started_at`, `ended_at` | Wo der Eintrag im Tag liegt, wie gemessen oder eingetragen. Nie gerundet, auf ganzen Sekunden (D344). |
 | `duration_seconds` | Wie viel der Eintrag zählt. In Schicht 4 Ende minus Beginn; Rundung, Pausen und geteilte Zeit ändern später nur diese Zahl. |
 | `project_id`, `note` | Verweis auf das Projekt und freier Text. |
+| Zeitzone | Der Name der Zeitzone, die beim Entstehen galt. Schicht 4 liest sie nicht (D342). |
 
 ## Arbeitspakete
 
@@ -74,9 +82,9 @@ Schicht 3 unter Spec #103.
 | 4b | Ablehnung und Auskunft in der Oberfläche; die Projekt-Schublade | #313 | D334–D336, D339, D340 | #274 |
 | 5 | Einstellungen in der Datenbank | #109 | D62, D113 ff. | – |
 | 6 | Zeitzone und Wochenstart | #110, verkleinert | D147, D153, D316 | #109 |
-| 7 | `time-tracking`, Teil 1: Einträge, Formular, Wochenansicht | #275 | D303, D304, D308, D311, D313 | #110, #273, #274, #313 |
+| 7 | `time-tracking`, Teil 1: Einträge, Formular, Wochenansicht | #275 | D303, D304, D308, D311, D313, D342–D348 | #110, #273, #274, #313 |
 | 8 | Ständiger Platz in der Hülle | #276 | D314 | – |
-| 9 | `time-tracking`, Teil 2: Timer und Markierung der Überschneidungen | #277 | D310, D311, D314 | #275, #276 |
+| 9 | `time-tracking`, Teil 2: Timer und Markierung der Überschneidungen | #277 | D310, D311, D314, D344, D345, D348, D349 | #275, #276 |
 
 Drei Pakete tragen eine Messung als Abnahmekriterium: die Schutzregeln (Prüfungen mit 50.000
 Zeilen, D332), der ständige Platz (Start und Neuzeichnen, D314) und die Wochenansicht (Abfragezeit
@@ -86,8 +94,11 @@ mit erzeugten Daten von zwei Jahren, D193).
 
 ## Nach Schicht 4
 
-- **Zeiterfassung:** Rundung je Projekt (D309), die Einstellung zu Überschneidungen und die Abläufe
-  zum Auflösen (D311), Pausen und Phasen, Zeitklassen und Kategorien, geteilte Zeit, Pomodoro,
+- **Zeiterfassung:** Rundung als Einstellung wie in der alten App, mit dem Standard „aufrunden auf
+  1 Minute“, samt der Verteilung einer gerundeten Dauer auf die Tage (D309, D343, D345), die
+  Einstellung, ob ein Eintrag über Mitternacht verteilt wird (D343), die Dauer von Hand mit den
+  Pausen (D346), die Zeitzone eines Eintrags anzeigen oder ändern (D342), die Einstellung zu
+  Überschneidungen und die Abläufe zum Auflösen (D311), Pausen und Phasen, Zeitklassen und Kategorien, geteilte Zeit, Pomodoro,
   parallele Timer, Serien, Tageslimit, Heatmap und Statistik, die „abgedeckte Zeit“.
 - **Projekte:** die Projektseite mit den Erweiterungspunkten aus #201 (D313), Ordner, Favoriten,
   Reihenfolge von Hand, Tags (#111), Kunden als Modul unter `projects`, Aufgaben als Modul darüber.
@@ -113,11 +124,12 @@ mit erzeugten Daten von zwei Jahren, D193).
 - Ein Modul samt Tabelle abbauen (#214): nötig, sobald ein echtes Modul mit Nutzerdaten
   verschwindet. Bis der Owner Daten anlegt, die nicht verloren gehen dürfen, darf eine Datenbank
   neu aufgesetzt werden (D315).
-- Ob die gespeicherte Dauer im Glossar „Booked Duration“ heißt wie in der alten App; der Begriff
-  entsteht beim Bau von `time-tracking`.
+- Ob die gespeicherte Dauer im Glossar „Booked Duration“ heißt wie in der alten App; Runde 45
+  schlägt es vor, der Begriff entsteht beim Bau von `time-tracking`.
 - Die Fragen für die Paket-Grillings stehen am Ende der
   [Runde 40](decisions/d303-d316-layer-4-projects-and-time.md); die zu `projects` sind in
   [Runde 42](decisions/d327-d330-projects-module.md) beantwortet, die zum Schutz-Paket in
-  [Runde 43](decisions/d331-d340-protection-rules.md).
+  [Runde 43](decisions/d331-d340-protection-rules.md), die zu `time-tracking` in
+  [Runde 45](decisions/d342-d349-time-tracking.md).
 - Was ein Abgleich mit zwei Zeilen macht, die ein eindeutiger Index nicht beide zulässt (D328,
   Sync-Phase).

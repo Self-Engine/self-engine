@@ -110,7 +110,8 @@ Grundlage: der Stand auf `main` nach #263 und die alte App (nur gelesen, Pfad in
   in einer Link-Tabelle; gemeint ist nach ADR 0003, dass das untere Modul keine Spalte für das
   obere trägt. Der Bau von `time-tracking` stellt ADR 0014 so klar. _Verworfen:_ gerundete
   Zeiten wie in der alten App; nur Beginn und Ende speichern und beim Anzeigen runden (jede Summe
-  müsste die Regel kennen, und eine geänderte Regel veränderte alte Monate).
+  müsste die Regel kennen, und eine geänderte Regel veränderte alte Monate). _Geschärft durch
+  D342 (Zeitzone am Eintrag) und D344 (ganze Sekunden)._
 - **D309 Schicht 4 rundet nicht; die Rundung ist eine Eigenschaft der Zeiterfassung je Projekt
   (ändert D153).** Sie kommt nach Schicht 4 als eigenes Paket und gilt auch für private Projekte,
   unabhängig von der Abrechnung (der Owner: Wer will, rundet auch private Projekte auf fünf
@@ -135,7 +136,7 @@ Grundlage: der Stand auf `main` nach #263 und die alte App (nur gelesen, Pfad in
   Index ließe den Abgleich scheitern. _Preis:_ Jeder Lauf hinterlässt eine weich gelöschte Zeile,
   grob 2.000 bis 4.000 im Jahr; der Papierkorb räumt sie ab, weil nichts auf sie zeigt.
   _Verworfen:_ ein offener Zeiteintrag ohne Ende; dauerhafte Timer-Plätze je Projekt wie in der
-  alten App.
+  alten App. _Geschärft durch D349 (Id des Eintrags, Rückgängig, mehrere Timer)._
 - **D311 Überschneidungen sind gültige Daten, jede Summe zählt jeden Eintrag voll, und Schicht 4
   markiert nur.** Keine Datenbank-Regel und keine Operation lehnt einen überlappenden Eintrag ab;
   Überschneidungen sind kein Fall für D307. Betroffene Einträge bekommen in der Wochenansicht
@@ -247,8 +248,10 @@ Paket-Grilling sortiert sie neu; wer baut, darf anders entscheiden und nennt es 
 - **Befehle:** Timer starten und stoppen und einen Eintrag anlegen sind Befehle, die auch ein
   späterer Assistent aufruft (D85).
 - **Doppeltes Stoppen:** Der Zeiteintrag bekommt die Id des Timers; stoppen zwei Geräte denselben
-  Timer, entsteht dieselbe Zeile.
+  Timer, entsteht dieselbe Zeile. _Entschieden in D349._
 - **Vergessener Timer:** ein „Stoppen um …“.
+
+_Die Vorschläge zu `time-tracking` hat Runde 45 neu sortiert; ihr Stand steht dort._
 
 **Schutz-Paket**
 
@@ -278,8 +281,12 @@ Diese Fragen betreffen ein gespeichertes Format oder die Richtigkeit von Zeit un
 - **Sekunden oder Minuten:** ob Beginn und Ende auf ganzen Sekunden liegen (offen seit der Runde zu
   `time`, D281). Bei
   Sekunden ergeben zwei angezeigte Einträge von 0:45 und 0:21 zusammen manchmal 1:05.
-- **Mitternacht:** zu welchem Tag ein Eintrag zählt, der über Mitternacht läuft.
+  _Beantwortet durch D344 und D345._
+- **Mitternacht:** zu welchem Tag ein Eintrag zählt, der über Mitternacht läuft. _Beantwortet
+  durch D343._
 - **Dauer von Hand:** ob jemand die Dauer überschreiben darf, ohne Beginn oder Ende zu ändern.
+  _Beantwortet durch D346._
 - **Zeitumstellung im Formular:** die offenen Punkte aus der Runde zu `time` (D279–D285).
+  _Beantwortet durch D347._
 - **Archiv als Muster:** ob `archived_at` und seine Bedeutung für jedes Modul gleich gelten.
   _Beantwortet durch D327._

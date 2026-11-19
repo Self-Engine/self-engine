@@ -61,6 +61,7 @@ den Vermerk `_Überholt durch D<n>._`
 | [D327–D330](decisions/d327-d330-projects-module.md) | 2026-11-15 | Modul `projects`: Archiv im Speicher-Rahmen, Titel nicht eindeutig, Muster des Bearbeitens, Projekt-Verweis und Auswahl | #273 |
 | [D331–D340](decisions/d331-d340-protection-rules.md) | 2026-11-17 | Schutzregeln: ein System, Verhindern an den Schreibwegen, Ablehnung mit typisierten Gründen, Auskunft, Verweis-Prüfung, Arten von Verweisen, zwei Pakete | #274, #313 |
 | [D341](decisions/d341-types-of-a-rule-from-above.md) | 2026-11-18 | Beim Bau von #274 entschieden: Das Modul darunter gibt frei, was eine Regel von oben sehen darf; gebaut mit dem ersten echten Fall | #274 |
+| [D342–D349](decisions/d342-d349-time-tracking.md) | 2026-11-19 | `time-tracking`: Zeitzone am Eintrag, Tagesanteile über Mitternacht, ganze Sekunden, Anzeige rundet auf, keine Dauer von Hand, Zeitumstellung im Formular, Uhr der Oberfläche, Stoppen über zwei Tabellen | #275, #277, #110, #276 |
 
 D109 und D110 sind doppelt vergeben, in den Runden 18 und 19. Wer eine der beiden nennt, nennt die
 Runde dazu.

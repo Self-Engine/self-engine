@@ -114,14 +114,16 @@ Keine Entscheidungen, sondern Fragen, die diese Runde gefunden hat.
 - **Zeiteintrag (Schicht 4), Reisen:** D147 lässt vergangene Zeitpunkte in der aktuellen Zeitzone
   erscheinen. Ein Eintrag von 19 bis 21 Uhr in Berlin steht nach dem Wechsel auf Bangkok am
   Folgetag von 1 bis 3 Uhr, und Tagessummen der Vergangenheit ändern sich. Neu prüfen. `time`
-  trägt beide Antworten, weil jede Funktion die Zeitzone als Argument bekommt.
+  trägt beide Antworten, weil jede Funktion die Zeitzone als Argument bekommt. _Beantwortet durch
+  D342._
 - **Zeiteintrag, doppelte Stunde:** Vorschlag: Das Formular löst ohne Nachfrage auf (beim Ändern
   der Zeitpunkt nächst dem bisherigen Wert, bei einem neuen Eintrag das Ende nach dem Beginn) und
-  zeigt höchstens einen kleinen Hinweis.
+  zeigt höchstens einen kleinen Hinweis. _Beantwortet durch D347._
 - **Zeiteintrag, Zurückschreiben:** Ein Formular schreibt nur geänderte Felder zurück, sonst
   verliert ein Timer seine Sekunden (D281, Uhrzeit nur in Minuten). Dazu die Frage, ob Zeiteinträge
-  Zeitpunkte auf ganzen Sekunden tragen.
+  Zeitpunkte auf ganzen Sekunden tragen. _Beantwortet durch D344._
 - **Erste Ansicht, Uhr der Oberfläche:** woher eine Ansicht „jetzt“ und „heute“ bekommt; dazu die
-  benannten Anzeigeformate.
+  benannten Anzeigeformate. _Beantwortet durch D348._
 - **Zeiteintrag und Sync:** was gilt, wenn die Systemuhr zurückspringt oder zwei Geräte
-  verschiedene Zeit haben.
+  verschiedene Zeit haben. _Die zurückgesprungene Uhr beim Stoppen steht als Vorschlag in Runde 45;
+  zwei Geräte bleiben für die Sync-Phase vorgemerkt._
