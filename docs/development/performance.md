@@ -660,3 +660,22 @@ Loading reads the Space's live rows in one query. A nonempty save reads the sent
 query and writes each distinct key through a standard shared write in the same transaction.
 The measurement covers the Port call through its reply. The page's reload after the Table
 Change belongs to the adapter slice.
+
+## Desktop startup with Settings in the database (#109)
+
+Built both revisions with `pnpm build` on the same Apple M3 Pro (macOS 27.2.1, Node 26.13.1,
+Electron 45.2.3). As in "Zod at startup" above, the desktop smoke launcher served each built
+renderer from disk and started a hidden Electron window with a fresh temporary data folder.
+There were 60 alternating starts per revision. Timings count from the start of the page load.
+The first render is the first animation frame with the Shell's Navbar laid out. The Data
+Process first answer is the connection's first `ready` mark, as in the smoke check. Startup
+size is the raw static JavaScript reported by `apps/web/dist/startup-bundle.json`.
+
+| Build                   | First render, median (range) | First answer, median (range) | Startup JavaScript |
+| ----------------------- | ---------------------------: | ---------------------------: | -----------------: |
+| Before #109 (`a159e3c`) |       169.0 ms (152.4–248.7) |       137.5 ms (122.6–213.6) |      857,012 bytes |
+| After #109 (`b61f952`)  |       169.0 ms (151.0–245.3) |       136.8 ms (121.5–194.0) |      859,539 bytes |
+
+The first render median was unchanged and the first-answer distributions overlapped. Across
+the package startup JavaScript grew by **2,527 bytes**. Of that, **2,412 bytes** came in #358
+(857,127 to 859,539 bytes). The limit stays at **889,856 bytes**.
