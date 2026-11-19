@@ -7,8 +7,8 @@ import { dataConnection } from "./desktop-data.ts";
  */
 export const settingsStore = createAppSettingsStore(
   { getStorage: () => localStorage, getEvents: () => window },
-  // Only the desktop app has a Data Process (D263).
-  window.desktopBridge === undefined ? undefined : dataConnection,
+  // Only the desktop app has a Data Process (D263). Tests import this file in Node, without one.
+  typeof window === "undefined" || window.desktopBridge === undefined ? undefined : dataConnection,
   // Until the error log and notifications exist (#37, #21), the console keeps failures visible.
   ({ error, operation, scope }) => {
     console.error(`Settings ${operation} failed for ${scope}`, error);
