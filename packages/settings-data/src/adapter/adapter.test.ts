@@ -5,16 +5,25 @@
 
 import { createDataConnection, type DataConnection } from "@self-engine/data-client";
 import { startTestDataProcess, type TestDataProcess } from "@self-engine/data-process/testing";
-import type { ReportedSettingEntry, SettingsAdapter } from "@self-engine/settings";
+import type { TablesChanged } from "@self-engine/data-protocol";
+import {
+  createSettingsStore,
+  defineSetting,
+  type ReportedSettingEntry,
+  type SettingsAdapter,
+} from "@self-engine/settings";
 import { createSettingRows } from "@self-engine/settings-rows/testing";
 import {
   type AdapterContractHarness,
+  createTestAdapter,
   describeAdapterContract,
+  settle,
 } from "@self-engine/settings/testing";
-import { afterEach } from "vite-plus/test";
+import { z } from "zod";
+import { afterEach, expect, test } from "vite-plus/test";
 import type { settingsContract } from "../contracts/index.ts";
 import { settings } from "../data/index.ts";
-import { createSettingsPortAdapter } from "./index.ts";
+import { createSettingsPortAdapter, type SettingsPortConnection } from "./index.ts";
 
 type SettingsConnection = DataConnection<{ settings: typeof settingsContract }>;
 
@@ -153,4 +162,167 @@ describeAdapterContract("the Settings Port adapter", (): AdapterContractHarness 
       return () => broken.writesOf.delete(key);
     },
   };
+});
+
+test("a save through one connection is reported to a second connection", async () => {
+  const dataProcess = startPort();
+  const firstConnection = connect(dataProcess);
+  const secondConnection = connect(dataProcess);
+  const first = createSettingsPortAdapter(firstConnection);
+  const second = createSettingsPortAdapter(secondConnection);
+  await second.load();
+  await untilReady(secondConnection);
+  const reported = nextReport(second, ["appearance.accent"]);
+
+  await first.save([{ key: "appearance.accent", value: "grape" }]);
+
+  await expect(reported).resolves.toEqual([{ key: "appearance.accent", value: "grape" }]);
+});
+
+/** Counts steps; `reach` resolves once the count has reached the wanted number. */
+function counter() {
+  let count = 0;
+  const waiting = new Set<() => void>();
+  return {
+    step() {
+      count += 1;
+      for (const check of waiting) check();
+    },
+    reach(wanted: number) {
+      return new Promise<void>((resolve) => {
+        const check = () => {
+          if (count < wanted) return;
+          waiting.delete(check);
+          resolve();
+        };
+        waiting.add(check);
+        check();
+      });
+    },
+    count: () => count,
+  };
+}
+
+/**
+ * The page connection with two levers a slow Data Process would pull: Table Changes wait until
+ * released, and the answer of the next `load` waits once it arrived.
+ */
+function slowed(connection: SettingsConnection) {
+  const listeners = new Set<(tables: TablesChanged) => void>();
+  let held: TablesChanged[] | undefined;
+  let nextLoad: { readonly arrived: () => void; readonly answer: Promise<void> } | undefined;
+  const loads = counter();
+  const saves = counter();
+  connection.onTablesChanged((tables) => {
+    if (held === undefined) for (const listener of listeners) listener(tables);
+    else held.push(tables);
+  });
+  const port = connection.client.settings;
+  const slow: SettingsPortConnection = {
+    describeEntry: (module, entry) => connection.describeEntry(module, entry),
+    getState: () => connection.getState(),
+    subscribe: (listener) => connection.subscribe(listener),
+    onTablesChanged: (listener) => {
+      listeners.add(listener);
+      return () => listeners.delete(listener);
+    },
+    client: {
+      settings: {
+        load: async (input) => {
+          const lever = nextLoad;
+          nextLoad = undefined;
+          const rows = await port.load(input);
+          lever?.arrived();
+          await lever?.answer;
+          loads.step();
+          return rows;
+        },
+        save: async (input) => {
+          await port.save(input);
+          saves.step();
+        },
+      },
+    },
+  };
+  return {
+    connection: slow,
+    loads,
+    saves,
+    holdTableChanges() {
+      held = [];
+      return () => {
+        const late = held ?? [];
+        held = undefined;
+        for (const tables of late) for (const listener of listeners) listener(tables);
+      };
+    },
+    /** The next `load` reaches the Data Process; its answer waits for the returned release. */
+    holdNextLoad() {
+      const arrived = Promise.withResolvers<void>();
+      const answer = Promise.withResolvers<void>();
+      nextLoad = { arrived: arrived.resolve, answer: answer.promise };
+      return { arrived: arrived.promise, release: answer.resolve };
+    },
+  };
+}
+
+const accent = defineSetting({
+  key: "appearance.accent",
+  scope: "synced",
+  default: "blue",
+  schema: z.string(),
+});
+
+test("two quick writes end on the last value, though the read of a late Table Change answers late", async () => {
+  const dataProcess = startPort();
+  const connection = connect(dataProcess);
+  await untilReady(connection);
+  const slow = slowed(connection);
+  const store = createSettingsStore({
+    adapters: { synced: createSettingsPortAdapter(slow.connection), device: createTestAdapter() },
+    onError: (failure) => {
+      throw failure.error;
+    },
+  });
+  await store.load();
+  const seen: string[] = [];
+  store.subscribe(() => seen.push(store.read(accent)));
+  const releaseTableChanges = slow.holdTableChanges();
+
+  store.write(accent, "first");
+  await slow.saves.reach(1);
+  // The Table Change of the first save arrives late; the read it starts answers with "first"
+  // only after the second save finished.
+  const read = slow.holdNextLoad();
+  const loadsBefore = slow.loads.count();
+  releaseTableChanges();
+  await read.arrived;
+  store.write(accent, "last");
+  await slow.saves.reach(2);
+  await settle();
+  read.release();
+  await slow.loads.reach(loadsBefore + 2);
+  await settle();
+
+  expect(seen).toEqual(["first", "last"]);
+  expect(store.read(accent)).toBe("last");
+});
+
+test("after a reconnect the adapter reads the rows again and reports what changed meanwhile", async () => {
+  const dataProcess = startPort();
+  const connection = connect(dataProcess);
+  const adapter = createSettingsPortAdapter(connection);
+  await adapter.save([
+    { key: "appearance.accent", value: "blue" },
+    { key: "i18n.language", value: "en" },
+  ]);
+  await untilReady(connection);
+  const reported = nextReport(adapter, ["appearance.accent"]);
+
+  connection.disconnect();
+  // Announced while no port listens: this window hears of it only through the reconnect.
+  await writeFromOutside(await dataProcess, [{ key: "appearance.accent", value: "grape" }]);
+  connection.connect((await dataProcess).openPort());
+
+  await expect(reported).resolves.toEqual([{ key: "appearance.accent", value: "grape" }]);
 });

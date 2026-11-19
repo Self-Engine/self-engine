@@ -2,6 +2,7 @@
 // React, over the page's data connection, and loads before the first render: it imports types
 // only, so the startup bundle gains this file and nothing else.
 
+import type { ContractRouterClient } from "@orpc/contract";
 import type { DataConnection } from "@self-engine/data-client";
 import type {
   JsonValue,
@@ -14,11 +15,16 @@ import type { settingsContract } from "../contracts/index.ts";
 /** The mount name of the Port in the app's module list. */
 const MOUNT = "settings";
 
-/** The part of the page's data connection the adapter uses. */
-export type SettingsPortConnection = Pick<
-  DataConnection<{ readonly [MOUNT]: typeof settingsContract }>,
-  "client" | "describeEntry" | "getState" | "onTablesChanged" | "subscribe"
->;
+/**
+ * The part of the page's data connection the adapter uses: a `DataConnection` whose modules
+ * include the Settings Port is one.
+ */
+export interface SettingsPortConnection extends Pick<
+  DataConnection,
+  "describeEntry" | "getState" | "onTablesChanged" | "subscribe"
+> {
+  readonly client: { readonly [MOUNT]: ContractRouterClient<typeof settingsContract> };
+}
 
 function sameJson(a: JsonValue | undefined, b: JsonValue | undefined): boolean {
   return JSON.stringify(a) === JSON.stringify(b);
