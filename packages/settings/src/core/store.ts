@@ -5,6 +5,7 @@
 // and the full build may not (docs/development/performance.md).
 import { safeParse } from "zod/v4/core";
 import type { ReportedSettingEntry, SettingEntry, SettingsAdapter } from "./adapter.ts";
+import { type SettingsStorageFailure, storageFailure, type StorageOperation } from "./failure.ts";
 import {
   type JsonValue,
   type SettingChange,
@@ -13,6 +14,8 @@ import {
   type SettingScope,
   settingValue,
 } from "./setting.ts";
+
+export type { SettingsStorageFailure } from "./failure.ts";
 
 export interface SettingsStore {
   /** Runs once; call it before the first render. Always resolves, see `onError`. */
@@ -28,16 +31,6 @@ export interface SettingsStore {
   readonly writeAll: (changes: readonly SettingChange[]) => void;
   /** Calls `listener` after every change. Returns the unsubscribe function. */
   readonly subscribe: (listener: () => void) => () => void;
-}
-
-type StorageOperation = "load" | "save" | "subscribe";
-
-/** One operation an adapter could not carry out. Never holds a Setting's value. */
-export interface SettingsStorageFailure {
-  /** Built by the store and names only the kind of error, see `valueFreeError`. */
-  readonly error: Error;
-  readonly operation: StorageOperation;
-  readonly scope: SettingScope;
 }
 
 export interface SettingsStoreOptions {
@@ -56,15 +49,6 @@ function sameJson(a: JsonValue | undefined, b: JsonValue | undefined): boolean {
   return JSON.stringify(a) === JSON.stringify(b);
 }
 
-/**
- * What an adapter throws can quote the value it was handling, in its message, stack or cause, as
- * `JSON.parse` does. Only the error's name passes on, and only if it looks like one.
- */
-function valueFreeError(thrown: unknown, operation: StorageOperation, scope: SettingScope): Error {
-  const kind = thrown instanceof Error && /^\w+Error$/.test(thrown.name) ? thrown.name : "Error";
-  return new Error(`Settings ${operation} failed in scope "${scope}": ${kind}`);
-}
-
 export function createSettingsStore({ adapters, onError }: SettingsStoreOptions): SettingsStore {
   const snapshot = perScope(() => new Map<string, JsonValue>());
   // A schema builds a new object on every parse, and `useSyncExternalStore` needs the same one.
@@ -78,7 +62,7 @@ export function createSettingsStore({ adapters, onError }: SettingsStoreOptions)
 
   function report(operation: StorageOperation, scope: SettingScope, thrown: unknown): void {
     try {
-      onError({ error: valueFreeError(thrown, operation, scope), operation, scope });
+      onError(storageFailure(thrown, operation, scope));
     } catch {
       // A broken reporter must not stop the app any more than the failure it reports.
     }
