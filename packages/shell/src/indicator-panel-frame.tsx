@@ -1,14 +1,5 @@
 import { Component, lazy, type ReactNode, Suspense } from "react";
-import type { IndicatorWithPanel, ShellContribution } from "./contributions.ts";
-
-export interface IndicatorPanelFrameProps {
-  readonly module: ShellContribution;
-  readonly indicator: IndicatorWithPanel;
-  /** On the phone the panel is a sheet from below, on every other Layout Step a popover. */
-  readonly sheet: boolean;
-  /** The indicator's place, which the popover hangs below and whose clicks are not outside. */
-  readonly place: HTMLElement | null;
-}
+import type { IndicatorPanelFrameProps } from "./indicator-panel.tsx";
 
 const LoadedFrame = lazy(() => import("./indicator-panel.tsx"));
 

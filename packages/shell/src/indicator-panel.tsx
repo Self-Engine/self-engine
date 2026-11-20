@@ -8,10 +8,13 @@ import { useClickOutside, useMergedRef } from "@mantine/hooks";
 import { LoadingState, NOT_WINDOW_DRAG_STYLE } from "@self-engine/ui";
 import { type CSSProperties, useEffect, useState } from "react";
 import { useCommandPaletteOpen } from "./command-palette-state.tsx";
-import type { IndicatorPanelProps } from "./contributions.ts";
+import type {
+  IndicatorPanelProps,
+  IndicatorWithPanel,
+  ShellContribution,
+} from "./contributions.ts";
 import { useEscapeExit } from "./edit-drawer-exits.tsx";
 import { whenIdle } from "./idle.ts";
-import type { IndicatorPanelFrameProps } from "./indicator-panel-frame.tsx";
 import { useIndicatorPanels, useOpeningOf } from "./indicator-panels.tsx";
 import { LazyContribution, lazyComponents } from "./lazy-contribution.tsx";
 
@@ -35,6 +38,15 @@ const SHEET_STYLES = {
   content: { ...NOT_WINDOW_DRAG_STYLE, maxHeight: "70%" },
   overlay: NOT_WINDOW_DRAG_STYLE,
 } satisfies Record<string, CSSProperties>;
+
+export interface IndicatorPanelFrameProps {
+  readonly module: ShellContribution;
+  readonly indicator: IndicatorWithPanel;
+  /** On the phone the panel is a sheet from below, on every other Layout Step a popover. */
+  readonly sheet: boolean;
+  /** The indicator's place, which the popover hangs below and whose clicks are not outside. */
+  readonly place: HTMLElement | null;
+}
 
 const loadedPanels = lazyComponents<IndicatorPanelProps>();
 
