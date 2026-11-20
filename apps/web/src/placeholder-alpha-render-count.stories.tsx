@@ -86,7 +86,8 @@ export const AnIndicatorTickAndPanelTypingLeaveTheShellStill: Story = {
   globals: { viewport: { value: "wide", isRotated: false } },
   play: async ({ canvas }) => {
     await canvas.findByText("The minimal module View.");
-    const tick = await canvas.findByRole("button", { name: "Count up" });
+    // The indicator's code arrives in an idle moment, which a busy browser takes a while to find.
+    const tick = await canvas.findByRole("button", { name: "Count up" }, { timeout: 4000 });
     await afterTheCommitsNowDue();
     const beforeTick = renderCounts();
 
