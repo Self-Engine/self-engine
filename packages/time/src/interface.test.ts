@@ -75,7 +75,11 @@ test("the public functions use only package values and require all arguments", (
   expectTypeOf(time.formatInstant).toEqualTypeOf<
     (instant: Instant, format: InstantFormat, locale: string, timeZone: TimeZone) => string
   >();
-  expectTypeOf<InstantFormat>().toEqualTypeOf<"dateTime">();
+  expectTypeOf<InstantFormat>().toEqualTypeOf<"dateTime" | "time">();
+  expectTypeOf(time.formatUtcOffset).toEqualTypeOf<(offset: string) => string>();
+  expectTypeOf(time.repeatedOffsetOf).toEqualTypeOf<
+    (instant: Instant, timeZone: TimeZone) => string | null
+  >();
   expectTypeOf(time.formatDuration).toEqualTypeOf<
     (duration: Duration, format: DurationFormat, locale: string) => string
   >();
@@ -119,6 +123,8 @@ test("the public functions use only package values and require all arguments", (
       "formatCalendarDay",
       "formatDuration",
       "formatInstant",
+      "formatUtcOffset",
+      "repeatedOffsetOf",
       "firstDayOfWeekForRegion",
       "instantFromDate",
       "instantSchema",

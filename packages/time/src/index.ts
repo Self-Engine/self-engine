@@ -23,3 +23,4 @@ export { formatDuration, type DurationFormat } from "./format.ts";
 export { formatCalendarDay, type CalendarDayFormat } from "./format.ts";
 export { calendarDayFromText, calendarLabels, clockFormatOf } from "./field-text.ts";
 export type { CalendarLabels } from "./field-text.ts";
+export { formatUtcOffset, repeatedOffsetOf } from "./utc-offset.ts";

@@ -8,6 +8,8 @@ import type { TimeZone } from "./zone.ts";
 const INSTANT_FORMATS = {
   /** Date and time of day, such as `Nov 13, 2026, 1:30 PM` or `13.11.2026, 13:30`. */
   dateTime: { dateStyle: "medium", timeStyle: "short" },
+  /** The time of day alone, such as `1:30 PM` or `13:30`. */
+  time: { timeStyle: "short" },
 } as const satisfies Record<string, Intl.DateTimeFormatOptions>;
 
 /** The name of a display format for an Instant. */
