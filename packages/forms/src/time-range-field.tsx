@@ -12,10 +12,9 @@ import {
   type FirstDayOfWeek,
   formatDuration,
   formatInstant,
-  formatUtcOffset,
   type Instant,
   instantSchema,
-  repeatedOffsetOf,
+  repeatedTimeOffset,
   type TimeZone,
   type WallClockTime,
 } from "@self-engine/time";
@@ -116,10 +115,9 @@ function tell(
 /** The note at a time the zone shows twice: which of the two is meant (D347). */
 function useRepeatedNote(instant: Instant | null, timeZone: TimeZone): string | undefined {
   const { i18n, t } = useLingui();
-  const offset = instant === null ? null : repeatedOffsetOf(instant, timeZone);
-  if (instant === null || offset === null) return undefined;
+  const utc = instant === null ? null : repeatedTimeOffset(instant, timeZone);
+  if (instant === null || utc === null) return undefined;
   const time = formatInstant(instant, "time", i18n.locale, timeZone);
-  const utc = formatUtcOffset(offset);
   return t({ message: `${time} (${utc})`, comment: "A wall-clock time and its UTC offset" });
 }
 

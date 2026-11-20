@@ -2,6 +2,7 @@ import type { Clock } from "./clock.ts";
 import { epochMsOf } from "./borders.ts";
 import type { Instant } from "./instant.ts";
 import { instantFrom } from "./supported-years.ts";
+import { utcOffsetText } from "./utc-offset.ts";
 import {
   wallClockTimeSchema,
   type CalendarDay,
@@ -41,18 +42,18 @@ type ZonedCandidates =
   | { case: "skipped"; zoned: Temporal.ZonedDateTime }
   | { case: "repeated"; earlier: Temporal.ZonedDateTime; later: Temporal.ZonedDateTime };
 
-function zonedCandidates(
-  day: CalendarDay,
-  time: WallClockTime,
-  timeZone: TimeZone,
-): ZonedCandidates {
-  const local = Temporal.PlainDateTime.from(`${day}T${time}`);
+/** The one place that decides whether a wall-clock moment is skipped, repeated or neither. */
+function zonedCandidates(local: Temporal.PlainDateTime, timeZone: TimeZone): ZonedCandidates {
   const earlier = local.toZonedDateTime(timeZone, { disambiguation: "earlier" });
   const later = local.toZonedDateTime(timeZone, { disambiguation: "later" });
   if (earlier.epochNanoseconds === later.epochNanoseconds)
     return { case: "unambiguous", zoned: earlier };
   if (!earlier.toPlainDateTime().equals(local)) return { case: "skipped", zoned: later };
   return { case: "repeated", earlier, later };
+}
+
+function localOf(day: CalendarDay, time: WallClockTime): Temporal.PlainDateTime {
+  return Temporal.PlainDateTime.from(`${day}T${time}`);
 }
 
 /**
@@ -64,7 +65,7 @@ export function instantAt(
   time: WallClockTime,
   timeZone: TimeZone,
 ): ResolvedInstant {
-  const candidates = zonedCandidates(day, time, timeZone);
+  const candidates = zonedCandidates(localOf(day, time), timeZone);
   if (candidates.case !== "repeated")
     return { case: candidates.case, instant: instantFrom(candidates.zoned.toInstant()) };
   return {
@@ -76,7 +77,7 @@ export function instantAt(
 
 type Occurrence = "earlier" | "later";
 
-/** The Instant a form should use, with the chosen occurrence and UTC offset when repeated. */
+/** The Instant a form should use, with the chosen occurrence when repeated. */
 export type WallClockTimeResolution =
   | { readonly case: "unambiguous"; readonly instant: Instant }
   | { readonly case: "skipped" }
@@ -84,8 +85,6 @@ export type WallClockTimeResolution =
       readonly case: "repeated";
       readonly instant: Instant;
       readonly occurrence: Occurrence;
-      /** Signed ISO offset, such as `+01:00` or `-03:30`, including seconds when present. */
-      readonly offset: string;
     };
 
 function nearestOccurrence(
@@ -116,7 +115,7 @@ export function resolveWallClockTime(
   timeZone: TimeZone,
   { previous, lowerBound }: { readonly previous?: Instant; readonly lowerBound?: Instant } = {},
 ): WallClockTimeResolution {
-  const candidates = zonedCandidates(day, time, timeZone);
+  const candidates = zonedCandidates(localOf(day, time), timeZone);
   if (candidates.case === "skipped") return { case: "skipped" };
   if (candidates.case === "unambiguous")
     return { case: "unambiguous", instant: instantFrom(candidates.zoned.toInstant()) };
@@ -126,13 +125,19 @@ export function resolveWallClockTime(
       : lowerBound !== undefined && candidates.earlier.epochMilliseconds <= epochMsOf(lowerBound)
         ? "later"
         : "earlier";
-  const chosen = candidates[occurrence];
-  return {
-    case: "repeated",
-    instant: instantFrom(chosen.toInstant()),
-    occurrence,
-    offset: chosen.offset,
-  };
+  return { case: "repeated", instant: instantFrom(candidates[occurrence].toInstant()), occurrence };
+}
+
+/**
+ * The UTC offset of `instant` in `timeZone`, as `UTC+1` or `UTC-3:30`, when the zone shows its
+ * wall-clock minute twice that day because the clocks went back over it; `null` when the zone
+ * shows it once. A form names the offset beside such a time, so the person sees which is meant.
+ */
+export function repeatedTimeOffset(instant: Instant, timeZone: TimeZone): string | null {
+  const zoned = zonedOf(instant, timeZone);
+  const minute = zoned.toPlainDateTime().round({ smallestUnit: "minute", roundingMode: "trunc" });
+  if (zonedCandidates(minute, timeZone).case !== "repeated") return null;
+  return utcOffsetText(zoned.offsetNanoseconds / 60e9);
 }
 
 /** The Instants of a calendar day or day span: its first moment up to the next day's first. */

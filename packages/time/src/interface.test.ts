@@ -62,7 +62,6 @@ test("the public functions use only package values and require all arguments", (
         readonly case: "repeated";
         readonly instant: Instant;
         readonly occurrence: "earlier" | "later";
-        readonly offset: string;
       }
   >();
   expectTypeOf(time.startOfCalendarDay).toEqualTypeOf<
@@ -76,8 +75,7 @@ test("the public functions use only package values and require all arguments", (
     (instant: Instant, format: InstantFormat, locale: string, timeZone: TimeZone) => string
   >();
   expectTypeOf<InstantFormat>().toEqualTypeOf<"dateTime" | "time">();
-  expectTypeOf(time.formatUtcOffset).toEqualTypeOf<(offset: string) => string>();
-  expectTypeOf(time.repeatedOffsetOf).toEqualTypeOf<
+  expectTypeOf(time.repeatedTimeOffset).toEqualTypeOf<
     (instant: Instant, timeZone: TimeZone) => string | null
   >();
   expectTypeOf(time.formatDuration).toEqualTypeOf<
@@ -123,8 +121,7 @@ test("the public functions use only package values and require all arguments", (
       "formatCalendarDay",
       "formatDuration",
       "formatInstant",
-      "formatUtcOffset",
-      "repeatedOffsetOf",
+      "repeatedTimeOffset",
       "firstDayOfWeekForRegion",
       "instantFromDate",
       "instantSchema",
