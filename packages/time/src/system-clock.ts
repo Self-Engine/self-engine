@@ -3,10 +3,7 @@
 
 import type { Clock } from "./clock.ts";
 import type { Instant } from "./instant.ts";
-
-/** The first and the last millisecond of the supported years 1000–9999. */
-const FIRST_MILLISECOND = Date.UTC(1000, 0, 1);
-const LAST_MILLISECOND = Date.UTC(9999, 11, 31, 23, 59, 59, 999);
+import { inSupportedYears, outOfRange } from "./supported-years.ts";
 
 /**
  * The system time source, loaded only where an application is assembled. `toISOString` writes
@@ -17,8 +14,6 @@ const LAST_MILLISECOND = Date.UTC(9999, 11, 31, 23, 59, 59, 999);
  */
 export const systemClock: Clock = () => {
   const now = Date.now();
-  if (now < FIRST_MILLISECOND || now > LAST_MILLISECOND) {
-    throw new RangeError("Outside the supported years 1000–9999");
-  }
+  if (!inSupportedYears(now)) outOfRange();
   return new Date(now).toISOString() as Instant;
 };

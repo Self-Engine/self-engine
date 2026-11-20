@@ -9,14 +9,25 @@ import type { CalendarDay } from "./values.ts";
 const FIRST_YEAR = 1000;
 const LAST_YEAR = 9999;
 
-function outOfRange(): never {
+/** The first and the last millisecond of the supported years, 1000-01-01 to 9999-12-31 in UTC. */
+const FIRST_MILLISECOND = Date.UTC(FIRST_YEAR, 0, 1);
+const LAST_MILLISECOND = Date.UTC(LAST_YEAR, 11, 31, 23, 59, 59, 999);
+
+export function outOfRange(): never {
   throw new RangeError("Outside the supported years 1000–9999");
 }
 
-/** The Instant of an exact moment, to the millisecond. */
+/** Whether a moment, in epoch milliseconds, lies inside the supported years. */
+export function inSupportedYears(epochMs: number): boolean {
+  return epochMs >= FIRST_MILLISECOND && epochMs <= LAST_MILLISECOND;
+}
+
+/**
+ * The Instant of an exact moment, to the millisecond. It runs in every conversion, so it checks
+ * the years on the epoch milliseconds, which Temporal rounds down as the text cuts.
+ */
 export function instantFrom(exact: Temporal.Instant): Instant {
-  const { year } = exact.toZonedDateTimeISO("UTC");
-  if (year < FIRST_YEAR || year > LAST_YEAR) outOfRange();
+  if (!inSupportedYears(exact.epochMilliseconds)) outOfRange();
   return exact.toString({ fractionalSecondDigits: 3 }) as Instant;
 }
 
