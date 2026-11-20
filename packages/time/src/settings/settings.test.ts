@@ -7,6 +7,8 @@ import {
 import { createTestAdapter, settle } from "@self-engine/settings/testing";
 import {
   FOLLOW_DEVICE_ZONE_SETTING,
+  reportEachNameOnce,
+  type ResolvedTimeZoneSetting,
   resolveTimeZoneSetting,
   resolveWeekStart,
   TIME_ZONE_SETTING,
@@ -174,6 +176,7 @@ describe("resolving the Time Zone", () => {
     expect(resolveTimeZoneSetting("Mars/Olympus_Mons", BANGKOK)).toEqual({
       timeZone: BANGKOK,
       fallback: "unknownName",
+      name: "Mars/Olympus_Mons",
     });
   });
 
@@ -181,12 +184,42 @@ describe("resolving the Time Zone", () => {
     expect(resolveTimeZoneSetting("+02:00", BANGKOK)).toEqual({
       timeZone: BANGKOK,
       fallback: "unknownName",
+      name: "+02:00",
     });
   });
 
   it("answers with a TimeZone", () => {
     expectTypeOf(resolveTimeZoneSetting).parameters.toEqualTypeOf<[string | null, TimeZone]>();
     expectTypeOf(resolveTimeZoneSetting(null, BANGKOK).timeZone).toEqualTypeOf<TimeZone>();
+  });
+
+  it("carries the stored name only where the name is unknown, and the type proves it", () => {
+    expectTypeOf<ResolvedTimeZoneSetting>().toEqualTypeOf<
+      | { readonly timeZone: TimeZone; readonly fallback: "none" | "notSet" }
+      | { readonly timeZone: TimeZone; readonly fallback: "unknownName"; readonly name: string }
+    >();
+  });
+});
+
+describe("reporting each unknown name once", () => {
+  it("passes each name on the first time only", () => {
+    const told: string[] = [];
+    const report = reportEachNameOnce((name) => told.push(name));
+    report("Future/City");
+    report("Future/Other");
+    report("Future/City");
+    expect(told).toEqual(["Future/City", "Future/Other"]);
+  });
+
+  it("keeps a name it passed on when the report throws, so it does not throw again", () => {
+    let calls = 0;
+    const report = reportEachNameOnce(() => {
+      calls += 1;
+      throw new Error("report failed");
+    });
+    expect(() => report("Future/City")).toThrow("report failed");
+    report("Future/City");
+    expect(calls).toBe(1);
   });
 });
 

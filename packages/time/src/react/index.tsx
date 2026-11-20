@@ -1,16 +1,9 @@
 import type { SettingsStore } from "@self-engine/settings";
 import { useSetting } from "@self-engine/settings/react";
-import {
-  createContext,
-  type ReactNode,
-  useCallback,
-  useContext,
-  useEffect,
-  useMemo,
-  useRef,
-} from "react";
+import { createContext, type ReactNode, useContext, useEffect, useMemo } from "react";
 import type { FirstDayOfWeek, Region } from "../first-day-of-week.ts";
 import {
+  reportEachNameOnce,
   resolveTimeZoneSetting,
   resolveWeekStart,
   TIME_ZONE_SETTING,
@@ -34,7 +27,10 @@ type TimeSettingsSources = Pick<TimeSettingsProviderProps, "store" | "deviceZone
 
 const TimeSettings = createContext<TimeSettingsSources | null>(null);
 
-/** Supplies a page's time settings and remembers the unknown names reported during its lifetime. */
+/**
+ * Supplies a page's time settings and reports each unknown stored name once while `onError` stays
+ * the same function.
+ */
 export function TimeSettingsProvider({
   store,
   deviceZone,
@@ -42,13 +38,11 @@ export function TimeSettingsProvider({
   onError,
   children,
 }: TimeSettingsProviderProps) {
-  const reportedNames = useRef(new Set<string>());
-  const reportUnknownZone = useCallback(
-    (name: string) => {
-      if (reportedNames.current.has(name)) return;
-      reportedNames.current.add(name);
-      onError(new Error(`Unknown stored Time Zone: ${JSON.stringify(name)}`));
-    },
+  const reportUnknownZone = useMemo(
+    () =>
+      reportEachNameOnce((name) =>
+        onError(new Error(`Unknown stored Time Zone: ${JSON.stringify(name)}`)),
+      ),
     [onError],
   );
   const value = useMemo(
@@ -68,14 +62,12 @@ function useTimeSettings(): TimeSettingsSources {
 export function useTimeZone(): TimeZone {
   const { store, deviceZone, reportUnknownZone } = useTimeSettings();
   const name = useSetting(store, TIME_ZONE_SETTING);
-  const { timeZone, fallback } = useMemo(
-    () => resolveTimeZoneSetting(name, deviceZone),
-    [name, deviceZone],
-  );
+  const resolved = useMemo(() => resolveTimeZoneSetting(name, deviceZone), [name, deviceZone]);
+  const unknownName = resolved.fallback === "unknownName" ? resolved.name : undefined;
   useEffect(() => {
-    if (fallback === "unknownName" && name !== null) reportUnknownZone(name);
-  }, [fallback, name, reportUnknownZone]);
-  return timeZone;
+    if (unknownName !== undefined) reportUnknownZone(unknownName);
+  }, [unknownName, reportUnknownZone]);
+  return resolved.timeZone;
 }
 
 /** The first day of the week. Follows the store and, in automatic mode, the App Language. */

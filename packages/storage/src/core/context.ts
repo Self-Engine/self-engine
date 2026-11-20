@@ -72,9 +72,9 @@ export function createContext(sources: ContextSources): StorageContext {
     readSetting: (tx, setting) => readSetting(tx, sources.spaceId, setting),
     async readTimeZone(tx) {
       const name = await readSetting(tx, sources.spaceId, TIME_ZONE_SETTING);
-      const { timeZone, fallback } = resolveTimeZoneSetting(name, sources.deviceZone());
-      if (fallback === "unknownName" && name !== null) sources.unknownTimeZone(name);
-      return timeZone;
+      const resolved = resolveTimeZoneSetting(name, sources.deviceZone());
+      if (resolved.fallback === "unknownName") sources.unknownTimeZone(resolved.name);
+      return resolved.timeZone;
     },
   };
 }
