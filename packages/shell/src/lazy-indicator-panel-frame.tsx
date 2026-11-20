@@ -54,6 +54,6 @@ export function IndicatorPanelFrameLoader({
  * renders it in the idle moment after the first paint, beside the indicator, never at the start.
  * A failed load is forgotten, as a module's code is, so a later opening tries again.
  */
-export function IndicatorPanelFrame(props: IndicatorPanelFrameProps) {
+export function LazyIndicatorPanelFrame(props: IndicatorPanelFrameProps) {
   return <IndicatorPanelFrameLoader load={loadFrame} {...props} />;
 }

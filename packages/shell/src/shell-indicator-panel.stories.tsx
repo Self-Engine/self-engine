@@ -16,7 +16,7 @@ import {
   type ShellProps,
 } from "./index.ts";
 import { INDICATOR_PANEL_WIDTH, type IndicatorPanelFrameProps } from "./indicator-panel.tsx";
-import { IndicatorPanelFrameLoader } from "./indicator-panel-frame.tsx";
+import { IndicatorPanelFrameLoader } from "./lazy-indicator-panel-frame.tsx";
 import { IndicatorPanelsProvider, useIndicatorPanels, useOpeningOf } from "./indicator-panels.tsx";
 import {
   atFrameWidth,

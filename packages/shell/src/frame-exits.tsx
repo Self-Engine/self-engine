@@ -1,7 +1,9 @@
-// The question before unsaved changes are lost, shared by the Edit Drawer and the Indicator
-// Panel: a form reports its changes through one hook in both, and both ask the same question.
+// The ways out the Edit Drawer and the Indicator Panel share: a form reports its unsaved changes
+// through one hook in both, both ask the same question before they are lost, and both close on
+// Esc the same way.
 
 import { Trans } from "@lingui/react/macro";
+import { useWindowEvent } from "@mantine/hooks";
 import { confirm } from "@self-engine/ui";
 import { createContext, useCallback, useContext, useLayoutEffect, useRef, useState } from "react";
 
@@ -33,7 +35,7 @@ export function useUnsavedChanges(check: UnsavedCheck): void {
  * Where the focus goes on "Keep editing", given where it was when the question opened: `null`
  * when it was nowhere, such as after a click on an overlay.
  */
-export type KeepEditingFocus = (focusedBefore: Element | null) => HTMLElement | null | undefined;
+type KeepEditingFocus = (focusedBefore: Element | null) => HTMLElement | null | undefined;
 
 /**
  * The checks of one frame and the question they lead to. Hand `register` to the content through
@@ -86,4 +88,34 @@ export function useDiscardQuestion(keepEditingFocus: KeepEditingFocus) {
   }, [askToDiscard, checks]);
 
   return { register, questionOpen, confirmDiscard };
+}
+
+/**
+ * Whether an Esc is the frame's to answer: when the focus is in the frame, or nowhere. A layer a
+ * field opens over the frame keeps the key. A popover holds the focus outside the frame, and a
+ * list leaves it in its field, which carries Mantine's mark while the list is open.
+ */
+function escapeIsForTheFrame(target: EventTarget | null, frame: HTMLElement | null): boolean {
+  if (!(target instanceof Element) || target === document.body) return true;
+  if (target.getAttribute("data-mantine-stop-propagation") === "true") return false;
+  return frame?.contains(target) ?? false;
+}
+
+/**
+ * Closes the frame on Esc, in place of Mantine's Drawer and Popover. Mantine listens on the window
+ * while the key is still on its way down, ahead of every layer in the page, and asks only for the
+ * mark on the focused element: one Esc in a popover over the Edit Drawer closed both. This listens
+ * at the same moment, so a list is still open when it asks. Returns the ref of the frame.
+ */
+export function useEscapeExit(enabled: boolean, close: () => void) {
+  const frame = useRef<HTMLDivElement>(null);
+  useWindowEvent(
+    "keydown",
+    (event) => {
+      if (!enabled || event.key !== "Escape" || event.isComposing) return;
+      if (escapeIsForTheFrame(event.target, frame.current)) close();
+    },
+    { capture: true },
+  );
+  return frame;
 }

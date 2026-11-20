@@ -550,11 +550,11 @@ msgctxt "Channel"
 msgid "Dev"
 msgstr "Dev"
 
-#: packages/shell/src/unsaved-changes.tsx
+#: packages/shell/src/frame-exits.tsx
 msgid "Discard"
 msgstr "Discard"
 
-#: packages/shell/src/unsaved-changes.tsx
+#: packages/shell/src/frame-exits.tsx
 msgid "Discard changes?"
 msgstr "Discard changes?"
 
@@ -783,7 +783,7 @@ msgstr "Indigo"
 msgid "Invalid value."
 msgstr "Invalid value."
 
-#: packages/shell/src/unsaved-changes.tsx
+#: packages/shell/src/frame-exits.tsx
 msgid "Keep editing"
 msgstr "Keep editing"
 
@@ -1722,7 +1722,7 @@ msgstr "Wednesday"
 msgid "Week Start"
 msgstr "Week Start"
 
-#: packages/shell/src/unsaved-changes.tsx
+#: packages/shell/src/frame-exits.tsx
 msgid "What you changed here will be lost."
 msgstr "What you changed here will be lost."
 

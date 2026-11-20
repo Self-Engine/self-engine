@@ -451,7 +451,7 @@ describe("the web app's startup rules", () => {
       ).problems;
     expect(problems({ [place]: {} }, { [frame]: {} })).toEqual([]);
     expect(problems({ [place]: {}, [frame]: {} }, {})).toEqual([
-      `The frame of an Indicator Panel entered the startup bundle, imported by ${place}: reach it only through IndicatorPanelFrame of indicator-panel-frame.tsx, which loads it on demand.`,
+      `The frame of an Indicator Panel entered the startup bundle, imported by ${place}: reach it only through LazyIndicatorPanelFrame of lazy-indicator-panel-frame.tsx, which loads it on demand.`,
     ]);
   });
 

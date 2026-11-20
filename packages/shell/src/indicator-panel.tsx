@@ -10,12 +10,11 @@ import { type CSSProperties, useCallback, useEffect, useRef, useState } from "re
 import { useCommandPaletteOpen } from "./command-palette-state.tsx";
 import type { ShellContribution } from "./contributions.ts";
 import type { IndicatorPanelProps, IndicatorWithPanel } from "./module-indicator.ts";
-import { useEscapeExit } from "./edit-drawer-exits.tsx";
 import { whenIdle } from "./idle.ts";
 import { useIndicatorPanels, useOpeningOf } from "./indicator-panels.tsx";
 import { LazyContribution, lazyComponents } from "./lazy-contribution.tsx";
 import { type LeaveGuard, useShellRouting } from "./routing.tsx";
-import { UnsavedChangesContext, useDiscardQuestion } from "./unsaved-changes.tsx";
+import { UnsavedChangesContext, useDiscardQuestion, useEscapeExit } from "./frame-exits.tsx";
 
 /** The popover's width on the wide, medium and narrow step, in unscaled pixels. */
 export const INDICATOR_PANEL_WIDTH = 320;

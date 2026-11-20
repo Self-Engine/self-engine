@@ -1,7 +1,6 @@
-import { useWindowEvent } from "@mantine/hooks";
 import { useCallback, useLayoutEffect, useRef } from "react";
 import { type LeaveGuard, type LeavingAddress, useShellRouting } from "./routing.tsx";
-import { useDiscardQuestion } from "./unsaved-changes.tsx";
+import { useDiscardQuestion } from "./frame-exits.tsx";
 import type { ViewSearch } from "./view-search.ts";
 
 export const selectEditId = (search: ViewSearch) =>
@@ -9,36 +8,6 @@ export const selectEditId = (search: ViewSearch) =>
 
 const keepsTheEntry = (current: LeavingAddress, next: LeavingAddress) =>
   current.pathname === next.pathname && selectEditId(current.search) === selectEditId(next.search);
-
-/**
- * Whether an Esc is the drawer's to answer: when the focus is in the drawer, or nowhere. A layer
- * a field opens over the drawer keeps the key. A popover holds the focus outside the drawer's
- * frame, and a list leaves it in its field, which carries Mantine's mark while the list is open.
- */
-function escapeIsForTheDrawer(target: EventTarget | null, frame: HTMLElement | null): boolean {
-  if (!(target instanceof Element) || target === document.body) return true;
-  if (target.getAttribute("data-mantine-stop-propagation") === "true") return false;
-  return frame?.contains(target) ?? false;
-}
-
-/**
- * Closes the drawer on Esc, in place of Mantine's Drawer. Mantine listens on the window while the
- * key is still on its way down, ahead of every layer in the page, and asks only for the mark on
- * the focused element: one Esc in a popover over the drawer closed both. This listens at the same
- * moment, so a list is still open when it asks. Returns the ref of the drawer's frame.
- */
-export function useEscapeExit(enabled: boolean, close: () => void) {
-  const frame = useRef<HTMLDivElement>(null);
-  useWindowEvent(
-    "keydown",
-    (event) => {
-      if (!enabled || event.key !== "Escape" || event.isComposing) return;
-      if (escapeIsForTheDrawer(event.target, frame.current)) close();
-    },
-    { capture: true },
-  );
-  return frame;
-}
 
 /**
  * `openEntryKey` names what the drawer has open, leaving it is what the guard watches. It names

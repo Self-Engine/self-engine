@@ -80,7 +80,7 @@ export const STARTUP_RULES = {
       name: "The frame of an Indicator Panel",
       path: "/packages/shell/src/indicator-panel.tsx",
       instead:
-        "reach it only through IndicatorPanelFrame of indicator-panel-frame.tsx, which loads it on demand.",
+        "reach it only through LazyIndicatorPanelFrame of lazy-indicator-panel-frame.tsx, which loads it on demand.",
     },
     {
       name: "Storage",

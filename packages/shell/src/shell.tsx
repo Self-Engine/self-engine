@@ -13,8 +13,8 @@ import {
 } from "./command-palette-state.tsx";
 import { viewPath, type EditDrawerProps } from "./contributions.ts";
 import { EditDrawerTitleContext } from "./edit-drawer-title.ts";
-import { selectEditId, useEditDrawerExits, useEscapeExit } from "./edit-drawer-exits.tsx";
-import { UnsavedChangesContext } from "./unsaved-changes.tsx";
+import { selectEditId, useEditDrawerExits } from "./edit-drawer-exits.tsx";
+import { UnsavedChangesContext, useEscapeExit } from "./frame-exits.tsx";
 import { LazyContribution, lazyComponents } from "./lazy-contribution.tsx";
 import { indicatorForm, type IndicatorForm } from "./module-indicator-form.ts";
 import { IndicatorPanelsProvider } from "./indicator-panels.tsx";

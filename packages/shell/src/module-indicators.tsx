@@ -10,7 +10,7 @@ import type {
   ModuleIndicatorWithPanelProps,
 } from "./module-indicator.ts";
 import { useAfterFirstIdle } from "./idle.ts";
-import { IndicatorPanelFrame } from "./indicator-panel-frame.tsx";
+import { LazyIndicatorPanelFrame } from "./lazy-indicator-panel-frame.tsx";
 import { useIndicatorPanels, useOpeningOf } from "./indicator-panels.tsx";
 import { LazyContribution, lazyComponents } from "./lazy-contribution.tsx";
 import type { IndicatorForm } from "./module-indicator-form.ts";
@@ -126,7 +126,7 @@ function IndicatorPlace({ module, indicator, form, codeWanted, panelAsSheet }: P
     >
       {codeWanted ? code : icon}
       {codeWanted && indicator.panel !== undefined && (
-        <IndicatorPanelFrame
+        <LazyIndicatorPanelFrame
           indicator={indicator}
           indicatorShown={indicatorShown}
           module={module}

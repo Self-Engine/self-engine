@@ -13,7 +13,7 @@ import type { OpenIndicatorPanel } from "./module-indicator.ts";
 import { reportFailedStart } from "./report-failed-start.ts";
 
 /** One opening of a module's Indicator Panel. Each opening counts, also one of the same panel. */
-export interface PanelOpening {
+interface PanelOpening {
   readonly moduleId: string;
   readonly opening: number;
 }
