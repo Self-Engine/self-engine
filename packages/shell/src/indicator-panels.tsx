@@ -7,7 +7,7 @@ import {
   useState,
   useSyncExternalStore,
 } from "react";
-import type { IndicatorWithPanel, ShellContribution } from "./contributions.ts";
+import type { OpenIndicatorPanel, ShellContribution } from "./contributions.ts";
 
 /** One opening of a module's Indicator Panel. Each opening counts, also one of the same panel. */
 export interface PanelOpening {
@@ -105,14 +105,6 @@ function createIndicatorPanels() {
 }
 
 export type IndicatorPanels = ReturnType<typeof createIndicatorPanels>;
-
-/**
- * Opens a module's Indicator Panel from anywhere, such as a Command or the action of a Notice. It
- * takes the module's indicator entry, so only an indicator that declared a panel compiles. Which
- * part the panel shows is the module's own state. An open panel is left first, through the
- * question when it holds unsaved changes.
- */
-export type OpenIndicatorPanel = (indicator: IndicatorWithPanel) => void;
 
 interface IndicatorPanelsContextValue {
   readonly panels: IndicatorPanels;

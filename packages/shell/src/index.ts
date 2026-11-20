@@ -18,6 +18,9 @@ export {
   type ViewPageProps,
   type EditDrawerProps,
   type ModuleIndicator,
+  type IndicatorWithPanel,
+  type OpenIndicatorPanel,
+  type FrameExitProps,
   type ModuleIndicatorProps,
   type ModuleIndicatorWithPanelProps,
   type IndicatorPanelProps,
@@ -39,6 +42,7 @@ export {
   type PageCommand,
   type DataCommandContext,
   type PageCommandContext,
+  type PersonCommandContext,
   type PersonCommand,
   type RegisteredCommand,
   type ShellCommand,
@@ -53,3 +57,4 @@ export { useTypedViewSearch } from "./typed-view-search.ts";
 export { ShellGroup, ShellGroupEntry } from "./groups.tsx";
 export { useEditDrawerTitle } from "./edit-drawer-title.ts";
 export { useUnsavedChanges } from "./unsaved-changes.tsx";
+export { useOpenIndicatorPanel } from "./indicator-panels.tsx";

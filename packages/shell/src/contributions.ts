@@ -103,6 +103,14 @@ export interface IndicatorWithPanel {
 
 export type ModuleIndicator = IndicatorWithoutPanel | IndicatorWithPanel;
 
+/**
+ * The Shell's function that opens a module's Indicator Panel from elsewhere, such as from a
+ * Command or the action of a Notice. It takes the module's indicator entry, so an indicator
+ * without a panel does not compile. An open panel is left first, through the question when it
+ * holds unsaved changes. Which part the panel shows is the module's own state.
+ */
+export type OpenIndicatorPanel = (indicator: IndicatorWithPanel) => void;
+
 interface ContributionMetadata {
   readonly id: string;
   readonly name: MessageDescriptor;

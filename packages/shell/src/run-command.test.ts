@@ -111,8 +111,9 @@ describe("the runner's core", () => {
     expect(consoleError).not.toHaveBeenCalled();
   });
 
-  test("gives every Command the Port access, and a page Command also the address", async () => {
+  test("gives every Command the Port access, one a person starts the panels, a page one the address", async () => {
     const writeSearch = vi.fn();
+    const openIndicatorPanel = vi.fn();
     const noInput = z.object({});
     const page = definePageCommand({
       description,
@@ -121,11 +122,19 @@ describe("the runner's core", () => {
     });
     const open = defineOpenCommand({ description, schema: noInput, run: (_input, c) => c });
     const input = defineInputCommand({ description, schema, run: (_input, c) => c.data });
-    await runCommand({ load: async () => ({ default: page }) }, {}, { writeSearch, data });
+    await runCommand(
+      { load: async () => ({ default: page }) },
+      {},
+      {
+        writeSearch,
+        data,
+        openIndicatorPanel,
+      },
+    );
     expect(writeSearch).toHaveBeenCalledOnce();
     await expect(
-      runCommand({ load: async () => ({ default: open }) }, {}, { data }),
-    ).resolves.toEqual({ ok: true, value: { data } });
+      runCommand({ load: async () => ({ default: open }) }, {}, { data, openIndicatorPanel }),
+    ).resolves.toEqual({ ok: true, value: { data, openIndicatorPanel } });
     await expect(
       runCommand({ load: async () => ({ default: input }) }, named, { data }),
     ).resolves.toEqual({ ok: true, value: data });
@@ -140,5 +149,7 @@ function whatCannotBeCalled() {
   const open = defineOpenCommand({ description, schema: z.object({}), run: () => undefined });
   // @ts-expect-error No Command runs without the Port access.
   void runCommand({ load: async () => ({ default: open }) }, {}, {});
+  // @ts-expect-error A Command a person starts is given the Shell's way to open a panel.
+  void runCommand({ load: async () => ({ default: open }) }, {}, { data });
 }
 void whatCannotBeCalled;

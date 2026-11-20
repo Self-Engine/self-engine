@@ -5,6 +5,7 @@ import type { DataAccess } from "@self-engine/data-client/react";
 import { notifyError } from "@self-engine/ui";
 import { createContext, type ReactNode, useContext, useMemo, useState } from "react";
 import { fullCommandId, type PersonCommand } from "./commands.ts";
+import { useOpenIndicatorPanel } from "./indicator-panels.tsx";
 import { useShellRouting } from "./routing.tsx";
 import { runCommand } from "./run-command.ts";
 
@@ -68,14 +69,19 @@ export function useStartCommand() {
   const start = useContext(StartContext);
   if (start === null) throw new Error("Starting a Command needs the Shell");
   const { startOnce, data } = start;
+  const openIndicatorPanel = useOpenIndicatorPanel();
 
   return (moduleId: string, command: PersonCommand, goFirstTo?: string) =>
     startOnce(fullCommandId(moduleId, command.id), async () => {
       try {
         if (goFirstTo !== undefined && !(await goToView(goFirstTo))) return;
         const result = await (command.kind === "page"
-          ? runCommand(command, {}, { writeSearch: address.scopedWriteSearch(), data })
-          : runCommand(command, {}, { data }));
+          ? runCommand(
+              command,
+              {},
+              { writeSearch: address.scopedWriteSearch(), data, openIndicatorPanel },
+            )
+          : runCommand(command, {}, { data, openIndicatorPanel }));
         if (!result.ok) reportFailedStart(i18n, result.error);
       } catch (error) {
         // The move asks the leave guards, which are a module's code and may throw.

@@ -2,11 +2,16 @@ import { Button, Stack, Text, TextInput } from "@mantine/core";
 import type { Meta } from "@storybook/react-vite";
 import { type ComponentType, useState } from "react";
 import { expect, screen, spyOn, userEvent, waitFor, within } from "storybook/test";
+import { notifyChoice } from "@self-engine/ui";
+import { z } from "zod";
 import {
+  defineOpenCommand,
   type IndicatorPanelProps,
+  type IndicatorWithPanel,
   type ModuleIndicator,
   type ModuleIndicatorWithPanelProps,
   Shell,
+  type ShellContribution,
   type ShellProps,
 } from "./index.ts";
 import { INDICATOR_PANEL_WIDTH } from "./indicator-panel.tsx";
@@ -21,6 +26,7 @@ import {
   pressEscape,
   type Story,
   shellMeta,
+  storyRouting,
   VIEWPORTS,
   widthOf,
 } from "./shell-story-helpers.tsx";
@@ -396,5 +402,107 @@ export const TallContentScrollsInThePanel: Story = {
     const dialog = await panel();
     await expect(dialog.getBoundingClientRect().bottom).toBeLessThanOrEqual(window.innerHeight);
     await expect(dialog.scrollHeight).toBeGreaterThan(dialog.clientHeight);
+  },
+};
+
+/** The indicator entry a Command and a Notice name, so only an indicator with a panel compiles. */
+const OPENED_FROM_ELSEWHERE = {
+  load: async () => ({ default: PanelIndicator }),
+  panel: async () => ({ default: PanelContent }),
+} satisfies IndicatorWithPanel;
+
+const PROJECTS_WITH_COMMANDS: ShellContribution = {
+  ...projects,
+  indicator: OPENED_FROM_ELSEWHERE,
+  commands: [
+    {
+      id: "open-note",
+      kind: "open",
+      label: { id: "story-Open the note", message: "Open the note" },
+      load: async () => ({
+        default: defineOpenCommand({
+          description: "Opens the panel of the module's indicator.",
+          schema: z.object({}),
+          run: (_input, { openIndicatorPanel }) => openIndicatorPanel(OPENED_FROM_ELSEWHERE),
+        }),
+      }),
+    },
+    {
+      id: "remind",
+      kind: "open",
+      label: { id: "story-Remind me", message: "Remind me" },
+      load: async () => ({
+        default: defineOpenCommand({
+          description: "Shows a Notice whose action opens the module's panel.",
+          schema: z.object({}),
+          run: (_input, { openIndicatorPanel }) => {
+            notifyChoice({
+              message: "The timer still runs.",
+              actions: [
+                { label: "Stop at …", run: () => openIndicatorPanel(OPENED_FROM_ELSEWHERE) },
+              ],
+            });
+          },
+        }),
+      }),
+    },
+  ],
+};
+
+async function startFromThePalette(canvas: Canvas, label: string) {
+  // The indicators' code arrives in an idle moment; the panel opens either way once it has.
+  await indicatorButton(canvas);
+  await openPalette();
+  await userEvent.keyboard(`${label}{Enter}`);
+  await paletteGone();
+}
+
+export const ACommandOpensThePanelWhileAnotherModuleIsActive: Story = {
+  ...atViewport("wide"),
+  // Time is active; the Command belongs to Projects.
+  args: { contributions: [PROJECTS_WITH_COMMANDS, time, third] },
+  play: async ({ canvas }) => {
+    await startFromThePalette(canvas, "open the note");
+    await expectFocusInPanel();
+  },
+};
+
+export const TheActionOfANoticeOpensThePanel: Story = {
+  ...atViewport("wide"),
+  args: { contributions: [PROJECTS_WITH_COMMANDS, time, third] },
+  play: async ({ canvas }) => {
+    await startFromThePalette(canvas, "remind me");
+    await userEvent.click(await screen.findByRole("button", { name: "Stop at …" }));
+    await expectFocusInPanel();
+  },
+};
+
+/** Keeps the Edit Drawer open, as an address with `edit` does. */
+function DrawerContent() {
+  return <TextInput label="Entry name" />;
+}
+
+export const ACommandPutsThePanelOverTheEditDrawer: Story = {
+  ...atViewport("wide"),
+  args: {
+    contributions: [PROJECTS_WITH_COMMANDS, time, third],
+    activeModule: { ...time, editDrawer: async () => ({ default: DrawerContent }) },
+    routing: storyRouting({ edit: "entry" }),
+  },
+  play: async ({ canvas }) => {
+    const drawer = await screen.findByRole("dialog", { name: "Time" });
+    await within(drawer).findByRole("textbox", { name: "Entry name" });
+    await startFromThePalette(canvas, "open the note");
+    await expectFocusInPanel();
+    const note = within(await panel()).getByRole("textbox", { name: "Note" });
+    const { left, top, width, height } = note.getBoundingClientRect();
+    // On top: what a pointer at the field's middle reaches is the field.
+    await expect(document.elementFromPoint(left + width / 2, top + height / 2)).toBe(note);
+    await userEvent.type(note, "typed over the drawer");
+    await expect(note).toHaveValue("typed over the drawer");
+    // Escape leaves the panel first and keeps the drawer.
+    await pressEscape();
+    await panelGone();
+    await expect(screen.getByRole("dialog", { name: "Time" })).toBeVisible();
   },
 };

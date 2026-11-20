@@ -4,7 +4,9 @@ import { z } from "zod";
 import {
   defineContribution,
   type IndicatorPanelProps,
+  type ModuleIndicator,
   type ModuleIndicatorWithPanelProps,
+  type OpenIndicatorPanel,
   type ShellContribution,
   validateContributions,
 } from "./contributions.ts";
@@ -159,3 +161,17 @@ test("a Module Indicator is one entry of its contribution, which a panel can onl
     indicator: { load: withPanel.load },
   });
 });
+
+// Compiled, not run: the Shell's function opens only a panel that its indicator declared.
+function onlyAPanelThatExistsOpens(open: OpenIndicatorPanel, declared: ModuleIndicator) {
+  const withPanel = {
+    load: async () => ({ default: () => null }),
+    panel: async () => ({ default: () => null }),
+  };
+  open(withPanel);
+  // @ts-expect-error An indicator without a panel has nothing to open.
+  open({ load: async () => ({ default: () => null }) });
+  // @ts-expect-error The union of both forms may be one without a panel.
+  open(declared);
+}
+void onlyAPanelThatExistsOpens;
