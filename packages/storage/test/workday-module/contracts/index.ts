@@ -15,4 +15,6 @@ export const workdayHours = defineSetting({
 export const workdayContract = {
   hours: oc.output(z.int()),
   readHours: oc.output(z.int()).errors(refusal),
+  /** The Time Zone of the call, as a module that computes days and times gets it. */
+  zone: oc.output(z.string()),
 };
