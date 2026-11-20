@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vite-plus/test";
-import { resolveAppLanguage } from "./index.ts";
+import { regionForAppLanguage, resolveAppLanguage } from "./index.ts";
 
 describe("resolveAppLanguage", () => {
   test("an offered chosen language wins over the system", () => {
@@ -29,4 +29,11 @@ describe("resolveAppLanguage", () => {
   test("no system languages at all give the Base Language", () => {
     expect(resolveAppLanguage(undefined, [])).toBe("en");
   });
+});
+
+test.each([
+  ["de", "de-DE"],
+  ["en", "en-US"],
+] as const)("App Language %s uses region %s", (language, region) => {
+  expect(regionForAppLanguage(language)).toBe(region);
 });

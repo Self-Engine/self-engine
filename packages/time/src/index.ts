@@ -4,7 +4,7 @@ export { wallClockTimeSchema, type WallClockTime } from "./values.ts";
 export { daySpanSchema, type DaySpan } from "./values.ts";
 export { durationSchema, type Duration } from "./values.ts";
 export { addDays, addMonths, daysBetween } from "./calendar.ts";
-export { mantineFirstDayOfWeek, weekOf } from "./calendar.ts";
+export { firstDayOfWeekForRegion, mantineFirstDayOfWeek, weekOf } from "./calendar.ts";
 export type { FirstDayOfWeek } from "./first-day-of-week.ts";
 export { isoWeekNumber } from "./calendar.ts";
 export { epochMsOf, instantFromDate } from "./borders.ts";

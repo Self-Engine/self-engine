@@ -1,11 +1,11 @@
 /**
- * Every language the app offers: its name in that language, and whether its catalog has to be
- * complete. Adding a language starts here; extraction then creates its catalog.
+ * Every language the app offers: its name in that language, its default region, and whether
+ * its catalog has to be complete. Adding a language starts here.
  */
 export const LANGUAGES = {
-  en: { name: "English", required: true },
-  de: { name: "Deutsch", required: true },
-} as const satisfies Readonly<Record<string, { name: string; required: boolean }>>;
+  en: { name: "English", required: true, region: "en-US" },
+  de: { name: "Deutsch", required: true, region: "de-DE" },
+} as const satisfies Readonly<Record<string, { name: string; required: boolean; region: string }>>;
 
 export type Language = keyof typeof LANGUAGES;
 

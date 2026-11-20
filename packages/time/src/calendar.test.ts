@@ -5,6 +5,7 @@ import {
   daysBetween,
   weekOf,
   mantineFirstDayOfWeek,
+  firstDayOfWeekForRegion,
   isoWeekNumber,
   calendarDaySchema,
 } from "./index.ts";
@@ -93,6 +94,12 @@ test.each([
   ["sunday", 0],
 ] as const)("Mantine numbers %s as %i", (firstDayOfWeek, expected) => {
   expect(mantineFirstDayOfWeek(firstDayOfWeek)).toBe(expected);
+});
+test.each([
+  ["de-DE", "monday"],
+  ["en-US", "sunday"],
+] as const)("%s weeks start on %s", (region, firstDayOfWeek) => {
+  expect(firstDayOfWeekForRegion(region)).toBe(firstDayOfWeek);
 });
 test.each([
   ["2026-10-05", 41],
