@@ -1,6 +1,6 @@
 import { useLingui } from "@lingui/react/macro";
-import { Box, Group, rem } from "@mantine/core";
-import { colorSetColor } from "@self-engine/theme";
+import { ActionIcon, Box, Group, rem, Tooltip } from "@mantine/core";
+import { colorSetColor, roleColor } from "@self-engine/theme";
 import { NOT_WINDOW_DRAG_STYLE } from "@self-engine/ui";
 import type { CSSProperties } from "react";
 import type { ModuleIndicator, ModuleIndicatorProps, ShellContribution } from "./contributions.ts";
@@ -38,6 +38,32 @@ const ICON_STYLE: CSSProperties = { display: "flex" };
 
 const loadedIndicators = lazyComponents<ModuleIndicatorProps>();
 
+function FailedIndicator({
+  module,
+  onRetry,
+}: {
+  readonly module: ShellContribution;
+  readonly onRetry: () => void;
+}) {
+  const { i18n, t } = useLingui();
+  const name = i18n._(module.name);
+  const label = t`${name} indicator failed. Try again.`;
+  const Icon = module.icon;
+  return (
+    <Tooltip events={{ hover: true, focus: true, touch: false }} label={label}>
+      <ActionIcon
+        aria-label={label}
+        bg={roleColor("warningSoft")}
+        c={roleColor("warningText")}
+        onClick={onRetry}
+        size={24}
+      >
+        <Icon size="md" />
+      </ActionIcon>
+    </Tooltip>
+  );
+}
+
 interface PlaceProps {
   readonly module: ShellContribution;
   readonly indicator: ModuleIndicator;
@@ -65,6 +91,7 @@ function IndicatorPlace({ module, indicator, form, codeWanted }: PlaceProps) {
           fallback={icon}
           load={indicator.load}
           props={{ form }}
+          renderFailure={(retry) => <FailedIndicator module={module} onRetry={retry} />}
         />
       ) : (
         icon

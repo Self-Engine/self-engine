@@ -48,6 +48,10 @@ msgstr "{minimum, plural, other {Mindestens #.}}"
 msgid "{minimum, plural, other {More than #.}}"
 msgstr "{minimum, plural, other {Mehr als #.}}"
 
+#: packages/shell/src/module-indicators.tsx
+msgid "{name} indicator failed. Try again."
+msgstr "Die Modulanzeige für {name} ist ausgefallen. Erneut versuchen."
+
 #. A wall-clock time and its UTC offset
 #: packages/forms/src/time-range-field.tsx
 msgid "{time} ({utc})"
