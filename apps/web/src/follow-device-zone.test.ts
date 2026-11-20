@@ -121,7 +121,8 @@ test("Don't ask again stores the Device Setting, and no offer comes back", async
 
 test("with follow device on, the Setting takes the device's zone without an offer", async () => {
   const app = await openWindow({
-    synced: { "time.zone": "Europe/Berlin", "time.followDevice": true },
+    synced: { "time.zone": "Europe/Berlin" },
+    device: { "time.followDevice": true },
   });
   expect(app.store.read(TIME_ZONE_SETTING)).toBe("Asia/Bangkok");
   expect(app.shown).toEqual([]);
@@ -197,7 +198,7 @@ test("the offer answered with Don't ask again in one window disappears in the ot
 
 test("follow device turned on in another window takes the zone where an offer was open", async () => {
   const app = await openWindow(IN_BERLIN);
-  app.adapters.synced.changeFromOutside([{ key: "time.followDevice", value: true }]);
+  app.adapters.device.changeFromOutside([{ key: "time.followDevice", value: true }]);
   expect(app.open.size).toBe(0);
   expect(app.store.read(TIME_ZONE_SETTING)).toBe("Asia/Bangkok");
   expect(app.store.read(FOLLOW_DEVICE_ZONE_SETTING)).toBe(true);
@@ -216,7 +217,7 @@ test("nothing is offered after the watching has stopped, and an open offer is wi
   expect(app.open.size).toBe(0);
   app.becomes("hidden");
   app.becomes("visible");
-  app.adapters.synced.changeFromOutside([{ key: "time.followDevice", value: true }]);
+  app.adapters.device.changeFromOutside([{ key: "time.followDevice", value: true }]);
   expect(app.shown).toHaveLength(1);
   expect(app.store.read(TIME_ZONE_SETTING)).toBe("Europe/Berlin");
 });
@@ -245,7 +246,7 @@ test("a zone that arrives after the start, from the database, decides again", as
 });
 
 test("a zone that arrives after the start with follow device on is followed", async () => {
-  const app = await openWindow({ synced: { "time.followDevice": true } });
+  const app = await openWindow({ device: { "time.followDevice": true } });
   app.adapters.synced.changeFromOutside([{ key: "time.zone", value: "Europe/Berlin" }]);
   expect(app.store.read(TIME_ZONE_SETTING)).toBe("Asia/Bangkok");
   expect(app.shown).toEqual([]);

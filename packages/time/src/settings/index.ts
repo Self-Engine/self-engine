@@ -30,10 +30,13 @@ export const TIME_ZONE_SETTING = defineSetting({
   schema: z.nullable(z.string().check(z.regex(NAME_SHAPE))),
 });
 
-/** Whether the Time Zone follows the device without asking (D147). */
+/**
+ * Whether the Time Zone follows this device without asking (D147). A Device Setting: with it
+ * synced, two devices in different zones would each write their zone over the other's.
+ */
 export const FOLLOW_DEVICE_ZONE_SETTING = defineSetting({
   key: "time.followDevice",
-  scope: "synced",
+  scope: "device",
   default: false,
   schema: z.boolean(),
 });

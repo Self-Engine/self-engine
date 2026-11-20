@@ -24,7 +24,7 @@ Settings entry's dependency tree.
 | Setting                   | Key                       | Scope  | Value                                                                               | Default     |
 | ------------------------- | ------------------------- | ------ | ----------------------------------------------------------------------------------- | ----------- |
 | Time Zone                 | `time.zone`               | Synced | Zone name or `null`                                                                 | `null`      |
-| Follow Device             | `time.followDevice`       | Synced | On or off                                                                           | Off         |
+| Follow Device             | `time.followDevice`       | Device | On or off                                                                           | Off         |
 | Week Start                | `time.weekStart`          | Synced | `automatic` or a day name ([ADR 0035](0035-calendar-weeks-start-on-a-named-day.md)) | `automatic` |
 | Time Zone Offer dismissed | `time.zoneOfferDismissed` | Device | On or off                                                                           | Off         |
 
@@ -64,6 +64,9 @@ back the name exactly as it was stored.
 withdraws an open offer, and a value the database reports after the start is decided on
 at once. An offer closed without an answer returns only when the window becomes visible
 again.
+
+Follow Device is a Device Setting: each device decides for itself whether it follows. As a
+Synced Setting, two devices in different zones would each write their zone over the other's.
 
 **The Settings Rows live in “Language and region” at the existing Language address.**
 The Time Zone picker searches by place and UTC offset and is disabled while Follow Device

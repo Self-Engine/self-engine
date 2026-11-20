@@ -43,7 +43,7 @@ const BANGKOK = zone("Asia/Bangkok");
 describe("the declarations", () => {
   it.each([
     ["the Time Zone", TIME_ZONE_SETTING, "time.zone", "synced", null],
-    ["follow device", FOLLOW_DEVICE_ZONE_SETTING, "time.followDevice", "synced", false],
+    ["follow device", FOLLOW_DEVICE_ZONE_SETTING, "time.followDevice", "device", false],
     ["the week start", WEEK_START_SETTING, "time.weekStart", "synced", "automatic"],
     [
       "zone offer dismissed",
@@ -60,7 +60,7 @@ describe("the declarations", () => {
 
   it("keep the scope in the type, so only the Synced ones reach the Data Process", () => {
     expectTypeOf(TIME_ZONE_SETTING).toEqualTypeOf<SettingDeclaration<string | null, "synced">>();
-    expectTypeOf(FOLLOW_DEVICE_ZONE_SETTING).toEqualTypeOf<SettingDeclaration<boolean, "synced">>();
+    expectTypeOf(FOLLOW_DEVICE_ZONE_SETTING).toEqualTypeOf<SettingDeclaration<boolean, "device">>();
     expectTypeOf(WEEK_START_SETTING).toEqualTypeOf<SettingDeclaration<WeekStart, "synced">>();
     expectTypeOf(ZONE_OFFER_DISMISSED_SETTING).toEqualTypeOf<
       SettingDeclaration<boolean, "device">
@@ -90,12 +90,14 @@ describe("a store", () => {
     expect(adapters.synced.stored).toEqual(
       new Map<string, JsonValue>([
         ["time.zone", "Asia/Calcutta"],
-        ["time.followDevice", true],
         ["time.weekStart", "saturday"],
       ]),
     );
     expect(adapters.device.stored).toEqual(
-      new Map<string, JsonValue>([["time.zoneOfferDismissed", true]]),
+      new Map<string, JsonValue>([
+        ["time.followDevice", true],
+        ["time.zoneOfferDismissed", true],
+      ]),
     );
     expect(store.read(TIME_ZONE_SETTING)).toBe("Asia/Calcutta");
     expect(store.read(WEEK_START_SETTING)).toBe("saturday");
@@ -133,7 +135,6 @@ describe("a store", () => {
   it.each([
     ["the week start", WEEK_START_SETTING, "time.weekStart", "fortnightly"],
     ["the week start", WEEK_START_SETTING, "time.weekStart", 1],
-    ["follow device", FOLLOW_DEVICE_ZONE_SETTING, "time.followDevice", "sometimes"],
     ["the Time Zone", TIME_ZONE_SETTING, "time.zone", { name: "Europe/Berlin" }],
   ] as const)(
     "shows %s of a newer version (%j) as the default and leaves it stored",
@@ -148,6 +149,19 @@ describe("a store", () => {
       expect(adapters.synced.stored.get(key)).toEqual(value);
     },
   );
+
+  it("shows follow device of a newer version as the default and leaves it stored on the device", async () => {
+    const { store, adapters } = await storeHolding({
+      device: { "time.followDevice": "sometimes" },
+    });
+
+    expect(store.read(FOLLOW_DEVICE_ZONE_SETTING)).toBe(false);
+    store.write(WEEK_START_SETTING, "sunday");
+    await settle();
+
+    expect(adapters.device.saves).toEqual([]);
+    expect(adapters.device.stored.get("time.followDevice")).toBe("sometimes");
+  });
 });
 
 describe("resolving the Time Zone", () => {

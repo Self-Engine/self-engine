@@ -255,7 +255,7 @@ How long something lasted, in whole seconds and never negative. It is not a _Wal
 _Avoid_: time (for a length), elapsed time, interval
 
 **Follow Device** (de: _Gerät folgen_):
-The _Synced Setting_ that lets the app switch its _Time Zone_ to the _Device Time Zone_ without asking.
+The _Device Setting_ that lets the app on this device switch its _Time Zone_ to the _Device Time Zone_ without asking.
 _Avoid_: automatic region, system language
 
 **Instant** (de: _Zeitpunkt_):

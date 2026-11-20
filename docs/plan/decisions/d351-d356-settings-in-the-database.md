@@ -167,6 +167,12 @@ baut, darf anders entscheiden und nennt es im Pull Request.
 
 - **Schlüssel:** `time.zone`, `time.followDevice`, `time.weekStart` und für das Gerät
   `time.zoneOfferDismissed`.
+- **Nachtrag vom 2026-11-20, beim Bau von #110 vom Eigentümer entschieden:** „Dem Gerät folgen“
+  ist eine Geräteeinstellung, keine synchronisierte (ändert D147 und die Aufzählung in D356 in
+  diesem Punkt). _Gründe:_ Synchronisiert hieße „alle Geräte oder keins“; zwei Geräte in
+  verschiedenen Zonen, die beide folgen, würden sich mit Sync gegenseitig die Zeitzone
+  überschreiben. Jetzt kostet die Änderung nichts, nach dem ersten Release wäre sie eine
+  Migration.
 - **Wert der Zeitzone:** ein Name als Text oder „nicht gesetzt“. „Nicht gesetzt“ und ein
   unbekannter Name ergeben über eine einzige Funktion die Gerätezone. In der Web-App ohne
   Datenprozess gilt damit die Gerätezone, bis der Nutzer eine Zone wählt.
