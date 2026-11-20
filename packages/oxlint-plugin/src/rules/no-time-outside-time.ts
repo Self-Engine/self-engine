@@ -1,4 +1,5 @@
-import { defineRule, type ESTree, type Scope } from "@oxlint/plugins";
+import { defineRule, type ESTree } from "@oxlint/plugins";
+import { isGlobal, isReference, propertyName } from "./globals.ts";
 
 const CONSTRUCTOR =
   "Use instantAt from @self-engine/time, or requireInstant from @self-engine/time/testing for fixtures; convert foreign Dates with instantFromDate (D284).";
@@ -10,12 +11,6 @@ const TEMPORAL =
   "Use instantAt, calendarDayOf, addDays or durationBetween from @self-engine/time; Temporal stays inside time (D284).";
 const FORMAT =
   "Use formatInstant from @self-engine/time with an explicit locale and TimeZone (D284).";
-
-function propertyName(key: ESTree.Node, computed: boolean): string | undefined {
-  if (!computed && key.type === "Identifier") return key.name;
-  if (key.type === "Literal" && typeof key.value === "string") return key.value;
-  return undefined;
-}
 
 export default defineRule({
   meta: {
@@ -29,20 +24,7 @@ export default defineRule({
       /(?:^|\/)packages\/time\//.test(context.filename)
     )
       return {};
-    function global(node: ESTree.Node, name: string): boolean {
-      if (node.type === "MemberExpression" && propertyName(node.property, node.computed) === name)
-        return global(node.object, "globalThis");
-      if (node.type !== "Identifier" || node.name !== name) return false;
-      for (
-        let scope: Scope | null = context.sourceCode.getScope(node);
-        scope !== null;
-        scope = scope.upper
-      ) {
-        const variable = scope.set.get(name);
-        if (variable !== undefined) return variable.defs.length === 0;
-      }
-      return true;
-    }
+    const global = (node: ESTree.Node, name: string) => isGlobal(context, node, name);
     function message(object: ESTree.Node, name: string): string | undefined {
       if (name === "Temporal" && global(object, "globalThis")) return TEMPORAL;
       if (name === "toLocaleDateString" || name === "toLocaleTimeString") return FORMAT;
@@ -92,19 +74,9 @@ export default defineRule({
         if (global(node.callee, "Date")) context.report({ node, message: CONSTRUCTOR });
       },
       Identifier(node) {
-        if (!global(node, "Temporal")) return;
         // Only references, never property keys or declarations with the same spelling.
-        let scope: Scope | null = context.sourceCode.getScope(node);
-        while (scope !== null) {
-          if (scope.references.some((reference) => reference.identifier === node)) {
-            context.report({
-              node,
-              message: TEMPORAL,
-            });
-            return;
-          }
-          scope = scope.upper;
-        }
+        if (global(node, "Temporal") && isReference(context, node))
+          context.report({ node, message: TEMPORAL });
       },
       MemberExpression(node) {
         const name = propertyName(node.property, node.computed);

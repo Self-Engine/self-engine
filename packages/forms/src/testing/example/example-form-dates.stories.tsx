@@ -38,6 +38,7 @@ function formIn(canvasElement: HTMLElement) {
     /** The hours of the time; the minutes follow it. */
     hours: () => canvas.getByRole("spinbutton", { name: "Start" }),
     minutes: () => canvas.getByRole("spinbutton", { name: /^(Minutes|Minuten)$/ }),
+    amPm: () => canvas.getByRole("textbox", { name: "AM or PM" }),
     save: () => userEvent.click(canvas.getByRole("button", { name: "Save" })),
   };
 }
@@ -54,7 +55,10 @@ export const ADayIsTypedAndPicked: Story = {
   play: async ({ canvasElement, loaded }) => {
     const form = formIn(canvasElement);
     await typeTheTexts(canvasElement);
-    await userEvent.type(form.day(), "11/5/2026");
+    await userEvent.type(form.day(), "11/5/26");
+    // Left, a whole day reads as a picked one does.
+    await userEvent.tab();
+    await expect(form.day()).toHaveValue("11/05/2026");
     await form.save();
     await waitFor(() =>
       expect(callsOf(loaded)).toEqual([
@@ -119,6 +123,7 @@ export const HalfADayBlocksTheSave: Story = {
     await expect(form.day()).toHaveAccessibleDescription("");
     await userEvent.tab();
     await expect(form.day()).toHaveAccessibleDescription(UNFINISHED);
+    // Text that is no day stays as typed when the field is left.
     await expect(form.day()).toHaveValue("31.02.2026");
     await form.save();
     await expect(callsOf(loaded)).toEqual([]);
@@ -163,7 +168,11 @@ export const HoursWithoutMinutesBlockTheSave: Story = {
     await userEvent.click(form.hours());
     await userEvent.keyboard("09");
     await userEvent.click(canvasElement.querySelector("textarea")!);
-    await expect(form.hours()).toHaveAccessibleDescription(UNFINISHED);
+    // Every input of the time reads the message, not only the hours.
+    for (const input of [form.hours(), form.minutes(), form.amPm()]) {
+      await expect(input).toHaveAccessibleDescription(UNFINISHED);
+      await expect(input).toHaveAttribute("aria-invalid", "true");
+    }
     await form.save();
     await expect(callsOf(loaded)).toEqual([]);
 

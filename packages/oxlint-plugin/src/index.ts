@@ -1,4 +1,5 @@
 import noTimeOutsideTime from "./rules/no-time-outside-time.ts";
+import noDomInTimeCore from "./rules/no-dom-in-time-core.ts";
 import noForeignRowMap from "./rules/no-foreign-row-map.ts";
 /**
  * The repo's own lint rules, loaded by Oxlint as a JS plugin (`lint.jsPlugins` in
@@ -17,6 +18,7 @@ export default definePlugin({
   meta: { name: "self-engine" },
   rules: {
     "no-time-outside-time": noTimeOutsideTime,
+    "no-dom-in-time-core": noDomInTimeCore,
     "no-global-t-macro": noGlobalTMacro,
     "no-foreign-row-map": noForeignRowMap,
     "no-import-type-query": noImportTypeQuery,

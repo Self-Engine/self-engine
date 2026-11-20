@@ -354,3 +354,42 @@ export const TypingElsewhereRedrawsTheRangeNot: Story = {
     ).toEqual({ TextField: 0, TimeRangeField: 4 });
   },
 };
+
+/** The vertical middle of an element on the screen. */
+const middleOf = (element: Element) => {
+  const { top, height } = element.getBoundingClientRect();
+  return top + height / 2;
+};
+
+/** Expects every element to sit at the vertical middle of the input box that holds `input`. */
+async function expectLinedUpWith(input: HTMLElement, elements: readonly Element[]) {
+  const box = input.closest(".mantine-Input-input");
+  await expect(box).not.toBeNull();
+  for (const element of elements)
+    await expect(Math.abs(middleOf(element) - middleOf(box!))).toBeLessThanOrEqual(1);
+}
+
+/** "+1", the button for an end date, and the button that closes it line up with the inputs. */
+async function partsBesideTheEndLineUp(canvasElement: HTMLElement) {
+  const range = rangeIn(canvasElement);
+  await expectLinedUpWith(range.end(), [
+    range.canvas.getByText("+1"),
+    range.canvas.getByRole("button", { name: "Enddatum hinzufügen" }),
+  ]);
+  await userEvent.click(range.canvas.getByRole("button", { name: "Enddatum hinzufügen" }));
+  await expectLinedUpWith(range.endDate(), [
+    range.canvas.getByRole("button", { name: "Enddatum entfernen" }),
+  ]);
+}
+
+export const ThePartsBesideTheEndLineUpAtTheSmallestFontScale: Story = {
+  globals: { fontScale: "87.5" },
+  args: loadedRange("2026-11-13T21:00:00.000Z", "2026-11-14T00:30:00.000Z"),
+  play: ({ canvasElement }) => partsBesideTheEndLineUp(canvasElement),
+};
+
+export const ThePartsBesideTheEndLineUpAtTheLargestFontScale: Story = {
+  globals: { fontScale: "112.5" },
+  args: loadedRange("2026-11-13T21:00:00.000Z", "2026-11-14T00:30:00.000Z"),
+  play: ({ canvasElement }) => partsBesideTheEndLineUp(canvasElement),
+};

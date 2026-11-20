@@ -137,17 +137,43 @@ describe("a loaded range", () => {
     });
   });
 
-  test("a changed date moves both", () => {
+  test("a changed date moves both, each with its seconds (D344)", () => {
     expect(rangeFrom(parts("2026-11-14", "09:00", "17:30"), loaded, berlin, true)).toEqual({
-      start: { case: "set", instant: at("2026-11-14T08:00:00.000Z") },
-      end: { case: "set", instant: at("2026-11-14T16:30:00.000Z") },
+      start: { case: "set", instant: at("2026-11-14T08:00:50.000Z") },
+      end: { case: "set", instant: at("2026-11-14T16:30:10.000Z") },
     });
   });
 
   test("a start moved past the end moves the end to the next day, as the field shows it", () => {
+    // The end keeps its seconds: the user did not touch its time.
     expect(rangeFrom(parts("2026-11-13", "18:00", "17:30"), loaded, berlin, true)).toEqual({
       start: { case: "set", instant: at("2026-11-13T17:00:00.000Z") },
-      end: { case: "set", instant: at("2026-11-14T16:30:00.000Z") },
+      end: { case: "set", instant: at("2026-11-14T16:30:10.000Z") },
+    });
+  });
+
+  test("a start moved before an end on the next day moves the end back to the date", () => {
+    // 22:00:50 to 03:00:10 "+1"; the start set to 01:00 brings the end onto the date itself.
+    const night = { start: at("2026-11-13T21:00:50.000Z"), end: at("2026-11-14T02:00:10.000Z") };
+    expect(isNextDay(partsOf(night.start, night.end, berlin))).toBe(true);
+    expect(rangeFrom(parts("2026-11-13", "01:00", "03:00"), night, berlin, true)).toEqual({
+      start: { case: "set", instant: at("2026-11-13T00:00:00.000Z") },
+      end: { case: "set", instant: at("2026-11-13T02:00:10.000Z") },
+    });
+  });
+
+  test("a date moved onto a clock change resolves the untouched times there (D347)", () => {
+    // 02:30:15 to 04:00:10 on 27 March 2027, moved to 28 March, which skips 02:00–02:59.
+    const spring = { start: at("2027-03-27T01:30:15.000Z"), end: at("2027-03-27T03:00:10.000Z") };
+    expect(rangeFrom(parts("2027-03-28", "02:30", "04:00"), spring, berlin, true)).toEqual({
+      start: { case: "skipped" },
+      end: { case: "set", instant: at("2027-03-28T02:00:10.000Z") },
+    });
+    // 02:30:15 to 02:45:10 on 24 October 2026, moved to 25 October, which shows 02:00–02:59 twice.
+    const autumn = { start: at("2026-10-24T00:30:15.000Z"), end: at("2026-10-24T00:45:10.000Z") };
+    expect(rangeFrom(parts("2026-10-25", "02:30", "02:45"), autumn, berlin, false)).toEqual({
+      start: { case: "set", instant: at("2026-10-25T00:30:15.000Z") },
+      end: { case: "set", instant: at("2026-10-25T00:45:10.000Z") },
     });
   });
 
@@ -171,8 +197,8 @@ describe("a loaded range", () => {
     const night = { start: at("2026-11-13T21:00:00.000Z"), end: at("2026-11-14T02:00:10.000Z") };
     // Typing 23:30 over 22:00 passes 02:00, which reads the end 03:00 as on the date itself.
     const passing = rangeFrom(parts("2026-11-13", "02:00", "03:00"), night, berlin, true, night);
-    expect(passing.end).toEqual({ case: "set", instant: at("2026-11-13T02:00:00.000Z") });
-    const moved = { start: at("2026-11-13T01:00:00.000Z"), end: at("2026-11-13T02:00:00.000Z") };
+    expect(passing.end).toEqual({ case: "set", instant: at("2026-11-13T02:00:10.000Z") });
+    const moved = { start: at("2026-11-13T01:00:00.000Z"), end: at("2026-11-13T02:00:10.000Z") };
     expect(rangeFrom(parts("2026-11-13", "23:30", "03:00"), moved, berlin, true, night)).toEqual({
       start: { case: "set", instant: at("2026-11-13T22:30:00.000Z") },
       end: { case: "set", instant: night.end },

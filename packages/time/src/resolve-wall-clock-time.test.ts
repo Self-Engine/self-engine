@@ -37,7 +37,6 @@ test("a new Berlin end at 02:30 after a start at 01:30 uses the earlier occurren
     case: "repeated",
     instant: "2026-10-25T00:30:00.000Z",
     occurrence: "earlier",
-    offset: "+02:00",
   });
 });
 
@@ -50,7 +49,6 @@ test("a lower bound equal to the earlier occurrence selects the later one", () =
     case: "repeated",
     instant: "2026-10-25T01:30:00.000Z",
     occurrence: "later",
-    offset: "+01:00",
   });
 });
 
@@ -63,7 +61,6 @@ test("editing Berlin's second 02:40 to 02:45 keeps the second occurrence", () =>
     case: "repeated",
     instant: "2026-10-25T01:45:00.000Z",
     occurrence: "later",
-    offset: "+01:00",
   });
 });
 
@@ -76,7 +73,6 @@ test("an equally close edit keeps the previous occurrence's UTC offset", () => {
     case: "repeated",
     instant: "2026-10-25T01:30:00.000Z",
     occurrence: "later",
-    offset: "+01:00",
   });
 });
 
@@ -90,7 +86,6 @@ test("editing Berlin's second 02:05 to 02:55 picks the first 02:55, ten minutes 
     case: "repeated",
     instant: "2026-10-25T00:55:00.000Z",
     occurrence: "earlier",
-    offset: "+02:00",
   });
 });
 
@@ -106,6 +101,5 @@ test("a new time in New York's repeated hour selects the earlier Instant and a n
     case: "repeated",
     instant: "2026-11-01T05:30:00.000Z",
     occurrence: "earlier",
-    offset: "-04:00",
   });
 });

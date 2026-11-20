@@ -39,8 +39,9 @@ and still allowed `new Date(ms)`, and `.getDate()` on that gives the day in the 
      them shows something new: the next full second or minute, or the start of the next day
      (`nextTick` and `startOfNextDay` of `time`). It runs only while a reading is rendered and
      the window is visible; the app supplies the window's visibility, watched once for the page.
-     A reading takes the Clock's time and never counts ticks, so it is right at once after a
-     sleep. A hook without a provider above it throws at its first render; nothing falls back to
+     A timeout waits at most a minute, because a timer may not count the time the computer
+     slept. A reading takes the Clock's time and never counts ticks, so after a sleep it is right
+     at the next tick, at most a minute after waking. A hook without a provider above it throws at its first render; nothing falls back to
      the system clock. The page clock displays and prefills only: every stored Instant comes
      from the Data Process's clock. The rule `data-process-stays-off-the-page-clock` keeps the
      React entry out of everything the desktop app starts.

@@ -7,6 +7,7 @@
 
 import "@mantine/dates/styles.css";
 import { useLingui } from "@lingui/react/macro";
+import { Group } from "@mantine/core";
 import { DateInput, type DateInputProps, TimePicker, type TimePickerProps } from "@mantine/dates";
 import {
   type CalendarDay,
@@ -20,7 +21,8 @@ import {
   type WallClockTime,
   wallClockTimeSchema,
 } from "@self-engine/time";
-import { useEffect, useId, useRef } from "react";
+import { type ReactNode, useEffect, useId, useRef, useState } from "react";
+import { checkedOrNull } from "./checked-value.ts";
 
 /** What a module may set on a date or time field; the helper sets everything else. */
 export type Shown =
@@ -32,24 +34,30 @@ export type Shown =
   | "withAsterisk";
 
 /**
- * The Calendar Day a value stands for: what the draft holds, or what the picker hands on. A
- * draft's day is a text to the compiler (a Contract's input carries no brand), so it is checked.
+ * What stands beside an input box, such as a button, lined up with the box itself: Mantine's
+ * input container holds the box only, so the label, the description and the message above or
+ * below it, at any font scale, move nothing out of line.
  */
-export function dayOf(value: unknown): CalendarDay | null {
-  const parsed = calendarDaySchema.safeParse(value);
-  return parsed.success ? parsed.data : null;
+export interface Beside {
+  readonly beside?: ReactNode;
 }
 
-/** The Wall-Clock Time a value stands for, checked like `dayOf`. */
-export function timeOf(value: unknown): WallClockTime | null {
-  const parsed = wallClockTimeSchema.safeParse(value);
-  return parsed.success ? parsed.data : null;
+function besideOf(beside: ReactNode) {
+  if (beside === undefined) return {};
+  return {
+    inputContainer: (box: ReactNode) => (
+      <Group gap="sm" wrap="nowrap">
+        {box}
+        {beside}
+      </Group>
+    ),
+  };
 }
 
 /** A name of `time` for a day, as a label function of the picker, which hands on `YYYY-MM-DD`. */
 function labelling(label: (day: CalendarDay) => string) {
   return (text: string) => {
-    const day = dayOf(text);
+    const day = checkedOrNull(calendarDaySchema, text);
     return day === null ? text : label(day);
   };
 }
@@ -67,12 +75,14 @@ export type DayInputProps = {
   readonly firstDayOfWeek: FirstDayOfWeek;
   /** The day the calendar marks as today and opens on while the input is empty. */
   readonly today: CalendarDay;
-} & Pick<DateInputProps, Shown>;
+} & Beside &
+  Pick<DateInputProps, Shown>;
 
 /**
  * Mantine's date input with its calendar. Typed text in the language's numeric order, such as
- * `5.11.2026` or `11/5/2026`, or `2026-11-05`, becomes the day as soon as it is whole; any other
- * text keeps the older day and is reported as unfinished. Emptying the text hands on "empty".
+ * `5.11.2026` or `11/5/2026`, or `2026-11-05`, becomes the day as soon as it is whole, and reads
+ * in the field's format once the input is left; any other text keeps the older day, stays as
+ * typed and is reported as unfinished. Emptying the text hands on "empty".
  * Draw it anew (a new `key`) to show another day.
  */
 export function DayInput({
@@ -82,23 +92,31 @@ export function DayInput({
   firstDayOfWeek,
   today,
   clearable = false,
+  beside,
   ...props
 }: DayInputProps) {
   const { i18n } = useLingui();
   const locale = i18n.locale;
   const labels = calendarLabels(locale);
+  // Whether the text typed last is a whole day. Mantine writes its day in the field's format on
+  // blur only with `fixOnBlur`, and then always: over unfinished text too, which would be lost.
+  // So it is set only while the text is a whole day; a picked or drawn day is one as well.
+  const [typedWhole, setTypedWhole] = useState(true);
   const parse = (text: string) => {
     if (text.trim() === "") {
+      setTypedWhole(false);
       onDay(null);
       return null;
     }
     const parsed = calendarDayFromText(text, locale);
+    setTypedWhole(parsed !== null);
     if (parsed === null) onUnfinished();
     return parsed;
   };
   return (
     <DateInput
       {...props}
+      {...besideOf(beside)}
       // A click on the day the input holds keeps it: "empty" is the clear button or no text.
       allowDeselect={false}
       clearable={clearable}
@@ -109,14 +127,18 @@ export function DayInput({
       defaultDate={today}
       defaultValue={day}
       firstDayOfWeek={mantineFirstDayOfWeek(firstDayOfWeek)}
-      fixOnBlur={false}
+      fixOnBlur={typedWhole}
       getDayAriaLabel={labelling(labels.day)}
       getDayProps={(shown) => ({ "data-today": shown === today || undefined })}
       highlightToday
       locale={locale}
       monthLabelFormat={labelling(labels.month)}
       monthsListFormat={labelling(labels.monthShort)}
-      onChange={(text) => onDay(text === null ? null : dayOf(text))}
+      onChange={(text) => {
+        // A day picked in the calendar replaces any text.
+        setTypedWhole(true);
+        onDay(checkedOrNull(calendarDaySchema, text));
+      }}
       valueFormat={labelling((shown) => formatCalendarDay(shown, "fieldDate", locale))}
       weekdayFormat={labelling(labels.weekday)}
       yearLabelFormat={labelling(labels.year)}
@@ -146,7 +168,8 @@ export type TimeInputProps = {
   readonly error: string | undefined;
   /** Where the description shows: above the inputs (Mantine's place) or below them. */
   readonly descriptionBelow?: boolean;
-} & Pick<TimePickerProps, Exclude<Shown, "placeholder">>;
+} & Beside &
+  Pick<TimePickerProps, Exclude<Shown, "placeholder">>;
 
 /**
  * Mantine's time picker, typed into its hours and minutes or picked from its lists, on the
@@ -159,17 +182,23 @@ export function TimeInput({
   onTime,
   onUnfinished,
   descriptionBelow = false,
+  beside,
   ...props
 }: TimeInputProps) {
   const { i18n, t } = useLingui();
   const locale = i18n.locale;
   // Mantine ties the message and the description to the picker's frame, which takes no focus; the
-  // hours, which do, are tied to them here, so a screen reader reads them with the field.
+  // hours, the minutes and AM or PM, which do, are tied to them here, so a screen reader reads
+  // them with whichever input has the focus.
   const id = useId();
   const describedBy = [
     props.error === undefined ? undefined : `${id}-error`,
     props.description === undefined ? undefined : `${id}-description`,
   ].filter((part) => part !== undefined);
+  const tied = {
+    "aria-describedby": describedBy.length === 0 ? undefined : describedBy.join(" "),
+    "aria-invalid": props.error === undefined ? undefined : true,
+  };
   // What the input last handed on: Mantine reports a time only when it is whole, and once with ""
   // when it stops being whole, so empty and half-filled are read from its inputs.
   const told = useRef<"time" | "empty" | "unfinished">(time === null ? "empty" : "time");
@@ -203,21 +232,21 @@ export function TimeInput({
     >
       <TimePicker
         {...props}
+        {...besideOf(beside)}
         amPmInputLabel={t`AM or PM`}
         defaultValue={time ?? ""}
         descriptionProps={{ id: `${id}-description` }}
         errorProps={{ id: `${id}-error` }}
-        hoursInputProps={{
-          "aria-describedby": describedBy.length === 0 ? undefined : describedBy.join(" "),
-          "aria-invalid": props.error === undefined ? undefined : true,
-        }}
+        amPmSelectProps={tied}
+        hoursInputProps={tied}
+        minutesInputProps={tied}
         format={clockFormatOf(locale)}
         {...(descriptionBelow && {
           inputWrapperOrder: ["label", "input", "description", "error"],
         })}
         minutesInputLabel={t`Minutes`}
         onChange={(text) => {
-          const whole = timeOf(text);
+          const whole = checkedOrNull(wallClockTimeSchema, text);
           if (whole === null) return;
           told.current = "time";
           onTime(whole);

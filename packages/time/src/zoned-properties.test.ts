@@ -9,12 +9,14 @@ import {
   instantAt,
   instantRangeOf,
   instantSchema,
+  repeatedTimeOffset,
   resolveTimeZone,
   resolveWallClockTime,
   wallClockTimeOf,
   wallClockTimeSchema,
   type TimeZone,
 } from "./index.ts";
+import { utcOffsetText } from "./utc-offset.ts";
 
 // Years 1001–9998, so that a day and the day after it stay inside the supported years everywhere.
 const epochMs = fc.integer({ min: -30578688000000, max: 253370764799999 });
@@ -93,13 +95,19 @@ test("a wall-clock minute inside each clock change is skipped or resolves to eit
           case: "repeated",
           instant: instantAtMs(minute - beforeMs),
           occurrence: "earlier",
-          offset: before.offset,
         });
+        // Both occurrences name their own offset beside the time; the minute after the change
+        // shows once.
+        expect(repeatedTimeOffset(instantAtMs(minute - beforeMs), timeZone), context).toBe(
+          utcOffsetText(beforeMs / minuteMs),
+        );
+        expect(repeatedTimeOffset(later, timeZone), context).toBe(
+          utcOffsetText(afterMs / minuteMs),
+        );
         expect(resolveWallClockTime(day, time, timeZone, { previous: later }), context).toEqual({
           case: "repeated",
           instant: later,
           occurrence: "later",
-          offset: after.offset,
         });
       }
     }

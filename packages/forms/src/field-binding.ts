@@ -87,6 +87,32 @@ export function useFieldBinding<FormDraft, Name extends FieldName<FormDraft>>(
   return { value, setFromOutside, error, ref, ...handlers };
 }
 
+/** The fields of a draft that may hold everything `Picked` answers, not only a part of it. */
+export type FieldTaking<FormDraft, Picked> = {
+  [Field in FieldName<FormDraft>]: [Picked] extends [FormDraft[Field]] ? Field : never;
+}[FieldName<FormDraft>];
+
+/** The binding of a field that hands on `Taken`; it reads the draft's value as it stands. */
+export interface TakingBinding<Taken> extends Omit<FieldBinding<unknown>, "onChange"> {
+  readonly onChange: (value: Taken) => void;
+}
+
+/**
+ * `useFieldBinding` for a field that hands on `Taken`, such as a picker of `ProjectId | null` or
+ * the two Instants of the field "date, start, end": its `onChange` takes `Taken` without a cast
+ * at the field.
+ */
+export function useFieldTaking<FormDraft, Taken>(
+  form: OperationForm<FormDraft>,
+  name: FieldTaking<FormDraft, Taken>,
+): TakingBinding<Taken> {
+  const field = useFieldBinding(form, name);
+  // `FieldTaking` admits only a field whose draft type takes `Taken`, but the compiler cannot
+  // follow that through the mapped type for a draft it does not know yet. The cast gives up no
+  // check: a name outside `FieldTaking` is still rejected where the field is used.
+  return field as TakingBinding<Taken>;
+}
+
 /**
  * The message of `field`, translated; the field draws again only when it, the language or the
  * provider's Reason texts change.

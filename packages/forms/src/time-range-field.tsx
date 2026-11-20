@@ -12,22 +12,27 @@ import {
   type FirstDayOfWeek,
   formatDuration,
   formatInstant,
-  formatUtcOffset,
   type Instant,
   instantSchema,
-  repeatedOffsetOf,
+  repeatedTimeOffset,
   type TimeZone,
   type WallClockTime,
 } from "@self-engine/time";
 import { type ReactNode, useRef, useState } from "react";
+import { checkedOrNull } from "./checked-value.ts";
 import { DayInput, TimeInput } from "./date-inputs.tsx";
-import { type FieldBinding, typedMemo, useFieldBinding } from "./field-binding.ts";
+import {
+  type FieldTaking,
+  type TakingBinding,
+  typedMemo,
+  useFieldTaking,
+} from "./field-binding.ts";
 import { bindingOf, type OperationForm } from "./operation-form.ts";
-import type { FieldTaking } from "./picker-fields.tsx";
 import {
   dayOfEnd,
   isNextDay,
   partsOf,
+  type RangeInstants,
   type RangeOutcome,
   type RangeParts,
   rangeFrom,
@@ -53,12 +58,6 @@ export interface TimeRangeFieldProps<FormDraft> {
   readonly disabled?: boolean;
 }
 
-/** An Instant of the draft: a text to the compiler (a Contract's input carries no brand), checked. */
-function instantOf(value: unknown): Instant | null {
-  const parsed = instantSchema.safeParse(value);
-  return parsed.success ? parsed.data : null;
-}
-
 /** The parts of the field that hold text which is no value yet. */
 type Part = "day" | "startTime" | "endTime" | "endDay";
 
@@ -76,10 +75,21 @@ const fresh = (parts: RangeParts): View => ({
   skipped: { start: false, end: false },
 });
 
+function sameParts(a: RangeParts, b: RangeParts): boolean {
+  // Typed with every part, so the compiler names a part added to `RangeParts` but left out here.
+  const same: { readonly [Key in keyof RangeParts]: boolean } = {
+    day: a.day === b.day,
+    startTime: a.startTime === b.startTime,
+    endTime: a.endTime === b.endTime,
+    endDayOpen: a.endDayOpen === b.endDayOpen,
+    endDay: a.endDay === b.endDay,
+  };
+  return Object.values(same).every(Boolean);
+}
+
 function sameView(a: View, b: View): boolean {
-  const keys = Object.keys(a.parts) as (keyof RangeParts)[];
   return (
-    keys.every((key) => a.parts[key] === b.parts[key]) &&
+    sameParts(a.parts, b.parts) &&
     a.unfinished.size === b.unfinished.size &&
     [...a.unfinished].every((part) => b.unfinished.has(part)) &&
     a.skipped.start === b.skipped.start &&
@@ -100,7 +110,7 @@ function heldOf({ unfinished, skipped }: View) {
  * new Instant, or nothing, in which case an older message of this field is taken back.
  */
 function tell(
-  field: FieldBinding<unknown>,
+  field: TakingBinding<Instant | null>,
   current: Instant | null,
   outcome: RangeOutcome,
   unfinished: boolean,
@@ -116,10 +126,9 @@ function tell(
 /** The note at a time the zone shows twice: which of the two is meant (D347). */
 function useRepeatedNote(instant: Instant | null, timeZone: TimeZone): string | undefined {
   const { i18n, t } = useLingui();
-  const offset = instant === null ? null : repeatedOffsetOf(instant, timeZone);
-  if (instant === null || offset === null) return undefined;
+  const utc = instant === null ? null : repeatedTimeOffset(instant, timeZone);
+  if (instant === null || utc === null) return undefined;
   const time = formatInstant(instant, "time", i18n.locale, timeZone);
-  const utc = formatUtcOffset(offset);
   return t({ message: `${time} (${utc})`, comment: "A wall-clock time and its UTC offset" });
 }
 
@@ -137,36 +146,59 @@ export const TimeRangeField = typedMemo(function TimeRangeField<FormDraft>({
   start: startName,
   end: endName,
   timeZone,
+  ...props
+}: TimeRangeFieldProps<FormDraft>) {
+  const start = useFieldTaking(form, startName);
+  const end = useFieldTaking(form, endName);
+  const binding = bindingOf(form);
+  // Read at the moment of an event, not from a draw: the other side may have changed since.
+  const instantsNow = (): RangeInstants => ({
+    start: checkedOrNull(instantSchema, binding.valueOf(startName)),
+    end: checkedOrNull(instantSchema, binding.valueOf(endName)),
+  });
+  return (
+    <RangeInputs
+      // A value from outside, by code or followed from the stored entry (D324), or another Time
+      // Zone draws every part anew, from the Instants it now holds.
+      key={`${start.setFromOutside}:${end.setFromOutside}:${timeZone}`}
+      end={end}
+      instantsNow={instantsNow}
+      isEdit={binding.isEdit}
+      start={start}
+      timeZone={timeZone}
+      {...props}
+    />
+  );
+});
+
+type RangeInputsProps = {
+  readonly start: TakingBinding<Instant | null>;
+  readonly end: TakingBinding<Instant | null>;
+  readonly instantsNow: () => RangeInstants;
+  readonly isEdit: boolean;
+} & Omit<TimeRangeFieldProps<unknown>, "form" | "start" | "end">;
+
+/** The parts of the field, drawn from the Instants the draft held when it was mounted. */
+function RangeInputs({
+  start,
+  end,
+  instantsNow,
+  isEdit,
+  timeZone,
   firstDayOfWeek,
   today,
   label,
   disabled = false,
-}: TimeRangeFieldProps<FormDraft>) {
+}: RangeInputsProps) {
   const { t, i18n } = useLingui();
-  const start = useFieldBinding(form, startName) as FieldBinding<unknown>;
-  const end = useFieldBinding(form, endName) as FieldBinding<unknown>;
-  const startInstant = instantOf(start.value);
-  const endInstant = instantOf(end.value);
-  const binding = bindingOf(form);
-  const isEdit = binding.isEdit;
-
-  // A value from outside, by code or followed from the stored entry (D324), or another Time Zone
-  // draws every part anew.
-  const outside = `${start.setFromOutside}:${end.setFromOutside}:${timeZone}`;
-  const [shownFor, setShownFor] = useState(outside);
+  const startInstant = checkedOrNull(instantSchema, start.value);
+  const endInstant = checkedOrNull(instantSchema, end.value);
   const [view, setView] = useState(() => fresh(partsOf(startInstant, endInstant, timeZone)));
   // The view as the last event left it: a picker reports unfinished text after a timeout, which
   // may run after a newer event than the draw it was scheduled in.
   const latest = useRef(view);
   // The Instants the parts were drawn from: an untouched one comes back with its seconds (D344).
   const original = useRef({ start: startInstant, end: endInstant });
-  if (shownFor !== outside) {
-    const next = fresh(partsOf(startInstant, endInstant, timeZone));
-    latest.current = next;
-    original.current = { start: startInstant, end: endInstant };
-    setShownFor(outside);
-    setView(next);
-  }
 
   const apply = (change: (parts: RangeParts) => RangeParts, part: Part, finished: boolean) => {
     const before = latest.current;
@@ -174,11 +206,7 @@ export const TimeRangeField = typedMemo(function TimeRangeField<FormDraft>({
     const unfinished = new Set(before.unfinished);
     if (finished) unfinished.delete(part);
     else unfinished.add(part);
-    // Read now, not from this draw: the other side may have changed since.
-    const current = {
-      start: instantOf(binding.valueOf(startName)),
-      end: instantOf(binding.valueOf(endName)),
-    };
+    const current = instantsNow();
     const outcome = rangeFrom(parts, current, timeZone, isEdit, original.current);
     const next: View = {
       parts,
@@ -231,7 +259,6 @@ export const TimeRangeField = typedMemo(function TimeRangeField<FormDraft>({
       <Group align="flex-start" gap="sm">
         <Group align="flex-start" gap="sm" ref={start.ref}>
           <DayInput
-            key={`day ${outside}`}
             {...dayProps(parts.day)}
             error={startErrorAtDay ? start.error : undefined}
             label={t`Date`}
@@ -240,7 +267,6 @@ export const TimeRangeField = typedMemo(function TimeRangeField<FormDraft>({
             onUnfinished={unfinishedAt("day")}
           />
           <TimeInput
-            key={`start ${outside}`}
             description={startNote}
             descriptionBelow
             disabled={disabled}
@@ -254,7 +280,31 @@ export const TimeRangeField = typedMemo(function TimeRangeField<FormDraft>({
         </Group>
         <Group align="flex-start" gap="sm" ref={end.ref}>
           <TimeInput
-            key={`end ${outside}`}
+            beside={
+              <>
+                {isNextDay(parts) && (
+                  <Badge title={t`The end lies on the next day.`} variant="light">
+                    +1
+                  </Badge>
+                )}
+                {!parts.endDayOpen && (
+                  <Button
+                    disabled={disabled}
+                    onClick={() =>
+                      apply(
+                        (now) => ({ ...now, endDayOpen: true, endDay: dayOfEnd(now) ?? today }),
+                        "endDay",
+                        true,
+                      )
+                    }
+                    size="compact-sm"
+                    variant="subtle"
+                  >
+                    {t`Add an end date`}
+                  </Button>
+                )}
+              </>
+            }
             description={endNote}
             descriptionBelow
             disabled={disabled}
@@ -265,45 +315,22 @@ export const TimeRangeField = typedMemo(function TimeRangeField<FormDraft>({
             onUnfinished={unfinishedAt("endTime")}
             time={parts.endTime}
           />
-          {isNextDay(parts) && (
-            <Badge mt={30} title={t`The end lies on the next day.`} variant="light">
-              +1
-            </Badge>
-          )}
-          {parts.endDayOpen ? (
-            <Group align="flex-start" gap={4}>
-              <DayInput
-                key={`end day ${outside}`}
-                {...dayProps(parts.endDay)}
-                error={endErrorAtDay ? end.error : undefined}
-                label={t`End date`}
-                onBlur={end.onBlur}
-                onDay={(day) => set("endDay", day)}
-                onUnfinished={unfinishedAt("endDay")}
-              />
-              <CloseButton
-                aria-label={t`Remove the end date`}
-                disabled={disabled}
-                mt={30}
-                onClick={() => apply((now) => ({ ...now, endDayOpen: false }), "endDay", true)}
-              />
-            </Group>
-          ) : (
-            <Button
-              disabled={disabled}
-              mt={28}
-              onClick={() =>
-                apply(
-                  (now) => ({ ...now, endDayOpen: true, endDay: dayOfEnd(now) ?? today }),
-                  "endDay",
-                  true,
-                )
+          {parts.endDayOpen && (
+            <DayInput
+              {...dayProps(parts.endDay)}
+              beside={
+                <CloseButton
+                  aria-label={t`Remove the end date`}
+                  disabled={disabled}
+                  onClick={() => apply((now) => ({ ...now, endDayOpen: false }), "endDay", true)}
+                />
               }
-              size="compact-sm"
-              variant="subtle"
-            >
-              {t`Add an end date`}
-            </Button>
+              error={endErrorAtDay ? end.error : undefined}
+              label={t`End date`}
+              onBlur={end.onBlur}
+              onDay={(day) => set("endDay", day)}
+              onUnfinished={unfinishedAt("endDay")}
+            />
           )}
         </Group>
       </Group>
@@ -314,4 +341,4 @@ export const TimeRangeField = typedMemo(function TimeRangeField<FormDraft>({
       )}
     </Fieldset>
   );
-});
+}
