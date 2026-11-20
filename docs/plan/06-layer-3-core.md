@@ -12,7 +12,7 @@ Stand: 2026-11-20 · Status: **entschieden** (D143–D154), Spec #103, Issues #1
 | – | Spaces | Grilling zu #108: Fremdschlüssel auf `spaces` als geprüfte Regel, Paket unter `storage` ohne Vertrag, ein persönlicher Space über eine Transaktion statt über einen Index, Tabelle und Begriffe (D286–D290, ändern D143 und D144) |
 | L3.3 | Geld | `INTEGER` in der kleinsten Einheit, eigener Katalog, einmal gerundet, keine Kurse (D145) |
 | L3.4 | Geld | Eingabe und Anzeige in `money`, `_minor` im Namen, Zod-Schemas im Paket (D146) |
-| L3.5 | Zeit | Eine Zeitzone als Synced Setting, keine Historie, Tageslogik nie in SQL (D147); ein Zeiteintrag speichert zusätzlich die Zeitzone, in der er entstand (D342) |
+| L3.5 | Zeit | Eine Zeitzone als synchronisierte Einstellung ([ADR 0036](../adr/0036-the-app-stores-its-time-zone-and-week-start-as-settings.md)), keine Historie, Tageslogik nie in SQL (D147); ein Zeiteintrag speichert zusätzlich die Zeitzone, in der er entstand (D342) |
 | L3.6 | Zeit | Übernahme mit Pflicht-Uhr, Typen bis in die Zeile, Lint-Regeln (D148); `Instant` entsteht vorab in #31 (D223) |
 | L3.7 | Zeit | Ergänzungen aus unabhängiger Prüfung (D149) |
 | – | Zeit | Grilling zu #104: für die neue App geschnitten, Temporal im Inneren, fünf Zeitwerte, strenge Lint-Regel, Prüfung in Electrons Laufzeit (D279–D285, ändern D148 und D149) |
@@ -21,7 +21,7 @@ Stand: 2026-11-20 · Status: **entschieden** (D143–D154), Spec #103, Issues #1
 | – | Icon, Farbe | Grilling zu #106: Werte, Anzeige und Auswahl in einem Paket, ein Icon-Name je Bild und der Import übersetzt, ein Vorrat ohne React für Web und Mobile, Vertragsmuster, helle Füllungen mit dunkler Schrift, Marke in zwei Formen, alle Icons regular (D291–D298, ändern D151; D298 ändert D297) |
 | – | Icon, Farbe | Grilling zu #264: ein Feld für Icon und Emoji mit zwei Reitern, Mantines Emoji-Auswahl, ein Suchbegriff über beide Reiter, ein einzelnes Emoji im Suchfeld wird übernommen (D299–D302, ändern die Auswahl aus D291) |
 | L3.10 | Abläufe | Brücken-Pakete über den Modulen, gemeinsame Transaktion, Schutzregeln (D152) |
-| L3.11 | Einstellungen | Region aus der Sprache, Wochenstart, Standardwährung, Deklaration in `contracts` (D153) |
+| L3.11 | Einstellungen | Region aus der App-Sprache, Wochenstart und Deklaration beim Besitzer des Werts ([ADR 0036](../adr/0036-the-app-stores-its-time-zone-and-week-start-as-settings.md)); Standardwährung in #105 (D316) |
 | – | Einstellungen | Grilling zu Schicht 4: Standard-Stundensatz gehört zur Abrechnung, Rundung zur Zeiterfassung nach Schicht 4; #110 wird ohne die Standardwährung gebaut (D305, D309, D316, ändern D153) |
 | – | Einstellungen | Grilling zu #109 und #110: lokale Kopie für den ersten Render, der Datenprozess liest eine Einstellung in der Transaktion über den Kontext und schreibt die Gerätezone beim Start, den Wochenstart liest nur die Oberfläche, gespeichert als Name des Tages, der Besitzer eines Werts deklariert dessen Einstellungen (D351–D356, ändern D153) |
 | L3.12 | Zuschnitt in Issues | Acht Arbeitspakete, jedes wird einzeln gegrillt (D154) |

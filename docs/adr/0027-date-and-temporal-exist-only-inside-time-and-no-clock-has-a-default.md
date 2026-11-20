@@ -47,8 +47,7 @@ and still allowed `new Date(ms)`, and `.getDate()` on that gives the day in the 
 
 - Every function that needs the time can be tested with a fixed one, and no test reads the real
   clock.
-- Where real time enters the program is visible: the two imports of `system-clock` in
-  `apps/desktop`.
+- Where real time enters the program is visible in the app imports of `system-clock`.
 - The rule fits in one sentence: outside `time`, nothing touches `Date`, `Temporal` or the date
   parts of `Intl`. A reviewer checks a change against that sentence alone.
 - `scripts/` is outside the rule; the repo's tools measure durations and stamp logs with the
