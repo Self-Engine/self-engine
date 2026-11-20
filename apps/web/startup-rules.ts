@@ -79,6 +79,13 @@ export const STARTUP_RULES = {
         "import @self-engine/projects/picker only from a form that loads on demand, such as an Edit Drawer's.",
     },
     {
+      // Every zone of the runtime with its offset now, some 400 entries (#364). It loads with the
+      // Time Zone row of the settings area.
+      name: "The Time Zone list",
+      path: "/packages/time/src/zone-list.ts",
+      instead: "import @self-engine/time/zone-list only from a View that loads on demand.",
+    },
+    {
       // The names and search words of 1,932 emojis: about 790 KB per language (#268).
       name: "The emoji data",
       path: "/node_modules/emojibase-data/",
