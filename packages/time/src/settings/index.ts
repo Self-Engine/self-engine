@@ -1,7 +1,8 @@
 // The Settings of the Time Zone and the week start, declared by `time`, which owns both values
 // (D356). The page and the Data Process load this entry, so it holds only the declarations, small
-// schemas of `zod/mini` and the two resolving functions: no React, no Zod full build, no calendar
-// arithmetic (the boundary check holds it). The main entry of `time` imports no repo package.
+// schemas of `zod/mini`, the two resolving functions and the decision about the offer to switch:
+// no React, no Zod full build, no calendar arithmetic (the boundary check holds it). The main
+// entry of `time` imports no repo package.
 
 import { defineSetting } from "@self-engine/settings";
 import { z } from "zod/mini";
@@ -11,7 +12,7 @@ import {
   firstDayOfWeekSchema,
   type Region,
 } from "../first-day-of-week.ts";
-import { NAME_SHAPE, resolveTimeZoneOr, type TimeZone } from "../zone.ts";
+import { NAME_SHAPE, resolveTimeZoneOr, sameTimeZone, type TimeZone } from "../zone.ts";
 
 /**
  * The user's Time Zone (D147): a zone name, or `null` while none is set. Open to names this
@@ -80,4 +81,46 @@ export function resolveTimeZoneSetting(
 /** The first day of the week the Setting's value gives: `automatic` takes the region's. */
 export function resolveWeekStart(value: WeekStart, region: Region): FirstDayOfWeek {
   return value === "automatic" ? firstDayOfWeekForRegion(region) : value;
+}
+
+/** What the page knows when it asks whether to offer the device's zone (D147). */
+export interface ZoneOfferInputs {
+  /** The value of `TIME_ZONE_SETTING`. */
+  readonly stored: string | null;
+  /** The zone the device runs in now. */
+  readonly device: TimeZone;
+  /** The value of `FOLLOW_DEVICE_ZONE_SETTING`. */
+  readonly followDevice: boolean;
+  /** The value of `ZONE_OFFER_DISMISSED_SETTING` on this device. */
+  readonly dismissed: boolean;
+}
+
+/**
+ * `nothing`, the offer to switch from the stored zone to the device's, or to follow the device's
+ * zone without a question.
+ */
+export type ZoneOfferDecision =
+  | { readonly kind: "nothing" }
+  | { readonly kind: "offer"; readonly stored: TimeZone; readonly device: TimeZone }
+  | { readonly kind: "follow"; readonly device: TimeZone };
+
+const NOTHING: ZoneOfferDecision = { kind: "nothing" };
+
+/**
+ * Whether the device's zone is offered, followed, or neither (D147). Two names of one zone are
+ * one zone. An unset zone makes no offer: it resolves to the device's zone already, and the Data
+ * Process stores that at its start (D353). Nor does a name this runtime does not know: it is a
+ * newer version's choice, which stays untouched (D353). One resolve and one comparison.
+ */
+export function decideZoneOffer({
+  stored,
+  device,
+  followDevice,
+  dismissed,
+}: ZoneOfferInputs): ZoneOfferDecision {
+  if (stored === null) return NOTHING;
+  const { timeZone, fallback } = resolveTimeZoneSetting(stored, device);
+  if (fallback !== "none" || sameTimeZone(timeZone, device)) return NOTHING;
+  if (followDevice) return { kind: "follow", device };
+  return dismissed ? NOTHING : { kind: "offer", stored: timeZone, device };
 }
