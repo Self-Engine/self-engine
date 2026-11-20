@@ -9,6 +9,8 @@ export {
   type NotifyDoneOptions,
   notifyError,
   type NoticeAction,
+  notifyChoice,
+  type NotifyChoiceOptions,
   notifyProgress,
   type NotifyProgressOptions,
   type NotifyErrorOptions,

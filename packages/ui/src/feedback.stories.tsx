@@ -5,6 +5,7 @@ import {
   confirm,
   type ConfirmOptions,
   isConfirmationOpen,
+  notifyChoice,
   notifyDone,
   notifyError,
   notifyProgress,
@@ -156,7 +157,7 @@ export const DangerUsesTheErrorColorRole: Story = {
 const noticeGone = (text: string) => waitFor(() => expect(screen.queryByText(text)).toBeNull());
 
 const noticeWith = async (text: string) => {
-  const notice = (await screen.findByText(text)).closest<HTMLElement>('[role="alert"]');
+  const notice = (await screen.findByText(text)).closest<HTMLElement>('[role="alert"], [role="status"]');
   if (notice === null) throw new Error(`"${text}" is not in a notice`);
   return notice;
 };
@@ -438,5 +439,71 @@ export const ProgressStaysUntilTheCallerHidesIt: Story = {
     await expect(heldNoticeTimers.size).toBe(0);
     hide();
     await noticeGone("Saving your data…");
+  },
+};
+
+const OFFER = "Your device is in another time zone.";
+
+/** A notice with two answers whose runs the story watches. */
+function offerChoice() {
+  const yes = fn();
+  const never = fn();
+  const closed = fn();
+  const withdraw = notifyChoice({
+    message: OFFER,
+    actions: [
+      { label: "Switch", run: yes },
+      { label: "Don't ask again", run: never },
+    ],
+    onClosed: closed,
+  });
+  return { yes, never, closed, withdraw };
+}
+
+export const AChoiceWaitsForItsAnswer: Story = {
+  beforeEach: holdNoticeTimers,
+  play: async () => {
+    offerChoice();
+    const notice = await noticeWith(OFFER);
+    await expect(within(notice).getByRole("button", { name: "Switch" })).toBeVisible();
+    await expect(within(notice).getByRole("button", { name: "Don't ask again" })).toBeVisible();
+    // No timer closes it: a question stays until it is answered.
+    await expect(heldNoticeTimers.size).toBe(0);
+  },
+};
+
+export const AChoiceRunsTheAnswerTakenOnceAndCloses: Story = {
+  play: async () => {
+    const { yes, never, closed } = offerChoice();
+    const notice = await noticeWith(OFFER);
+    await userEvent.dblClick(within(notice).getByRole("button", { name: "Don't ask again" }));
+    await noticeGone(OFFER);
+    await expect(never).toHaveBeenCalledOnce();
+    await expect(yes).not.toHaveBeenCalled();
+    await expect(closed).not.toHaveBeenCalled();
+  },
+};
+
+export const AChoiceClosedWithoutAnAnswerSaysSo: Story = {
+  play: async () => {
+    const { yes, never, closed } = offerChoice();
+    const notice = await noticeWith(OFFER);
+    await userEvent.click(within(notice).getByRole("button", { name: "Close notice" }));
+    await noticeGone(OFFER);
+    await expect(closed).toHaveBeenCalledOnce();
+    await expect(yes).not.toHaveBeenCalled();
+    await expect(never).not.toHaveBeenCalled();
+  },
+};
+
+export const AChoiceWithdrawnByItsCallerRunsNothing: Story = {
+  play: async () => {
+    const { yes, never, closed, withdraw } = offerChoice();
+    await noticeWith(OFFER);
+    withdraw();
+    await noticeGone(OFFER);
+    await expect(closed).not.toHaveBeenCalled();
+    await expect(yes).not.toHaveBeenCalled();
+    await expect(never).not.toHaveBeenCalled();
   },
 };

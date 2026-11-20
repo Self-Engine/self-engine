@@ -171,19 +171,50 @@ export interface NotifyRefusedOptions {
 }
 
 /**
+ * A guard for the buttons of one notice: the first one taken hides it and runs, every later one
+ * does nothing. The notice stays clickable while it slides out, so the second click of a double
+ * click lands.
+ */
+function answerOnce(hide: () => void) {
+  let answered = false;
+  return {
+    answered: () => answered,
+    take: (run?: () => void) => {
+      if (answered) return;
+      answered = true;
+      hide();
+      run?.();
+    },
+  };
+}
+
+/** The buttons of a notice's ways out, at its end. */
+function NoticeActions({
+  actions,
+  take,
+}: {
+  readonly actions: readonly NoticeAction[];
+  readonly take: (run: () => void) => void;
+}) {
+  return (
+    <Group justify="flex-end" gap="xs">
+      {actions.map(({ label, run }, index) => (
+        // The actions have no identity of their own and never change order.
+        <Button key={index} onClick={() => take(run)} size="compact-sm" variant="subtle">
+          {label}
+        </Button>
+      ))}
+    </Group>
+  );
+}
+
+/**
  * Tells the user that a change was refused and nothing happened (D334): the entry, then every
  * Reason. In the warning colors, since a Refusal is an answer and not a fault, and never with
  * "Undo", since there is nothing to take back.
  */
 export function notifyRefused({ entry, reasons, action }: NotifyRefusedOptions) {
-  let taken = false;
-  const take = () => {
-    // The notice stays clickable while it slides out, so the second click of a double click lands.
-    if (taken) return;
-    taken = true;
-    notifications.hide(id);
-    action?.run();
-  };
+  const answer = answerOnce(() => notifications.hide(id));
   const id = notifications.show({
     title: entry,
     color: roleColor("warning"),
@@ -199,16 +230,40 @@ export function notifyRefused({ entry, reasons, action }: NotifyRefusedOptions) 
             ))}
           </List>
         )}
-        {action && (
-          <Group justify="flex-end">
-            <Button onClick={take} size="compact-sm" variant="subtle">
-              {action.label}
-            </Button>
-          </Group>
-        )}
+        {action && <NoticeActions actions={[action]} take={answer.take} />}
       </Stack>
     ),
   });
+}
+
+export interface NotifyChoiceOptions {
+  readonly message: ReactNode;
+  /** The answers, the one most people take first. Taking one closes the notice. */
+  readonly actions: readonly [NoticeAction, ...NoticeAction[]];
+  /** The user closed the notice without an answer. */
+  readonly onClosed?: () => void;
+}
+
+/**
+ * Offers a choice the user may also leave unanswered, such as switching to the device's Time
+ * Zone. It waits for an answer: no timer closes it. Returns the function that withdraws it, for a
+ * caller that learns that the choice no longer stands; that runs nothing.
+ */
+export function notifyChoice({ message, actions, onClosed }: NotifyChoiceOptions): () => void {
+  const answer = answerOnce(() => notifications.hide(id));
+  const id = notifications.show({
+    message: (
+      <Stack gap="xs">
+        {message}
+        <NoticeActions actions={actions} take={answer.take} />
+      </Stack>
+    ),
+    autoClose: false,
+    role: "status",
+    // Mantine reports every hide here, also one after an answer or a withdrawal.
+    onClose: () => answer.take(onClosed),
+  });
+  return () => answer.take();
 }
 
 /** What each open undoable notice would do if taken back, by the id of the notice. */
