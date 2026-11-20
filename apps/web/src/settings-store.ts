@@ -14,5 +14,7 @@ export const settingsStore = createAppSettingsStore(
   { getStorage: () => localStorage, getEvents: () => window },
   // Only the desktop app has a Data Process (D263). Tests import this file in Node, without one.
   typeof window === "undefined" || window.desktopBridge === undefined ? undefined : dataConnection,
-  ({ error }) => reportPageError(error),
+  ({ error, operation, scope }) => {
+    reportPageError(new Error(`Settings ${operation} failed for ${scope}`, { cause: error }));
+  },
 );
