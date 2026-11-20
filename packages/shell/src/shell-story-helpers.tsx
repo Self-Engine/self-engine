@@ -393,6 +393,25 @@ export async function expectReportedOnce(callback: unknown, value: unknown): Pro
 
 export const nextFrame = () => new Promise((resolve) => requestAnimationFrame(resolve));
 
+/**
+ * What a pointer at the middle of `element` reaches, by the browser's own hit test: the layers
+ * decide, which `userEvent.click` ignores.
+ */
+export function hitAtTheMiddleOf(element: Element): Element | null {
+  const { left, top, width, height } = element.getBoundingClientRect();
+  return document.elementFromPoint(left + width / 2, top + height / 2);
+}
+
+/** On top: a pointer at its middle reaches it or something inside it. */
+export async function expectOnTop(element: Element): Promise<void> {
+  await expect(element.contains(hitAtTheMiddleOf(element))).toBe(true);
+}
+
+/** Under another layer: a pointer at its middle reaches something else. */
+export async function expectCovered(element: Element): Promise<void> {
+  await expect(element.contains(hitAtTheMiddleOf(element))).toBe(false);
+}
+
 /** Real pointer events with exact coordinates, which `userEvent` does not promise in a browser. */
 export async function pressHandle(handle: HTMLElement) {
   const { left, top, width } = handle.getBoundingClientRect();

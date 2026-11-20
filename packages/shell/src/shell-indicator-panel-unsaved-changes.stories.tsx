@@ -13,6 +13,8 @@ import {
   atViewport,
   type Canvas,
   ENTRIES,
+  expectCovered,
+  expectOnTop,
   INDICATOR_ARRIVES,
   nextFrame,
   pressEscape,
@@ -435,3 +437,72 @@ export const OnThePhoneTheSheetAsksToo: Story = {
     await panelGone();
   },
 };
+
+/**
+ * The question lies over the panel, whose field takes no click and no typing while it waits. A
+ * hit test, since `userEvent.click` ignores layers.
+ */
+async function expectTheQuestionOnTop(note: HTMLElement) {
+  const question = within(await asked());
+  for (const label of ["Discard", "Keep editing"]) {
+    await expectOnTop(question.getByRole("button", { name: label }));
+  }
+  await expectCovered(note);
+  await userEvent.keyboard("y");
+  await expect(note).toHaveValue("x");
+}
+
+const theQuestionLiesOverThePanel = (step: "wide" | "narrow" | "phone"): Story => ({
+  ...atViewport(step),
+  args: WITH_DRAFT,
+  play: async ({ canvas }) => {
+    const { note } = await openWithDraft(canvas);
+    await pressEscape();
+    await expectTheQuestionOnTop(note);
+    await answer("Keep editing");
+    await noQuestion();
+    await waitFor(() => expect(note).toHaveFocus());
+    await expectOnTop(note);
+  },
+});
+
+export const TheQuestionLiesOverThePopoverAtTheWideStep = theQuestionLiesOverThePanel("wide");
+export const TheQuestionLiesOverThePopoverAtTheNarrowStep = theQuestionLiesOverThePanel("narrow");
+export const TheQuestionLiesOverTheSheetOnThePhone = theQuestionLiesOverThePanel("phone");
+
+/** Keeps the Edit Drawer open, as an address with `edit` does. */
+function DrawerContent() {
+  return <TextInput label="Entry name" />;
+}
+
+const theQuestionOverThePanelOverTheEditDrawer = (step: "wide" | "phone"): Story => ({
+  ...atViewport(step),
+  args: {
+    ...WITH_DRAFT,
+    activeModule: { ...time, editDrawer: async () => ({ default: DrawerContent }) },
+    routing: storyRouting({ edit: "entry" }),
+  },
+  play: async ({ canvas }) => {
+    const drawer = await screen.findByRole("dialog", { name: "Time" });
+    await within(drawer).findByRole("textbox", { name: "Entry name" });
+    // The drawer's overlay on the phone covers the header; the panel opens from its indicator.
+    const button = await firstIndicator(canvas);
+    button.click();
+    const dialog = await panel();
+    const note = await within(dialog).findByRole("textbox", { name: "Note" });
+    await waitFor(() => expect(dialog.contains(document.activeElement)).toBe(true));
+    // Once the sheet has slid in.
+    await waitFor(() => expectOnTop(note));
+    await userEvent.type(note, "x");
+    await pressEscape();
+    await expectTheQuestionOnTop(note);
+    await answer("Discard");
+    await panelGone();
+    await expect(screen.getByRole("dialog", { name: "Time" })).toBeVisible();
+  },
+});
+
+export const TheQuestionLiesOverThePanelOverTheEditDrawer =
+  theQuestionOverThePanelOverTheEditDrawer("wide");
+export const TheQuestionLiesOverTheSheetOverTheEditDrawerOnThePhone =
+  theQuestionOverThePanelOverTheEditDrawer("phone");
