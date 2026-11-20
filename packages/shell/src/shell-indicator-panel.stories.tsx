@@ -14,7 +14,9 @@ import {
   type ShellContribution,
   type ShellProps,
 } from "./index.ts";
-import { INDICATOR_PANEL_WIDTH } from "./indicator-panel.tsx";
+import { INDICATOR_PANEL_WIDTH, type IndicatorPanelFrameProps } from "./indicator-panel.tsx";
+import { IndicatorPanelFrameLoader } from "./indicator-panel-frame.tsx";
+import { IndicatorPanelsProvider, useIndicatorPanels, useOpeningOf } from "./indicator-panels.tsx";
 import {
   atViewport,
   type Canvas,
@@ -504,5 +506,58 @@ export const ACommandPutsThePanelOverTheEditDrawer: Story = {
     await pressEscape();
     await panelGone();
     await expect(screen.getByRole("dialog", { name: "Time" })).toBeVisible();
+  },
+};
+
+function OpenByHand() {
+  const panels = useIndicatorPanels();
+  return <Button onClick={() => panels.toggle(projects.id)}>Toggle the panel</Button>;
+}
+
+function StandInFrame({ module }: IndicatorPanelFrameProps) {
+  return useOpeningOf(module.id) === undefined ? null : <p>The frame is open</p>;
+}
+
+/** The frame's chunk fails once, as one that could not be fetched while offline. */
+function frameThatFailsOnce() {
+  let loads = 0;
+  return {
+    load: async () => {
+      loads += 1;
+      if (loads === 1) throw new Error("The frame's chunk could not be loaded");
+      return { default: StandInFrame };
+    },
+    loads: () => loads,
+  };
+}
+
+const failingFrame = frameThatFailsOnce();
+
+export const AFrameThatFailedToLoadLoadsAgainAtTheNextOpening: Story = {
+  // React reports the failure that the boundary caught, while the story renders.
+  beforeEach: () => {
+    const reported = spyOn(console, "error").mockImplementation(() => undefined);
+    return () => reported.mockRestore();
+  },
+  render: () => (
+    <IndicatorPanelsProvider modules={[]} page="story">
+      <OpenByHand />
+      <IndicatorPanelFrameLoader
+        indicator={{
+          load: async () => ({ default: PanelIndicator }),
+          panel: async () => ({ default: PanelContent }),
+        }}
+        load={failingFrame.load}
+        module={projects}
+        place={null}
+        sheet={false}
+      />
+    </IndicatorPanelsProvider>
+  ),
+  play: async ({ canvas }) => {
+    await waitFor(() => expect(failingFrame.loads()).toBe(1));
+    await userEvent.click(canvas.getByRole("button", { name: "Toggle the panel" }));
+    await expect(await canvas.findByText("The frame is open")).toBeVisible();
+    await expect(failingFrame.loads()).toBe(2);
   },
 };
