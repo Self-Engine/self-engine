@@ -103,8 +103,12 @@ export function useDiscardQuestion(keepEditingFocus: KeepEditingFocus) {
  * field opens over the frame keeps the key. A popover holds the focus outside the frame, and a
  * list leaves it in its field, which carries Mantine's mark while the list is open.
  */
-function escapeIsForTheFrame(target: EventTarget | null, frame: HTMLElement | null): boolean {
-  if (!(target instanceof Element) || target === document.body) return true;
+function escapeIsForTheFrame(
+  target: EventTarget | null,
+  frame: HTMLElement | null,
+  covered: boolean,
+): boolean {
+  if (!(target instanceof Element) || target === document.body) return !covered;
   if (target.getAttribute("data-mantine-stop-propagation") === "true") return false;
   return frame?.contains(target) ?? false;
 }
@@ -115,13 +119,18 @@ function escapeIsForTheFrame(target: EventTarget | null, frame: HTMLElement | nu
  * mark on the focused element: one Esc in a popover over the Edit Drawer closed both. This listens
  * at the same moment, so a list is still open when it asks. Returns the ref of the frame.
  */
-export function useEscapeExit(enabled: boolean, close: () => void) {
+export function useEscapeExit(
+  enabled: boolean,
+  close: () => void,
+  /** Whether another frame lies over this one right now: an Esc with the focus nowhere is its. */
+  isCovered: () => boolean = () => false,
+) {
   const frame = useRef<HTMLDivElement>(null);
   useWindowEvent(
     "keydown",
     (event) => {
       if (!enabled || event.key !== "Escape" || event.isComposing) return;
-      if (escapeIsForTheFrame(event.target, frame.current)) close();
+      if (escapeIsForTheFrame(event.target, frame.current, isCovered())) close();
     },
     { capture: true },
   );

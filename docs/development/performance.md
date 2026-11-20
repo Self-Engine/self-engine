@@ -754,7 +754,8 @@ mark. The hidden window gives frame timings.
 | Before #276 (`2ea2f0f`)      | 156.8 ms (145.4–224.3 ms) |    125.4 ms (117.2–191.2 ms) |      870,162 bytes |
 | After #371 (`6b37664`)       | 159.6 ms (148.2–208.7 ms) |    129.2 ms (119.1–168.4 ms) |      881,120 bytes |
 
-With Alpha mounted, startup grew by **10,958 bytes**. The final build was **8,736 bytes**
-below the limit, with the Module Indicator, panel content and frame outside the static startup
-chunks. Median timings rose by about 3 ms for the Shell and 4 ms for the first answer, with
+With Alpha mounted at `6b37664`, before the review fixes, startup grew by **10,958 bytes**. That
+build was **8,736 bytes** below the limit, with the Module Indicator, panel content and frame
+outside the static startup chunks. The build with Alpha mounted was not measured again after the
+review fixes; the stock table above shows what they added. Median timings rose by about 3 ms for the Shell and 4 ms for the first answer, with
 overlapping ranges.

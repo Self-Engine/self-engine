@@ -17,7 +17,7 @@ import { selectEditId, useEditDrawerExits } from "./edit-drawer-exits.tsx";
 import { FrameContent, useEscapeExit } from "./frame-exits.tsx";
 import { LazyContribution, lazyComponents } from "./lazy-contribution.tsx";
 import { indicatorForm, type IndicatorForm } from "./module-indicator-form.ts";
-import { IndicatorPanelsProvider } from "./indicator-panels.tsx";
+import { IndicatorPanelsProvider, useIndicatorPanels } from "./indicator-panels.tsx";
 import { ModuleIndicators } from "./module-indicators.tsx";
 import { useCloseOverlayOnPick, useViewSearch, useWriteViewSearch } from "./routing.tsx";
 import { ACTIVE_ENTRY_VARS } from "./navigation-style.ts";
@@ -1034,9 +1034,12 @@ function ModuleEditDrawer({ module }: { readonly module: ShellContribution | und
   };
   // The question and the Command Palette are modals of Mantine, which listen on the window like
   // the drawer: while one is open, Esc is theirs.
+  // An Indicator Panel lies over the drawer: an Esc with the focus nowhere closes the panel only.
+  const panels = useIndicatorPanels();
   const frameRef = useEscapeExit(
     target !== undefined && !exits.questionOpen && !paletteOpen,
     close,
+    () => panels.current() !== undefined,
   );
   return (
     <Drawer

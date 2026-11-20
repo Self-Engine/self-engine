@@ -10,9 +10,22 @@ export function whenIdle(work: () => void): () => void {
   return () => clearTimeout(handle);
 }
 
+/**
+ * Runs `work` in an idle moment after the page was drawn once more. An effect may run before the
+ * first paint, and an idle callback needs no paint, so the frame is asked for first. A hidden
+ * window draws nothing: there the work waits until the window shows.
+ */
+function whenIdleAfterAPaint(work: () => void): () => void {
+  let cancel = () => cancelAnimationFrame(frame);
+  const frame = requestAnimationFrame(() => {
+    cancel = whenIdle(work);
+  });
+  return () => cancel();
+}
+
 /** False until the first idle moment after the first paint, then true for good. */
 export function useAfterFirstIdle(): boolean {
   const [idle, setIdle] = useState(false);
-  useEffect(() => (idle ? undefined : whenIdle(() => setIdle(true))), [idle]);
+  useEffect(() => (idle ? undefined : whenIdleAfterAPaint(() => setIdle(true))), [idle]);
   return idle;
 }

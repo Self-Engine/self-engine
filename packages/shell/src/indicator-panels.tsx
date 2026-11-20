@@ -26,7 +26,7 @@ type ConfirmDiscard = () => Promise<boolean>;
  * rather than in a component, so that a function of the Shell can open a panel from anywhere and
  * only the place whose panel opens or closes draws again, never the page.
  */
-function createIndicatorPanels() {
+function createIndicatorPanels(declaresPanel: (moduleId: string) => boolean) {
   let open: PanelOpening | undefined;
   let openings = 0;
   const listeners = new Set<() => void>();
@@ -98,8 +98,9 @@ function createIndicatorPanels() {
     open: async (moduleId: string) => {
       if (open?.moduleId === moduleId) return;
       if (!(await panels.leave())) return;
-      // Another way may have opened a panel while the question was open.
-      if (open !== undefined) return;
+      // Another way may have opened a panel while the question was open, and the module may have
+      // left the module list.
+      if (open !== undefined || !declaresPanel(moduleId)) return;
       openings += 1;
       set({ moduleId, opening: openings });
     },
@@ -134,11 +135,17 @@ interface IndicatorPanelsProviderProps {
 /** Once per Shell. */
 export function IndicatorPanelsProvider({ modules, page, children }: IndicatorPanelsProviderProps) {
   const { i18n } = useLingui();
-  const [panels] = useState(createIndicatorPanels);
-  // Before the paint, so the new page never shows the panel of the one before.
-  useLayoutEffect(() => panels.close(), [panels, page]);
   // The latest modules, read when called, so the function stays one for the Shell's life.
   const known = useRef(modules);
+  const [panels] = useState(() =>
+    createIndicatorPanels((moduleId) =>
+      known.current.some(
+        (module) => module.id === moduleId && module.indicator?.panel !== undefined,
+      ),
+    ),
+  );
+  // Before the paint, so the new page never shows the panel of the one before.
+  useLayoutEffect(() => panels.close(), [panels, page]);
   useLayoutEffect(() => {
     known.current = modules;
     // A module that left the module list took its panel along: its opening ends, so the panel

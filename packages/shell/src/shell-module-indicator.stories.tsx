@@ -14,6 +14,7 @@ import {
   CountingIndicator,
   countingIndicator,
   ENTRIES,
+  freshPerRun,
   INDICATOR_ARRIVES,
   indicatorPlaceOf,
   paneOf,
@@ -126,18 +127,18 @@ function heldIndicator() {
   return { module, arrive };
 }
 
-const held = heldIndicator();
+const held = freshPerRun(heldIndicator, ({ module }) => [module, time, third]);
 
 export const TheIconHoldsThePlaceUntilTheCodeArrives: Story = {
   ...atViewport("wide"),
-  args: { contributions: [held.module, time, third] },
+  ...held.story,
   play: async ({ canvas }) => {
     const icon = canvas.getByRole("img", { name: "Projects" });
     await expect(headerOf(canvas).contains(icon)).toBe(true);
     await expect(indicatorPlaceOf(icon)).toHaveAttribute("data-color-set", "blue");
     const header = headerOf(canvas).getBoundingClientRect().toJSON();
     const content = canvas.getByText("Page content").getBoundingClientRect().toJSON();
-    held.arrive();
+    held.now.arrive();
     await expect(await fullForm(canvas)).toBeVisible();
     await expect(canvas.queryByRole("img", { name: "Projects" })).toBeNull();
     await expect(headerOf(canvas).getBoundingClientRect().toJSON()).toEqual(header);

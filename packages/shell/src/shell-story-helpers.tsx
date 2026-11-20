@@ -262,6 +262,31 @@ export const shellMeta = {
 
 export type Story = StoryObj<typeof shellMeta>;
 
+/**
+ * A fixture made anew for each run of a story, such as code that fails to load until the story lets
+ * it: a replay in Storybook starts as the first run did. Spread `story` into the Story and read
+ * `now` in its `play`.
+ */
+export function freshPerRun<Fixture>(
+  make: () => Fixture,
+  contributionsOf: (fixture: Fixture) => ShellProps["contributions"],
+) {
+  let fixture = make();
+  return {
+    get now() {
+      return fixture;
+    },
+    story: {
+      loaders: [
+        () => {
+          fixture = make();
+        },
+      ],
+      render: (args) => <Shell {...args} contributions={contributionsOf(fixture)} />,
+    } satisfies Partial<Story>,
+  };
+}
+
 /** The largest channel of a computed color, which tells a dark surface from a light one. */
 export function brightnessOf(color: string): number {
   return Math.max(

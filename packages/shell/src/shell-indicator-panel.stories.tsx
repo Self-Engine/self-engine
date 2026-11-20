@@ -40,6 +40,7 @@ import {
   VIEWPORTS,
   wheelOver,
   widthOf,
+  freshPerRun,
 } from "./shell-story-helpers.tsx";
 
 const meta = {
@@ -364,14 +365,18 @@ function countedPanel() {
   return { indicator, loads: () => loads };
 }
 
-const counted = countedPanel();
+const counted = freshPerRun(countedPanel, ({ indicator }) => [
+  { ...projects, indicator },
+  time,
+  third,
+]);
 
 export const AfterThePreloadTheFirstOpeningDoesNotWait: Story = {
   ...atViewport("wide"),
-  args: { contributions: [{ ...projects, indicator: counted.indicator }, time, third] },
+  ...counted.story,
   play: async ({ canvas }) => {
     const button = await indicatorButton(canvas);
-    await waitFor(() => expect(counted.loads()).toBe(1), INDICATOR_ARRIVES);
+    await waitFor(() => expect(counted.now.loads()).toBe(1), INDICATOR_ARRIVES);
     // The moment the load takes, and a turn for the loaded code to settle.
     await new Promise((resolve) => setTimeout(resolve, 200));
     const loadingStates = watchForLoadingStates();
@@ -380,7 +385,7 @@ export const AfterThePreloadTheFirstOpeningDoesNotWait: Story = {
     await expect(within(dialog).getByRole("textbox", { name: "Note" })).toBeInTheDocument();
     // Not once, between the click and the content.
     await expect(loadingStates.stop()).toBe(0);
-    await expect(counted.loads()).toBe(1);
+    await expect(counted.now.loads()).toBe(1);
   },
 };
 
@@ -407,11 +412,15 @@ function indicatorWhileOffline() {
   };
 }
 
-const retried = indicatorWhileOffline();
+const retried = freshPerRun(indicatorWhileOffline, ({ indicator }) => [
+  { ...projects, indicator },
+  time,
+  third,
+]);
 
 export const AfterARetriedIndicatorThePanelIsPreloaded: Story = {
   ...atViewport("wide"),
-  args: { contributions: [{ ...projects, indicator: retried.indicator }, time, third] },
+  ...retried.story,
   // React reports the failure that the boundary caught.
   beforeEach: () => {
     const reported = spyOn(console, "error").mockImplementation(() => undefined);
@@ -425,12 +434,12 @@ export const AfterARetriedIndicatorThePanelIsPreloaded: Story = {
     );
     // Long enough for an idle preload to have run, had it run.
     await new Promise((resolve) => setTimeout(resolve, 300));
-    await expect(retried.panelLoads()).toBe(0);
-    retried.goOnline();
+    await expect(retried.now.panelLoads()).toBe(0);
+    retried.now.goOnline();
     await userEvent.click(retry);
     await indicatorButton(canvas);
     // In an idle moment after the indicator arrived, before any opening.
-    await waitFor(() => expect(retried.panelLoads()).toBe(1), INDICATOR_ARRIVES);
+    await waitFor(() => expect(retried.now.panelLoads()).toBe(1), INDICATOR_ARRIVES);
   },
 };
 
@@ -449,11 +458,15 @@ function failingPanel() {
   };
 }
 
-const failing = failingPanel();
+const failing = freshPerRun(failingPanel, ({ indicator }) => [
+  { ...projects, indicator },
+  time,
+  third,
+]);
 
 export const AFailedLoadStaysInThePanelAndRetries: Story = {
   ...atViewport("wide"),
-  args: { contributions: [{ ...projects, indicator: failing.indicator }, time, third] },
+  ...failing.story,
   play: async ({ canvas }) => {
     const reported = spyOn(console, "error").mockImplementation(() => undefined);
     const button = await indicatorButton(canvas);
@@ -462,7 +475,7 @@ export const AFailedLoadStaysInThePanelAndRetries: Story = {
     const retry = await within(dialog).findByRole("button", { name: "Try again" });
     // The rest of the Shell works on.
     await expect(button).toBeVisible();
-    failing.recover();
+    failing.now.recover();
     await userEvent.click(retry);
     const field = await within(dialog).findByRole("textbox", { name: "Note" });
     await waitFor(() => expect(field).toBeVisible());
@@ -685,6 +698,29 @@ export const ACommandPutsThePanelOverTheEditDrawer: Story = {
   },
 };
 
+export const EscapeWithTheFocusNowhereClosesOnlyThePanelOverTheEditDrawer: Story = {
+  ...atViewport("wide"),
+  args: {
+    contributions: [PROJECTS_WITH_COMMANDS, time, third],
+    activeModule: { ...time, editDrawer: async () => ({ default: DrawerContent }) },
+    // Its own address: the story above closes the drawer of its own.
+    routing: storyRouting({ edit: "entry" }),
+  },
+  play: async ({ canvas }) => {
+    await screen.findByRole("dialog", { name: "Time" });
+    await startFromThePalette(canvas, "open the note");
+    await expectFocusInPanel();
+    // Nowhere, as after a press on a part of the page that takes no focus.
+    if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
+    await expect(document.activeElement).toBe(document.body);
+    await pressEscape();
+    await panelGone();
+    // Long enough for the drawer to have slid out, had the same Escape closed it too.
+    await new Promise((resolve) => setTimeout(resolve, 400));
+    await expect(screen.getByRole("dialog", { name: "Time" })).toBeVisible();
+  },
+};
+
 const TALL: IndicatorWithPanel = {
   load: async () => ({ default: PanelIndicator }),
   panel: async () => ({ default: TallContent }),
@@ -757,27 +793,37 @@ function frameThatFails(times: number) {
   };
 }
 
+const PROJECTS_WITH_A_PANEL = {
+  ...projects,
+  indicator: {
+    load: async () => ({ default: PanelIndicator }),
+    panel: async () => ({ default: PanelContent }),
+  },
+} satisfies ShellContribution;
+
 const aFrameThatFailsToLoad = (times: number): Story => {
-  const failingFrame = frameThatFails(times);
+  let failingFrame = frameThatFails(times);
+  // One loader for the story's life: the Shell keeps what a loader loaded by its identity.
+  const load = () => failingFrame.load();
   return {
+    // Anew for each run, so a replay in Storybook starts as the first run did.
+    loaders: [
+      () => {
+        failingFrame = frameThatFails(times);
+      },
+    ],
     // React reports the failure that the boundary caught, while the story renders.
     beforeEach: () => {
       const reported = spyOn(console, "error").mockImplementation(() => undefined);
       return () => reported.mockRestore();
     },
     render: () => (
-      <IndicatorPanelsProvider modules={[]} page="story">
+      <IndicatorPanelsProvider modules={[PROJECTS_WITH_A_PANEL]} page="story">
         <OpenByHand />
         <IndicatorPanelFrameLoader
           indicatorShown
-          load={failingFrame.load}
-          module={{
-            ...projects,
-            indicator: {
-              load: async () => ({ default: PanelIndicator }),
-              panel: async () => ({ default: PanelContent }),
-            },
-          }}
+          load={load}
+          module={PROJECTS_WITH_A_PANEL}
           place={null}
           sheet={false}
         />
