@@ -72,9 +72,14 @@ the app supplies the Time Zone.
    bare offset instead of a zone name yields `UTC`.
 8. **An Instant is shown through a named display format**, with the language and the zone as
    arguments and no free options. One format exists, `dateTime` (`13.11.2026, 13:30` in German);
-   12 or 24 hours follows the language. There is no format for a _Calendar Day_ yet. The list of
+   12 or 24 hours follows the language. The list of
    _Backups_ shows its Instants in the Time Zone supplied by the page's `useTimeZone` hook
    (ADR 0036).
+9. **A _Calendar Day_ and a _Duration_ are shown through named formats** with the language as an
+   argument. `weekdayDate` shows an abbreviated weekday and date, and `shortDate` shows a numeric
+   month and day. Both omit the year for a week View. `hoursMinutes` rounds up to a whole minute
+   for display, after any sum, and `hoursMinutesSeconds` shows the running timer with seconds.
+   Both show the full hours when a duration exceeds 24 hours.
 
 ## Consequences
 

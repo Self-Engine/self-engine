@@ -2,9 +2,11 @@ import { expect, expectTypeOf, test } from "vite-plus/test";
 import * as time from "./index.ts";
 import type {
   CalendarDay,
+  CalendarDayFormat,
   Clock,
   DaySpan,
   Duration,
+  DurationFormat,
   FirstDayOfWeek,
   Instant,
   InstantFormat,
@@ -55,6 +57,14 @@ test("the public functions use only package values and require all arguments", (
     (instant: Instant, format: InstantFormat, locale: string, timeZone: TimeZone) => string
   >();
   expectTypeOf<InstantFormat>().toEqualTypeOf<"dateTime">();
+  expectTypeOf(time.formatDuration).toEqualTypeOf<
+    (duration: Duration, format: DurationFormat, locale: string) => string
+  >();
+  expectTypeOf<DurationFormat>().toEqualTypeOf<"hoursMinutes" | "hoursMinutesSeconds">();
+  expectTypeOf(time.formatCalendarDay).toEqualTypeOf<
+    (day: CalendarDay, format: CalendarDayFormat, locale: string) => string
+  >();
+  expectTypeOf<CalendarDayFormat>().toEqualTypeOf<"weekdayDate" | "shortDate">();
   expect(Object.keys(time).sort()).toEqual(
     [
       "addDays",
@@ -74,6 +84,8 @@ test("the public functions use only package values and require all arguments", (
       "durationBetween",
       "durationSchema",
       "epochMsOf",
+      "formatCalendarDay",
+      "formatDuration",
       "formatInstant",
       "firstDayOfWeekForRegion",
       "instantFromDate",
