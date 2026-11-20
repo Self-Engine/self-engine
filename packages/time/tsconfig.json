@@ -4,7 +4,8 @@
     "module": "Preserve",
     "moduleResolution": "Bundler",
     "jsx": "react-jsx",
-    "lib": ["ESNext"],
+    // DOM for the React entry: its ticker sets timeouts, and its tests render into happy-dom.
+    "lib": ["ESNext", "DOM"],
     "types": []
   },
   "include": ["src"]

@@ -1,15 +1,18 @@
 import fc from "fast-check";
 import { expect, test } from "vite-plus/test";
-import { listedTimeZones } from "./check/clock-changes.ts";
+import { clockChangesOf, instantAtMs, listedTimeZones } from "./check/clock-changes.ts";
 import {
   addDays,
   calendarDayOf,
+  calendarDaySchema,
   epochMsOf,
   instantAt,
   instantRangeOf,
   instantSchema,
   resolveTimeZone,
+  resolveWallClockTime,
   wallClockTimeOf,
+  wallClockTimeSchema,
   type TimeZone,
 } from "./index.ts";
 
@@ -60,3 +63,45 @@ test("the end of a day's range is the start of the next day's", () => {
     );
   });
 });
+
+test("a wall-clock minute inside each clock change is skipped or resolves to either occurrence", () => {
+  const minuteMs = 60_000;
+  for (const name of listedTimeZones()) {
+    const { timeZone } = resolveTimeZone(name);
+    for (const change of clockChangesOf(timeZone, 1970, 2040)) {
+      const before = Temporal.Instant.fromEpochMilliseconds(change - 1).toZonedDateTimeISO(
+        timeZone,
+      );
+      const after = Temporal.Instant.fromEpochMilliseconds(change).toZonedDateTimeISO(timeZone);
+      const beforeMs = before.offsetNanoseconds / 1_000_000;
+      const afterMs = after.offsetNanoseconds / 1_000_000;
+      // Use UTC as a coordinate system for the wall-clock interval between the two offsets.
+      const minute = Math.ceil((change + Math.min(beforeMs, afterMs)) / minuteMs) * minuteMs;
+      if (minute >= change + Math.max(beforeMs, afterMs)) continue;
+      const wall = Temporal.Instant.fromEpochMilliseconds(minute).toString({
+        smallestUnit: "minute",
+      });
+      const day = calendarDaySchema.parse(wall.slice(0, 10));
+      const time = wallClockTimeSchema.parse(wall.slice(11, 16));
+      const actual = resolveWallClockTime(day, time, timeZone);
+      const context = `${day} ${time} in ${timeZone}`;
+      if (afterMs > beforeMs) {
+        expect(actual, context).toEqual({ case: "skipped" });
+      } else {
+        const later = instantAtMs(minute - afterMs);
+        expect(actual, context).toEqual({
+          case: "repeated",
+          instant: instantAtMs(minute - beforeMs),
+          occurrence: "earlier",
+          offset: before.offset,
+        });
+        expect(resolveWallClockTime(day, time, timeZone, { previous: later }), context).toEqual({
+          case: "repeated",
+          instant: later,
+          occurrence: "later",
+          offset: after.offset,
+        });
+      }
+    }
+  }
+}, 30_000);

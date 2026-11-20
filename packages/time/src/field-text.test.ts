@@ -1,14 +1,17 @@
 import { describe, expect, test } from "vite-plus/test";
 import {
   calendarDayFromText,
-  calendarDayText,
   calendarLabels,
   clockFormatOf,
   calendarDaySchema,
   type CalendarDay,
+  formatCalendarDay,
 } from "./index.ts";
 
 const day = (text: string): CalendarDay => calendarDaySchema.parse(text);
+
+const fieldDate = (value: CalendarDay, locale: string) =>
+  formatCalendarDay(value, "fieldDate", locale);
 
 describe("the text of a Calendar Day in a field", () => {
   test.each([
@@ -16,12 +19,12 @@ describe("the text of a Calendar Day in a field", () => {
     ["en", "2026-11-05", "11/05/2026"],
     ["de", "1000-01-01", "01.01.1000"],
   ] as const)("in %s, %s shows as %s", (locale, value, text) => {
-    expect(calendarDayText(day(value), locale)).toBe(text);
+    expect(fieldDate(day(value), locale)).toBe(text);
   });
 
   test.each(["de", "en"])("what it shows in %s reads back as the same day", (locale) => {
     for (const value of ["2026-11-05", "2024-02-29", "9999-12-31"]) {
-      expect(calendarDayFromText(calendarDayText(day(value), locale), locale)).toBe(value);
+      expect(calendarDayFromText(fieldDate(day(value), locale), locale)).toBe(value);
     }
   });
 });

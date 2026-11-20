@@ -2,9 +2,11 @@ import { expect, expectTypeOf, test } from "vite-plus/test";
 import * as time from "./index.ts";
 import type {
   CalendarDay,
+  CalendarDayFormat,
   Clock,
   DaySpan,
   Duration,
+  DurationFormat,
   FirstDayOfWeek,
   Instant,
   InstantFormat,
@@ -13,6 +15,7 @@ import type {
   ResolvedTimeZone,
   TimeZone,
   WallClockTime,
+  WallClockTimeResolution,
 } from "./index.ts";
 
 test("the public functions use only package values and require all arguments", () => {
@@ -44,6 +47,24 @@ test("the public functions use only package values and require all arguments", (
   expectTypeOf(time.instantAt).toEqualTypeOf<
     (day: CalendarDay, time: WallClockTime, timeZone: TimeZone) => ResolvedInstant
   >();
+  expectTypeOf(time.resolveWallClockTime).toEqualTypeOf<
+    (
+      day: CalendarDay,
+      time: WallClockTime,
+      timeZone: TimeZone,
+      options?: { readonly previous?: Instant; readonly lowerBound?: Instant },
+    ) => WallClockTimeResolution
+  >();
+  expectTypeOf<WallClockTimeResolution>().toEqualTypeOf<
+    | { readonly case: "unambiguous"; readonly instant: Instant }
+    | { readonly case: "skipped" }
+    | {
+        readonly case: "repeated";
+        readonly instant: Instant;
+        readonly occurrence: "earlier" | "later";
+        readonly offset: string;
+      }
+  >();
   expectTypeOf(time.startOfCalendarDay).toEqualTypeOf<
     (day: CalendarDay, timeZone: TimeZone) => Instant
   >();
@@ -55,6 +76,23 @@ test("the public functions use only package values and require all arguments", (
     (instant: Instant, format: InstantFormat, locale: string, timeZone: TimeZone) => string
   >();
   expectTypeOf<InstantFormat>().toEqualTypeOf<"dateTime">();
+  expectTypeOf(time.formatDuration).toEqualTypeOf<
+    (duration: Duration, format: DurationFormat, locale: string) => string
+  >();
+  expectTypeOf<DurationFormat>().toEqualTypeOf<"hoursMinutes" | "hoursMinutesSeconds">();
+  expectTypeOf(time.formatCalendarDay).toEqualTypeOf<
+    (day: CalendarDay, format: CalendarDayFormat, locale: string) => string
+  >();
+  expectTypeOf<CalendarDayFormat>().toEqualTypeOf<
+    | "weekdayDate"
+    | "shortDate"
+    | "fieldDate"
+    | "monthYear"
+    | "weekday"
+    | "month"
+    | "year"
+    | "fullDate"
+  >();
   expect(Object.keys(time).sort()).toEqual(
     [
       "addDays",
@@ -62,13 +100,13 @@ test("the public functions use only package values and require all arguments", (
       "calendarDayFromText",
       "calendarDayOf",
       "calendarDaySchema",
-      "calendarDayText",
       "calendarLabels",
       "clockFormatOf",
       "deviceTimeZone",
       "instantAt",
       "instantRangeOf",
       "resolveTimeZone",
+      "resolveWallClockTime",
       "sameTimeZone",
       "startOfCalendarDay",
       "today",
@@ -78,12 +116,16 @@ test("the public functions use only package values and require all arguments", (
       "durationBetween",
       "durationSchema",
       "epochMsOf",
+      "formatCalendarDay",
+      "formatDuration",
       "formatInstant",
       "firstDayOfWeekForRegion",
       "instantFromDate",
       "instantSchema",
       "isoWeekNumber",
       "mantineFirstDayOfWeek",
+      "nextTick",
+      "startOfNextDay",
       "wallClockTimeSchema",
       "weekOf",
     ].sort(),

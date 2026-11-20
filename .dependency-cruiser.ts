@@ -282,6 +282,14 @@ export function boundaryConfig({
       to: { path: "^packages/time/src/system-clock\\.ts$", dependencyTypesNot: ["local"] },
     },
     {
+      name: "page-clock-in-one-place",
+      comment:
+        "The page has one Clock (D348): `apps/web/src/page-clock.ts` loads the system clock, and the settings area and the page's `PageClockProvider` take `pageClock` from there.",
+      severity: "error",
+      from: { path: "^apps/web/src/", pathNot: "^apps/web/src/page-clock\\.ts$" },
+      to: { path: "^packages/time/src/system-clock\\.ts$" },
+    },
+    {
       name: "time-imports-no-package",
       comment:
         "The Settings and React entries of `time` can import `settings` (D356). The rest of `time` imports no workspace package (D143): a module reads its days and zones without the settings code.",
@@ -303,6 +311,14 @@ export function boundaryConfig({
         ],
         reachable: true,
       },
+    },
+    {
+      name: "data-process-stays-off-the-page-clock",
+      comment:
+        "The React entry of `time` (`@self-engine/time/react`) holds the page clock and the hooks for the page's Settings (D348). Nothing the desktop app starts, the Data Process above all, may load it, through any package: every Instant it stores comes from its own Clock, and it renders nothing. Import `time`'s main entry or `@self-engine/time/settings` instead.",
+      severity: "error",
+      from: { path: "^apps/desktop/src/", pathNot: DEV_ONLY_FILE },
+      to: { path: "^packages/time/src/react/", reachable: true },
     },
     {
       name: "storage-is-portable",

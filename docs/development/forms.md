@@ -327,7 +327,7 @@ both, and the field checks the value it reads.
 - **Empty:** emptying the text or every part hands on `null`; `clearable` adds the clear button.
   A click on the day the field holds keeps it.
 - **Language:** month and weekday names, the text of a day and the 12- or 24-hour clock come from
-  `time` (`calendarLabels`, `calendarDayText`, `clockFormatOf`), not from Mantine's date
+  `time` (`calendarLabels`, the format `fieldDate`, `clockFormatOf`), not from Mantine's date
   library: nothing in the app imports `dayjs` (ADR 0027).
 - **A value from outside** draws the picker anew, so a story that changed the value finds its
   inputs again instead of keeping the old element.

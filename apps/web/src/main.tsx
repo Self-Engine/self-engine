@@ -5,6 +5,7 @@ import { DataProvider } from "@self-engine/data-client/react";
 import { activateLanguage, createI18n, regionForAppLanguage } from "@self-engine/i18n";
 import { appLanguageOf } from "@self-engine/settings-area/settings";
 import { deviceTimeZone } from "@self-engine/time/device-time-zone";
+import { PageClockProvider } from "@self-engine/time/react";
 import { FeedbackHost } from "@self-engine/ui";
 import { RouterProvider } from "@tanstack/react-router";
 import { StrictMode } from "react";
@@ -15,6 +16,8 @@ import { dataConnection, startPageData } from "./desktop-data.ts";
 import { PageTimeSettings, watchDeviceZone } from "./device-zone.tsx";
 import { DeviceZoneOffer } from "./device-zone-offer.tsx";
 import { appModules } from "./modules.ts";
+import { pageClock } from "./page-clock.ts";
+import { watchVisibility } from "./page-visibility.ts";
 import { appReasonTexts } from "./reason-texts.ts";
 import { router } from "./router.ts";
 import { reportPageError, settingsStore } from "./settings-store.ts";
@@ -41,9 +44,12 @@ const i18n = createI18n();
 // Cache has already painted the background.
 await activateLanguage(i18n, language);
 
+// The window's visibility, watched once: the page clock stops while the window is hidden.
+const visibility = watchVisibility(document);
+
 // One source of the device's zone for the page's Time Zone and the offer to switch to it: read now
 // and again whenever the window becomes visible.
-const deviceZone = watchDeviceZone(document, deviceTimeZone);
+const deviceZone = watchDeviceZone(visibility, deviceTimeZone);
 
 createRoot(container).render(
   <StrictMode>
@@ -55,14 +61,16 @@ createRoot(container).render(
           region={regionForAppLanguage(activeLanguage)}
           onError={reportPageError}
         >
-          <AppearanceProvider>
-            <FeedbackHost>
-              <DeviceZoneOffer device={deviceZone} store={settingsStore} />
-              <DataProvider access={dataAccess} reasonTexts={reasonTexts}>
-                <RouterProvider router={router} />
-              </DataProvider>
-            </FeedbackHost>
-          </AppearanceProvider>
+          <PageClockProvider clock={pageClock} visibility={visibility}>
+            <AppearanceProvider>
+              <FeedbackHost>
+                <DeviceZoneOffer device={deviceZone} store={settingsStore} />
+                <DataProvider access={dataAccess} reasonTexts={reasonTexts}>
+                  <RouterProvider router={router} />
+                </DataProvider>
+              </FeedbackHost>
+            </AppearanceProvider>
+          </PageClockProvider>
         </PageTimeSettings>
       )}
     </AppLanguage>

@@ -12,10 +12,10 @@ import {
   type CalendarDay,
   calendarDayFromText,
   calendarDaySchema,
-  calendarDayText,
   calendarLabels,
   clockFormatOf,
   type FirstDayOfWeek,
+  formatCalendarDay,
   mantineFirstDayOfWeek,
   type WallClockTime,
   wallClockTimeSchema,
@@ -114,7 +114,7 @@ export const CalendarDayField = typedMemo(function CalendarDayField<FormDraft>({
         onBlur={field.onBlur}
         onChange={handOn}
         defaultValue={dayOf(field.value)}
-        valueFormat={labelling((day) => calendarDayText(day, locale))}
+        valueFormat={labelling((day) => formatCalendarDay(day, "fieldDate", locale))}
         weekdayFormat={labelling(labels.weekday)}
         yearLabelFormat={labelling(labels.year)}
         yearsListFormat={labelling(labels.year)}
