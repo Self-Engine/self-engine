@@ -63,7 +63,8 @@ the app supplies the Time Zone.
      Instant for a skipped time, and for a repeated one the occurrence nearest the previous
      value on an edit, else the earlier one unless it lies at or before a lower bound.
      `moveToDay` moves an Instant to another day at the same wall-clock time, with its seconds,
-     and resolves a clock change on that day the same way.
+     and resolves a clock change on that day the same way, comparing the whole time with the
+     lower bound.
 5. **A _Time Zone_ is a name the runtime knows, and `resolveTimeZone` is the only way to the
    type.** It returns the name in its official spelling (`europe/berlin` becomes
    `Europe/Berlin`) and keeps an alias as given (`Asia/Calcutta` stays `Asia/Calcutta`). It throws

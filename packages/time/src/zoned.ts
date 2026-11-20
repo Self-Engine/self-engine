@@ -104,18 +104,19 @@ function nearestOccurrence(
   return previousOffset === later.offsetNanoseconds ? "later" : "earlier";
 }
 
-/**
- * Resolve a form value without moving a skipped time. On an edit, the previous Instant takes
- * precedence. For a new repeated value, use the earlier occurrence unless it is at or before
- * the lower bound. The caller still validates the resulting range.
- */
-export function resolveWallClockTime(
-  day: CalendarDay,
-  time: WallClockTime,
+/** What a form knows beside the day and the time: the value before an edit, or a lower bound. */
+interface ResolveOptions {
+  readonly previous?: Instant;
+  readonly lowerBound?: Instant;
+}
+
+/** The rule of `resolveWallClockTime`, for a wall-clock moment of any precision. */
+function resolveLocal(
+  local: Temporal.PlainDateTime,
   timeZone: TimeZone,
-  { previous, lowerBound }: { readonly previous?: Instant; readonly lowerBound?: Instant } = {},
+  { previous, lowerBound }: ResolveOptions,
 ): WallClockTimeResolution {
-  const candidates = zonedCandidates(localOf(day, time), timeZone);
+  const candidates = zonedCandidates(local, timeZone);
   if (candidates.case === "skipped") return { case: "skipped" };
   if (candidates.case === "unambiguous")
     return { case: "unambiguous", instant: instantFrom(candidates.zoned.toInstant()) };
@@ -126,6 +127,20 @@ export function resolveWallClockTime(
         ? "later"
         : "earlier";
   return { case: "repeated", instant: instantFrom(candidates[occurrence].toInstant()), occurrence };
+}
+
+/**
+ * Resolve a form value without moving a skipped time. On an edit, the previous Instant takes
+ * precedence. For a new repeated value, use the earlier occurrence unless it is at or before
+ * the lower bound. The caller still validates the resulting range.
+ */
+export function resolveWallClockTime(
+  day: CalendarDay,
+  time: WallClockTime,
+  timeZone: TimeZone,
+  options: ResolveOptions = {},
+): WallClockTimeResolution {
+  return resolveLocal(localOf(day, time), timeZone, options);
 }
 
 /**
@@ -143,27 +158,17 @@ export function repeatedTimeOffset(instant: Instant, timeZone: TimeZone): string
 /**
  * The Instant on `day` that shows the wall-clock time of `instant` in `timeZone`, with its
  * seconds and milliseconds: what a form does with a time the user left alone when its day changed.
- * A time the clocks skip on that day is `skipped`; one they show twice is resolved as
- * `resolveWallClockTime` resolves its minute, and the seconds are added to that occurrence.
+ * A time the clocks skip on that day is `skipped`; one they show twice is resolved by the rule of
+ * `resolveWallClockTime`, which compares the whole time, seconds included, with the lower bound.
  */
 export function moveToDay(
   instant: Instant,
   day: CalendarDay,
   timeZone: TimeZone,
-  options: { readonly previous?: Instant; readonly lowerBound?: Instant } = {},
+  options: ResolveOptions = {},
 ): WallClockTimeResolution {
-  const zoned = zonedOf(instant, timeZone);
-  const minute = zoned.toPlainTime().round({ smallestUnit: "minute", roundingMode: "trunc" });
-  const resolved = resolveWallClockTime(
-    day,
-    wallClockTimeSchema.parse(minute.toString({ smallestUnit: "minute" })),
-    timeZone,
-    options,
-  );
-  if (resolved.case === "skipped") return resolved;
-  // Inside one occurrence of a minute the offset does not change, so the rest of it is added.
-  const rest = zoned.toPlainTime().since(minute);
-  return { ...resolved, instant: instantFrom(Temporal.Instant.from(resolved.instant).add(rest)) };
+  const time = zonedOf(instant, timeZone).toPlainTime();
+  return resolveLocal(Temporal.PlainDate.from(day).toPlainDateTime(time), timeZone, options);
 }
 
 /** The Instants of a calendar day or day span: its first moment up to the next day's first. */

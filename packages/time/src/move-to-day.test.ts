@@ -53,9 +53,15 @@ test("a time the new day shows twice follows resolveWallClockTime, with its seco
   // A lower bound at or after the earlier occurrence selects the later one.
   expect(
     moveToDay(halfPastTwo, day("2026-10-25"), berlin, {
-      lowerBound: at("2026-10-25T00:30:00.000Z"),
+      lowerBound: at("2026-10-25T00:30:15.000Z"),
     }),
   ).toEqual({ case: "repeated", instant: "2026-10-25T01:30:15.000Z", occurrence: "later" });
+  // The bound is compared with the whole time: the earlier occurrence lies seconds after it.
+  expect(
+    moveToDay(halfPastTwo, day("2026-10-25"), berlin, {
+      lowerBound: at("2026-10-25T00:30:00.000Z"),
+    }),
+  ).toEqual({ case: "repeated", instant: "2026-10-25T00:30:15.000Z", occurrence: "earlier" });
   // On an edit, the occurrence nearest the previous Instant: here the day after, so the later one.
   expect(
     moveToDay(halfPastTwo, day("2026-10-25"), berlin, { previous: at("2026-10-26T01:30:15.000Z") }),
