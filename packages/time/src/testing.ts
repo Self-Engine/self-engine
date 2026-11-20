@@ -1,5 +1,6 @@
 import type { Clock } from "./clock.ts";
 import { instantSchema, type Instant } from "./instant.ts";
+import type { PageVisibility } from "./react/ticker.ts";
 import { instantFrom } from "./supported-years.ts";
 
 /** A canonical Instant written as text in a deterministic fixture. */
@@ -16,3 +17,6 @@ export function fixedClock(instant: Instant): Clock {
 export function advanceInstantByMilliseconds(instant: Instant, milliseconds: number): Instant {
   return instantFrom(Temporal.Instant.from(instant).add({ milliseconds }));
 }
+
+/** A window that is always visible, for a page clock in a test or a story. */
+export const alwaysVisible: PageVisibility = { visible: () => true, onChange: () => () => {} };

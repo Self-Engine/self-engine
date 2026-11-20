@@ -20,9 +20,12 @@ test("an Instant built without the schemas passes the Instant schema in every su
   );
 });
 
-test.each([FIRST_MS - 1, LAST_MS + 1])("an Instant at %s ms is outside the supported years", (ms) => {
-  expect(() => instantFrom(Temporal.Instant.fromEpochMilliseconds(ms))).toThrow(RangeError);
-});
+test.each([FIRST_MS - 1, LAST_MS + 1])(
+  "an Instant at %s ms is outside the supported years",
+  (ms) => {
+    expect(() => instantFrom(Temporal.Instant.fromEpochMilliseconds(ms))).toThrow(RangeError);
+  },
+);
 
 test("a calendar day built without the schemas passes the day schema in every supported year", () => {
   const first = Temporal.PlainDate.from("1000-01-01");
