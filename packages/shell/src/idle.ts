@@ -12,13 +12,17 @@ export function whenIdle(work: () => void): () => void {
 
 /**
  * Runs `work` in an idle moment after the page was drawn once more. An effect may run before the
- * first paint, and an idle callback needs no paint, so the frame is asked for first. A hidden
- * window draws nothing: there the work waits until the window shows.
+ * first paint, and an idle callback needs no paint, so a frame is asked for first. The callback
+ * of a frame runs before that frame is drawn, so the idle moment is asked for in the frame after
+ * it. A hidden window draws nothing: there the work waits until the window shows.
  */
 function whenIdleAfterAPaint(work: () => void): () => void {
-  let cancel = () => cancelAnimationFrame(frame);
-  const frame = requestAnimationFrame(() => {
-    cancel = whenIdle(work);
+  let cancel = () => cancelAnimationFrame(beforeThePaint);
+  const beforeThePaint = requestAnimationFrame(() => {
+    const afterThePaint = requestAnimationFrame(() => {
+      cancel = whenIdle(work);
+    });
+    cancel = () => cancelAnimationFrame(afterThePaint);
   });
   return () => cancel();
 }

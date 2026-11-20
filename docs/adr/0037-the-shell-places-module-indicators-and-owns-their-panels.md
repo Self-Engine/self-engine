@@ -27,7 +27,7 @@ by the module's indicator entry. An entry that no module of the Shell holds open
 reported as a failed Command start is, so a Notice's action cannot take the page down.
 
 The Shell starts loading the Module Indicator and the panel frame at the first idle moment
-after the first paint: it asks for a drawn frame first and for the idle moment then, so a hidden
+after the first paint: it lets one frame be drawn first and asks for the idle moment then, so a hidden
 window loads them once it shows. Until the Module Indicator arrives, its place shows the module's icon.
 The Shell preloads the panel's content in an idle moment once the Module Indicator's code is on
 screen, also after a retry of a Module Indicator that failed to load. An opening can load the content on demand if the preload has yet to finish. The

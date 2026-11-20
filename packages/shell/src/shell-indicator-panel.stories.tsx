@@ -803,10 +803,9 @@ const PROJECTS_WITH_A_PANEL = {
 
 const aFrameThatFailsToLoad = (times: number): Story => {
   let failingFrame = frameThatFails(times);
-  // One loader for the story's life: the Shell keeps what a loader loaded by its identity.
-  const load = () => failingFrame.load();
   return {
-    // Anew for each run, so a replay in Storybook starts as the first run did.
+    // Anew for each run, with a loader of its own, which the Shell keeps what it loaded by: a
+    // replay in Storybook starts as the first run did.
     loaders: [
       () => {
         failingFrame = frameThatFails(times);
@@ -822,7 +821,7 @@ const aFrameThatFailsToLoad = (times: number): Story => {
         <OpenByHand />
         <IndicatorPanelFrameLoader
           indicatorShown
-          load={load}
+          load={failingFrame.load}
           module={PROJECTS_WITH_A_PANEL}
           place={null}
           sheet={false}
