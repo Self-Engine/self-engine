@@ -19,6 +19,7 @@ import {
   type WallClockTime,
 } from "@self-engine/time";
 import { type ReactNode, useRef, useState } from "react";
+import { checkedOrNull } from "./checked-value.ts";
 import { DayInput, TimeInput } from "./date-inputs.tsx";
 import { type FieldBinding, typedMemo, useFieldBinding } from "./field-binding.ts";
 import { bindingOf, type OperationForm } from "./operation-form.ts";
@@ -50,12 +51,6 @@ export interface TimeRangeFieldProps<FormDraft> {
   /** The name of the whole field, such as "Worked". */
   readonly label?: ReactNode;
   readonly disabled?: boolean;
-}
-
-/** An Instant of the draft: a text to the compiler (a Contract's input carries no brand), checked. */
-function instantOf(value: unknown): Instant | null {
-  const parsed = instantSchema.safeParse(value);
-  return parsed.success ? parsed.data : null;
 }
 
 /** The parts of the field that hold text which is no value yet. */
@@ -143,8 +138,8 @@ export const TimeRangeField = typedMemo(function TimeRangeField<FormDraft>({
   const { t, i18n } = useLingui();
   const start = useFieldBinding(form, startName) as FieldBinding<unknown>;
   const end = useFieldBinding(form, endName) as FieldBinding<unknown>;
-  const startInstant = instantOf(start.value);
-  const endInstant = instantOf(end.value);
+  const startInstant = checkedOrNull(instantSchema, start.value);
+  const endInstant = checkedOrNull(instantSchema, end.value);
   const binding = bindingOf(form);
   const isEdit = binding.isEdit;
 
@@ -174,8 +169,8 @@ export const TimeRangeField = typedMemo(function TimeRangeField<FormDraft>({
     else unfinished.add(part);
     // Read now, not from this draw: the other side may have changed since.
     const current = {
-      start: instantOf(binding.valueOf(startName)),
-      end: instantOf(binding.valueOf(endName)),
+      start: checkedOrNull(instantSchema, binding.valueOf(startName)),
+      end: checkedOrNull(instantSchema, binding.valueOf(endName)),
     };
     const outcome = rangeFrom(parts, current, timeZone, isEdit, original.current);
     const next: View = {

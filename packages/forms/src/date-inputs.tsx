@@ -22,6 +22,7 @@ import {
   wallClockTimeSchema,
 } from "@self-engine/time";
 import { type ReactNode, useEffect, useId, useRef, useState } from "react";
+import { checkedOrNull } from "./checked-value.ts";
 
 /** What a module may set on a date or time field; the helper sets everything else. */
 export type Shown =
@@ -31,21 +32,6 @@ export type Shown =
   | "clearable"
   | "disabled"
   | "withAsterisk";
-
-/**
- * The Calendar Day a value stands for: what the draft holds, or what the picker hands on. A
- * draft's day is a text to the compiler (a Contract's input carries no brand), so it is checked.
- */
-export function dayOf(value: unknown): CalendarDay | null {
-  const parsed = calendarDaySchema.safeParse(value);
-  return parsed.success ? parsed.data : null;
-}
-
-/** The Wall-Clock Time a value stands for, checked like `dayOf`. */
-export function timeOf(value: unknown): WallClockTime | null {
-  const parsed = wallClockTimeSchema.safeParse(value);
-  return parsed.success ? parsed.data : null;
-}
 
 /**
  * What stands beside an input box, such as a button, lined up with the box itself: Mantine's
@@ -71,7 +57,7 @@ function besideOf(beside: ReactNode) {
 /** A name of `time` for a day, as a label function of the picker, which hands on `YYYY-MM-DD`. */
 function labelling(label: (day: CalendarDay) => string) {
   return (text: string) => {
-    const day = dayOf(text);
+    const day = checkedOrNull(calendarDaySchema, text);
     return day === null ? text : label(day);
   };
 }
@@ -151,7 +137,7 @@ export function DayInput({
       onChange={(text) => {
         // A day picked in the calendar replaces any text.
         setTypedWhole(true);
-        onDay(text === null ? null : dayOf(text));
+        onDay(checkedOrNull(calendarDaySchema, text));
       }}
       valueFormat={labelling((shown) => formatCalendarDay(shown, "fieldDate", locale))}
       weekdayFormat={labelling(labels.weekday)}
@@ -260,7 +246,7 @@ export function TimeInput({
         })}
         minutesInputLabel={t`Minutes`}
         onChange={(text) => {
-          const whole = timeOf(text);
+          const whole = checkedOrNull(wallClockTimeSchema, text);
           if (whole === null) return;
           told.current = "time";
           onTime(whole);

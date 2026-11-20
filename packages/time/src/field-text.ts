@@ -30,8 +30,8 @@ function orderOf(locale: string): readonly DatePart[] {
   return order;
 }
 
-/** The day `[year, month, day]` names, or `null` when it does not exist or lies outside 1000–9999. */
-function dayOf(year: number, month: number, day: number): CalendarDay | null {
+/** The day a year, month and day name, or `null` when it does not exist or lies outside 1000–9999. */
+function existingDay(year: number, month: number, day: number): CalendarDay | null {
   if (year < 1000 || year > 9999 || month < 1 || day < 1) return null;
   const date = Temporal.PlainDate.from({ year, month, day }, { overflow: "constrain" });
   // A month or day too large is moved to the last one there is: then it named no day.
@@ -46,7 +46,7 @@ function dayOf(year: number, month: number, day: number): CalendarDay | null {
 export function calendarDayFromText(text: string, locale: string): CalendarDay | null {
   const trimmed = text.trim();
   const iso = /^(\d{4})-(\d{1,2})-(\d{1,2})$/.exec(trimmed);
-  if (iso !== null) return dayOf(Number(iso[1]), Number(iso[2]), Number(iso[3]));
+  if (iso !== null) return existingDay(Number(iso[1]), Number(iso[2]), Number(iso[3]));
   const groups = /^\d{1,4}\D+\d{1,4}\D+\d{1,4}$/.test(trimmed) ? trimmed.split(/\D+/) : [];
   if (groups.length !== 3) return null;
   const order = orderOf(locale);
@@ -55,7 +55,11 @@ export function calendarDayFromText(text: string, locale: string): CalendarDay |
   );
   if (day === undefined || month === undefined || year === undefined) return null;
   if (day.length > 2 || month.length > 2 || (year.length !== 2 && year.length !== 4)) return null;
-  return dayOf(year.length === 2 ? 2000 + Number(year) : Number(year), Number(month), Number(day));
+  return existingDay(
+    year.length === 2 ? 2000 + Number(year) : Number(year),
+    Number(month),
+    Number(day),
+  );
 }
 
 /** The names a calendar picker shows for a Calendar Day, in one language. */

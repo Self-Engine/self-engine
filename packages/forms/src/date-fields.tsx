@@ -2,8 +2,15 @@
 // `date-inputs.tsx`, each bound to its field of the draft. Each can be picked and typed.
 
 import type { DateInputProps, TimePickerProps } from "@mantine/dates";
-import type { CalendarDay, FirstDayOfWeek, WallClockTime } from "@self-engine/time";
-import { DayInput, dayOf, type Shown, TimeInput, timeOf } from "./date-inputs.tsx";
+import {
+  type CalendarDay,
+  calendarDaySchema,
+  type FirstDayOfWeek,
+  type WallClockTime,
+  wallClockTimeSchema,
+} from "@self-engine/time";
+import { checkedOrNull } from "./checked-value.ts";
+import { DayInput, type Shown, TimeInput } from "./date-inputs.tsx";
 import { typedMemo, useFieldBinding } from "./field-binding.ts";
 import type { OperationForm } from "./operation-form.ts";
 import type { FieldTaking } from "./picker-fields.tsx";
@@ -47,7 +54,7 @@ export const CalendarDayField = typedMemo(function CalendarDayField<FormDraft>({
         // replaces both.
         key={field.setFromOutside}
         {...props}
-        day={dayOf(field.value)}
+        day={checkedOrNull(calendarDaySchema, field.value)}
         error={field.error}
         onBlur={field.onBlur}
         onDay={field.onChange as (day: CalendarDay | null) => void}
@@ -78,7 +85,7 @@ export const WallClockTimeField = typedMemo(function WallClockTimeField<FormDraf
         onBlur={field.onBlur}
         onTime={field.onChange as (time: WallClockTime | null) => void}
         onUnfinished={() => field.onUnfinished()}
-        time={timeOf(field.value)}
+        time={checkedOrNull(wallClockTimeSchema, field.value)}
       />
     </div>
   );
