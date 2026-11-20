@@ -80,6 +80,8 @@ test("the public functions use only package values and require all arguments", (
       "instantSchema",
       "isoWeekNumber",
       "mantineFirstDayOfWeek",
+      "nextTick",
+      "startOfNextDay",
       "wallClockTimeSchema",
       "weekOf",
     ].sort(),
