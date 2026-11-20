@@ -506,7 +506,7 @@ describe("the icon names entry", () => {
 });
 
 describe("the time package", () => {
-  it("imports no other workspace package outside its Settings entry, even as a type", async () => {
+  it("imports no other workspace package outside its Settings and React entries, even as a type", async () => {
     const time = declaring(
       extraPackage("packages/time", {
         "src/index.ts": 'import type { formatMinutes } from "@self-engine/shared";\n',
@@ -561,7 +561,7 @@ describe("the Settings entry of time", () => {
     expect(await run([time({}), settings])).toEqual([]);
   });
 
-  it("fails an import of settings outside the Settings entry", async () => {
+  it("fails an import of settings from time arithmetic", async () => {
     const found = await run([
       time({ "src/zone.ts": 'import "@self-engine/settings";\n' }),
       settings,
