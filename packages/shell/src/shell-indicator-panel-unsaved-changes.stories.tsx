@@ -71,6 +71,11 @@ const WITH_DRAFT = {
 };
 
 const panel = () => screen.findByRole("dialog", { name: "Projects" });
+/** Still there behind the question; a busy browser may still be fading the popover in. */
+const expectPanelVisible = async () => {
+  const dialog = await panel();
+  await waitFor(() => expect(dialog).toBeVisible());
+};
 const panelGone = () =>
   waitFor(() => expect(screen.queryByRole("dialog", { name: "Projects" })).toBeNull());
 
@@ -96,7 +101,7 @@ export const EscapeAsksAndDiscardCloses: Story = {
     const { button } = await openWithDraft(canvas);
     await pressEscape();
     await asked();
-    await expect(await panel()).toBeVisible();
+    await expectPanelVisible();
     await answer("Discard");
     await noQuestion();
     await panelGone();
@@ -125,7 +130,7 @@ const asksAndDiscardCloses = (exit: Exit): Story => ({
     const { button } = await openWithDraft(canvas);
     await EXITS[exit](canvas, button);
     await asked();
-    await expect(await panel()).toBeVisible();
+    await expectPanelVisible();
     await answer("Discard");
     await noQuestion();
     await panelGone();
@@ -148,7 +153,7 @@ const keepEditingKeepsThePanel = (exit: Exit): Story => ({
     );
     await answer("Keep editing");
     await noQuestion();
-    await expect(await panel()).toBeVisible();
+    await expectPanelVisible();
     await expect(note).toHaveValue("x");
     // Back in the field, however the way out took the focus away.
     await waitFor(() => expect(note).toHaveFocus());
@@ -170,7 +175,7 @@ export const OneEscapeClosesOnlyTheQuestion: Story = {
     await asked();
     await pressEscape();
     await noQuestion();
-    await expect(await panel()).toBeVisible();
+    await expectPanelVisible();
     await waitFor(() => expect(note).toHaveFocus());
     // The panel listens again once the question is gone.
     await pressEscape();
@@ -237,7 +242,7 @@ const openingAnotherPanel = (choice: "Discard" | "Keep editing"): Story => ({
       await screen.findByRole("dialog", { name: "Third module" });
       await panelGone();
     } else {
-      await expect(await panel()).toBeVisible();
+      await expectPanelVisible();
       await expect(note).toHaveValue("x");
       await expect(screen.queryByRole("dialog", { name: "Third module" })).toBeNull();
     }
@@ -284,7 +289,7 @@ const changeOfPage = (choice: "Discard" | "Keep editing"): Story => ({
       await expect(await canvas.findByRole("heading", { name: "Overview" })).toBeVisible();
       await panelGone();
     } else {
-      await expect(await panel()).toBeVisible();
+      await expectPanelVisible();
       await expect(note).toHaveValue("x");
       await expect(canvas.queryByRole("heading", { name: "Overview" })).toBeNull();
     }
