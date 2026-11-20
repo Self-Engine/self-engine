@@ -2,6 +2,7 @@ import type { AnyReasonText, DataTexts } from "@self-engine/data-client/react";
 import type { CountedName } from "@self-engine/i18n";
 import { createSettingsArea } from "@self-engine/settings-area";
 import { type ShellContribution, validateContributions } from "@self-engine/shell";
+import { systemClock } from "@self-engine/time/system-clock";
 import { version } from "../package.json";
 import { versionInfo } from "./env.ts";
 import { settingsStore } from "./settings-store.ts";
@@ -49,9 +50,7 @@ export function createModuleList(
     version: () => versionInfo(window, navigator, version),
     // Every contribution, so that a new module's Shortcuts are listed by themselves.
     commandOwners: () => contributions,
-    // Loaded with the settings: the clock builds its Instants with the schemas of `time`, which
-    // the start leaves out.
-    loadClock: () => import("@self-engine/time/system-clock").then((loaded) => loaded.systemClock),
+    clock: systemClock,
   });
   const contributions = [...modules, settings];
   validateContributions(contributions);

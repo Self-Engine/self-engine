@@ -66,7 +66,7 @@ export function storyViewPage(
     store,
     version: () => version,
     commandOwners: () => commandOwners,
-    loadClock: async () => clock,
+    clock,
   });
   return function StoryViewPage() {
     const [search, setSearch] = useState("");

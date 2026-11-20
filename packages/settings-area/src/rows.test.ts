@@ -70,7 +70,7 @@ const inputs = () => ({
   store: newStore(),
   version: () => WEB,
   commandOwners: () => [],
-  loadClock: async () => clock,
+  clock,
 });
 
 test("a Setting that has to be served and that no row serves is reported", () => {
@@ -88,11 +88,11 @@ test.each([
   ["on the web", WEB],
 ])("the real list of Settings Rows fits the Views of the settings area %s", (_where, version) => {
   const area = createSettingsArea({ ...inputs(), version: () => version });
-  expect(auditSettingsArea(area.views, { version, commandOwners: [] })).toEqual([]);
+  expect(auditSettingsArea(area.views, { version, commandOwners: [], clock })).toEqual([]);
 });
 
 test("the audit of the area reports a Setting the area has to show and that no View can serve", () => {
-  expect(auditSettingsArea([{ id: "about" }], { version: WEB, commandOwners: [] })).toEqual(
+  expect(auditSettingsArea([{ id: "about" }], { version: WEB, commandOwners: [], clock })).toEqual(
     expect.arrayContaining([
       "Settings Row color-mode belongs to the unknown View appearance",
       "Settings Row app-language belongs to the unknown View language",
@@ -303,7 +303,7 @@ test("the area has to serve the Time Zone, follow device and the week start", ()
         { id: "data" },
         { id: "about" },
       ],
-      { version: WEB, commandOwners: [] },
+      { version: WEB, commandOwners: [], clock },
     ),
   ).toEqual([]);
 });
@@ -330,19 +330,4 @@ test.each([
   ["Saturday", ["week-start"]],
 ])("the rows of Language and region are found by %s", (query, ids) => {
   expect(foundBy(query, english)).toEqual(ids);
-});
-
-test("the clock loads when the settings are first opened, once, and not before", async () => {
-  let loads = 0;
-  const area = createSettingsArea({
-    ...inputs(),
-    loadClock: async () => {
-      loads += 1;
-      return clock;
-    },
-  });
-  expect(loads).toBe(0);
-  await area.views[0].load();
-  await area.views[0].load();
-  expect(loads).toBe(1);
 });
