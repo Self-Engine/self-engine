@@ -6,6 +6,7 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
+    "./device-time-zone": "./src/device-time-zone.ts",
     "./first-day-of-week": "./src/first-day-of-week.ts",
     "./settings": "./src/settings/index.ts",
     "./testing": "./src/testing.ts",

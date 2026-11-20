@@ -4,7 +4,7 @@ import "@self-engine/theme/fonts.css";
 import { DataProvider } from "@self-engine/data-client/react";
 import { activateLanguage, createI18n, regionForAppLanguage } from "@self-engine/i18n";
 import { appLanguageOf } from "@self-engine/settings-area/settings";
-import { deviceTimeZone } from "@self-engine/time";
+import { deviceTimeZone } from "@self-engine/time/device-time-zone";
 import { TimeSettingsProvider } from "@self-engine/time/react";
 import { FeedbackHost } from "@self-engine/ui";
 import { RouterProvider } from "@tanstack/react-router";
