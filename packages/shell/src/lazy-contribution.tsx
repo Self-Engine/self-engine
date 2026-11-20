@@ -1,6 +1,6 @@
 import { useLingui } from "@lingui/react/macro";
 import { ErrorState } from "@self-engine/ui";
-import { Component, type ComponentType, type ReactNode, lazy, Suspense } from "react";
+import { Component, type ComponentType, type ReactNode, lazy, Suspense, useEffect } from "react";
 
 type LoadComponent<Props extends object> = () => Promise<{
   readonly default: ComponentType<Props>;
@@ -90,8 +90,11 @@ function LoadedContribution<Props extends object>({
   components,
   load,
   props,
+  onShown,
 }: LazyContributionProps<Props>) {
   const Loaded = components.component(load) as ComponentType<object>;
+  // Runs once the code has arrived and drawn, so also after a successful retry.
+  useEffect(() => onShown?.(), [onShown]);
   return <Loaded {...props} />;
 }
 
@@ -99,6 +102,8 @@ interface LazyContributionProps<Props extends object> {
   readonly components: LazyComponents<Props>;
   readonly load: LoadComponent<Props>;
   readonly props: Props;
+  /** Told each time the code is on screen, once it arrived or after a retry. Keep it stable. */
+  readonly onShown?: () => void;
 }
 
 /** A module's code, loaded when it is first shown. Give it a key per thing it shows. */

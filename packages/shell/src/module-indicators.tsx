@@ -90,6 +90,8 @@ function IndicatorPlace({ module, indicator, form, codeWanted, panelAsSheet }: P
   // Draws this place again when its own panel opens or closes, never on another one's.
   const panelOpen = useOpeningOf(module.id) !== undefined;
   const [placeNode, setPlaceNode] = useState<HTMLDivElement | null>(null);
+  const [indicatorShown, setIndicatorShown] = useState(false);
+  const markShown = useCallback(() => setIndicatorShown(true), []);
   const Icon = module.icon;
   const icon = (
     <Box aria-label={i18n._(module.name)} role="img" style={ICON_STYLE}>
@@ -111,6 +113,7 @@ function IndicatorPlace({ module, indicator, form, codeWanted, panelAsSheet }: P
         components={loadedIndicatorsWithPanel}
         fallback={icon}
         load={indicator.load}
+        onShown={markShown}
         props={{ form, togglePanel, panelOpen }}
         renderFailure={failure}
       />
@@ -125,6 +128,7 @@ function IndicatorPlace({ module, indicator, form, codeWanted, panelAsSheet }: P
       {codeWanted && indicator.panel !== undefined && (
         <IndicatorPanelFrame
           indicator={indicator}
+          indicatorShown={indicatorShown}
           module={module}
           place={placeNode}
           sheet={panelAsSheet}

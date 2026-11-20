@@ -48,32 +48,21 @@ export interface IndicatorPanelFrameProps {
   readonly sheet: boolean;
   /** The indicator's place, which the popover hangs below and whose clicks are not outside. */
   readonly place: HTMLElement | null;
+  /** Whether the indicator's code is on screen: from then on its panel's code preloads. */
+  readonly indicatorShown: boolean;
 }
 
 const loadedPanels = lazyComponents<IndicatorPanelProps>();
 
 /**
- * Loads the panel's code in an idle moment once the indicator's code has arrived, so the first
- * opening does not wait.
+ * Loads the panel's code in an idle moment once the indicator's code is on screen, also after a
+ * retry, so the first opening does not wait.
  */
-function usePanelPreload({ load, panel }: IndicatorPanelFrameProps["indicator"]): void {
-  useEffect(() => {
-    let stop: (() => void) | undefined;
-    let live = true;
-    // The indicator's code is loaded or on its way, so this only waits for it to arrive.
-    void load().then(
-      () => {
-        if (live) stop = whenIdle(() => loadedPanels.preload(panel));
-      },
-      () => {
-        // The indicator shows its own failure; its panel cannot open without it.
-      },
-    );
-    return () => {
-      live = false;
-      stop?.();
-    };
-  }, [load, panel]);
+function usePanelPreload(panel: IndicatorWithPanel["panel"], indicatorShown: boolean): void {
+  useEffect(
+    () => (indicatorShown ? whenIdle(() => loadedPanels.preload(panel)) : undefined),
+    [panel, indicatorShown],
+  );
 }
 
 const FOCUSABLE =
@@ -164,11 +153,12 @@ export default function IndicatorPanelFrame({
   indicator,
   sheet: sheetAtThisStep,
   place,
+  indicatorShown,
 }: IndicatorPanelFrameProps) {
   const { i18n, t } = useLingui();
   const panels = useIndicatorPanels();
   const paletteOpen = useCommandPaletteOpen();
-  usePanelPreload(indicator);
+  usePanelPreload(indicator.panel, indicatorShown);
   const openingNow = useOpeningOf(module.id);
   // The last opening stays while the frame fades out, so its content does not vanish first. Its
   // frame stays the kind it opened in: content that moved between the popover and the sheet when

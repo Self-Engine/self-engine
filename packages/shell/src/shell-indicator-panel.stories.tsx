@@ -348,6 +348,56 @@ export const AfterThePreloadTheFirstOpeningDoesNotWait: Story = {
   },
 };
 
+/** An indicator whose code fails to load while offline, as a chunk does, and a counted panel. */
+function indicatorWhileOffline() {
+  let offline = true;
+  let panelLoads = 0;
+  const indicator: ModuleIndicator = {
+    load: async () => {
+      if (offline) throw new Error("The indicator's code could not be loaded");
+      return { default: PanelIndicator };
+    },
+    panel: async () => {
+      panelLoads += 1;
+      return { default: PanelContent };
+    },
+  };
+  return {
+    indicator,
+    panelLoads: () => panelLoads,
+    goOnline: () => {
+      offline = false;
+    },
+  };
+}
+
+const retried = indicatorWhileOffline();
+
+export const AfterARetriedIndicatorThePanelIsPreloaded: Story = {
+  ...atViewport("wide"),
+  args: { contributions: [{ ...projects, indicator: retried.indicator }, time, third] },
+  // React reports the failure that the boundary caught.
+  beforeEach: () => {
+    const reported = spyOn(console, "error").mockImplementation(() => undefined);
+    return () => reported.mockRestore();
+  },
+  play: async ({ canvas }) => {
+    const retry = await canvas.findByRole(
+      "button",
+      { name: "Projects indicator failed. Try again." },
+      INDICATOR_ARRIVES,
+    );
+    // Long enough for an idle preload to have run, had it run.
+    await new Promise((resolve) => setTimeout(resolve, 300));
+    await expect(retried.panelLoads()).toBe(0);
+    retried.goOnline();
+    await userEvent.click(retry);
+    await indicatorButton(canvas);
+    // In an idle moment after the indicator arrived, before any opening.
+    await waitFor(() => expect(retried.panelLoads()).toBe(1), INDICATOR_ARRIVES);
+  },
+};
+
 /** Fails until the story lets it succeed, as a chunk that could not be fetched. */
 function failingPanel() {
   let fails = true;
@@ -602,6 +652,7 @@ export const AFrameThatFailedToLoadLoadsAgainAtTheNextOpening: Story = {
           load: async () => ({ default: PanelIndicator }),
           panel: async () => ({ default: PanelContent }),
         }}
+        indicatorShown
         load={failingFrame.load}
         module={projects}
         place={null}
