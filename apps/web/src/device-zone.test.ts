@@ -65,9 +65,41 @@ test("a listener that stopped hears nothing more", () => {
   const device = testDevice(BERLIN);
   const source = watchDeviceZone(device.page, device.read);
   const visible = vi.fn();
+  const changed = vi.fn();
   source.onVisible(visible)();
+  source.onChange(changed)();
+  device.moveTo(BANGKOK);
   device.becomes("visible");
   expect(visible).not.toHaveBeenCalled();
+  expect(changed).not.toHaveBeenCalled();
+});
+
+test("a reader that asks gets the zone the device is in now, without a window event", () => {
+  const device = testDevice(BERLIN);
+  const source = watchDeviceZone(device.page, device.read);
+  const changed = vi.fn(() => source.current());
+  const visible = vi.fn();
+  source.onChange(changed);
+  source.onVisible(visible);
+
+  device.moveTo(BANGKOK);
+  expect(source.current()).toBe(BERLIN);
+  expect(source.refresh()).toBe(BANGKOK);
+  expect(source.current()).toBe(BANGKOK);
+  expect(changed).toHaveBeenCalledTimes(1);
+  expect(changed).toHaveLastReturnedWith(BANGKOK);
+  expect(visible).not.toHaveBeenCalled();
+});
+
+test("a read that finds the same zone tells no one of a change", () => {
+  const device = testDevice(zone("Asia/Calcutta"));
+  const source = watchDeviceZone(device.page, device.read);
+  const changed = vi.fn();
+  source.onChange(changed);
+  device.moveTo(zone("Asia/Kolkata"));
+  expect(source.refresh()).toBe("Asia/Calcutta");
+  device.becomes("visible");
+  expect(changed).not.toHaveBeenCalled();
 });
 
 beforeEach(() => vi.stubGlobal("IS_REACT_ACT_ENVIRONMENT", true));

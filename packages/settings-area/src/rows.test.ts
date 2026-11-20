@@ -308,7 +308,7 @@ test("the area has to serve the Time Zone, follow device and the week start", ()
   ).toEqual([]);
 });
 
-test("the week start offers Automatic, Monday, Sunday and Saturday", () => {
+test("the week start is found by the days it offers and by those it shows only while stored", () => {
   const weekStart = settingsRows({ version: WEB, commandOwners: [], clock }).find(
     (row) => row.id === "week-start",
   );
@@ -317,6 +317,10 @@ test("the week start offers Automatic, Monday, Sunday and Saturday", () => {
     "Monday",
     "Sunday",
     "Saturday",
+    "Tuesday",
+    "Wednesday",
+    "Thursday",
+    "Friday",
   ]);
 });
 
@@ -328,6 +332,7 @@ test.each([
   ["follow device", ["follow-device-zone"]],
   ["first day", ["week-start"]],
   ["Saturday", ["week-start"]],
+  ["Wednesday", ["week-start"]],
 ])("the rows of Language and region are found by %s", (query, ids) => {
   expect(foundBy(query, english)).toEqual(ids);
 });

@@ -1,9 +1,11 @@
 import type { JsonValue, LocalSettingsStorage, SettingsStore } from "@self-engine/settings";
+import type { Clock } from "@self-engine/time";
 import {
   FOLLOW_DEVICE_ZONE_SETTING,
   TIME_ZONE_SETTING,
   WEEK_START_SETTING,
 } from "@self-engine/time/settings";
+import { requireInstant } from "@self-engine/time/testing";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import type { ComponentType } from "react";
 import { expect, screen, userEvent, waitFor, within } from "storybook/test";
@@ -32,7 +34,10 @@ const meta = {
       if ("weekStart" in stored) {
         store.write(WEEK_START_SETTING, stored["weekStart"] as typeof WEEK_START_SETTING.default);
       }
-      return { storage, store, Page: storyViewPage("language", { store }) };
+      // A story that moves "now" brings its own clock.
+      const clock = parameters["clock"] as Clock | undefined;
+      const Page = storyViewPage("language", { store, ...(clock ? { clock } : {}) });
+      return { storage, store, Page };
     },
   ],
   render: (_args, { loaded }) => {
@@ -97,6 +102,27 @@ export const PickAZoneWithASearch: Story = {
     await waitFor(async () => {
       await expect((await loadedStoreOn(storage)).read(TIME_ZONE_SETTING)).toBe("Asia/Tokyo");
     });
+  },
+};
+
+/** Berlin's clocks go forward on 2026-03-29 at 01:00 UTC. */
+const BEFORE_SUMMER_TIME = requireInstant("2026-03-28T10:00:00.000Z");
+const IN_SUMMER_TIME = requireInstant("2026-03-29T10:00:00.000Z");
+let movingNow = BEFORE_SUMMER_TIME;
+
+/** A row left open across a clock change shows the offsets of the moment the list opens. */
+export const OffsetsOfTheMomentTheListOpens: Story = {
+  parameters: { clock: (() => movingNow) satisfies Clock },
+  beforeEach: () => {
+    movingNow = BEFORE_SUMMER_TIME;
+  },
+  play: async ({ canvas }) => {
+    await expect(picker(canvas)).toHaveValue("Berlin (UTC+1)");
+    movingNow = IN_SUMMER_TIME;
+    await userEvent.click(picker(canvas));
+    await waitFor(() => expect(picker(canvas)).toHaveValue("Berlin (UTC+2)"));
+    await expect(screen.getByRole("option", { name: "Berlin (UTC+2)" })).toBeInTheDocument();
+    await expect(screen.getByRole("option", { name: "UTC (UTC+0)" })).toBeInTheDocument();
   },
 };
 

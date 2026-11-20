@@ -252,6 +252,27 @@ test("a zone that arrives after the start with follow device on is followed", as
   expect(app.shown).toEqual([]);
 });
 
+test("a window that did not see the device move leaves the zone another window followed to", async () => {
+  const app = await openWindow({
+    synced: { "time.zone": "Asia/Bangkok" },
+    device: { "time.followDevice": true },
+  });
+  // The device moved while this window was hidden or stayed open: no event told it.
+  app.deviceMovesTo(BERLIN);
+  // Another window became visible, read the new zone and followed to it.
+  app.adapters.synced.changeFromOutside([{ key: "time.zone", value: "Europe/Berlin" }]);
+  await settle();
+  expect(app.store.read(TIME_ZONE_SETTING)).toBe("Europe/Berlin");
+  expect(app.adapters.synced.stored.get("time.zone")).toBe("Europe/Berlin");
+});
+
+test("a change in the store offers the zone the device is in now", async () => {
+  const app = await openWindow({ synced: { "time.zone": "Asia/Bangkok" } });
+  app.deviceMovesTo(BERLIN);
+  app.adapters.synced.changeFromOutside([{ key: "time.zone", value: "Europe/Paris" }]);
+  expect(app.offer()).toMatchObject({ stored: zone("Europe/Paris"), device: BERLIN });
+});
+
 test("an offer closed without an answer stays closed when only the stored name's spelling changes", async () => {
   const app = await openWindow({ synced: { "time.zone": "Asia/Calcutta" } });
   app.closeOffer();
@@ -288,4 +309,11 @@ test("Switch reports the stored name exactly as it was stored, for Undo", async 
   expect(app.offer()).toMatchObject({ stored: BERLIN, device: BANGKOK });
   app.offer().switchZone();
   expect(app.switched).toEqual([["europe/berlin", BANGKOK]]);
+});
+
+test("Switch reports the spelling stored when it is answered, not when the offer opened", async () => {
+  const app = await openWindow({ synced: { "time.zone": "Asia/Calcutta" } });
+  app.adapters.synced.changeFromOutside([{ key: "time.zone", value: "Asia/Kolkata" }]);
+  app.offer().switchZone();
+  expect(app.switched).toEqual([["Asia/Kolkata", BANGKOK]]);
 });

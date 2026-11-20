@@ -57,6 +57,14 @@ test("the system clock's Instant passes the Instant schema in every supported ye
   }
 });
 
+test.each([-30_610_224_000_001, 253_402_300_800_000])(
+  "the system clock rejects the system time %s ms, just outside the supported years",
+  (ms) => {
+    vi.useFakeTimers({ toFake: ["Date"], now: ms });
+    expect(() => systemClock()).toThrow(RangeError);
+  },
+);
+
 test("advances a fixture Instant across a UTC day boundary, keeping milliseconds", () => {
   const start = requireInstant("2026-11-14T23:59:59.999Z");
   expect(advanceInstantByMilliseconds(start, 2)).toBe("2026-11-15T00:00:00.001Z");

@@ -57,7 +57,8 @@ export function choiceRow<Value extends string>({
   }
   return {
     ...text,
-    values: choices.map((choice) => choice.label),
+    // A value shown only while it is stored finds the row too, as the row may be showing it.
+    values: [...choices, ...shownWhenStored].map((choice) => choice.label),
     settings: [setting.key],
     control: ChoiceControl,
   };

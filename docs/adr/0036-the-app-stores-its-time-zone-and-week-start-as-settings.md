@@ -46,7 +46,8 @@ unknown name once per start. The page reports each once when a View reads it.
   A Query declares `SETTINGS_TABLE` in its reads so the Table Change reloads it.
 - The page supplies `TimeSettingsProvider` with the loaded settings store, the Device Time
   Zone and the active App Language's Region. The app reads the Device Time Zone at page
-  start and again whenever the window becomes visible. Views read `useTimeZone` and
+  start, again whenever the window becomes visible, and before it decides on a Time Zone
+  Offer because the store changed. Views read `useTimeZone` and
   `useFirstDayOfWeek`. Both follow the store. Only the page reads the Week Start Setting.
   With `automatic`, the first day follows the Region from `regionForAppLanguage`, using the
   mapping in [ADR 0035](0035-calendar-weeks-start-on-a-named-day.md). The caller can use
@@ -59,7 +60,10 @@ An unset or unknown name also produces no offer or write. For a different known 
 Follow Device writes the Device Time Zone without asking. Otherwise, the Device Setting
 controls whether a Notice names both zones and offers “Switch” and “Don't ask again”.
 “Switch” saves the Device Time Zone and shows a confirmation with “Undo”, which writes
-back the name exactly as it was stored.
+back the name exactly as it was stored when “Switch” was chosen.
+A decision made because the store changed reads the Device Time Zone first: a window that
+did not see the device move would otherwise write its old zone over the one another
+window followed to, and the two would overwrite each other without end.
 “Don't ask again” saves the dismissal on this device. An answer in another window
 withdraws an open offer, and a value the database reports after the start is decided on
 at once. An offer closed without an answer returns only when the window becomes visible

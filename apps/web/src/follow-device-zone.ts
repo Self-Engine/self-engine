@@ -29,7 +29,10 @@ export interface ZoneOffer {
 
 export interface DeviceZoneWatch {
   readonly store: SettingsStore;
-  /** The device's zone, read again whenever the window becomes visible (`watchDeviceZone`). */
+  /**
+   * The device's zone (`watchDeviceZone`): read again whenever the window becomes visible, and by
+   * this function before a decision that a change in the store asks for.
+   */
   readonly device: DeviceZoneSource;
   /** Shows the offer until an answer or the returned function closes it. */
   readonly showOffer: (offer: ZoneOffer) => () => void;
@@ -66,7 +69,8 @@ export function followDeviceZone({
   let open: (OfferZones & { readonly close: () => void }) | undefined;
   // The offer closed without an answer: it stays away until the window becomes visible again.
   let closed: OfferZones | undefined;
-  // The device's zone as the source last read it: at the start and when the window became visible.
+  // The device's zone as of the last decision: read at the start, when the window became visible,
+  // and again before a decision that a change in the store asks for.
   let device = deviceZone.current();
   let inputs = readInputs();
 
@@ -95,8 +99,11 @@ export function followDeviceZone({
     const hide = showOffer({
       ...zones,
       switchZone: () => {
+        // The value as it is stored now: another spelling of the same zone, written since the
+        // offer opened, left the offer open.
+        const from = store.read(TIME_ZONE_SETTING) ?? storedName;
         store.write(TIME_ZONE_SETTING, zones.device);
-        onSwitched(storedName, zones.device);
+        onSwitched(from, zones.device);
       },
       dismiss: () => store.write(ZONE_OFFER_DISMISSED_SETTING, true),
       closed: () => {
@@ -117,6 +124,10 @@ export function followDeviceZone({
     )
       return;
     inputs = next;
+    // No window event came with this change, so the zone held may be one the device has left.
+    // Deciding on it would write that zone over the one another window just followed to, and the
+    // two windows would overwrite each other without end.
+    device = deviceZone.refresh();
     decide();
   });
   const stopVisible = deviceZone.onVisible(() => {
