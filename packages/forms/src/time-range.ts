@@ -9,6 +9,7 @@ import {
   type CalendarDay,
   calendarDayOf,
   type Instant,
+  moveToDay,
   resolveWallClockTime,
   type TimeZone,
   type WallClockTime,
@@ -106,15 +107,24 @@ function outcomeOf(
   if (shows(current, day, time, timeZone)) return { case: "keep" };
   if (original !== null && shows(original, day, time, timeZone))
     return { case: "set", instant: original };
-  const resolved = resolveWallClockTime(day, time, timeZone, options);
+  // A time the user did not touch whose day changed moves to that day with its seconds (D344).
+  const untouched = [current, original].find(
+    (instant): instant is Instant =>
+      instant !== null && wallClockTimeOf(instant, timeZone) === time,
+  );
+  const resolved =
+    untouched === undefined
+      ? resolveWallClockTime(day, time, timeZone, options)
+      : moveToDay(untouched, day, timeZone, options);
   return resolved.case === "skipped" ? resolved : { case: "set", instant: resolved.instant };
 }
 
 /**
  * The two Instants for what the field shows. An Instant that still shows its date and time stays
  * with its seconds, and so does one of `original`, the Instants the field was drawn with: a value
- * passing while a time is typed may move the end to another day and back. Any other Instant is
- * resolved by `time` (D347): on an edit (`isEdit`) with the Instant the draft held as the previous
+ * passing while a time is typed may move the end to another day and back. One that still shows
+ * its time on another day moves to the field's day with its seconds (`moveToDay`). Any other
+ * Instant is resolved by `time` (D347): on an edit (`isEdit`) with the Instant the draft held as the previous
  * value, else the end with the start as its lower bound.
  */
 export function rangeFrom(

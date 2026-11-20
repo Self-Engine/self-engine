@@ -64,6 +64,14 @@ test("the public functions use only package values and require all arguments", (
         readonly occurrence: "earlier" | "later";
       }
   >();
+  expectTypeOf(time.moveToDay).toEqualTypeOf<
+    (
+      instant: Instant,
+      day: CalendarDay,
+      timeZone: TimeZone,
+      options?: { readonly previous?: Instant; readonly lowerBound?: Instant },
+    ) => WallClockTimeResolution
+  >();
   expectTypeOf(time.startOfCalendarDay).toEqualTypeOf<
     (day: CalendarDay, timeZone: TimeZone) => Instant
   >();
@@ -121,6 +129,7 @@ test("the public functions use only package values and require all arguments", (
       "formatCalendarDay",
       "formatDuration",
       "formatInstant",
+      "moveToDay",
       "repeatedTimeOffset",
       "firstDayOfWeekForRegion",
       "instantFromDate",

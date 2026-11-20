@@ -140,6 +140,32 @@ export function repeatedTimeOffset(instant: Instant, timeZone: TimeZone): string
   return utcOffsetText(zoned.offsetNanoseconds / 60e9);
 }
 
+/**
+ * The Instant on `day` that shows the wall-clock time of `instant` in `timeZone`, with its
+ * seconds and milliseconds: what a form does with a time the user left alone when its day changed.
+ * A time the clocks skip on that day is `skipped`; one they show twice is resolved as
+ * `resolveWallClockTime` resolves its minute, and the seconds are added to that occurrence.
+ */
+export function moveToDay(
+  instant: Instant,
+  day: CalendarDay,
+  timeZone: TimeZone,
+  options: { readonly previous?: Instant; readonly lowerBound?: Instant } = {},
+): WallClockTimeResolution {
+  const zoned = zonedOf(instant, timeZone);
+  const minute = zoned.toPlainTime().round({ smallestUnit: "minute", roundingMode: "trunc" });
+  const resolved = resolveWallClockTime(
+    day,
+    wallClockTimeSchema.parse(minute.toString({ smallestUnit: "minute" })),
+    timeZone,
+    options,
+  );
+  if (resolved.case === "skipped") return resolved;
+  // Inside one occurrence of a minute the offset does not change, so the rest of it is added.
+  const rest = zoned.toPlainTime().since(minute);
+  return { ...resolved, instant: instantFrom(Temporal.Instant.from(resolved.instant).add(rest)) };
+}
+
 /** The Instants of a calendar day or day span: its first moment up to the next day's first. */
 export function instantRangeOf(days: CalendarDay | DaySpan, timeZone: TimeZone): InstantRange {
   const [first, last] = typeof days === "string" ? [days, days] : [days.first, days.last];
