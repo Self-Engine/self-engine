@@ -38,6 +38,7 @@ function formIn(canvasElement: HTMLElement) {
     /** The hours of the time; the minutes follow it. */
     hours: () => canvas.getByRole("spinbutton", { name: "Start" }),
     minutes: () => canvas.getByRole("spinbutton", { name: /^(Minutes|Minuten)$/ }),
+    amPm: () => canvas.getByRole("textbox", { name: "AM or PM" }),
     save: () => userEvent.click(canvas.getByRole("button", { name: "Save" })),
   };
 }
@@ -163,7 +164,11 @@ export const HoursWithoutMinutesBlockTheSave: Story = {
     await userEvent.click(form.hours());
     await userEvent.keyboard("09");
     await userEvent.click(canvasElement.querySelector("textarea")!);
-    await expect(form.hours()).toHaveAccessibleDescription(UNFINISHED);
+    // Every input of the time reads the message, not only the hours.
+    for (const input of [form.hours(), form.minutes(), form.amPm()]) {
+      await expect(input).toHaveAccessibleDescription(UNFINISHED);
+      await expect(input).toHaveAttribute("aria-invalid", "true");
+    }
     await form.save();
     await expect(callsOf(loaded)).toEqual([]);
 

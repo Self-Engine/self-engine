@@ -164,12 +164,17 @@ export function TimeInput({
   const { i18n, t } = useLingui();
   const locale = i18n.locale;
   // Mantine ties the message and the description to the picker's frame, which takes no focus; the
-  // hours, which do, are tied to them here, so a screen reader reads them with the field.
+  // hours, the minutes and AM or PM, which do, are tied to them here, so a screen reader reads
+  // them with whichever input has the focus.
   const id = useId();
   const describedBy = [
     props.error === undefined ? undefined : `${id}-error`,
     props.description === undefined ? undefined : `${id}-description`,
   ].filter((part) => part !== undefined);
+  const tied = {
+    "aria-describedby": describedBy.length === 0 ? undefined : describedBy.join(" "),
+    "aria-invalid": props.error === undefined ? undefined : true,
+  };
   // What the input last handed on: Mantine reports a time only when it is whole, and once with ""
   // when it stops being whole, so empty and half-filled are read from its inputs.
   const told = useRef<"time" | "empty" | "unfinished">(time === null ? "empty" : "time");
@@ -207,10 +212,9 @@ export function TimeInput({
         defaultValue={time ?? ""}
         descriptionProps={{ id: `${id}-description` }}
         errorProps={{ id: `${id}-error` }}
-        hoursInputProps={{
-          "aria-describedby": describedBy.length === 0 ? undefined : describedBy.join(" "),
-          "aria-invalid": props.error === undefined ? undefined : true,
-        }}
+        amPmSelectProps={tied}
+        hoursInputProps={tied}
+        minutesInputProps={tied}
         format={clockFormatOf(locale)}
         {...(descriptionBelow && {
           inputWrapperOrder: ["label", "input", "description", "error"],
