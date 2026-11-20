@@ -415,6 +415,20 @@ describe("the web app's startup rules", () => {
       expect(inspectIndicator({ [contribution]: {} }, { [indicator]: {} })).toEqual([]);
     });
 
+    it("keeps its Indicator Panel out of the start as well, which lives in the same folder", () => {
+      const panel = "/repo/packages/placeholder-alpha/src/indicator/panel.tsx";
+      expect(
+        inspectStartup(
+          [chunk("main.js", { isEntry: true, modules: { [contribution]: {}, [panel]: {} } })],
+          new Set(),
+          { ...STARTUP_RULES, maxBytes: 100 },
+          (id) => (id === panel ? [contribution] : []),
+        ).problems,
+      ).toEqual([
+        `A module's Module Indicator entered the startup bundle, imported by ${contribution}: import it only through the indicator's load in the module's Shell Contribution, which the Shell calls after the first paint.`,
+      ]);
+    });
+
     it("is rejected at startup, naming the code that imports it", () => {
       expect(inspectIndicator({ [contribution]: {}, [indicator]: {} }, {})).toEqual([
         `A module's Module Indicator entered the startup bundle, imported by ${contribution}: import it only through the indicator's load in the module's Shell Contribution, which the Shell calls after the first paint.`,

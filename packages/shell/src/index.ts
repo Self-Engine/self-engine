@@ -19,6 +19,8 @@ export {
   type EditDrawerProps,
   type ModuleIndicator,
   type ModuleIndicatorProps,
+  type ModuleIndicatorWithPanelProps,
+  type IndicatorPanelProps,
 } from "./contributions.ts";
 export type { IndicatorForm } from "./module-indicator-form.ts";
 

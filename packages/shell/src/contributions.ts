@@ -52,20 +52,53 @@ export interface ModuleIndicatorProps {
   readonly form: IndicatorForm;
 }
 
+/** What a Module Indicator that declared an Indicator Panel is told. */
+export interface ModuleIndicatorWithPanelProps extends ModuleIndicatorProps {
+  /**
+   * Opens the module's Indicator Panel; while it is open, closes it, as a second click on the
+   * indicator does. Stable, so an indicator may hand it on without redrawing.
+   */
+  readonly togglePanel: () => void;
+}
+
+/** What the content of an Indicator Panel is told: an Edit Drawer's content, without an entry. */
+export interface IndicatorPanelProps {
+  /** Closes the panel. Called after the person left this opening, it closes nothing. */
+  readonly onCancel: () => void;
+  /**
+   * Closes the panel, after a successful save. Called after the person left this opening, it
+   * closes nothing.
+   */
+  readonly onDone: () => void;
+  /**
+   * Whether this opening is still the open one, read when asked: false from the moment the person
+   * leaves it, also while the frame fades out, and once another opening took its place.
+   */
+  readonly isOpen: () => boolean;
+}
+
 /**
  * The small element of a module at the end of the content header, on every page. Its code lives
  * in the module's `src/indicator/` folder, which the startup check keeps out of the start: the
  * Shell loads it in an idle moment after the first paint and shows the module's icon until then.
- *
- * One arm of a union: the arm with an Indicator Panel joins it, and only that arm declares
- * `panel`, so a panel cannot exist without its indicator.
  */
 interface IndicatorWithoutPanel {
   readonly load: () => Promise<{ readonly default: ComponentType<ModuleIndicatorProps> }>;
   readonly panel?: never;
 }
 
-export type ModuleIndicator = IndicatorWithoutPanel;
+/**
+ * An indicator with an Indicator Panel, whose content its module fills and whose frame, focus and
+ * ways out belong to the Shell. Only this arm hands the indicator `togglePanel`, and the panel
+ * exists only inside the indicator's entry. The panel's code lives in `src/indicator/` as well: it
+ * loads at the first opening, and the Shell preloads it in an idle moment once the indicator came.
+ */
+interface IndicatorWithPanel {
+  readonly load: () => Promise<{ readonly default: ComponentType<ModuleIndicatorWithPanelProps> }>;
+  readonly panel: () => Promise<{ readonly default: ComponentType<IndicatorPanelProps> }>;
+}
+
+export type ModuleIndicator = IndicatorWithoutPanel | IndicatorWithPanel;
 
 interface ContributionMetadata {
   readonly id: string;

@@ -21,6 +21,7 @@ import {
 } from "./edit-drawer-exits.tsx";
 import { LazyContribution, lazyComponents } from "./lazy-contribution.tsx";
 import { indicatorForm, type IndicatorForm } from "./module-indicator-form.ts";
+import { IndicatorPanelsProvider } from "./indicator-panels.tsx";
 import { ModuleIndicators } from "./module-indicators.tsx";
 import { useCloseOverlayOnPick, useViewSearch, useWriteViewSearch } from "./routing.tsx";
 import { ACTIVE_ENTRY_VARS } from "./navigation-style.ts";
@@ -519,7 +520,9 @@ function ContentHeader({
         </Title>
         {channelBadge && <Box style={NOT_WINDOW_DRAG_STYLE}>{channelBadge}</Box>}
       </Group>
-      {indicatorModules && <ModuleIndicators form={form} modules={indicatorModules} />}
+      {indicatorModules && (
+        <ModuleIndicators form={form} modules={indicatorModules} panelAsSheet={isPhone} />
+      )}
     </Group>
   );
 }
@@ -912,21 +915,23 @@ export function Shell({
   return (
     <StartOnceProvider data={data}>
       <CommandPaletteProvider>
-        <ShellFrame
-          {...props}
-          entries={contributions.map(entryOf)}
-          indicatorModules={contributions}
-          settingsEntry={entryOf(settings)}
-          activeEntryId={activeModule?.id ?? ""}
-          activeColor={activeModule?.color}
-          pageTitle={activeView ? i18n._(activeView.title) : ""}
-          editDrawer={<ModuleEditDrawer module={activeView && activeModule} />}
-          commandPalette={<CommandPalette {...commandScope} />}
-          shortcuts={<Shortcuts {...commandScope} />}
-          moduleSidebar={
-            <ModuleViews module={activeModule} activeView={activeView} routing={props.routing} />
-          }
-        />
+        <IndicatorPanelsProvider page={`${activeModule?.id ?? ""}/${activeView?.id ?? ""}`}>
+          <ShellFrame
+            {...props}
+            entries={contributions.map(entryOf)}
+            indicatorModules={contributions}
+            settingsEntry={entryOf(settings)}
+            activeEntryId={activeModule?.id ?? ""}
+            activeColor={activeModule?.color}
+            pageTitle={activeView ? i18n._(activeView.title) : ""}
+            editDrawer={<ModuleEditDrawer module={activeView && activeModule} />}
+            commandPalette={<CommandPalette {...commandScope} />}
+            shortcuts={<Shortcuts {...commandScope} />}
+            moduleSidebar={
+              <ModuleViews module={activeModule} activeView={activeView} routing={props.routing} />
+            }
+          />
+        </IndicatorPanelsProvider>
       </CommandPaletteProvider>
     </StartOnceProvider>
   );

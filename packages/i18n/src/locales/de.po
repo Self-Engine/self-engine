@@ -263,6 +263,7 @@ msgid "Camera"
 msgstr "Kamera"
 
 #: packages/forms/src/form-body.tsx
+#: packages/placeholder-alpha/src/indicator/panel.tsx
 #: packages/ui/src/feedback.tsx
 msgid "Cancel"
 msgstr "Abbrechen"
@@ -346,6 +347,10 @@ msgstr "Navigation schließen"
 #: packages/ui/src/feedback.tsx
 msgid "Close notice"
 msgstr "Hinweis schließen"
+
+#: packages/shell/src/indicator-panel.tsx
+msgid "Close panel"
+msgstr "Panel schließen"
 
 #: packages/icons/src/directory/labels.ts
 msgctxt "Icon"
@@ -558,6 +563,11 @@ msgstr "Dollar"
 #: apps/web/src/device-zone-offer.tsx
 msgid "Don't ask again"
 msgstr "Nicht mehr fragen"
+
+#: packages/placeholder-alpha/src/indicator/panel.tsx
+msgctxt "Finish the panel"
+msgid "Done"
+msgstr "Fertig"
 
 #: packages/icons/src/directory/labels.ts
 msgctxt "Icon"
@@ -986,6 +996,10 @@ msgstr "Rauchverbot"
 #: packages/settings-area/src/region-rows.tsx
 msgid "No Time Zone found"
 msgstr "Keine Zeitzone gefunden"
+
+#: packages/placeholder-alpha/src/indicator/panel.tsx
+msgid "Note"
+msgstr "Notiz"
 
 #: packages/icons/src/directory/labels.ts
 msgctxt "Icon"

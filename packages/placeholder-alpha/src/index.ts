@@ -51,6 +51,9 @@ export const contribution = defineContribution({
   primaryAction: createEntry,
   editDrawer: () => import("./edit-drawer.tsx"),
   groups: () => import("./groups.tsx"),
-  indicator: { load: () => import("./indicator/index.tsx") },
+  indicator: {
+    load: () => import("./indicator/index.tsx"),
+    panel: () => import("./indicator/panel.tsx"),
+  },
   sharedSearch: ["client"],
 });

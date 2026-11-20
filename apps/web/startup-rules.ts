@@ -66,7 +66,9 @@ export const STARTUP_RULES = {
     },
     {
       // Every module keeps its Module Indicator's code in this folder: the Shell loads it in an
-      // idle moment after the first paint and shows the module's icon until then (D359).
+      // idle moment after the first paint and shows the module's icon until then (D359). The
+      // Indicator Panel's content lives here too; it loads at the first opening, preloaded when
+      // idle once the indicator came.
       name: "A module's Module Indicator",
       path: "/src/indicator/",
       instead:

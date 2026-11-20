@@ -8,23 +8,46 @@ type LoadComponent<Props extends object> = () => Promise<{
 
 export interface LazyComponents<Props extends object> {
   readonly component: (load: LoadComponent<Props>) => ComponentType<Props>;
+  /**
+   * Loads the code ahead of its first showing, so that showing it then does not wait. Code that
+   * arrived before its first showing is shown without React.lazy, which would suspend once more.
+   */
+  readonly preload: (load: LoadComponent<Props>) => void;
   readonly forget: (load: LoadComponent<Props>) => void;
 }
 
 /** Keeps lazy component identity stable across Shell updates, until a failure forgets one. */
 export function lazyComponents<Props extends object>(): LazyComponents<Props> {
   const components = new WeakMap<LoadComponent<Props>, ComponentType<Props>>();
+  const preloaded = new WeakMap<LoadComponent<Props>, ComponentType<Props>>();
+  const preloading = new WeakSet<LoadComponent<Props>>();
   return {
     component: (load) => {
       let component = components.get(load);
       if (!component) {
-        component = lazy(load);
+        component = preloaded.get(load) ?? lazy(load);
         components.set(load, component);
       }
       return component;
     },
+    preload: (load) => {
+      if (components.has(load) || preloading.has(load)) return;
+      preloading.add(load);
+      void load().then(
+        (loaded) => preloaded.set(load, loaded.default),
+        () => {
+          // Safe to ignore: it only costs the head start. The first showing loads again and
+          // reports its own failure.
+          preloading.delete(load);
+        },
+      );
+    },
     // React.lazy keeps a rejection for ever, so a retry needs a new one.
-    forget: (load) => components.delete(load),
+    forget: (load) => {
+      components.delete(load);
+      preloaded.delete(load);
+      preloading.delete(load);
+    },
   };
 }
 

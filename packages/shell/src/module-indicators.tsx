@@ -2,9 +2,16 @@ import { useLingui } from "@lingui/react/macro";
 import { Box, Group, rem } from "@mantine/core";
 import { colorSetColor } from "@self-engine/theme";
 import { NOT_WINDOW_DRAG_STYLE } from "@self-engine/ui";
-import type { CSSProperties } from "react";
-import type { ModuleIndicator, ModuleIndicatorProps, ShellContribution } from "./contributions.ts";
+import { type CSSProperties, useCallback } from "react";
+import type {
+  ModuleIndicator,
+  ModuleIndicatorProps,
+  ModuleIndicatorWithPanelProps,
+  ShellContribution,
+} from "./contributions.ts";
 import { useAfterFirstIdle } from "./idle.ts";
+import { IndicatorPanelFrame, usePanelPreload } from "./indicator-panel.tsx";
+import { useIndicatorPanels } from "./indicator-panels.tsx";
 import { LazyContribution, lazyComponents } from "./lazy-contribution.tsx";
 import type { IndicatorForm } from "./module-indicator-form.ts";
 
@@ -37,39 +44,58 @@ const PLACE_STYLE: CSSProperties = {
 const ICON_STYLE: CSSProperties = { display: "flex" };
 
 const loadedIndicators = lazyComponents<ModuleIndicatorProps>();
+const loadedIndicatorsWithPanel = lazyComponents<ModuleIndicatorWithPanelProps>();
 
 interface PlaceProps {
   readonly module: ShellContribution;
   readonly indicator: ModuleIndicator;
   readonly form: IndicatorForm;
   readonly codeWanted: boolean;
+  readonly panelAsSheet: boolean;
 }
 
 /** One module's place: its icon until the indicator's code has arrived, then the indicator. */
-function IndicatorPlace({ module, indicator, form, codeWanted }: PlaceProps) {
+function IndicatorPlace({ module, indicator, form, codeWanted, panelAsSheet }: PlaceProps) {
   const { i18n } = useLingui();
+  const panels = useIndicatorPanels();
+  const togglePanel = useCallback(() => panels.toggle(module.id), [panels, module.id]);
+  usePanelPreload(indicator.load, indicator.panel, codeWanted);
   const Icon = module.icon;
   const icon = (
     <Box aria-label={i18n._(module.name)} role="img" style={ICON_STYLE}>
       <Icon size="md" />
     </Box>
   );
-  return (
+  const code =
+    indicator.panel === undefined ? (
+      <LazyContribution
+        components={loadedIndicators}
+        fallback={icon}
+        load={indicator.load}
+        props={{ form }}
+      />
+    ) : (
+      <LazyContribution
+        components={loadedIndicatorsWithPanel}
+        fallback={icon}
+        load={indicator.load}
+        props={{ form, togglePanel }}
+      />
+    );
+  const place = (
     <Box
       data-color-set={module.color}
       style={{ ...PLACE_STYLE, maxWidth: rem(INDICATOR_MAX_WIDTH[form]) }}
     >
-      {codeWanted ? (
-        <LazyContribution
-          components={loadedIndicators}
-          fallback={icon}
-          load={indicator.load}
-          props={{ form }}
-        />
-      ) : (
-        icon
-      )}
+      {codeWanted ? code : icon}
     </Box>
+  );
+  return indicator.panel === undefined ? (
+    place
+  ) : (
+    <IndicatorPanelFrame module={module} panel={indicator.panel} sheet={panelAsSheet}>
+      {place}
+    </IndicatorPanelFrame>
   );
 }
 
@@ -77,13 +103,15 @@ interface ModuleIndicatorsProps {
   /** In the order of the module list. */
   readonly modules: readonly ShellContribution[];
   readonly form: IndicatorForm;
+  /** On the phone an Indicator Panel is a sheet from below, on every other step a popover. */
+  readonly panelAsSheet: boolean;
 }
 
 /**
  * The Module Indicators at the end of the content header. Their code loads in the first idle
  * moment after the first paint, so it costs the start nothing; the Shell passes them no data.
  */
-export function ModuleIndicators({ modules, form }: ModuleIndicatorsProps) {
+export function ModuleIndicators({ modules, form, panelAsSheet }: ModuleIndicatorsProps) {
   const codeWanted = useAfterFirstIdle();
   const places = modules.flatMap((module) =>
     module.indicator ? [{ module, indicator: module.indicator }] : [],
@@ -98,6 +126,7 @@ export function ModuleIndicators({ modules, form }: ModuleIndicatorsProps) {
           indicator={indicator}
           key={module.id}
           module={module}
+          panelAsSheet={panelAsSheet}
         />
       ))}
     </Group>

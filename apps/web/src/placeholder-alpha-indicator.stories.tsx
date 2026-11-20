@@ -1,11 +1,11 @@
 // The Module Indicator of `placeholder-alpha` in the whole app: on every page, on all four Layout
 // Steps, in its full form on the wide and medium step and its short form on the narrow step and
-// the phone (D357).
+// the phone (D357). The counter opens its Indicator Panel, with one field (D358).
 
 import { placeholderAlphaAnswers } from "@self-engine/placeholder-alpha/testing";
 import { SHELL_REFERENCE_WIDTHS } from "@self-engine/shell/geometry";
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { expect, userEvent, within } from "storybook/test";
+import { expect, screen, userEvent, waitFor, within } from "storybook/test";
 import { AppAt, loadStoryApp } from "./story-app.tsx";
 
 const viewport = (name: string, width: number) => ({
@@ -66,3 +66,26 @@ export const ShortFormAtTheNarrowStep = atStep("narrow", "/placeholder-beta/over
 export const ShortFormOnThePhone = atStep("phone", "/placeholder-beta/overview");
 export const InItsOwnModule = atStep("wide", "/placeholder-alpha/overview");
 export const InTheSettings = atStep("wide", "/settings/appearance");
+
+const panelAt = (step: keyof typeof VIEWPORTS, counter: string): Story => ({
+  globals: { viewport: { value: step, isRotated: false } },
+  play: async ({ canvas }) => {
+    await canvas.findByRole("heading", { level: 1 });
+    const opener = await within(contentHeader(canvas)).findByRole(
+      "button",
+      { name: counter },
+      ARRIVES,
+    );
+    await userEvent.click(opener);
+    const panel = await screen.findByRole("dialog", { name: "Placeholder Alpha" });
+    const field = await within(panel).findByRole("textbox", { name: "Note" });
+    await userEvent.type(field, "Called the client");
+    await userEvent.click(within(panel).getByRole("button", { name: "Done" }));
+    await waitFor(() =>
+      expect(screen.queryByRole("dialog", { name: "Placeholder Alpha" })).toBeNull(),
+    );
+  },
+});
+
+export const OpensItsPanel = panelAt("wide", "Counted 0");
+export const OpensItsPanelAsASheetOnThePhone = panelAt("phone", "0");

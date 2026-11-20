@@ -3,6 +3,8 @@ import { describe, expect, test } from "vite-plus/test";
 import { z } from "zod";
 import {
   defineContribution,
+  type IndicatorPanelProps,
+  type ModuleIndicatorWithPanelProps,
   type ShellContribution,
   validateContributions,
 } from "./contributions.ts";
@@ -136,11 +138,24 @@ test("a contribution keeps data texts its input reads through a getter", () => {
 test("a Module Indicator is one entry of its contribution, which a panel can only join", () => {
   const indicator = { load: async () => ({ default: () => null }) };
   expect(defineContribution({ ...base, indicator }).indicator).toBe(indicator);
+  const panel = async () => ({ default: ({ onDone }: IndicatorPanelProps) => void onDone });
+  const withPanel = {
+    load: async () => ({
+      default: ({ togglePanel }: ModuleIndicatorWithPanelProps) => void togglePanel,
+    }),
+    panel,
+  };
+  expect(defineContribution({ ...base, indicator: withPanel }).indicator).toBe(withPanel);
+  // An indicator that does not use the function may still declare a panel.
+  defineContribution({ ...base, indicator: { ...indicator, panel } });
   defineContribution({
     ...base,
     // @ts-expect-error A panel has no entry of its own beside the indicator.
-    panel: indicator.load,
+    panel,
   });
-  // @ts-expect-error The indicator's own entry declares no panel yet.
-  defineContribution({ ...base, indicator: { ...indicator, panel: indicator.load } });
+  defineContribution({
+    ...base,
+    // @ts-expect-error An indicator declared without a panel receives no function to open one.
+    indicator: { load: withPanel.load },
+  });
 });
