@@ -1,21 +1,19 @@
+// The frame of an Indicator Panel. A chunk of its own, which the Shell loads in the idle moment
+// after the first paint together with the indicators, so that Mantine's Popover and its
+// positioning stay out of the start.
+
 import { useLingui } from "@lingui/react/macro";
-import { Drawer, Popover, rem } from "@mantine/core";
+import { Box, Drawer, Popover, rem } from "@mantine/core";
+import { useClickOutside, useMergedRef } from "@mantine/hooks";
 import { LoadingState, NOT_WINDOW_DRAG_STYLE } from "@self-engine/ui";
-import {
-  type ComponentType,
-  type CSSProperties,
-  type ReactElement,
-  useEffect,
-  useState,
-} from "react";
+import { type CSSProperties, useEffect, useState } from "react";
 import { useCommandPaletteOpen } from "./command-palette-state.tsx";
-import type { IndicatorPanelProps, ShellContribution } from "./contributions.ts";
+import type { IndicatorPanelProps } from "./contributions.ts";
 import { useEscapeExit } from "./edit-drawer-exits.tsx";
 import { whenIdle } from "./idle.ts";
+import type { IndicatorPanelFrameProps } from "./indicator-panel-frame.tsx";
 import { useIndicatorPanels, useOpeningOf } from "./indicator-panels.tsx";
 import { LazyContribution, lazyComponents } from "./lazy-contribution.tsx";
-
-type LoadPanel = () => Promise<{ readonly default: ComponentType<IndicatorPanelProps> }>;
 
 /** The popover's width on the wide, medium and narrow step, in unscaled pixels. */
 export const INDICATOR_PANEL_WIDTH = 320;
@@ -29,6 +27,9 @@ const DROPDOWN_STYLE: CSSProperties = {
   overflowY: "auto",
 };
 
+// What the popover hangs below: the place itself, without taking a click or a pixel of it.
+const ANCHOR_STYLE: CSSProperties = { inset: 0, pointerEvents: "none", position: "absolute" };
+
 // As tall as the content, up to most of the phone; taller content scrolls below the title.
 const SHEET_STYLES = {
   content: { ...NOT_WINDOW_DRAG_STYLE, maxHeight: "70%" },
@@ -39,19 +40,14 @@ const loadedPanels = lazyComponents<IndicatorPanelProps>();
 
 /**
  * Loads the panel's code in an idle moment once the indicator's code has arrived, so the first
- * opening does not wait. `codeWanted` turns true when the Shell asks for the indicator's code.
+ * opening does not wait.
  */
-export function usePanelPreload(
-  loadIndicator: () => Promise<unknown>,
-  panel: LoadPanel | undefined,
-  codeWanted: boolean,
-): void {
+function usePanelPreload({ load, panel }: IndicatorPanelFrameProps["indicator"]): void {
   useEffect(() => {
-    if (!codeWanted || panel === undefined) return undefined;
     let stop: (() => void) | undefined;
     let live = true;
     // The indicator's code is loaded or on its way, so this only waits for it to arrive.
-    void loadIndicator().then(
+    void load().then(
       () => {
         if (live) stop = whenIdle(() => loadedPanels.preload(panel));
       },
@@ -63,42 +59,51 @@ export function usePanelPreload(
       live = false;
       stop?.();
     };
-  }, [codeWanted, loadIndicator, panel]);
-}
-
-interface IndicatorPanelFrameProps {
-  readonly module: ShellContribution;
-  readonly panel: LoadPanel;
-  /** On the phone the panel is a sheet from below, on every other Layout Step a popover. */
-  readonly sheet: boolean;
-  /** The indicator's place, which the popover hangs below. */
-  readonly children: ReactElement;
+  }, [load, panel]);
 }
 
 /**
- * The frame the Shell gives a module's Indicator Panel: the focus moves in on opening and back on
- * closing, and Escape, a click outside and a second click on the indicator close it. Only this
- * frame draws again when the panel opens or closes; the place it gets keeps its element.
+ * The frame the Shell gives a module's Indicator Panel: a popover below the place, or a sheet
+ * from below on the phone. The focus moves in on opening and back on closing; Escape, a click
+ * outside and a second click on the indicator close it. Only this frame draws again when the
+ * panel opens or closes, never the indicator beside it.
  */
-export function IndicatorPanelFrame({ module, panel, sheet, children }: IndicatorPanelFrameProps) {
+export default function IndicatorPanelFrame({
+  module,
+  indicator,
+  sheet,
+  place,
+}: IndicatorPanelFrameProps) {
   const { i18n, t } = useLingui();
   const panels = useIndicatorPanels();
   const paletteOpen = useCommandPaletteOpen();
+  usePanelPreload(indicator);
   const openingNow = useOpeningOf(module.id);
   // The last opening stays while the frame fades out, so its content does not vanish first.
   const [shown, setShown] = useState(openingNow);
   if (openingNow !== undefined && openingNow !== shown) setShown(openingNow);
   const opened = openingNow !== undefined;
-  // The Command Palette is a modal that listens on the window as well: while it is open, Esc is its.
-  const popoverFrame = useEscapeExit(opened && !sheet && !paletteOpen, panels.leave);
+  // The Command Palette is a modal that listens on the window as well: while it is open, Esc and
+  // a click are its.
+  const popoverEscape = useEscapeExit(opened && !sheet && !paletteOpen, panels.leave);
   const sheetFrame = useEscapeExit(opened && sheet && !paletteOpen, panels.leave);
+  const [dropdown, setDropdown] = useState<HTMLDivElement | null>(null);
+  const dropdownRef = useMergedRef(popoverEscape, setDropdown);
+  // A click on the place is the indicator's own: a second click on it closes through its toggle.
+  useClickOutside(
+    () => {
+      if (opened && !sheet && !paletteOpen) panels.leave();
+    },
+    null,
+    [place, dropdown],
+  );
   const name = i18n._(module.name);
   const content = shown !== undefined && (
     <LazyContribution
       key={shown}
       components={loadedPanels}
       fallback={<LoadingState />}
-      load={panel}
+      load={indicator.panel}
       props={{
         // Bound to the opening the content was mounted for: a call that comes after the person
         // left it closes nothing that is open now.
@@ -113,11 +118,8 @@ export function IndicatorPanelFrame({ module, panel, sheet, children }: Indicato
   return (
     <>
       <Popover
-        closeOnClickOutside={!paletteOpen}
+        closeOnClickOutside={false}
         closeOnEscape={false}
-        onChange={(next) => {
-          if (!next) panels.leave();
-        }}
         opened={opened && !sheet}
         position="bottom-end"
         returnFocus
@@ -127,11 +129,13 @@ export function IndicatorPanelFrame({ module, panel, sheet, children }: Indicato
         // The place is no control of its own; the indicator's buttons are.
         withRoles={false}
       >
-        <Popover.Target>{children}</Popover.Target>
+        <Popover.Target>
+          <Box aria-hidden style={ANCHOR_STYLE} />
+        </Popover.Target>
         <Popover.Dropdown
           aria-label={name}
           data-color-set={module.color}
-          ref={popoverFrame}
+          ref={dropdownRef}
           role="dialog"
           style={DROPDOWN_STYLE}
           tabIndex={-1}

@@ -436,6 +436,25 @@ describe("the web app's startup rules", () => {
     });
   });
 
+  it("keep the frame of an Indicator Panel out of the start, naming the code that imports it", () => {
+    const frame = "/repo/packages/shell/src/indicator-panel.tsx";
+    const place = "/repo/packages/shell/src/module-indicators.tsx";
+    const problems = (startup: Record<string, unknown>, onDemand: Record<string, unknown>) =>
+      inspectStartup(
+        [
+          chunk("main.js", { isEntry: true, modules: startup }),
+          chunk("frame.js", { modules: onDemand }),
+        ],
+        new Set(),
+        { ...STARTUP_RULES, maxBytes: 100 },
+        (id) => (id === frame ? [place] : []),
+      ).problems;
+    expect(problems({ [place]: {} }, { [frame]: {} })).toEqual([]);
+    expect(problems({ [place]: {}, [frame]: {} }, {})).toEqual([
+      `The frame of an Indicator Panel entered the startup bundle, imported by ${place}: reach it only through IndicatorPanelFrame of indicator-panel-frame.tsx, which loads it on demand.`,
+    ]);
+  });
+
   it("reject the emoji data at startup and name the code that imports it", () => {
     expect(
       inspect(

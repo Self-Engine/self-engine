@@ -93,7 +93,7 @@ interface IndicatorWithoutPanel {
  * exists only inside the indicator's entry. The panel's code lives in `src/indicator/` as well: it
  * loads at the first opening, and the Shell preloads it in an idle moment once the indicator came.
  */
-interface IndicatorWithPanel {
+export interface IndicatorWithPanel {
   readonly load: () => Promise<{ readonly default: ComponentType<ModuleIndicatorWithPanelProps> }>;
   readonly panel: () => Promise<{ readonly default: ComponentType<IndicatorPanelProps> }>;
 }

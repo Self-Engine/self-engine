@@ -2,7 +2,7 @@ import { useLingui } from "@lingui/react/macro";
 import { Box, Group, rem } from "@mantine/core";
 import { colorSetColor } from "@self-engine/theme";
 import { NOT_WINDOW_DRAG_STYLE } from "@self-engine/ui";
-import { type CSSProperties, useCallback } from "react";
+import { type CSSProperties, useCallback, useState } from "react";
 import type {
   ModuleIndicator,
   ModuleIndicatorProps,
@@ -10,7 +10,7 @@ import type {
   ShellContribution,
 } from "./contributions.ts";
 import { useAfterFirstIdle } from "./idle.ts";
-import { IndicatorPanelFrame, usePanelPreload } from "./indicator-panel.tsx";
+import { IndicatorPanelFrame } from "./indicator-panel-frame.tsx";
 import { useIndicatorPanels } from "./indicator-panels.tsx";
 import { LazyContribution, lazyComponents } from "./lazy-contribution.tsx";
 import type { IndicatorForm } from "./module-indicator-form.ts";
@@ -38,6 +38,8 @@ const PLACE_STYLE: CSSProperties = {
   flex: "none",
   height: rem(PLACE_HEIGHT),
   overflow: "hidden",
+  // For the Indicator Panel, which hangs below the whole place.
+  position: "relative",
   paddingInline: "var(--mantine-spacing-xs)",
 };
 
@@ -59,7 +61,7 @@ function IndicatorPlace({ module, indicator, form, codeWanted, panelAsSheet }: P
   const { i18n } = useLingui();
   const panels = useIndicatorPanels();
   const togglePanel = useCallback(() => panels.toggle(module.id), [panels, module.id]);
-  usePanelPreload(indicator.load, indicator.panel, codeWanted);
+  const [placeNode, setPlaceNode] = useState<HTMLDivElement | null>(null);
   const Icon = module.icon;
   const icon = (
     <Box aria-label={i18n._(module.name)} role="img" style={ICON_STYLE}>
@@ -82,20 +84,22 @@ function IndicatorPlace({ module, indicator, form, codeWanted, panelAsSheet }: P
         props={{ form, togglePanel }}
       />
     );
-  const place = (
+  return (
     <Box
       data-color-set={module.color}
+      ref={setPlaceNode}
       style={{ ...PLACE_STYLE, maxWidth: rem(INDICATOR_MAX_WIDTH[form]) }}
     >
       {codeWanted ? code : icon}
+      {codeWanted && indicator.panel !== undefined && (
+        <IndicatorPanelFrame
+          indicator={indicator}
+          module={module}
+          place={placeNode}
+          sheet={panelAsSheet}
+        />
+      )}
     </Box>
-  );
-  return indicator.panel === undefined ? (
-    place
-  ) : (
-    <IndicatorPanelFrame module={module} panel={indicator.panel} sheet={panelAsSheet}>
-      {place}
-    </IndicatorPanelFrame>
   );
 }
 
