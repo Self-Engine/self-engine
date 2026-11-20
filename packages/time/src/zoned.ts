@@ -1,7 +1,7 @@
 import type { Clock } from "./clock.ts";
 import { epochMsOf } from "./borders.ts";
 import type { Instant } from "./instant.ts";
-import { calendarDayFrom, instantFrom } from "./supported-years.ts";
+import { instantFrom } from "./supported-years.ts";
 import {
   wallClockTimeSchema,
   type CalendarDay,
@@ -9,6 +9,9 @@ import {
   type WallClockTime,
 } from "./values.ts";
 import type { TimeZone } from "./zone.ts";
+import { calendarDayOf, startOfCalendarDay, zonedOf } from "./zoned-day.ts";
+
+export { calendarDayOf, startOfCalendarDay };
 
 /** Which Instant a day and wall-clock time mean in a zone, and how a clock change shaped it. */
 export type ResolvedInstant =
@@ -23,15 +26,6 @@ export type ResolvedInstant =
 export interface InstantRange {
   readonly start: Instant;
   readonly end: Instant;
-}
-
-function zonedOf(instant: Instant, timeZone: TimeZone): Temporal.ZonedDateTime {
-  return Temporal.Instant.from(instant).toZonedDateTimeISO(timeZone);
-}
-
-/** The calendar day an Instant falls on in a zone. */
-export function calendarDayOf(instant: Instant, timeZone: TimeZone): CalendarDay {
-  return calendarDayFrom(zonedOf(instant, timeZone).toPlainDate());
 }
 
 /** The wall-clock time an Instant shows in a zone, cut to the minute. */
@@ -139,11 +133,6 @@ export function resolveWallClockTime(
     occurrence,
     offset: chosen.offset,
   };
-}
-
-/** The first moment of a day in a zone; not always 00:00. */
-export function startOfCalendarDay(day: CalendarDay, timeZone: TimeZone): Instant {
-  return instantFrom(Temporal.PlainDate.from(day).toZonedDateTime(timeZone).toInstant());
 }
 
 /** The Instants of a calendar day or day span: its first moment up to the next day's first. */

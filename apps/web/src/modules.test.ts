@@ -7,15 +7,17 @@ import { contribution as beta } from "@self-engine/placeholder-beta";
 import { createModuleList } from "./module-list.ts";
 import { appModules } from "./modules.ts";
 
+const clock = fixedClock(requireInstant("2026-11-20T10:00:00.000Z"));
+
 const { contributions, settings } = appModules;
 
 function mountWithoutDataTexts() {
   const { dataTexts: _checked, ...withoutTexts } = beta;
   // @ts-expect-error Mounting requires the module's data texts.
-  createModuleList([withoutTexts]);
+  createModuleList([withoutTexts], clock);
   // @ts-expect-error A literal of names is no proof: only `dataTexts` checks them against the
   // module's storage module, so `tableNames: {}` of a module with data cannot be mounted.
-  createModuleList([{ ...withoutTexts, dataTexts: { tableNames: {}, reasonTexts: {} } }]);
+  createModuleList([{ ...withoutTexts, dataTexts: { tableNames: {}, reasonTexts: {} } }], clock);
 }
 void mountWithoutDataTexts;
 
@@ -72,7 +74,7 @@ test("a list of table counts follows the App Language, including its conjunction
 test("two mounted modules cannot claim the same synced table", async () => {
   const { contribution: alpha } = await import("@self-engine/placeholder-alpha");
   const { contribution: beta } = await import("@self-engine/placeholder-beta");
-  expect(() => createModuleList([alpha, { ...beta, dataTexts: alpha.dataTexts }])).toThrow(
+  expect(() => createModuleList([alpha, { ...beta, dataTexts: alpha.dataTexts }], clock)).toThrow(
     "Duplicate synced table name: placeholder_alpha_entries",
   );
 });

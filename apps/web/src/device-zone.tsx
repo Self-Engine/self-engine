@@ -4,12 +4,12 @@
 
 import type { TimeZone } from "@self-engine/time";
 import { sameTimeZone } from "@self-engine/time/settings";
-import { TimeSettingsProvider, type TimeSettingsProviderProps } from "@self-engine/time/react";
+import {
+  type PageVisibility,
+  TimeSettingsProvider,
+  type TimeSettingsProviderProps,
+} from "@self-engine/time/react";
 import { useSyncExternalStore } from "react";
-
-/** Where the window says that it became visible: the document, in the app. */
-export type VisibilityPage = Pick<Document, "visibilityState"> &
-  Pick<EventTarget, "addEventListener" | "removeEventListener">;
 
 type Listen = (listener: () => void) => () => void;
 
@@ -51,7 +51,10 @@ function listeners(): { readonly listen: Listen; readonly call: () => void } {
  * for the lifetime of the page. Another name of the zone it holds keeps the name it holds, so a
  * reader renders again only when the zone really changed.
  */
-export function watchDeviceZone(page: VisibilityPage, read: () => TimeZone): DeviceZoneSource {
+export function watchDeviceZone(
+  visibility: PageVisibility,
+  read: () => TimeZone,
+): DeviceZoneSource {
   let current = read();
   const changed = listeners();
   const visible = listeners();
@@ -62,8 +65,8 @@ export function watchDeviceZone(page: VisibilityPage, read: () => TimeZone): Dev
     changed.call();
     return current;
   }
-  page.addEventListener("visibilitychange", () => {
-    if (page.visibilityState !== "visible") return;
+  visibility.onChange(() => {
+    if (!visibility.visible()) return;
     refresh();
     visible.call();
   });

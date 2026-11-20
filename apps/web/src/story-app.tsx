@@ -3,7 +3,8 @@
 import { DataProvider, type PortAccess } from "@self-engine/data-client/react";
 import { LANGUAGE_TAGS, loadAppCatalog } from "@self-engine/i18n";
 import { resolveTimeZone } from "@self-engine/time";
-import { TimeSettingsProvider } from "@self-engine/time/react";
+import { PageClockProvider, TimeSettingsProvider } from "@self-engine/time/react";
+import { alwaysVisible } from "@self-engine/time/testing";
 import { holdTimers } from "@self-engine/ui/story-timers";
 import { loadStoryShell, modKey } from "@self-engine/shell/story-interactions";
 import { createMemoryHistory, RouterProvider } from "@tanstack/react-router";
@@ -13,9 +14,9 @@ import { createAppRouter } from "./app-router.ts";
 import type { ModuleList } from "./module-list.ts";
 import { appReasonTexts } from "./reason-texts.ts";
 import { settingsStore } from "./settings-store.ts";
-import { storyModules } from "./story-modules.ts";
+import { STORY_CLOCK, storyModules } from "./story-modules.ts";
 
-export { storyModules };
+export { STORY_CLOCK, storyModules };
 
 /**
  * Finish fetching the app's lazy code before a Story starts interacting. On a cold dev server,
@@ -46,8 +47,9 @@ const throwError = (error: Error) => {
 };
 
 /**
- * The time settings as `main.tsx` provides them, with a named device zone and region, so that a
- * story renders the same everywhere. Every story that mounts the app's router needs it.
+ * The time settings and the page's Clock as `main.tsx` provides them, with a named device zone
+ * and region and the fixed Clock the stories' settings area gets too, so that a story renders the
+ * same everywhere and on every day. Every story that mounts the app's router needs it.
  */
 export function StoryTimeSettings({ children }: { readonly children: ReactNode }) {
   return (
@@ -57,7 +59,9 @@ export function StoryTimeSettings({ children }: { readonly children: ReactNode }
       region="en-US"
       store={settingsStore}
     >
-      {children}
+      <PageClockProvider clock={STORY_CLOCK} visibility={alwaysVisible}>
+        {children}
+      </PageClockProvider>
     </TimeSettingsProvider>
   );
 }

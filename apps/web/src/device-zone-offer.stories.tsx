@@ -7,10 +7,11 @@ import type { Meta, StoryObj } from "@storybook/react-vite";
 import { expect, screen, userEvent, waitFor, within } from "storybook/test";
 import { watchDeviceZone } from "./device-zone.tsx";
 import { DeviceZoneOffer } from "./device-zone-offer.tsx";
+import { watchVisibility } from "./page-visibility.ts";
 
 const BANGKOK: TimeZone = resolveTimeZone("Asia/Bangkok").timeZone;
 /** The device of every story is in Bangkok, whatever the browser running it says. */
-const inBangkok = watchDeviceZone(document, () => BANGKOK);
+const inBangkok = watchDeviceZone(watchVisibility(document), () => BANGKOK);
 
 /** The story's store: the Time Zone stored in Berlin, as a trip to Bangkok finds it. */
 let store: SettingsStore;
