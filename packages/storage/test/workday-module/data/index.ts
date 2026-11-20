@@ -2,7 +2,7 @@
 import { defineStorageModule, SETTINGS_TABLE } from "../../../src/core/index.ts";
 import { workdayContract, workdayHours } from "../contracts/index.ts";
 
-/** A module without a table of its own, whose Query and Operation read a Setting. */
+/** A module without a table of its own, whose Queries and Operation read Settings. */
 export const workday = defineStorageModule({
   name: "workday",
   contract: workdayContract,
@@ -18,5 +18,11 @@ export const workday = defineStorageModule({
   readHours: {
     kind: "operation",
     run: (tx, context) => context.readSetting(tx, workdayHours),
+  },
+  zone: {
+    kind: "query",
+    // The Time Zone is a Setting: a change of it reloads this Query.
+    reads: [SETTINGS_TABLE],
+    run: (tx, context) => context.readTimeZone(tx),
   },
 });

@@ -11,6 +11,11 @@ import type { RowMap, StorageContract, StorageModule, ErasedStorageModule } from
 export type FrameReport =
   | LargeResultReport
   | {
+      /** A stored Time Zone this runtime does not know; calls compute with the device's (D353). */
+      readonly kind: "unknown-time-zone";
+      readonly name: string;
+    }
+  | {
       readonly kind: "unexpected-error";
       readonly entry: string;
       readonly error: unknown;

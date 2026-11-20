@@ -2,7 +2,8 @@ import { newId, type IdSources } from "@self-engine/db";
 import type { JsonValue, SettingDeclaration } from "@self-engine/settings";
 import { readSetting, type SettingsReader } from "@self-engine/settings-rows";
 import type { SpaceId } from "@self-engine/spaces";
-import type { Clock, Instant } from "@self-engine/time";
+import type { Clock, Instant, TimeZone } from "@self-engine/time";
+import { resolveTimeZoneSetting, TIME_ZONE_SETTING } from "@self-engine/time/settings";
 import type { z } from "zod";
 import type { ProtectionRules } from "./registry.ts";
 
@@ -17,6 +18,17 @@ export interface ContextSources {
   readonly spaceId: SpaceId;
   /** Every Protection Rule of the Data Process; a write path asks them before it writes. */
   readonly rules: ProtectionRules;
+  /**
+   * The zone the device runs in, handed in like the clock (ADR 0027): the app's composition
+   * passes the runtime's, a test a fixed one. It stands in for a Time Zone that is not set or
+   * that this runtime does not know.
+   */
+  readonly deviceZone: () => TimeZone;
+  /**
+   * Told the stored name of a Time Zone this runtime does not know, at every call that read it.
+   * The Data Process reports each name once per start (D353).
+   */
+  readonly unknownTimeZone: (name: string) => void;
 }
 
 export interface StorageContext {
@@ -37,6 +49,13 @@ export interface StorageContext {
     tx: SettingsReader<DB>,
     setting: SettingDeclaration<T, "synced">,
   ): Promise<T>;
+  /**
+   * The Time Zone of the call (D353): the Setting read through the call's `tx` and resolved by
+   * `time`. The device's zone stands in while none is set and for a name this runtime does not
+   * know; the Setting stays as it is. A Query that asks for it names `SETTINGS_TABLE` among its
+   * reads, as for `readSetting`.
+   */
+  readTimeZone<DB>(tx: SettingsReader<DB>): Promise<TimeZone>;
 }
 
 export function createContext(sources: ContextSources): StorageContext {
@@ -51,5 +70,11 @@ export function createContext(sources: ContextSources): StorageContext {
     newId: <Schema extends z.ZodType<string>>(_schema: Schema): z.output<Schema> =>
       newId<z.output<Schema>>(ids),
     readSetting: (tx, setting) => readSetting(tx, sources.spaceId, setting),
+    async readTimeZone(tx) {
+      const name = await readSetting(tx, sources.spaceId, TIME_ZONE_SETTING);
+      const { timeZone, fallback } = resolveTimeZoneSetting(name, sources.deviceZone());
+      if (fallback === "unknownName" && name !== null) sources.unknownTimeZone(name);
+      return timeZone;
+    },
   };
 }

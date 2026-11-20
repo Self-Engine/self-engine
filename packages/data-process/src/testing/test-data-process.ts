@@ -4,6 +4,7 @@ import type { Database, Migration } from "@self-engine/db";
 import { openDatabase } from "@self-engine/db/better-sqlite3";
 import { createTestSources } from "@self-engine/db/testing";
 import type { SpaceSources } from "@self-engine/spaces";
+import { resolveTimeZone, type TimeZone } from "@self-engine/time";
 import {
   type BeforeMigrations,
   type DataModules,
@@ -18,6 +19,12 @@ export interface TestDataProcessOptions<Modules extends DataModules = DataModule
   readonly rules?: DataProcessOptions<Modules>["rules"];
   /** The clock and ids of every call and of the Personal Space; the start finds the Space. */
   readonly sources?: SpaceSources;
+  /**
+   * The zone the device runs in, which every call computes with while no Time Zone is stored or
+   * the stored one is unknown. Default: `Europe/Berlin`. Name a zone west of UTC to test that
+   * side of the day line.
+   */
+  readonly deviceZone?: TimeZone;
   /** Passed to the core: Synced Settings to write if they are missing. */
   readonly startSettings?: DataProcessOptions["startSettings"];
   readonly checkOutputs?: boolean;
@@ -58,6 +65,7 @@ export interface TestDataProcess {
 export async function startTestDataProcess<const Modules extends DataModules = DataModules>(
   options: TestDataProcessOptions<Modules> = {},
 ): Promise<TestDataProcess> {
+  const deviceZone = options.deviceZone ?? resolveTimeZone("Europe/Berlin").timeZone;
   const database = options.database ?? openDatabase(":memory:");
   let core;
   try {
@@ -74,7 +82,10 @@ export async function startTestDataProcess<const Modules extends DataModules = D
         },
       },
       ...(options.rules === undefined ? {} : { rules: options.rules }),
-      sources: options.sources ?? createTestSources("2026-01-01T00:00:00.000Z"),
+      sources: {
+        ...(options.sources ?? createTestSources("2026-01-01T00:00:00.000Z")),
+        deviceZone: () => deviceZone,
+      },
       ...(options.startSettings === undefined ? {} : { startSettings: options.startSettings }),
       checkOutputs: options.checkOutputs ?? true,
       ...(options.report === undefined ? {} : { report: options.report }),

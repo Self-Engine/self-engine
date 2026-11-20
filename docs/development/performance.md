@@ -643,6 +643,28 @@ relative to an empty list. The figures are paired differences across 1,001 start
 pragmas and calling the Data Process core directly. The empty list runs no Settings
 SQL. An existing row takes one lookup and no write transaction.
 
+### The Time Zone of a call (#362)
+
+Measured as "A Setting read" above, on an Apple M3 Pro with Node 26.13.0, inside the test runner,
+with the Time Zone stored as `Europe/Berlin` among 50 Settings of the Space. Each figure is the
+median of 1,001 calls after 31 warm-up calls, the range over three runs.
+
+| Case                                 | In-memory      | File           |
+| ------------------------------------ | -------------- | -------------- |
+| Framed call asking for the Time Zone | 0.023–0.025 ms | 0.024–0.026 ms |
+| Framed call reading another Setting  | 0.020–0.022 ms | 0.022–0.023 ms |
+| Framed call without a read           | 0.010 ms       | 0.008–0.009 ms |
+| Resolving the stored name alone      | 0.0006 ms      | 0.0006 ms      |
+
+Asking for the Time Zone adds about **0.014–0.017 ms** to a call that reads nothing: one Setting
+read, and about 0.003 ms on top of it to resolve the name through `time` and take the device's
+zone. Asking the runtime for the device's zone costs about 0.0003 ms.
+
+At the start the desktop app lists the Time Zone in the start values. Measured as "Settings written
+at startup" above (paired differences against an empty list, 1,001 starts after 334 warm-up
+starts per case, three runs), the start took a median **0.015 ms** longer when the row existed
+and **0.063–0.078 ms** longer when it was written.
+
 ## Loading and saving Settings through the Port (#356)
 
 Measured on an Apple M3 Pro with Node 26.13.1 and file-backed SQLite using the app's pragmas.
