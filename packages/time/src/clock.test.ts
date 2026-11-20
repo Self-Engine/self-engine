@@ -1,4 +1,6 @@
+import fc from "fast-check";
 import { afterEach, expect, expectTypeOf, test, vi } from "vite-plus/test";
+import { instantSchema } from "./instant.ts";
 import * as main from "./index.ts";
 import {
   advanceInstantByMilliseconds,
@@ -37,6 +39,31 @@ test("the system clock reads controlled system time and retains milliseconds", (
   expect(systemClock()).toBe("2026-11-14T00:00:00.999Z");
   expectTypeOf(systemClock).toEqualTypeOf<Clock>();
 });
+
+test("the system clock's Instant passes the Instant schema in every supported year", () => {
+  // 1000-01-01T00:00:00.000Z to 9999-12-31T23:59:59.999Z.
+  const supported = fc.integer({ min: -30_610_224_000_000, max: 253_402_300_799_999 });
+  fc.assert(
+    fc.property(supported, (ms) => {
+      vi.useFakeTimers({ toFake: ["Date"], now: ms });
+      const instant = systemClock();
+      expect(instantSchema.parse(instant)).toBe(instant);
+      expect(Date.parse(instant)).toBe(ms);
+    }),
+  );
+  for (const ms of [-30_610_224_000_000, 0, 253_402_300_799_999]) {
+    vi.setSystemTime(ms);
+    expect(instantSchema.safeParse(systemClock()).success).toBe(true);
+  }
+});
+
+test.each([-30_610_224_000_001, 253_402_300_800_000])(
+  "the system clock rejects the system time %s ms, just outside the supported years",
+  (ms) => {
+    vi.useFakeTimers({ toFake: ["Date"], now: ms });
+    expect(() => systemClock()).toThrow(RangeError);
+  },
+);
 
 test("advances a fixture Instant across a UTC day boundary, keeping milliseconds", () => {
   const start = requireInstant("2026-11-14T23:59:59.999Z");

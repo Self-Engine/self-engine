@@ -18,8 +18,12 @@ Electron's Node 24 with ICU 78.2.
 
 ## Decision
 
+[ADR 0035](0035-calendar-weeks-start-on-a-named-day.md) adds a standalone schema entry.
+[ADR 0036](0036-the-app-stores-its-time-zone-and-week-start-as-settings.md) adds Settings
+and page hooks with their own entries and import rules.
+
 1. **`@self-engine/time` is the one package that computes with time, cut for this app.** It
-   imports no package of this repo and has one dependency, `zod`. Every function it exports has a
+   main entry has no workspace imports. Every function it exports has a
    user in sight: the code moved onto it in the same work package, projects, the time module or
    the time zone Setting. The old app's package was a template, not a starting point; its test
    cases for clock changes and date boundaries run against the new one.
@@ -31,10 +35,11 @@ Electron's Node 24 with ICU 78.2.
    ([ADR 0027](0027-date-and-temporal-exist-only-inside-time-and-no-clock-has-a-default.md)).
    Conversions keep no cache. Only the display formats keep one `Intl.DateTimeFormat` per
    format, language and zone, because building one costs far more than using it.
-3. **The package has four entries.** The main entry holds the values, the arithmetic, the
+3. **The time calculations and system sources have separate entries.** The main entry holds the values, the arithmetic, the
    conversions, the zones and the display formats. `./testing` holds `requireInstant`, which
    writes an Instant as text, `fixedClock`, and `advanceInstantByMilliseconds` for test sources
-   that move their clock. `./system-clock` holds the system clock alone. `./check` holds the
+   that move their clock. `./system-clock` holds the system clock alone. `./device-time-zone`
+   supplies the device's zone without loading the time value schemas. `./check` holds the
    check program.
 4. **Four kinds of checks prove the arithmetic on every `pnpm verify`.**
    - Fixed cases with written-out results, ported from the old package and extended: clock

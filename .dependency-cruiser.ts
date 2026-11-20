@@ -35,7 +35,8 @@ export const ALLOWED_IMPORTS: AllowedImports = {
   "data-client": ["data-protocol", "i18n", "ui"],
   // The core knows no module: the app passes its module list in. It runs the migrations of
   // `spaces` and `settings` and makes sure of the Personal Space at every start (D287, D352).
-  "data-process": ["data-protocol", "db", "settings-rows", "spaces", "storage"],
+  // The device's zone it hands to every call is a `TimeZone` of `time` (D353).
+  "data-process": ["data-protocol", "db", "settings-rows", "spaces", "storage", "time"],
   // `health`, the Table Change stream and the Backups; a Backup's Instant comes from `time`.
   "data-protocol": ["db", "time"],
   // The preload and the page share it; the failure states come from the protocol.
@@ -83,7 +84,9 @@ export const ALLOWED_IMPORTS: AllowedImports = {
   // The context of every call reads a Setting through `settings-rows` (D352), typed by the
   // declaration of `settings`.
   storage: ["db", "settings", "settings-rows", "spaces", "time"],
-  time: [],
+  // Its Settings entry declares the Time Zone and week start (D356), and its React entry
+  // subscribes to them. The time arithmetic imports no repo package (D143).
+  time: ["settings"],
   ui: ["icons", "theme"],
 };
 
@@ -97,8 +100,6 @@ export const TEST_ONLY_IMPORTS: AllowedImports = {
   icons: ["i18n"],
   // The test Data Process and the `notes` test module, to test the client over the real core.
   "data-client": ["data-process", "storage"],
-  // Instants written as text in the fixtures of the Backups the core answers with.
-  "data-process": ["time"],
   // The app's catalogs: the texts of the checks in both languages, and a story's language switch.
   forms: ["i18n"],
   // The test Data Process, to run the module's hooks end to end without the app (#33).
@@ -279,6 +280,29 @@ export function boundaryConfig({
       severity: "error",
       from: { pathNot: "^apps/" },
       to: { path: "^packages/time/src/system-clock\\.ts$", dependencyTypesNot: ["local"] },
+    },
+    {
+      name: "time-imports-no-package",
+      comment:
+        "The Settings and React entries of `time` can import `settings` (D356). The rest of `time` imports no workspace package (D143): a module reads its days and zones without the settings code.",
+      severity: "error",
+      from: { path: "^packages/time/src/", pathNot: "^packages/time/src/(?:settings|react)/" },
+      to: { path: "^packages/", pathNot: "^packages/time/" },
+    },
+    {
+      name: "time-settings-entry-is-small",
+      comment:
+        "The Settings entry of `time` (`@self-engine/time/settings`) loads in the page before its first render and in the Data Process (D356). Nothing it reaches may load React, Mantine or Zod's full build: declare schemas with `zod/mini`, and import from `time` only files that do the same (docs/development/performance.md).",
+      severity: "error",
+      from: { path: "^packages/time/src/settings/", pathNot: DEV_ONLY_FILE },
+      to: {
+        path: [
+          "(^|/)node_modules/(?:@types/)?(?:react|react-dom)/",
+          "(^|/)node_modules/@mantine/",
+          "(^|/)node_modules/zod/(?!mini/|v4/core/|v4/mini/|v4-mini/)",
+        ],
+        reachable: true,
+      },
     },
     {
       name: "storage-is-portable",

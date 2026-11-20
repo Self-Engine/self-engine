@@ -5,6 +5,7 @@ import { dataModules } from "./data-modules.ts";
 import { dataProcessOptions } from "./data-process-options.ts";
 import { databasePathFromArgs } from "./data-process-messages.ts";
 import { openDataFiles, runDataProcess } from "./data-process-runtime.ts";
+import { startSettings } from "./start-settings.ts";
 import { systemSources } from "./system-sources.ts";
 
 function fail(error: unknown): void {
@@ -19,7 +20,7 @@ try {
     ...openDataFiles(databasePathFromArgs(process.argv), sources.clock),
     sources,
     modules: dataModules,
-    startSettings: [],
+    startSettings: startSettings(sources),
     ...dataProcessOptions,
   }).catch(fail);
 } catch (error) {

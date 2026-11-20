@@ -6,7 +6,8 @@ import { msg } from "@lingui/core/macro";
 import { Trans, useLingui } from "@lingui/react/macro";
 import { Box, Button, Group, Stack, Text } from "@mantine/core";
 import { useDataAccess } from "@self-engine/data-client/react";
-import { deviceTimeZone, formatInstant, type TimeZone } from "@self-engine/time";
+import { formatInstant, type TimeZone } from "@self-engine/time";
+import { useTimeZone } from "@self-engine/time/react";
 import { notifyDone, notifyUndoable, QueryStateBlock } from "@self-engine/ui";
 import { WarningAlert } from "@self-engine/ui/warning-alert";
 import { memo, useCallback, useState } from "react";
@@ -155,8 +156,7 @@ function RestoreBackup({ labelledBy }: SettingsRowControlProps) {
   const reload = useReloadBackups();
   const data = useDataAccess();
   const [restoring, setRestoring] = useState<Backup["id"]>();
-  // TODO #110: the zone the user picked. Until that Setting exists, the device's, read once.
-  const [timeZone] = useState(deviceTimeZone);
+  const timeZone = useTimeZone();
   // A restore is not asked about first: what it replaces is backed up, so the Notice offers the
   // way back instead (D79).
   const restore = useCallback(

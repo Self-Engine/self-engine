@@ -23,3 +23,8 @@ export function resolveAppLanguage(
   }
   return BASE_LANGUAGE;
 }
+
+/** The region associated with the resolved App Language. */
+export function regionForAppLanguage(language: Language) {
+  return LANGUAGES[language].region;
+}

@@ -42,7 +42,7 @@ function dayOf(instant: Instant): CalendarDay {
 
 /** The week of a day, Monday to Sunday, named by its Monday. */
 function weekStartOf(day: CalendarDay): CalendarDay {
-  return weekOf(day, 1).first;
+  return weekOf(day, "monday").first;
 }
 
 /**

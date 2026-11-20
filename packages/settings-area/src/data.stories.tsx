@@ -1,12 +1,12 @@
 import type { PortAccess } from "@self-engine/data-client/react";
-import { deviceTimeZone, formatInstant, type Instant } from "@self-engine/time";
+import { formatInstant, type Instant } from "@self-engine/time";
 import { LOADER_DELAY_MS } from "@self-engine/ui";
 import { clearNotices } from "@self-engine/ui/story-notices";
 import { holdTimers } from "@self-engine/ui/story-timers";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import type { ComponentType } from "react";
 import { expect, screen, userEvent, waitFor, within } from "storybook/test";
-import { storyViewPage } from "./story-page.tsx";
+import { STORY_DEVICE_ZONE, storyViewPage } from "./story-page.tsx";
 import { loadedStoreOn, memoryStorage } from "./story-store.ts";
 import {
   BEFORE_RESTORE_BACKUP,
@@ -79,9 +79,9 @@ type Story = StoryObj<typeof meta>;
 const callsOf = (loaded: unknown) => (loaded as Loaded).calls;
 const entries = (loaded: unknown) => callsOf(loaded).map(({ entry }) => entry);
 
-/** A Backup's time as the page writes it: in the language shown and this device's time zone. */
+/** A Backup's time as the page writes it: in the language shown and the user's Time Zone. */
 const timeOf = ({ takenAt }: { readonly takenAt: Instant }, locale = "en") =>
-  formatInstant(takenAt, "dateTime", locale, deviceTimeZone());
+  formatInstant(takenAt, "dateTime", locale, STORY_DEVICE_ZONE);
 
 /** A theme role's color as the browser computes it for `element`. */
 function colorOf(element: Element, variable: string): string {

@@ -59,7 +59,7 @@ async function expectFieldAboveTheRows(canvas: Canvas, view: string, firstRow: s
 export const EveryViewHasTheFieldAboveItsRows: Story = {
   play: async ({ canvas }) => {
     await expectFieldAboveTheRows(canvas, "Appearance", "Color Mode");
-    await expectFieldAboveTheRows(canvas, "Language", "App Language");
+    await expectFieldAboveTheRows(canvas, "Language and region", "App Language");
     await expectFieldAboveTheRows(canvas, "Shortcuts", "Undo");
     await expectFieldAboveTheRows(canvas, "About", "Version");
   },
@@ -85,7 +85,7 @@ export const AControlInTheHitListChangesItsSetting: Story = {
     await userEvent.click(appearance.getByRole("radio", { name: "Compact" }));
     await expect(appearance.getByRole("radio", { name: "Compact" })).toBeChecked();
     await expect(settingsStore.read(APPEARANCE_SETTINGS.density)).toBe("compact");
-    await expectViewOfTheAddress(canvas, "Language");
+    await expectViewOfTheAddress(canvas, "Language and region");
   },
 };
 
@@ -98,7 +98,7 @@ export const AnAddressWithASearchTextShowsItsHits: Story = {
       (await hitsOf(canvas, "Appearance")).getByRole("radiogroup", { name: "Density" }),
     ).toBeVisible();
     await expect(canvas.queryByRole("radiogroup", { name: "App Language" })).toBeNull();
-    await expectViewOfTheAddress(canvas, "Language");
+    await expectViewOfTheAddress(canvas, "Language and region");
   },
 };
 
@@ -107,8 +107,8 @@ export const TheSearchTextStaysWhenTheViewChanges: Story = {
     await userEvent.type(await field(canvas), "compact");
     await addressHas("compact");
 
-    await userEvent.click(canvas.getByRole("link", { name: "Language" }));
-    await expectViewOfTheAddress(canvas, "Language");
+    await userEvent.click(canvas.getByRole("link", { name: "Language and region" }));
+    await expectViewOfTheAddress(canvas, "Language and region");
     await expect(location().pathname).toBe(LANGUAGE);
     await addressHas("compact");
     await expect(await field(canvas)).toHaveValue("compact");
@@ -127,8 +127,8 @@ export const ChangingTheViewDuringASearchKeepsTheHits: Story = {
       name: "Density",
     });
 
-    await userEvent.click(canvas.getByRole("link", { name: "Language" }));
-    await expectViewOfTheAddress(canvas, "Language");
+    await userEvent.click(canvas.getByRole("link", { name: "Language and region" }));
+    await expectViewOfTheAddress(canvas, "Language and region");
     await expect(location().pathname).toBe(LANGUAGE);
     await expect(density).toBeVisible();
   },
@@ -188,8 +188,8 @@ export const BackLeavesTheSearchInOneStep: Story = {
 export const BackToATextThatWasTypedAndTakenBack: Story = {
   args: { address: `${APPEARANCE}?q=dark` },
   play: async ({ canvas }) => {
-    await userEvent.click(await canvas.findByRole("link", { name: "Language" }));
-    await expectViewOfTheAddress(canvas, "Language");
+    await userEvent.click(await canvas.findByRole("link", { name: "Language and region" }));
+    await expectViewOfTheAddress(canvas, "Language and region");
     const search = await field(canvas);
     await userEvent.clear(search);
     await userEvent.type(search, "compact");

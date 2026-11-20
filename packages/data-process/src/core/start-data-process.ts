@@ -3,6 +3,8 @@ import type { Health, TablesChanged } from "@self-engine/data-protocol";
 import { isLocalTable, referencesOf, type Database } from "@self-engine/db";
 import type { StartSetting } from "@self-engine/settings-rows";
 import type { SpaceSources } from "@self-engine/spaces";
+import type { TimeZone } from "@self-engine/time";
+import { reportEachNameOnce } from "@self-engine/time/settings";
 import {
   createFrame,
   protectionRules,
@@ -20,6 +22,16 @@ import { createPortServer, type DataPort } from "./serve.ts";
 import { type BeforeMigrations, startUp } from "./startup.ts";
 import { createTablesChangedPublisher } from "./tables-changed.ts";
 
+/** The sources the platform hands in: the core asks the runtime for none of them (ADR 0027). */
+export interface DataProcessSources extends SpaceSources {
+  /**
+   * The zone the device runs in. Every call computes with it while no Time Zone is set or the
+   * stored one is unknown to this runtime (D353); the composition writes it as the Time Zone at
+   * the first start through `startSettings`.
+   */
+  readonly deviceZone: () => TimeZone;
+}
+
 export interface DataProcessOptions<Modules extends DataModules = DataModules> {
   /** The opened database; the platform opens it with its own driver. */
   readonly database: Database;
@@ -31,10 +43,10 @@ export interface DataProcessOptions<Modules extends DataModules = DataModules> {
    */
   readonly rules?: readonly RegisteredRule<MountedTable<Modules>>[];
   /**
-   * The clock and id source for calls and for the Personal Space and Settings created at startup.
-   * Startup finds the Space of each call.
+   * The clock and id source for calls and for the Personal Space and Settings created at startup,
+   * and the device's zone of every call. Startup finds the Space of each call.
    */
-  readonly sources: SpaceSources;
+  readonly sources: DataProcessSources;
   /** Synced Settings to write in the Personal Space if their rows are missing. */
   readonly startSettings?: readonly StartSetting[];
   readonly checkOutputs: boolean;
@@ -138,10 +150,27 @@ export async function startDataProcess<const Modules extends DataModules>({
       void reportError;
     }
   };
-  const contextSources =
+  // Once per start and name: every call that reads an unknown name computes with the device's
+  // zone, and the report would otherwise flood (D353).
+  const unknownTimeZone = reportEachNameOnce((name) => {
+    try {
+      report?.({ kind: "unknown-time-zone", name });
+    } catch (reportError) {
+      // Reporting cannot fail the call that computes with the device's zone.
+      void reportError;
+    }
+  });
+  const contextSources: ContextSources | undefined =
     space === undefined
       ? undefined
-      : { clock: sources.clock, ids: sources.ids, spaceId: space.id, rules };
+      : {
+          clock: sources.clock,
+          ids: sources.ids,
+          spaceId: space.id,
+          rules,
+          deviceZone: sources.deviceZone,
+          unknownTimeZone,
+        };
   const moduleRouter = Object.fromEntries(
     Object.entries(modules).map(([name, module]) => [
       name,

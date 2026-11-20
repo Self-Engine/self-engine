@@ -1,4 +1,4 @@
-import type { Clock } from "@self-engine/time";
+import { resolveTimeZone, type Clock } from "@self-engine/time";
 import { EventEmitter } from "node:events";
 import { existsSync, mkdtempSync, readdirSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -24,6 +24,8 @@ import {
   type ParentPort,
   runDataProcess,
 } from "./data-process-runtime.ts";
+
+const BERLIN = resolveTimeZone("Europe/Berlin").timeZone;
 
 /** Stands in for Electron's `process.parentPort`: the main process's side is `send`. */
 class FakeParentPort extends EventEmitter implements ParentPort {
@@ -102,7 +104,7 @@ function run(
       parentPort,
       database,
       checkOutputs: true,
-      sources: createTestSources("2026-01-01T00:00:00.000Z"),
+      sources: { ...createTestSources("2026-01-01T00:00:00.000Z"), deviceZone: () => BERLIN },
       backups: NO_BACKUPS,
       timer: manualTimer(),
       ...options,

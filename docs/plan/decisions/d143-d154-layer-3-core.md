@@ -52,7 +52,8 @@ Grundlage: [`research-layer-3-core.md`](../research-layer-3-core.md).
   Synced Setting entscheidet über „heute“, Mitternacht und Wochengrenzen; der Wochenstart ist eine
   eigene Einstellung. Beim ersten Start kommt sie still vom Gerät, beim Import aus der alten App.
   Sie ändert sich nur durch den Nutzer: Ein abweichendes Gerät bietet den Wechsel an, „dem Gerät
-  folgen“ ist eine Option (aus); „nicht mehr fragen“ ist eine Device Setting; die Entscheidung
+  folgen“ ist eine Option (aus, seit #110 eine Device Setting, siehe Nachtrag in der Runde
+  D351–D356); „nicht mehr fragen“ ist eine Device Setting; die Entscheidung
   liegt rein in `time`. Keine Historie: Vergangene Zeitpunkte erscheinen in der aktuellen Zeitzone
   und können auf einen anderen Tag rutschen, Calendar days bewegen sich nie. Tageslogik nie in SQL,
   weil SQLite keine IANA-Zeitzonen kennt: `time` rechnet Tagesgrenzen im Datenprozess um, gruppiert
@@ -64,7 +65,8 @@ Grundlage: [`research-layer-3-core.md`](../research-layer-3-core.md).
   Zeiteinträge bestätigt und ergänzt durch D342: Ein Zeiteintrag speichert zusätzlich die
   Zeitzone, in der er entstand; gerechnet wird weiter mit der Einstellung. Ausgeführt durch D352
   und D353: Der Datenprozess liest die Einstellung in der Transaktion über den Kontext und
-  schreibt die Gerätezone beim Start, wenn sie fehlt._
+  schreibt die Gerätezone beim Start, wenn sie fehlt. Den Stand im Code beschreibt
+  [ADR 0036](../../adr/0036-the-app-stores-its-time-zone-and-week-start-as-settings.md)._
 - **D148 (L3.6) `time` wird Datei für Datei übernommen, mit Pflicht-Uhr und Typen bis in die
   Zeile.** Übernommen werden Typen, Uhr, Zonen, Kalender, relative Tage, Formatierung,
   Geräte-Brücke und Zonenliste mit ihren Tests; `legacy.ts` entfällt; die Testuhr kommt nach
@@ -149,7 +151,8 @@ Grundlage: [`research-layer-3-core.md`](../research-layer-3-core.md).
   Regionen-Einstellung sofort, Standardwährung fest auf `USD`, doppelte Deklaration. _Die
   Deklaration in `contracts` ist überholt durch D356: Der Besitzer eines Werts deklariert dessen
   Einstellungen. Den Wochenstart liest nur die Oberfläche (D354); gespeichert ist er als Name des
-  Tages (D355)._
+  Tages (D355). Den Stand im Code beschreibt
+  [ADR 0036](../../adr/0036-the-app-stores-its-time-zone-and-week-start-as-settings.md)._
 - **D154 (L3.12) Schicht 3 wird in acht Arbeitspakete geschnitten, jedes wird einzeln gegrillt.**
   Spec #103 mit den Unter-Issues #104 bis #111; aus jedem entstehen nach seinem Grilling Spec und
   Teil-Tickets, wie bei #14 bis #20 und #30. Nur #107 (ADR und Glossar) braucht kein Grilling. Alle

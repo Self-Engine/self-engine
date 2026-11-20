@@ -188,7 +188,8 @@ baut, darf anders entscheiden und nennt es im Pull Request.
 
 - **Zeitzone am Eintrag:** Gespeichert wird die Zeitzone der Einstellung in dem Moment, in dem
   die Zeile entsteht, beim Timer also beim Stoppen. Die Spalte ist Pflicht, und ein Bearbeiten
-  ändert sie nie.
+  ändert sie nie. _Ergänzt durch D353: Maßgeblich ist die aufgelöste Zeitzone. Die Auflösung
+  beschreibt [ADR 0036](../../adr/0036-the-app-stores-its-time-zone-and-week-start-as-settings.md)._
 - **Projekt:** optional; die Auswahl lässt sich leeren.
 - **Feld für die Zeit:** ein Datum und zwei Uhrzeiten, gebunden an Beginn und Ende. Liegt die
   Ende-Uhrzeit nicht nach der Beginn-Uhrzeit, gilt sie als Folgetag, und das Feld zeigt „+1“. Für
@@ -211,6 +212,9 @@ baut, darf anders entscheiden und nennt es im Pull Request.
 - **Adresse:** Der erste Tag der Woche und das Projekt stehen in der Adresse.
 - **Abfrage:** Die Oberfläche nennt die Woche, der Datenprozess liefert Einträge, Tagesanteile und
   Summen fertig. Dazu je ein Index auf Beginn und Ende und die Messung mit Daten von zwei Jahren.
+  _Geändert durch D354: Die Oberfläche nennt eine Spanne von Kalendertagen. Den Wochenstart
+  liefert der Hook der Oberfläche, siehe
+  [ADR 0036](../../adr/0036-the-app-stores-its-time-zone-and-week-start-as-settings.md)._
 
 **Timer und Überschneidungen (#277)**
 

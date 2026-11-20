@@ -22,6 +22,12 @@ test("the public functions use only package values and require all arguments", (
   expectTypeOf(time.weekOf).toEqualTypeOf<
     (day: CalendarDay, firstDayOfWeek: FirstDayOfWeek) => DaySpan
   >();
+  expectTypeOf(time.mantineFirstDayOfWeek).toEqualTypeOf<
+    (firstDayOfWeek: FirstDayOfWeek) => 0 | 1 | 2 | 3 | 4 | 5 | 6
+  >();
+  expectTypeOf(time.firstDayOfWeekForRegion).toEqualTypeOf<
+    (region: "de-DE" | "en-US") => FirstDayOfWeek
+  >();
   expectTypeOf(time.isoWeekNumber).toEqualTypeOf<(day: CalendarDay) => number>();
   expectTypeOf(time.durationBetween).toEqualTypeOf<(from: Instant, to: Instant) => Duration>();
   expectTypeOf(time.epochMsOf).toEqualTypeOf<(instant: Instant) => number>();
@@ -69,9 +75,11 @@ test("the public functions use only package values and require all arguments", (
       "durationSchema",
       "epochMsOf",
       "formatInstant",
+      "firstDayOfWeekForRegion",
       "instantFromDate",
       "instantSchema",
       "isoWeekNumber",
+      "mantineFirstDayOfWeek",
       "wallClockTimeSchema",
       "weekOf",
     ].sort(),

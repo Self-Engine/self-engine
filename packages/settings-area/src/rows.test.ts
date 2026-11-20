@@ -3,7 +3,7 @@ import { createSettingsStore } from "@self-engine/settings";
 import { createTestAdapter } from "@self-engine/settings/testing";
 import { ACCENT_IDS, BUILT_IN_THEMES } from "@self-engine/theme";
 import { resolveTimeZone } from "@self-engine/time";
-import { requireInstant } from "@self-engine/time/testing";
+import { fixedClock, requireInstant } from "@self-engine/time/testing";
 import { expect, test } from "vite-plus/test";
 import { auditSettingsRows } from "./audit-rows.ts";
 import { auditSettingsArea } from "./audit.ts";
@@ -11,7 +11,7 @@ import { backupSize, backupTime } from "./backup-rows.tsx";
 import { createSettingsArea } from "./index.ts";
 import { settingsRows } from "./rows.tsx";
 import { searchedRows, searchHits } from "./search.ts";
-import type { Translator } from "./text.ts";
+import { shownText, type Translator } from "./text.ts";
 import { accentRow } from "./theme-rows.tsx";
 import { type VersionInfo, versionLine } from "./version.ts";
 
@@ -21,6 +21,7 @@ const DESKTOP: VersionInfo = {
   operatingSystem: "macOS",
 };
 const WEB: VersionInfo = { version: "0.4.0", operatingSystem: "Windows" };
+const clock = fixedClock(requireInstant("2026-11-20T10:00:00.000Z"));
 
 const views = [{ id: "appearance" }, { id: "language" }];
 const row = (id: string, view: string, settings: readonly string[] = []) => ({
@@ -65,7 +66,12 @@ const newStore = () =>
     onError: () => {},
   });
 
-const inputs = () => ({ store: newStore(), version: () => WEB, commandOwners: () => [] });
+const inputs = () => ({
+  store: newStore(),
+  version: () => WEB,
+  commandOwners: () => [],
+  clock,
+});
 
 test("a Setting that has to be served and that no row serves is reported", () => {
   const rows = [
@@ -82,11 +88,11 @@ test.each([
   ["on the web", WEB],
 ])("the real list of Settings Rows fits the Views of the settings area %s", (_where, version) => {
   const area = createSettingsArea({ ...inputs(), version: () => version });
-  expect(auditSettingsArea(area.views, { version, commandOwners: [] })).toEqual([]);
+  expect(auditSettingsArea(area.views, { version, commandOwners: [], clock })).toEqual([]);
 });
 
 test("the audit of the area reports a Setting the area has to show and that no View can serve", () => {
-  expect(auditSettingsArea([{ id: "about" }], { version: WEB, commandOwners: [] })).toEqual(
+  expect(auditSettingsArea([{ id: "about" }], { version: WEB, commandOwners: [], clock })).toEqual(
     expect.arrayContaining([
       "Settings Row color-mode belongs to the unknown View appearance",
       "Settings Row app-language belongs to the unknown View language",
@@ -112,14 +118,14 @@ test("the settings area has the Views Appearance, Language, Shortcuts, Data and 
 
 test("the View Data arrived with its rows: take a Backup, and restore one", () => {
   expect(
-    settingsRows({ version: WEB, commandOwners: [] })
+    settingsRows({ version: WEB, commandOwners: [], clock })
       .filter((row) => row.view === "data")
       .map((row) => row.id),
   ).toEqual(["create-backup", "restore-backup"]);
 });
 
 const aboutRowIds = (version: VersionInfo) =>
-  settingsRows({ version, commandOwners: [] })
+  settingsRows({ version, commandOwners: [], clock })
     .filter((row) => row.view === "about")
     .map((row) => row.id);
 
@@ -162,7 +168,7 @@ test('every Accent a user may pick has a name, and so does "From Theme"', () => 
 
 const foundBy = (search: string, i18n: Translator) =>
   searchHits(
-    searchedRows(settingsRows({ version: WEB, commandOwners: [] }), i18n),
+    searchedRows(settingsRows({ version: WEB, commandOwners: [], clock }), i18n),
     search,
   )?.flatMap((group) => group.rows.map((found) => found.id));
 
@@ -175,7 +181,7 @@ test.each([
   ["Unknown", "version", { operatingSystem: "macOS" }],
 ])("About's shown value %s finds its row", (query, id, version) => {
   const english: Translator = { locale: "en", _: (descriptor) => descriptor.message ?? "" };
-  const rows = settingsRows({ version, commandOwners: [] });
+  const rows = settingsRows({ version, commandOwners: [], clock });
   expect(
     searchHits(searchedRows(rows, english), query)?.flatMap((group) =>
       group.rows.map((found) => found.id),
@@ -189,7 +195,7 @@ test("About's unknown version is found in the language shown", () => {
     _: (descriptor) =>
       descriptor.message === "Unknown" ? "Unbekannt" : (descriptor.message ?? ""),
   };
-  const rows = settingsRows({ version: { operatingSystem: "macOS" }, commandOwners: [] });
+  const rows = settingsRows({ version: { operatingSystem: "macOS" }, commandOwners: [], clock });
   expect(
     searchHits(searchedRows(rows, german), "Unbekannt")?.flatMap((group) =>
       group.rows.map((found) => found.id),
@@ -249,4 +255,84 @@ test("a Backup's time is written in the language shown and the zone given", () =
   expect(backupTime(backup, { locale: "en", _: () => "" }, berlin)).toBe("Nov 14, 2026, 12:30 AM");
   expect(backupTime(backup, { locale: "de", _: () => "" }, berlin)).toBe("14.11.2026, 00:30");
   expect(backupTime(backup, { locale: "de", _: () => "" }, bangkok)).toBe("14.11.2026, 06:30");
+});
+
+const english: Translator = { locale: "en", _: (descriptor) => descriptor.message ?? "" };
+
+test('the View Language is named "Language and region" and keeps its address', () => {
+  const language = createSettingsArea(inputs()).views.find((view) => view.id === "language");
+  expect(language?.title.message).toBe("Language and region");
+});
+
+test("Language and region holds the App Language, the Time Zone, follow device and the week start", () => {
+  expect(
+    settingsRows({ version: WEB, commandOwners: [], clock })
+      .filter((row) => row.view === "language")
+      .map((row) => [row.id, row.settings]),
+  ).toEqual([
+    ["app-language", ["i18n.language"]],
+    ["time-zone", ["time.zone"]],
+    ["follow-device-zone", ["time.followDevice"]],
+    ["week-start", ["time.weekStart"]],
+  ]);
+});
+
+test("the area has to serve the Time Zone, follow device and the week start", () => {
+  const withoutRegion = settingsRows({ version: WEB, commandOwners: [], clock }).filter(
+    (row) => !["time-zone", "follow-device-zone", "week-start"].includes(row.id),
+  );
+  expect(
+    auditSettingsRows(
+      withoutRegion,
+      [{ id: "appearance" }, { id: "language" }],
+      ["time.zone", "time.followDevice", "time.weekStart"],
+    ),
+  ).toEqual(
+    expect.arrayContaining([
+      "Setting time.zone is served by no Settings Row",
+      "Setting time.followDevice is served by no Settings Row",
+      "Setting time.weekStart is served by no Settings Row",
+    ]),
+  );
+  expect(
+    auditSettingsArea(
+      [
+        { id: "appearance" },
+        { id: "language" },
+        { id: "shortcuts" },
+        { id: "data" },
+        { id: "about" },
+      ],
+      { version: WEB, commandOwners: [], clock },
+    ),
+  ).toEqual([]);
+});
+
+test("the week start is found by the days it offers and by those it shows only while stored", () => {
+  const weekStart = settingsRows({ version: WEB, commandOwners: [], clock }).find(
+    (row) => row.id === "week-start",
+  );
+  expect(weekStart?.values.map((value) => shownText(value, english))).toEqual([
+    "Automatic",
+    "Monday",
+    "Sunday",
+    "Saturday",
+    "Tuesday",
+    "Wednesday",
+    "Thursday",
+    "Friday",
+  ]);
+});
+
+test.each([
+  ["time zone", ["time-zone", "follow-device-zone"]],
+  ["Berlin", ["time-zone"]],
+  ["buenos aires", ["time-zone"]],
+  ["UTC", ["time-zone"]],
+  ["follow device", ["follow-device-zone"]],
+  ["first day", ["week-start"]],
+  ["Saturday", ["week-start"]],
+  ["Wednesday", ["week-start"]],
+])("the rows of Language and region are found by %s", (query, ids) => {
+  expect(foundBy(query, english)).toEqual(ids);
 });

@@ -21,28 +21,34 @@ interface Choice<Value extends string> {
 /**
  * A Setting with a few named values, all visible at once. A stored value that is none of the
  * choices shows as the default, which is how it behaves, and stays stored until one is chosen.
+ * A value of `shownWhenStored` is one the schema accepts and the row does not offer: while it is
+ * stored it shows as it is, beside the choices, and once another is chosen it is gone.
  */
 export function choiceRow<Value extends string>({
   setting,
   choices,
+  shownWhenStored = [],
   ...text
 }: RowBase & {
   readonly setting: SettingDeclaration<Value>;
   readonly choices: readonly Choice<Value>[];
+  readonly shownWhenStored?: readonly Choice<Value>[];
 }): SettingsRow {
   function ChoiceControl({ store, labelledBy }: SettingsRowControlProps) {
     const { i18n } = useLingui();
     const stored = useSetting(store, setting);
-    const value = choices.some((choice) => choice.value === stored) ? stored : setting.default;
+    const extra = shownWhenStored.find((choice) => choice.value === stored);
+    const shown = extra ? [...choices, extra] : choices;
+    const value = shown.some((choice) => choice.value === stored) ? stored : setting.default;
     return (
       <SegmentedControl
         aria-labelledby={labelledBy}
-        data={choices.map((choice) => ({
+        data={shown.map((choice) => ({
           value: choice.value,
           label: shownText(choice.label, i18n),
         }))}
         onChange={(next) => {
-          const choice = choices.find((candidate) => candidate.value === next);
+          const choice = shown.find((candidate) => candidate.value === next);
           if (choice) store.write(setting, choice.value);
         }}
         value={value}
@@ -51,7 +57,8 @@ export function choiceRow<Value extends string>({
   }
   return {
     ...text,
-    values: choices.map((choice) => choice.label),
+    // A value shown only while it is stored finds the row too, as the row may be showing it.
+    values: [...choices, ...shownWhenStored].map((choice) => choice.label),
     settings: [setting.key],
     control: ChoiceControl,
   };

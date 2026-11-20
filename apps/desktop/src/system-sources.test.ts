@@ -1,3 +1,4 @@
+import { deviceTimeZone } from "@self-engine/time/device-time-zone";
 import { systemClock } from "@self-engine/time/system-clock";
 import { expect, test } from "vite-plus/test";
 import { systemSources } from "./system-sources.ts";
@@ -14,4 +15,8 @@ test("the random source yields 16 fresh bytes on every call", () => {
   expect(first).toBeInstanceOf(Uint8Array);
   expect(first).toHaveLength(16);
   expect(random()).not.toEqual(first);
+});
+
+test("the device's zone is the one the runtime runs in", () => {
+  expect(systemSources().deviceZone).toBe(deviceTimeZone);
 });

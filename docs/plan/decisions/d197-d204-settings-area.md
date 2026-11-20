@@ -16,7 +16,9 @@
   Sprache, Tastenkürzel, Über. „Module“ und „Daten“ kommen mit ihrer ersten echten Zeile, „Daten“
   also mit der Sicherung (#35). „Sprache“ heißt „Sprache und Region“, sobald die Region kommt
   (D153). Wer die Einstellungen öffnet, landet auf „Darstellung“. _Verworfen:_ alle sechs sofort mit
-  Platzhaltern (ein Klick in eine leere Seite, die Suche findet dort nichts).
+  Platzhaltern (ein Klick in eine leere Seite, die Suche findet dort nichts). _Die Zeilen von
+  „Sprache und Region“ beschreibt
+  [ADR 0036](../../adr/0036-the-app-stores-its-time-zone-and-week-start-as-settings.md)._
 - **D199 Das Suchfeld sitzt oben im Inhalt, Treffer sind bedienbare Zeilen.** Die gemeinsame
   Seiten-Komponente aller vier Views setzt das Feld über die Zeilen, es ist damit in jeder
   Layoutstufe sichtbar. Mit Suchtext zeigt der Inhalt statt der View die passenden Zeilen aller

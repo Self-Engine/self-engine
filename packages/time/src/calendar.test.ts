@@ -4,6 +4,8 @@ import {
   addMonths,
   daysBetween,
   weekOf,
+  mantineFirstDayOfWeek,
+  firstDayOfWeekForRegion,
   isoWeekNumber,
   calendarDaySchema,
 } from "./index.ts";
@@ -60,22 +62,44 @@ test.each([
   expect(daysBetween(day(from), day(to))).toBe(expected);
 });
 test.each([
-  [1, "2026-05-11", "2026-05-17"],
-  [0, "2026-05-10", "2026-05-16"],
-  [6, "2026-05-09", "2026-05-15"],
-  [3, "2026-05-13", "2026-05-19"],
-  [4, "2026-05-07", "2026-05-13"],
+  ["monday", "2026-05-11", "2026-05-17"],
+  ["tuesday", "2026-05-12", "2026-05-18"],
+  ["wednesday", "2026-05-13", "2026-05-19"],
+  ["thursday", "2026-05-07", "2026-05-13"],
+  ["friday", "2026-05-08", "2026-05-14"],
+  ["saturday", "2026-05-09", "2026-05-15"],
+  ["sunday", "2026-05-10", "2026-05-16"],
 ] as const)("week starting on %s has inclusive limits", (firstDayOfWeek, first, last) => {
   expect(weekOf(day("2026-05-13"), firstDayOfWeek)).toEqual({ first, last });
 });
 test("weeks cross year boundaries", () => {
-  expect(weekOf(day("2027-01-01"), 1)).toEqual({ first: "2026-12-28", last: "2027-01-03" });
+  expect(weekOf(day("2027-01-01"), "monday")).toEqual({
+    first: "2026-12-28",
+    last: "2027-01-03",
+  });
 });
 test.each([
-  ["1000-01-01", 0],
-  ["9999-12-31", 1],
+  ["1000-01-01", "sunday"],
+  ["9999-12-31", "monday"],
 ] as const)("rejects weeks whose span exceeds the supported years %j", (from, firstDayOfWeek) => {
   expect(() => weekOf(day(from), firstDayOfWeek)).toThrow(RangeError);
+});
+test.each([
+  ["monday", 1],
+  ["tuesday", 2],
+  ["wednesday", 3],
+  ["thursday", 4],
+  ["friday", 5],
+  ["saturday", 6],
+  ["sunday", 0],
+] as const)("Mantine numbers %s as %i", (firstDayOfWeek, expected) => {
+  expect(mantineFirstDayOfWeek(firstDayOfWeek)).toBe(expected);
+});
+test.each([
+  ["de-DE", "monday"],
+  ["en-US", "sunday"],
+] as const)("%s weeks start on %s", (region, firstDayOfWeek) => {
+  expect(firstDayOfWeekForRegion(region)).toBe(firstDayOfWeek);
 });
 test.each([
   ["2026-10-05", 41],

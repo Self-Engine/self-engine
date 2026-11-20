@@ -2,6 +2,12 @@
 
 Grundlage: der Stand auf `main` nach #331.
 
+Den Stand im Code beschreiben
+[ADR 0010](../../adr/0010-settings-are-single-entries-behind-an-asynchronous-port.md) für D351
+und D352, [ADR 0035](../../adr/0035-calendar-weeks-start-on-a-named-day.md) für die Tagesnamen
+(D355) und [ADR 0036](../../adr/0036-the-app-stores-its-time-zone-and-week-start-as-settings.md)
+für die Zeitzone, den Wochenstart und die Deklaration der Einstellungen.
+
 - **Store heute:** Der Einstellungs-Store lebt in der Seite. Er lädt einmal vor dem ersten Render
   und liest danach synchron aus einem Abbild im Speicher (ADR 0010). Beide Geltungen,
   synchronisiert und Gerät, liegen in `localStorage`.
@@ -161,6 +167,12 @@ baut, darf anders entscheiden und nennt es im Pull Request.
 
 - **Schlüssel:** `time.zone`, `time.followDevice`, `time.weekStart` und für das Gerät
   `time.zoneOfferDismissed`.
+- **Nachtrag vom 2026-11-20, beim Bau von #110 vom Eigentümer entschieden:** „Dem Gerät folgen“
+  ist eine Geräteeinstellung, keine synchronisierte (ändert D147 und die Aufzählung in D356 in
+  diesem Punkt). _Gründe:_ Synchronisiert hieße „alle Geräte oder keins“; zwei Geräte in
+  verschiedenen Zonen, die beide folgen, würden sich mit Sync gegenseitig die Zeitzone
+  überschreiben. Jetzt kostet die Änderung nichts, nach dem ersten Release wäre sie eine
+  Migration.
 - **Wert der Zeitzone:** ein Name als Text oder „nicht gesetzt“. „Nicht gesetzt“ und ein
   unbekannter Name ergeben über eine einzige Funktion die Gerätezone. In der Web-App ohne
   Datenprozess gilt damit die Gerätezone, bis der Nutzer eine Zone wählt.

@@ -246,9 +246,17 @@ _Avoid_: now (for the source), system time, timer
 A run of whole _Calendar Days_ from a first to a last, both included, such as 1 to 30 November.
 _Avoid_: date range, period, interval
 
+**Device Time Zone** (de: _Gerätezeitzone_):
+The _Time Zone_ reported by the device. It can differ from the user's choice in the app.
+_Avoid_: current time zone, app time zone
+
 **Duration** (de: _Dauer_):
 How long something lasted, in whole seconds and never negative. It is not a _Wall-Clock Time_, even when it is shown as hours and minutes.
 _Avoid_: time (for a length), elapsed time, interval
+
+**Follow Device** (de: _Gerät folgen_):
+The _Device Setting_ that lets the app on this device switch its _Time Zone_ to the _Device Time Zone_ without asking.
+_Avoid_: automatic region, system language
 
 **Instant** (de: _Zeitpunkt_):
 An exact moment in UTC, with millisecond precision and a year from 1000 to 9999. It is independent of the person's _Time Zone_.
@@ -256,11 +264,20 @@ _Avoid_: local time, date
 
 **Time Zone** (de: _Zeitzone_):
 A region's rules for the time on its clocks, named like Europe/Berlin, including when the clocks change. Two names can denote the same _Time Zone_; a fixed offset such as +02:00 is not one.
+The _Synced Setting_ named Time Zone holds the user's choice for counting days and showing times.
 _Avoid_: offset, UTC offset, locale
+
+**Time Zone Offer** (de: _Angebot zum Zeitzonenwechsel_):
+A _Notice_ that offers to switch the app's _Time Zone_ to the _Device Time Zone_. “Don't ask again” is remembered as a _Device Setting_.
+_Avoid_: time zone warning, automatic switch
 
 **Wall-Clock Time** (de: _Uhrzeit_):
 The time of day a clock on the wall shows, in hours and minutes, such as 14:30, without a _Calendar Day_ or _Time Zone_. On the day the clocks change, one may not exist or may occur twice.
 _Avoid_: local time, time (on its own), hour
+
+**Week Start** (de: _Wochenstart_):
+The named day that begins a seven-day calendar week, such as Monday or Sunday. The _Synced Setting_ named Week Start can choose a day or follow the _Region_ automatically.
+_Avoid_: week number, start date, weekday index
 
 ### Translation
 
@@ -271,6 +288,10 @@ _Avoid_: locale, UI language, account language
 **Base Language** (de: _Basissprache_):
 English: the language every text is first written in, and the one shown when a text has no translation in the language asked for.
 _Avoid_: default locale, fallback language, source locale
+
+**Region** (de: _Region_):
+The regional convention associated with the active _App Language_, such as `de-DE` for German. It supplies the automatic _Week Start_.
+_Avoid_: device region, locale, time zone
 
 ### Stored Data
 

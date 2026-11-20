@@ -23,7 +23,10 @@ and still allowed `new Date(ms)`, and `.getDate()` on that gives the day in the 
 2. **The system clock has an entry of its own, `@self-engine/time/system-clock`, and only code in
    `apps/` loads it.** The dependency-cruiser rule `system-clock-only-in-apps` rejects an import
    of that entry from anywhere else; the tests of `time` reach it by relative path. The desktop
-   app assembles it in one place, `systemSources`, together with the random source of ids. The
+   app assembles it in one place, `systemSources`, together with the random source of ids;
+   the page hands it to the settings area in its module list. It builds its Instant without
+   the schemas of `time`, so the page can load it at its start, and throws a `RangeError`
+   for a system time outside the supported years. The
    _Data Process_ takes both from there and hands them to the data files, the _Backups_ and the
    _Storage_ context; `pnpm nightly:local` takes the clock to stamp the version of a Nightly
    built on the owner's machine.
@@ -47,16 +50,15 @@ and still allowed `new Date(ms)`, and `.getDate()` on that gives the day in the 
 
 - Every function that needs the time can be tested with a fixed one, and no test reads the real
   clock.
-- Where real time enters the program is visible: the two imports of `system-clock` in
-  `apps/desktop`.
+- Where real time enters the program is visible in the app imports of `system-clock`.
 - The rule fits in one sentence: outside `time`, nothing touches `Date`, `Temporal` or the date
   parts of `Intl`. A reviewer checks a change against that sentence alone.
 - `scripts/` is outside the rule; the repo's tools measure durations and stamp logs with the
   runtime's own clock.
 - A Mantine date field that hands out a `Date` gets one conversion in `time` with the first date
   field.
-- The page has no clock yet. Where a View gets "now" and "today" from is decided with the first
-  View that needs them.
+- On the page only the settings area gets the clock so far. Where a View gets "now" and
+  "today" from is decided with the first View that needs them.
 
 ## Considered Options
 

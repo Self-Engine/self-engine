@@ -133,6 +133,15 @@ msgstr "Archive"
 msgid "Archived projects"
 msgstr "Archived projects"
 
+#: packages/settings-area/src/region-rows.tsx
+msgctxt "Week Start"
+msgid "Automatic"
+msgstr "Automatic"
+
+#: packages/settings-area/src/region-rows.tsx
+msgid "Automatic Time Zone"
+msgstr "Automatic Time Zone"
+
 #: packages/settings-area/src/rows.tsx
 msgid "Background Tint"
 msgstr "Background Tint"
@@ -231,6 +240,10 @@ msgctxt "Icon"
 msgid "Calendar"
 msgstr "Calendar"
 
+#: packages/settings-area/src/region-rows.tsx
+msgid "Calendar week"
+msgstr "Calendar week"
+
 #: packages/icons/src/directory/labels.ts
 msgctxt "Icon"
 msgid "Camera"
@@ -294,6 +307,10 @@ msgstr "Clipboard"
 msgctxt "Icon"
 msgid "Clipboard"
 msgstr "Clipboard"
+
+#: packages/settings-area/src/region-rows.tsx
+msgid "Clock"
+msgstr "Clock"
 
 #: packages/placeholder-alpha/src/edit-drawer.tsx
 #: packages/projects/src/edit-drawer.tsx
@@ -513,6 +530,10 @@ msgctxt "Icon"
 msgid "Dollar"
 msgstr "Dollar"
 
+#: apps/web/src/device-zone-offer.tsx
+msgid "Don't ask again"
+msgstr "Don't ask again"
+
 #: packages/icons/src/directory/labels.ts
 msgctxt "Icon"
 msgid "Double check mark"
@@ -556,6 +577,10 @@ msgctxt "Icon"
 msgid "Fire"
 msgstr "Fire"
 
+#: packages/settings-area/src/region-rows.tsx
+msgid "First weekday"
+msgstr "First weekday"
+
 #: packages/ui/src/entry-pickers/emoji-tab.tsx
 msgid "Flags"
 msgstr "Flags"
@@ -564,6 +589,10 @@ msgstr "Flags"
 msgctxt "Icon"
 msgid "Flask"
 msgstr "Flask"
+
+#: packages/settings-area/src/region-rows.tsx
+msgid "Follow Device"
+msgstr "Follow Device"
 
 #: packages/settings-area/src/rows.tsx
 msgid "Font scale"
@@ -581,6 +610,10 @@ msgstr "Food & Drink"
 msgctxt "Icon"
 msgid "Fork and knife"
 msgstr "Fork and knife"
+
+#: packages/settings-area/src/region-rows.tsx
+msgid "Friday"
+msgstr "Friday"
 
 #: packages/settings-area/src/theme-rows.tsx
 msgid "From Theme"
@@ -717,8 +750,8 @@ msgid "Keyboard"
 msgstr "Keyboard"
 
 #: packages/settings-area/src/index.ts
-msgid "Language"
-msgstr "Language"
+msgid "Language and region"
+msgstr "Language and region"
 
 #: packages/icons/src/directory/labels.ts
 msgctxt "Icon"
@@ -808,6 +841,10 @@ msgstr "Module Sidebar"
 #: packages/shell/src/shell.tsx
 msgid "Modules"
 msgstr "Modules"
+
+#: packages/settings-area/src/region-rows.tsx
+msgid "Monday"
+msgstr "Monday"
 
 #: packages/icons/src/directory/labels.ts
 msgctxt "Icon"
@@ -903,6 +940,10 @@ msgstr "No settings found"
 msgctxt "Icon"
 msgid "No smoking"
 msgstr "No smoking"
+
+#: packages/settings-area/src/region-rows.tsx
+msgid "No Time Zone found"
+msgstr "No Time Zone found"
 
 #: packages/icons/src/directory/labels.ts
 msgctxt "Icon"
@@ -1086,6 +1127,10 @@ msgctxt "Color"
 msgid "Red"
 msgstr "Red"
 
+#: packages/settings-area/src/region-rows.tsx
+msgid "Region"
+msgstr "Region"
+
 #: packages/settings-area/src/about-rows.tsx
 msgid "Release"
 msgstr "Release"
@@ -1159,6 +1204,10 @@ msgstr "Safe"
 #: packages/settings-area/src/backup-rows.tsx
 msgid "Safety copy"
 msgstr "Safety copy"
+
+#: packages/settings-area/src/region-rows.tsx
+msgid "Saturday"
+msgstr "Saturday"
 
 #: packages/forms/src/form-body.tsx
 msgid "Save"
@@ -1286,10 +1335,23 @@ msgctxt "Icon"
 msgid "Sun"
 msgstr "Sun"
 
+#: packages/settings-area/src/region-rows.tsx
+msgid "Sunday"
+msgstr "Sunday"
+
 #: packages/icons/src/directory/labels.ts
 msgctxt "Icon"
 msgid "Sunrise"
 msgstr "Sunrise"
+
+#: apps/web/src/device-zone-offer.tsx
+msgctxt "Time Zone"
+msgid "Switch"
+msgstr "Switch"
+
+#: packages/settings-area/src/region-rows.tsx
+msgid "Switch the Time Zone to the zone of this device whenever the device changes zones, without asking."
+msgstr "Switch the Time Zone to the zone of this device whenever the device changes zones, without asking."
 
 #: packages/ui/src/entry-pickers/emoji-tab.tsx
 msgid "Symbols"
@@ -1358,6 +1420,10 @@ msgstr "The emojis could not be loaded."
 msgid "The entry could not come back: another entry has its name now."
 msgstr "The entry could not come back: another entry has its name now."
 
+#: packages/settings-area/src/region-rows.tsx
+msgid "The first day of each week. \"Automatic\" follows the region of the App Language."
+msgstr "The first day of each week. \"Automatic\" follows the region of the App Language."
+
 #: packages/settings-area/src/theme-rows.tsx
 msgid "The highlight color for buttons, active items and links. \"From Theme\" uses the color a Theme brings, if it brings one."
 msgstr "The highlight color for buttons, active items and links. \"From Theme\" uses the color a Theme brings, if it brings one."
@@ -1398,6 +1464,14 @@ msgstr "The release line this app belongs to."
 msgid "The size of the text in the whole app."
 msgstr "The size of the text in the whole app."
 
+#: apps/web/src/device-zone-offer.tsx
+msgid "The Time Zone is now {to}."
+msgstr "The Time Zone is now {to}."
+
+#: packages/settings-area/src/region-rows.tsx
+msgid "The zone in which the app counts days and shows times."
+msgstr "The zone in which the app counts days and shows times."
+
 #: packages/settings-area/src/theme-rows.tsx
 msgid "Theme"
 msgstr "Theme"
@@ -1421,6 +1495,10 @@ msgstr "This backup can no longer be read. Nothing was restored."
 #: packages/data-client/src/react/reason-texts.ts
 msgid "This change is not allowed."
 msgstr "This change is not allowed."
+
+#: apps/web/src/device-zone-offer.tsx
+msgid "This device is in the Time Zone {device}. Switch from {stored} to {device}?"
+msgstr "This device is in the Time Zone {device}. Switch from {stored} to {device}?"
 
 #: packages/data-client/src/react/operation-hook.ts
 msgid "This entry no longer exists."
@@ -1456,6 +1534,14 @@ msgctxt "Icon"
 msgid "Thumbs up"
 msgstr "Thumbs up"
 
+#: packages/settings-area/src/region-rows.tsx
+msgid "Thursday"
+msgstr "Thursday"
+
+#: packages/settings-area/src/region-rows.tsx
+msgid "Time Zone"
+msgstr "Time Zone"
+
 #: packages/projects/src/edit-drawer.tsx
 msgid "Title"
 msgstr "Title"
@@ -1463,6 +1549,10 @@ msgstr "Title"
 #: packages/settings-area/src/rows.tsx
 msgid "Translation"
 msgstr "Translation"
+
+#: packages/settings-area/src/region-rows.tsx
+msgid "Travel"
+msgstr "Travel"
 
 #: packages/ui/src/entry-pickers/emoji-tab.tsx
 msgid "Travel & Places"
@@ -1480,6 +1570,10 @@ msgstr "Try again"
 #: packages/settings-area/src/area.tsx
 msgid "Try another word, or clear the search."
 msgstr "Try another word, or clear the search."
+
+#: packages/settings-area/src/region-rows.tsx
+msgid "Tuesday"
+msgstr "Tuesday"
 
 #: packages/projects/src/edit-drawer.tsx
 msgid "Unarchive"
@@ -1540,6 +1634,14 @@ msgstr "Warning"
 msgctxt "Icon"
 msgid "Waving hand"
 msgstr "Waving hand"
+
+#: packages/settings-area/src/region-rows.tsx
+msgid "Wednesday"
+msgstr "Wednesday"
+
+#: packages/settings-area/src/region-rows.tsx
+msgid "Week Start"
+msgstr "Week Start"
 
 #: packages/shell/src/edit-drawer-exits.tsx
 msgid "What you changed here will be lost."
