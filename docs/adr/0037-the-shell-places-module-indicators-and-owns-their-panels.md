@@ -22,20 +22,29 @@ passes `full` on wide and medium, and `short` on narrow and phone.
 The Shell Contribution declares a loader for the Module Indicator and, optionally, a second
 loader for the Indicator Panel's content. The Module Indicator reads its data through the
 module's hooks. When a panel is declared, its Module Indicator also receives `togglePanel` and
-`panelOpen`. Commands a person can run and Notice actions can open the panel through the Shell.
+`panelOpen`. Commands a person can run and Notice actions can open the panel through the Shell
+by the module's indicator entry. An entry that no module of the Shell holds opens nothing and is
+reported as a failed Command start is, so a Notice's action cannot take the page down.
 
 The Shell starts loading the Module Indicator and the panel frame at the first idle moment
 after the first paint. Until the Module Indicator arrives, its place shows the module's icon.
-The Shell preloads the panel's content in an idle moment after the Module Indicator's code
-arrives. An opening can load the content on demand if the preload has yet to finish. The
+The Shell preloads the panel's content in an idle moment once the Module Indicator's code is on
+screen, also after a retry of a Module Indicator that failed to load. An opening can load the content on demand if the preload has yet to finish. The
 startup check covers `src/indicator/` and the panel frame.
 
 The Shell owns one open Indicator Panel at a time. It uses a popover below the Module Indicator
-on wide, medium and narrow, and a sheet from below on phone. Focus moves into the panel and
-returns when it closes. The panel lives outside the address and closes on a change of page.
-The Command Palette takes Escape while it is open.
+on wide, medium and narrow, and a sheet from below on phone. An opening keeps the kind of frame
+it opened in until it closes, so its content keeps its state when the window crosses the phone
+border. Focus moves into the panel and returns to the Module Indicator when it closes, also when
+a Command or a Notice opened it. The panel lives outside the address and closes on a change of
+page, and when its module leaves the module list. A press inside a layer that a field of the
+panel draws in a portal, such as a date field's calendar or a Select's list, counts as a press
+inside the panel. The popover lies on Mantine's popover layer, over the Edit Drawer; the Command
+Palette lies over the panel and takes Escape while it is open.
 
-The Indicator Panel and Edit Drawer use the same unsaved-changes hook and the same question.
+The Indicator Panel and Edit Drawer use the same unsaved-changes hook, the same question and the
+same Escape exit. The question lies just above Mantine's popover layer, so the panel's fields take
+no click or key while it waits.
 The panel asks before losing a draft on Escape, an outside click, a second click on its opener,
 Cancel, a change of page or another panel opening. `onDone` closes the current opening without
 asking. A form from `forms` reports its draft through the shared hook.

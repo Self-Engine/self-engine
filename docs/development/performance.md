@@ -722,10 +722,23 @@ Production builds measured the stock app's raw static JavaScript in
 | After #368 (`19322a9`)  |      871,411 bytes |            20 |
 | After #369 (`df135fc`)  |      874,960 bytes |            23 |
 | After #370 (`a14ff91`)  |      876,840 bytes |            23 |
-| After #371              |      876,840 bytes |            23 |
+| After #371 (`6b37664`)  |      876,840 bytes |            23 |
+| After the review fixes  |      877,969 bytes |            23 |
 
 The emitted panel frame and Mantine Popover chunks were **2,883** and **13,233 bytes** at
-#369, and **3,638** and **13,233 bytes** in the final stock build. Both chunks load on demand.
+#369, **3,638** and **13,233 bytes** after #371, and **4,735** and **13,233 bytes** after the
+review fixes. Both chunks load on demand.
+
+The review fixes added **1,129 bytes** at startup: the question's layer over the popover, the
+report of a panel that no module holds, the close of a panel whose module left, the signal that
+an indicator is on screen, and the frame content the Edit Drawer and the panel now share. Of the
+**9,874 bytes** #276 adds in all, about half is the place's own code (`module-indicators.tsx`, the
+frame's loader), the rest the panel store that Commands reach, the unsaved-changes question it
+shares with the Edit Drawer and the idle helper it shares with the warm-up. A trial moved the
+place's code into a chunk of its own, loaded in the same idle moment and only when a module
+declares an indicator, with the place and its icon left in the start. It saved **859 bytes** and
+added three static chunks: the moved code shares most of its modules with the start, so the
+bundler split those into chunks of their own. The trial was not kept.
 
 For the startup comparison, both production renderers also mounted `placeholder-alpha` after
 `projects` through a temporary module list. The final build includes Alpha's declaration of
@@ -739,7 +752,7 @@ mark. The hidden window gives frame timings.
 | Build with Placeholder Alpha |     Shell, median (range) | First answer, median (range) | Startup JavaScript |
 | ---------------------------- | ------------------------: | ---------------------------: | -----------------: |
 | Before #276 (`2ea2f0f`)      | 156.8 ms (145.4–224.3 ms) |    125.4 ms (117.2–191.2 ms) |      870,162 bytes |
-| After #371                   | 159.6 ms (148.2–208.7 ms) |    129.2 ms (119.1–168.4 ms) |      881,120 bytes |
+| After #371 (`6b37664`)       | 159.6 ms (148.2–208.7 ms) |    129.2 ms (119.1–168.4 ms) |      881,120 bytes |
 
 With Alpha mounted, startup grew by **10,958 bytes**. The final build was **8,736 bytes**
 below the limit, with the Module Indicator, panel content and frame outside the static startup

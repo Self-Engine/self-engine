@@ -635,10 +635,13 @@ In a page or open Command, call `openIndicatorPanel(indicator)` from the Command
 Inside the Shell, call `useOpenIndicatorPanel()` and use the returned function in the Notice's
 action. Pass the same entry object that the Shell Contribution declares. TypeScript accepts any
 `IndicatorWithPanel`. The Shell checks at runtime whether that exact object belongs to a
-mounted module.
+mounted module; if not, it opens nothing, logs the cause and shows the notice of a failed
+Command start.
 
 The Shell supplies the panel frame. The content receives `IndicatorPanelProps`, the same
 exit functions as in the Edit Drawer. A form built with `forms` reports whether its draft has
 changed. For other content, give `useUnsavedChanges` a function that reads whether the draft
-has changed. Use `onCancel` to ask before closing and `onDone` after a successful save.
+has changed. Use `onCancel` to ask before closing and `onDone` after a successful save. The
+date, time and Select fields of `forms` work in the panel as they are: a pick in their dropdown
+keeps the panel open.
 See the [example panel](../../packages/placeholder-alpha/src/indicator/panel.tsx).
