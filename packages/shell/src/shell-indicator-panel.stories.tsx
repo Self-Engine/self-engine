@@ -1,6 +1,7 @@
 import { Button, Stack, Text, TextInput } from "@mantine/core";
 import type { Meta } from "@storybook/react-vite";
 import { type ComponentType, useState } from "react";
+import { SHELL_REFERENCE_WIDTHS } from "@self-engine/shell/geometry";
 import { expect, screen, spyOn, userEvent, waitFor, within } from "storybook/test";
 import { notifyChoice } from "@self-engine/ui";
 import { z } from "zod";
@@ -18,11 +19,13 @@ import { INDICATOR_PANEL_WIDTH, type IndicatorPanelFrameProps } from "./indicato
 import { IndicatorPanelFrameLoader } from "./indicator-panel-frame.tsx";
 import { IndicatorPanelsProvider, useIndicatorPanels, useOpeningOf } from "./indicator-panels.tsx";
 import {
+  atFrameWidth,
   atViewport,
   type Canvas,
   ENTRIES,
   INDICATOR_ARRIVES,
   indicatorPlaceOf,
+  nextFrame,
   openPalette,
   paletteGone,
   pressEscape,
@@ -134,6 +137,30 @@ export const ASheetFromBelowOnThePhone: Story = {
     await panelGone();
   },
 };
+
+/** Opens at one Layout Step, types, and crosses the phone border while the panel is open. */
+const crossingThePhoneBorder = (from: "narrow" | "phone", to: number): Story => ({
+  ...atViewport(from),
+  args: WITH_PANEL,
+  play: async ({ canvas }) => {
+    await openByClick(canvas);
+    await userEvent.type(within(await panel()).getByRole("textbox", { name: "Note" }), "kept");
+    await atFrameWidth(to, async () => {
+      // A turn for the media query and React to follow the new width.
+      await nextFrame();
+      await nextFrame();
+      const note = within(await panel()).getByRole("textbox", { name: "Note" });
+      await expect(note).toHaveValue("kept");
+      await expect(note).toBeVisible();
+    });
+  },
+});
+
+export const TheInputStaysWhenTheWindowShrinksToThePhone = crossingThePhoneBorder("narrow", 390);
+export const TheInputStaysWhenTheWindowGrowsFromThePhone = crossingThePhoneBorder(
+  "phone",
+  SHELL_REFERENCE_WIDTHS.narrow,
+);
 
 const openByKey = (key: string): Story => ({
   ...atViewport("wide"),

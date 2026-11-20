@@ -41,7 +41,10 @@ const SHEET_STYLES = {
 export interface IndicatorPanelFrameProps {
   readonly module: ShellContribution;
   readonly indicator: IndicatorWithPanel;
-  /** On the phone the panel is a sheet from below, on every other Layout Step a popover. */
+  /**
+   * On the phone the panel is a sheet from below, on every other Layout Step a popover. An opening
+   * keeps the kind it opened in until it closes.
+   */
   readonly sheet: boolean;
   /** The indicator's place, which the popover hangs below and whose clicks are not outside. */
   readonly place: HTMLElement | null;
@@ -113,7 +116,7 @@ function usePanelQuestion(moduleId: string, opened: boolean, frameOf: () => HTML
 export default function IndicatorPanelFrame({
   module,
   indicator,
-  sheet,
+  sheet: sheetAtThisStep,
   place,
 }: IndicatorPanelFrameProps) {
   const { i18n, t } = useLingui();
@@ -121,9 +124,17 @@ export default function IndicatorPanelFrame({
   const paletteOpen = useCommandPaletteOpen();
   usePanelPreload(indicator);
   const openingNow = useOpeningOf(module.id);
-  // The last opening stays while the frame fades out, so its content does not vanish first.
-  const [shown, setShown] = useState(openingNow);
-  if (openingNow !== undefined && openingNow !== shown) setShown(openingNow);
+  // The last opening stays while the frame fades out, so its content does not vanish first. Its
+  // frame stays the kind it opened in: content that moved between the popover and the sheet when
+  // the window crosses the phone border would mount anew and lose what the person typed.
+  const [shownOpening, setShownOpening] = useState(
+    openingNow === undefined ? undefined : { opening: openingNow, sheet: sheetAtThisStep },
+  );
+  if (openingNow !== undefined && openingNow !== shownOpening?.opening) {
+    setShownOpening({ opening: openingNow, sheet: sheetAtThisStep });
+  }
+  const shown = shownOpening?.opening;
+  const sheet = shownOpening?.sheet ?? sheetAtThisStep;
   const opened = openingNow !== undefined;
   const [sheetNode, setSheetNode] = useState<HTMLDivElement | null>(null);
   const [dropdown, setDropdown] = useState<HTMLDivElement | null>(null);
