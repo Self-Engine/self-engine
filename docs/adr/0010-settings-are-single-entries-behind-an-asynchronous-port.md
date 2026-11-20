@@ -14,6 +14,9 @@ travel with a Backup. Older versions need to preserve entries they do not unders
 
 ## Decision
 
+[ADR 0036](0036-the-app-stores-its-time-zone-and-week-start-as-settings.md) specifies where
+owners declare their Settings and how the Time Zone and Week Start use this port and store.
+
 - **Each Setting has one permanent key prefixed by its owner.** On desktop, each Synced Setting
   lives in the Personal Space as a `settings` row with a JSON text value. The partial unique
   index `settings_live_key` covers live rows by `(space_id, key)`. A reset writes the default.

@@ -15,7 +15,9 @@ RPC-Schicht aus D93 entfällt.
   Modulgrenzen. Der Renderer importiert den Gesamtvertrag nur als Typ. _Preis:_ `contracts` hängt
   von jedem Modul ab. _Verworfen:_ alle Schemas zentral (jeder fachliche PR ändert `contracts`, die
   Typen lägen nicht beim Modul, dem die Tabelle gehört); jede App setzt selbst zusammen (Desktop,
-  Mobile und MCP-Server liefen auseinander).
+  Mobile und MCP-Server liefen auseinander). _Die Deklaration der Einstellungen in `contracts`
+  ist überholt durch D356. Siehe
+  [ADR 0036](../../adr/0036-the-app-stores-its-time-zone-and-week-start-as-settings.md)._
 - **D188 Eingaben prüft immer der Datenprozess, Ausgaben nur Tests und der Dev-Build.** Der Renderer
   prüft nie. Gemessen kostet ein Listenaufruf mit 10.000 Zeilen ungeprüft 12 ms und mit Zod auf
   beiden Seiten 28 ms, die Prüfung im Datenprozess allein 4,9 ms bei 3,8 ms für die Abfrage. Was

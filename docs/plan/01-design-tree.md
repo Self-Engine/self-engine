@@ -34,13 +34,13 @@ Pro Runde werden nur 2–3 Fragen gestellt; die Nummern sind stabil.
       - ✅ Spaces: ein persönlicher Space, `space_id` als Port-Kontext (D144)
       - ✅ Geldbeträge und Stundensätze (D145)
       - ✅ Geld: Eingabe, Formatierung, Benennung, Zod-Schemas (D146)
-      - ✅ Zeit: eine Zeitzone ohne Server (D147)
+      - ✅ Zeit: eine Zeitzone ohne Server (D147, [ADR 0036](../adr/0036-the-app-stores-its-time-zone-and-week-start-as-settings.md))
       - ✅ Zeit: Übernahme von `packages/time`, Uhr, Lint-Regeln (D148)
       - ✅ Zeit: Ergänzungen aus unabhängiger Prüfung (D149)
       - ✅ Tags (D150)
       - ✅ Icon und Farbe an Entitäten (D151)
       - ✅ Abläufe über mehrere Module, Brücken (D152)
-      - ✅ Einstellungen des Kerns: Standardwährung, Region (D153) → 06-layer-3-core.md
+      - ✅ Einstellungen des Kerns: Region und Wochenstart ([ADR 0036](../adr/0036-the-app-stores-its-time-zone-and-week-start-as-settings.md)), Standardwährung in #105 (D316) → 06-layer-3-core.md
       - ✅ Zerlegung in acht Arbeitspakete, jedes wird einzeln gegrillt (D154)
     - ✅ Schicht 4 Projekte + Zeit entschieden (D303–D316) → 07-layer-4-projects-and-time.md, Spec #271, Issues #272–#277
       - ✅ Umfang in einer Stufe, Module `projects` und `time-tracking` (D303, D304)

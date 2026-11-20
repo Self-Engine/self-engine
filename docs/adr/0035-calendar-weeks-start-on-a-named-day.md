@@ -9,7 +9,8 @@ decisions: D355
 ## Context
 
 `Temporal` numbers Sunday as 7, while Mantine's date picker uses 0. The Week Start
-needs one representation shared by the calendar and the upcoming Setting.
+needs one representation shared by the calendar and its
+[Setting](0036-the-app-stores-its-time-zone-and-week-start-as-settings.md).
 
 ## Decision
 
