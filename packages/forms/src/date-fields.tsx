@@ -11,9 +11,8 @@ import {
 } from "@self-engine/time";
 import { checkedOrNull } from "./checked-value.ts";
 import { DayInput, type Shown, TimeInput } from "./date-inputs.tsx";
-import { typedMemo, useFieldBinding } from "./field-binding.ts";
+import { type FieldTaking, typedMemo, useFieldTaking } from "./field-binding.ts";
 import type { OperationForm } from "./operation-form.ts";
-import type { FieldTaking } from "./picker-fields.tsx";
 
 export type CalendarDayFieldProps<FormDraft> = {
   readonly form: OperationForm<FormDraft>;
@@ -45,7 +44,7 @@ export const CalendarDayField = typedMemo(function CalendarDayField<FormDraft>({
   name,
   ...props
 }: CalendarDayFieldProps<FormDraft>) {
-  const field = useFieldBinding(form, name);
+  const field = useFieldTaking(form, name);
   return (
     <div ref={field.ref}>
       <DayInput
@@ -57,7 +56,7 @@ export const CalendarDayField = typedMemo(function CalendarDayField<FormDraft>({
         day={checkedOrNull(calendarDaySchema, field.value)}
         error={field.error}
         onBlur={field.onBlur}
-        onDay={field.onChange as (day: CalendarDay | null) => void}
+        onDay={field.onChange}
         onUnfinished={() => field.onUnfinished()}
       />
     </div>
@@ -74,7 +73,7 @@ export const WallClockTimeField = typedMemo(function WallClockTimeField<FormDraf
   name,
   ...props
 }: WallClockTimeFieldProps<FormDraft>) {
-  const field = useFieldBinding(form, name);
+  const field = useFieldTaking(form, name);
   return (
     <div ref={field.ref}>
       <TimeInput
@@ -83,7 +82,7 @@ export const WallClockTimeField = typedMemo(function WallClockTimeField<FormDraf
         {...props}
         error={field.error}
         onBlur={field.onBlur}
-        onTime={field.onChange as (time: WallClockTime | null) => void}
+        onTime={field.onChange}
         onUnfinished={() => field.onUnfinished()}
         time={checkedOrNull(wallClockTimeSchema, field.value)}
       />
