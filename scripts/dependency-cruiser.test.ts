@@ -1397,6 +1397,22 @@ describe("the system clock entry", () => {
       "system-clock-only-in-apps",
     ]);
   });
+  it("rejects a second file of the page that loads it", async () => {
+    const web = declaring(
+      app("web", {
+        "src/page-clock.ts": 'import { systemClock } from "@self-engine/time/system-clock";',
+        "src/module-list.ts": 'import { systemClock } from "@self-engine/time/system-clock";',
+      }),
+      "@self-engine/time",
+    );
+    expect(await cruise([time, web], { allowedImports: { time: [] } })).toEqual([
+      {
+        rule: "page-clock-in-one-place",
+        from: "apps/web/src/module-list.ts",
+        to: "packages/time/src/system-clock.ts",
+      },
+    ]);
+  });
   it("allows app assembly and internal clock tests", async () => {
     const desktop = declaring(
       app("desktop", {

@@ -282,6 +282,14 @@ export function boundaryConfig({
       to: { path: "^packages/time/src/system-clock\\.ts$", dependencyTypesNot: ["local"] },
     },
     {
+      name: "page-clock-in-one-place",
+      comment:
+        "The page has one Clock (D348): `apps/web/src/page-clock.ts` loads the system clock, and the settings area and the page's `PageClockProvider` take `pageClock` from there.",
+      severity: "error",
+      from: { path: "^apps/web/src/", pathNot: "^apps/web/src/page-clock\\.ts$" },
+      to: { path: "^packages/time/src/system-clock\\.ts$" },
+    },
+    {
       name: "time-imports-no-package",
       comment:
         "The Settings and React entries of `time` can import `settings` (D356). The rest of `time` imports no workspace package (D143): a module reads its days and zones without the settings code.",

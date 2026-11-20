@@ -8,6 +8,7 @@ import { act, createElement, StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { afterEach, beforeEach, expect, test, vi } from "vite-plus/test";
 import { PageTimeSettings, watchDeviceZone } from "./device-zone.tsx";
+import { watchVisibility } from "./page-visibility.ts";
 
 const zone = (name: string): TimeZone => resolveTimeZone(name).timeZone;
 const BERLIN = zone("Europe/Berlin");
@@ -37,7 +38,7 @@ function testDevice(start: TimeZone) {
 
 test("the device's zone is read at the start and again when the window becomes visible", () => {
   const device = testDevice(BERLIN);
-  const source = watchDeviceZone(device.page, device.read);
+  const source = watchDeviceZone(watchVisibility(device.page), device.read);
   const visible = vi.fn(() => source.current());
   source.onVisible(visible);
   expect(source.current()).toBe(BERLIN);
@@ -55,7 +56,7 @@ test("the device's zone is read at the start and again when the window becomes v
 
 test("another name of the same zone keeps the zone as it was read", () => {
   const device = testDevice(zone("Asia/Calcutta"));
-  const source = watchDeviceZone(device.page, device.read);
+  const source = watchDeviceZone(watchVisibility(device.page), device.read);
   device.moveTo(zone("Asia/Kolkata"));
   device.becomes("visible");
   expect(source.current()).toBe("Asia/Calcutta");
@@ -63,7 +64,7 @@ test("another name of the same zone keeps the zone as it was read", () => {
 
 test("a listener that stopped hears nothing more", () => {
   const device = testDevice(BERLIN);
-  const source = watchDeviceZone(device.page, device.read);
+  const source = watchDeviceZone(watchVisibility(device.page), device.read);
   const visible = vi.fn();
   const changed = vi.fn();
   source.onVisible(visible)();
@@ -76,7 +77,7 @@ test("a listener that stopped hears nothing more", () => {
 
 test("a reader that asks gets the zone the device is in now, without a window event", () => {
   const device = testDevice(BERLIN);
-  const source = watchDeviceZone(device.page, device.read);
+  const source = watchDeviceZone(watchVisibility(device.page), device.read);
   const changed = vi.fn(() => source.current());
   const visible = vi.fn();
   source.onChange(changed);
@@ -93,7 +94,7 @@ test("a reader that asks gets the zone the device is in now, without a window ev
 
 test("a read that finds the same zone tells no one of a change", () => {
   const device = testDevice(zone("Asia/Calcutta"));
-  const source = watchDeviceZone(device.page, device.read);
+  const source = watchDeviceZone(watchVisibility(device.page), device.read);
   const changed = vi.fn();
   source.onChange(changed);
   device.moveTo(zone("Asia/Kolkata"));
@@ -114,7 +115,7 @@ test("the page's Time Zone follows the device when the window becomes visible", 
   });
   await store.load();
   const device = testDevice(BERLIN);
-  const source = watchDeviceZone(device.page, device.read);
+  const source = watchDeviceZone(watchVisibility(device.page), device.read);
   let renders = 0;
   function Readout() {
     renders += 1;
