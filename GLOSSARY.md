@@ -262,6 +262,9 @@ _Avoid_: offset, UTC offset, locale
 The time of day a clock on the wall shows, in hours and minutes, such as 14:30, without a _Calendar Day_ or _Time Zone_. On the day the clocks change, one may not exist or may occur twice.
 _Avoid_: local time, time (on its own), hour
 
+**Week Start** (de: _Wochenstart_):
+The named day that begins a seven-day calendar week, such as Monday or Sunday.
+
 ### Translation
 
 **App Language** (de: _App-Sprache_):

@@ -18,6 +18,8 @@ Electron's Node 24 with ICU 78.2.
 
 ## Decision
 
+[ADR 0035](0035-calendar-weeks-start-on-a-named-day.md) adds a standalone schema entry.
+
 1. **`@self-engine/time` is the one package that computes with time, cut for this app.** It
    imports no package of this repo and has one dependency, `zod`. Every function it exports has a
    user in sight: the code moved onto it in the same work package, projects, the time module or

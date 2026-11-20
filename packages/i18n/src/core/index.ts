@@ -5,7 +5,7 @@ export {
   requiredLanguages,
   type Language,
 } from "./languages.ts";
-export { resolveAppLanguage } from "./resolve-app-language.ts";
+export { regionForAppLanguage, resolveAppLanguage } from "./resolve-app-language.ts";
 export {
   activateLanguage,
   createI18n,

@@ -18,6 +18,8 @@ first.
 
 ## Decision
 
+[ADR 0035](0035-calendar-weeks-start-on-a-named-day.md) supersedes the numeric week-start convention in decision 2.
+
 1. **Five values cover every date a module stores.** Each is a branded type with a Zod schema
    that accepts only its stored form, and each holds years 1000 to 9999.
 
