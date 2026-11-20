@@ -14,7 +14,7 @@ export function whenIdle(work: () => void): () => void {
  * Runs `work` in an idle moment after the page was drawn once more. An effect may run before the
  * first paint, and an idle callback needs no paint, so a frame is asked for first. The callback
  * of a frame runs before that frame is drawn, so the idle moment is asked for in the frame after
- * it. A hidden window draws nothing: there the work waits until the window shows.
+ * it.
  */
 function whenIdleAfterAPaint(work: () => void): () => void {
   let cancel = () => cancelAnimationFrame(beforeThePaint);
