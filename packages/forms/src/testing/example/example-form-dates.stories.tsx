@@ -55,7 +55,10 @@ export const ADayIsTypedAndPicked: Story = {
   play: async ({ canvasElement, loaded }) => {
     const form = formIn(canvasElement);
     await typeTheTexts(canvasElement);
-    await userEvent.type(form.day(), "11/5/2026");
+    await userEvent.type(form.day(), "11/5/26");
+    // Left, a whole day reads as a picked one does.
+    await userEvent.tab();
+    await expect(form.day()).toHaveValue("11/05/2026");
     await form.save();
     await waitFor(() =>
       expect(callsOf(loaded)).toEqual([
@@ -120,6 +123,7 @@ export const HalfADayBlocksTheSave: Story = {
     await expect(form.day()).toHaveAccessibleDescription("");
     await userEvent.tab();
     await expect(form.day()).toHaveAccessibleDescription(UNFINISHED);
+    // Text that is no day stays as typed when the field is left.
     await expect(form.day()).toHaveValue("31.02.2026");
     await form.save();
     await expect(callsOf(loaded)).toEqual([]);

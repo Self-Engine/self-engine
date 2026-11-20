@@ -20,7 +20,7 @@ import {
   type WallClockTime,
   wallClockTimeSchema,
 } from "@self-engine/time";
-import { useEffect, useId, useRef } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 
 /** What a module may set on a date or time field; the helper sets everything else. */
 export type Shown =
@@ -71,8 +71,9 @@ export type DayInputProps = {
 
 /**
  * Mantine's date input with its calendar. Typed text in the language's numeric order, such as
- * `5.11.2026` or `11/5/2026`, or `2026-11-05`, becomes the day as soon as it is whole; any other
- * text keeps the older day and is reported as unfinished. Emptying the text hands on "empty".
+ * `5.11.2026` or `11/5/2026`, or `2026-11-05`, becomes the day as soon as it is whole, and reads
+ * in the field's format once the input is left; any other text keeps the older day, stays as
+ * typed and is reported as unfinished. Emptying the text hands on "empty".
  * Draw it anew (a new `key`) to show another day.
  */
 export function DayInput({
@@ -87,12 +88,18 @@ export function DayInput({
   const { i18n } = useLingui();
   const locale = i18n.locale;
   const labels = calendarLabels(locale);
+  // Whether the text typed last is a whole day. Mantine writes its day in the field's format on
+  // blur only with `fixOnBlur`, and then always: over unfinished text too, which would be lost.
+  // So it is set only while the text is a whole day; a picked or drawn day is one as well.
+  const [typedWhole, setTypedWhole] = useState(true);
   const parse = (text: string) => {
     if (text.trim() === "") {
+      setTypedWhole(false);
       onDay(null);
       return null;
     }
     const parsed = calendarDayFromText(text, locale);
+    setTypedWhole(parsed !== null);
     if (parsed === null) onUnfinished();
     return parsed;
   };
@@ -109,14 +116,18 @@ export function DayInput({
       defaultDate={today}
       defaultValue={day}
       firstDayOfWeek={mantineFirstDayOfWeek(firstDayOfWeek)}
-      fixOnBlur={false}
+      fixOnBlur={typedWhole}
       getDayAriaLabel={labelling(labels.day)}
       getDayProps={(shown) => ({ "data-today": shown === today || undefined })}
       highlightToday
       locale={locale}
       monthLabelFormat={labelling(labels.month)}
       monthsListFormat={labelling(labels.monthShort)}
-      onChange={(text) => onDay(text === null ? null : dayOf(text))}
+      onChange={(text) => {
+        // A day picked in the calendar replaces any text.
+        setTypedWhole(true);
+        onDay(text === null ? null : dayOf(text));
+      }}
       valueFormat={labelling((shown) => formatCalendarDay(shown, "fieldDate", locale))}
       weekdayFormat={labelling(labels.weekday)}
       yearLabelFormat={labelling(labels.year)}
