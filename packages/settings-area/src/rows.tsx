@@ -3,9 +3,11 @@
 
 import { msg } from "@lingui/core/macro";
 import { LANGUAGE_TAGS, LANGUAGES } from "@self-engine/i18n";
+import type { Clock } from "@self-engine/time";
 import { BUILT_IN_THEMES, FONT_SCALES } from "@self-engine/theme";
 import { aboutRows } from "./about-rows.tsx";
 import { BACKUP_ROWS } from "./backup-rows.tsx";
+import { regionRows } from "./region-rows.tsx";
 import type { SettingsRow } from "./row.ts";
 import { APP_LANGUAGE_SETTING, APPEARANCE_SETTINGS, SYSTEM_LANGUAGE } from "./settings.ts";
 import { type NamedCommandOwner, shortcutRows } from "./shortcut-rows.tsx";
@@ -100,16 +102,20 @@ export interface SettingsRowSources {
   readonly version: VersionInfo;
   /** The Command owners whose Shortcuts the View Shortcuts lists. */
   readonly commandOwners: readonly NamedCommandOwner[];
+  /** The source of "now", for the offsets the zone list shows. */
+  readonly clock: Clock;
 }
 
 /** The one list: the rows that are always the same, then those produced from what the app gave. */
 export function settingsRows({
   version,
   commandOwners,
+  clock,
 }: SettingsRowSources): readonly SettingsRow[] {
   return [
     ...APPEARANCE_ROWS,
     ...LANGUAGE_ROWS,
+    ...regionRows(clock),
     ...shortcutRows(commandOwners),
     ...BACKUP_ROWS,
     ...aboutRows(version),

@@ -12,7 +12,8 @@
     "./testing": "./src/testing.ts",
     "./system-clock": "./src/system-clock.ts",
     "./check": "./src/check/program.ts",
-    "./react": "./src/react/index.tsx"
+    "./react": "./src/react/index.tsx",
+    "./zone-list": "./src/zone-list.ts"
   },
   "dependencies": {
     "@self-engine/settings": "workspace:*",

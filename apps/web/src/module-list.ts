@@ -49,6 +49,9 @@ export function createModuleList(
     version: () => versionInfo(window, navigator, version),
     // Every contribution, so that a new module's Shortcuts are listed by themselves.
     commandOwners: () => contributions,
+    // Loaded with the settings: the clock builds its Instants with the schemas of `time`, which
+    // the start leaves out.
+    loadClock: () => import("@self-engine/time/system-clock").then((loaded) => loaded.systemClock),
   });
   const contributions = [...modules, settings];
   validateContributions(contributions);

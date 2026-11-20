@@ -35,10 +35,13 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
+/** The choices of the App Language; the rows of the region below it have their own. */
 const choices = (canvasElement: HTMLElement) =>
-  [...canvasElement.querySelectorAll(".mantine-SegmentedControl-label")].map(
-    (label) => label.textContent,
-  );
+  [
+    ...(canvasElement
+      .querySelector('[role="radiogroup"]')
+      ?.querySelectorAll(".mantine-SegmentedControl-label") ?? []),
+  ].map((label) => label.textContent);
 
 export const SystemAndTheLanguages: Story = {
   play: async ({ canvas, canvasElement }) => {

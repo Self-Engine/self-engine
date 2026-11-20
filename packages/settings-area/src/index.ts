@@ -6,6 +6,7 @@ import { msg } from "@lingui/core/macro";
 import { SettingsIcon } from "@self-engine/icons";
 import type { SettingsStore } from "@self-engine/settings";
 import type { ShellContribution, ShellView } from "@self-engine/shell";
+import type { Clock } from "@self-engine/time";
 import type { NamedCommandOwner } from "./shortcut-rows.tsx";
 import type { VersionInfo } from "./version.ts";
 import { SEARCH_PARAMETER, type SettingsViewId, VIEW_IDS } from "./views.ts";
@@ -29,23 +30,35 @@ export interface SettingsAreaInputs {
    * opened, so the list may hold the settings area itself.
    */
   readonly commandOwners: () => readonly NamedCommandOwner[];
+  /**
+   * Loads the source of "now", for the offset of each zone in the zone list. Called when the
+   * settings are first opened, so that the clock and the schemas it builds Instants with stay out
+   * of the start.
+   */
+  readonly loadClock: () => Promise<Clock>;
 }
 
 /**
  * The Shell Contribution `settings`, which the app hands to the Shell beside the modules. It has
  * no Commands and no main action, and its type says so.
  */
-export function createSettingsArea({ store, version, commandOwners }: SettingsAreaInputs) {
+export function createSettingsArea({
+  store,
+  version,
+  commandOwners,
+  loadClock,
+}: SettingsAreaInputs) {
   // One page for every View (ADR 0016), remembered: the router loads a View again on every visit,
   // and a new component would throw away the state of the page and draw every row anew.
   let page: ReturnType<ShellView["load"]> | undefined;
   const load: ShellView["load"] = () =>
-    (page ??= import("./area.tsx").then(
-      (area) => ({
+    (page ??= Promise.all([import("./area.tsx"), loadClock()]).then(
+      ([area, clock]) => ({
         default: area.settingsPage({
           store,
           version: version(),
           commandOwners: commandOwners(),
+          clock,
           views,
         }),
       }),
@@ -58,7 +71,8 @@ export function createSettingsArea({ store, version, commandOwners }: SettingsAr
   const view = (id: SettingsViewId, title: MessageDescriptor): ShellView => ({ id, title, load });
   const views: readonly [ShellView, ...ShellView[]] = [
     view(VIEW_IDS.appearance, msg`Appearance`),
-    view(VIEW_IDS.language, msg`Language`),
+    // Renamed when it got the rows of the region (D197); its address stays.
+    view(VIEW_IDS.language, msg`Language and region`),
     view(VIEW_IDS.shortcuts, msg`Shortcuts`),
     // Arrived with its first rows, the Backups (D198).
     view(VIEW_IDS.data, msg({ message: "Data", context: "View of the settings" })),

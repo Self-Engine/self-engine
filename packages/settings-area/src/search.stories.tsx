@@ -63,7 +63,7 @@ export const TypingShowsTheMatchingRowsOfAllViews: Story = {
       hitsOf(canvas, "Appearance").getByRole("radiogroup", { name: "Color Mode" }),
     ).toBeVisible();
     await expect(
-      hitsOf(canvas, "Language").getByRole("radiogroup", { name: "App Language" }),
+      hitsOf(canvas, "Language and region").getByRole("radiogroup", { name: "App Language" }),
     ).toBeVisible();
     await expect(hitsOf(canvas, "About").getByText("Operating system")).toBeVisible();
     await expect(canvas.queryByRole("radiogroup", { name: "Density" })).toBeNull();

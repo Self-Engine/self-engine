@@ -15,7 +15,13 @@ import { expect, userEvent, waitFor, within } from "storybook/test";
 import { createAppRouter } from "./app-router.ts";
 import { AppLanguage } from "./app-language.tsx";
 import { settingsStore } from "./settings-store.ts";
-import { loadStoryApp, openPalette, paletteGone, storyModules } from "./story-app.tsx";
+import {
+  loadStoryApp,
+  openPalette,
+  paletteGone,
+  StoryTimeSettings,
+  storyModules,
+} from "./story-app.tsx";
 
 const i18n = createI18n();
 /** The rows of `placeholder-alpha`, which some stories show. */
@@ -85,7 +91,9 @@ const meta = {
         store={settingsStore}
         systemLanguages={ENGLISH_SYSTEM}
       >
-        <Story />
+        <StoryTimeSettings>
+          <Story />
+        </StoryTimeSettings>
       </AppLanguage>
     ),
   ],
@@ -120,9 +128,11 @@ export const StartAndNavigate: Story = {
     await expect(
       await canvas.findByRole("heading", { name: "Appearance", level: 1 }),
     ).toBeVisible();
-    await userEvent.click(canvas.getByRole("link", { name: "Language" }));
+    await userEvent.click(canvas.getByRole("link", { name: "Language and region" }));
     await expect(await canvas.findByRole("radiogroup", { name: "App Language" })).toBeVisible();
-    await expect(canvas.getByRole("heading", { name: "Language", level: 1 })).toBeVisible();
+    await expect(
+      canvas.getByRole("heading", { name: "Language and region", level: 1 }),
+    ).toBeVisible();
     await userEvent.click(canvas.getByRole("button", { name: "Reload router" }));
     await expect(await canvas.findByRole("radiogroup", { name: "App Language" })).toBeVisible();
     await userEvent.click(canvas.getByRole("link", { name: "Placeholder Beta" }));
@@ -200,14 +210,16 @@ export const NamesFollowLanguage: Story = {
         "page",
       );
     });
-    await expect(canvas.getByRole("heading", { name: "Sprache", level: 1 })).toBeVisible();
+    await expect(
+      canvas.getByRole("heading", { name: "Sprache und Region", level: 1 }),
+    ).toBeVisible();
     await expect(canvas.getByRole("link", { name: "Darstellung" })).toBeVisible();
     await userEvent.click(canvas.getByRole("link", { name: "Platzhalter Beta" }));
     await expect(await canvas.findByRole("heading", { name: "Übersicht", level: 1 })).toBeVisible();
     await userEvent.click(canvas.getByRole("link", { name: "Platzhalter Alpha" }));
     await expect(await canvas.findByRole("button", { name: "Neuer Eintrag" })).toBeVisible();
     await userEvent.click(canvas.getByRole("link", { name: "Einstellungen" }));
-    await userEvent.click(await canvas.findByRole("link", { name: "Sprache" }));
+    await userEvent.click(await canvas.findByRole("link", { name: "Sprache und Region" }));
     await userEvent.click(await canvas.findByRole("radio", { name: "English" }));
     await userEvent.click(canvas.getByRole("link", { name: "Placeholder Alpha" }));
     await expect(await canvas.findByRole("button", { name: "New entry" })).toBeVisible();
@@ -219,13 +231,15 @@ export const PaletteLabelsFollowTheLanguage: Story = {
   play: async ({ canvas }) => {
     await expect(await canvas.findByRole("radiogroup", { name: "App Language" })).toBeVisible();
     const english = within(await openPalette());
-    await expect(await english.findByRole("link", { name: "Language" })).toBeVisible();
+    await expect(await english.findByRole("link", { name: "Language and region" })).toBeVisible();
     await userEvent.keyboard("{Escape}");
     await paletteGone();
     await userEvent.click(canvas.getByRole("radio", { name: "Deutsch" }));
-    await expect(await canvas.findByRole("heading", { name: "Sprache", level: 1 })).toBeVisible();
+    await expect(
+      await canvas.findByRole("heading", { name: "Sprache und Region", level: 1 }),
+    ).toBeVisible();
     const german = within(await openPalette("Befehlspalette"));
-    await expect(await german.findByRole("link", { name: "Sprache" })).toBeVisible();
+    await expect(await german.findByRole("link", { name: "Sprache und Region" })).toBeVisible();
   },
 };
 
