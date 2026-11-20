@@ -196,9 +196,17 @@ _Avoid_: edit modal, side panel
 A titled list in the _Module Sidebar_ whose entries come from the user's data, such as a module's clients. Unlike a _View_ it changes with that data, and not every module has one.
 _Avoid_: section, category, folder
 
+**Indicator Panel** (de: _Anzeige-Panel_):
+A panel associated with a _Module Indicator_. The _Shell_ owns the panel and the module fills it.
+_Avoid_: widget, status bar item, tray, badge
+
 **Layout Step** (de: _Layoutstufe_):
 One of the four arrangements of the _Shell_ that depend on the window's width: wide, medium, narrow and phone.
 _Avoid_: breakpoint, responsive mode
+
+**Module Indicator** (de: _Modulanzeige_):
+A small permanent element in the _Shell_ that shows what is happening in a module and can offer an action.
+_Avoid_: widget, status bar item, tray, badge
 
 **Module Sidebar** (de: _Modul-Sidebar_):
 The bar next to the _Navbar_ with the main action, the views and the groups of the active module.
@@ -221,7 +229,7 @@ A key combination with ⌘ on macOS or Ctrl elsewhere that starts a _Command_ or
 _Avoid_: hotkey, keybinding, accelerator
 
 **Shell Contribution** (de: _Hüllen-Beitrag_):
-What a module declares about itself so that the _Shell_ can show it, such as its name, its icon and its _Views_. The _Shell_ only puts contributions together and knows nothing else about a module.
+What a module declares about itself so that the _Shell_ can show it, such as its name, icon, _Views_, _Module Indicator_ and _Indicator Panel_. The _Shell_ only puts contributions together and knows nothing else about a module.
 _Avoid_: manifest, module config, plugin
 
 **View** (de: _Ansicht_):

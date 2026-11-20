@@ -141,6 +141,13 @@ renamed, delivers the Table Change by hand and lets the list reload. It asserts 
 - **Cost.** The story takes about 0.45 s (ten runs, 440–495 ms, all passing). The whole `stories`
   stage took a median 14.45 s with it and 14.20 s without it (three runs each, alternating).
 
+The same file drives `placeholder-alpha`'s Module Indicator and its Indicator Panel while
+Placeholder Beta is active. One counter tick draws the Module Indicator once and draws zero
+components outside its React subtree. Typing into the panel's Note field draws zero components
+outside the panel frame's subtree. The counter follows the React tree through portals, so a
+component used both inside and outside the panel is counted where it drew. A temporary change
+that let the tick also update the Shell's surrounding group failed the story.
+
 ## Startup JavaScript budget
 
 Every production web build, including `pnpm verify` and Electron packaging, audits the
@@ -701,3 +708,40 @@ size is the raw static JavaScript reported by `apps/web/dist/startup-bundle.json
 The first render median was unchanged and the first-answer distributions overlapped. Across
 the package startup JavaScript grew by **2,527 bytes**. Of that, **2,412 bytes** came in #358
 (857,127 to 859,539 bytes). The limit stays at **889,856 bytes**.
+
+## Module Indicator startup (#276)
+
+Production builds measured the stock app's raw static JavaScript in
+`apps/web/dist/startup-bundle.json`. Its module list contains Projects. The limit stays at
+**889,856 bytes**.
+
+| Build                   | Startup JavaScript | Static chunks |
+| ----------------------- | -----------------: | ------------: |
+| Before #276 (`2ea2f0f`) |      868,095 bytes |            20 |
+| After #367 (`8b2a8c2`)  |      870,472 bytes |            20 |
+| After #368 (`19322a9`)  |      871,411 bytes |            20 |
+| After #369 (`df135fc`)  |      874,960 bytes |            23 |
+| After #370 (`a14ff91`)  |      876,840 bytes |            23 |
+| After #371              |      876,840 bytes |            23 |
+
+The emitted panel frame and Mantine Popover chunks were **2,883** and **13,233 bytes** at
+#369, and **3,638** and **13,233 bytes** in the final stock build. Both chunks load on demand.
+
+For the startup comparison, both production renderers also mounted `placeholder-alpha` after
+`projects` through a temporary module list. The final build includes Alpha's declaration of
+a Module Indicator and an Indicator Panel. Both builds opened the same Projects View against
+the real desktop Data Process using the smoke launcher. On an Apple M3 Pro (macOS 27.2.1,
+Node 26.13.1, Electron 45.2.3), each build ran in 60 alternating hidden-window sessions with
+a fresh temporary data folder. Times start at page load. The Shell time is the first
+animation frame with the Navbar laid out. The first answer is the first `ready` connection
+mark. The hidden window gives frame timings.
+
+| Build with Placeholder Alpha |     Shell, median (range) | First answer, median (range) | Startup JavaScript |
+| ---------------------------- | ------------------------: | ---------------------------: | -----------------: |
+| Before #276 (`2ea2f0f`)      | 156.8 ms (145.4–224.3 ms) |    125.4 ms (117.2–191.2 ms) |      870,162 bytes |
+| After #371                   | 159.6 ms (148.2–208.7 ms) |    129.2 ms (119.1–168.4 ms) |      881,120 bytes |
+
+With Alpha mounted, startup grew by **10,958 bytes**. The final build was **8,736 bytes**
+below the limit, with the Module Indicator, panel content and frame outside the static startup
+chunks. Median timings rose by about 3 ms for the Shell and 4 ms for the first answer, with
+overlapping ranges.

@@ -23,6 +23,11 @@ export interface RenderCounts {
   components: Record<string, number>;
 }
 
+interface OutsideCount {
+  readonly component: string;
+  readonly components: RenderCounts["components"];
+}
+
 /**
  * Count committed function-component work, excluding reused bailout subtrees and aborted renders.
  * Counts committed work, not DOM mutations.
@@ -31,23 +36,29 @@ export function countCommit(
   root: Fiber,
   counts: RenderCounts,
   previous: WeakMap<Fiber, Fiber>,
+  outside?: OutsideCount,
 ): void {
   counts.commits++;
-  const visit = (fiber: Fiber | null): void => {
+  const visit = (fiber: Fiber | null, inside: boolean): void => {
     if (fiber === null) return;
+    const name = fiber.type?.displayName || fiber.type?.name || "Anonymous";
+    const excluded = inside || name === outside?.component;
     // FunctionComponent, ForwardRef, SimpleMemoComponent; PerformedWork = 1.
     const last =
       previous.get(fiber) ?? (fiber.alternate ? previous.get(fiber.alternate) : undefined);
     if (last !== fiber && [0, 11, 15].includes(fiber.tag) && (fiber.flags & 1) !== 0) {
-      const name = fiber.type?.displayName || fiber.type?.name || "Anonymous";
       counts.components[name] = (counts.components[name] ?? 0) + 1;
+      if (outside && !excluded) {
+        const { components } = outside;
+        components[name] = (components[name] ?? 0) + 1;
+      }
     }
     previous.set(fiber, fiber);
     if (fiber.alternate) previous.set(fiber.alternate, fiber);
-    visit(fiber.child);
-    visit(fiber.sibling);
+    visit(fiber.child, excluded);
+    visit(fiber.sibling, inside);
   };
-  visit(root);
+  visit(root, false);
 }
 
 /** Isolate work committed between two cumulative snapshots. */
@@ -64,6 +75,7 @@ interface Counter {
   readonly counts: RenderCounts;
   readonly afterCommit: Set<() => void>;
   connected: boolean;
+  outside?: OutsideCount | undefined;
 }
 
 const COUNTER = "__SE_RENDER_COUNTER__";
@@ -96,7 +108,7 @@ export function installRenderCounter(scope: object = globalThis): void {
       return 1;
     },
     onCommitFiberRoot(_id: number, root: { readonly current: Fiber }) {
-      countCommit(root.current, counter.counts, previous);
+      countCommit(root.current, counter.counts, previous, counter.outside);
       for (const listener of counter.afterCommit) listener();
     },
     onCommitFiberUnmount() {},
@@ -118,6 +130,24 @@ function connectedCounter(scope: object): Counter {
 export function renderCounts(scope: object = globalThis): RenderCounts {
   const { counts } = connectedCounter(scope);
   return { commits: counts.commits, components: { ...counts.components } };
+}
+
+/** Counts function renders outside the named component and its React subtree, including portals. */
+export async function rendersOutside(
+  component: string,
+  action: () => Promise<void>,
+  scope: object = globalThis,
+): Promise<Record<string, number>> {
+  const counter = connectedCounter(scope);
+  const components: RenderCounts["components"] = {};
+  const previous = counter.outside;
+  counter.outside = { component, components };
+  try {
+    await action();
+    return components;
+  } finally {
+    counter.outside = previous;
+  }
 }
 
 /**

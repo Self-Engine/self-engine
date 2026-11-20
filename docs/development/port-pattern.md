@@ -570,6 +570,8 @@ is the app's start address. The router hands that list to its routes through its
 app's stories mount their own list, [`apps/web/src/story-modules.ts`](../../apps/web/src/story-modules.ts):
 the placeholder modules beside every module of the app, so add a new module there too.
 
+The Shell Contribution can also [declare a Module Indicator](#declare-a-module-indicator-and-its-indicator-panel).
+
 In the Shell Contribution's `dataTexts`, made by `dataTexts<typeof storageModule>()` with a
 type-only import of the module's storage module, give every synced table one Lingui plural
 message for its singular and plural names, and every Reason of the module's own rules its typed
@@ -614,3 +616,29 @@ Process's list in `apps/desktop/src/data-modules.ts`).
 
 Done when the committed implementation passes `pnpm verify` with `VERIFY: PASS` as its final line.
 Then build the hooks, Views and stories with [the renderer guide](port-hooks.md).
+
+### Declare a Module Indicator and its Indicator Panel
+
+Set `indicator` in the Shell Contribution to an entry with a `load` function that dynamically
+imports the Module Indicator. For an Indicator Panel, give that entry a second loader,
+`panel`, and type the entry with `satisfies IndicatorWithPanel`.
+The Module Indicator gets `form` from the Shell and reads its data through the module's hooks.
+With a panel it also gets `togglePanel` and `panelOpen` for the control and its expanded state.
+See the [placeholder declaration](../../packages/placeholder-alpha/src/indicator-entry.ts).
+
+Keep both components and their private UI code under `src/indicator/`. The startup check
+rejects files from that folder in static startup chunks. This path rule misses code put
+elsewhere. Keep the small declaration outside the folder, for example in `src/indicator-entry.ts`,
+so the Shell Contribution and a Command can import the same entry without loading either component.
+
+In a page or open Command, call `openIndicatorPanel(indicator)` from the Command's context.
+Inside the Shell, call `useOpenIndicatorPanel()` and use the returned function in the Notice's
+action. Pass the same entry object that the Shell Contribution declares. TypeScript accepts any
+`IndicatorWithPanel`. The Shell checks at runtime whether that exact object belongs to a
+mounted module.
+
+The Shell supplies the panel frame. The content receives `IndicatorPanelProps`, the same
+exit functions as in the Edit Drawer. A form built with `forms` reports whether its draft has
+changed. For other content, give `useUnsavedChanges` a function that reads whether the draft
+has changed. Use `onCancel` to ask before closing and `onDone` after a successful save.
+See the [example panel](../../packages/placeholder-alpha/src/indicator/panel.tsx).

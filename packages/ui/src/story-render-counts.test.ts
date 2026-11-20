@@ -40,6 +40,18 @@ it("counts work across alternate Fibers but skips an unchanged committed subtree
   expect(counts).toEqual({ commits: 3, components: { View: 2 } });
 });
 
+it("counts a component outside the excluded subtree even if its name is also used inside", () => {
+  const tree: Fiber = {
+    ...leaf(0, 1, "Shell"),
+    child: { ...leaf(0, 1, "Panel", leaf(0, 1, "Box")), child: leaf(0, 1, "Box") },
+  };
+  const counts = { commits: 0, components: {} };
+  const components = {};
+  countCommit(tree, counts, new WeakMap(), { component: "Panel", components });
+  expect(counts.components).toEqual({ Shell: 1, Panel: 1, Box: 2 });
+  expect(components).toEqual({ Shell: 1, Box: 1 });
+});
+
 it("isolates the work committed between two snapshots", () => {
   const before = { commits: 2, components: { View: 3, Shell: 1 } };
   const after = { commits: 3, components: { View: 5, Shell: 1, Drawer: 1 } };
