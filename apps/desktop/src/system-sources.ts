@@ -2,7 +2,7 @@
 // below the app takes them as arguments; tests pass fixed ones instead.
 
 import type { DataProcessSources } from "@self-engine/data-process";
-import { deviceTimeZone } from "@self-engine/time";
+import { deviceTimeZone } from "@self-engine/time/device-time-zone";
 import { systemClock } from "@self-engine/time/system-clock";
 
 export type SystemSources = DataProcessSources;

@@ -1,4 +1,4 @@
-import { deviceTimeZone } from "@self-engine/time";
+import { deviceTimeZone } from "@self-engine/time/device-time-zone";
 import { systemClock } from "@self-engine/time/system-clock";
 import { expect, test } from "vite-plus/test";
 import { systemSources } from "./system-sources.ts";
