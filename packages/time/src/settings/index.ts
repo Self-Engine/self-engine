@@ -14,6 +14,9 @@ import {
 } from "../first-day-of-week.ts";
 import { NAME_SHAPE, resolveTimeZoneOr, sameTimeZone, type TimeZone } from "../zone.ts";
 
+// Here as well as in the main entry, so that startup code compares zones without the schemas.
+export { sameTimeZone };
+
 /**
  * The user's Time Zone (D147): a zone name, or `null` while none is set. Open to names this
  * runtime does not know, so that a zone of a newer runtime stays stored; `resolveTimeZoneSetting`
@@ -54,15 +57,13 @@ export const ZONE_OFFER_DISMISSED_SETTING = defineSetting({
 });
 
 /**
- * Why the device's zone stands in, if it does: `notSet` while no zone is stored, `unknownName`
- * for a stored name this runtime does not know (the caller reports it, D353).
+ * The Time Zone the Setting gives, and why the device's zone stands in, if it does: `notSet`
+ * while no zone is stored, `unknownName` for a stored name this runtime does not know, which it
+ * carries so that the caller reports it (D353).
  */
-export type TimeZoneFallback = "none" | "notSet" | "unknownName";
-
-export interface ResolvedTimeZoneSetting {
-  readonly timeZone: TimeZone;
-  readonly fallback: TimeZoneFallback;
-}
+export type ResolvedTimeZoneSetting =
+  | { readonly timeZone: TimeZone; readonly fallback: "none" | "notSet" }
+  | { readonly timeZone: TimeZone; readonly fallback: "unknownName"; readonly name: string };
 
 /**
  * The Time Zone the Setting's value gives. The device's zone is an argument, never asked of the
@@ -73,9 +74,24 @@ export function resolveTimeZoneSetting(
   deviceZone: TimeZone,
 ): ResolvedTimeZoneSetting {
   if (value === null) return { timeZone: deviceZone, fallback: "notSet" };
-  if (!NAME_SHAPE.test(value)) return { timeZone: deviceZone, fallback: "unknownName" };
+  const unknown = { timeZone: deviceZone, fallback: "unknownName", name: value } as const;
+  if (!NAME_SHAPE.test(value)) return unknown;
   const { timeZone, deviceFallback } = resolveTimeZoneOr(value, () => deviceZone);
-  return { timeZone, fallback: deviceFallback ? "unknownName" : "none" };
+  return deviceFallback ? unknown : { timeZone, fallback: "none" };
+}
+
+/**
+ * `report`, called once per name: every read of an unknown stored name computes with the device's
+ * zone, and its report would otherwise flood (D353). A name counts as reported before `report`
+ * runs, so one that throws is not tried again.
+ */
+export function reportEachNameOnce(report: (name: string) => void): (name: string) => void {
+  const reported = new Set<string>();
+  return (name) => {
+    if (reported.has(name)) return;
+    reported.add(name);
+    report(name);
+  };
 }
 
 /** The first day of the week the Setting's value gives: `automatic` takes the region's. */
@@ -101,7 +117,14 @@ export interface ZoneOfferInputs {
  */
 export type ZoneOfferDecision =
   | { readonly kind: "nothing" }
-  | { readonly kind: "offer"; readonly stored: TimeZone; readonly device: TimeZone }
+  | {
+      readonly kind: "offer";
+      /** The stored zone, resolved: for display and comparison. */
+      readonly stored: TimeZone;
+      /** The Setting's value exactly as it was stored (D282), to write it back. */
+      readonly storedName: string;
+      readonly device: TimeZone;
+    }
   | { readonly kind: "follow"; readonly device: TimeZone };
 
 const NOTHING: ZoneOfferDecision = { kind: "nothing" };
@@ -122,5 +145,5 @@ export function decideZoneOffer({
   const { timeZone, fallback } = resolveTimeZoneSetting(stored, device);
   if (fallback !== "none" || sameTimeZone(timeZone, device)) return NOTHING;
   if (followDevice) return { kind: "follow", device };
-  return dismissed ? NOTHING : { kind: "offer", stored: timeZone, device };
+  return dismissed ? NOTHING : { kind: "offer", stored: timeZone, storedName: stored, device };
 }

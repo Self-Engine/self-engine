@@ -26,12 +26,7 @@ const SERVED_SETTINGS = [
  */
 export function auditSettingsArea(
   views: readonly { readonly id: string }[],
-  sources: Omit<SettingsRowSources, "clock">,
+  sources: SettingsRowSources,
 ): string[] {
-  return auditSettingsRows(settingsRows({ ...sources, clock: NO_CLOCK }), views, SERVED_SETTINGS);
-}
-
-/** The audit reads the rows and draws none, so nothing asks for "now". */
-function NO_CLOCK(): never {
-  throw new Error("The audit of the Settings Rows draws no row and has no clock");
+  return auditSettingsRows(settingsRows(sources), views, SERVED_SETTINGS);
 }

@@ -59,7 +59,8 @@ const byOffsetThenPlace = (a: Sortable, b: Sortable) =>
  * Every zone of the runtime and UTC, with the offset that holds at `now`, sorted by offset and
  * then by place. `shown` is always in the list in its own spelling: in place of the runtime's
  * other name for the same zone (compared through `time`, never as text), or added when the
- * runtime lists it under no name. Some 400 entries; built in about 2 ms.
+ * runtime lists it under no name. Some 420 entries, built in about 0.5–0.6 ms in Chromium and
+ * about 2 ms in Node (#364).
  */
 export function timeZoneChoices(now: Instant, shown: TimeZone): readonly TimeZoneChoice[] {
   const instant = Temporal.Instant.from(now);

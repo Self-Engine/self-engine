@@ -1,6 +1,7 @@
 import { expect, test } from "vite-plus/test";
 import { activateLanguage, createI18n, formatCountedList } from "@self-engine/i18n";
 import { auditSettingsArea } from "@self-engine/settings-area/audit";
+import { fixedClock, requireInstant } from "@self-engine/time/testing";
 import { auditCommands, shellCommands, validateContributions } from "@self-engine/shell";
 import { contribution as beta } from "@self-engine/placeholder-beta";
 import { createModuleList } from "./module-list.ts";
@@ -101,9 +102,13 @@ test.each([
 ] as const)(
   "the app's real list of Settings Rows fits the Views of Settings %s",
   (_where, version) => {
-    expect(auditSettingsArea(settings.views, { version, commandOwners: contributions })).toEqual(
-      [],
-    );
+    expect(
+      auditSettingsArea(settings.views, {
+        version,
+        commandOwners: contributions,
+        clock: fixedClock(requireInstant("2026-11-20T12:00:00.000Z")),
+      }),
+    ).toEqual([]);
   },
 );
 

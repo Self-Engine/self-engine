@@ -5,11 +5,12 @@ import { TIME_ZONE_SETTING, ZONE_OFFER_DISMISSED_SETTING } from "@self-engine/ti
 import { clearNotices } from "@self-engine/ui/story-notices";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { expect, screen, userEvent, waitFor, within } from "storybook/test";
+import { watchDeviceZone } from "./device-zone.tsx";
 import { DeviceZoneOffer } from "./device-zone-offer.tsx";
 
 const BANGKOK: TimeZone = resolveTimeZone("Asia/Bangkok").timeZone;
 /** The device of every story is in Bangkok, whatever the browser running it says. */
-const inBangkok = () => BANGKOK;
+const inBangkok = watchDeviceZone(document, () => BANGKOK);
 
 /** The story's store: the Time Zone stored in Berlin, as a trip to Bangkok finds it. */
 let store: SettingsStore;
@@ -31,13 +32,13 @@ async function storedInBerlin() {
 const meta = {
   title: "App/Device zone offer",
   beforeEach: storedInBerlin,
-  render: () => <DeviceZoneOffer store={store} deviceZone={inBangkok} />,
+  render: () => <DeviceZoneOffer store={store} device={inBangkok} />,
 } satisfies Meta;
 export default meta;
 type Story = StoryObj<typeof meta>;
 
 const OFFER =
-  "This device is in the time zone Asia/Bangkok. Switch from Europe/Berlin to Asia/Bangkok?";
+  "This device is in the Time Zone Asia/Bangkok. Switch from Europe/Berlin to Asia/Bangkok?";
 
 async function noticeWith(text: string) {
   const notice = (await screen.findByText(text)).closest<HTMLElement>(
@@ -74,7 +75,7 @@ export const SwitchStoresTheDeviceZoneAndOffersToUndoIt: Story = {
     await noticeGone(OFFER);
     await expect(store.read(TIME_ZONE_SETTING)).toBe("Asia/Bangkok");
 
-    const confirmation = await noticeWith("The time zone is now Asia/Bangkok.");
+    const confirmation = await noticeWith("The Time Zone is now Asia/Bangkok.");
     await userEvent.click(confirmation.getByRole("button", { name: "Undo" }));
     await expect(store.read(TIME_ZONE_SETTING)).toBe("Europe/Berlin");
   },

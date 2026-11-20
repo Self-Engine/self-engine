@@ -39,15 +39,15 @@ describe("the offer to switch to the device's zone", () => {
     },
   );
 
-  it("names both zones in an offer, the stored one as it was chosen", () => {
+  it("names both zones in an offer, and the stored name exactly as it was stored", () => {
     expect(
       decideZoneOffer({
-        stored: "Europe/Berlin",
+        stored: "europe/berlin",
         device: KOLKATA,
         followDevice: false,
         dismissed: false,
       }),
-    ).toEqual({ kind: "offer", stored: BERLIN, device: KOLKATA });
+    ).toEqual({ kind: "offer", stored: BERLIN, storedName: "europe/berlin", device: KOLKATA });
   });
 
   it("names the device's zone to follow", () => {
@@ -64,7 +64,12 @@ describe("the offer to switch to the device's zone", () => {
   it("answers with zones only where it offers or follows", () => {
     expectTypeOf<ZoneOfferDecision>().toEqualTypeOf<
       | { readonly kind: "nothing" }
-      | { readonly kind: "offer"; readonly stored: TimeZone; readonly device: TimeZone }
+      | {
+          readonly kind: "offer";
+          readonly stored: TimeZone;
+          readonly storedName: string;
+          readonly device: TimeZone;
+        }
       | { readonly kind: "follow"; readonly device: TimeZone }
     >();
   });

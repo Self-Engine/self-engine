@@ -5,7 +5,6 @@ import { DataProvider } from "@self-engine/data-client/react";
 import { activateLanguage, createI18n, regionForAppLanguage } from "@self-engine/i18n";
 import { appLanguageOf } from "@self-engine/settings-area/settings";
 import { deviceTimeZone } from "@self-engine/time/device-time-zone";
-import { TimeSettingsProvider } from "@self-engine/time/react";
 import { FeedbackHost } from "@self-engine/ui";
 import { RouterProvider } from "@tanstack/react-router";
 import { StrictMode } from "react";
@@ -13,6 +12,7 @@ import { createRoot } from "react-dom/client";
 import { AppLanguage, browserLanguages } from "./app-language.tsx";
 import { AppearanceProvider } from "./appearance.tsx";
 import { dataConnection, startPageData } from "./desktop-data.ts";
+import { PageTimeSettings, watchDeviceZone } from "./device-zone.tsx";
 import { DeviceZoneOffer } from "./device-zone-offer.tsx";
 import { appModules } from "./modules.ts";
 import { appReasonTexts } from "./reason-texts.ts";
@@ -41,13 +41,15 @@ const i18n = createI18n();
 // Cache has already painted the background.
 await activateLanguage(i18n, language);
 
-const deviceZone = deviceTimeZone();
+// One source of the device's zone for the page's Time Zone and the offer to switch to it: read now
+// and again whenever the window becomes visible.
+const deviceZone = watchDeviceZone(document, deviceTimeZone);
 
 createRoot(container).render(
   <StrictMode>
     <AppLanguage i18n={i18n} initialLanguage={language} store={settingsStore}>
       {(activeLanguage) => (
-        <TimeSettingsProvider
+        <PageTimeSettings
           store={settingsStore}
           deviceZone={deviceZone}
           region={regionForAppLanguage(activeLanguage)}
@@ -55,13 +57,13 @@ createRoot(container).render(
         >
           <AppearanceProvider>
             <FeedbackHost>
-              <DeviceZoneOffer deviceZone={deviceTimeZone} store={settingsStore} />
+              <DeviceZoneOffer device={deviceZone} store={settingsStore} />
               <DataProvider access={dataAccess} reasonTexts={reasonTexts}>
                 <RouterProvider router={router} />
               </DataProvider>
             </FeedbackHost>
           </AppearanceProvider>
-        </TimeSettingsProvider>
+        </PageTimeSettings>
       )}
     </AppLanguage>
   </StrictMode>,

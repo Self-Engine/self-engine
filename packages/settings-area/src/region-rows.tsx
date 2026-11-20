@@ -38,8 +38,8 @@ function timeZoneRow(clock: Clock): SettingsRow {
     const followsDevice = useSetting(store, FOLLOW_DEVICE_ZONE_SETTING);
     // The offsets of the moment the row was first shown: they change at most twice a year.
     const [now] = useState(clock);
-    // About 0.5 ms for some 420 zones in Chromium; opening the list draws them all in about 50 ms
-    // (#364), so Mantine's Select needs no limit.
+    // About 0.5–0.6 ms for some 420 zones in Chromium (about 2 ms in Node); opening the list draws
+    // them all in about 50 ms (#364), so Mantine's Select needs no limit.
     const data = useMemo(
       () =>
         timeZoneChoices(now, shown).map((choice) => ({
@@ -55,7 +55,7 @@ function timeZoneRow(clock: Clock): SettingsRow {
         data={data}
         disabled={followsDevice}
         flex="0 1 18rem"
-        nothingFoundMessage={t`No time zone found`}
+        nothingFoundMessage={t`No Time Zone found`}
         onChange={(name) => {
           if (name !== null) store.write(TIME_ZONE_SETTING, name);
         }}
@@ -79,9 +79,9 @@ function timeZoneRow(clock: Clock): SettingsRow {
 const FOLLOW_DEVICE_ROW = switchRow({
   id: "follow-device-zone",
   view: VIEW_IDS.language,
-  title: msg`Follow device`,
+  title: msg`Follow Device`,
   description: msg`Switch the Time Zone to the zone of this device whenever the device changes zones, without asking.`,
-  searchWords: [msg`Travel`, msg`Automatic time zone`],
+  searchWords: [msg`Travel`, msg`Automatic Time Zone`],
   setting: FOLLOW_DEVICE_ZONE_SETTING,
 });
 

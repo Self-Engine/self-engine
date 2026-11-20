@@ -4,6 +4,7 @@ import { isLocalTable, referencesOf, type Database } from "@self-engine/db";
 import type { StartSetting } from "@self-engine/settings-rows";
 import type { SpaceSources } from "@self-engine/spaces";
 import type { TimeZone } from "@self-engine/time";
+import { reportEachNameOnce } from "@self-engine/time/settings";
 import {
   createFrame,
   protectionRules,
@@ -151,17 +152,14 @@ export async function startDataProcess<const Modules extends DataModules>({
   };
   // Once per start and name: every call that reads an unknown name computes with the device's
   // zone, and the report would otherwise flood (D353).
-  const reportedZones = new Set<string>();
-  const unknownTimeZone = (name: string) => {
-    if (reportedZones.has(name)) return;
-    reportedZones.add(name);
+  const unknownTimeZone = reportEachNameOnce((name) => {
     try {
       report?.({ kind: "unknown-time-zone", name });
     } catch (reportError) {
       // Reporting cannot fail the call that computes with the device's zone.
       void reportError;
     }
-  };
+  });
   const contextSources: ContextSources | undefined =
     space === undefined
       ? undefined
