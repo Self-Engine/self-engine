@@ -21,7 +21,9 @@ export interface RangeParts {
   readonly day: CalendarDay | null;
   readonly startTime: WallClockTime | null;
   readonly endTime: WallClockTime | null;
-  /** The opened end date; `null` while the end follows `day`, or the next day ("+1"). */
+  /** Whether the end has its own date; else it lies on `day`, or on the next day ("+1"). */
+  readonly endDayOpen: boolean;
+  /** The opened end date; ignored while it is closed. */
   readonly endDay: CalendarDay | null;
 }
 
@@ -45,14 +47,14 @@ export type RangeOutcome =
  * after the start time. The field shows "+1" then.
  */
 export function isNextDay(parts: RangeParts): boolean {
-  const { endDay, startTime, endTime } = parts;
+  const { endDayOpen, startTime, endTime } = parts;
   // `HH:MM` has a fixed width, so its text sorts as the time does.
-  return endDay === null && startTime !== null && endTime !== null && endTime <= startTime;
+  return !endDayOpen && startTime !== null && endTime !== null && endTime <= startTime;
 }
 
-/** The day the end lies on, as the field shows it. */
-function dayOfEnd(parts: RangeParts): CalendarDay | null {
-  if (parts.endDay !== null) return parts.endDay;
+/** The day the end lies on, as the field shows it; an end date opens on it. */
+export function dayOfEnd(parts: RangeParts): CalendarDay | null {
+  if (parts.endDayOpen) return parts.endDay;
   if (parts.day === null) return null;
   return isNextDay(parts) ? addDays(parts.day, 1) : parts.day;
 }
@@ -62,16 +64,21 @@ function dayOfEnd(parts: RangeParts): CalendarDay | null {
  * another day than the date and "+1" would say: over several days, or on the date itself while
  * its time reads as not after the start.
  */
-export function partsOf(start: Instant | null, end: Instant | null, timeZone: TimeZone): RangeParts {
+export function partsOf(
+  start: Instant | null,
+  end: Instant | null,
+  timeZone: TimeZone,
+): RangeParts {
   const closed: RangeParts = {
     day: start === null ? null : calendarDayOf(start, timeZone),
     startTime: start === null ? null : wallClockTimeOf(start, timeZone),
     endTime: end === null ? null : wallClockTimeOf(end, timeZone),
+    endDayOpen: false,
     endDay: null,
   };
   if (end === null) return closed;
   const endDay = calendarDayOf(end, timeZone);
-  return dayOfEnd(closed) === endDay ? closed : { ...closed, endDay };
+  return dayOfEnd(closed) === endDay ? closed : { ...closed, endDayOpen: true, endDay };
 }
 
 function shows(

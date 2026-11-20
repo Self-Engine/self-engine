@@ -23,6 +23,7 @@ function parts(
     day: date === null ? null : day(date),
     startTime: start === null ? null : time(start),
     endTime: end === null ? null : time(end),
+    endDayOpen: endDay !== null,
     endDay: endDay === null ? null : day(endDay),
   };
 }
@@ -58,6 +59,11 @@ describe("a new range", () => {
       case: "set",
       instant: at("2026-11-15T00:30:00.000Z"),
     });
+  });
+
+  test("an opened end date left empty leaves the end empty", () => {
+    const opened = { ...parts("2026-11-13", "09:00", "17:30"), endDayOpen: true };
+    expect(rangeFrom(opened, none, berlin, false).end).toEqual({ case: "set", instant: null });
   });
 
   test("a part missing leaves its Instant empty", () => {
@@ -148,13 +154,17 @@ describe("a loaded range", () => {
   test("an end over the next day opens the end date; one on the next day shows +1", () => {
     const overTwoDays = partsOf(loaded.start, at("2026-11-15T16:30:00.000Z"), berlin);
     expect(overTwoDays).toEqual(parts("2026-11-13", "09:00", "17:30", "2026-11-15"));
-    const overnight = partsOf(at("2026-11-13T21:00:00.000Z"), at("2026-11-14T00:30:00.000Z"), berlin);
+    const overnight = partsOf(
+      at("2026-11-13T21:00:00.000Z"),
+      at("2026-11-14T00:30:00.000Z"),
+      berlin,
+    );
     expect(overnight).toEqual(parts("2026-11-13", "22:00", "01:30"));
     expect(isNextDay(overnight)).toBe(true);
     // Ends the field would read as another day keep their own end date.
-    expect(
-      partsOf(at("2026-11-13T08:00:50.000Z"), at("2026-11-13T08:00:59.000Z"), berlin),
-    ).toEqual(parts("2026-11-13", "09:00", "09:00", "2026-11-13"));
+    expect(partsOf(at("2026-11-13T08:00:50.000Z"), at("2026-11-13T08:00:59.000Z"), berlin)).toEqual(
+      parts("2026-11-13", "09:00", "09:00", "2026-11-13"),
+    );
   });
 
   test("a correction inside the repeated hour stays in the same hour (D347)", () => {

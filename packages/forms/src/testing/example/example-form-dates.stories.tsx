@@ -1,8 +1,6 @@
 // The fields for a Calendar Day and a Wall-Clock Time on the example form (D319, D325): each is
 // picked and typed, half-typed text blocks the save, and the pickers speak the App Language and
-// start the week on the day handed in. The calendar opens on the month of the field's day, so
-// every story types a day before it opens the calendar: an empty field would open on the month of
-// the device's clock.
+// start the week on the day handed in. "Today" is the day handed in too, never the device's.
 
 import { Stack } from "@mantine/core";
 import { DataProvider } from "@self-engine/data-client/react";
@@ -227,5 +225,18 @@ export const ThePickersSpeakGermanAndStartTheWeekOnMonday: Story = {
         { entry: "create", input: { ...TEXTS, day: "2026-11-05", start: "17:45" } },
       ]),
     );
+  },
+};
+
+export const AnEmptyDayOpensOnTheTodayHandedIn: Story = {
+  play: async ({ canvasElement }) => {
+    const form = formIn(canvasElement);
+    await userEvent.click(form.day());
+    const calendar = within(document.body);
+    // The example hands in 14 February 2031: far from the device's clock, which marks no day here.
+    await waitFor(() => expect(calendar.getByText("February 2031")).toBeVisible());
+    const today = calendar.getByRole("button", { name: "Friday, February 14, 2031" });
+    await expect(today).toHaveAttribute("data-today", "true");
+    await expect(document.body.querySelectorAll("[data-today]")).toHaveLength(1);
   },
 };
