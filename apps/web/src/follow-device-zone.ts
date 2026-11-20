@@ -4,6 +4,7 @@
 
 import type { SettingsStore } from "@self-engine/settings";
 import type { TimeZone } from "@self-engine/time";
+import type { DeviceZoneSource } from "./device-zone.tsx";
 import {
   decideZoneOffer,
   FOLLOW_DEVICE_ZONE_SETTING,
@@ -28,11 +29,8 @@ export interface ZoneOffer {
 
 export interface DeviceZoneWatch {
   readonly store: SettingsStore;
-  /** The zone the device runs in now: `deviceTimeZone` of `time` in the app. */
-  readonly deviceZone: () => TimeZone;
-  /** Where the window says that it became visible: the document, in the app. */
-  readonly page: Pick<Document, "visibilityState"> &
-    Pick<EventTarget, "addEventListener" | "removeEventListener">;
+  /** The device's zone, read again whenever the window becomes visible (`watchDeviceZone`). */
+  readonly device: DeviceZoneSource;
   /** Shows the offer until an answer or the returned function closes it. */
   readonly showOffer: (offer: ZoneOffer) => () => void;
   /**
@@ -61,16 +59,15 @@ function sameOffer(a: OfferZones | undefined, b: OfferZones): boolean {
  */
 export function followDeviceZone({
   store,
-  deviceZone,
-  page,
+  device: deviceZone,
   showOffer,
   onSwitched,
 }: DeviceZoneWatch): () => void {
   let open: (OfferZones & { readonly close: () => void }) | undefined;
   // The offer closed without an answer: it stays away until the window becomes visible again.
   let closed: OfferZones | undefined;
-  // The device's zone as last read: at the start and when the window became visible.
-  let device = deviceZone();
+  // The device's zone as the source last read it: at the start and when the window became visible.
+  let device = deviceZone.current();
   let inputs = readInputs();
 
   function readInputs() {
@@ -122,17 +119,15 @@ export function followDeviceZone({
     inputs = next;
     decide();
   });
-  const onVisibility = () => {
-    if (page.visibilityState !== "visible") return;
-    device = deviceZone();
+  const stopVisible = deviceZone.onVisible(() => {
+    device = deviceZone.current();
     closed = undefined;
     decide();
-  };
-  page.addEventListener("visibilitychange", onVisibility);
+  });
   decide();
   return () => {
     unsubscribe();
-    page.removeEventListener("visibilitychange", onVisibility);
+    stopVisible();
     closeOffer();
   };
 }
