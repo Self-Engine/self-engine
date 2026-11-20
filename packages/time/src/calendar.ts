@@ -1,3 +1,4 @@
+import type { FirstDayOfWeek } from "./first-day-of-week.ts";
 import { calendarDayFrom } from "./supported-years.ts";
 import { daySpanSchema, type DaySpan, type CalendarDay } from "./values.ts";
 
@@ -25,13 +26,25 @@ export function daysBetween(from: CalendarDay, to: CalendarDay): number {
   return Temporal.PlainDate.from(from).until(to, { largestUnit: "days" }).days;
 }
 
-/** Sunday = 0, Monday = 1, through Saturday = 6, as in the original time package. */
-export type FirstDayOfWeek = 0 | 1 | 2 | 3 | 4 | 5 | 6;
+const WEEKDAY_INDEX = {
+  sunday: 0,
+  monday: 1,
+  tuesday: 2,
+  wednesday: 3,
+  thursday: 4,
+  friday: 5,
+  saturday: 6,
+} as const satisfies Record<FirstDayOfWeek, 0 | 1 | 2 | 3 | 4 | 5 | 6>;
+
+/** Mantine counts from Sunday (0) through Saturday (6). */
+export function mantineFirstDayOfWeek(firstDayOfWeek: FirstDayOfWeek) {
+  return WEEKDAY_INDEX[firstDayOfWeek];
+}
 
 /** The seven-day span holding `day`; both boundaries must be within years 1000–9999. */
 export function weekOf(day: CalendarDay, firstDayOfWeek: FirstDayOfWeek): DaySpan {
   const weekday = Temporal.PlainDate.from(day).dayOfWeek % 7;
-  const first = addDays(day, -((weekday - firstDayOfWeek + 7) % 7));
+  const first = addDays(day, -((weekday - WEEKDAY_INDEX[firstDayOfWeek] + 7) % 7));
   return daySpanSchema.parse({ first, last: addDays(first, 6) });
 }
 

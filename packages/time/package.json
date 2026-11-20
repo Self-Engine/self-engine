@@ -6,6 +6,7 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
+    "./first-day-of-week": "./src/first-day-of-week.ts",
     "./testing": "./src/testing.ts",
     "./system-clock": "./src/system-clock.ts",
     "./check": "./src/check/program.ts"
