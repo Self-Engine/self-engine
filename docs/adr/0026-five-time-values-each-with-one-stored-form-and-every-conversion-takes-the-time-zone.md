@@ -18,7 +18,8 @@ first.
 
 ## Decision
 
-[ADR 0035](0035-calendar-weeks-start-on-a-named-day.md) supersedes the numeric week-start convention in decision 2.
+[ADR 0036](0036-the-app-stores-its-time-zone-and-week-start-as-settings.md) specifies how
+the app supplies the Time Zone.
 
 1. **Five values cover every date a module stores.** Each is a branded type with a Zod schema
    that accepts only its stored form, and each holds years 1000 to 9999.
@@ -38,7 +39,8 @@ first.
 2. **Calendar arithmetic counts on calendar days only.** `addDays` and `addMonths` take whole
    numbers; a month end is constrained, so 31 January plus one month is 28 February. `daysBetween`
    counts whole days. `weekOf` returns the _Day Span_ of a day's week and takes the first day of
-   the week as an argument, with Sunday as 0; `isoWeekNumber` gives the ISO week. No function
+   the week as an argument ([ADR 0035](0035-calendar-weeks-start-on-a-named-day.md)).
+   `isoWeekNumber` gives the ISO week. No function
    adds days to an _Instant_, because a day lasts 23, 24 or 25 hours.
 3. **A _Duration_ cuts both Instants to the whole second, then subtracts.** `durationBetween`
    throws when the end comes before the start. Adjoining entries then add up to exactly the time
@@ -71,8 +73,8 @@ first.
 8. **An Instant is shown through a named display format**, with the language and the zone as
    arguments and no free options. One format exists, `dateTime` (`13.11.2026, 13:30` in German);
    12 or 24 hours follows the language. There is no format for a _Calendar Day_ yet. The list of
-   _Backups_ shows its Instants in the zone `deviceTimeZone` gives, until the time zone _Setting_
-   exists.
+   _Backups_ shows its Instants in the Time Zone supplied by the page's `useTimeZone` hook
+   (ADR 0036).
 
 ## Consequences
 

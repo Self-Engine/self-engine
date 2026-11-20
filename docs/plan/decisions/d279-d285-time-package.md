@@ -60,7 +60,8 @@ Grundlage: Messungen dieser Runde in Node 26.13 (V8 14.6, ICU 79.1) und in Elect
   noch `UTC`; Temporal nimmt alle an, behält den gegebenen Namen und erkennt Zweitnamen als gleich.
   _Grund:_ Die eigene Liste mit 438 Zeilen war die Antwort auf den `Intl`-Fehler und entfällt mit
   D280. _Preis:_ In der Datenbank können zwei Schreibweisen derselben Zeitzone stehen. Die
-  Auswahlliste mit lesbaren Namen kommt mit #110.
+  Auswahlliste mit lesbaren Namen kommt mit #110. _Die Auswahlliste beschreibt
+  [ADR 0036](../../adr/0036-the-app-stores-its-time-zone-and-week-start-as-settings.md)._
 - **D283 Die Umrechnung nennt den Fall der Zeitumstellung.** Aus Tag, Uhrzeit und Zeitzone entsteht
   ein Zeitpunkt und dazu der Fall: eindeutig, übersprungen oder doppelt, im doppelten Fall mit
   beiden Zeitpunkten. Ohne weitere Wahl gilt die übliche Regel: Von zwei Zeitpunkten der frühere,

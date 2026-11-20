@@ -22,7 +22,7 @@ The settings area has to show every Setting on the page of a View and let a sear
 
 5. **The settings area is the package `@self-engine/settings-area`.** Its main entry exports a function that takes what the app owns, at first the settings store, and returns the Shell Contribution `settings`; the app keeps handing it to the Shell beside the modules. Only the id, name, icon and View titles are in the startup bundle. The list of rows and every control load as one chunk when the settings are first opened, not one per View.
 
-6. **The declarations of the Settings the area owns live in a second entry without interface code,** `@self-engine/settings-area/settings`, because the app reads them before the first render. Every other owner keeps declaring its own Settings (ADR 0010).
+6. **The declarations of the Settings the area owns live in a second entry without interface code,** `@self-engine/settings-area/settings`, because the app reads them before the first render. The ownership rule and the rows for “Language and region” are in [ADR 0036](0036-the-app-stores-its-time-zone-and-week-start-as-settings.md).
 
 7. **A unit test audits the real list against the contribution's Views:** every row id is unique, every row belongs to a View the contribution has, and every View has at least one row. A View therefore arrives with its first row. A row also names the keys of the Settings it serves, and the test fails when a Setting the area has to show is served by no row. The app runs the same audit, from the entry `@self-engine/settings-area/audit`, over its real contributions, because the rows of the View Shortcuts are produced from them.
 
