@@ -17,3 +17,10 @@ export { calendarDayOf, wallClockTimeOf, instantAt } from "./zoned.ts";
 export { startOfCalendarDay, instantRangeOf, today } from "./zoned.ts";
 export type { InstantRange, ResolvedInstant } from "./zoned.ts";
 export { formatInstant, type InstantFormat } from "./format.ts";
+export {
+  calendarDayFromText,
+  calendarDayText,
+  calendarLabels,
+  clockFormatOf,
+} from "./field-text.ts";
+export type { CalendarLabels } from "./field-text.ts";

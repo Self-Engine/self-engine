@@ -36,6 +36,8 @@ export const CREATED = {
   description: "Paint the walls.",
   icon: null,
   color: null,
+  day: null,
+  start: null,
 } as const;
 
 /** A Port that answers what `answers` fixes and writes down each call. */

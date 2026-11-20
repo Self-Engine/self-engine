@@ -86,7 +86,13 @@ async function clearIcon(form: ReturnType<typeof formIn>) {
   await dialogClosed();
 }
 
-const TEXTS = { title: "Kitchen", description: "Paint the walls." } as const;
+/** The texts typed, and the day and time this file leaves empty. */
+const TEXTS = {
+  title: "Kitchen",
+  description: "Paint the walls.",
+  day: null,
+  start: null,
+} as const;
 
 export const TheOperationReceivesTheChosenIconEmojiAndColor: Story = {
   play: async ({ canvasElement, loaded }) => {
@@ -163,6 +169,11 @@ export const EveryFieldIsReachedAndChosenWithTheKeyboard: Story = {
     await expect(form.colorChoice("No color")).toHaveFocus();
     await userEvent.keyboard("{ArrowRight}");
     await expect(form.colorChoice("Red")).toBeChecked();
+    // The day and the time are passed by, left empty.
+    await userEvent.tab();
+    await expect(canvasElement.ownerDocument.activeElement).toHaveAccessibleName("Day");
+    await userEvent.tab();
+    await expect(canvasElement.ownerDocument.activeElement).toHaveAccessibleName("Start");
     await userEvent.tab();
     await expect(form.saveButton()).toHaveFocus();
     await userEvent.keyboard("{Enter}");

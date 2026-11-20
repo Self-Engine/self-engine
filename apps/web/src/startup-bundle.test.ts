@@ -288,6 +288,16 @@ describe("the web app's startup rules", () => {
       "/repo/node_modules/.pnpm/@mantine+dates@9.8.0_@mantine+core@9.8.0_dayjs@1.11.20/node_modules/@mantine/dates/esm/components/DatePicker/DatePicker.mjs",
       "Mantine's date fields",
     ],
+    [
+      "@mantine/dates/styles.css",
+      "/repo/node_modules/.pnpm/@mantine+dates@9.8.0_@mantine+core@9.8.0_dayjs@1.11.23/node_modules/@mantine/dates/styles.css",
+      "Mantine's date fields",
+    ],
+    [
+      "dayjs",
+      "/repo/node_modules/.pnpm/dayjs@1.11.23/node_modules/dayjs/dayjs.min.js",
+      "The date library of Mantine's date fields",
+    ],
   ])("%s", (_library, library, name) => {
     const draft = "/repo/packages/forms/src/draft-form.ts";
     const drawer = "/repo/packages/module/src/edit-drawer.tsx";

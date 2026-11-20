@@ -7,12 +7,14 @@ import { msg } from "@lingui/core/macro";
 import { Button, Stack } from "@mantine/core";
 import type { z } from "zod";
 import {
+  CalendarDayField,
   ColorField,
   IconField,
   LongTextField,
   OperationFormBody,
   TextField,
   useOperationForm,
+  WallClockTimeField,
 } from "../../index.ts";
 import { exampleContract, type exampleEntrySchema } from "./contract.ts";
 import { useCreateExample } from "./port.ts";
@@ -34,7 +36,7 @@ export function ExampleForm({ onSuccess }: ExampleFormProps) {
   const form = useOperationForm({
     entry: exampleContract.create,
     operation: useCreateExample(),
-    draft: { title: "", description: "", icon: null, color: null },
+    draft: { title: "", description: "", icon: null, color: null, day: null, start: null },
     texts: {
       fields: { title: msg`Give this entry a title of at most 80 characters.` },
       reasons: { description_matches_title: msg`The description must differ from the title.` },
@@ -48,6 +50,8 @@ export function ExampleForm({ onSuccess }: ExampleFormProps) {
         <LongTextField form={form} label="Description" name="description" />
         <IconField form={form} label="Icon" name="icon" />
         <ColorField form={form} label="Color" name="color" />
+        <CalendarDayField clearable firstDayOfWeek="monday" form={form} label="Day" name="day" />
+        <WallClockTimeField clearable form={form} label="Start" name="start" />
         <Button type="submit">Save</Button>
       </Stack>
     </OperationFormBody>

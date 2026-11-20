@@ -47,7 +47,7 @@ export const ALLOWED_IMPORTS: AllowedImports = {
   // the pickers of `ui` and registers with the Shell's Edit Drawer. It imports no module; a
   // module's own picker reaches a form through the helper's binding. Its example Contract carries
   // the Refusal from the schema entry of `db`, as every module's Contract does (D334).
-  forms: ["data-client", "db", "shell", "ui"],
+  forms: ["data-client", "db", "shell", "time", "ui"],
   icons: ["theme"],
   // Its contracts and data entries (D252); the root entry stays with the shell and the UI, and
   // reads and writes through the data building block.

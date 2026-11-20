@@ -97,6 +97,10 @@ msgstr "Beispieleintrag hinzufügen"
 msgid "All clients"
 msgstr "Alle Kunden"
 
+#: packages/forms/src/date-fields.tsx
+msgid "AM or PM"
+msgstr "AM oder PM"
+
 #: packages/placeholder-alpha/src/port.ts
 msgid "An entry with this name already exists."
 msgstr "Ein Eintrag mit diesem Namen existiert bereits."
@@ -833,6 +837,10 @@ msgstr "Megafon"
 msgctxt "Icon"
 msgid "Microphone"
 msgstr "Mikrofon"
+
+#: packages/forms/src/date-fields.tsx
+msgid "Minutes"
+msgstr "Minuten"
 
 #: packages/shell/src/shell.tsx
 msgid "Module Sidebar"

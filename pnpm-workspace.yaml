@@ -35,6 +35,9 @@ catalog:
   # Parses ICU in the catalog check (scripts/check-i18n.ts). The version Lingui itself uses.
   "@messageformat/parser": 5.2.0
   "@mantine/core": 9.8.0
+  # The date and time pickers of the form fields (D319). Only packages/forms imports it (D325);
+  # it loads with the first form, never at startup.
+  "@mantine/dates": 9.8.0
   # The emoji grid of the Entry Mark's field (D300); it ships no data, emojibase-data has it.
   "@mantine/emoji": 9.8.0
   # The draft of every form, in uncontrolled mode (D318). Only packages/forms imports it (D325).
@@ -81,6 +84,9 @@ catalog:
   better-sqlite3: 13.0.3
   # Oklab mixing in the theme engine's core (ADR 0009).
   culori: 4.0.2
+  # The peer of @mantine/dates, which names months and weekdays through it. Only packages/time
+  # imports it, for the German locale (D284, ADR 0027).
+  dayjs: 1.11.23
   # Module boundaries (ADR 0006), configured in .dependency-cruiser.ts.
   dependency-cruiser: 18.7.2
   electron: 45.2.3
