@@ -38,29 +38,32 @@ for storage and start values.
 **Both sides resolve the stored name through `resolveTimeZoneSetting`.** A known name
 gives the resolved Time Zone (`none`). An unset value (`notSet`) or a name the runtime
 does not know (`unknownName`) uses the Device Time Zone. A fallback leaves the Setting
-as it was. The Data Process reports each unknown name once per start. The page reports
-each once per provider lifetime when a View reads it.
+as it was. The result of an unknown name carries that name. The Data Process reports each
+unknown name once per start. The page reports each once when a View reads it.
 
 - An Operation or Query that needs the Time Zone calls `context.readTimeZone(tx)`. It reads
   the Setting in the call's transaction and resolves it with the injected Device Time Zone.
   A Query declares `SETTINGS_TABLE` in its reads so the Table Change reloads it.
 - The page supplies `TimeSettingsProvider` with the loaded settings store, the Device Time
-  Zone at page start and the active App Language's Region. Views read `useTimeZone` and
+  Zone and the active App Language's Region. The app reads the Device Time Zone at page
+  start and again whenever the window becomes visible. Views read `useTimeZone` and
   `useFirstDayOfWeek`. Both follow the store. Only the page reads the Week Start Setting.
   With `automatic`, the first day follows the Region from `regionForAppLanguage`, using the
   mapping in [ADR 0035](0035-calendar-weeks-start-on-a-named-day.md). The caller can use
   that day to compute a Day Span for a Query.
 
-**The page checks for a Time Zone Offer at startup and when it becomes visible.**
+**The page checks for a Time Zone Offer at startup, when it becomes visible, and when the
+Time Zone, Follow Device or the dismissal changes in the store.**
 `decideZoneOffer` compares zones through `time`, so aliases of the same zone agree.
 An unset or unknown name also produces no offer or write. For a different known zone,
 Follow Device writes the Device Time Zone without asking. Otherwise, the Device Setting
 controls whether a Notice names both zones and offers “Switch” and “Don't ask again”.
-“Switch” saves the Device Time Zone and shows a confirmation with “Undo”.
-“Don't ask again” saves the dismissal on this device. An open offer follows Settings
-changes, so an answer in another window can withdraw it.
-The startup check uses the store's current snapshot. If the database answers later and no
-offer is open, the next visibility check picks up the new value.
+“Switch” saves the Device Time Zone and shows a confirmation with “Undo”, which writes
+back the name exactly as it was stored.
+“Don't ask again” saves the dismissal on this device. An answer in another window
+withdraws an open offer, and a value the database reports after the start is decided on
+at once. An offer closed without an answer returns only when the window becomes visible
+again.
 
 **The Settings Rows live in “Language and region” at the existing Language address.**
 The Time Zone picker searches by place and UTC offset and is disabled while Follow Device
