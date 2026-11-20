@@ -591,8 +591,8 @@ msgid "Flask"
 msgstr "Flask"
 
 #: packages/settings-area/src/region-rows.tsx
-msgid "Follow device"
-msgstr "Follow device"
+msgid "Follow Device"
+msgstr "Follow Device"
 
 #: packages/settings-area/src/rows.tsx
 msgid "Font scale"

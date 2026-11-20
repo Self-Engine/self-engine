@@ -55,7 +55,7 @@ export const TheRows: Story = {
     const { store } = loaded as Loaded;
     await expect(picker(canvas)).toHaveValue("Berlin (UTC+1)");
     await expect(picker(canvas)).toBeEnabled();
-    await expect(canvas.getByRole("switch", { name: "Follow device" })).not.toBeChecked();
+    await expect(canvas.getByRole("switch", { name: "Follow Device" })).not.toBeChecked();
     const group = canvas.getByRole("radiogroup", { name: "Week Start" });
     await expect(
       [...group.querySelectorAll(".mantine-SegmentedControl-label")].map(
@@ -105,11 +105,11 @@ export const FollowDeviceOn: Story = {
   parameters: { stored: { zone: "America/New_York", followDevice: true } },
   play: async ({ canvas, loaded }) => {
     const { store } = loaded as Loaded;
-    await expect(canvas.getByRole("switch", { name: "Follow device" })).toBeChecked();
+    await expect(canvas.getByRole("switch", { name: "Follow Device" })).toBeChecked();
     await expect(picker(canvas)).toHaveValue("New York (UTC-5)");
     await expect(picker(canvas)).toBeDisabled();
 
-    await userEvent.click(canvas.getByRole("switch", { name: "Follow device" }));
+    await userEvent.click(canvas.getByRole("switch", { name: "Follow Device" }));
     await expect(store.read(FOLLOW_DEVICE_ZONE_SETTING)).toBe(false);
     await expect(picker(canvas)).toBeEnabled();
   },
@@ -157,11 +157,11 @@ export const FoundByTheSearch: Story = {
     const search = canvas.getByRole("searchbox", { name: "Search settings" });
     await userEvent.type(search, "Buenos Aires");
     await expect(await canvas.findByRole("combobox", { name: "Time Zone" })).toBeVisible();
-    await expect(canvas.queryByRole("switch", { name: "Follow device" })).toBeNull();
+    await expect(canvas.queryByRole("switch", { name: "Follow Device" })).toBeNull();
 
     await userEvent.clear(search);
     await userEvent.type(search, "follow device");
-    await expect(await canvas.findByRole("switch", { name: "Follow device" })).toBeInTheDocument();
+    await expect(await canvas.findByRole("switch", { name: "Follow Device" })).toBeInTheDocument();
 
     await userEvent.clear(search);
     await userEvent.type(search, "first day");

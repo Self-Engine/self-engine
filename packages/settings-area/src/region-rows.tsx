@@ -79,7 +79,7 @@ function timeZoneRow(clock: Clock): SettingsRow {
 const FOLLOW_DEVICE_ROW = switchRow({
   id: "follow-device-zone",
   view: VIEW_IDS.language,
-  title: msg`Follow device`,
+  title: msg`Follow Device`,
   description: msg`Switch the Time Zone to the zone of this device whenever the device changes zones, without asking.`,
   searchWords: [msg`Travel`, msg`Automatic Time Zone`],
   setting: FOLLOW_DEVICE_ZONE_SETTING,
