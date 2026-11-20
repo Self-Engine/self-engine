@@ -322,7 +322,8 @@ both, and the field checks the value it reads.
   with any separators and a two-digit year for 2000–2099, or `2026-11-05`. The field shows the
   day as `05.11.2026` or `11/05/2026`. The text becomes the day as soon as it is whole.
 - **Typing a time:** into the hours, then the minutes (and AM or PM in English, which counts 12
-  hours, as `formatInstant` does). Hours without minutes are unfinished.
+  hours, as `formatInstant` does). Hours without minutes are unfinished. AM or PM takes the keys
+  A and P, the arrows and its list, and no other text.
 - **Unfinished:** half a date, a day that does not exist or hours without minutes keep the older
   value, block the save and show "Complete or clear this field." once the field is left.
 - **Empty:** emptying the text or every part hands on `null`; `clearable` adds the clear button.
@@ -333,7 +334,8 @@ both, and the field checks the value it reads.
   (`defaultDate`). A story passes a fixed day.
 - **Language:** month and weekday names, the text of a day and the 12- or 24-hour clock come from
   `time` (`calendarLabels`, the format `fieldDate`, `clockFormatOf`), not from Mantine's date
-  library: nothing in the app imports `dayjs` (ADR 0027).
+  library: nothing in the app imports `dayjs` (ADR 0027). A change to a language with the other
+  clock draws the time picker anew from the value the field holds; half-typed parts are dropped.
 - **A value from outside** draws the picker anew, so a story that changed the value finds its
   inputs again instead of keeping the old element.
 

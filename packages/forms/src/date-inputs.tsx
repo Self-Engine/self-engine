@@ -186,7 +186,7 @@ export function TimeInput({
   ...props
 }: TimeInputProps) {
   const { i18n, t } = useLingui();
-  const locale = i18n.locale;
+  const format = clockFormatOf(i18n.locale);
   // Mantine ties the message and the description to the picker's frame, which takes no focus; the
   // hours, the minutes and AM or PM, which do, are tied to them here, so a screen reader reads
   // them with whichever input has the focus.
@@ -221,6 +221,29 @@ export function TimeInput({
     });
   };
   useEffect(() => () => clearTimeout(pending.current), []);
+  // Mantine takes any text typed into AM or PM and reads what it does not know as the morning.
+  // The keys A and P, the arrows and the list set it, none of them by entering text.
+  useEffect(() => {
+    const element = root.current;
+    if (element === null) return undefined;
+    const block = (event: Event) => {
+      if (event.target instanceof Element && event.target.matches("[data-am-pm]"))
+        event.preventDefault();
+    };
+    element.addEventListener("beforeinput", block);
+    return () => element.removeEventListener("beforeinput", block);
+  }, []);
+  // A language with another clock draws the picker anew from the time (its `key`): Mantine keeps
+  // its hours and AM or PM across a change of the format and would hand on 02:31 for 14:31.
+  // Half-typed parts go with the old picker, so their report is taken back.
+  const drawnIn = useRef(format);
+  useEffect(() => {
+    if (drawnIn.current === format) return;
+    drawnIn.current = format;
+    if (told.current !== "unfinished") return;
+    told.current = time === null ? "empty" : "time";
+    onTime(time);
+  }, [format, time, onTime]);
   return (
     <div
       onChangeCapture={settleSoon}
@@ -240,7 +263,8 @@ export function TimeInput({
         amPmSelectProps={tied}
         hoursInputProps={tied}
         minutesInputProps={tied}
-        format={clockFormatOf(locale)}
+        format={format}
+        key={format}
         {...(descriptionBelow && {
           inputWrapperOrder: ["label", "input", "description", "error"],
         })}

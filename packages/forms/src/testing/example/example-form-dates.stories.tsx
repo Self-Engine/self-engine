@@ -4,6 +4,8 @@
 
 import { Stack } from "@mantine/core";
 import { DataProvider } from "@self-engine/data-client/react";
+import { activateLanguage, createI18n } from "@self-engine/i18n";
+import { LanguageProvider } from "@self-engine/i18n/react";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { expect, screen, userEvent, waitFor, within } from "storybook/test";
 import { ExampleForm } from "./example-form.tsx";
@@ -200,6 +202,91 @@ export const EmptiedFieldsHandOnEmpty: Story = {
     await userEvent.click(screen.getByRole("button", { name: "AM" }));
     await userEvent.keyboard("{Backspace}{Backspace}{Backspace}{Backspace}{Backspace}");
     await expect(form.hours()).toHaveValue("");
+    await form.save();
+    await waitFor(() =>
+      expect(callsOf(loaded)).toEqual([
+        { entry: "create", input: { ...TEXTS, day: null, start: null } },
+      ]),
+    );
+  },
+};
+
+export const OnlyAmOrPmEntersItsInput: Story = {
+  play: async ({ canvasElement, loaded }) => {
+    const form = formIn(canvasElement);
+    await typeTheTexts(canvasElement);
+    await userEvent.click(form.hours());
+    await userEvent.keyboard("0230p");
+    await expect(form.amPm()).toHaveValue("PM");
+    // Mantine would take any text as AM or PM and read it as the morning.
+    await userEvent.type(form.amPm(), "x");
+    await expect(form.amPm()).toHaveValue("PM");
+    await form.save();
+    await waitFor(() =>
+      expect(callsOf(loaded)).toEqual([
+        { entry: "create", input: { ...TEXTS, day: null, start: "14:30" } },
+      ]),
+    );
+  },
+};
+
+/** A translation instance of its own, so that a story can change the language while it runs. */
+const switching = createI18n();
+
+/** The form in English, in a language the story changes with `activateLanguage(switching, …)`. */
+const withALanguageToSwitch = {
+  loaders: [
+    async () => {
+      await activateLanguage(switching, "en");
+      return {};
+    },
+  ],
+  decorators: [
+    (Inner) => (
+      <LanguageProvider i18n={switching} language="en">
+        <Inner />
+      </LanguageProvider>
+    ),
+  ],
+} satisfies Partial<Story>;
+
+export const ALanguageWithAnotherClockKeepsTheTime: Story = {
+  ...withALanguageToSwitch,
+  play: async ({ canvasElement, loaded }) => {
+    const form = formIn(canvasElement);
+    await typeTheTexts(canvasElement);
+    await userEvent.click(form.hours());
+    await userEvent.keyboard("0230p");
+    await expect(form.amPm()).toHaveValue("PM");
+
+    // German counts 24 hours: the afternoon stays the afternoon, also for a change after it.
+    await activateLanguage(switching, "de");
+    await waitFor(() => expect(form.hours()).toHaveValue("14"));
+    await userEvent.click(form.minutes());
+    await userEvent.keyboard("31");
+    await form.save();
+    await waitFor(() =>
+      expect(callsOf(loaded)).toEqual([
+        { entry: "create", input: { ...TEXTS, day: null, start: "14:31" } },
+      ]),
+    );
+  },
+};
+
+export const ALanguageWithAnotherClockDropsHalfATime: Story = {
+  ...withALanguageToSwitch,
+  play: async ({ canvasElement, loaded }) => {
+    const form = formIn(canvasElement);
+    await typeTheTexts(canvasElement);
+    await userEvent.click(form.hours());
+    await userEvent.keyboard("0230");
+    await userEvent.click(canvasElement.querySelector("textarea")!);
+    await expect(form.hours()).toHaveAccessibleDescription(UNFINISHED);
+
+    // The picker is drawn anew from the value the field holds, here none: nothing blocks the save.
+    await activateLanguage(switching, "de");
+    await waitFor(() => expect(form.hours()).toHaveValue(""));
+    await waitFor(() => expect(form.hours()).not.toHaveAccessibleDescription(UNFINISHED));
     await form.save();
     await waitFor(() =>
       expect(callsOf(loaded)).toEqual([
