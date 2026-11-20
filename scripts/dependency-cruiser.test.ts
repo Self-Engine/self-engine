@@ -506,7 +506,7 @@ describe("the icon names entry", () => {
 });
 
 describe("the time package", () => {
-  it("imports no other workspace package, even as a type", async () => {
+  it("imports no other workspace package outside its Settings entry, even as a type", async () => {
     const time = declaring(
       extraPackage("packages/time", {
         "src/index.ts": 'import type { formatMinutes } from "@self-engine/shared";\n',
@@ -515,6 +515,7 @@ describe("the time package", () => {
     );
     expect(ruleNames(await cruise([time, shared], { allowedImports: ALLOWED_IMPORTS }))).toEqual([
       "package-direction:time",
+      "time-imports-no-package",
     ]);
   });
 
@@ -529,6 +530,74 @@ describe("the time package", () => {
     expect(
       await cruise([time, module], { allowedImports: { time: [], module: ["time"] } }),
     ).toEqual([]);
+  });
+});
+
+describe("the Settings entry of time", () => {
+  const ALLOWED_TIME = { time: ["settings"] };
+  const settings: FixturePackage = {
+    dir: "packages/settings",
+    dependencies: ["react"],
+    exports: { ".": "./src/core/index.ts", "./react": "./src/react/index.ts" },
+    files: {
+      "src/core/index.ts": "export const defineSetting = 1;\n",
+      "src/react/index.ts": 'import "react";\nexport const useSetting = 1;\n',
+    },
+  };
+  const time = (files: Record<string, string>, dependencies: string[] = []): FixturePackage => ({
+    dir: "packages/time",
+    dependencies: ["@self-engine/settings", ...dependencies],
+    exports: { ".": "./src/index.ts", "./settings": "./src/settings/index.ts" },
+    files: {
+      "src/index.ts": 'import "./zone.ts";\n',
+      "src/zone.ts": "export const resolveTimeZone = 1;\n",
+      "src/settings/index.ts": 'import "@self-engine/settings";\nimport "../zone.ts";\n',
+      ...files,
+    },
+  });
+  const run = (packages: FixturePackage[]) => cruise(packages, { allowedImports: ALLOWED_TIME });
+
+  it("passes the settings core and the files of time it imports", async () => {
+    expect(await run([time({}), settings])).toEqual([]);
+  });
+
+  it("fails an import of settings outside the Settings entry", async () => {
+    const found = await run([
+      time({ "src/zone.ts": 'import "@self-engine/settings";\n' }),
+      settings,
+    ]);
+    expect(ruleNames(found)).toEqual(["time-imports-no-package"]);
+  });
+
+  it("fails when the entry reaches React through the binding of settings", async () => {
+    const found = await run([
+      time({ "src/settings/index.ts": 'import "@self-engine/settings/react";\n' }),
+      settings,
+    ]);
+    expect(ruleNames(found)).toEqual(["time-settings-entry-is-small"]);
+  });
+
+  it.each(["react", "@mantine/core"])("fails when the entry imports %s", async (name) => {
+    const found = await run([
+      time({ "src/settings/index.ts": `import "${name}";\n` }, [name]),
+      settings,
+    ]);
+    expect(ruleNames(found)).toEqual(["time-settings-entry-is-small"]);
+  });
+
+  it("fails when a file of time it imports loads Zod's full build", async () => {
+    const found = await run([time({ "src/zone.ts": 'import "zod";\n' }, ["zod"]), settings]);
+    expect(ruleNames(found)).toEqual(["time-settings-entry-is-small"]);
+  });
+
+  it("lets a test of the entry import what the entry may not", async () => {
+    const found = await run([
+      time({ "src/settings/settings.test.ts": 'import "react";\nimport "./index.ts";\n' }, [
+        "react",
+      ]),
+      settings,
+    ]);
+    expect(found).toEqual([]);
   });
 });
 

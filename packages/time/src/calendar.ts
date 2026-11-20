@@ -41,16 +41,6 @@ export function mantineFirstDayOfWeek(firstDayOfWeek: FirstDayOfWeek) {
   return WEEKDAY_INDEX[firstDayOfWeek];
 }
 
-const FIRST_DAY_BY_REGION = {
-  "de-DE": "monday",
-  "en-US": "sunday",
-} as const satisfies Record<string, FirstDayOfWeek>;
-
-/** The first day of the week for a supported region. */
-export function firstDayOfWeekForRegion(region: keyof typeof FIRST_DAY_BY_REGION): FirstDayOfWeek {
-  return FIRST_DAY_BY_REGION[region];
-}
-
 /** The seven-day span holding `day`; both boundaries must be within years 1000–9999. */
 export function weekOf(day: CalendarDay, firstDayOfWeek: FirstDayOfWeek): DaySpan {
   const weekday = Temporal.PlainDate.from(day).dayOfWeek % 7;

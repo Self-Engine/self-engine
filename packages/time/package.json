@@ -7,11 +7,13 @@
   "exports": {
     ".": "./src/index.ts",
     "./first-day-of-week": "./src/first-day-of-week.ts",
+    "./settings": "./src/settings/index.ts",
     "./testing": "./src/testing.ts",
     "./system-clock": "./src/system-clock.ts",
     "./check": "./src/check/program.ts"
   },
   "dependencies": {
+    "@self-engine/settings": "workspace:*",
     "zod": "catalog:"
   },
   "devDependencies": {

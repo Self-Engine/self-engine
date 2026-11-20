@@ -83,7 +83,9 @@ export const ALLOWED_IMPORTS: AllowedImports = {
   // The context of every call reads a Setting through `settings-rows` (D352), typed by the
   // declaration of `settings`.
   storage: ["db", "settings", "settings-rows", "spaces", "time"],
-  time: [],
+  // Only its Settings entry (D356), which declares the Settings of the Time Zone and the week
+  // start; the rest of `time` imports no repo package (D143, `time-imports-no-package`).
+  time: ["settings"],
   ui: ["icons", "theme"],
 };
 
@@ -279,6 +281,29 @@ export function boundaryConfig({
       severity: "error",
       from: { pathNot: "^apps/" },
       to: { path: "^packages/time/src/system-clock\\.ts$", dependencyTypesNot: ["local"] },
+    },
+    {
+      name: "time-imports-no-package",
+      comment:
+        "Only the Settings entry of `time` (`@self-engine/time/settings`) imports another workspace package, `settings` (D356). The rest of `time` imports none (D143): a module reads its days and zones without the settings code.",
+      severity: "error",
+      from: { path: "^packages/time/src/", pathNot: "^packages/time/src/settings/" },
+      to: { path: "^packages/", pathNot: "^packages/time/" },
+    },
+    {
+      name: "time-settings-entry-is-small",
+      comment:
+        "The Settings entry of `time` (`@self-engine/time/settings`) loads in the page before its first render and in the Data Process (D356). Nothing it reaches may load React, Mantine or Zod's full build: declare schemas with `zod/mini`, and import from `time` only files that do the same (docs/development/performance.md).",
+      severity: "error",
+      from: { path: "^packages/time/src/settings/", pathNot: DEV_ONLY_FILE },
+      to: {
+        path: [
+          "(^|/)node_modules/(?:@types/)?(?:react|react-dom)/",
+          "(^|/)node_modules/@mantine/",
+          "(^|/)node_modules/zod/(?!mini/|v4/core/|v4/mini/|v4-mini/)",
+        ],
+        reachable: true,
+      },
     },
     {
       name: "storage-is-portable",

@@ -1,7 +1,9 @@
-import { z } from "zod";
+// Zod's core only as a type: the Settings entry loads this file at startup, where Zod's full
+// build may not (docs/development/performance.md). `$brand` is what `z.BRAND` names.
+import type { $brand } from "zod/v4/core";
 
 /** A zone name this runtime knows, in its official spelling; made only by `resolveTimeZone`. */
-export type TimeZone = string & z.BRAND<"TimeZone">;
+export type TimeZone = string & $brand<"TimeZone">;
 
 /** The zone of a resolved name; `deviceFallback` says the runtime did not know the name. */
 export interface ResolvedTimeZone {
@@ -10,7 +12,7 @@ export interface ResolvedTimeZone {
 }
 
 // An IANA name or link: letters first, no offset, no date-time string with a zone annotation.
-const NAME_SHAPE = /^[A-Za-z][\w+-]*(?:\/[A-Za-z][\w+-]*)*$/;
+export const NAME_SHAPE = /^[A-Za-z][\w+-]*(?:\/[A-Za-z][\w+-]*)*$/;
 
 function officialSpelling(name: string): string | undefined {
   try {
@@ -26,9 +28,17 @@ function officialSpelling(name: string): string | undefined {
  * RangeError; a well-formed name the runtime does not know yields the device's zone and says so.
  */
 export function resolveTimeZone(name: string): ResolvedTimeZone {
+  return resolveTimeZoneOr(name, deviceTimeZone);
+}
+
+/**
+ * `resolveTimeZone` with the device's zone handed in, for a caller that gets it as a source (the
+ * Data Process) instead of asking the runtime. Internal to `time`: its entries build on it.
+ */
+export function resolveTimeZoneOr(name: string, device: () => TimeZone): ResolvedTimeZone {
   if (!NAME_SHAPE.test(name)) throw new RangeError(`Not a time zone name: ${JSON.stringify(name)}`);
   const spelled = officialSpelling(name);
-  if (spelled === undefined) return { timeZone: deviceTimeZone(), deviceFallback: true };
+  if (spelled === undefined) return { timeZone: device(), deviceFallback: true };
   return { timeZone: spelled as TimeZone, deviceFallback: false };
 }
 
