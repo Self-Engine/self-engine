@@ -1,5 +1,5 @@
-import { firstDayOfWeekSchema } from "@self-engine/time/first-day-of-week";
 import { expect, expectTypeOf, test } from "vite-plus/test";
+import { firstDayOfWeekSchema } from "./first-day-of-week.ts";
 import type { FirstDayOfWeek } from "./index.ts";
 
 test.each(["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"])(
