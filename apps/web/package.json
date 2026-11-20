@@ -25,6 +25,7 @@
     "@self-engine/settings-data": "workspace:*",
     "@self-engine/shell": "workspace:*",
     "@self-engine/theme": "workspace:*",
+    "@self-engine/time": "workspace:*",
     "@self-engine/ui": "workspace:*",
     "@tanstack/react-router": "catalog:",
     "react": "catalog:",
@@ -41,6 +42,7 @@
     "@types/react-dom": "catalog:",
     "@vitejs/plugin-react": "catalog:",
     "babel-plugin-react-compiler": "catalog:",
+    "happy-dom": "catalog:",
     "storybook": "catalog:",
     "vite-plus": "catalog:"
   }

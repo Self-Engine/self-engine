@@ -84,8 +84,8 @@ export const ALLOWED_IMPORTS: AllowedImports = {
   // The context of every call reads a Setting through `settings-rows` (D352), typed by the
   // declaration of `settings`.
   storage: ["db", "settings", "settings-rows", "spaces", "time"],
-  // Only its Settings entry (D356), which declares the Settings of the Time Zone and the week
-  // start; the rest of `time` imports no repo package (D143, `time-imports-no-package`).
+  // Its Settings entry declares the Time Zone and week start (D356), and its React entry
+  // subscribes to them. The time arithmetic imports no repo package (D143).
   time: ["settings"],
   ui: ["icons", "theme"],
 };
@@ -284,9 +284,9 @@ export function boundaryConfig({
     {
       name: "time-imports-no-package",
       comment:
-        "Only the Settings entry of `time` (`@self-engine/time/settings`) imports another workspace package, `settings` (D356). The rest of `time` imports none (D143): a module reads its days and zones without the settings code.",
+        "The Settings and React entries of `time` can import `settings` (D356). The rest of `time` imports no workspace package (D143): a module reads its days and zones without the settings code.",
       severity: "error",
-      from: { path: "^packages/time/src/", pathNot: "^packages/time/src/settings/" },
+      from: { path: "^packages/time/src/", pathNot: "^packages/time/src/(?:settings|react)/" },
       to: { path: "^packages/", pathNot: "^packages/time/" },
     },
     {

@@ -23,7 +23,8 @@ export interface AppLanguageProps {
   readonly store: SettingsStore;
   readonly loadCatalog?: CatalogLoader;
   readonly systemLanguages?: () => readonly string[];
-  readonly children: ReactNode;
+  /** Composition can derive other inputs from the language this tree currently shows. */
+  readonly children: ReactNode | ((language: Language) => ReactNode);
 }
 
 /**
@@ -57,7 +58,7 @@ export function AppLanguage({
 
   return (
     <LanguageProvider i18n={i18n} language={language}>
-      {children}
+      {typeof children === "function" ? children(language) : children}
     </LanguageProvider>
   );
 }
