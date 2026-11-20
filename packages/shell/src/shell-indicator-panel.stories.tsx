@@ -10,7 +10,6 @@ import {
   type IndicatorPanelProps,
   type IndicatorWithPanel,
   type ModuleIndicator,
-  type ModuleIndicatorWithPanelProps,
   Shell,
   type ShellContribution,
   type ShellProps,
@@ -30,6 +29,9 @@ import {
   indicatorPlaceOf,
   nextFrame,
   openPalette,
+  panel,
+  PanelIndicator,
+  panelGone,
   paletteGone,
   pressEscape,
   type Story,
@@ -50,15 +52,6 @@ export default meta;
 const projects = ENTRIES[0]!;
 const time = ENTRIES[1]!;
 const third = ENTRIES[2]!;
-
-/** An indicator whose one button opens its panel, as `placeholder-alpha`'s does. */
-function PanelIndicator({ togglePanel }: ModuleIndicatorWithPanelProps) {
-  return (
-    <Button onClick={togglePanel} size="compact-sm" variant="subtle">
-      Open panel
-    </Button>
-  );
-}
 
 /** One field and the two ways the content itself closes the panel. */
 function PanelContent({ onCancel, onDone }: IndicatorPanelProps) {
@@ -87,11 +80,6 @@ const WITH_PANEL = { contributions: [{ ...projects, indicator: panelIndicator() 
 
 const indicatorButton = (canvas: Canvas) =>
   canvas.findByRole("button", { name: "Open panel" }, INDICATOR_ARRIVES);
-
-/** The panel is named after its module, as the Edit Drawer is. */
-const panel = () => screen.findByRole("dialog", { name: "Projects" });
-const panelGone = () =>
-  waitFor(() => expect(screen.queryByRole("dialog", { name: "Projects" })).toBeNull());
 
 /** In the popover on its first field; in the sheet, a modal, on its first control. */
 async function expectFocusInPanel() {
@@ -776,13 +764,15 @@ const aFrameThatFailsToLoad = (times: number): Story => {
       <IndicatorPanelsProvider modules={[]} page="story">
         <OpenByHand />
         <IndicatorPanelFrameLoader
-          indicator={{
-            load: async () => ({ default: PanelIndicator }),
-            panel: async () => ({ default: PanelContent }),
-          }}
           indicatorShown
           load={failingFrame.load}
-          module={projects}
+          module={{
+            ...projects,
+            indicator: {
+              load: async () => ({ default: PanelIndicator }),
+              panel: async () => ({ default: PanelContent }),
+            },
+          }}
           place={null}
           sheet={false}
         />

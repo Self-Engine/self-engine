@@ -74,6 +74,13 @@ export type ShellContribution = ContributionMetadata &
     | ContributionAction
   );
 
+/**
+ * A module together with the indicator it declares, for the code that shows that indicator. One
+ * arm per kind of indicator, so a check of `indicator.panel` tells the arms apart.
+ */
+export type ModuleWithIndicator<Indicator extends ModuleIndicator = ModuleIndicator> =
+  Indicator extends ModuleIndicator ? ShellContribution & { readonly indicator: Indicator } : never;
+
 type ContributionInput<Commands extends readonly ShellCommand[]> = ContributionMetadata & {
   readonly commands?: Commands;
   readonly primaryAction?: string extends Commands[number]["id"]

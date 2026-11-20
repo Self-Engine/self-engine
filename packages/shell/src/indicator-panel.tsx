@@ -5,16 +5,16 @@
 import { useLingui } from "@lingui/react/macro";
 import { Box, Drawer, Popover, rem } from "@mantine/core";
 import { useClickOutside, useDidUpdate, useMergedRef, useWindowEvent } from "@mantine/hooks";
-import { LoadingState, NOT_WINDOW_DRAG_STYLE } from "@self-engine/ui";
+import { NOT_WINDOW_DRAG_STYLE } from "@self-engine/ui";
 import { type CSSProperties, useCallback, useEffect, useRef, useState } from "react";
 import { useCommandPaletteOpen } from "./command-palette-state.tsx";
-import type { ShellContribution } from "./contributions.ts";
+import type { ModuleWithIndicator } from "./contributions.ts";
 import type { IndicatorPanelProps, IndicatorWithPanel } from "./module-indicator.ts";
 import { whenIdle } from "./idle.ts";
 import { useIndicatorPanels, useOpeningOf } from "./indicator-panels.tsx";
-import { LazyContribution, lazyComponents } from "./lazy-contribution.tsx";
+import { lazyComponents } from "./lazy-contribution.tsx";
 import { type LeaveGuard, useShellRouting } from "./routing.tsx";
-import { UnsavedChangesContext, useDiscardQuestion, useEscapeExit } from "./frame-exits.tsx";
+import { FrameContent, useDiscardQuestion, useEscapeExit } from "./frame-exits.tsx";
 
 /** The popover's width on the wide, medium and narrow step, in unscaled pixels. */
 export const INDICATOR_PANEL_WIDTH = 320;
@@ -38,8 +38,7 @@ const SHEET_STYLES = {
 } satisfies Record<string, CSSProperties>;
 
 export interface IndicatorPanelFrameProps {
-  readonly module: ShellContribution;
-  readonly indicator: IndicatorWithPanel;
+  readonly module: ModuleWithIndicator<IndicatorWithPanel>;
   /**
    * On the phone the panel is a sheet from below, on every other Layout Step a popover. An opening
    * keeps the kind it opened in until it closes.
@@ -149,7 +148,6 @@ function usePanelQuestion(moduleId: string, opened: boolean, frameOf: () => HTML
  */
 export default function IndicatorPanelFrame({
   module,
-  indicator,
   sheet: sheetAtThisStep,
   place,
   indicatorShown,
@@ -157,7 +155,7 @@ export default function IndicatorPanelFrame({
   const { i18n, t } = useLingui();
   const panels = useIndicatorPanels();
   const paletteOpen = useCommandPaletteOpen();
-  usePanelPreload(indicator.panel, indicatorShown);
+  usePanelPreload(module.indicator.panel, indicatorShown);
   const openingNow = useOpeningOf(module.id);
   // The last opening stays while the frame fades out, so its content does not vanish first. Its
   // frame stays the kind it opened in: content that moved between the popover and the sheet when
@@ -195,24 +193,22 @@ export default function IndicatorPanelFrame({
   );
   const name = i18n._(module.name);
   const content = shown !== undefined && (
-    <UnsavedChangesContext value={question.register}>
-      <LazyContribution
-        key={shown}
-        components={loadedPanels}
-        fallback={<LoadingState />}
-        load={indicator.panel}
-        props={{
-          // Bound to the opening the content was mounted for: a call that comes after the
-          // person left it closes nothing that is open now.
-          onCancel: () => {
-            if (panels.isOpen(shown)) leave();
-          },
-          onDone: () => panels.finish(shown),
-          confirmDiscard: question.confirmDiscard,
-          isOpen: () => panels.isOpen(shown),
-        }}
-      />
-    </UnsavedChangesContext>
+    <FrameContent
+      components={loadedPanels}
+      load={module.indicator.panel}
+      opening={shown}
+      props={{
+        // Bound to the opening the content was mounted for: a call that comes after the
+        // person left it closes nothing that is open now.
+        onCancel: () => {
+          if (panels.isOpen(shown)) leave();
+        },
+        onDone: () => panels.finish(shown),
+        confirmDiscard: question.confirmDiscard,
+        isOpen: () => panels.isOpen(shown),
+      }}
+      register={question.register}
+    />
   );
   return (
     <>

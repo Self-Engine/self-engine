@@ -18,6 +18,7 @@ import {
   type LeaveGuard,
   type ModuleIndicator,
   type ModuleIndicatorProps,
+  type ModuleIndicatorWithPanelProps,
   Shell,
   SHELL_STANDARD_MODULE_SIDEBAR_WIDTH,
   SHELL_STANDARD_NAVBAR,
@@ -134,6 +135,20 @@ export const indicatorPlaceOf = (element: Element): HTMLElement => {
   if (place === null) throw new Error("the element is not in an indicator's place");
   return place;
 };
+
+/** An indicator whose one button opens its panel, as `placeholder-alpha`'s does. */
+export function PanelIndicator({ togglePanel }: ModuleIndicatorWithPanelProps) {
+  return (
+    <Button onClick={togglePanel} size="compact-sm" variant="subtle">
+      Open panel
+    </Button>
+  );
+}
+
+/** The panel of the first module, Projects: named after its module, as the Edit Drawer is. */
+export const panel = () => screen.findByRole("dialog", { name: "Projects" });
+export const panelGone = () =>
+  waitFor(() => expect(screen.queryByRole("dialog", { name: "Projects" })).toBeNull());
 
 /** The indicator's code loads in an idle moment, which a busy test browser can put off. */
 export const INDICATOR_ARRIVES = { timeout: 4000 };

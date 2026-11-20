@@ -14,7 +14,7 @@ import {
 import { viewPath, type EditDrawerProps } from "./contributions.ts";
 import { EditDrawerTitleContext } from "./edit-drawer-title.ts";
 import { selectEditId, useEditDrawerExits } from "./edit-drawer-exits.tsx";
-import { UnsavedChangesContext, useEscapeExit } from "./frame-exits.tsx";
+import { FrameContent, useEscapeExit } from "./frame-exits.tsx";
 import { LazyContribution, lazyComponents } from "./lazy-contribution.tsx";
 import { indicatorForm, type IndicatorForm } from "./module-indicator-form.ts";
 import { IndicatorPanelsProvider } from "./indicator-panels.tsx";
@@ -50,7 +50,6 @@ import { useDisclosure } from "@mantine/hooks";
 import { SearchIcon, SidePanelIcon } from "@self-engine/icons";
 import { type ColorSetName, roleColor } from "@self-engine/theme";
 import {
-  LoadingState,
   NOT_WINDOW_DRAG_STYLE,
   NOTICE_CLEARANCE_VARIABLE,
   WINDOW_DRAG_STYLE,
@@ -1053,20 +1052,18 @@ function ModuleEditDrawer({ module }: { readonly module: ShellContribution | und
     >
       {shown?.module.editDrawer && openingProps && (
         <EditDrawerTitleContext value={setEntryTitle}>
-          <UnsavedChangesContext value={exits.register}>
-            <LazyContribution
-              key={shownOpening}
-              components={loadedDrawer}
-              fallback={<LoadingState />}
-              load={shown.module.editDrawer}
-              props={{
-                id: shown.id,
-                onCancel: close,
-                confirmDiscard: exits.confirmDiscard,
-                ...openingProps,
-              }}
-            />
-          </UnsavedChangesContext>
+          <FrameContent
+            components={loadedDrawer}
+            load={shown.module.editDrawer}
+            opening={shownOpening}
+            props={{
+              id: shown.id,
+              onCancel: close,
+              confirmDiscard: exits.confirmDiscard,
+              ...openingProps,
+            }}
+            register={exits.register}
+          />
         </EditDrawerTitleContext>
       )}
     </Drawer>

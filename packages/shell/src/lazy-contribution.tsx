@@ -2,7 +2,7 @@ import { useLingui } from "@lingui/react/macro";
 import { ErrorState } from "@self-engine/ui";
 import { Component, type ComponentType, type ReactNode, lazy, Suspense, useEffect } from "react";
 
-type LoadComponent<Props extends object> = () => Promise<{
+export type LoadComponent<Props extends object> = () => Promise<{
   readonly default: ComponentType<Props>;
 }>;
 

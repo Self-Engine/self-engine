@@ -2,13 +2,7 @@ import { Button, Stack, Text, TextInput } from "@mantine/core";
 import type { Meta } from "@storybook/react-vite";
 import { useState } from "react";
 import { expect, screen, userEvent, waitFor, within } from "storybook/test";
-import {
-  type IndicatorPanelProps,
-  type ModuleIndicatorWithPanelProps,
-  Shell,
-  type ShellProps,
-  useUnsavedChanges,
-} from "./index.ts";
+import { type IndicatorPanelProps, Shell, type ShellProps, useUnsavedChanges } from "./index.ts";
 import {
   atViewport,
   type Canvas,
@@ -17,6 +11,9 @@ import {
   expectOnTop,
   INDICATOR_ARRIVES,
   nextFrame,
+  panel,
+  PanelIndicator,
+  panelGone,
   pressEscape,
   type Story,
   shellMeta,
@@ -34,14 +31,6 @@ export default meta;
 const projects = ENTRIES[0]!;
 const time = ENTRIES[1]!;
 const third = ENTRIES[2]!;
-
-function PanelIndicator({ togglePanel }: ModuleIndicatorWithPanelProps) {
-  return (
-    <Button onClick={togglePanel} size="compact-sm" variant="subtle">
-      Open panel
-    </Button>
-  );
-}
 
 /** A draft that reports unsaved changes, as a form of `forms` does. */
 function DraftPanel({ onCancel, onDone }: IndicatorPanelProps) {
@@ -72,14 +61,11 @@ const WITH_DRAFT = {
   ],
 };
 
-const panel = () => screen.findByRole("dialog", { name: "Projects" });
 /** Still there behind the question; a busy browser may still be fading the popover in. */
 const expectPanelVisible = async () => {
   const dialog = await panel();
   await waitFor(() => expect(dialog).toBeVisible());
 };
-const panelGone = () =>
-  waitFor(() => expect(screen.queryByRole("dialog", { name: "Projects" })).toBeNull());
 
 /** The first module's indicator: with two panels, both indicators carry the same name. */
 const firstIndicator = async (canvas: Canvas) =>

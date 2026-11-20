@@ -4,8 +4,9 @@
 
 import { Trans } from "@lingui/react/macro";
 import { useWindowEvent } from "@mantine/hooks";
-import { confirm } from "@self-engine/ui";
+import { confirm, LoadingState } from "@self-engine/ui";
 import { createContext, useCallback, useContext, useLayoutEffect, useRef, useState } from "react";
+import { LazyContribution, type LazyComponents, type LoadComponent } from "./lazy-contribution.tsx";
 
 type UnsavedCheck = () => boolean;
 
@@ -118,4 +119,30 @@ export function useEscapeExit(enabled: boolean, close: () => void) {
     { capture: true },
   );
   return frame;
+}
+
+interface FrameContentProps<Props extends object> {
+  /** Names the opening the content is shown for: another opening mounts it anew. */
+  readonly opening: string | number;
+  /** The frame's checks, from `useDiscardQuestion`, which the content reports its changes to. */
+  readonly register: ReturnType<typeof useDiscardQuestion>["register"];
+  readonly components: LazyComponents<Props>;
+  readonly load: LoadComponent<Props>;
+  readonly props: Props;
+}
+
+/**
+ * A module's content in a frame of the Shell: loaded when first shown, with a loading state until
+ * then, mounted anew for each opening, and reporting its unsaved changes to the frame.
+ */
+export function FrameContent<Props extends object>({
+  opening,
+  register,
+  ...contribution
+}: FrameContentProps<Props>) {
+  return (
+    <UnsavedChangesContext value={register}>
+      <LazyContribution key={opening} fallback={<LoadingState />} {...contribution} />
+    </UnsavedChangesContext>
+  );
 }

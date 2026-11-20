@@ -2,10 +2,10 @@ import { useLingui } from "@lingui/react/macro";
 import { ActionIcon, Box, Group, rem, Tooltip } from "@mantine/core";
 import { colorSetColor, roleColor } from "@self-engine/theme";
 import { NOT_WINDOW_DRAG_STYLE } from "@self-engine/ui";
-import { type CSSProperties, useCallback, useState } from "react";
-import type { ShellContribution } from "./contributions.ts";
+import { type CSSProperties, type ReactNode, useCallback, useState } from "react";
+import type { ModuleWithIndicator, ShellContribution } from "./contributions.ts";
 import type {
-  ModuleIndicator,
+  IndicatorWithPanel,
   ModuleIndicatorProps,
   ModuleIndicatorWithPanelProps,
 } from "./module-indicator.ts";
@@ -74,66 +74,95 @@ function FailedIndicator({
   );
 }
 
+const declaresAPanel = (
+  module: ModuleWithIndicator,
+): module is ModuleWithIndicator<IndicatorWithPanel> => module.indicator.panel !== undefined;
+
+interface CodeProps {
+  readonly form: IndicatorForm;
+  readonly panelAsSheet: boolean;
+  /** The module's icon, which holds the place until the indicator's code has arrived. */
+  readonly icon: ReactNode;
+  readonly place: HTMLElement | null;
+}
+
+/**
+ * An indicator with a panel, and the panel's frame. Only such a place draws again when its panel
+ * opens or closes, and only on its own panel's.
+ */
+function IndicatorWithItsPanel({
+  module,
+  form,
+  panelAsSheet,
+  icon,
+  place,
+}: CodeProps & { readonly module: ModuleWithIndicator<IndicatorWithPanel> }) {
+  const panels = useIndicatorPanels();
+  const togglePanel = useCallback(() => panels.toggle(module.id), [panels, module.id]);
+  const panelOpen = useOpeningOf(module.id) !== undefined;
+  const [indicatorShown, setIndicatorShown] = useState(false);
+  const markShown = useCallback(() => setIndicatorShown(true), []);
+  return (
+    <>
+      <LazyContribution
+        components={loadedIndicatorsWithPanel}
+        fallback={icon}
+        load={module.indicator.load}
+        onShown={markShown}
+        props={{ form, togglePanel, panelOpen }}
+        renderFailure={(retry) => <FailedIndicator module={module} onRetry={retry} />}
+      />
+      <LazyIndicatorPanelFrame
+        indicatorShown={indicatorShown}
+        module={module}
+        place={place}
+        sheet={panelAsSheet}
+      />
+    </>
+  );
+}
+
 interface PlaceProps {
-  readonly module: ShellContribution;
-  readonly indicator: ModuleIndicator;
+  readonly module: ModuleWithIndicator;
   readonly form: IndicatorForm;
   readonly codeWanted: boolean;
   readonly panelAsSheet: boolean;
 }
 
 /** One module's place: its icon until the indicator's code has arrived, then the indicator. */
-function IndicatorPlace({ module, indicator, form, codeWanted, panelAsSheet }: PlaceProps) {
+function IndicatorPlace({ module, form, codeWanted, panelAsSheet }: PlaceProps) {
   const { i18n } = useLingui();
-  const panels = useIndicatorPanels();
-  const togglePanel = useCallback(() => panels.toggle(module.id), [panels, module.id]);
-  // Draws this place again when its own panel opens or closes, never on another one's.
-  const panelOpen = useOpeningOf(module.id) !== undefined;
-  const [placeNode, setPlaceNode] = useState<HTMLDivElement | null>(null);
-  const [indicatorShown, setIndicatorShown] = useState(false);
-  const markShown = useCallback(() => setIndicatorShown(true), []);
+  const [place, setPlace] = useState<HTMLDivElement | null>(null);
   const Icon = module.icon;
   const icon = (
     <Box aria-label={i18n._(module.name)} role="img" style={ICON_STYLE}>
       <Icon size="md" />
     </Box>
   );
-  const failure = (retry: () => void) => <FailedIndicator module={module} onRetry={retry} />;
-  const code =
-    indicator.panel === undefined ? (
-      <LazyContribution
-        components={loadedIndicators}
-        fallback={icon}
-        load={indicator.load}
-        props={{ form }}
-        renderFailure={failure}
-      />
-    ) : (
-      <LazyContribution
-        components={loadedIndicatorsWithPanel}
-        fallback={icon}
-        load={indicator.load}
-        onShown={markShown}
-        props={{ form, togglePanel, panelOpen }}
-        renderFailure={failure}
-      />
-    );
+  const code = declaresAPanel(module) ? (
+    <IndicatorWithItsPanel
+      form={form}
+      icon={icon}
+      module={module}
+      panelAsSheet={panelAsSheet}
+      place={place}
+    />
+  ) : (
+    <LazyContribution
+      components={loadedIndicators}
+      fallback={icon}
+      load={module.indicator.load}
+      props={{ form }}
+      renderFailure={(retry) => <FailedIndicator module={module} onRetry={retry} />}
+    />
+  );
   return (
     <Box
       data-color-set={module.color}
-      ref={setPlaceNode}
+      ref={setPlace}
       style={{ ...PLACE_STYLE, maxWidth: rem(INDICATOR_MAX_WIDTH[form]) }}
     >
       {codeWanted ? code : icon}
-      {codeWanted && indicator.panel !== undefined && (
-        <LazyIndicatorPanelFrame
-          indicator={indicator}
-          indicatorShown={indicatorShown}
-          module={module}
-          place={placeNode}
-          sheet={panelAsSheet}
-        />
-      )}
     </Box>
   );
 }
@@ -146,23 +175,23 @@ interface ModuleIndicatorsProps {
   readonly panelAsSheet: boolean;
 }
 
+const declaresAnIndicator = (module: ShellContribution): module is ModuleWithIndicator =>
+  module.indicator !== undefined;
+
 /**
  * The Module Indicators at the end of the content header. Their code loads in the first idle
  * moment after the first paint, so it costs the start nothing; the Shell passes them no data.
  */
 export function ModuleIndicators({ modules, form, panelAsSheet }: ModuleIndicatorsProps) {
   const codeWanted = useAfterFirstIdle();
-  const places = modules.flatMap((module) =>
-    module.indicator ? [{ module, indicator: module.indicator }] : [],
-  );
+  const places = modules.filter(declaresAnIndicator);
   if (places.length === 0) return null;
   return (
     <Group flex="none" gap="xs" wrap="nowrap">
-      {places.map(({ module, indicator }) => (
+      {places.map((module) => (
         <IndicatorPlace
           codeWanted={codeWanted}
           form={form}
-          indicator={indicator}
           key={module.id}
           module={module}
           panelAsSheet={panelAsSheet}
