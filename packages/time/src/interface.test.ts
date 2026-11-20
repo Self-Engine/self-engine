@@ -13,6 +13,7 @@ import type {
   ResolvedTimeZone,
   TimeZone,
   WallClockTime,
+  WallClockTimeResolution,
 } from "./index.ts";
 
 test("the public functions use only package values and require all arguments", () => {
@@ -44,6 +45,24 @@ test("the public functions use only package values and require all arguments", (
   expectTypeOf(time.instantAt).toEqualTypeOf<
     (day: CalendarDay, time: WallClockTime, timeZone: TimeZone) => ResolvedInstant
   >();
+  expectTypeOf(time.resolveWallClockTime).toEqualTypeOf<
+    (
+      day: CalendarDay,
+      time: WallClockTime,
+      timeZone: TimeZone,
+      options?: { readonly previous?: Instant; readonly lowerBound?: Instant },
+    ) => WallClockTimeResolution
+  >();
+  expectTypeOf<WallClockTimeResolution>().toEqualTypeOf<
+    | { readonly case: "unambiguous"; readonly instant: Instant }
+    | { readonly case: "skipped" }
+    | {
+        readonly case: "repeated";
+        readonly instant: Instant;
+        readonly occurrence: "earlier" | "later";
+        readonly offset: string;
+      }
+  >();
   expectTypeOf(time.startOfCalendarDay).toEqualTypeOf<
     (day: CalendarDay, timeZone: TimeZone) => Instant
   >();
@@ -65,6 +84,7 @@ test("the public functions use only package values and require all arguments", (
       "instantAt",
       "instantRangeOf",
       "resolveTimeZone",
+      "resolveWallClockTime",
       "sameTimeZone",
       "startOfCalendarDay",
       "today",
