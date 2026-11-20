@@ -255,3 +255,35 @@ test("today follows a change of the Time Zone handed in", () => {
   advance(1);
   expect(container.textContent).toBe("2026-11-22");
 });
+
+test("today shows the new day at most a minute after the computer slept over midnight", () => {
+  vi.useFakeTimers({ now: Date.parse("2026-11-20T10:00:00.000Z") });
+  function Today() {
+    return <p>{useToday(BERLIN)}</p>;
+  }
+  render(<Today />);
+  expect(container.textContent).toBe("2026-11-20");
+  // The computer sleeps: the time moves past midnight in Berlin, the timeout counts nothing.
+  vi.setSystemTime(Date.parse("2026-11-21T07:00:00.000Z"));
+  advance(59_999);
+  expect(container.textContent).toBe("2026-11-20");
+  advance(1);
+  expect(container.textContent).toBe("2026-11-21");
+});
+
+test("a tick the one-minute cap brings, with nothing due, redraws no listener", () => {
+  vi.useFakeTimers({ now: Date.parse("2026-11-20T10:00:00.000Z") });
+  const counter = { renders: 0 };
+  function Today() {
+    counter.renders += 1;
+    return <p>{useToday(BERLIN)}</p>;
+  }
+  render(<Today />);
+  const drawn = counter.renders;
+  const wakes = vi.spyOn(globalThis, "setTimeout");
+  for (let minute = 0; minute < 10; minute += 1) advance(60_000);
+  // Ten capped ticks, each setting the next timeout, and not one redraw.
+  expect(wakes).toHaveBeenCalledTimes(10);
+  expect(counter.renders).toBe(drawn);
+  expect(vi.getTimerCount()).toBe(1);
+});

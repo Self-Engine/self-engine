@@ -1,7 +1,9 @@
 // The page clock's one ticker (D348): every reading of "now" and "today" on the page shares a
 // single timeout, set to the earliest moment one of them has something new to show. It runs only
 // while someone listens and the window is visible. A reading always takes the Clock's time and
-// never counts ticks, so it is right at once after a sleep or a jump of the clock.
+// never counts ticks. A timeout may not count the time the computer slept, so it waits at most a
+// minute: after a sleep or a jump of the clock a reading is right at the next tick, at most a
+// minute after waking.
 
 import { epochMsOf } from "../borders.ts";
 import type { Clock } from "../clock.ts";
@@ -54,6 +56,14 @@ function take(channel: Channel, now: Instant, nowMs: number) {
   channel.dueMs = epochMsOf(channel.nextAfter(now));
 }
 
+/**
+ * The longest a timeout waits. A timer may not count the time the computer slept, so a timeout
+ * set for midnight could fire hours late; a capped tick that finds nothing due redraws nothing and
+ * sets the next timeout. The cost: one timeout a minute, while something listens and the window
+ * is visible, each reading the Clock once and comparing a number per heard channel.
+ */
+const LONGEST_WAIT_MS = 60_000;
+
 export function createTicker(clock: Clock, visibility: PageVisibility): Ticker {
   const channels = new Map<string, Channel>();
   let listening = 0;
@@ -67,7 +77,7 @@ export function createTicker(clock: Clock, visibility: PageVisibility): Ticker {
     timeout = undefined;
     if (listening === 0 || !visibility.visible()) return;
     const dueMs = Math.min(...heard().map((channel) => channel.dueMs));
-    timeout = setTimeout(tick, Math.max(0, dueMs - nowMs));
+    timeout = setTimeout(tick, Math.min(LONGEST_WAIT_MS, Math.max(0, dueMs - nowMs)));
   }
 
   /** Reads the Clock once, takes every heard channel that is due, then tells their listeners. */
