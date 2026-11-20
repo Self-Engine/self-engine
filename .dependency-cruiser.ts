@@ -305,6 +305,14 @@ export function boundaryConfig({
       },
     },
     {
+      name: "data-process-stays-off-the-page-clock",
+      comment:
+        "The React entry of `time` (`@self-engine/time/react`) holds the page clock and the hooks for the page's Settings (D348). Nothing the desktop app starts, the Data Process above all, may load it, through any package: every Instant it stores comes from its own Clock, and it renders nothing. Import `time`'s main entry or `@self-engine/time/settings` instead.",
+      severity: "error",
+      from: { path: "^apps/desktop/src/", pathNot: DEV_ONLY_FILE },
+      to: { path: "^packages/time/src/react/", reachable: true },
+    },
+    {
       name: "storage-is-portable",
       comment:
         "Storage uses db's platform-neutral interface; Electron and native drivers belong in platform bindings (D233).",
