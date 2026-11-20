@@ -133,6 +133,15 @@ msgstr "Archiv"
 msgid "Archived projects"
 msgstr "Archivierte Projekte"
 
+#: packages/settings-area/src/region-rows.tsx
+msgctxt "Week Start"
+msgid "Automatic"
+msgstr "Automatisch"
+
+#: packages/settings-area/src/region-rows.tsx
+msgid "Automatic time zone"
+msgstr "Automatische Zeitzone"
+
 #: packages/settings-area/src/rows.tsx
 msgid "Background Tint"
 msgstr "Hintergrundtönung"
@@ -231,6 +240,10 @@ msgctxt "Icon"
 msgid "Calendar"
 msgstr "Kalender"
 
+#: packages/settings-area/src/region-rows.tsx
+msgid "Calendar week"
+msgstr "Kalenderwoche"
+
 #: packages/icons/src/directory/labels.ts
 msgctxt "Icon"
 msgid "Camera"
@@ -294,6 +307,10 @@ msgstr "Zwischenablage"
 msgctxt "Icon"
 msgid "Clipboard"
 msgstr "Klemmbrett"
+
+#: packages/settings-area/src/region-rows.tsx
+msgid "Clock"
+msgstr "Uhr"
 
 #: packages/placeholder-alpha/src/edit-drawer.tsx
 #: packages/projects/src/edit-drawer.tsx
@@ -556,6 +573,10 @@ msgctxt "Icon"
 msgid "Fire"
 msgstr "Feuer"
 
+#: packages/settings-area/src/region-rows.tsx
+msgid "First weekday"
+msgstr "Erster Wochentag"
+
 #: packages/ui/src/entry-pickers/emoji-tab.tsx
 msgid "Flags"
 msgstr "Flaggen"
@@ -564,6 +585,10 @@ msgstr "Flaggen"
 msgctxt "Icon"
 msgid "Flask"
 msgstr "Reagenzglas"
+
+#: packages/settings-area/src/region-rows.tsx
+msgid "Follow device"
+msgstr "Gerät folgen"
 
 #: packages/settings-area/src/rows.tsx
 msgid "Font scale"
@@ -581,6 +606,10 @@ msgstr "Essen & Trinken"
 msgctxt "Icon"
 msgid "Fork and knife"
 msgstr "Besteck"
+
+#: packages/settings-area/src/region-rows.tsx
+msgid "Friday"
+msgstr "Freitag"
 
 #: packages/settings-area/src/theme-rows.tsx
 msgid "From Theme"
@@ -717,8 +746,8 @@ msgid "Keyboard"
 msgstr "Tastatur"
 
 #: packages/settings-area/src/index.ts
-msgid "Language"
-msgstr "Sprache"
+msgid "Language and region"
+msgstr "Sprache und Region"
 
 #: packages/icons/src/directory/labels.ts
 msgctxt "Icon"
@@ -808,6 +837,10 @@ msgstr "Modul-Sidebar"
 #: packages/shell/src/shell.tsx
 msgid "Modules"
 msgstr "Module"
+
+#: packages/settings-area/src/region-rows.tsx
+msgid "Monday"
+msgstr "Montag"
 
 #: packages/icons/src/directory/labels.ts
 msgctxt "Icon"
@@ -903,6 +936,10 @@ msgstr "Keine Einstellungen gefunden"
 msgctxt "Icon"
 msgid "No smoking"
 msgstr "Rauchverbot"
+
+#: packages/settings-area/src/region-rows.tsx
+msgid "No time zone found"
+msgstr "Keine Zeitzone gefunden"
 
 #: packages/icons/src/directory/labels.ts
 msgctxt "Icon"
@@ -1086,6 +1123,10 @@ msgctxt "Color"
 msgid "Red"
 msgstr "Rot"
 
+#: packages/settings-area/src/region-rows.tsx
+msgid "Region"
+msgstr "Region"
+
 #: packages/settings-area/src/about-rows.tsx
 msgid "Release"
 msgstr "Release"
@@ -1159,6 +1200,10 @@ msgstr "Tresor"
 #: packages/settings-area/src/backup-rows.tsx
 msgid "Safety copy"
 msgstr "Sicherheitskopie"
+
+#: packages/settings-area/src/region-rows.tsx
+msgid "Saturday"
+msgstr "Samstag"
 
 #: packages/forms/src/form-body.tsx
 msgid "Save"
@@ -1286,10 +1331,18 @@ msgctxt "Icon"
 msgid "Sun"
 msgstr "Sonne"
 
+#: packages/settings-area/src/region-rows.tsx
+msgid "Sunday"
+msgstr "Sonntag"
+
 #: packages/icons/src/directory/labels.ts
 msgctxt "Icon"
 msgid "Sunrise"
 msgstr "Sonnenaufgang"
+
+#: packages/settings-area/src/region-rows.tsx
+msgid "Switch the Time Zone to the zone of this device whenever the device changes zones, without asking."
+msgstr "Die Zeitzone ohne Nachfrage auf die Zone dieses Geräts umstellen, sobald das Gerät die Zone wechselt."
 
 #: packages/ui/src/entry-pickers/emoji-tab.tsx
 msgid "Symbols"
@@ -1358,6 +1411,10 @@ msgstr "Die Emojis konnten nicht geladen werden."
 msgid "The entry could not come back: another entry has its name now."
 msgstr "Der Eintrag konnte nicht zurückkommen: Ein anderer Eintrag trägt jetzt seinen Namen."
 
+#: packages/settings-area/src/region-rows.tsx
+msgid "The first day of each week. \"Automatic\" follows the region of the App Language."
+msgstr "Der erste Tag jeder Woche. „Automatisch“ folgt der Region der App-Sprache."
+
 #: packages/settings-area/src/theme-rows.tsx
 msgid "The highlight color for buttons, active items and links. \"From Theme\" uses the color a Theme brings, if it brings one."
 msgstr "Die Farbe, die Schaltflächen, aktive Einträge und Links hervorhebt. „Vom Theme“ nimmt die Farbe, die ein Theme mitbringt, sofern es eine mitbringt."
@@ -1397,6 +1454,10 @@ msgstr "Die Veröffentlichungslinie, zu der diese App gehört."
 #: packages/settings-area/src/rows.tsx
 msgid "The size of the text in the whole app."
 msgstr "Wie groß der Text in der ganzen App ist."
+
+#: packages/settings-area/src/region-rows.tsx
+msgid "The zone in which the app counts days and shows times."
+msgstr "Die Zone, in der die App Tage zählt und Uhrzeiten zeigt."
 
 #: packages/settings-area/src/theme-rows.tsx
 msgid "Theme"
@@ -1456,6 +1517,14 @@ msgctxt "Icon"
 msgid "Thumbs up"
 msgstr "Daumen hoch"
 
+#: packages/settings-area/src/region-rows.tsx
+msgid "Thursday"
+msgstr "Donnerstag"
+
+#: packages/settings-area/src/region-rows.tsx
+msgid "Time Zone"
+msgstr "Zeitzone"
+
 #: packages/projects/src/edit-drawer.tsx
 msgid "Title"
 msgstr "Titel"
@@ -1463,6 +1532,10 @@ msgstr "Titel"
 #: packages/settings-area/src/rows.tsx
 msgid "Translation"
 msgstr "Übersetzung"
+
+#: packages/settings-area/src/region-rows.tsx
+msgid "Travel"
+msgstr "Reise"
 
 #: packages/ui/src/entry-pickers/emoji-tab.tsx
 msgid "Travel & Places"
@@ -1480,6 +1553,10 @@ msgstr "Erneut versuchen"
 #: packages/settings-area/src/area.tsx
 msgid "Try another word, or clear the search."
 msgstr "Versuche ein anderes Wort oder leere die Suche."
+
+#: packages/settings-area/src/region-rows.tsx
+msgid "Tuesday"
+msgstr "Dienstag"
 
 #: packages/projects/src/edit-drawer.tsx
 msgid "Unarchive"
@@ -1540,6 +1617,14 @@ msgstr "Warnung"
 msgctxt "Icon"
 msgid "Waving hand"
 msgstr "Winkende Hand"
+
+#: packages/settings-area/src/region-rows.tsx
+msgid "Wednesday"
+msgstr "Mittwoch"
+
+#: packages/settings-area/src/region-rows.tsx
+msgid "Week Start"
+msgstr "Wochenstart"
 
 #: packages/shell/src/edit-drawer-exits.tsx
 msgid "What you changed here will be lost."

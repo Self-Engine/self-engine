@@ -2,6 +2,8 @@
 
 import { DataProvider, type PortAccess } from "@self-engine/data-client/react";
 import { LANGUAGE_TAGS, loadAppCatalog } from "@self-engine/i18n";
+import { resolveTimeZone } from "@self-engine/time";
+import { TimeSettingsProvider } from "@self-engine/time/react";
 import { holdTimers } from "@self-engine/ui/story-timers";
 import { loadStoryShell, modKey } from "@self-engine/shell/story-interactions";
 import { createMemoryHistory, RouterProvider } from "@tanstack/react-router";
@@ -35,6 +37,13 @@ export async function loadStoryApp() {
     ]),
   ]);
 }
+
+/** The device's zone in the app's stories, which the Time Zone shows while none is set. */
+export const STORY_DEVICE_ZONE = resolveTimeZone("Europe/Berlin").timeZone;
+
+const throwError = (error: Error) => {
+  throw error;
+};
 
 /** The app's Reason texts, with the table names of the stories' modules. */
 const storyReasonTexts = appReasonTexts(storyModules);
@@ -71,10 +80,19 @@ export function AppAt({ address, access, testTableName }: AppAtProps) {
           tableName: (table) => testTableName(table) ?? storyModules.tableName(table),
         }),
   );
+  // As in `main.tsx`, with a named device zone and region, so that a story renders the same
+  // everywhere.
   return (
-    <DataProvider access={access} reasonTexts={reasonTexts}>
-      <RouterProvider router={router} />
-    </DataProvider>
+    <TimeSettingsProvider
+      deviceZone={STORY_DEVICE_ZONE}
+      onError={throwError}
+      region="en-US"
+      store={settingsStore}
+    >
+      <DataProvider access={access} reasonTexts={reasonTexts}>
+        <RouterProvider router={router} />
+      </DataProvider>
+    </TimeSettingsProvider>
   );
 }
 
