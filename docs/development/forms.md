@@ -299,14 +299,15 @@ for the local text pattern; the date and time fields below follow it.
 
 `CalendarDayField` binds a Calendar Day, `WallClockTimeField` a Wall-Clock Time, each with
 Mantine's picker (D319): the calendar of `DateInput` and the hours and minutes of `TimePicker`
-with its lists. Both can be picked and typed. Give the date field the first day of the week,
-which the View reads with `useFirstDayOfWeek()` from `@self-engine/time/react`; neither field
-reads a Setting or a clock:
+with its lists. Both can be picked and typed. Give the date field the first day of the week and
+"today", which the View reads with `useFirstDayOfWeek()` and `useToday(timeZone)` from
+`@self-engine/time/react`; no field reads a Setting or a clock:
 
 ```tsx
 const firstDayOfWeek = useFirstDayOfWeek(); // in the drawer, outside the form
+const today = useToday(timeZone);
 
-<CalendarDayField form={form} name="day" label={t`Day`} firstDayOfWeek={firstDayOfWeek} />
+<CalendarDayField form={form} name="day" label={t`Day`} firstDayOfWeek={firstDayOfWeek} today={today} />
 <WallClockTimeField form={form} name="start" label={t`Start`} clearable />
 ```
 
@@ -326,6 +327,10 @@ both, and the field checks the value it reads.
   value, block the save and show "Complete or clear this field." once the field is left.
 - **Empty:** emptying the text or every part hands on `null`; `clearable` adds the clear button.
   A click on the day the field holds keeps it.
+- **Today:** the calendar opens an empty field on the month of `today` and marks that day. Mantine
+  would read both from the device's clock, whose day can differ from the one in the form's Time
+  Zone; the field replaces its mark (`getDayProps` sets `data-today`) and its month
+  (`defaultDate`). A story passes a fixed day.
 - **Language:** month and weekday names, the text of a day and the 12- or 24-hour clock come from
   `time` (`calendarLabels`, the format `fieldDate`, `clockFormatOf`), not from Mantine's date
   library: nothing in the app imports `dayjs` (ADR 0027).
@@ -335,7 +340,53 @@ both, and the field checks the value it reads.
 Both fields, their styles and `dayjs` load with the first form; the startup check rejects
 `@mantine/dates` and `dayjs` in the start. The stories in
 [`example-form-dates.stories.tsx`](../../packages/forms/src/testing/example/example-form-dates.stories.tsx)
-pick, type, block and switch the language.
+pick, type, block and switch the language. The inner inputs live in `date-inputs.tsx`, so every
+date and time field of `forms` sets Mantine up the same way.
+
+## A stretch of time
+
+`TimeRangeField` is one field "date, start, end" bound to two Instants of the draft (D319, D344,
+D347). It shows a date, a start time and an end time; its parts are labelled by `forms` in the App
+Language, and `label` names the whole field. The Time Zone, the first day of the week and "today"
+are properties; the field reads no Setting and no clock:
+
+```tsx
+<TimeRangeField
+  form={form}
+  start="started_at"
+  end="ended_at"
+  label={t`Worked`}
+  timeZone={timeZone}
+  firstDayOfWeek={firstDayOfWeek}
+  today={today}
+/>
+```
+
+The Contract declares both with `instantSchema`, ties them with a rule such as "the end lies after
+the start" at the end (`path: ["ended_at"]`, a Reason with its text, D320), and an edit names them
+in `edit.tiedFields`, so both travel together (D323). As with a day, the Draft holds a text for an
+Instant, and the field checks what it reads.
+
+- **The next day:** an end time that is not after the start time lies on the next day, and the
+  field shows "+1". "Add an end date" opens a separate end date for a longer range; a loaded range
+  that "+1" cannot show opens it by itself.
+- **Untouched parts keep their seconds (D344):** an Instant is replaced only when the date or the
+  time it shows changes. A start moved past the end moves the end to the next day, as "+1" then
+  says; one passing there while a time is typed brings it back with its seconds.
+- **Clock changes (D347):** a time the zone shows twice is resolved by `resolveWallClockTime` of
+  `time`: on an edit with the Instant the draft held, else the end with the start as its lower
+  bound. The field calls the rule and never repeats it. A note under the time names the offset,
+  such as "02:30 (UTC+2)", as the Time Zone picker writes it (`formatUtcOffset`,
+  `repeatedOffsetOf`). A time the clocks skip shows a message and blocks the save, like "25:00".
+- **The duration** below the field is the time that really passed between the two Instants
+  (`durationBetween`, `formatDuration`), also across a clock change.
+- **Messages:** text that is no value, a skipped time and the Contract's messages of the start
+  show at the start, those of the end at the end; a half-typed day shows its message at the day.
+
+`time-range.ts` holds what the field writes, as pure functions with unit tests. Typing elsewhere
+draws the field not; it draws once for each value one of its pickers hands on. The stories in
+[`example-form-time-range.stories.tsx`](../../packages/forms/src/testing/example/example-form-time-range.stories.tsx)
+run in Berlin on 25 October 2026 and 28 March 2027.
 
 ## Prove the form
 

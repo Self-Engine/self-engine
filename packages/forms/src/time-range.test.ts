@@ -167,6 +167,18 @@ describe("a loaded range", () => {
     );
   });
 
+  test("an end moved by a passing value comes back with its seconds", () => {
+    const night = { start: at("2026-11-13T21:00:00.000Z"), end: at("2026-11-14T02:00:10.000Z") };
+    // Typing 23:30 over 22:00 passes 02:00, which reads the end 03:00 as on the date itself.
+    const passing = rangeFrom(parts("2026-11-13", "02:00", "03:00"), night, berlin, true, night);
+    expect(passing.end).toEqual({ case: "set", instant: at("2026-11-13T02:00:00.000Z") });
+    const moved = { start: at("2026-11-13T01:00:00.000Z"), end: at("2026-11-13T02:00:00.000Z") };
+    expect(rangeFrom(parts("2026-11-13", "23:30", "03:00"), moved, berlin, true, night)).toEqual({
+      start: { case: "set", instant: at("2026-11-13T22:30:00.000Z") },
+      end: { case: "set", instant: night.end },
+    });
+  });
+
   test("a correction inside the repeated hour stays in the same hour (D347)", () => {
     // A timer stopped at the second 02:40 of 25 October 2026; the end is corrected to 02:45.
     const timer = { start: at("2026-10-25T00:10:00.000Z"), end: at("2026-10-25T01:40:30.000Z") };

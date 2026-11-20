@@ -41,7 +41,12 @@ interface Sortable extends TimeZoneChoice {
 
 function choiceOf(timeZone: TimeZone, now: Temporal.Instant): Sortable {
   const nanoseconds = now.toZonedDateTimeISO(timeZone).offsetNanoseconds;
-  return { timeZone, place: placeOf(timeZone), offset: utcOffsetText(nanoseconds / 60e9), nanoseconds };
+  return {
+    timeZone,
+    place: placeOf(timeZone),
+    offset: utcOffsetText(nanoseconds / 60e9),
+    nanoseconds,
+  };
 }
 
 // By code unit, so that the order is the same in every language and on every device.

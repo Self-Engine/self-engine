@@ -98,34 +98,40 @@ function outcomeOf(
   day: CalendarDay | null,
   time: WallClockTime | null,
   current: Instant | null,
+  original: Instant | null,
   timeZone: TimeZone,
   options: { readonly previous?: Instant; readonly lowerBound?: Instant },
 ): RangeOutcome {
   if (day === null || time === null) return { case: "set", instant: null };
   if (shows(current, day, time, timeZone)) return { case: "keep" };
+  if (original !== null && shows(original, day, time, timeZone))
+    return { case: "set", instant: original };
   const resolved = resolveWallClockTime(day, time, timeZone, options);
   return resolved.case === "skipped" ? resolved : { case: "set", instant: resolved.instant };
 }
 
 /**
  * The two Instants for what the field shows. An Instant that still shows its date and time stays
- * with its seconds; any other is resolved by `time` (D347): on an edit (`isEdit`) with the Instant
- * the draft held as the previous value, else the end with the start as its lower bound.
+ * with its seconds, and so does one of `original`, the Instants the field was drawn with: a value
+ * passing while a time is typed may move the end to another day and back. Any other Instant is
+ * resolved by `time` (D347): on an edit (`isEdit`) with the Instant the draft held as the previous
+ * value, else the end with the start as its lower bound.
  */
 export function rangeFrom(
   parts: RangeParts,
   current: RangeInstants,
   timeZone: TimeZone,
   isEdit: boolean,
+  original: RangeInstants = current,
 ): { readonly start: RangeOutcome; readonly end: RangeOutcome } {
   const previous = (instant: Instant | null) =>
     isEdit && instant !== null ? { previous: instant } : {};
-  const start = outcomeOf(parts.day, parts.startTime, current.start, timeZone, {
+  const start = outcomeOf(parts.day, parts.startTime, current.start, original.start, timeZone, {
     ...previous(current.start),
   });
   const lowerBound =
     start.case === "set" ? start.instant : start.case === "keep" ? current.start : null;
-  const end = outcomeOf(dayOfEnd(parts), parts.endTime, current.end, timeZone, {
+  const end = outcomeOf(dayOfEnd(parts), parts.endTime, current.end, original.end, timeZone, {
     ...(lowerBound === null ? {} : { lowerBound }),
     ...previous(current.end),
   });
