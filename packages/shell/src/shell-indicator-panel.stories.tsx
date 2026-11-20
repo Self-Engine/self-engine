@@ -250,11 +250,35 @@ export const ThePaletteOpensOverThePanelAndTakesEscapeFirst: Story = {
   },
 };
 
-/** Counts the loads of the panel's code, so a story sees the idle preload. */
+/** Counts every loading state that enters the page until `stop`, however briefly it stays. */
+function watchForLoadingStates() {
+  let seen = 0;
+  const observer = new MutationObserver((records) => {
+    for (const record of records) {
+      for (const node of record.addedNodes) {
+        if (!(node instanceof Element)) continue;
+        if (node.matches('[role="status"]') || node.querySelector('[role="status"]')) seen += 1;
+      }
+    }
+  });
+  observer.observe(document.body, { childList: true, subtree: true });
+  return {
+    stop: () => {
+      observer.disconnect();
+      return seen;
+    },
+  };
+}
+
+/**
+ * Counts the loads of the panel's code, so a story sees the idle preload. Each load takes a moment,
+ * as fetching a chunk does: code already in memory arrives before React would show a fallback.
+ */
 function countedPanel() {
   let loads = 0;
   const indicator = withPanel(async () => {
     loads += 1;
+    await new Promise((resolve) => setTimeout(resolve, 100));
     return { default: PanelContent };
   });
   return { indicator, loads: () => loads };
@@ -268,13 +292,14 @@ export const AfterThePreloadTheFirstOpeningDoesNotWait: Story = {
   play: async ({ canvas }) => {
     const button = await indicatorButton(canvas);
     await waitFor(() => expect(counted.loads()).toBe(1), INDICATOR_ARRIVES);
-    // A turn of the event loop for the loaded code to settle.
-    await new Promise((resolve) => setTimeout(resolve));
+    // The moment the load takes, and a turn for the loaded code to settle.
+    await new Promise((resolve) => setTimeout(resolve, 200));
+    const loadingStates = watchForLoadingStates();
     await userEvent.click(button);
-    // At once, without a loading state in between.
-    const dialog = screen.getByRole("dialog", { name: "Projects" });
+    const dialog = await panel();
     await expect(within(dialog).getByRole("textbox", { name: "Note" })).toBeInTheDocument();
-    await expect(within(dialog).queryByRole("status", { name: "Loading" })).toBeNull();
+    // Not once, between the click and the content.
+    await expect(loadingStates.stop()).toBe(0);
     await expect(counted.loads()).toBe(1);
   },
 };
