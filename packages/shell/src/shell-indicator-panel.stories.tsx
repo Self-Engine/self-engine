@@ -23,6 +23,8 @@ import {
   atViewport,
   type Canvas,
   ENTRIES,
+  expectCovered,
+  expectOnTop,
   INDICATOR_ARRIVES,
   indicatorPlaceOf,
   nextFrame,
@@ -269,12 +271,16 @@ export const AChangeOfPageCloses: Story = {
   },
 };
 
-export const ThePaletteOpensOverThePanelAndTakesEscapeFirst: Story = {
-  ...atViewport("wide"),
+const thePaletteOverThePanel = (step: "wide" | "narrow"): Story => ({
+  ...atViewport(step),
   args: WITH_PANEL,
   play: async ({ canvas }) => {
     await openByClick(canvas);
+    const note = within(await panel()).getByRole("textbox", { name: "Note" });
     const palette = await openPalette();
+    // On top, by the browser's hit test: its field takes the pointer, the panel's field does not.
+    await waitFor(() => expectOnTop(within(palette).getByRole("textbox")));
+    await expectCovered(note);
     await userEvent.click(within(palette).getByRole("textbox"));
     await expect(await panel()).toBeVisible();
     await pressEscape();
@@ -283,7 +289,10 @@ export const ThePaletteOpensOverThePanelAndTakesEscapeFirst: Story = {
     await pressEscape();
     await panelGone();
   },
-};
+});
+
+export const ThePaletteOpensOverThePanelAndTakesEscapeFirst = thePaletteOverThePanel("wide");
+export const ThePaletteOpensOverThePanelAtTheNarrowStep = thePaletteOverThePanel("narrow");
 
 /** Counts every loading state that enters the page until `stop`, however briefly it stays. */
 function watchForLoadingStates() {
