@@ -287,7 +287,9 @@ async function expectGermanAppearance(canvas: ReturnType<typeof within>) {
 }
 
 async function expectLanguageView(canvas: ReturnType<typeof within>) {
-  await expect(await canvas.findByRole("heading", { name: "Language", level: 1 })).toBeVisible();
+  await expect(
+    await canvas.findByRole("heading", { name: "Language and region", level: 1 }),
+  ).toBeVisible();
   await expect(await canvas.findByRole("radiogroup", { name: "App Language" })).toBeVisible();
 }
 
@@ -313,7 +315,9 @@ export const ChoosingALanguageChangesTheWholeApp: Story = {
     await expectLanguageView(canvas);
     await userEvent.click(canvas.getByRole("radio", { name: "Deutsch" }));
 
-    await expect(await canvas.findByRole("heading", { name: "Sprache", level: 1 })).toBeVisible();
+    await expect(
+      await canvas.findByRole("heading", { name: "Sprache und Region", level: 1 }),
+    ).toBeVisible();
     await expect(canvas.getByRole("radiogroup", { name: "App-Sprache" })).toBeVisible();
     await expect(await germanShell(canvas)).toHaveAttribute("aria-current", "page");
     await expect(canvas.getByRole("link", { name: "Platzhalter Beta" })).toBeVisible();
@@ -324,7 +328,7 @@ export const ChoosingALanguageChangesTheWholeApp: Story = {
     await userEvent.click(canvas.getByRole("link", { name: "Darstellung" }));
     await expectGermanAppearance(canvas);
 
-    await userEvent.click(canvas.getByRole("link", { name: "Sprache" }));
+    await userEvent.click(canvas.getByRole("link", { name: "Sprache und Region" }));
     await userEvent.click(await canvas.findByRole("radio", { name: "English" }));
     await expectLanguageView(canvas);
     await expect(document.documentElement.lang).toBe("en");
@@ -337,7 +341,9 @@ export const StartsInTheStoredLanguage: Story = {
   parameters: { storedLanguage: "de" },
   play: async ({ canvas }) => {
     await expect(startLanguage).toBe("de");
-    await expect(await canvas.findByRole("heading", { name: "Sprache", level: 1 })).toBeVisible();
+    await expect(
+      await canvas.findByRole("heading", { name: "Sprache und Region", level: 1 }),
+    ).toBeVisible();
     await expect(await canvas.findByRole("radio", { name: "Deutsch" })).toBeChecked();
     await expect(canvas.queryByRole("link", { name: "Settings" })).toBeNull();
   },
@@ -383,7 +389,9 @@ export const AnUnknownStoredLanguageBehavesLikeSystem: Story = {
 
     systemLanguages = ["de-DE", "en"];
     window.dispatchEvent(new Event("languagechange"));
-    await expect(await canvas.findByRole("heading", { name: "Sprache", level: 1 })).toBeVisible();
+    await expect(
+      await canvas.findByRole("heading", { name: "Sprache und Region", level: 1 }),
+    ).toBeVisible();
     await expect(settingsStore.read(APP_LANGUAGE_SETTING)).toBe("fr");
   },
 };
