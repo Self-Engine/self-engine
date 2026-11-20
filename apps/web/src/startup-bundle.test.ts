@@ -394,6 +394,34 @@ describe("the web app's startup rules", () => {
     });
   });
 
+  describe("a module's Module Indicator", () => {
+    const indicator = "/repo/packages/placeholder-alpha/src/indicator/index.tsx";
+    const contribution = "/repo/packages/placeholder-alpha/src/index.ts";
+    const inspectIndicator = (
+      startup: Record<string, unknown>,
+      onDemand: Record<string, unknown>,
+    ) =>
+      inspectStartup(
+        [
+          chunk("main.js", { isEntry: true, modules: startup }),
+          chunk("indicator.js", { modules: onDemand }),
+        ],
+        new Set(),
+        { ...STARTUP_RULES, maxBytes: 100 },
+        (id) => (id === indicator ? [contribution] : []),
+      ).problems;
+
+    it("is accepted in a chunk that the Shell loads after the first paint", () => {
+      expect(inspectIndicator({ [contribution]: {} }, { [indicator]: {} })).toEqual([]);
+    });
+
+    it("is rejected at startup, naming the code that imports it", () => {
+      expect(inspectIndicator({ [contribution]: {}, [indicator]: {} }, {})).toEqual([
+        `A module's Module Indicator entered the startup bundle, imported by ${contribution}: import it only through the indicator's load in the module's Shell Contribution, which the Shell calls after the first paint.`,
+      ]);
+    });
+  });
+
   it("reject the emoji data at startup and name the code that imports it", () => {
     expect(
       inspect(

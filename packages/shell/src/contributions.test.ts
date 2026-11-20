@@ -132,3 +132,15 @@ test("a contribution keeps data texts its input reads through a getter", () => {
   }
   expect(defineContribution(new WithTexts()).dataTexts).toBe(NO_DATA_TEXTS);
 });
+
+test("a Module Indicator is one entry of its contribution, which a panel can only join", () => {
+  const indicator = { load: async () => ({ default: () => null }) };
+  expect(defineContribution({ ...base, indicator }).indicator).toBe(indicator);
+  defineContribution({
+    ...base,
+    // @ts-expect-error A panel has no entry of its own beside the indicator.
+    panel: indicator.load,
+  });
+  // @ts-expect-error The indicator's own entry declares no panel yet.
+  defineContribution({ ...base, indicator: { ...indicator, panel: indicator.load } });
+});

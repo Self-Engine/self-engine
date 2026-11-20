@@ -34,6 +34,7 @@ export async function loadStoryApp() {
       ...module.views.map((view) => view.load()),
       module.groups?.(),
       module.editDrawer?.(),
+      module.indicator?.load(),
       ...(module.commands ?? []).map((command) => command.load()),
     ]),
   ]);

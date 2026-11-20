@@ -65,6 +65,14 @@ export const STARTUP_RULES = {
       instead: "import its Row Map only as a type in its Shell Contribution.",
     },
     {
+      // Every module keeps its Module Indicator's code in this folder: the Shell loads it in an
+      // idle moment after the first paint and shows the module's icon until then (D359).
+      name: "A module's Module Indicator",
+      path: "/src/indicator/",
+      instead:
+        "import it only through the indicator's load in the module's Shell Contribution, which the Shell calls after the first paint.",
+    },
+    {
       name: "Storage",
       path: "/packages/storage/src/core/",
       instead: "import storage types only in the renderer.",

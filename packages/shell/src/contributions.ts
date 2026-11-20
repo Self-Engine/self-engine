@@ -1,4 +1,5 @@
 import type { PersonCommand, ShellCommand } from "./commands.ts";
+import type { IndicatorForm } from "./module-indicator-form.ts";
 import type { MessageDescriptor } from "@lingui/core";
 import type { DataTexts } from "@self-engine/data-client/react";
 import type { IconProps } from "@self-engine/icons";
@@ -45,6 +46,27 @@ export interface EditDrawerProps {
   readonly isOpen: () => boolean;
 }
 
+/** What a Module Indicator is told. Its data it reads itself, through its module's hooks. */
+export interface ModuleIndicatorProps {
+  /** Which form to show, which the Shell derives from the Layout Step. */
+  readonly form: IndicatorForm;
+}
+
+/**
+ * The small element of a module at the end of the content header, on every page. Its code lives
+ * in the module's `src/indicator/` folder, which the startup check keeps out of the start: the
+ * Shell loads it in an idle moment after the first paint and shows the module's icon until then.
+ *
+ * One arm of a union: the arm with an Indicator Panel joins it, and only that arm declares
+ * `panel`, so a panel cannot exist without its indicator.
+ */
+interface IndicatorWithoutPanel {
+  readonly load: () => Promise<{ readonly default: ComponentType<ModuleIndicatorProps> }>;
+  readonly panel?: never;
+}
+
+export type ModuleIndicator = IndicatorWithoutPanel;
+
 interface ContributionMetadata {
   readonly id: string;
   readonly name: MessageDescriptor;
@@ -54,6 +76,8 @@ interface ContributionMetadata {
   readonly views: readonly [ShellView, ...ShellView[]];
   readonly groups?: () => Promise<{ readonly default: ComponentType }>;
   readonly editDrawer?: () => Promise<{ readonly default: ComponentType<EditDrawerProps> }>;
+  /** Shown while any module is active, in the order of the module list. */
+  readonly indicator?: ModuleIndicator;
   readonly sharedSearch?: readonly string[];
   /**
    * The names of the module's synced tables and the texts of its rules' Reasons, made by

@@ -1,0 +1,68 @@
+// The Module Indicator of `placeholder-alpha` in the whole app: on every page, on all four Layout
+// Steps, in its full form on the wide and medium step and its short form on the narrow step and
+// the phone (D357).
+
+import { placeholderAlphaAnswers } from "@self-engine/placeholder-alpha/testing";
+import { SHELL_REFERENCE_WIDTHS } from "@self-engine/shell/geometry";
+import type { Meta, StoryObj } from "@storybook/react-vite";
+import { expect, userEvent, within } from "storybook/test";
+import { AppAt, loadStoryApp } from "./story-app.tsx";
+
+const viewport = (name: string, width: number) => ({
+  name,
+  styles: { width: `${width}px`, height: "800px" },
+});
+const VIEWPORTS = {
+  wide: viewport("Wide", SHELL_REFERENCE_WIDTHS.wide),
+  medium: viewport("Medium", SHELL_REFERENCE_WIDTHS.medium),
+  narrow: viewport("Narrow", SHELL_REFERENCE_WIDTHS.narrow),
+  phone: viewport("Phone", 390),
+};
+
+const meta = {
+  title: "App/Placeholder Alpha indicator",
+  component: AppAt,
+  parameters: { layout: "fullscreen", viewport: { options: VIEWPORTS } },
+  loaders: [loadStoryApp],
+  args: { address: "/placeholder-beta/overview", access: placeholderAlphaAnswers() },
+} satisfies Meta<typeof AppAt>;
+export default meta;
+type Story = StoryObj<typeof meta>;
+
+type Canvas = ReturnType<typeof within>;
+
+/** The indicator's code loads in an idle moment, which a busy test browser can put off. */
+const ARRIVES = { timeout: 4000 };
+
+const contentHeader = (canvas: Canvas) =>
+  canvas.getByRole("heading", { level: 1 }).parentElement!.parentElement!;
+
+async function expectFullForm(canvas: Canvas) {
+  const button = await canvas.findByRole("button", { name: "Count up" }, ARRIVES);
+  await expect(contentHeader(canvas).contains(button)).toBe(true);
+  await userEvent.click(button);
+  await expect(within(contentHeader(canvas)).getByText("Counted 1")).toBeVisible();
+}
+
+async function expectShortForm(canvas: Canvas) {
+  const header = within(contentHeader(canvas));
+  await expect(await header.findByText("0", {}, ARRIVES)).toBeVisible();
+  await expect(header.queryByRole("button", { name: "Count up" })).toBeNull();
+}
+
+const atStep = (step: keyof typeof VIEWPORTS, address: string): Story => ({
+  globals: { viewport: { value: step, isRotated: false } },
+  args: { address },
+  play: async ({ canvas }) => {
+    await canvas.findByRole("heading", { level: 1 });
+    if (step === "wide" || step === "medium") await expectFullForm(canvas);
+    else await expectShortForm(canvas);
+  },
+});
+
+export const FullFormAtTheWideStep = atStep("wide", "/placeholder-beta/overview");
+export const FullFormAtTheMediumStep = atStep("medium", "/placeholder-beta/overview");
+export const ShortFormAtTheNarrowStep = atStep("narrow", "/placeholder-beta/overview");
+export const ShortFormOnThePhone = atStep("phone", "/placeholder-beta/overview");
+export const InItsOwnModule = atStep("wide", "/placeholder-alpha/overview");
+export const InTheSettings = atStep("wide", "/settings/appearance");

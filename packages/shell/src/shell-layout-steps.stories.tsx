@@ -90,12 +90,11 @@ export const OnlyTheContentBelowTheHeaderScrolls: Story = {
   },
 };
 
-export const HeaderShowsItsSlots: Story = {
+export const HeaderShowsTheChannelBadge: Story = {
   ...atViewport("wide"),
-  args: { channelBadge: <span>Nightly</span>, headerEnd: <button type="button">Slot</button> },
+  args: { channelBadge: <span>Nightly</span> },
   play: async ({ canvas }) => {
     await expect(canvas.getByText("Nightly")).toBeVisible();
-    await expect(canvas.getByRole("button", { name: "Slot" })).toBeVisible();
   },
 };
 

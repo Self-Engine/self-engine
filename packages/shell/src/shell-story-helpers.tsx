@@ -10,11 +10,14 @@ import { type DataAccess, NO_DATA_PROCESS } from "@self-engine/data-client/react
 import { ProjectsIcon, SettingsIcon, TimeIcon } from "@self-engine/icons";
 import { BrandMark } from "@self-engine/icons/brand-mark";
 import type { Meta, StoryObj } from "@storybook/react-vite";
+import { Button, Group, Text } from "@mantine/core";
 import { useEffect, useState } from "react";
 import { expect, fn, screen, spyOn, userEvent, waitFor, within } from "storybook/test";
 import {
   askLeaveGuards,
   type LeaveGuard,
+  type ModuleIndicator,
+  type ModuleIndicatorProps,
   Shell,
   SHELL_STANDARD_MODULE_SIDEBAR_WIDTH,
   SHELL_STANDARD_NAVBAR,
@@ -92,6 +95,35 @@ export const SETTINGS: ShellContribution = {
   color: "grape",
   views: [{ id: "overview", title: { id: "story-Settings", message: "Settings" }, load }],
 };
+
+/** Like `placeholder-alpha`'s: a counter and a button in the full form, the counter alone in the short one. */
+export function CountingIndicator({ form }: ModuleIndicatorProps) {
+  const [count, setCount] = useState(0);
+  if (form === "short") return <Text size="sm">{count}</Text>;
+  return (
+    <Group gap="xs" wrap="nowrap">
+      <Text size="sm">Counted {count}</Text>
+      <Button onClick={() => setCount(count + 1)} size="compact-sm" variant="subtle">
+        Count up
+      </Button>
+    </Group>
+  );
+}
+
+/** A new indicator each call: the Shell keeps a loaded indicator per `load`, as React.lazy does. */
+export const countingIndicator = (): ModuleIndicator => ({
+  load: async () => ({ default: CountingIndicator }),
+});
+
+/** Where a module's indicator sits: the Shell's place, drawn in the module's Color Set. */
+export const indicatorPlaceOf = (element: Element): HTMLElement => {
+  const place = element.closest<HTMLElement>("[data-color-set]");
+  if (place === null) throw new Error("the element is not in an indicator's place");
+  return place;
+};
+
+/** The indicator's code loads in an idle moment, which a busy test browser can put off. */
+export const INDICATOR_ARRIVES = { timeout: 4000 };
 
 /** One real window width per Layout Step, around Mantine's own breakpoints. */
 const viewport = (name: string, width: number) => ({

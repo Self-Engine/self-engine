@@ -17,7 +17,10 @@ export {
   type ShellView,
   type ViewPageProps,
   type EditDrawerProps,
+  type ModuleIndicator,
+  type ModuleIndicatorProps,
 } from "./contributions.ts";
+export type { IndicatorForm } from "./module-indicator-form.ts";
 
 export { auditCommands } from "./command-audit.ts";
 export {

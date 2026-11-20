@@ -436,10 +436,18 @@ msgctxt "Button that copies the version information"
 msgid "Copy"
 msgstr "Copy"
 
+#: packages/placeholder-alpha/src/indicator/index.tsx
+msgid "Count up"
+msgstr "Count up"
+
 #: packages/icons/src/directory/labels.ts
 msgctxt "Icon"
 msgid "Countdown"
 msgstr "Countdown"
+
+#: packages/placeholder-alpha/src/indicator/index.tsx
+msgid "Counted {count}"
+msgstr "Counted {count}"
 
 #: packages/settings-area/src/backup-rows.tsx
 msgid "Create backup now"

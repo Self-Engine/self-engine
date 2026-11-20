@@ -20,6 +20,8 @@ import {
   useEscapeExit,
 } from "./edit-drawer-exits.tsx";
 import { LazyContribution, lazyComponents } from "./lazy-contribution.tsx";
+import { indicatorForm, type IndicatorForm } from "./module-indicator-form.ts";
+import { ModuleIndicators } from "./module-indicators.tsx";
 import { useCloseOverlayOnPick, useViewSearch, useWriteViewSearch } from "./routing.tsx";
 import { ACTIVE_ENTRY_VARS } from "./navigation-style.ts";
 import type { CommandScope } from "./palette-entries.ts";
@@ -296,8 +298,8 @@ interface ShellFrameProps {
   readonly activeColor: ColorSetName | undefined;
   /** Sits in the top strip of the navigation, in the drawer at the narrow step, and in the content header while the Navbar holds the window buttons. None at phone width. */
   readonly logo?: ShellLogo;
-  /** The free end of the content header. */
-  readonly headerEnd?: ReactNode;
+  /** The modules whose Module Indicators end the content header, in the order of the module list. */
+  readonly indicatorModules?: readonly ShellContribution[];
   readonly channelBadge?: ReactNode;
   readonly navbar?: ShellNavbarState;
   readonly moduleSidebarWidth?: number;
@@ -449,7 +451,7 @@ type PassedOn<Name extends keyof ShellFrameProps> = {
 
 interface ContentHeaderProps extends PassedOn<
   | "pageTitle"
-  | "headerEnd"
+  | "indicatorModules"
   | "channelBadge"
   | "moduleSidebarCollapsed"
   | "onModuleSidebarCollapsedCommit"
@@ -458,6 +460,7 @@ interface ContentHeaderProps extends PassedOn<
   /** Set while the Navbar holds the window buttons, which is where the mark goes instead. */
   readonly logo: ShellLogo | undefined;
   readonly isPhone: boolean;
+  readonly indicatorForm: IndicatorForm;
   readonly navigationInDrawer: boolean;
   readonly drawerOpened: boolean;
   readonly onToggleDrawer: () => void;
@@ -465,13 +468,14 @@ interface ContentHeaderProps extends PassedOn<
 
 function ContentHeader({
   pageTitle,
-  headerEnd,
+  indicatorModules,
   channelBadge,
   moduleSidebarCollapsed,
   onModuleSidebarCollapsedCommit,
   startsAfterWindowButtons,
   logo,
   isPhone,
+  indicatorForm: form,
   navigationInDrawer,
   drawerOpened,
   onToggleDrawer,
@@ -515,7 +519,7 @@ function ContentHeader({
         </Title>
         {channelBadge && <Box style={NOT_WINDOW_DRAG_STYLE}>{channelBadge}</Box>}
       </Group>
-      {headerEnd && <Box style={NOT_WINDOW_DRAG_STYLE}>{headerEnd}</Box>}
+      {indicatorModules && <ModuleIndicators form={form} modules={indicatorModules} />}
     </Group>
   );
 }
@@ -649,7 +653,7 @@ function ShellFrame({
   pageTitle,
   activeColor,
   logo,
-  headerEnd,
+  indicatorModules,
   channelBadge,
   navbar = SHELL_STANDARD_NAVBAR,
   moduleSidebarWidth = SHELL_STANDARD_MODULE_SIDEBAR_WIDTH,
@@ -813,7 +817,8 @@ function ShellFrame({
               <ContentHeader
                 channelBadge={channelBadge}
                 drawerOpened={drawerOpened}
-                headerEnd={headerEnd}
+                indicatorForm={indicatorForm(step)}
+                indicatorModules={indicatorModules}
                 isPhone={isPhone}
                 logo={navbarHoldsWindowButtons ? logo : undefined}
                 moduleSidebarCollapsed={moduleSidebarCollapsed}
@@ -871,6 +876,7 @@ export interface ShellProps extends Omit<
   | "editDrawer"
   | "commandPalette"
   | "shortcuts"
+  | "indicatorModules"
 > {
   readonly contributions: readonly ShellContribution[];
   readonly settings: ShellContribution;
@@ -909,6 +915,7 @@ export function Shell({
         <ShellFrame
           {...props}
           entries={contributions.map(entryOf)}
+          indicatorModules={contributions}
           settingsEntry={entryOf(settings)}
           activeEntryId={activeModule?.id ?? ""}
           activeColor={activeModule?.color}

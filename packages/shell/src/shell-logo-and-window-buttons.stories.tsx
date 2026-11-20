@@ -12,6 +12,10 @@ import {
   LOGO_AND_WINDOW_BUTTONS,
   SCALING_LOGO,
   appRegionOf,
+  countingIndicator,
+  ENTRIES,
+  INDICATOR_ARRIVES,
+  indicatorPlaceOf,
   atSmallestFontScale,
   atViewport,
   brandPlace,
@@ -101,7 +105,7 @@ export const TheTopEdgeDragsTheWindowAndItsControlsStayClickable: Story = {
   ...atViewport("narrow"),
   args: {
     channelBadge: <span>Nightly</span>,
-    headerEnd: <button type="button">Search</button>,
+    contributions: [{ ...ENTRIES[0]!, indicator: countingIndicator() }, ...ENTRIES.slice(1)],
     reserveWindowButtons: true,
   },
   play: async ({ canvas }) => {
@@ -111,9 +115,8 @@ export const TheTopEdgeDragsTheWindowAndItsControlsStayClickable: Story = {
     await expect(appRegionOf(canvas.getByRole("button", { name: "Open navigation" }))).toBe(
       "no-drag",
     );
-    await expect(appRegionOf(canvas.getByRole("button", { name: "Search" }).parentElement!)).toBe(
-      "no-drag",
-    );
+    const indicator = await canvas.findByText("0", {}, INDICATOR_ARRIVES);
+    await expect(appRegionOf(indicatorPlaceOf(indicator))).toBe("no-drag");
     await expect(appRegionOf(canvas.getByText("Nightly").parentElement!)).toBe("no-drag");
     const topEdge = [...canvasRoot(canvas).querySelectorAll("*")].find(
       (element) =>
