@@ -7,6 +7,7 @@
 
 import "@mantine/dates/styles.css";
 import { useLingui } from "@lingui/react/macro";
+import { Group } from "@mantine/core";
 import { DateInput, type DateInputProps, TimePicker, type TimePickerProps } from "@mantine/dates";
 import {
   type CalendarDay,
@@ -20,7 +21,7 @@ import {
   type WallClockTime,
   wallClockTimeSchema,
 } from "@self-engine/time";
-import { useEffect, useId, useRef, useState } from "react";
+import { type ReactNode, useEffect, useId, useRef, useState } from "react";
 
 /** What a module may set on a date or time field; the helper sets everything else. */
 export type Shown =
@@ -46,6 +47,27 @@ export function timeOf(value: unknown): WallClockTime | null {
   return parsed.success ? parsed.data : null;
 }
 
+/**
+ * What stands beside an input box, such as a button, lined up with the box itself: Mantine's
+ * input container holds the box only, so the label, the description and the message above or
+ * below it, at any font scale, move nothing out of line.
+ */
+export interface Beside {
+  readonly beside?: ReactNode;
+}
+
+function besideOf(beside: ReactNode) {
+  if (beside === undefined) return {};
+  return {
+    inputContainer: (box: ReactNode) => (
+      <Group gap="sm" wrap="nowrap">
+        {box}
+        {beside}
+      </Group>
+    ),
+  };
+}
+
 /** A name of `time` for a day, as a label function of the picker, which hands on `YYYY-MM-DD`. */
 function labelling(label: (day: CalendarDay) => string) {
   return (text: string) => {
@@ -67,7 +89,8 @@ export type DayInputProps = {
   readonly firstDayOfWeek: FirstDayOfWeek;
   /** The day the calendar marks as today and opens on while the input is empty. */
   readonly today: CalendarDay;
-} & Pick<DateInputProps, Shown>;
+} & Beside &
+  Pick<DateInputProps, Shown>;
 
 /**
  * Mantine's date input with its calendar. Typed text in the language's numeric order, such as
@@ -83,6 +106,7 @@ export function DayInput({
   firstDayOfWeek,
   today,
   clearable = false,
+  beside,
   ...props
 }: DayInputProps) {
   const { i18n } = useLingui();
@@ -106,6 +130,7 @@ export function DayInput({
   return (
     <DateInput
       {...props}
+      {...besideOf(beside)}
       // A click on the day the input holds keeps it: "empty" is the clear button or no text.
       allowDeselect={false}
       clearable={clearable}
@@ -157,7 +182,8 @@ export type TimeInputProps = {
   readonly error: string | undefined;
   /** Where the description shows: above the inputs (Mantine's place) or below them. */
   readonly descriptionBelow?: boolean;
-} & Pick<TimePickerProps, Exclude<Shown, "placeholder">>;
+} & Beside &
+  Pick<TimePickerProps, Exclude<Shown, "placeholder">>;
 
 /**
  * Mantine's time picker, typed into its hours and minutes or picked from its lists, on the
@@ -170,6 +196,7 @@ export function TimeInput({
   onTime,
   onUnfinished,
   descriptionBelow = false,
+  beside,
   ...props
 }: TimeInputProps) {
   const { i18n, t } = useLingui();
@@ -219,6 +246,7 @@ export function TimeInput({
     >
       <TimePicker
         {...props}
+        {...besideOf(beside)}
         amPmInputLabel={t`AM or PM`}
         defaultValue={time ?? ""}
         descriptionProps={{ id: `${id}-description` }}

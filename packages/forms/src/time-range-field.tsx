@@ -253,6 +253,31 @@ export const TimeRangeField = typedMemo(function TimeRangeField<FormDraft>({
         <Group align="flex-start" gap="sm" ref={end.ref}>
           <TimeInput
             key={`end ${outside}`}
+            beside={
+              <>
+                {isNextDay(parts) && (
+                  <Badge title={t`The end lies on the next day.`} variant="light">
+                    +1
+                  </Badge>
+                )}
+                {!parts.endDayOpen && (
+                  <Button
+                    disabled={disabled}
+                    onClick={() =>
+                      apply(
+                        (now) => ({ ...now, endDayOpen: true, endDay: dayOfEnd(now) ?? today }),
+                        "endDay",
+                        true,
+                      )
+                    }
+                    size="compact-sm"
+                    variant="subtle"
+                  >
+                    {t`Add an end date`}
+                  </Button>
+                )}
+              </>
+            }
             description={endNote}
             descriptionBelow
             disabled={disabled}
@@ -263,45 +288,23 @@ export const TimeRangeField = typedMemo(function TimeRangeField<FormDraft>({
             onUnfinished={unfinishedAt("endTime")}
             time={parts.endTime}
           />
-          {isNextDay(parts) && (
-            <Badge mt={30} title={t`The end lies on the next day.`} variant="light">
-              +1
-            </Badge>
-          )}
-          {parts.endDayOpen ? (
-            <Group align="flex-start" gap={4}>
-              <DayInput
-                key={`end day ${outside}`}
-                {...dayProps(parts.endDay)}
-                error={endErrorAtDay ? end.error : undefined}
-                label={t`End date`}
-                onBlur={end.onBlur}
-                onDay={(day) => set("endDay", day)}
-                onUnfinished={unfinishedAt("endDay")}
-              />
-              <CloseButton
-                aria-label={t`Remove the end date`}
-                disabled={disabled}
-                mt={30}
-                onClick={() => apply((now) => ({ ...now, endDayOpen: false }), "endDay", true)}
-              />
-            </Group>
-          ) : (
-            <Button
-              disabled={disabled}
-              mt={28}
-              onClick={() =>
-                apply(
-                  (now) => ({ ...now, endDayOpen: true, endDay: dayOfEnd(now) ?? today }),
-                  "endDay",
-                  true,
-                )
+          {parts.endDayOpen && (
+            <DayInput
+              key={`end day ${outside}`}
+              {...dayProps(parts.endDay)}
+              beside={
+                <CloseButton
+                  aria-label={t`Remove the end date`}
+                  disabled={disabled}
+                  onClick={() => apply((now) => ({ ...now, endDayOpen: false }), "endDay", true)}
+                />
               }
-              size="compact-sm"
-              variant="subtle"
-            >
-              {t`Add an end date`}
-            </Button>
+              error={endErrorAtDay ? end.error : undefined}
+              label={t`End date`}
+              onBlur={end.onBlur}
+              onDay={(day) => set("endDay", day)}
+              onUnfinished={unfinishedAt("endDay")}
+            />
           )}
         </Group>
       </Group>
