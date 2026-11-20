@@ -32,10 +32,12 @@ travel with a Backup. Older versions need to preserve entries they do not unders
   leave them alone. If the first database load fails, the next report of the database repeats
   it, the move included: the Port adapter reads and reports the rows on the connection's first
   `ready` after a failed load, as after a refused call to a Data Process that later restarts
-  ready. A database that holds no Setting reports nothing, so its move waits for a later report
-  or the next start, and the page keeps the copy's values meanwhile. The local copy takes the database's loaded and reported values and writes
-  local changes to the copy after the database save succeeds. When the database reports a row
-  as removed, the adapter forgets it in the copy and the store falls back to the default.
+  ready. That report is sent even when nothing differs, so a database that holds no Setting
+  gets its move too. A first database load that overlaps a save or a report of the database is
+  repeated, so it never brings back an older value. The local copy takes the database's loaded
+  and reported values and writes local changes to the copy after the database save succeeds.
+  When the database reports a row as removed, the adapter forgets it in the copy, also when the
+  copy cannot store the other entries of that report, and the store falls back to the default.
   An unreadable value reads as the declared default. A failed local load starts from defaults
   for that scope. A failed database save leaves the change in memory and keeps the stored value. The
   store or local copy reports those failures through `onError`; a failed background refresh

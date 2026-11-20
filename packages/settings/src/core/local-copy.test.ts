@@ -180,6 +180,58 @@ it("reads the database again, and moves, once it reports after a failed first re
   expect(failures).toEqual(["load"]);
 });
 
+it("moves into a database that holds nothing once it reports after a failed first read", async () => {
+  const copy = createTestAdapter({ "test.accent": "green" });
+  const database = createTestAdapter({});
+  const repair = database.failLoads();
+  const { store } = storeOver(copy, database);
+  await store.load();
+  await settle();
+
+  repair();
+  // Nothing differs, so the report is empty; it still says that the database answers.
+  database.changeFromOutside([]);
+  await settle();
+
+  expect(database.stored.get("test.accent")).toBe("green");
+});
+
+it("ends on what the database reported while its first read answered late", async () => {
+  const copy = createTestAdapter({ "test.accent": "green" });
+  const database = createTestAdapter({ "test.accent": "green" });
+  const answer = database.holdLoads();
+  const { store } = storeOver(copy, database);
+  await store.load();
+
+  database.changeFromOutside([{ key: "test.accent", value: "grape" }]);
+  await settle();
+  // The read started before the change and answers with what the database held then.
+  answer();
+  await settle();
+
+  expect(store.read(accent)).toBe("grape");
+  expect(copy.stored.get("test.accent")).toBe("grape");
+});
+
+it("forgets a removed entry in the copy though the copy cannot store the others", async () => {
+  const copy = createTestAdapter({ "test.accent": "green", "test.language": "de" });
+  const database = createTestAdapter({ "test.accent": "green", "test.language": "de" });
+  const { store, failures } = storeOver(copy, database);
+  await store.load();
+  await settle();
+  copy.failSaves();
+
+  database.changeFromOutside([
+    { key: "test.accent", value: "grape" },
+    { key: "test.language", value: undefined },
+  ]);
+  await settle();
+
+  expect(Object.fromEntries(copy.stored)).toEqual({ "test.accent": "green" });
+  expect(store.read(accent)).toBe("grape");
+  expect(failures).toEqual(["save"]);
+});
+
 it("ends on the database's values when the copy cannot be read", async () => {
   const copy = createTestAdapter({ "test.accent": "green" });
   copy.failLoads();

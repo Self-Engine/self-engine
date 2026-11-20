@@ -21,6 +21,7 @@ import {
   createTestAdapter,
   describeAdapterContract,
   settle,
+  type TestAdapter,
 } from "@self-engine/settings/testing";
 import { z } from "zod";
 import { afterEach, expect, test } from "vite-plus/test";
@@ -409,18 +410,15 @@ async function startRefusing(): Promise<TestDataProcess> {
   return started;
 }
 
-test("after a refused first read, the window ends on the database's values once the Data Process is ready", async () => {
-  const dataProcess = startPort();
-  const observerConnection = connect(dataProcess);
-  const observer = createSettingsPortAdapter(observerConnection);
-  await observer.save([{ key: "appearance.accent", value: "grape" }]);
-  await untilReady(observerConnection);
-  const moved = nextReport(observer, ["i18n.language"]);
+/**
+ * A window behind the local copy whose Data Process refuses every call. Resolves once the copy's
+ * first read of the database failed, with the connection to hand a working Data Process to.
+ */
+async function windowAfterRefusedRead(copy: TestAdapter) {
   const connection: SettingsConnection = createDataConnection();
   cleanups.push(() => connection.disconnect());
   connection.connect((await startRefusing()).openPort());
   const refused = Promise.withResolvers<void>();
-  const copy = createTestAdapter({ "appearance.accent": "green", "i18n.language": "de" });
   const store = createSettingsStore({
     adapters: {
       synced: createLocalCopyAdapter({
@@ -438,6 +436,18 @@ test("after a refused first read, the window ends on the database's values once 
   });
   await store.load();
   await refused.promise;
+  return { connection, store };
+}
+
+test("after a refused first read, the window ends on the database's values once the Data Process is ready", async () => {
+  const dataProcess = startPort();
+  const observerConnection = connect(dataProcess);
+  const observer = createSettingsPortAdapter(observerConnection);
+  await observer.save([{ key: "appearance.accent", value: "grape" }]);
+  await untilReady(observerConnection);
+  const moved = nextReport(observer, ["i18n.language"]);
+  const copy = createTestAdapter({ "appearance.accent": "green", "i18n.language": "de" });
+  const { connection, store } = await windowAfterRefusedRead(copy);
 
   // The main process restarts the Data Process on a ready database, as after a restore.
   connection.connect((await dataProcess).openPort());
@@ -445,6 +455,21 @@ test("after a refused first read, the window ends on the database's values once 
   await untilStoreReads(store, accent, "grape");
   await expect(moved).resolves.toEqual([{ key: "i18n.language", value: "de" }]);
   expect(copy.stored.get("appearance.accent")).toBe("grape");
+});
+
+test("after a refused first read, the copy's entries move into a database that holds no Setting", async () => {
+  const dataProcess = startPort();
+  const observerConnection = connect(dataProcess);
+  const observer = createSettingsPortAdapter(observerConnection);
+  await untilReady(observerConnection);
+  const moved = nextReport(observer, ["i18n.language"]);
+  const copy = createTestAdapter({ "i18n.language": "de" });
+  const { connection } = await windowAfterRefusedRead(copy);
+
+  // Nothing differs from what the window knew, yet the read that now succeeds must be heard.
+  connection.connect((await dataProcess).openPort());
+
+  await expect(moved).resolves.toEqual([{ key: "i18n.language", value: "de" }]);
 });
 
 test("behind the local copy, two quick writes end on the last value, though a late Table Change answers late", async () => {

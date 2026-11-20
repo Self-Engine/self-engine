@@ -40,8 +40,9 @@ function byKey(rows: readonly SettingEntry[]): Map<string, JsonValue> {
  *   Data Process rejects the call (D117).
  * - While someone listens, a Table Change of a table `load` reads, every return of the
  *   connection to `ready` after it was lost, and its first `ready` after a failed `load`, make it
- *   read the rows again and report what differs
- *   from what it last knew. A removed row is reported as absent.
+ *   read the rows again and report what differs from what it last knew. A removed row is
+ *   reported as absent. The first read after a failed `load` is reported even when nothing
+ *   differs: the report is then empty.
  * - A read that overlaps a save of this adapter is dropped and repeated once no save is running,
  *   so a report is never older than the last finished save (late echoes).
  * - A read for a report that fails reports nothing; the next Table Change or reconnect reads again.
@@ -98,7 +99,11 @@ export function createSettingsPortAdapter(connection: SettingsPortConnection): S
           continue;
         }
         const changed = takeRows(rows);
-        if (changed.length > 0) listeners.emit(changed);
+        // After a failed `load` the first read is reported even when nothing differs, so a
+        // listener that waits for the database learns that it answers.
+        const recovered = loadFailed;
+        loadFailed = false;
+        if (changed.length > 0 || recovered) listeners.emit(changed);
       }
     } finally {
       reading = false;

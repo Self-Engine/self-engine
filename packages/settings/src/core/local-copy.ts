@@ -23,7 +23,7 @@ export interface LocalCopyOptions {
  *   the database: it reports its rows, which win where the copy differs, and moves every entry of
  *   the copy the database lacks into it. Calls that wait for the database simply stay unanswered,
  *   and the app runs on the copy. If that read fails, the next report of the database repeats it,
- *   the move included.
+ *   the move included; an empty report does too.
  * - `save` writes the database, then the copy. A failed save leaves the copy on the database's
  *   state (D117).
  * - Every report of the database is written into the copy, a removed row included, and then
@@ -37,8 +37,14 @@ export function createLocalCopyAdapter({
 }: LocalCopyOptions): SettingsAdapter {
   /** The copy's entries while the first read of the database failed: the next report retries. */
   let unread: readonly SettingEntry[] | undefined;
+  /**
+   * Counts every start and end of a write and every report of the database, so a read can tell
+   * that one overlapped it.
+   */
+  let changes = 0;
   const listeners = createListeners<readonly ReportedSettingEntry[]>(() =>
     database.subscribe((entries) => {
+      changes += 1;
       // A report after a failed first read says the database answers again: read all of it.
       const copied = unread;
       unread = undefined;
@@ -47,15 +53,25 @@ export function createLocalCopyAdapter({
   );
   /** Every write to the database, in order: the moves and the store's saves. */
   let writes: Promise<void> = Promise.resolve();
-  /** Counts every start and end of a write, so a read can tell that one overlapped it. */
-  let saveEvents = 0;
   let loaded = false;
 
   function report(operation: StorageOperation, thrown: unknown): void {
     reportFailure(onError, thrown, operation, "synced");
   }
 
-  /** Writes the copy; a failure leaves the app running on what the store holds. */
+  /** One write to the copy; a failure leaves the app running on what the store holds. */
+  async function attempt(write: () => Promise<void>): Promise<void> {
+    try {
+      await write();
+    } catch (thrown) {
+      report("save", thrown);
+    }
+  }
+
+  /**
+   * Writes the copy. The two steps fail apart: an entry the copy cannot store keeps no removed
+   * one in it, which the next start would move back into the database.
+   */
   async function writeCopy(entries: readonly ReportedSettingEntry[]): Promise<void> {
     const present: SettingEntry[] = [];
     const removed: string[] = [];
@@ -63,12 +79,8 @@ export function createLocalCopyAdapter({
       if (value === undefined) removed.push(key);
       else present.push({ key, value });
     }
-    try {
-      if (present.length > 0) await copy.save(present);
-      if (removed.length > 0) await copy.remove(removed);
-    } catch (thrown) {
-      report("save", thrown);
-    }
+    if (present.length > 0) await attempt(() => copy.save(present));
+    if (removed.length > 0) await attempt(() => copy.remove(removed));
   }
 
   /** Writes what the database holds into the copy, then tells the listeners. */
@@ -79,15 +91,16 @@ export function createLocalCopyAdapter({
   }
 
   /**
-   * The first read of the database. A read that overlaps a save is repeated, so it never reports
-   * a value older than the last save. It reports the rows, then moves every entry of the copy that
-   * the database lacks into it, one at a time, so one that fails keeps none of the others out.
+   * The first read of the database. A read that overlaps a save or a report of the database is
+   * repeated, so it never reports a value older than either. It reports the rows, then moves
+   * every entry of the copy that the database lacks into it, one at a time, so one that fails
+   * keeps none of the others out.
    */
   async function readDatabase(copied: readonly SettingEntry[]): Promise<void> {
     let rows: readonly SettingEntry[];
     for (;;) {
       await writes;
-      const before = saveEvents;
+      const before = changes;
       try {
         rows = await database.load();
       } catch (thrown) {
@@ -95,7 +108,7 @@ export function createLocalCopyAdapter({
         report("load", thrown);
         return;
       }
-      if (saveEvents === before) break;
+      if (changes === before) break;
     }
     const held = new Set(rows.map(({ key }) => key));
     // Queued before anything else can run, so a later save of the same entry comes after it.
@@ -111,14 +124,14 @@ export function createLocalCopyAdapter({
 
   /** Runs `write` after every write to the database before it. */
   function inOrder(write: () => Promise<void>): Promise<void> {
-    saveEvents += 1;
+    changes += 1;
     const run = writes.then(write);
     writes = run
       .catch(() => {
         // Safe to ignore here: the caller of `inOrder` learns of the failure.
       })
       .finally(() => {
-        saveEvents += 1;
+        changes += 1;
       });
     return run;
   }
