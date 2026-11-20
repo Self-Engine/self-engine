@@ -59,8 +59,12 @@ test("the public functions use only package values and require all arguments", (
     [
       "addDays",
       "addMonths",
+      "calendarDayFromText",
       "calendarDayOf",
       "calendarDaySchema",
+      "calendarDayText",
+      "calendarLabels",
+      "clockFormatOf",
       "deviceTimeZone",
       "instantAt",
       "instantRangeOf",
