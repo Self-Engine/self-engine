@@ -30,21 +30,30 @@ export interface SettingsAreaInputs {
    * opened, so the list may hold the settings area itself.
    */
   readonly commandOwners: () => readonly NamedCommandOwner[];
-  /** The source of "now": the zone list shows the offset of each zone that holds now. */
-  readonly clock: Clock;
+  /**
+   * Loads the source of "now", for the offset of each zone in the zone list. Called when the
+   * settings are first opened, so that the clock and the schemas it builds Instants with stay out
+   * of the start.
+   */
+  readonly loadClock: () => Promise<Clock>;
 }
 
 /**
  * The Shell Contribution `settings`, which the app hands to the Shell beside the modules. It has
  * no Commands and no main action, and its type says so.
  */
-export function createSettingsArea({ store, version, commandOwners, clock }: SettingsAreaInputs) {
+export function createSettingsArea({
+  store,
+  version,
+  commandOwners,
+  loadClock,
+}: SettingsAreaInputs) {
   // One page for every View (ADR 0016), remembered: the router loads a View again on every visit,
   // and a new component would throw away the state of the page and draw every row anew.
   let page: ReturnType<ShellView["load"]> | undefined;
   const load: ShellView["load"] = () =>
-    (page ??= import("./area.tsx").then(
-      (area) => ({
+    (page ??= Promise.all([import("./area.tsx"), loadClock()]).then(
+      ([area, clock]) => ({
         default: area.settingsPage({
           store,
           version: version(),

@@ -70,7 +70,7 @@ const inputs = () => ({
   store: newStore(),
   version: () => WEB,
   commandOwners: () => [],
-  clock,
+  loadClock: async () => clock,
 });
 
 test("a Setting that has to be served and that no row serves is reported", () => {
@@ -330,4 +330,19 @@ test.each([
   ["Saturday", ["week-start"]],
 ])("the rows of Language and region are found by %s", (query, ids) => {
   expect(foundBy(query, english)).toEqual(ids);
+});
+
+test("the clock loads when the settings are first opened, once, and not before", async () => {
+  let loads = 0;
+  const area = createSettingsArea({
+    ...inputs(),
+    loadClock: async () => {
+      loads += 1;
+      return clock;
+    },
+  });
+  expect(loads).toBe(0);
+  await area.views[0].load();
+  await area.views[0].load();
+  expect(loads).toBe(1);
 });
