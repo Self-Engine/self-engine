@@ -23,28 +23,42 @@ export interface ShellView {
   readonly load: () => Promise<{ readonly default: ComponentType<ViewPageProps> }>;
 }
 
-export interface EditDrawerProps {
-  readonly id: string;
+/**
+ * The ways out the Shell hands the content of a frame it owns, the Edit Drawer's and the
+ * Indicator Panel's alike, so a form built for one works in the other.
+ */
+export interface FrameExitProps {
   /** Asks first when `useUnsavedChanges` reports changes. */
   readonly onCancel: () => void;
   /**
    * Closes without asking, after a successful save or named Operation. A failed one calls
-   * neither. Called after the person left this entry, it closes nothing.
+   * neither. Called after the person left this opening, it closes nothing.
    */
   readonly onDone: () => void;
   /**
-   * The question of `onCancel` without the closing, for a named Operation that leaves the entry
+   * The question of `onCancel` without the closing, for a named Operation that leaves the content
    * and keeps it, such as "Archive": it asks when `useUnsavedChanges` reports changes. True when
    * nothing is unsaved or the person discards; then run the Operation and call `onDone`.
    */
   readonly confirmDiscard: () => Promise<boolean>;
   /**
-   * Whether the drawer still has this opening open, read when asked: false from the moment the
-   * person leaves it, also while the drawer slides out, and once another opening took its place.
-   * For an action that can outlive the drawer, such as one in a Notice.
+   * Whether the frame still has this opening open, read when asked: false from the moment the
+   * person leaves it, also while the frame slides out, and once another opening took its place.
+   * For an action that can outlive the frame, such as one in a Notice.
    */
   readonly isOpen: () => boolean;
 }
+
+/** What the content of an Edit Drawer is told: the ways out, and the entry it edits. */
+export interface EditDrawerProps extends FrameExitProps {
+  readonly id: string;
+}
+
+/**
+ * What the content of an Indicator Panel is told: what an Edit Drawer's content is told, without
+ * an entry. Which part it shows is its module's own state.
+ */
+export type IndicatorPanelProps = FrameExitProps;
 
 /** What a Module Indicator is told. Its data it reads itself, through its module's hooks. */
 export interface ModuleIndicatorProps {
@@ -59,22 +73,11 @@ export interface ModuleIndicatorWithPanelProps extends ModuleIndicatorProps {
    * indicator does. Stable, so an indicator may hand it on without redrawing.
    */
   readonly togglePanel: () => void;
-}
-
-/** What the content of an Indicator Panel is told: an Edit Drawer's content, without an entry. */
-export interface IndicatorPanelProps {
-  /** Closes the panel. Called after the person left this opening, it closes nothing. */
-  readonly onCancel: () => void;
   /**
-   * Closes the panel, after a successful save. Called after the person left this opening, it
-   * closes nothing.
+   * Whether the module's panel is open, for the control that opens it to say so, such as with
+   * `aria-expanded`. Changes only when this panel opens or closes.
    */
-  readonly onDone: () => void;
-  /**
-   * Whether this opening is still the open one, read when asked: false from the moment the person
-   * leaves it, also while the frame fades out, and once another opening took its place.
-   */
-  readonly isOpen: () => boolean;
+  readonly panelOpen: boolean;
 }
 
 /**

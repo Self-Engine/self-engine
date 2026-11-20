@@ -11,7 +11,7 @@ import type {
 } from "./contributions.ts";
 import { useAfterFirstIdle } from "./idle.ts";
 import { IndicatorPanelFrame } from "./indicator-panel-frame.tsx";
-import { useIndicatorPanels } from "./indicator-panels.tsx";
+import { useIndicatorPanels, useOpeningOf } from "./indicator-panels.tsx";
 import { LazyContribution, lazyComponents } from "./lazy-contribution.tsx";
 import type { IndicatorForm } from "./module-indicator-form.ts";
 
@@ -87,6 +87,8 @@ function IndicatorPlace({ module, indicator, form, codeWanted, panelAsSheet }: P
   const { i18n } = useLingui();
   const panels = useIndicatorPanels();
   const togglePanel = useCallback(() => panels.toggle(module.id), [panels, module.id]);
+  // Draws this place again when its own panel opens or closes, never on another one's.
+  const panelOpen = useOpeningOf(module.id) !== undefined;
   const [placeNode, setPlaceNode] = useState<HTMLDivElement | null>(null);
   const Icon = module.icon;
   const icon = (
@@ -109,7 +111,7 @@ function IndicatorPlace({ module, indicator, form, codeWanted, panelAsSheet }: P
         components={loadedIndicatorsWithPanel}
         fallback={icon}
         load={indicator.load}
-        props={{ form, togglePanel }}
+        props={{ form, togglePanel, panelOpen }}
         renderFailure={failure}
       />
     );

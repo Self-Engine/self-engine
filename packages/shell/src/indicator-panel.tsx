@@ -4,9 +4,9 @@
 
 import { useLingui } from "@lingui/react/macro";
 import { Box, Drawer, Popover, rem } from "@mantine/core";
-import { useClickOutside, useMergedRef } from "@mantine/hooks";
+import { useClickOutside, useMergedRef, useWindowEvent } from "@mantine/hooks";
 import { LoadingState, NOT_WINDOW_DRAG_STYLE } from "@self-engine/ui";
-import { type CSSProperties, useEffect, useState } from "react";
+import { type CSSProperties, useCallback, useEffect, useRef, useState } from "react";
 import { useCommandPaletteOpen } from "./command-palette-state.tsx";
 import type {
   IndicatorPanelProps,
@@ -17,6 +17,8 @@ import { useEscapeExit } from "./edit-drawer-exits.tsx";
 import { whenIdle } from "./idle.ts";
 import { useIndicatorPanels, useOpeningOf } from "./indicator-panels.tsx";
 import { LazyContribution, lazyComponents } from "./lazy-contribution.tsx";
+import { type LeaveGuard, useShellRouting } from "./routing.tsx";
+import { UnsavedChangesContext, useDiscardQuestion } from "./unsaved-changes.tsx";
 
 /** The popover's width on the wide, medium and narrow step, in unscaled pixels. */
 export const INDICATOR_PANEL_WIDTH = 320;
@@ -75,10 +77,41 @@ function usePanelPreload({ load, panel }: IndicatorPanelFrameProps["indicator"])
 }
 
 /**
+ * The question before the content's unsaved changes are lost, for every way out but "done", and
+ * for a change of page. "Keep editing" returns the focus to where it was in the panel: a click on
+ * the indicator or outside may have taken it out before the question opened.
+ */
+function usePanelQuestion(moduleId: string, opened: boolean, frameOf: () => HTMLElement | null) {
+  const panels = useIndicatorPanels();
+  const lastFocusInside = useRef<HTMLElement | null>(null);
+  useWindowEvent("focusin", (event) => {
+    if (event.target instanceof HTMLElement && frameOf()?.contains(event.target)) {
+      lastFocusInside.current = event.target;
+    }
+  });
+  const question = useDiscardQuestion((focused) => {
+    if (focused instanceof HTMLElement && frameOf()?.contains(focused)) return focused;
+    return lastFocusInside.current?.isConnected ? lastFocusInside.current : frameOf();
+  });
+  const { confirmDiscard } = question;
+  useEffect(
+    () => panels.askBeforeLeaving(moduleId, confirmDiscard),
+    [panels, moduleId, confirmDiscard],
+  );
+  // A change of the search on the same page, such as a filter or the Edit Drawer, keeps the panel.
+  const guard = useCallback<LeaveGuard>(
+    ({ current, next }) => current.pathname === next.pathname || confirmDiscard(),
+    [confirmDiscard],
+  );
+  useShellRouting().useLeaveGuard(guard, opened);
+  return question;
+}
+
+/**
  * The frame the Shell gives a module's Indicator Panel: a popover below the place, or a sheet
  * from below on the phone. The focus moves in on opening and back on closing; Escape, a click
- * outside and a second click on the indicator close it. Only this frame draws again when the
- * panel opens or closes, never the indicator beside it.
+ * outside and a second click on the indicator close it, asking first when the content reports
+ * unsaved changes.
  */
 export default function IndicatorPanelFrame({
   module,
@@ -95,37 +128,46 @@ export default function IndicatorPanelFrame({
   const [shown, setShown] = useState(openingNow);
   if (openingNow !== undefined && openingNow !== shown) setShown(openingNow);
   const opened = openingNow !== undefined;
-  // The Command Palette is a modal that listens on the window as well: while it is open, Esc and
-  // a click are its.
-  const popoverEscape = useEscapeExit(opened && !sheet && !paletteOpen, panels.leave);
-  const sheetFrame = useEscapeExit(opened && sheet && !paletteOpen, panels.leave);
+  const [sheetNode, setSheetNode] = useState<HTMLDivElement | null>(null);
   const [dropdown, setDropdown] = useState<HTMLDivElement | null>(null);
+  const question = usePanelQuestion(module.id, opened, () => (sheet ? sheetNode : dropdown));
+  const leave = () => void panels.leave();
+  // The Command Palette and the question are modals that listen on the window as well: while one
+  // is open, Esc and a click are theirs.
+  const listening = opened && !paletteOpen && !question.questionOpen;
+  const popoverEscape = useEscapeExit(listening && !sheet, leave);
+  const sheetFrame = useEscapeExit(listening && sheet, leave);
+  // Stable refs: Mantine's focus trap moves the focus into the panel each time its ref changes.
   const dropdownRef = useMergedRef(popoverEscape, setDropdown);
-  // A click on the place is the indicator's own: a second click on it closes through its toggle.
+  const sheetRef = useMergedRef(sheetFrame, setSheetNode);
+  // A click on the place is the indicator's own: a second click on it leaves through its toggle.
   useClickOutside(
     () => {
-      if (opened && !sheet && !paletteOpen) panels.leave();
+      if (listening && !sheet) leave();
     },
     null,
     [place, dropdown],
   );
   const name = i18n._(module.name);
   const content = shown !== undefined && (
-    <LazyContribution
-      key={shown}
-      components={loadedPanels}
-      fallback={<LoadingState />}
-      load={indicator.panel}
-      props={{
-        // Bound to the opening the content was mounted for: a call that comes after the person
-        // left it closes nothing that is open now.
-        onCancel: () => {
-          if (panels.isOpen(shown)) panels.leave();
-        },
-        onDone: () => panels.finish(shown),
-        isOpen: () => panels.isOpen(shown),
-      }}
-    />
+    <UnsavedChangesContext value={question.register}>
+      <LazyContribution
+        key={shown}
+        components={loadedPanels}
+        fallback={<LoadingState />}
+        load={indicator.panel}
+        props={{
+          // Bound to the opening the content was mounted for: a call that comes after the
+          // person left it closes nothing that is open now.
+          onCancel: () => {
+            if (panels.isOpen(shown)) leave();
+          },
+          onDone: () => panels.finish(shown),
+          confirmDiscard: question.confirmDiscard,
+          isOpen: () => panels.isOpen(shown),
+        }}
+      />
+    </UnsavedChangesContext>
   );
   return (
     <>
@@ -159,10 +201,10 @@ export default function IndicatorPanelFrame({
         closeButtonProps={{ "aria-label": t`Close panel` }}
         closeOnEscape={false}
         data-color-set={module.color}
-        onClose={panels.leave}
+        onClose={leave}
         opened={opened && sheet}
         position="bottom"
-        ref={sheetFrame}
+        ref={sheetRef}
         size="auto"
         styles={SHEET_STYLES}
         title={name}

@@ -503,7 +503,7 @@ function CheckOutsideADrawer() {
   return null;
 }
 
-export const OutsideAnEditDrawerTheHookThrows: Story = {
+export const OutsideAnEditDrawerOrAPanelTheHookThrows: Story = {
   beforeEach: () => {
     const reported = spyOn(console, "error").mockImplementation(() => undefined);
     return () => reported.mockRestore();
@@ -515,7 +515,9 @@ export const OutsideAnEditDrawerTheHookThrows: Story = {
   ),
   play: async ({ canvas }) => {
     await expect(
-      await canvas.findByText("useUnsavedChanges only works inside an edit drawer"),
+      await canvas.findByText(
+        "useUnsavedChanges only works inside an Edit Drawer or an Indicator Panel",
+      ),
     ).toBeVisible();
   },
 };

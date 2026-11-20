@@ -13,12 +13,8 @@ import {
 } from "./command-palette-state.tsx";
 import { viewPath, type EditDrawerProps } from "./contributions.ts";
 import { EditDrawerTitleContext } from "./edit-drawer-title.ts";
-import {
-  selectEditId,
-  UnsavedChangesContext,
-  useEditDrawerExits,
-  useEscapeExit,
-} from "./edit-drawer-exits.tsx";
+import { selectEditId, useEditDrawerExits, useEscapeExit } from "./edit-drawer-exits.tsx";
+import { UnsavedChangesContext } from "./unsaved-changes.tsx";
 import { LazyContribution, lazyComponents } from "./lazy-contribution.tsx";
 import { indicatorForm, type IndicatorForm } from "./module-indicator-form.ts";
 import { IndicatorPanelsProvider } from "./indicator-panels.tsx";
@@ -915,7 +911,10 @@ export function Shell({
   return (
     <StartOnceProvider data={data}>
       <CommandPaletteProvider>
-        <IndicatorPanelsProvider page={`${activeModule?.id ?? ""}/${activeView?.id ?? ""}`}>
+        <IndicatorPanelsProvider
+          modules={contributions}
+          page={`${activeModule?.id ?? ""}/${activeView?.id ?? ""}`}
+        >
           <ShellFrame
             {...props}
             entries={contributions.map(entryOf)}
