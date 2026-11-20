@@ -77,6 +77,23 @@ function usePanelPreload({ load, panel }: IndicatorPanelFrameProps["indicator"])
 }
 
 /**
+ * Whether a press happened inside the panel, also in a layer one of its fields draws in a portal,
+ * such as the calendar of a date field or the list of a Select: such a layer is outside the
+ * panel's DOM, but its events pass through the panel's React tree. React hears a press before
+ * the document does, so the check of a click outside finds it marked.
+ */
+function usePressInside() {
+  const lastInside = useRef<Event | null>(null);
+  const mark = (event: { readonly nativeEvent: Event }) => {
+    lastInside.current = event.nativeEvent;
+  };
+  return {
+    handlers: { onMouseDownCapture: mark, onTouchStartCapture: mark },
+    wasInside: (event: Event) => event === lastInside.current,
+  };
+}
+
+/**
  * The question before the content's unsaved changes are lost, for every way out but "done", and
  * for a change of page. "Keep editing" returns the focus to where it was in the panel: a click on
  * the indicator or outside may have taken it out before the question opened.
@@ -148,10 +165,11 @@ export default function IndicatorPanelFrame({
   // Stable refs: Mantine's focus trap moves the focus into the panel each time its ref changes.
   const dropdownRef = useMergedRef(popoverEscape, setDropdown);
   const sheetRef = useMergedRef(sheetFrame, setSheetNode);
+  const pressInside = usePressInside();
   // A click on the place is the indicator's own: a second click on it leaves through its toggle.
   useClickOutside(
-    () => {
-      if (listening && !sheet) leave();
+    (event) => {
+      if (listening && !sheet && !pressInside.wasInside(event)) leave();
     },
     null,
     [place, dropdown],
@@ -201,6 +219,7 @@ export default function IndicatorPanelFrame({
           role="dialog"
           style={DROPDOWN_STYLE}
           tabIndex={-1}
+          {...pressInside.handlers}
         >
           {!sheet && content}
         </Popover.Dropdown>
