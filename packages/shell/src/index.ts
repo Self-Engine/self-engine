@@ -17,14 +17,16 @@ export {
   type ShellView,
   type ViewPageProps,
   type EditDrawerProps,
-  type ModuleIndicator,
-  type IndicatorWithPanel,
-  type OpenIndicatorPanel,
-  type FrameExitProps,
-  type ModuleIndicatorProps,
-  type ModuleIndicatorWithPanelProps,
-  type IndicatorPanelProps,
 } from "./contributions.ts";
+export type {
+  FrameExitProps,
+  IndicatorPanelProps,
+  IndicatorWithPanel,
+  ModuleIndicator,
+  ModuleIndicatorProps,
+  ModuleIndicatorWithPanelProps,
+  OpenIndicatorPanel,
+} from "./module-indicator.ts";
 export type { IndicatorForm } from "./module-indicator-form.ts";
 
 export { auditCommands } from "./command-audit.ts";

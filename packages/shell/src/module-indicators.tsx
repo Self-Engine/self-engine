@@ -3,12 +3,12 @@ import { ActionIcon, Box, Group, rem, Tooltip } from "@mantine/core";
 import { colorSetColor, roleColor } from "@self-engine/theme";
 import { NOT_WINDOW_DRAG_STYLE } from "@self-engine/ui";
 import { type CSSProperties, useCallback, useState } from "react";
+import type { ShellContribution } from "./contributions.ts";
 import type {
   ModuleIndicator,
   ModuleIndicatorProps,
   ModuleIndicatorWithPanelProps,
-  ShellContribution,
-} from "./contributions.ts";
+} from "./module-indicator.ts";
 import { useAfterFirstIdle } from "./idle.ts";
 import { IndicatorPanelFrame } from "./indicator-panel-frame.tsx";
 import { useIndicatorPanels, useOpeningOf } from "./indicator-panels.tsx";

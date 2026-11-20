@@ -1,7 +1,7 @@
 import type { MessageDescriptor } from "@lingui/core";
 import type { DataAccess } from "@self-engine/data-client/react";
 import type { input as SchemaInput, output as SchemaOutput, ZodType } from "zod";
-import type { OpenIndicatorPanel } from "./contributions.ts";
+import type { OpenIndicatorPanel } from "./module-indicator.ts";
 import type { WriteViewSearch } from "./routing.tsx";
 
 /** Decides who can start a Command, see ADR 0015. */

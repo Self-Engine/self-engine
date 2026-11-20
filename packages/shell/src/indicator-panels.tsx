@@ -7,7 +7,8 @@ import {
   useState,
   useSyncExternalStore,
 } from "react";
-import type { OpenIndicatorPanel, ShellContribution } from "./contributions.ts";
+import type { ShellContribution } from "./contributions.ts";
+import type { OpenIndicatorPanel } from "./module-indicator.ts";
 
 /** One opening of a module's Indicator Panel. Each opening counts, also one of the same panel. */
 export interface PanelOpening {

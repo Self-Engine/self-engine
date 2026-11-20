@@ -1,12 +1,14 @@
 import { type DataTexts, NO_DATA_TEXTS } from "@self-engine/data-client/react";
 import { describe, expect, test } from "vite-plus/test";
 import { z } from "zod";
+import type {
+  IndicatorPanelProps,
+  ModuleIndicator,
+  ModuleIndicatorWithPanelProps,
+  OpenIndicatorPanel,
+} from "./module-indicator.ts";
 import {
   defineContribution,
-  type IndicatorPanelProps,
-  type ModuleIndicator,
-  type ModuleIndicatorWithPanelProps,
-  type OpenIndicatorPanel,
   type ShellContribution,
   validateContributions,
 } from "./contributions.ts";

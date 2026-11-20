@@ -8,11 +8,8 @@ import { useClickOutside, useMergedRef, useWindowEvent } from "@mantine/hooks";
 import { LoadingState, NOT_WINDOW_DRAG_STYLE } from "@self-engine/ui";
 import { type CSSProperties, useCallback, useEffect, useRef, useState } from "react";
 import { useCommandPaletteOpen } from "./command-palette-state.tsx";
-import type {
-  IndicatorPanelProps,
-  IndicatorWithPanel,
-  ShellContribution,
-} from "./contributions.ts";
+import type { ShellContribution } from "./contributions.ts";
+import type { IndicatorPanelProps, IndicatorWithPanel } from "./module-indicator.ts";
 import { useEscapeExit } from "./edit-drawer-exits.tsx";
 import { whenIdle } from "./idle.ts";
 import { useIndicatorPanels, useOpeningOf } from "./indicator-panels.tsx";
