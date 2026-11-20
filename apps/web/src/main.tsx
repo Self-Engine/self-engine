@@ -2,9 +2,10 @@ import "@mantine/core/styles.css";
 import "@self-engine/theme/fonts.css";
 
 import { DataProvider } from "@self-engine/data-client/react";
-import { activateLanguage, createI18n } from "@self-engine/i18n";
+import { activateLanguage, createI18n, regionForAppLanguage } from "@self-engine/i18n";
 import { appLanguageOf } from "@self-engine/settings-area/settings";
-import { deviceTimeZone } from "@self-engine/time/settings";
+import { deviceTimeZone } from "@self-engine/time/device-time-zone";
+import { TimeSettingsProvider } from "@self-engine/time/react";
 import { FeedbackHost } from "@self-engine/ui";
 import { RouterProvider } from "@tanstack/react-router";
 import { StrictMode } from "react";
@@ -16,7 +17,7 @@ import { DeviceZoneOffer } from "./device-zone-offer.tsx";
 import { appModules } from "./modules.ts";
 import { appReasonTexts } from "./reason-texts.ts";
 import { router } from "./router.ts";
-import { settingsStore } from "./settings-store.ts";
+import { reportPageError, settingsStore } from "./settings-store.ts";
 
 const container = document.getElementById("root");
 if (container === null) throw new Error("index.html has no #root element");
@@ -40,17 +41,28 @@ const i18n = createI18n();
 // Cache has already painted the background.
 await activateLanguage(i18n, language);
 
+const deviceZone = deviceTimeZone();
+
 createRoot(container).render(
   <StrictMode>
     <AppLanguage i18n={i18n} initialLanguage={language} store={settingsStore}>
-      <AppearanceProvider>
-        <FeedbackHost>
-          <DeviceZoneOffer deviceZone={deviceTimeZone} store={settingsStore} />
-          <DataProvider access={dataAccess} reasonTexts={reasonTexts}>
-            <RouterProvider router={router} />
-          </DataProvider>
-        </FeedbackHost>
-      </AppearanceProvider>
+      {(activeLanguage) => (
+        <TimeSettingsProvider
+          store={settingsStore}
+          deviceZone={deviceZone}
+          region={regionForAppLanguage(activeLanguage)}
+          onError={reportPageError}
+        >
+          <AppearanceProvider>
+            <FeedbackHost>
+              <DeviceZoneOffer deviceZone={deviceTimeZone} store={settingsStore} />
+              <DataProvider access={dataAccess} reasonTexts={reasonTexts}>
+                <RouterProvider router={router} />
+              </DataProvider>
+            </FeedbackHost>
+          </AppearanceProvider>
+        </TimeSettingsProvider>
+      )}
     </AppLanguage>
   </StrictMode>,
 );
