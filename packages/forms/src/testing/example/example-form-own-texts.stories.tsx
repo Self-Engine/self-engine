@@ -67,6 +67,8 @@ export const ASchemaRuleIsReportedAtItsFieldAndEitherFieldCanFixIt: Story = {
           description: "Kitchen project.",
           icon: null,
           color: null,
+          day: null,
+          start: null,
         },
       },
     ]);
@@ -78,7 +80,14 @@ function MissingReasonForm() {
   const form = useOperationForm({
     entry: exampleContract.create,
     operation: useCreateExample(),
-    draft: { title: "Kitchen", description: "Kitchen", icon: null, color: null },
+    draft: {
+      title: "Kitchen",
+      description: "Kitchen",
+      icon: null,
+      color: null,
+      day: null,
+      start: null,
+    },
   });
   return (
     <Stack>

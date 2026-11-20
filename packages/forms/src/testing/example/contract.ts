@@ -4,6 +4,7 @@
 
 import { oc } from "@orpc/contract";
 import { refusal } from "@self-engine/db/schema";
+import { calendarDaySchema, wallClockTimeSchema } from "@self-engine/time";
 import { z } from "zod";
 
 /** The fields of an example entry, as its create Operation takes them. */
@@ -16,6 +17,10 @@ const exampleFields = {
   icon: z.string().nullable(),
   /** A Color Set name, or empty; a module's Contract checks it with `colorSetNameSchema`. */
   color: z.string().nullable(),
+  /** A Calendar Day, or empty. */
+  day: calendarDaySchema.nullable(),
+  /** A Wall-Clock Time, or empty. */
+  start: wallClockTimeSchema.nullable(),
 };
 
 /** A stored example entry. Its description may be empty: an edit may clear it. */
@@ -43,6 +48,8 @@ export const exampleContract = {
           description: exampleFields.description.nullable().optional(),
           icon: z.enum(["circle", "star"]).nullable().optional(),
           color: exampleFields.color.optional(),
+          day: exampleFields.day.optional(),
+          start: exampleFields.start.optional(),
         })
         .refine(({ icon, color }) => icon !== "star" || (color !== undefined && color !== null), {
           path: [exampleTiedFields[0][1]],

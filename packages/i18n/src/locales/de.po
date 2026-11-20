@@ -48,6 +48,11 @@ msgstr "{minimum, plural, other {Mindestens #.}}"
 msgid "{minimum, plural, other {More than #.}}"
 msgstr "{minimum, plural, other {Mehr als #.}}"
 
+#. A wall-clock time and its UTC offset
+#: packages/forms/src/time-range-field.tsx
+msgid "{time} ({utc})"
+msgstr "{time} ({utc})"
+
 #: packages/projects/src/picker/index.tsx
 msgid "{title} (archived)"
 msgstr "{title} (archiviert)"
@@ -89,6 +94,10 @@ msgstr "Aktive Projekte"
 msgid "Activity"
 msgstr "Aktivitäten"
 
+#: packages/forms/src/time-range-field.tsx
+msgid "Add an end date"
+msgstr "Enddatum hinzufügen"
+
 #: packages/placeholder-alpha/src/index.ts
 msgid "Add sample entry"
 msgstr "Beispieleintrag hinzufügen"
@@ -96,6 +105,10 @@ msgstr "Beispieleintrag hinzufügen"
 #: packages/placeholder-alpha/src/groups.tsx
 msgid "All clients"
 msgstr "Alle Kunden"
+
+#: packages/forms/src/date-inputs.tsx
+msgid "AM or PM"
+msgstr "AM oder PM"
 
 #: packages/placeholder-alpha/src/port.ts
 msgid "An entry with this name already exists."
@@ -486,6 +499,10 @@ msgctxt "View of the settings"
 msgid "Data"
 msgstr "Daten"
 
+#: packages/forms/src/time-range-field.tsx
+msgid "Date"
+msgstr "Datum"
+
 #: packages/ui/src/entry-pickers/emoji-tab.tsx
 msgid "Default skin tone"
 msgstr "Standard-Hautton"
@@ -544,6 +561,10 @@ msgctxt "Icon"
 msgid "Drop"
 msgstr "Tropfen"
 
+#: packages/forms/src/time-range-field.tsx
+msgid "Duration: {duration}"
+msgstr "Dauer: {duration}"
+
 #: packages/ui/src/entry-pickers/entry-icon-picker.tsx
 msgid "Emoji"
 msgstr "Emoji"
@@ -555,6 +576,15 @@ msgstr "Emoji-Vorschau"
 #: packages/ui/src/entry-pickers/emoji-tab.tsx
 msgid "Emojis"
 msgstr "Emojis"
+
+#: packages/forms/src/time-range-field.tsx
+msgctxt "end of a stretch of time"
+msgid "End"
+msgstr "Ende"
+
+#: packages/forms/src/time-range-field.tsx
+msgid "End date"
+msgstr "Enddatum"
 
 #: packages/forms/src/violation-texts.ts
 msgid "Enter a whole number."
@@ -833,6 +863,10 @@ msgstr "Megafon"
 msgctxt "Icon"
 msgid "Microphone"
 msgstr "Mikrofon"
+
+#: packages/forms/src/date-inputs.tsx
+msgid "Minutes"
+msgstr "Minuten"
 
 #: packages/shell/src/shell.tsx
 msgid "Module Sidebar"
@@ -1135,6 +1169,10 @@ msgstr "Region"
 msgid "Release"
 msgstr "Release"
 
+#: packages/forms/src/time-range-field.tsx
+msgid "Remove the end date"
+msgstr "Enddatum entfernen"
+
 #: packages/icons/src/directory/labels.ts
 msgctxt "Icon"
 msgid "Repeat"
@@ -1321,6 +1359,11 @@ msgctxt "Icon"
 msgid "Star"
 msgstr "Stern"
 
+#: packages/forms/src/time-range-field.tsx
+msgctxt "beginning of a stretch of time"
+msgid "Start"
+msgstr "Beginn"
+
 #: packages/icons/src/directory/labels.ts
 msgctxt "Icon"
 msgid "Stop"
@@ -1415,6 +1458,14 @@ msgstr "Die Beschreibung muss sich vom Titel unterscheiden."
 #: packages/ui/src/entry-pickers/entry-icon-picker.tsx
 msgid "The emojis could not be loaded."
 msgstr "Die Emojis konnten nicht geladen werden."
+
+#: packages/forms/src/time-range-field.tsx
+msgid "The end lies on the next day."
+msgstr "Das Ende liegt am nächsten Tag."
+
+#: packages/forms/src/testing/example/stretch.tsx
+msgid "The end must lie after the start."
+msgstr "Das Ende muss nach dem Beginn liegen."
 
 #: packages/placeholder-alpha/src/port.ts
 msgid "The entry could not come back: another entry has its name now."
@@ -1516,6 +1567,10 @@ msgstr "Dieses Feld ist erforderlich."
 #: packages/ui/src/query-state-block.tsx
 msgid "This part could not be loaded."
 msgstr "Dieser Bereich konnte nicht geladen werden."
+
+#: packages/forms/src/time-range-field.tsx
+msgid "This time does not exist on this day: the clocks skip it. Choose another."
+msgstr "Diese Uhrzeit gibt es an diesem Tag nicht: Die Uhren überspringen sie. Wähle eine andere."
 
 #: packages/forms/src/testing/example/port.ts
 msgid "This title is already in use."

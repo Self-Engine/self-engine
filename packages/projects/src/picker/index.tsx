@@ -9,7 +9,7 @@ import {
   type FieldTaking,
   type OperationForm,
   typedMemo,
-  useFieldBinding,
+  useFieldTaking,
 } from "@self-engine/forms";
 import { ProjectsIcon } from "@self-engine/icons";
 import { EntryMark } from "@self-engine/ui/entry-mark";
@@ -144,16 +144,16 @@ export const ProjectField = typedMemo(function ProjectField<FormDraft>({
   name,
   ...props
 }: ProjectFieldProps<FormDraft>) {
-  const field = useFieldBinding(form, name);
+  const field = useFieldTaking(form, name);
   return (
     <div ref={field.ref}>
       <ProjectPicker
         {...props}
         error={field.error}
         onBlur={field.onBlur}
+        onChange={field.onChange}
         // A draft holds a stored id as plain text (`Draft` of `forms`); the field takes it back as
         // the project id it came from, the one place the brand is restored without a parse.
-        onChange={field.onChange as (id: ProjectId | null) => void}
         value={field.value as ProjectId | null}
       />
     </div>

@@ -2,7 +2,7 @@ import type { AnyReasonText, DataTexts } from "@self-engine/data-client/react";
 import type { CountedName } from "@self-engine/i18n";
 import { createSettingsArea } from "@self-engine/settings-area";
 import { type ShellContribution, validateContributions } from "@self-engine/shell";
-import { systemClock } from "@self-engine/time/system-clock";
+import type { Clock } from "@self-engine/time";
 import { version } from "../package.json";
 import { versionInfo } from "./env.ts";
 import { settingsStore } from "./settings-store.ts";
@@ -40,9 +40,13 @@ export function defaultAddress(module: ShellContribution) {
   return `/${module.id}/${module.views[0].id}`;
 }
 
-/** Throws when two contributions claim an address or a synced table. */
+/**
+ * Throws when two contributions claim an address or a synced table. `clock` is the page's Clock,
+ * the one its `PageClockProvider` gets.
+ */
 export function createModuleList(
   modules: readonly [MountedContribution, ...MountedContribution[]],
+  clock: Clock,
 ): ModuleList {
   const settings = createSettingsArea({
     store: settingsStore,
@@ -50,7 +54,7 @@ export function createModuleList(
     version: () => versionInfo(window, navigator, version),
     // Every contribution, so that a new module's Shortcuts are listed by themselves.
     commandOwners: () => contributions,
-    clock: systemClock,
+    clock,
   });
   const contributions = [...modules, settings];
   validateContributions(contributions);

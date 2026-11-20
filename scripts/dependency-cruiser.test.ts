@@ -601,6 +601,64 @@ describe("the Settings entry of time", () => {
   });
 });
 
+describe("the React entry of time", () => {
+  const time: FixturePackage = {
+    dir: "packages/time",
+    dependencies: ["react"],
+    exports: { ".": "./src/index.ts", "./react": "./src/react/index.tsx" },
+    files: {
+      "src/index.ts": "export const nextTick = 1;\n",
+      "src/react/index.tsx": 'import "react";\nexport const useNow = 1;\n',
+    },
+  };
+  /** A package of the Data Process that imports `entry` of time. */
+  const storage = (entry: string) =>
+    declaring(
+      extraPackage("packages/storage", { "src/index.ts": `import "${entry}";\n` }),
+      "@self-engine/time",
+    );
+  const desktop = (file: string) =>
+    declaring(
+      app("desktop", { [file]: 'import "@self-engine/storage";\n' }),
+      "@self-engine/storage",
+    );
+  const run = (packages: FixturePackage[]) =>
+    cruise(packages, { allowedImports: { time: [], storage: ["time"] } });
+
+  it("fails when the Data Process reaches it through a package it loads", async () => {
+    const found = await run([
+      time,
+      storage("@self-engine/time/react"),
+      desktop("src/data-process.ts"),
+    ]);
+    expect(found).toContainEqual({
+      rule: "data-process-stays-off-the-page-clock",
+      from: "apps/desktop/src/data-process.ts",
+      to: "packages/time/src/react/index.tsx",
+    });
+    expect(new Set(ruleNames(found))).toEqual(new Set(["data-process-stays-off-the-page-clock"]));
+  });
+
+  it("passes the Data Process loading the main entry, and a test of the desktop app", async () => {
+    expect(await run([time, storage("@self-engine/time"), desktop("src/data-process.ts")])).toEqual(
+      [],
+    );
+    const tested = declaring(
+      app("desktop", { "src/page.test.ts": 'import "@self-engine/time/react";\n' }),
+      "@self-engine/time",
+    );
+    expect(await run([time, tested])).toEqual([]);
+  });
+
+  it("passes the page loading it", async () => {
+    const web = declaring(
+      app("web", { "src/main.tsx": 'import "@self-engine/time/react";\n' }),
+      "@self-engine/time",
+    );
+    expect(await run([time, web])).toEqual([]);
+  });
+});
+
 describe("the db core", () => {
   const db = (dependencies: string[], files: Record<string, string>): FixturePackage => ({
     dir: "packages/db",
@@ -1337,6 +1395,22 @@ describe("the system clock entry", () => {
     });
     expect(ruleNames(await cruise([ownImport], { allowedImports: { time: [] } }))).toEqual([
       "system-clock-only-in-apps",
+    ]);
+  });
+  it("rejects a second file of the page that loads it", async () => {
+    const web = declaring(
+      app("web", {
+        "src/page-clock.ts": 'import { systemClock } from "@self-engine/time/system-clock";',
+        "src/module-list.ts": 'import { systemClock } from "@self-engine/time/system-clock";',
+      }),
+      "@self-engine/time",
+    );
+    expect(await cruise([time, web], { allowedImports: { time: [] } })).toEqual([
+      {
+        rule: "page-clock-in-one-place",
+        from: "apps/web/src/module-list.ts",
+        to: "packages/time/src/system-clock.ts",
+      },
     ]);
   });
   it("allows app assembly and internal clock tests", async () => {

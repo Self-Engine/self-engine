@@ -5,22 +5,25 @@
 
 import { Button } from "@mantine/core";
 import { DataProvider } from "@self-engine/data-client/react";
+import { calendarDaySchema, wallClockTimeSchema } from "@self-engine/time";
 import { commitWhere } from "@self-engine/ui/story-render-counts";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useDeferredValue, useState } from "react";
 import { expect, screen, userEvent, waitFor, within } from "storybook/test";
 import {
+  CalendarDayField,
   ColorField,
   EditDrawerForm,
   IconField,
   LongTextField,
   TextField,
   useOperationForm,
+  WallClockTimeField,
 } from "../../index.ts";
 import { exampleTiedFields, exampleContract } from "./contract.ts";
 import { loadStoryShell, StoryDrawer } from "./drawer-story.tsx";
 import { fieldsDrawnDuring } from "./fields-drawn.ts";
-import { type ExampleEntry, exampleEditTexts } from "./example-form.tsx";
+import { EXAMPLE_TODAY, type ExampleEntry, exampleEditTexts } from "./example-form.tsx";
 import { useExampleEntries, useUpdateExample } from "./port.ts";
 import { CREATED, type ChangingPort, changingPort } from "./story-port.ts";
 
@@ -67,6 +70,14 @@ function EntryForm({ entry, deleted: gone, onCancel, onDelete }: EntryFormProps)
       <LongTextField form={form} label="Description" name="description" />
       <IconField form={form} label="Icon" name="icon" />
       <ColorField form={form} label="Color" name="color" />
+      <CalendarDayField
+        firstDayOfWeek="monday"
+        form={form}
+        label="Day"
+        name="day"
+        today={EXAMPLE_TODAY}
+      />
+      <WallClockTimeField form={form} label="Start" name="start" />
       {saved && <output>Saved</output>}
       {/* What the form was given, drawn in the same commit: the stories read when it changes. */}
       <span data-given-title={entry.title} hidden />
@@ -175,6 +186,47 @@ export const AnUntouchedFieldShowsTheNewValue: Story = {
     ).toBeChecked();
     await expect(save).toBeDisabled();
     await userEvent.type(title, "{Enter}");
+    await expect(loaded.port.calls).toEqual([]);
+  },
+};
+
+export const AnUntouchedDayAndTimeShowTheNewValue: Story = {
+  play: async ({ loaded }) => {
+    const { canvas, save } = await openForm();
+    loaded.port.change(
+      storedAs({
+        day: calendarDaySchema.parse("2026-11-05"),
+        start: wallClockTimeSchema.parse("14:30"),
+      }),
+    );
+    // Each picker is drawn anew with the value, so its inputs are found again.
+    await waitFor(() =>
+      expect(canvas.getByRole("textbox", { name: "Day" })).toHaveValue("11/05/2026"),
+    );
+    await waitFor(() =>
+      expect(canvas.getByRole("spinbutton", { name: "Start" })).toHaveValue("02"),
+    );
+    await expect(canvas.getByRole("spinbutton", { name: "Minutes" })).toHaveValue("30");
+    await expect(canvas.getByRole("textbox", { name: "AM or PM" })).toHaveValue("PM");
+    await expect(save).toBeDisabled();
+  },
+};
+
+export const AHalfTypedDayKeepsItsTextWhenTheEntryChanges: Story = {
+  play: async ({ loaded }) => {
+    const { canvas, save } = await openForm();
+    await userEvent.type(canvas.getByRole("textbox", { name: "Day" }), "11/5");
+    // Text that is no day yet is a change.
+    await expect(save).toBeEnabled();
+    loaded.port.change(
+      storedAs({ title: "Kitchen and hall", day: calendarDaySchema.parse("2026-12-24") }),
+    );
+    await waitFor(() =>
+      expect(canvas.getByRole("textbox", { name: "Title" })).toHaveValue("Kitchen and hall"),
+    );
+    await expect(canvas.getByRole("textbox", { name: "Day" })).toHaveValue("11/5");
+    await userEvent.click(save);
+    await expect(await canvas.findByText("Complete or clear this field.")).toBeVisible();
     await expect(loaded.port.calls).toEqual([]);
   },
 };

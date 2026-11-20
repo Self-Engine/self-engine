@@ -1,4 +1,5 @@
 import noTimeOutsideTime from "./rules/no-time-outside-time.ts";
+import noDomInTimeCore from "./rules/no-dom-in-time-core.ts";
 import noForeignRowMap from "./rules/no-foreign-row-map.ts";
 import { describe, expect, it } from "vite-plus/test";
 import plugin from "./index.ts";
@@ -17,6 +18,7 @@ describe("@self-engine/oxlint-plugin", () => {
   it("exports every rule under its name", () => {
     expect(plugin.rules).toEqual({
       "no-time-outside-time": noTimeOutsideTime,
+      "no-dom-in-time-core": noDomInTimeCore,
       "no-global-t-macro": noGlobalTMacro,
       "no-foreign-row-map": noForeignRowMap,
       "no-import-type-query": noImportTypeQuery,

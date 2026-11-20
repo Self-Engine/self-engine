@@ -8,6 +8,7 @@ import {
 } from "@self-engine/time/settings";
 import { expect, test } from "vite-plus/test";
 import { watchDeviceZone } from "./device-zone.tsx";
+import { watchVisibility } from "./page-visibility.ts";
 import { followDeviceZone, type ZoneOffer } from "./follow-device-zone.ts";
 
 const zone = (name: string): TimeZone => resolveTimeZone(name).timeZone;
@@ -50,7 +51,7 @@ async function openWindow(stored: Stored = {}, device = BANGKOK) {
   const switched: (readonly [string, TimeZone])[] = [];
   const stop = followDeviceZone({
     store,
-    device: watchDeviceZone(page, () => deviceZone),
+    device: watchDeviceZone(watchVisibility(page), () => deviceZone),
     showOffer: (offer) => {
       shown.push(offer);
       open.add(offer);

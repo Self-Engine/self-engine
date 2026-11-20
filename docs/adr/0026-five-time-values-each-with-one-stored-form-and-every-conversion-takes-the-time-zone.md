@@ -59,6 +59,12 @@ the app supplies the Time Zone.
      first moment of the first day up to, and excluding, the first moment of the day after the
      last. An Instant at midnight belongs to exactly one day.
    - `today` gives the calendar day of a _Clock_ in a zone.
+   - `resolveWallClockTime` gives the Instant a form uses for a day and wall-clock time: no
+     Instant for a skipped time, and for a repeated one the occurrence nearest the previous
+     value on an edit, else the earlier one unless it lies at or before a lower bound.
+     `moveToDay` moves an Instant to another day at the same wall-clock time, with its seconds,
+     and resolves a clock change on that day the same way, comparing the whole time with the
+     lower bound.
 5. **A _Time Zone_ is a name the runtime knows, and `resolveTimeZone` is the only way to the
    type.** It returns the name in its official spelling (`europe/berlin` becomes
    `Europe/Berlin`) and keeps an alias as given (`Asia/Calcutta` stays `Asia/Calcutta`). It throws
@@ -71,10 +77,36 @@ the app supplies the Time Zone.
 7. **`deviceTimeZone` is the only place the device's zone enters the program.** A device set to a
    bare offset instead of a zone name yields `UTC`.
 8. **An Instant is shown through a named display format**, with the language and the zone as
-   arguments and no free options. One format exists, `dateTime` (`13.11.2026, 13:30` in German);
-   12 or 24 hours follows the language. There is no format for a _Calendar Day_ yet. The list of
-   _Backups_ shows its Instants in the Time Zone supplied by the page's `useTimeZone` hook
-   (ADR 0036).
+   arguments and no free options; 12 or 24 hours follows the language. `formatInstant` knows
+   two: `dateTime` (`13.11.2026, 13:30` in German) and `time`, the time of day alone (`13:30`).
+   The list of _Backups_ shows its Instants in the Time Zone supplied by the page's
+   `useTimeZone` hook (ADR 0036). `repeatedTimeOffset` names the UTC offset of an Instant, as
+   `UTC+1`, when its zone shows its wall-clock minute twice that day, so a form can say which of
+   the two is meant; the Time Zone picker writes offsets the same way.
+9. **A _Calendar Day_ and a _Duration_ are shown through named formats** with the language as an
+   argument. `formatCalendarDay` knows eight:
+
+   | Format        | Shows                                             | English example              |
+   | ------------- | ------------------------------------------------- | ---------------------------- |
+   | `weekdayDate` | abbreviated weekday and date, no year (week View) | `Fri, Nov 13`                |
+   | `shortDate`   | numeric month and day, no year (week View)        | `11/13`                      |
+   | `fieldDate`   | what a date field shows and reads back            | `11/05/2026`                 |
+   | `monthYear`   | the heading of a month in a calendar              | `November 2026`              |
+   | `weekday`     | the head of a weekday column                      | `Thu`                        |
+   | `month`       | a month in a calendar's list of a year            | `Nov`                        |
+   | `year`        | a year                                            | `2026`                       |
+   | `fullDate`    | a day read out in full, for a screen reader       | `Thursday, November 5, 2026` |
+
+   `formatDuration` knows two: `hoursMinutes` rounds up to a whole minute for display, after any
+   sum, and `hoursMinutesSeconds` shows the running timer with seconds. Both show the full hours
+   when a duration exceeds 24 hours.
+
+10. **A date or time field reads what `time` gives it.** `calendarDayFromText` reads a typed
+    day in the order of day, month and year that the language's `fieldDate` shows, or as
+    `YYYY-MM-DD`, and gives `null` for text that is no whole, existing day; a two-digit year
+    lies in 2000–2099. `calendarLabels` gives a calendar picker its month, weekday and day names
+    from the formats above, and `clockFormatOf` whether a time picker counts 12 or 24 hours, as
+    `formatInstant` does. No date library supplies a name.
 
 ## Consequences
 

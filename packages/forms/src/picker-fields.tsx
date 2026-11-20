@@ -9,16 +9,11 @@ import {
   EntryIconPicker,
   type EntryIconPickerProps,
 } from "@self-engine/ui/entry-pickers";
-import { type FieldName, typedMemo, useFieldBinding } from "./field-binding.ts";
+import { type FieldTaking, typedMemo, useFieldTaking } from "./field-binding.ts";
 import type { OperationForm } from "./operation-form.ts";
 
 /** What a picker answers: a Color Set name, or `null` for "no color". */
 type ColorChoice = Parameters<EntryColorPickerProps["onChange"]>[0];
-
-/** The fields of a draft that may hold everything `Picked` answers, not only a part of it. */
-export type FieldTaking<FormDraft, Picked> = {
-  [Field in FieldName<FormDraft>]: [Picked] extends [FormDraft[Field]] ? Field : never;
-}[FieldName<FormDraft>];
 
 /** What the helper sets on a bound picker: the module leaves these out. */
 type Bound = "value" | "onChange" | "error";
@@ -41,13 +36,13 @@ export const IconField = typedMemo(function IconField<FormDraft>({
   name,
   ...props
 }: IconFieldProps<FormDraft>) {
-  const field = useFieldBinding(form, name);
+  const field = useFieldTaking(form, name);
   return (
     <div ref={field.ref}>
       <EntryIconPicker
         {...props}
         error={field.error}
-        onChange={field.onChange as (icon: string | null) => void}
+        onChange={field.onChange}
         value={field.value as string | null}
       />
     </div>
@@ -60,13 +55,13 @@ export const ColorField = typedMemo(function ColorField<FormDraft>({
   name,
   ...props
 }: ColorFieldProps<FormDraft>) {
-  const field = useFieldBinding(form, name);
+  const field = useFieldTaking(form, name);
   return (
     <div ref={field.ref}>
       <EntryColorPicker
         {...props}
         error={field.error}
-        onChange={field.onChange as (color: ColorChoice) => void}
+        onChange={field.onChange}
         value={field.value as string | null}
       />
     </div>

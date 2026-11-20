@@ -1,6 +1,14 @@
 // The form helper (D317–D325): every module builds its forms with it, and only this package
 // imports the form library. Nothing at startup imports it: a form loads with its Edit Drawer.
-export { type FieldBinding, type FieldName, typedMemo, useFieldBinding } from "./field-binding.ts";
+export {
+  type FieldBinding,
+  type FieldName,
+  type FieldTaking,
+  type TakingBinding,
+  typedMemo,
+  useFieldBinding,
+  useFieldTaking,
+} from "./field-binding.ts";
 export {
   type Draft,
   type InputOfEntry,
@@ -11,10 +19,15 @@ export {
 export {
   ColorField,
   type ColorFieldProps,
-  type FieldTaking,
   IconField,
   type IconFieldProps,
 } from "./picker-fields.tsx";
+export {
+  CalendarDayField,
+  type CalendarDayFieldProps,
+  WallClockTimeField,
+  type WallClockTimeFieldProps,
+} from "./date-fields.tsx";
 export {
   LongTextField,
   type LongTextFieldProps,
@@ -32,3 +45,4 @@ export {
 export { ClearanceAction, type ClearanceActionProps } from "./clearance-actions.tsx";
 
 export type { FormTexts } from "./check.ts";
+export { TimeRangeField, type TimeRangeFieldProps } from "./time-range-field.tsx";

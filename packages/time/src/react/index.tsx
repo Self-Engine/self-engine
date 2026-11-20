@@ -75,3 +75,6 @@ export function useFirstDayOfWeek(): FirstDayOfWeek {
   const { store, region } = useTimeSettings();
   return resolveWeekStart(useSetting(store, WEEK_START_SETTING), region);
 }
+
+export { PageClockProvider, type PageClockProviderProps, useNow, useToday } from "./page-clock.tsx";
+export type { PageVisibility } from "./ticker.ts";

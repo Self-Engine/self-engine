@@ -6,6 +6,9 @@ import type { z } from "zod";
 import { createModuleList } from "./module-list.ts";
 import { appModules } from "./modules.ts";
 import { appReasonTexts } from "./reason-texts.ts";
+import { fixedClock, requireInstant } from "@self-engine/time/testing";
+
+const clock = fixedClock(requireInstant("2026-11-20T10:00:00.000Z"));
 
 const referenced = {
   code: "referenced",
@@ -46,7 +49,7 @@ test("the texts a mounted module's data texts bring describe its Reasons", async
       reasonTexts: { billed: ({ details }) => `Billed on ${details.invoice}.` },
     }),
   };
-  const texts = appReasonTexts(createModuleList([projects, billing]));
+  const texts = appReasonTexts(createModuleList([projects, billing], clock));
   const i18n = createI18n();
   await activateLanguage(i18n, "en");
   expect(texts.describe({ ...referenced, code: "billed", details: { invoice: "R-7" } }, i18n)).toBe(

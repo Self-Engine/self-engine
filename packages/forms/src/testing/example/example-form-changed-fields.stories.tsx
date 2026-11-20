@@ -248,7 +248,7 @@ function CreateExample({ onCancel }: { readonly onCancel: () => void }) {
   const form = useOperationForm({
     entry: exampleContract.create,
     operation: useCreateExample(),
-    draft: { title: "", description: "", icon: null, color: null },
+    draft: { title: "", description: "", icon: null, color: null, day: null, start: null },
     onSuccess: () => setSaved(true),
   });
   return (
@@ -292,7 +292,14 @@ export const CreateAsksAndSendsEveryField: Story = {
     await expect(loaded.port.calls).toEqual([
       {
         entry: "create",
-        input: { title: "Kitchen", description: "Paint the walls.", icon: null, color: null },
+        input: {
+          title: "Kitchen",
+          description: "Paint the walls.",
+          icon: null,
+          color: null,
+          day: null,
+          start: null,
+        },
       },
     ]);
     await userEvent.click(canvas.getByRole("button", { name: "Cancel" }));

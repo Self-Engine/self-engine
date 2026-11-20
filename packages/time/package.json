@@ -20,8 +20,13 @@
     "zod": "catalog:"
   },
   "devDependencies": {
+    "@storybook/react-vite": "catalog:",
     "@types/react": "catalog:",
+    "@types/react-dom": "catalog:",
     "fast-check": "catalog:",
+    "happy-dom": "catalog:",
+    "react-dom": "catalog:",
+    "storybook": "catalog:",
     "vite-plus": "catalog:"
   }
 }
