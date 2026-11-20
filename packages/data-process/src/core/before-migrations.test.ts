@@ -3,6 +3,7 @@
 
 import { createMigrationRunner, type Migration } from "@self-engine/db";
 import { openDatabase } from "@self-engine/db/better-sqlite3";
+import { settingsMigrations } from "@self-engine/settings-rows";
 import { spacesMigrations } from "@self-engine/spaces";
 import { sql } from "kysely";
 import { afterEach, expect, test } from "vite-plus/test";
@@ -41,8 +42,8 @@ test("calls the hook before the pending migrations run", async () => {
 
 test("does not call the hook when no migration is pending", async () => {
   const database = openDatabase(":memory:");
-  // The migration of `spaces` runs at every start, so an earlier start ran it too.
-  await createMigrationRunner(database, [...spacesMigrations, time]).run();
+  // The migrations of `spaces` and `settings` run at every start, so an earlier start ran them too.
+  await createMigrationRunner(database, [...spacesMigrations, ...settingsMigrations, time]).run();
   let calls = 0;
 
   started.push(

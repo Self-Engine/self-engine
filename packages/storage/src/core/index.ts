@@ -11,6 +11,8 @@ export {
 export { createContext, type StorageContext, type ContextSources } from "./context.ts";
 // The id of a Space is `spaces`' own; modules take it from here for their row maps (D287).
 export { spaceIdSchema, type SpaceId } from "@self-engine/spaces";
+// A Query that reads a Setting names this table among its reads (D352).
+export { SETTINGS_TABLE } from "@self-engine/settings-rows";
 export { sharedEntry, sharedWrites } from "./shared-entry.ts";
 export type { SyncedTable } from "./convention.ts";
 export { protectionRule, type ProtectionRule, type RuleRow, type WrittenValues } from "./rules.ts";

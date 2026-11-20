@@ -17,6 +17,9 @@ function foreign(source: string, filename: string): boolean {
   // The frame, the shared schemas and the protocol export the generic RowMap type, not an
   // owning module’s table schemas.
   if (GENERIC_ROW_MAP.has(source)) return false;
+  // The Settings Port owns these rows. Their migration lives below Storage so other Ports
+  // can read a declared Setting through their context.
+  if (source === "@self-engine/settings-rows" && owner(filename) === "settings-data") return false;
   if (source.startsWith("@self-engine/")) {
     const name = source.split("/")[1];
     return name !== owner(filename);

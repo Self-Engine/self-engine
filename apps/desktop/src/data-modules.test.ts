@@ -22,7 +22,7 @@ test("registered app module namespaces match the mounted app contract", () => {
   );
 });
 
-test("the app mounts projects and no placeholder: its migrations and Queries are the only ones beside the protocol's (D315)", async () => {
+test("the app mounts Projects and Settings beside the protocol, without placeholders (D315)", async () => {
   const process = await startTestDataProcess({ modules });
   started.push(process);
   const client = createORPCClient<ContractRouterClient<AppContract>>(
@@ -30,7 +30,7 @@ test("the app mounts projects and no placeholder: its migrations and Queries are
   );
   await expect(client.health()).resolves.toMatchObject({
     state: "ready",
-    migrations: ["projects/0001", "spaces/0001"],
+    migrations: ["projects/0001", "settings/0001", "spaces/0001"],
   });
   const events = await client.tablesChanged();
   await expect(events.next()).resolves.toEqual({
@@ -39,6 +39,7 @@ test("the app mounts projects and no placeholder: its migrations and Queries are
       kind: "opened",
       queries: {
         projects: { active: ["projects"], archived: ["projects"] },
+        settings: { load: ["settings"] },
         backups: { list: [] },
       },
     },
@@ -71,5 +72,28 @@ test("projects is mounted: a created project follows its Table Change into the a
       archivedAt: null,
     },
   ]);
+  await events.return();
+});
+
+test("a Settings save announces the Settings table and the mounted Query sees the committed batch", async () => {
+  const process = await startTestDataProcess({ modules });
+  started.push(process);
+  const client = createORPCClient<ContractRouterClient<AppContract>>(
+    new RPCLink({ port: process.openPort() }),
+  );
+  const events = await client.tablesChanged();
+  await events.next();
+
+  const entries = [
+    { key: "appearance.accent", value: "blue" },
+    { key: "i18n.language", value: "de" },
+  ];
+  await client.settings.save({ entries });
+
+  await expect(events.next()).resolves.toEqual({
+    done: false,
+    value: { kind: "changed", tables: ["settings"] },
+  });
+  expect(await client.settings.load({})).toEqual(expect.arrayContaining(entries));
   await events.return();
 });

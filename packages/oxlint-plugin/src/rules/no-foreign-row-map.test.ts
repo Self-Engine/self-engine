@@ -41,3 +41,17 @@ test("a foreign module value cannot reveal its row map, including through typeof
   ]);
   expect(results.map((result) => result.length)).toEqual([1, 1, 1, 0, 0, 0, 1, 1, 0]);
 });
+
+test("the Settings Port may use its row map from the migration package", () => {
+  const source = 'import { settingsRowMap } from "@self-engine/settings-rows";';
+  const results = lintFixtures("no-foreign-row-map", [
+    { path: "packages/settings-data/src/data/settings.ts", source },
+    { path: "packages/projects/src/data/projects.ts", source },
+    {
+      path: "packages/settings-data/src/data/foreign.ts",
+      source: 'import { notesRowMap } from "@self-engine/notes/data";',
+    },
+  ]);
+
+  expect(results.map((result) => result.length)).toEqual([0, 1, 1]);
+});

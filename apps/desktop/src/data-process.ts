@@ -19,6 +19,7 @@ try {
     ...openDataFiles(databasePathFromArgs(process.argv), sources.clock),
     sources,
     modules: dataModules,
+    startSettings: [],
     ...dataProcessOptions,
   }).catch(fail);
 } catch (error) {

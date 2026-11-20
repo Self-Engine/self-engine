@@ -63,6 +63,7 @@ test("a dev database from before the foreign key to spaces starts ready with a P
     expect(ran.map(({ name }) => name).sort()).toEqual([
       "placeholder-alpha/0001",
       "placeholder-alpha/0002",
+      "settings/0001",
       "spaces/0001",
     ]);
     // Only a ready start makes sure of the Personal Space.

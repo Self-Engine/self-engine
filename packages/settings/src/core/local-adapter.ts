@@ -71,10 +71,16 @@ function itemNames(scope: SettingScope) {
   };
 }
 
+/** An adapter that can also forget entries: the local copy follows a removed row with it. */
+export interface LocalSettingsAdapter extends SettingsAdapter {
+  /** Removes the entries of `keys`; a key without an entry is skipped. */
+  readonly remove: (keys: readonly string[]) => Promise<void>;
+}
+
 export function createLocalSettingsAdapter(
   { getStorage, getEvents }: LocalSettingsEnvironment,
   scope: SettingScope,
-): SettingsAdapter {
+): LocalSettingsAdapter {
   const { itemOf, keyOf } = itemNames(scope);
   // A cleared storage names no keys, so what it removed has to be known from before.
   const known = new Set<string>();
@@ -124,6 +130,13 @@ export function createLocalSettingsAdapter(
         throw error;
       }
       for (const { key } of entries) known.add(key);
+    },
+    remove: async (keys) => {
+      const storage = getStorage();
+      for (const key of keys) {
+        storage.removeItem(itemOf(key));
+        known.delete(key);
+      }
     },
     subscribe: (listener) => {
       const events = getEvents();

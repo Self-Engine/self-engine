@@ -138,7 +138,7 @@ describe("runDataProcess", () => {
 
     await expect(connection.client.health()).resolves.toMatchObject({
       state: "ready",
-      migrations: ["projects/0001", "spaces/0001"],
+      migrations: ["projects/0001", "settings/0001", "spaces/0001"],
     });
   });
 
@@ -472,7 +472,7 @@ describe("the Backups of the data process", () => {
     const again = folder.start();
     await again.running;
     expect(again.parentPort.sent.map(servingHealth)).toMatchObject([
-      { state: "ready", migrations: ["projects/0001", "spaces/0001"] },
+      { state: "ready", migrations: ["projects/0001", "settings/0001", "spaces/0001"] },
     ]);
     await expect(again.connect().projects.create({ title: "Website" })).resolves.toMatchObject({
       title: "Website",

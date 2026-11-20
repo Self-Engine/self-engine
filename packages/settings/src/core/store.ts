@@ -5,13 +5,18 @@
 // and the full build may not (docs/development/performance.md).
 import { safeParse } from "zod/v4/core";
 import type { ReportedSettingEntry, SettingEntry, SettingsAdapter } from "./adapter.ts";
+import { reportFailure, type SettingsStorageFailure, type StorageOperation } from "./failure.ts";
 import {
   type JsonValue,
+  sameJson,
   type SettingChange,
   settingChange,
   type SettingDeclaration,
   type SettingScope,
+  settingValue,
 } from "./setting.ts";
+
+export type { SettingsStorageFailure } from "./failure.ts";
 
 export interface SettingsStore {
   /** Runs once; call it before the first render. Always resolves, see `onError`. */
@@ -29,16 +34,6 @@ export interface SettingsStore {
   readonly subscribe: (listener: () => void) => () => void;
 }
 
-type StorageOperation = "load" | "save" | "subscribe";
-
-/** One operation an adapter could not carry out. Never holds a Setting's value. */
-export interface SettingsStorageFailure {
-  /** Built by the store and names only the kind of error, see `valueFreeError`. */
-  readonly error: Error;
-  readonly operation: StorageOperation;
-  readonly scope: SettingScope;
-}
-
 export interface SettingsStoreOptions {
   readonly adapters: Readonly<Record<SettingScope, SettingsAdapter>>;
   /** Called for every `load`, `save` or `subscribe` an adapter could not carry out. */
@@ -49,19 +44,6 @@ const SCOPES: readonly SettingScope[] = ["synced", "device"];
 
 function perScope<T>(make: () => T): Record<SettingScope, T> {
   return Object.fromEntries(SCOPES.map((scope) => [scope, make()])) as Record<SettingScope, T>;
-}
-
-function sameJson(a: JsonValue | undefined, b: JsonValue | undefined): boolean {
-  return JSON.stringify(a) === JSON.stringify(b);
-}
-
-/**
- * What an adapter throws can quote the value it was handling, in its message, stack or cause, as
- * `JSON.parse` does. Only the error's name passes on, and only if it looks like one.
- */
-function valueFreeError(thrown: unknown, operation: StorageOperation, scope: SettingScope): Error {
-  const kind = thrown instanceof Error && /^\w+Error$/.test(thrown.name) ? thrown.name : "Error";
-  return new Error(`Settings ${operation} failed in scope "${scope}": ${kind}`);
 }
 
 export function createSettingsStore({ adapters, onError }: SettingsStoreOptions): SettingsStore {
@@ -76,11 +58,7 @@ export function createSettingsStore({ adapters, onError }: SettingsStoreOptions)
   let loaded = false;
 
   function report(operation: StorageOperation, scope: SettingScope, thrown: unknown): void {
-    try {
-      onError({ error: valueFreeError(thrown, operation, scope), operation, scope });
-    } catch {
-      // A broken reporter must not stop the app any more than the failure it reports.
-    }
+    reportFailure(onError, thrown, operation, scope);
   }
 
   async function loadScopes(): Promise<void> {
@@ -191,8 +169,7 @@ export function createSettingsStore({ adapters, onError }: SettingsStoreOptions)
       if (stored === undefined) return setting.default;
       const cached = parsed.get(setting);
       if (cached?.stored === stored) return cached.value as T;
-      const result = safeParse(setting.schema, stored);
-      const value = result.success ? result.data : setting.default;
+      const value = settingValue(setting, stored);
       parsed.set(setting, { stored, value });
       return value;
     },

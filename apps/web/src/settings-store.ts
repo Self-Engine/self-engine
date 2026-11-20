@@ -1,15 +1,16 @@
-import { createLocalSettingsAdapter, createSettingsStore } from "@self-engine/settings";
+import { createAppSettingsStore } from "./app-settings.ts";
+import { dataConnection } from "./desktop-data.ts";
 
-const browser = { getStorage: () => localStorage, getEvents: () => window };
-
-/** The app's one store. `main.tsx` waits for its `load` before the first render. */
-export const settingsStore = createSettingsStore({
-  adapters: {
-    synced: createLocalSettingsAdapter(browser, "synced"),
-    device: createLocalSettingsAdapter(browser, "device"),
-  },
+/**
+ * The app's one store. `main.tsx` waits for its `load` before the first render, which the local
+ * copy answers without waiting for the Data Process.
+ */
+export const settingsStore = createAppSettingsStore(
+  { getStorage: () => localStorage, getEvents: () => window },
+  // Only the desktop app has a Data Process (D263). Tests import this file in Node, without one.
+  typeof window === "undefined" || window.desktopBridge === undefined ? undefined : dataConnection,
   // Until the error log and notifications exist (#37, #21), the console keeps failures visible.
-  onError: ({ error, operation, scope }) => {
+  ({ error, operation, scope }) => {
     console.error(`Settings ${operation} failed for ${scope}`, error);
   },
-});
+);

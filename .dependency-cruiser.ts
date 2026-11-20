@@ -28,14 +28,14 @@ export const ALLOWED_IMPORTS: AllowedImports = {
   backup: ["data-protocol", "db", "time"],
   // Composes the protocol and the modules' contracts (D187): `contracts → module`. Only the
   // desktop app's module list imports it.
-  contracts: ["data-protocol", "projects"],
+  contracts: ["data-protocol", "projects", "settings-data"],
   // The building block tells the user through `ui`'s feedback system. It takes the protocol from
   // `data-protocol`, which knows no module, so no cycle runs through a module (ADR 0006). The
   // texts of the frame's Reasons list tables with `i18n`'s counted names (D335).
   "data-client": ["data-protocol", "i18n", "ui"],
-  // The core knows no module: the app passes its module list in. It runs the migration of
-  // `spaces` and makes sure of the Personal Space at every start (D287).
-  "data-process": ["data-protocol", "db", "spaces", "storage"],
+  // The core knows no module: the app passes its module list in. It runs the migrations of
+  // `spaces` and `settings` and makes sure of the Personal Space at every start (D287, D352).
+  "data-process": ["data-protocol", "db", "settings-rows", "spaces", "storage"],
   // `health`, the Table Change stream and the Backups; a Backup's Instant comes from `time`.
   "data-protocol": ["db", "time"],
   // The preload and the page share it; the failure states come from the protocol.
@@ -70,11 +70,19 @@ export const ALLOWED_IMPORTS: AllowedImports = {
     "time",
     "ui",
   ],
+  // The Settings Port uses the row map of the table migrated by the Data Process (D352). Its page
+  // adapter fulfils the adapter contract of `settings` over the page's data connection (D351).
+  "settings-data": ["data-client", "db", "settings", "settings-rows", "storage"],
+  // The Settings table below Storage (D352), as `spaces` is: its rows refer to a Space, and its
+  // read checks a value against the declaration of `settings`, which imports no repo package.
+  "settings-rows": ["db", "settings", "spaces", "time"],
   // The Port access type (D261) and plural names of synced tables (D335).
   shell: ["data-client", "i18n", "icons", "theme", "ui"],
   // The Space below Storage (D287): its table, its id and the Personal Space of a database.
   spaces: ["db", "time"],
-  storage: ["db", "spaces", "time"],
+  // The context of every call reads a Setting through `settings-rows` (D352), typed by the
+  // declaration of `settings`.
+  storage: ["db", "settings", "settings-rows", "spaces", "time"],
   time: [],
   ui: ["icons", "theme"],
 };
@@ -98,6 +106,8 @@ export const TEST_ONLY_IMPORTS: AllowedImports = {
   // The test Data Process, to run the module's hooks and form end to end without the app, and
   // the Space rows a test of the Read Piece moves a project into, and the protocol's Clearance.
   projects: ["data-process", "data-protocol", "spaces"],
+  // Exercise the Settings Port and its adapter over the Data Process.
+  "settings-data": ["data-process", "data-protocol"],
   // The app's catalogs, so a story of the icon field switches the language as the Settings do.
   ui: ["i18n"],
 };

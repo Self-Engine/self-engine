@@ -22,7 +22,7 @@ describe("a typed call over a message port", () => {
     await expect(connection.client.health()).resolves.toEqual({
       state: "ready",
       sqliteVersion: expect.stringMatching(/^3\.\d+\.\d+$/),
-      migrations: ["spaces/0001"],
+      migrations: ["settings/0001", "spaces/0001"],
     });
   });
 
@@ -37,7 +37,7 @@ describe("a typed call over a message port", () => {
 
     await expect(connection.client.health()).resolves.toMatchObject({
       state: "ready",
-      migrations: ["fixture/0001", "spaces/0001"],
+      migrations: ["fixture/0001", "settings/0001", "spaces/0001"],
     });
   });
 

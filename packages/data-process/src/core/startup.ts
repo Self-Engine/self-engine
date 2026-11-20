@@ -11,6 +11,11 @@ import {
   type Space,
   type SpaceSources,
 } from "@self-engine/spaces";
+import {
+  settingsMigrations,
+  writeMissingSettings,
+  type StartSetting,
+} from "@self-engine/settings-rows";
 import { sql } from "kysely";
 
 /** Runs before the pending migrations, only when some are pending: the backup's place (D94). */
@@ -52,19 +57,30 @@ export type Startup =
   | { readonly health: Exclude<Health, HealthFailure>; readonly space: Space }
   | { readonly health: HealthFailure; readonly space?: undefined };
 
+export interface StartUpOptions {
+  /** Synced Settings to write if they are missing. Default: none. */
+  readonly startSettings?: readonly StartSetting[] | undefined;
+  readonly beforeMigrations?: BeforeMigrations | undefined;
+}
+
 /**
- * Runs the migration of `spaces` with the mounted modules' (D287), then, only when they left the
- * database ready, makes sure the Personal Space exists, in a transaction of its own (D288). A
- * failure state creates no Space. A database whose Personal Space is broken, two of them or a
- * deleted one, makes the start throw like any unexpected failure: nothing is picked.
+ * Runs the migrations of `spaces` and `settings` with the mounted modules' (D287, D352).
+ * When they leave the database ready, makes sure the Personal Space exists (D288), then
+ * writes missing Settings in a separate transaction. A failure state skips both steps.
  */
 export async function startUp(
   database: Database,
   migrations: readonly Migration[],
   sources: SpaceSources,
-  beforeMigrations?: BeforeMigrations,
+  { startSettings = [], beforeMigrations }: StartUpOptions = {},
 ): Promise<Startup> {
-  const health = await migrate(database, [...spacesMigrations, ...migrations], beforeMigrations);
+  const health = await migrate(
+    database,
+    [...spacesMigrations, ...settingsMigrations, ...migrations],
+    beforeMigrations,
+  );
   if (health.state !== "ready") return { health };
-  return { health, space: await ensurePersonalSpace(database, sources) };
+  const space = await ensurePersonalSpace(database, sources);
+  await writeMissingSettings(database, space.id, startSettings, sources);
+  return { health, space };
 }

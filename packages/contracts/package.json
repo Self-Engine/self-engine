@@ -11,6 +11,7 @@
     "@orpc/contract": "catalog:",
     "@self-engine/data-protocol": "workspace:*",
     "@self-engine/projects": "workspace:*",
+    "@self-engine/settings-data": "workspace:*",
     "zod": "catalog:"
   },
   "devDependencies": {

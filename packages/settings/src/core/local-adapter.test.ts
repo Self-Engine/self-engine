@@ -181,6 +181,18 @@ function storeOverStorage(getStorage: () => LocalSettingsStorage) {
 }
 
 describe("the localStorage adapter", () => {
+  it("removes the items of the entries it is told to forget, and only those", async () => {
+    const { storage, adapter } = localAdapter();
+    await adapter.save([
+      { key: "test.gone", value: 1 },
+      { key: "test.kept", value: 2 },
+    ]);
+
+    await adapter.remove(["test.gone", "test.never"]);
+
+    expect([...storage.items.keys()]).toEqual([`${SYNCED_PREFIX}test.kept`]);
+  });
+
   it("stores each entry as its own item with a JSON value", async () => {
     const { storage, adapter } = localAdapter();
 

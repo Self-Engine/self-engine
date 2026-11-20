@@ -39,6 +39,13 @@ const EXCEPTIONS: readonly Exception[] = [
     reason:
       "The Personal Space is created before any module is mounted, and the write paths need a Space to write in (D288).",
   },
+  {
+    file: "packages/settings-rows/src/start.ts",
+    table: "settings",
+    write: "insert",
+    reason:
+      "Startup inserts missing Synced Settings before the frames can serve their first call (D353).",
+  },
 ];
 
 /** The text of a string literal or of a template without expressions; `undefined` otherwise. */

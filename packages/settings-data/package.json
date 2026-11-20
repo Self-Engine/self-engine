@@ -1,0 +1,33 @@
+{
+  "name": "@self-engine/settings-data",
+  "version": "0.0.0",
+  "private": true,
+  "license": "AGPL-3.0-only",
+  "type": "module",
+  "exports": {
+    "./adapter": "./src/adapter/index.ts",
+    "./contracts": "./src/contracts/index.ts",
+    "./data": "./src/data/index.ts"
+  },
+  "dependencies": {
+    "@orpc/contract": "catalog:",
+    "@self-engine/data-client": "workspace:*",
+    "@self-engine/db": "workspace:*",
+    "@self-engine/settings": "workspace:*",
+    "@self-engine/settings-rows": "workspace:*",
+    "@self-engine/storage": "workspace:*",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@orpc/client": "catalog:",
+    "@self-engine/data-process": "workspace:*",
+    "@self-engine/data-protocol": "workspace:*",
+    "@types/node": "catalog:",
+    "@types/react": "catalog:",
+    "@types/react-dom": "catalog:",
+    "happy-dom": "catalog:",
+    "react": "catalog:",
+    "react-dom": "catalog:",
+    "vite-plus": "catalog:"
+  }
+}

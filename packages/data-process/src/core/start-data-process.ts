@@ -1,6 +1,7 @@
 import { type AnyRouter, os } from "@orpc/server";
 import type { Health, TablesChanged } from "@self-engine/data-protocol";
 import { isLocalTable, referencesOf, type Database } from "@self-engine/db";
+import type { StartSetting } from "@self-engine/settings-rows";
 import type { SpaceSources } from "@self-engine/spaces";
 import {
   createFrame,
@@ -30,10 +31,12 @@ export interface DataProcessOptions<Modules extends DataModules = DataModules> {
    */
   readonly rules?: readonly RegisteredRule<MountedTable<Modules>>[];
   /**
-   * The clock and the id source of every call, and of the Personal Space when the first start
-   * creates it. The Space of a call is not a source the app passes: the start finds it.
+   * The clock and id source for calls and for the Personal Space and Settings created at startup.
+   * Startup finds the Space of each call.
    */
   readonly sources: SpaceSources;
+  /** Synced Settings to write in the Personal Space if their rows are missing. */
+  readonly startSettings?: readonly StartSetting[];
   readonly checkOutputs: boolean;
   readonly report?: FrameOptions["report"];
   /** Called before the migrations run when some are pending, and not when none are (D138). */
@@ -97,16 +100,16 @@ function checkRulesFromAbove(
 }
 
 /**
- * The platform-neutral core of the data process: runs the pending migrations and makes sure of
- * the Personal Space first, so their outcome is known before the first call is answered, then
- * serves the app contract on each port it receives. Every module's frame gets that Space, and
- * each call's context carries it (D195, D287). It knows nothing of Electron (D97).
+ * The platform-neutral core of the Data Process. It runs pending migrations, makes sure of the
+ * Personal Space, and writes missing startup Settings before it serves the app contract.
+ * Every module's frame and every call's context carry that Space (D195, D287).
  */
 export async function startDataProcess<const Modules extends DataModules>({
   database,
   modules,
   rules: fromAbove = [],
   sources,
+  startSettings,
   checkOutputs,
   beforeMigrations,
   report,
@@ -117,7 +120,7 @@ export async function startDataProcess<const Modules extends DataModules>({
     database,
     Object.values(modules).flatMap((module) => module.migrations),
     sources,
-    beforeMigrations,
+    { startSettings, beforeMigrations },
   );
   const tablesChanged = createTablesChangedPublisher();
   // One registry for every frame: a rule holds whoever writes its table (D332). The reference

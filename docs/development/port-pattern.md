@@ -292,6 +292,44 @@ target and stays a valid one. What a module owes it is the index on every referr
 (step 2). Test it as [`guarded.test.ts`](../../packages/projects/src/data/guarded.test.ts) does
 for `projects`.
 
+### Read a Setting
+
+An Operation or a Query that depends on a user's Setting, such as the Time Zone, reads it through
+`context.readSetting(tx, setting)` (D352). It takes the Setting's declaration, the
+`SettingDeclaration` the page uses as well, and answers with a value of the declared type:
+
+```ts
+hours: {
+  kind: "query",
+  // A Setting is a read of the Settings table: a change of it reloads this Query.
+  reads: [SETTINGS_TABLE],
+  run: (tx, context) => context.readSetting(tx, workdayHours),
+},
+```
+
+[`workday/data/index.ts`](../../packages/storage/test/workday-module/data/index.ts) is the
+template. The rules:
+
+- **Pass the call's `tx`.** The read runs inside the call's transaction, so it sees what the
+  call wrote before it and answers from the same state of the database as the call's data.
+- **Name `SETTINGS_TABLE` in a Query's `reads`.** It comes from `@self-engine/storage`. A Query
+  that forgets it would not reload after the user changes the Setting; the contract kit fails it
+  with `query reads an undeclared table: settings`. An Operation declares nothing.
+- **A missing or broken row reads as the default.** The read checks the stored value with the
+  declaration's schema and answers with the declared default when the row is missing, holds no
+  JSON or fails the schema. It never writes and never throws for a value, so an Operation never
+  fails on a Setting.
+- **Only a Synced Setting.** The database holds the Synced Settings of the Personal Space; a
+  Device Setting stays on its device, and passing one does not compile.
+- **Declare the Setting where its value is owned** (D356), with a key that starts with the
+  owner's name, and never query the `settings` table yourself.
+
+A test writes a Setting before it calls the module with `createSettingRows` from
+`@self-engine/settings-rows/testing`, as
+[`setting-read.test.ts`](../../packages/data-process/src/core/setting-read.test.ts) does through
+the Port of the test Data Process. One read costs about 0.012 ms
+([performance](performance.md#a-setting-read-109)).
+
 Done when every entry uses the supplied transaction and context, maps its result to its
 contract shape, and has the appropriate query/operation marker and conflict mapping.
 
