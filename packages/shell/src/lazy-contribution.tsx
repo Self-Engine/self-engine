@@ -58,6 +58,7 @@ function FailedContribution({ onRetry }: { readonly onRetry: () => void }) {
 
 interface BoundaryProps {
   readonly onFailure: () => void;
+  readonly renderFailure: ((onRetry: () => void) => ReactNode) | undefined;
   readonly children: ReactNode;
 }
 
@@ -74,10 +75,12 @@ class ContributionBoundary extends Component<BoundaryProps, { readonly failed: b
   }
 
   override render() {
-    return this.state.failed ? (
-      <FailedContribution onRetry={() => this.setState({ failed: false })} />
+    if (!this.state.failed) return this.props.children;
+    const retry = () => this.setState({ failed: false });
+    return this.props.renderFailure ? (
+      this.props.renderFailure(retry)
     ) : (
-      this.props.children
+      <FailedContribution onRetry={retry} />
     );
   }
 }
@@ -101,11 +104,15 @@ interface LazyContributionProps<Props extends object> {
 /** A module's code, loaded when it is first shown. Give it a key per thing it shows. */
 export function LazyContribution<Props extends object>({
   fallback = null,
+  renderFailure,
   ...contribution
-}: LazyContributionProps<Props> & { readonly fallback?: ReactNode }) {
+}: LazyContributionProps<Props> & {
+  readonly fallback?: ReactNode;
+  readonly renderFailure?: BoundaryProps["renderFailure"];
+}) {
   const { components, load } = contribution;
   return (
-    <ContributionBoundary onFailure={() => components.forget(load)}>
+    <ContributionBoundary onFailure={() => components.forget(load)} renderFailure={renderFailure}>
       <Suspense fallback={fallback}>
         <LoadedContribution {...contribution} />
       </Suspense>

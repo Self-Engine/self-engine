@@ -1,6 +1,8 @@
+import { Button } from "@mantine/core";
 import { SHELL_REFERENCE_WIDTHS } from "@self-engine/shell/geometry";
 import type { Meta } from "@storybook/react-vite";
-import { expect, userEvent, waitFor, within } from "storybook/test";
+import { useState } from "react";
+import { expect, spyOn, userEvent, waitFor, within } from "storybook/test";
 import { Shell, type ShellContribution, type ShellProps } from "./index.ts";
 import { INDICATOR_MAX_WIDTH } from "./module-indicators.tsx";
 import {
@@ -211,5 +213,68 @@ export const TheHeaderDragsTheWindowAndTheIndicatorTakesClicksAndTab: Story = {
     await userEvent.keyboard("{Enter}");
     await userEvent.click(button);
     await expect(within(indicatorPlaceOf(button)).getByText("Counted 2")).toBeVisible();
+  },
+};
+
+const renderFailure = new Error("broken indicator render");
+
+function BrokenIndicator() {
+  const [broken, setBroken] = useState(false);
+  if (broken) throw renderFailure;
+  return <Button onClick={() => setBroken(true)}>Break indicator</Button>;
+}
+
+function RecoveredIndicator() {
+  return <span>Recovered indicator</span>;
+}
+
+export const AnIndicatorRenderFailureLeavesTheOtherIndicatorWorking: Story = {
+  ...atViewport("wide"),
+  args: {
+    contributions: [
+      {
+        ...projects,
+        indicator: {
+          load: async () => ({ default: RecoveredIndicator }),
+        },
+      },
+      time,
+      { ...third, indicator: countingIndicator() },
+    ],
+  },
+  beforeEach: ({ args }) => {
+    // A fresh load identity keeps the story repeatable after a successful retry.
+    const indicator = args.contributions[0]!.indicator!;
+    const load = spyOn(indicator, "load").mockResolvedValueOnce({ default: BrokenIndicator });
+    const report = console.error;
+    const reported = spyOn(console, "error").mockImplementation((...args: unknown[]) => {
+      if (!args.includes(renderFailure)) report(...args);
+    });
+    return () => {
+      load.mockRestore();
+      reported.mockRestore();
+    };
+  },
+  play: async ({ canvas }) => {
+    const healthy = await fullForm(canvas);
+    await userEvent.click(healthy);
+    await userEvent.click(
+      await canvas.findByRole("button", { name: "Break indicator" }, INDICATOR_ARRIVES),
+    );
+
+    const retry = await within(headerOf(canvas)).findByRole("button", {
+      name: "Projects indicator failed. Try again.",
+    });
+    await expect(canvas.getByText("Page content")).toBeVisible();
+    await expect(healthy).toBeVisible();
+    await userEvent.click(healthy);
+    await expect(canvas.getByText("Counted 2")).toBeVisible();
+
+    collapseToggle(canvas).focus();
+    await userEvent.tab();
+    await expect(retry).toHaveFocus();
+    await userEvent.keyboard("{Enter}");
+    await expect(await canvas.findByText("Recovered indicator")).toBeVisible();
+    await expect(canvas.getByText("Counted 2")).toBeVisible();
   },
 };
