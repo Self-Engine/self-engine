@@ -21,6 +21,32 @@ test("rejects the page's globals in the core of time, also through globalThis", 
   expect(results.flat().every((hit) => hit.includes("src/react/"))).toBe(true);
 });
 
+test("rejects the page's globals taken out of globalThis by destructuring", () => {
+  const results = lintFixtures(
+    RULE,
+    [
+      "const { document: doc } = globalThis; doc.visibilityState;",
+      "const { navigator } = globalThis;",
+      "let storage; ({ localStorage: storage } = globalThis);",
+    ],
+    "packages/time/src",
+  );
+  expect(results.map((hits) => hits.length)).toEqual([1, 1, 1]);
+});
+
+test("allows destructuring of other objects and of other globals", () => {
+  const results = lintFixtures(
+    RULE,
+    [
+      "const { document, window } = page;",
+      "const { setTimeout: later } = globalThis;",
+      "function read(globalThis: { document: string }) { const { document } = globalThis; return document; }",
+    ],
+    "packages/time/src",
+  );
+  expect(results).toEqual([[], [], []]);
+});
+
 test("allows timers, shadowed names and property keys of the same spelling", () => {
   const results = lintFixtures(
     RULE,

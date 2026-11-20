@@ -2,7 +2,7 @@
 // DOM library for the React entry (`src/react/`), so the compiler no longer rejects `document`
 // or `window` there: this rule does, for the globals a page has and the Data Process has not.
 
-import { defineRule } from "@oxlint/plugins";
+import { defineRule, type ESTree } from "@oxlint/plugins";
 import { isGlobal, isReference, propertyName } from "./globals.ts";
 
 /** The page's globals: neither Node nor Electron's utility process has them. */
@@ -37,6 +37,16 @@ export default defineRule({
       /(?:^|\/)packages\/time\/src\/react\//.test(context.filename)
     )
       return {};
+    /** A page global taken out of `globalThis` by destructuring, in a declaration or assignment. */
+    function destructured(target: ESTree.Node, source: ESTree.Node): void {
+      if (target.type !== "ObjectPattern" || !isGlobal(context, source, "globalThis")) return;
+      for (const property of target.properties) {
+        if (property.type !== "Property") continue;
+        const name = propertyName(property.key, property.computed);
+        if (name !== undefined && PAGE_GLOBALS.has(name))
+          context.report({ node: property.key, message: MESSAGE });
+      }
+    }
     return {
       Identifier(node) {
         if (
@@ -50,6 +60,12 @@ export default defineRule({
         const name = propertyName(node.property, node.computed);
         if (name !== undefined && PAGE_GLOBALS.has(name) && isGlobal(context, node, name))
           context.report({ node, message: MESSAGE });
+      },
+      VariableDeclarator(node) {
+        if (node.init != null) destructured(node.id, node.init);
+      },
+      AssignmentExpression(node) {
+        destructured(node.left, node.right);
       },
     };
   },
