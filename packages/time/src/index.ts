@@ -14,6 +14,7 @@ export type { Clock } from "./clock.ts";
 export { deviceTimeZone, resolveTimeZone, sameTimeZone } from "./zone.ts";
 export type { ResolvedTimeZone, TimeZone } from "./zone.ts";
 export { calendarDayOf, wallClockTimeOf, instantAt } from "./zoned.ts";
+export { resolveWallClockTime, type WallClockTimeResolution } from "./zoned.ts";
 export { startOfCalendarDay, instantRangeOf, today } from "./zoned.ts";
 export type { InstantRange, ResolvedInstant } from "./zoned.ts";
 export { formatInstant, type InstantFormat } from "./format.ts";
