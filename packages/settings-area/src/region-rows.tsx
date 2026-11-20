@@ -20,9 +20,6 @@ import { choiceRow, switchRow } from "./standard-rows.tsx";
 import type { LocalText } from "./text.ts";
 import { VIEW_IDS } from "./views.ts";
 
-/** How long the zone list took to build when the row was last shown, for the measurement (#364). */
-export const ZONE_LIST_MARK = "settings:zone-list";
-
 /** The text a zone is shown and searched by: its place and its offset now. */
 const zoneLabel = (choice: { readonly place: string; readonly offset: string }) =>
   `${choice.place} (${choice.offset})`;
@@ -41,15 +38,16 @@ function timeZoneRow(clock: Clock): SettingsRow {
     const followsDevice = useSetting(store, FOLLOW_DEVICE_ZONE_SETTING);
     // The offsets of the moment the row was first shown: they change at most twice a year.
     const [now] = useState(clock);
-    const data = useMemo(() => {
-      const start = performance.now();
-      const choices = timeZoneChoices(now, shown).map((choice) => ({
-        value: choice.timeZone,
-        label: zoneLabel(choice),
-      }));
-      performance.measure(ZONE_LIST_MARK, { start, end: performance.now() });
-      return choices;
-    }, [now, shown]);
+    // About 0.5 ms for some 420 zones in Chromium; opening the list draws them all in about 50 ms
+    // (#364), so Mantine's Select needs no limit.
+    const data = useMemo(
+      () =>
+        timeZoneChoices(now, shown).map((choice) => ({
+          value: choice.timeZone,
+          label: zoneLabel(choice),
+        })),
+      [now, shown],
+    );
     return (
       <Select
         allowDeselect={false}
