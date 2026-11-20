@@ -38,8 +38,8 @@ function timeZoneRow(clock: Clock): SettingsRow {
     const followsDevice = useSetting(store, FOLLOW_DEVICE_ZONE_SETTING);
     // The offsets of the moment the row was first shown: they change at most twice a year.
     const [now] = useState(clock);
-    // About 0.5 ms for some 420 zones in Chromium; opening the list draws them all in about 50 ms
-    // (#364), so Mantine's Select needs no limit.
+    // About 0.5–0.6 ms for some 420 zones in Chromium (about 2 ms in Node); opening the list draws
+    // them all in about 50 ms (#364), so Mantine's Select needs no limit.
     const data = useMemo(
       () =>
         timeZoneChoices(now, shown).map((choice) => ({
