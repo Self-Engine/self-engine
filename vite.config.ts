@@ -32,6 +32,7 @@ export default defineConfig({
       "apps/*/src/**/*.test.ts",
       "apps/component-catalog/.storybook/*.test.ts",
       "packages/*/src/**/*.test.ts",
+      "packages/*/src/**/*.test.tsx",
       "scripts/**/*.test.ts",
     ],
     environment: "node",
