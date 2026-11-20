@@ -5,14 +5,21 @@ import { useState } from "react";
 
 /**
  * The Module Indicator of the Shell's test subject: a counter and a button in the full form, the
- * counter alone in the short form. The counter opens the module's Indicator Panel. A real module
+ * counter alone in the short form. The counter opens the module's Indicator Panel and tells a
+ * screen reader whether it is open. A real module
  * reads what it shows through its own hooks.
  */
-export default function Indicator({ form, togglePanel }: ModuleIndicatorWithPanelProps) {
+export default function Indicator({ form, togglePanel, panelOpen }: ModuleIndicatorWithPanelProps) {
   const { t } = useLingui();
   const [count, setCount] = useState(0);
   const counter = (
-    <Button onClick={togglePanel} size="compact-sm" variant="subtle">
+    <Button
+      aria-expanded={panelOpen}
+      aria-haspopup="dialog"
+      onClick={togglePanel}
+      size="compact-sm"
+      variant="subtle"
+    >
       {form === "short" ? count : t`Counted ${count}`}
     </Button>
   );

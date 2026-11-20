@@ -1,22 +1,25 @@
 import { useLingui } from "@lingui/react/macro";
-import { Button, Group, Stack, TextInput } from "@mantine/core";
+import { EditDrawerForm, TextField, useOperationForm } from "@self-engine/forms";
 import type { IndicatorPanelProps } from "@self-engine/shell";
+import { placeholderAlphaContract } from "../contracts/index.ts";
+import { useCreateEntry } from "../port.ts";
 
 /**
- * The Indicator Panel of the Shell's test subject: one field. The Shell gives it its frame, its
- * focus and its ways out; the content only says when it is done.
+ * The Indicator Panel of the Shell's test subject: a note that becomes a new entry, in a form of
+ * `forms`, which reports its unsaved changes here as it does in the Edit Drawer. The Shell gives
+ * the panel its frame, its focus, its ways out and the question before changes are lost.
  */
 export default function Panel({ onCancel, onDone }: IndicatorPanelProps) {
   const { t } = useLingui();
+  const form = useOperationForm({
+    entry: placeholderAlphaContract.create,
+    operation: useCreateEntry(),
+    draft: { name: "" },
+    onDone,
+  });
   return (
-    <Stack gap="sm">
-      <TextInput label={t`Note`} />
-      <Group gap="xs" justify="flex-end">
-        <Button onClick={onCancel} variant="default">
-          {t`Cancel`}
-        </Button>
-        <Button onClick={onDone}>{t({ message: "Done", context: "Finish the panel" })}</Button>
-      </Group>
-    </Stack>
+    <EditDrawerForm form={form} onCancel={onCancel}>
+      <TextField form={form} label={t`Note`} name="name" />
+    </EditDrawerForm>
   );
 }

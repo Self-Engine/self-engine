@@ -267,7 +267,6 @@ msgid "Camera"
 msgstr "Kamera"
 
 #: packages/forms/src/form-body.tsx
-#: packages/placeholder-alpha/src/indicator/panel.tsx
 #: packages/ui/src/feedback.tsx
 msgid "Cancel"
 msgstr "Abbrechen"
@@ -551,11 +550,11 @@ msgctxt "Channel"
 msgid "Dev"
 msgstr "Dev"
 
-#: packages/shell/src/edit-drawer-exits.tsx
+#: packages/shell/src/unsaved-changes.tsx
 msgid "Discard"
 msgstr "Verwerfen"
 
-#: packages/shell/src/edit-drawer-exits.tsx
+#: packages/shell/src/unsaved-changes.tsx
 msgid "Discard changes?"
 msgstr "Änderungen verwerfen?"
 
@@ -567,11 +566,6 @@ msgstr "Dollar"
 #: apps/web/src/device-zone-offer.tsx
 msgid "Don't ask again"
 msgstr "Nicht mehr fragen"
-
-#: packages/placeholder-alpha/src/indicator/panel.tsx
-msgctxt "Finish the panel"
-msgid "Done"
-msgstr "Fertig"
 
 #: packages/icons/src/directory/labels.ts
 msgctxt "Icon"
@@ -789,7 +783,7 @@ msgstr "Indigo"
 msgid "Invalid value."
 msgstr "Ungültiger Wert."
 
-#: packages/shell/src/edit-drawer-exits.tsx
+#: packages/shell/src/unsaved-changes.tsx
 msgid "Keep editing"
 msgstr "Weiter bearbeiten"
 
@@ -1029,6 +1023,10 @@ msgstr "Modul-Sidebar öffnen"
 #: packages/shell/src/shell.tsx
 msgid "Open navigation"
 msgstr "Navigation öffnen"
+
+#: packages/placeholder-alpha/src/index.ts
+msgid "Open note"
+msgstr "Notiz öffnen"
 
 #: packages/settings-area/src/about-rows.tsx
 msgid "Open source"
@@ -1724,7 +1722,7 @@ msgstr "Mittwoch"
 msgid "Week Start"
 msgstr "Wochenstart"
 
-#: packages/shell/src/edit-drawer-exits.tsx
+#: packages/shell/src/unsaved-changes.tsx
 msgid "What you changed here will be lost."
 msgstr "Was du hier geändert hast, geht verloren."
 
