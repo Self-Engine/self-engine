@@ -45,6 +45,19 @@ export async function pressEscape() {
   await keyboard.keyboard("{Escape}");
 }
 
+/**
+ * Turns the mouse wheel over `element` as the browser delivers it, so a lock on scrolling, such as
+ * a drawer's, decides whether anything scrolls. In the Catalog's own page it scrolls by script.
+ */
+export async function wheelOver(element: Element, deltaY: number) {
+  if (import.meta.env.MODE !== "test") {
+    element.scrollBy(0, deltaY);
+    return;
+  }
+  const { userEvent: browser } = await import("vite-plus/test/browser");
+  await browser.wheel(element, { delta: { y: deltaY } });
+}
+
 export { modKey, openPalette, paletteDialog, paletteGone } from "./story-interactions.ts";
 
 export function pretendPlatform(platform: string, userAgent: string) {

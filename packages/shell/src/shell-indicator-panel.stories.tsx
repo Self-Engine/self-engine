@@ -22,6 +22,7 @@ import {
   atFrameWidth,
   atViewport,
   type Canvas,
+  drawerOverlay,
   ENTRIES,
   expectCovered,
   expectOnTop,
@@ -35,6 +36,7 @@ import {
   shellMeta,
   storyRouting,
   VIEWPORTS,
+  wheelOver,
   widthOf,
 } from "./shell-story-helpers.tsx";
 
@@ -125,20 +127,32 @@ export const APopoverBelowTheIndicatorAtTheWideStep = popoverAt("wide");
 export const APopoverBelowTheIndicatorAtTheMediumStep = popoverAt("medium");
 export const APopoverBelowTheIndicatorAtTheNarrowStep = popoverAt("narrow");
 
-export const ASheetFromBelowOnThePhone: Story = {
+const SHEET_EXITS = {
+  escape: () => pressEscape(),
+  overlay: () => userEvent.click(drawerOverlay()),
+  closeButton: async () =>
+    userEvent.click(within(await panel()).getByRole("button", { name: "Close panel" })),
+};
+
+const aSheetFromBelowOnThePhone = (exit: keyof typeof SHEET_EXITS): Story => ({
   ...atViewport("phone"),
   args: WITH_PANEL,
   play: async ({ canvas }) => {
-    await openByClick(canvas);
+    const button = await openByClick(canvas);
     const dialog = await panel();
     await waitFor(() =>
       expect(Math.round(dialog.getBoundingClientRect().bottom)).toBe(window.innerHeight),
     );
     await expect(widthOf(dialog)).toBe(window.innerWidth);
-    await pressEscape();
+    await SHEET_EXITS[exit]();
     await panelGone();
+    await waitFor(() => expect(button).toHaveFocus());
   },
-};
+});
+
+export const ASheetFromBelowOnThePhone = aSheetFromBelowOnThePhone("escape");
+export const TheSheetClosesByItsOverlay = aSheetFromBelowOnThePhone("overlay");
+export const TheSheetClosesByItsCloseButton = aSheetFromBelowOnThePhone("closeButton");
 
 /** Opens at one Layout Step, types, and crosses the phone border while the panel is open. */
 const crossingThePhoneBorder = (from: "narrow" | "phone", to: number): Story => ({
@@ -153,7 +167,8 @@ const crossingThePhoneBorder = (from: "narrow" | "phone", to: number): Story => 
       await nextFrame();
       const note = within(await panel()).getByRole("textbox", { name: "Note" });
       await expect(note).toHaveValue("kept");
-      await expect(note).toBeVisible();
+      // A busy browser may still be placing the frame at the new width.
+      await waitFor(() => expect(note).toBeVisible());
     });
   },
 });
@@ -677,59 +692,121 @@ export const ACommandPutsThePanelOverTheEditDrawer: Story = {
   },
 };
 
+const TALL: IndicatorWithPanel = {
+  load: async () => ({ default: PanelIndicator }),
+  panel: async () => ({ default: TallContent }),
+};
+
+const PROJECTS_WITH_A_TALL_PANEL: ShellContribution = {
+  ...projects,
+  indicator: TALL,
+  commands: [
+    {
+      id: "open-note",
+      kind: "open",
+      label: { id: "story-Open the note", message: "Open the note" },
+      load: async () => ({
+        default: defineOpenCommand({
+          description: "Opens the panel of the module's indicator.",
+          schema: z.object({}),
+          run: (_input, { openIndicatorPanel }) => openIndicatorPanel(TALL),
+        }),
+      }),
+    },
+  ],
+};
+
+export const TallContentScrollsInThePanelOverTheEditDrawer: Story = {
+  ...atViewport("wide"),
+  args: {
+    contributions: [PROJECTS_WITH_A_TALL_PANEL, time, third],
+    activeModule: { ...time, editDrawer: async () => ({ default: DrawerContent }) },
+    routing: storyRouting({ edit: "entry" }),
+  },
+  play: async ({ canvas }) => {
+    const drawer = await screen.findByRole("dialog", { name: "Time" });
+    await within(drawer).findByRole("textbox", { name: "Entry name" });
+    await startFromThePalette(canvas, "open the note");
+    await expectFocusInPanel();
+    const dialog = await panel();
+    await expect(dialog.scrollHeight).toBeGreaterThan(dialog.clientHeight);
+    // The drawer locks scrolling outside itself; the wheel still scrolls the panel.
+    await wheelOver(within(dialog).getByText("Line 10"), 200);
+    await waitFor(() => expect(dialog.scrollTop).toBeGreaterThan(0));
+  },
+};
+
 function OpenByHand() {
   const panels = useIndicatorPanels();
-  return <Button onClick={() => panels.toggle(projects.id)}>Toggle the panel</Button>;
+  const open = useOpeningOf(projects.id) !== undefined;
+  return (
+    <>
+      <Button onClick={() => panels.toggle(projects.id)}>Toggle the panel</Button>
+      <output>{open ? "Opening" : "Closed"}</output>
+    </>
+  );
 }
 
 function StandInFrame({ module }: IndicatorPanelFrameProps) {
   return useOpeningOf(module.id) === undefined ? null : <p>The frame is open</p>;
 }
 
-/** The frame's chunk fails once, as one that could not be fetched while offline. */
-function frameThatFailsOnce() {
+/** The frame's chunk fails `times` times, as one that could not be fetched while offline. */
+function frameThatFails(times: number) {
   let loads = 0;
   return {
     load: async () => {
       loads += 1;
-      if (loads === 1) throw new Error("The frame's chunk could not be loaded");
+      if (loads <= times) throw new Error("The frame's chunk could not be loaded");
       return { default: StandInFrame };
     },
     loads: () => loads,
   };
 }
 
-const failingFrame = frameThatFailsOnce();
-
-export const AFrameThatFailedToLoadLoadsAgainAtTheNextOpening: Story = {
-  // React reports the failure that the boundary caught, while the story renders.
-  beforeEach: () => {
-    const reported = spyOn(console, "error").mockImplementation(() => undefined);
-    return () => reported.mockRestore();
-  },
-  render: () => (
-    <IndicatorPanelsProvider modules={[]} page="story">
-      <OpenByHand />
-      <IndicatorPanelFrameLoader
-        indicator={{
-          load: async () => ({ default: PanelIndicator }),
-          panel: async () => ({ default: PanelContent }),
-        }}
-        indicatorShown
-        load={failingFrame.load}
-        module={projects}
-        place={null}
-        sheet={false}
-      />
-    </IndicatorPanelsProvider>
-  ),
-  play: async ({ canvas }) => {
-    await waitFor(() => expect(failingFrame.loads()).toBe(1));
-    await userEvent.click(canvas.getByRole("button", { name: "Toggle the panel" }));
-    await expect(await canvas.findByText("The frame is open")).toBeVisible();
-    await expect(failingFrame.loads()).toBe(2);
-  },
+const aFrameThatFailsToLoad = (times: number): Story => {
+  const failingFrame = frameThatFails(times);
+  return {
+    // React reports the failure that the boundary caught, while the story renders.
+    beforeEach: () => {
+      const reported = spyOn(console, "error").mockImplementation(() => undefined);
+      return () => reported.mockRestore();
+    },
+    render: () => (
+      <IndicatorPanelsProvider modules={[]} page="story">
+        <OpenByHand />
+        <IndicatorPanelFrameLoader
+          indicator={{
+            load: async () => ({ default: PanelIndicator }),
+            panel: async () => ({ default: PanelContent }),
+          }}
+          indicatorShown
+          load={failingFrame.load}
+          module={projects}
+          place={null}
+          sheet={false}
+        />
+      </IndicatorPanelsProvider>
+    ),
+    play: async ({ canvas }) => {
+      const toggle = canvas.getByRole("button", { name: "Toggle the panel" });
+      await waitFor(() => expect(failingFrame.loads()).toBe(1));
+      // Each opening that fails closes again and leaves the next one to try.
+      for (let opening = 2; opening <= times; opening += 1) {
+        await userEvent.click(toggle);
+        await waitFor(() => expect(failingFrame.loads()).toBe(opening));
+        await expect(await canvas.findByText("Closed")).toBeVisible();
+        await expect(canvas.queryByText("The frame is open")).toBeNull();
+      }
+      await userEvent.click(toggle);
+      await expect(await canvas.findByText("The frame is open")).toBeVisible();
+      await expect(failingFrame.loads()).toBe(times + 1);
+    },
+  };
 };
+
+export const AFrameThatFailedToLoadLoadsAgainAtTheNextOpening = aFrameThatFailsToLoad(1);
+export const AFrameThatFailedTwiceLoadsAgainAtTheOpeningAfter = aFrameThatFailsToLoad(2);
 
 export const APanelNoModuleHoldsIsReportedAsAFailedAction: Story = {
   ...atViewport("wide"),

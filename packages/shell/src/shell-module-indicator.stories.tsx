@@ -246,16 +246,10 @@ export const AnIndicatorRenderFailureLeavesTheOtherIndicatorWorking: Story = {
     // A fresh load identity keeps the story repeatable after a successful retry.
     const indicator = args.contributions[0]!.indicator!;
     const load = spyOn(indicator, "load").mockResolvedValueOnce({ default: BrokenIndicator });
-    const report = console.error;
-    const reported = spyOn(console, "error").mockImplementation((...args: unknown[]) => {
-      if (!args.includes(renderFailure)) report(...args);
-    });
-    return () => {
-      load.mockRestore();
-      reported.mockRestore();
-    };
+    return () => load.mockRestore();
   },
   play: async ({ canvas }) => {
+    const reported = spyOn(console, "error").mockImplementation(() => undefined);
     const healthy = await fullForm(canvas);
     await userEvent.click(healthy);
     await userEvent.click(
@@ -265,6 +259,9 @@ export const AnIndicatorRenderFailureLeavesTheOtherIndicatorWorking: Story = {
     const retry = await within(headerOf(canvas)).findByRole("button", {
       name: "Projects indicator failed. Try again.",
     });
+    // React reports the failure that the boundary caught.
+    await expect(reported.mock.calls.some((call) => call.includes(renderFailure))).toBe(true);
+    reported.mockRestore();
     await expect(canvas.getByText("Page content")).toBeVisible();
     await expect(healthy).toBeVisible();
     await userEvent.click(healthy);
