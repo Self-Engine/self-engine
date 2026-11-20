@@ -1467,7 +1467,7 @@ msgstr "Textgröße"
 msgid "That could not be undone."
 msgstr "Das konnte nicht rückgängig gemacht werden."
 
-#: packages/shell/src/start-command.tsx
+#: packages/shell/src/report-failed-start.ts
 msgid "The action could not be completed. Please try again."
 msgstr "Die Aktion konnte nicht ausgeführt werden. Bitte versuche es erneut."
 

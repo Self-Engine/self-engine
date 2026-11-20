@@ -1,3 +1,4 @@
+import { useLingui } from "@lingui/react/macro";
 import {
   createContext,
   type ReactNode,
@@ -9,6 +10,7 @@ import {
 } from "react";
 import type { ShellContribution } from "./contributions.ts";
 import type { OpenIndicatorPanel } from "./module-indicator.ts";
+import { reportFailedStart } from "./report-failed-start.ts";
 
 /** One opening of a module's Indicator Panel. Each opening counts, also one of the same panel. */
 export interface PanelOpening {
@@ -127,6 +129,7 @@ interface IndicatorPanelsProviderProps {
 
 /** Once per Shell. */
 export function IndicatorPanelsProvider({ modules, page, children }: IndicatorPanelsProviderProps) {
+  const { i18n } = useLingui();
   const [panels] = useState(createIndicatorPanels);
   // Before the paint, so the new page never shows the panel of the one before.
   useLayoutEffect(() => panels.close(), [panels, page]);
@@ -145,7 +148,12 @@ export function IndicatorPanelsProvider({ modules, page, children }: IndicatorPa
     panels,
     openIndicatorPanel: (indicator) => {
       const module = known.current.find((candidate) => candidate.indicator === indicator);
-      if (module === undefined) throw new Error("This indicator belongs to no module of the Shell");
+      // Reported as a failed Command start is: a Notice's action, which may call this, has
+      // nothing around it that would catch a throw.
+      if (module === undefined) {
+        reportFailedStart(i18n, new Error("This indicator belongs to no module of the Shell"));
+        return;
+      }
       void panels.open(module.id);
     },
   }));

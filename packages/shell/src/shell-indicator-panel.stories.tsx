@@ -570,6 +570,36 @@ const PROJECTS_WITH_COMMANDS: ShellContribution = {
   ],
 };
 
+/** An indicator entry that no module of the Shell holds, as a Command of a removed module names. */
+const HELD_BY_NO_MODULE = {
+  load: async () => ({ default: PanelIndicator }),
+  panel: async () => ({ default: PanelContent }),
+} satisfies IndicatorWithPanel;
+
+const PROJECTS_WITH_A_STALE_NOTICE: ShellContribution = {
+  ...projects,
+  indicator: OPENED_FROM_ELSEWHERE,
+  commands: [
+    {
+      id: "stale",
+      kind: "open",
+      label: { id: "story-Remind me", message: "Remind me" },
+      load: async () => ({
+        default: defineOpenCommand({
+          description: "Shows a Notice whose action opens a panel no module holds.",
+          schema: z.object({}),
+          run: (_input, { openIndicatorPanel }) => {
+            notifyChoice({
+              message: "The timer still runs.",
+              actions: [{ label: "Stop at …", run: () => openIndicatorPanel(HELD_BY_NO_MODULE) }],
+            });
+          },
+        }),
+      }),
+    },
+  ],
+};
+
 async function startFromThePalette(canvas: Canvas, label: string) {
   // The indicators' code arrives in an idle moment; the panel opens either way once it has.
   await indicatorButton(canvas);
@@ -698,5 +728,21 @@ export const AFrameThatFailedToLoadLoadsAgainAtTheNextOpening: Story = {
     await userEvent.click(canvas.getByRole("button", { name: "Toggle the panel" }));
     await expect(await canvas.findByText("The frame is open")).toBeVisible();
     await expect(failingFrame.loads()).toBe(2);
+  },
+};
+
+export const APanelNoModuleHoldsIsReportedAsAFailedAction: Story = {
+  ...atViewport("wide"),
+  args: { contributions: [PROJECTS_WITH_A_STALE_NOTICE, time, third] },
+  play: async ({ canvas }) => {
+    const reported = spyOn(console, "error").mockImplementation(() => undefined);
+    await startFromThePalette(canvas, "remind me");
+    await userEvent.click(await screen.findByRole("button", { name: "Stop at …" }));
+    const notice = await screen.findByText("The action could not be completed. Please try again.");
+    await waitFor(() => expect(notice).toBeVisible());
+    await expect(reported).toHaveBeenCalled();
+    reported.mockRestore();
+    await expect(screen.queryByRole("dialog", { name: "Projects" })).toBeNull();
+    await expect(canvas.getByText("Page content")).toBeVisible();
   },
 };
