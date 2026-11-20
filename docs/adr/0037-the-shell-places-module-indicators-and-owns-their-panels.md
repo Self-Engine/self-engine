@@ -36,7 +36,9 @@ The Shell owns one open Indicator Panel at a time. It uses a popover below the M
 on wide, medium and narrow, and a sheet from below on phone. An opening keeps the kind of frame
 it opened in until it closes, so its content keeps its state when the window crosses the phone
 border. Focus moves into the panel and returns to the Module Indicator when it closes, also when
-a Command or a Notice opened it. The panel lives outside the address and closes on a change of
+a Command or a Notice opened it. While the Edit Drawer is open, its overlay covers the Module
+Indicator, and the focus returns into the drawer instead, so the drawer takes the next Escape. The
+panel lives outside the address and closes on a change of
 page, and when its module leaves the module list. A press inside a layer that a field of the
 panel draws in a portal, such as a date field's calendar or a Select's list, counts as a press
 inside the panel. The popover lies on Mantine's popover layer, over the Edit Drawer; the Command
@@ -46,8 +48,9 @@ The Indicator Panel and Edit Drawer use the same unsaved-changes hook, the same 
 same Escape exit. The question lies just above Mantine's popover layer, so the panel's fields take
 no click or key while it waits.
 The panel asks before losing a draft on Escape, an outside click, a second click on its opener,
-Cancel, a change of page or another panel opening. `onDone` closes the current opening without
-asking. A form from `forms` reports its draft through the shared hook.
+Cancel, a change of page or another panel opening. A click on a link of the navigation is an
+outside click and a change of page: it asks once, and "Discard" closes the panel and changes the
+page. `onDone` closes the current opening without asking. A form from `forms` reports its draft through the shared hook.
 
 The Module Indicator and panel content have their own error boundaries. A failed Module
 Indicator shows the module's icon in a warning tone with an accessible retry control. Failed

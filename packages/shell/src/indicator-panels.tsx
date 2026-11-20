@@ -37,6 +37,9 @@ function createIndicatorPanels() {
     open = next;
     for (const listener of listeners) listener();
   };
+  /** Whether the open panel's unsaved changes may go: asks when its content reports any. */
+  const mayDiscard = async () =>
+    open === undefined ? true : ((await questions.get(open.moduleId)?.()) ?? true);
   const panels = {
     subscribe: (listener: () => void) => {
       listeners.add(listener);
@@ -57,10 +60,11 @@ function createIndicatorPanels() {
     },
     /**
      * Whether the open panel may be left: asks when its content reports unsaved changes. Closes
-     * nothing, for a change of page, which closes the panel once the new page is on screen.
+     * nothing, for a change of page, which closes the panel once the new page is on screen. A
+     * click on a link of the navigation is a click outside the panel first and a change of page
+     * next: the change of page waits for the answer the click is asking for.
      */
-    confirmLeave: async () =>
-      open === undefined ? true : ((await questions.get(open.moduleId)?.()) ?? true),
+    confirmLeave: () => leaving ?? mayDiscard(),
     /**
      * The one way out of a panel, which every way but "done" takes: Escape, a click outside, a
      * second click on the indicator, cancel from the content and another panel. Asks first when
@@ -73,7 +77,7 @@ function createIndicatorPanels() {
       leaving ??= (async () => {
         const left = open;
         try {
-          if (!(await panels.confirmLeave())) return false;
+          if (!(await mayDiscard())) return false;
           if (open === left) set(undefined);
           return true;
         } finally {

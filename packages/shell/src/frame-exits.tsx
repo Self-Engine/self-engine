@@ -8,6 +8,13 @@ import { confirm, LoadingState } from "@self-engine/ui";
 import { createContext, useCallback, useContext, useLayoutEffect, useRef, useState } from "react";
 import { LazyContribution, type LazyComponents, type LoadComponent } from "./lazy-contribution.tsx";
 
+/**
+ * The Edit Drawer's frame while it is open, which carries the mark `data-edit-drawer-open` then.
+ * Its overlay covers the content header, so an Indicator Panel that closes over it gives the focus
+ * to the drawer, not to the indicator behind the overlay.
+ */
+export const openEditDrawer = () => document.querySelector<HTMLElement>("[data-edit-drawer-open]");
+
 type UnsavedCheck = () => boolean;
 
 export const UnsavedChangesContext = createContext<((check: UnsavedCheck) => () => void) | null>(

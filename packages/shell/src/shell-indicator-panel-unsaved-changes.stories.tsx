@@ -287,6 +287,35 @@ const changeOfPage = (choice: "Discard" | "Keep editing"): Story => ({
 export const AChangeOfPageAsksAndDiscardMoves = changeOfPage("Discard");
 export const AChangeOfPageAsksAndKeepEditingStays = changeOfPage("Keep editing");
 
+/**
+ * A click on a link of the navigation is two ways out at once: a click outside the panel, and a
+ * change of page. Both wait for the one question, and "Discard" answers both.
+ */
+const aClickThatChangesThePage = (choice: "Discard" | "Keep editing"): Story => ({
+  ...atViewport("wide"),
+  args: { ...WITH_DRAFT, routing: storyRouting() },
+  render: (args) => <NavigatingShell {...args} />,
+  play: async ({ canvas }) => {
+    const { note } = await openWithDraft(canvas);
+    await userEvent.click(canvas.getByRole("button", { name: "Go to another page" }));
+    await asked();
+    await answer(choice);
+    await noQuestion();
+    if (choice === "Discard") {
+      await expect(await canvas.findByRole("heading", { name: "Overview" })).toBeVisible();
+      await panelGone();
+    } else {
+      await expectPanelVisible();
+      await expect(note).toHaveValue("x");
+      await expect(canvas.queryByRole("heading", { name: "Overview" })).toBeNull();
+    }
+  },
+});
+
+export const AClickThatChangesThePageAsksOnceAndDiscardMoves = aClickThatChangesThePage("Discard");
+export const AClickThatChangesThePageAsksOnceAndKeepEditingStays =
+  aClickThatChangesThePage("Keep editing");
+
 export const AChangeOfPageWithoutChangesDoesNotAsk: Story = {
   ...atViewport("wide"),
   args: { ...WITH_DRAFT, routing: storyRouting() },

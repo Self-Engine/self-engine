@@ -14,7 +14,7 @@ import { whenIdle } from "./idle.ts";
 import { useIndicatorPanels, useOpeningOf } from "./indicator-panels.tsx";
 import { lazyComponents } from "./lazy-contribution.tsx";
 import { type LeaveGuard, useShellRouting } from "./routing.tsx";
-import { FrameContent, useDiscardQuestion, useEscapeExit } from "./frame-exits.tsx";
+import { FrameContent, openEditDrawer, useDiscardQuestion, useEscapeExit } from "./frame-exits.tsx";
 
 /** The popover's width on the wide, medium and narrow step, in unscaled pixels. */
 export const INDICATOR_PANEL_WIDTH = 320;
@@ -71,9 +71,19 @@ const FOCUSABLE =
  * that opened it, or on the indicator's first control when a Command or a Notice opened it. Mantine's
  * own return goes to whatever had the focus at the opening, such as the Command Palette's field.
  * Its rule of when to return stays: only when the focus is nowhere or has not moved since closing.
+ *
+ * While the Edit Drawer is open, its overlay covers the indicator, and the drawer hears Escape
+ * only with the focus inside it. So the focus goes into the drawer then: where it last was there,
+ * or on the drawer's first control.
  */
 function useFocusBackToTheIndicator(opened: boolean, place: HTMLElement | null) {
   const opener = useRef<HTMLElement | null>(null);
+  const lastInDrawer = useRef<HTMLElement | null>(null);
+  useWindowEvent("focusin", ({ target }) => {
+    if (target instanceof HTMLElement && openEditDrawer()?.contains(target)) {
+      lastInDrawer.current = target;
+    }
+  });
   useDidUpdate(() => {
     const focused = document.activeElement;
     if (opened) {
@@ -83,10 +93,14 @@ function useFocusBackToTheIndicator(opened: boolean, place: HTMLElement | null) 
     const timeout = window.setTimeout(() => {
       const now = document.activeElement;
       if (now !== null && now !== document.body && now !== focused) return;
+      const drawer = openEditDrawer();
+      const inDrawer = drawer?.contains(lastInDrawer.current)
+        ? lastInDrawer.current
+        : drawer?.querySelector<HTMLElement>(FOCUSABLE);
       const indicator = opener.current?.isConnected
         ? opener.current
         : place?.querySelector<HTMLElement>(FOCUSABLE);
-      indicator?.focus({ preventScroll: true });
+      (drawer ? inDrawer : indicator)?.focus({ preventScroll: true });
     }, 10);
     return () => window.clearTimeout(timeout);
   }, [opened]);
@@ -133,8 +147,8 @@ function usePanelQuestion(moduleId: string, opened: boolean, frameOf: () => HTML
   );
   // A change of the search on the same page, such as a filter or the Edit Drawer, keeps the panel.
   const guard = useCallback<LeaveGuard>(
-    ({ current, next }) => current.pathname === next.pathname || confirmDiscard(),
-    [confirmDiscard],
+    ({ current, next }) => current.pathname === next.pathname || panels.confirmLeave(),
+    [panels],
   );
   useShellRouting().useLeaveGuard(guard, opened);
   return question;

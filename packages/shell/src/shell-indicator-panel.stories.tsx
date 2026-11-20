@@ -677,6 +677,11 @@ export const ACommandPutsThePanelOverTheEditDrawer: Story = {
     await pressEscape();
     await panelGone();
     await expect(screen.getByRole("dialog", { name: "Time" })).toBeVisible();
+    // The indicator lies behind the drawer's overlay, so the focus goes back into the drawer,
+    // which then takes the next Escape.
+    await waitFor(() => expect(drawer.contains(document.activeElement)).toBe(true));
+    await pressEscape();
+    await waitFor(() => expect(screen.queryByRole("dialog", { name: "Time" })).toBeNull());
   },
 };
 

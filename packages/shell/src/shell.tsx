@@ -1041,6 +1041,8 @@ function ModuleEditDrawer({ module }: { readonly module: ShellContribution | und
   return (
     <Drawer
       {...frame}
+      // Read by `openEditDrawer`.
+      data-edit-drawer-open={target !== undefined || undefined}
       closeOnEscape={false}
       ref={frameRef}
       opened={target !== undefined}
