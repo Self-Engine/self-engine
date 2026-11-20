@@ -21,3 +21,5 @@ export { nextTick, startOfNextDay, type TickStep } from "./next-tick.ts";
 export { formatInstant, type InstantFormat } from "./format.ts";
 export { formatDuration, type DurationFormat } from "./format.ts";
 export { formatCalendarDay, type CalendarDayFormat } from "./format.ts";
+export { calendarDayFromText, calendarLabels, clockFormatOf } from "./field-text.ts";
+export type { CalendarLabels } from "./field-text.ts";

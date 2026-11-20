@@ -83,13 +83,25 @@ test("the public functions use only package values and require all arguments", (
   expectTypeOf(time.formatCalendarDay).toEqualTypeOf<
     (day: CalendarDay, format: CalendarDayFormat, locale: string) => string
   >();
-  expectTypeOf<CalendarDayFormat>().toEqualTypeOf<"weekdayDate" | "shortDate">();
+  expectTypeOf<CalendarDayFormat>().toEqualTypeOf<
+    | "weekdayDate"
+    | "shortDate"
+    | "fieldDate"
+    | "monthYear"
+    | "weekday"
+    | "month"
+    | "year"
+    | "fullDate"
+  >();
   expect(Object.keys(time).sort()).toEqual(
     [
       "addDays",
       "addMonths",
+      "calendarDayFromText",
       "calendarDayOf",
       "calendarDaySchema",
+      "calendarLabels",
+      "clockFormatOf",
       "deviceTimeZone",
       "instantAt",
       "instantRangeOf",

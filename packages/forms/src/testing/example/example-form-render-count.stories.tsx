@@ -59,3 +59,22 @@ export const TypingInOneFieldRedrawsNoOtherField: Story = {
     await expect((loaded["port"] as RecordingPort).calls).toEqual([]);
   },
 };
+
+const DATE_FIELDS = ["CalendarDayField", "WallClockTimeField"] as const;
+
+export const TypingElsewhereRedrawsNeitherTheDayNorTheTime: Story = {
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const title = canvas.getByRole("textbox", { name: "Title" });
+    const day = canvas.getByRole("textbox", { name: "Day" });
+
+    await expect(
+      await fieldsDrawnDuring(DATE_FIELDS, () => userEvent.type(title, "Kitchen")),
+    ).toEqual({ CalendarDayField: 0, WallClockTimeField: 0 });
+    // A typed day draws its own field once for each value it hands on: here 2020-11-05 on the way
+    // to 2026-11-05, read from "11/5/20". The time field does not draw.
+    await expect(
+      await fieldsDrawnDuring(DATE_FIELDS, () => userEvent.type(day, "11/5/2026")),
+    ).toEqual({ CalendarDayField: 2, WallClockTimeField: 0 });
+  },
+};

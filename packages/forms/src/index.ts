@@ -16,6 +16,12 @@ export {
   type IconFieldProps,
 } from "./picker-fields.tsx";
 export {
+  CalendarDayField,
+  type CalendarDayFieldProps,
+  WallClockTimeField,
+  type WallClockTimeFieldProps,
+} from "./date-fields.tsx";
+export {
   LongTextField,
   type LongTextFieldProps,
   TextField,

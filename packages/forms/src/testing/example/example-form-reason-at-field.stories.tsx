@@ -287,7 +287,14 @@ function FormWithoutItsDescription({ created }: { readonly created: () => void }
   const form = useOperationForm({
     entry: exampleContract.create,
     operation: useCreateExample(),
-    draft: { title: "Kitchen", description: "Paint the walls.", icon: null, color: null },
+    draft: {
+      title: "Kitchen",
+      description: "Paint the walls.",
+      icon: null,
+      color: null,
+      day: null,
+      start: null,
+    },
     entryName: "Kitchen",
     onSuccess: created,
   });
@@ -418,7 +425,7 @@ function FormWithAColorSetByCode() {
   const form = useOperationForm({
     entry: exampleContract.create,
     operation: useCreateExample(),
-    draft: { title: "", description: "", icon: null, color: "ocean" },
+    draft: { title: "", description: "", icon: null, color: "ocean", day: null, start: null },
     entryName: "Kitchen",
   });
   return (
@@ -467,7 +474,7 @@ function FormWithAnUnfinishedDescription() {
   const form = useOperationForm({
     entry: exampleContract.create,
     operation: useCreateExample(),
-    draft: { title: "", description: "", icon: null, color: null },
+    draft: { title: "", description: "", icon: null, color: null, day: null, start: null },
   });
   const field = useFieldBinding(form, "description");
   return (
@@ -496,7 +503,7 @@ function FormWithADescriptionReportedUnfinishedByCode() {
   const form = useOperationForm({
     entry: exampleContract.create,
     operation: useCreateExample(),
-    draft: { title: "", description: "", icon: null, color: null },
+    draft: { title: "", description: "", icon: null, color: null, day: null, start: null },
     entryName: "Kitchen",
   });
   const field = useFieldBinding(form, "description");
@@ -581,7 +588,15 @@ function FormFollowingItsStoredTitle() {
   const form = useOperationForm({
     entry: exampleContract.update,
     operation: useUpdateExample(),
-    draft: { id: ROW, title, description: "Paint the walls.", icon: null, color: null },
+    draft: {
+      id: ROW,
+      title,
+      description: "Paint the walls.",
+      icon: null,
+      color: null,
+      day: null,
+      start: null,
+    },
     edit: { identity: { id: ROW } },
   });
   return (
@@ -646,7 +661,7 @@ function FormTheNoticeChanges({ removesTheColor }: { readonly removesTheColor: b
   const form = useOperationForm({
     entry: exampleContract.create,
     operation: useCreateExample(),
-    draft: { title: "", description: "", icon: null, color: "ocean" },
+    draft: { title: "", description: "", icon: null, color: "ocean", day: null, start: null },
     entryName: "Kitchen",
   });
   useLayoutEffect(() => {

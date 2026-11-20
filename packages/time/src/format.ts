@@ -18,6 +18,18 @@ const CALENDAR_DAY_FORMATS = {
   weekdayDate: { weekday: "short", month: "short", day: "numeric" },
   /** Numeric month and day, such as `11/13` or `13.11.`. */
   shortDate: { month: "numeric", day: "numeric" },
+  /** What a date field shows and reads back, such as `11/05/2026` or `05.11.2026`. */
+  fieldDate: { day: "2-digit", month: "2-digit", year: "numeric" },
+  /** The heading of a month in a calendar, such as `November 2026`. */
+  monthYear: { month: "long", year: "numeric" },
+  /** The head of a weekday column in a calendar, such as `Thu` or `Do`. */
+  weekday: { weekday: "short" },
+  /** A month in a calendar's list of a year, such as `Nov`. */
+  month: { month: "short" },
+  /** A year, such as `2026`. */
+  year: { year: "numeric" },
+  /** A day read out in full, such as `Thursday, November 5, 2026`. */
+  fullDate: { dateStyle: "full" },
 } as const satisfies Record<string, Intl.DateTimeFormatOptions>;
 
 /** The name of a display format for a Calendar Day. */

@@ -36,9 +36,16 @@ export const STARTUP_RULES = {
         "build forms with @self-engine/forms only in an Edit Drawer or a View that loads on demand.",
     },
     {
-      // The date and time fields of `forms` (D325), with their date library.
+      // The date and time fields of `forms` (D325), with their styles.
       name: "Mantine's date fields",
       path: "/node_modules/@mantine/dates/",
+      instead:
+        "build forms with @self-engine/forms only in an Edit Drawer or a View that loads on demand.",
+    },
+    {
+      // Mantine's date fields compute with it; nothing of the app imports it (ADR 0027).
+      name: "The date library of Mantine's date fields",
+      path: "/node_modules/dayjs/",
       instead:
         "build forms with @self-engine/forms only in an Edit Drawer or a View that loads on demand.",
     },

@@ -27,7 +27,14 @@ function Flow({
   const form = useOperationForm({
     entry: exampleContract.create,
     operation: useCreateExample(),
-    draft: { title: "Kitchen", description: "Paint the walls.", icon: null, color: null },
+    draft: {
+      title: "Kitchen",
+      description: "Paint the walls.",
+      icon: null,
+      color: null,
+      day: null,
+      start: null,
+    },
     onDone: done,
   });
   const fields = (
@@ -107,7 +114,14 @@ export const SuccessClosesOnce: Story = {
     await expect((loaded as Loaded).port.calls).toEqual([
       {
         entry: "create",
-        input: { title: "Kitchen", description: "Paint the walls.", icon: null, color: null },
+        input: {
+          title: "Kitchen",
+          description: "Paint the walls.",
+          icon: null,
+          color: null,
+          day: null,
+          start: null,
+        },
       },
     ]);
   },

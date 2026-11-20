@@ -136,7 +136,14 @@ export const AValidFormCallsTheOperationOnce: Story = {
     await expect(port.calls).toEqual([
       {
         entry: "create",
-        input: { title: "Kitchen", description: "Paint the walls.", icon: null, color: null },
+        input: {
+          title: "Kitchen",
+          description: "Paint the walls.",
+          icon: null,
+          color: null,
+          day: null,
+          start: null,
+        },
       },
     ]);
     await expect(saved).toHaveBeenCalledTimes(1);

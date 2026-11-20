@@ -291,9 +291,51 @@ A field accepting half-typed text keeps that text itself. A finished value calls
 unsaved change and blocks submit, showing a message on leave or Save. Never silently submit the
 older value. When `field.setFromOutside` changes, a value came by code or from the followed
 entry: replace the local text with the formatted `field.value`, even if that value did not
-change. Date/time fields follow with `time-tracking`; use the working example in
+change. Use the working example in
 [`bound-fields.stories.tsx`](../../packages/forms/src/testing/example/bound-fields.stories.tsx)
-for the local text pattern.
+for the local text pattern; the date and time fields below follow it.
+
+## A date and a time
+
+`CalendarDayField` binds a Calendar Day, `WallClockTimeField` a Wall-Clock Time, each with
+Mantine's picker (D319): the calendar of `DateInput` and the hours and minutes of `TimePicker`
+with its lists. Both can be picked and typed. Give the date field the first day of the week,
+which the View reads with `useFirstDayOfWeek()` from `@self-engine/time/react`; neither field
+reads a Setting or a clock:
+
+```tsx
+const firstDayOfWeek = useFirstDayOfWeek(); // in the drawer, outside the form
+
+<CalendarDayField form={form} name="day" label={t`Day`} firstDayOfWeek={firstDayOfWeek} />
+<WallClockTimeField form={form} name="start" label={t`Start`} clearable />
+```
+
+The Contract declares the fields with `calendarDaySchema` and `wallClockTimeSchema` of `time`,
+`.nullable()` when the field may stay empty, and the Draft starts with `null`. The field writes a
+`CalendarDay` (`YYYY-MM-DD`) or a `WallClockTime` (`HH:MM`); a picker never hands on a `Date`.
+`name` accepts only a field that takes the value or `null`. The compiler cannot tell a day from a
+title: a Contract's input type carries no brand of Zod, so the Draft holds `string | null` for
+both, and the field checks the value it reads.
+
+- **Typing a day:** the language's numeric order, `5.11.2026` in German, `11/5/2026` in English,
+  with any separators and a two-digit year for 2000–2099, or `2026-11-05`. The field shows the
+  day as `05.11.2026` or `11/05/2026`. The text becomes the day as soon as it is whole.
+- **Typing a time:** into the hours, then the minutes (and AM or PM in English, which counts 12
+  hours, as `formatInstant` does). Hours without minutes are unfinished.
+- **Unfinished:** half a date, a day that does not exist or hours without minutes keep the older
+  value, block the save and show "Complete or clear this field." once the field is left.
+- **Empty:** emptying the text or every part hands on `null`; `clearable` adds the clear button.
+  A click on the day the field holds keeps it.
+- **Language:** month and weekday names, the text of a day and the 12- or 24-hour clock come from
+  `time` (`calendarLabels`, the format `fieldDate`, `clockFormatOf`), not from Mantine's date
+  library: nothing in the app imports `dayjs` (ADR 0027).
+- **A value from outside** draws the picker anew, so a story that changed the value finds its
+  inputs again instead of keeping the old element.
+
+Both fields, their styles and `dayjs` load with the first form; the startup check rejects
+`@mantine/dates` and `dayjs` in the start. The stories in
+[`example-form-dates.stories.tsx`](../../packages/forms/src/testing/example/example-form-dates.stories.tsx)
+pick, type, block and switch the language.
 
 ## Prove the form
 
