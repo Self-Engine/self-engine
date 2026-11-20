@@ -71,6 +71,8 @@ export default defineConfig({
         rules: {
           "self-engine/no-query-or-throw": "error",
           "self-engine/no-time-outside-time": "error",
+          // The DOM library is in time's tsconfig for its React entry only (the rule says why).
+          "self-engine/no-dom-in-time-core": "error",
           // The Protection Rules hold at the frame's write paths only (D332).
           "self-engine/no-write-outside-write-paths": "error",
         },
