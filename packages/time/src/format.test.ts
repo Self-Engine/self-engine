@@ -93,3 +93,12 @@ test.each([
 
   expect(formatCalendarDay(day, "shortDate", locale)).toBe(expected);
 });
+
+test.each([
+  ["en", "2026-11-13T12:30:45.000Z", "1:30 PM"],
+  ["de", "2026-11-13T12:30:45.000Z", "13:30"],
+  // The second 02:30 of Berlin's night of 25 October 2026 reads like the first.
+  ["de", "2026-10-25T01:30:00.000Z", "02:30"],
+] as const)("time in %s: %s is %s", (locale, instant, expected) => {
+  expect(shown(requireInstant(instant), "time", locale, zone("Europe/Berlin"))).toBe(expected);
+});

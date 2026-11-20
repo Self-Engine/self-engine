@@ -3,6 +3,7 @@
 // the start of the app (the startup check holds it).
 
 import type { Instant } from "./instant.ts";
+import { utcOffsetText } from "./utc-offset.ts";
 import { sameTimeZone, type TimeZone } from "./zone.ts";
 
 /** One zone of the list, as the picker shows it. */
@@ -34,21 +35,18 @@ export function timeZonePlaces(): readonly string[] {
   return runtimeZones().map(placeOf);
 }
 
-function offsetText(nanoseconds: number): string {
-  const minutes = Math.round(nanoseconds / 60e9);
-  const sign = minutes < 0 ? "-" : "+";
-  const hours = Math.floor(Math.abs(minutes) / 60);
-  const rest = Math.abs(minutes) % 60;
-  return `UTC${sign}${hours}${rest === 0 ? "" : `:${String(rest).padStart(2, "0")}`}`;
-}
-
 interface Sortable extends TimeZoneChoice {
   readonly nanoseconds: number;
 }
 
 function choiceOf(timeZone: TimeZone, now: Temporal.Instant): Sortable {
   const nanoseconds = now.toZonedDateTimeISO(timeZone).offsetNanoseconds;
-  return { timeZone, place: placeOf(timeZone), offset: offsetText(nanoseconds), nanoseconds };
+  return {
+    timeZone,
+    place: placeOf(timeZone),
+    offset: utcOffsetText(nanoseconds / 60e9),
+    nanoseconds,
+  };
 }
 
 // By code unit, so that the order is the same in every language and on every device.

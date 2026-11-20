@@ -23,7 +23,7 @@ import {
 import { exampleTiedFields, exampleContract } from "./contract.ts";
 import { loadStoryShell, StoryDrawer } from "./drawer-story.tsx";
 import { fieldsDrawnDuring } from "./fields-drawn.ts";
-import { type ExampleEntry, exampleEditTexts } from "./example-form.tsx";
+import { EXAMPLE_TODAY, type ExampleEntry, exampleEditTexts } from "./example-form.tsx";
 import { useExampleEntries, useUpdateExample } from "./port.ts";
 import { CREATED, type ChangingPort, changingPort } from "./story-port.ts";
 
@@ -70,7 +70,13 @@ function EntryForm({ entry, deleted: gone, onCancel, onDelete }: EntryFormProps)
       <LongTextField form={form} label="Description" name="description" />
       <IconField form={form} label="Icon" name="icon" />
       <ColorField form={form} label="Color" name="color" />
-      <CalendarDayField firstDayOfWeek="monday" form={form} label="Day" name="day" />
+      <CalendarDayField
+        firstDayOfWeek="monday"
+        form={form}
+        label="Day"
+        name="day"
+        today={EXAMPLE_TODAY}
+      />
       <WallClockTimeField form={form} label="Start" name="start" />
       {saved && <output>Saved</output>}
       {/* What the form was given, drawn in the same commit: the stories read when it changes. */}
