@@ -46,7 +46,7 @@ async function openWindow(stored: Stored = {}, device = BANGKOK) {
   let deviceZone = device;
   const shown: ZoneOffer[] = [];
   const open = new Set<ZoneOffer>();
-  const switched: (readonly [TimeZone, TimeZone])[] = [];
+  const switched: (readonly [string, TimeZone])[] = [];
   const stop = followDeviceZone({
     store,
     deviceZone: () => deviceZone,
@@ -219,4 +219,72 @@ test("nothing is offered after the watching has stopped, and an open offer is wi
   app.adapters.synced.changeFromOutside([{ key: "time.followDevice", value: true }]);
   expect(app.shown).toHaveLength(1);
   expect(app.store.read(TIME_ZONE_SETTING)).toBe("Europe/Berlin");
+});
+
+test("follow device turned on here takes the device's zone at once, with no offer open", async () => {
+  const app = await openWindow({ ...IN_BERLIN, device: { "time.zoneOfferDismissed": true } });
+  expect(app.shown).toEqual([]);
+  app.store.write(FOLLOW_DEVICE_ZONE_SETTING, true);
+  expect(app.store.read(TIME_ZONE_SETTING)).toBe("Asia/Bangkok");
+  expect(app.shown).toEqual([]);
+});
+
+test("follow device turned on after an offer was closed takes the device's zone", async () => {
+  const app = await openWindow(IN_BERLIN);
+  app.closeOffer();
+  app.store.write(FOLLOW_DEVICE_ZONE_SETTING, true);
+  expect(app.store.read(TIME_ZONE_SETTING)).toBe("Asia/Bangkok");
+  expect(app.shown).toHaveLength(1);
+});
+
+test("a zone that arrives after the start, from the database, decides again", async () => {
+  const app = await openWindow();
+  expect(app.shown).toEqual([]);
+  app.adapters.synced.changeFromOutside([{ key: "time.zone", value: "Europe/Berlin" }]);
+  expect(app.offer()).toMatchObject({ stored: BERLIN, device: BANGKOK });
+});
+
+test("a zone that arrives after the start with follow device on is followed", async () => {
+  const app = await openWindow({ synced: { "time.followDevice": true } });
+  app.adapters.synced.changeFromOutside([{ key: "time.zone", value: "Europe/Berlin" }]);
+  expect(app.store.read(TIME_ZONE_SETTING)).toBe("Asia/Bangkok");
+  expect(app.shown).toEqual([]);
+});
+
+test("an offer closed without an answer stays closed when only the stored name's spelling changes", async () => {
+  const app = await openWindow({ synced: { "time.zone": "Asia/Calcutta" } });
+  app.closeOffer();
+  app.adapters.synced.changeFromOutside([{ key: "time.zone", value: "Asia/Kolkata" }]);
+  expect(app.shown).toHaveLength(1);
+  expect(app.open.size).toBe(0);
+});
+
+test("an offer closed without an answer gives way to the offer of another stored zone", async () => {
+  const app = await openWindow(IN_BERLIN);
+  app.closeOffer();
+  app.adapters.synced.changeFromOutside([{ key: "time.zone", value: "Europe/Paris" }]);
+  expect(app.offer()).toMatchObject({ stored: zone("Europe/Paris"), device: BANGKOK });
+});
+
+test("another window rewriting the stored name to another spelling keeps the open offer", async () => {
+  const app = await openWindow({ synced: { "time.zone": "Asia/Calcutta" } });
+  app.adapters.synced.changeFromOutside([{ key: "time.zone", value: "Asia/Kolkata" }]);
+  expect(app.shown).toHaveLength(1);
+  expect(app.open.size).toBe(1);
+});
+
+test("the device reporting its zone under another name keeps the open offer", async () => {
+  const app = await openWindow({ synced: { "time.zone": "Europe/Berlin" } }, zone("Asia/Calcutta"));
+  app.becomes("hidden");
+  app.deviceMovesTo(KOLKATA);
+  app.becomes("visible");
+  expect(app.shown).toHaveLength(1);
+  expect(app.open.size).toBe(1);
+});
+
+test("Switch reports the stored name exactly as it was stored, for Undo", async () => {
+  const app = await openWindow({ synced: { "time.zone": "europe/berlin" } });
+  expect(app.offer()).toMatchObject({ stored: BERLIN, device: BANGKOK });
+  app.offer().switchZone();
+  expect(app.switched).toEqual([["europe/berlin", BANGKOK]]);
 });

@@ -37,7 +37,7 @@ export interface DeviceZoneOfferProps {
 /**
  * Offers to switch to the device's zone at the start and whenever the window becomes visible
  * again (`followDeviceZone`). After "Switch", a Notice confirms the new zone and offers to take
- * it back. Renders nothing; it sits inside `FeedbackHost` and the App Language.
+ * it back: "Undo" writes the stored name exactly as it was stored, its spelling included (D282). Renders nothing; it sits inside `FeedbackHost` and the App Language.
  */
 export function DeviceZoneOffer({ store, deviceZone, page = document }: DeviceZoneOfferProps) {
   useEffect(

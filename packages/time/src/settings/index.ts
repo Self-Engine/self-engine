@@ -14,6 +14,9 @@ import {
 } from "../first-day-of-week.ts";
 import { NAME_SHAPE, resolveTimeZoneOr, sameTimeZone, type TimeZone } from "../zone.ts";
 
+// Here as well as in the main entry, so that startup code compares zones without the schemas.
+export { sameTimeZone };
+
 /**
  * The user's Time Zone (D147): a zone name, or `null` while none is set. Open to names this
  * runtime does not know, so that a zone of a newer runtime stays stored; `resolveTimeZoneSetting`
@@ -101,7 +104,14 @@ export interface ZoneOfferInputs {
  */
 export type ZoneOfferDecision =
   | { readonly kind: "nothing" }
-  | { readonly kind: "offer"; readonly stored: TimeZone; readonly device: TimeZone }
+  | {
+      readonly kind: "offer";
+      /** The stored zone, resolved: for display and comparison. */
+      readonly stored: TimeZone;
+      /** The Setting's value exactly as it was stored (D282), to write it back. */
+      readonly storedName: string;
+      readonly device: TimeZone;
+    }
   | { readonly kind: "follow"; readonly device: TimeZone };
 
 const NOTHING: ZoneOfferDecision = { kind: "nothing" };
@@ -122,5 +132,5 @@ export function decideZoneOffer({
   const { timeZone, fallback } = resolveTimeZoneSetting(stored, device);
   if (fallback !== "none" || sameTimeZone(timeZone, device)) return NOTHING;
   if (followDevice) return { kind: "follow", device };
-  return dismissed ? NOTHING : { kind: "offer", stored: timeZone, device };
+  return dismissed ? NOTHING : { kind: "offer", stored: timeZone, storedName: stored, device };
 }
