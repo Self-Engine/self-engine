@@ -55,7 +55,7 @@ function timeZoneRow(clock: Clock): SettingsRow {
         data={data}
         disabled={followsDevice}
         flex="0 1 18rem"
-        nothingFoundMessage={t`No time zone found`}
+        nothingFoundMessage={t`No Time Zone found`}
         onChange={(name) => {
           if (name !== null) store.write(TIME_ZONE_SETTING, name);
         }}
@@ -81,7 +81,7 @@ const FOLLOW_DEVICE_ROW = switchRow({
   view: VIEW_IDS.language,
   title: msg`Follow device`,
   description: msg`Switch the Time Zone to the zone of this device whenever the device changes zones, without asking.`,
-  searchWords: [msg`Travel`, msg`Automatic time zone`],
+  searchWords: [msg`Travel`, msg`Automatic Time Zone`],
   setting: FOLLOW_DEVICE_ZONE_SETTING,
 });
 

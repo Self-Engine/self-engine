@@ -38,7 +38,7 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 const OFFER =
-  "This device is in the time zone Asia/Bangkok. Switch from Europe/Berlin to Asia/Bangkok?";
+  "This device is in the Time Zone Asia/Bangkok. Switch from Europe/Berlin to Asia/Bangkok?";
 
 async function noticeWith(text: string) {
   const notice = (await screen.findByText(text)).closest<HTMLElement>(
@@ -75,7 +75,7 @@ export const SwitchStoresTheDeviceZoneAndOffersToUndoIt: Story = {
     await noticeGone(OFFER);
     await expect(store.read(TIME_ZONE_SETTING)).toBe("Asia/Bangkok");
 
-    const confirmation = await noticeWith("The time zone is now Asia/Bangkok.");
+    const confirmation = await noticeWith("The Time Zone is now Asia/Bangkok.");
     await userEvent.click(confirmation.getByRole("button", { name: "Undo" }));
     await expect(store.read(TIME_ZONE_SETTING)).toBe("Europe/Berlin");
   },

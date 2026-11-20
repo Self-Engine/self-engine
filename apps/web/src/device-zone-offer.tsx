@@ -14,11 +14,11 @@ function showZoneOffer({ stored, device, switchZone, dismiss, closed }: ZoneOffe
   return notifyChoice({
     message: (
       <Trans>
-        This device is in the time zone {device}. Switch from {stored} to {device}?
+        This device is in the Time Zone {device}. Switch from {stored} to {device}?
       </Trans>
     ),
     actions: [
-      { label: <Trans context="Time zone">Switch</Trans>, run: switchZone },
+      { label: <Trans context="Time Zone">Switch</Trans>, run: switchZone },
       { label: <Trans>Don't ask again</Trans>, run: dismiss },
     ],
     onClosed: closed,
@@ -46,7 +46,7 @@ export function DeviceZoneOffer({ store, device }: DeviceZoneOfferProps) {
         showOffer: showZoneOffer,
         onSwitched: (from, to) =>
           notifyUndoable({
-            message: <Trans>The time zone is now {to}.</Trans>,
+            message: <Trans>The Time Zone is now {to}.</Trans>,
             undo: () => store.write(TIME_ZONE_SETTING, from),
           }),
       }),

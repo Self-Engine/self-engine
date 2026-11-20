@@ -139,8 +139,8 @@ msgid "Automatic"
 msgstr "Automatic"
 
 #: packages/settings-area/src/region-rows.tsx
-msgid "Automatic time zone"
-msgstr "Automatic time zone"
+msgid "Automatic Time Zone"
+msgstr "Automatic Time Zone"
 
 #: packages/settings-area/src/rows.tsx
 msgid "Background Tint"
@@ -942,8 +942,8 @@ msgid "No smoking"
 msgstr "No smoking"
 
 #: packages/settings-area/src/region-rows.tsx
-msgid "No time zone found"
-msgstr "No time zone found"
+msgid "No Time Zone found"
+msgstr "No Time Zone found"
 
 #: packages/icons/src/directory/labels.ts
 msgctxt "Icon"
@@ -1345,7 +1345,7 @@ msgid "Sunrise"
 msgstr "Sunrise"
 
 #: apps/web/src/device-zone-offer.tsx
-msgctxt "Time zone"
+msgctxt "Time Zone"
 msgid "Switch"
 msgstr "Switch"
 
@@ -1465,8 +1465,8 @@ msgid "The size of the text in the whole app."
 msgstr "The size of the text in the whole app."
 
 #: apps/web/src/device-zone-offer.tsx
-msgid "The time zone is now {to}."
-msgstr "The time zone is now {to}."
+msgid "The Time Zone is now {to}."
+msgstr "The Time Zone is now {to}."
 
 #: packages/settings-area/src/region-rows.tsx
 msgid "The zone in which the app counts days and shows times."
@@ -1497,8 +1497,8 @@ msgid "This change is not allowed."
 msgstr "This change is not allowed."
 
 #: apps/web/src/device-zone-offer.tsx
-msgid "This device is in the time zone {device}. Switch from {stored} to {device}?"
-msgstr "This device is in the time zone {device}. Switch from {stored} to {device}?"
+msgid "This device is in the Time Zone {device}. Switch from {stored} to {device}?"
+msgstr "This device is in the Time Zone {device}. Switch from {stored} to {device}?"
 
 #: packages/data-client/src/react/operation-hook.ts
 msgid "This entry no longer exists."
