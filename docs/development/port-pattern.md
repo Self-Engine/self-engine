@@ -330,6 +330,29 @@ A test writes a Setting before it calls the module with `createSettingRows` from
 the Port of the test Data Process. One read costs about 0.012 ms
 ([performance](performance.md#a-setting-read-109)).
 
+### Read the Time Zone
+
+An entry that computes a Calendar Day or a wall-clock time asks for the Time Zone of its call with
+`context.readTimeZone(tx)` (D353), never through `readSetting` and `time`'s resolver by hand:
+
+```ts
+zone: {
+  kind: "query",
+  // The Time Zone is a Setting: a change of it reloads this Query.
+  reads: [SETTINGS_TABLE],
+  run: (tx, context) => context.readTimeZone(tx),
+},
+```
+
+It answers with a `TimeZone`. While none is stored, or for a stored name this runtime does not
+know, it answers with the device's zone, which the Data Process takes as a source like the clock;
+the Setting stays as it is, and the Data Process reports an unknown name once per start. A Query
+names `SETTINGS_TABLE` as for any Setting, and the contract kit fails it otherwise. A test names
+the device's zone with the `deviceZone` option of `startTestDataProcess` (default
+`Europe/Berlin`), as [`time-zone.test.ts`](../../packages/data-process/src/core/time-zone.test.ts)
+does. One call that asks for the Time Zone costs about 0.003 ms more than one that reads another
+Setting ([performance](performance.md#the-time-zone-of-a-call-362)).
+
 Done when every entry uses the supplied transaction and context, maps its result to its
 contract shape, and has the appropriate query/operation marker and conflict mapping.
 

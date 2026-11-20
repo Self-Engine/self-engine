@@ -35,7 +35,8 @@ export const ALLOWED_IMPORTS: AllowedImports = {
   "data-client": ["data-protocol", "i18n", "ui"],
   // The core knows no module: the app passes its module list in. It runs the migrations of
   // `spaces` and `settings` and makes sure of the Personal Space at every start (D287, D352).
-  "data-process": ["data-protocol", "db", "settings-rows", "spaces", "storage"],
+  // The device's zone it hands to every call is a `TimeZone` of `time` (D353).
+  "data-process": ["data-protocol", "db", "settings-rows", "spaces", "storage", "time"],
   // `health`, the Table Change stream and the Backups; a Backup's Instant comes from `time`.
   "data-protocol": ["db", "time"],
   // The preload and the page share it; the failure states come from the protocol.
@@ -99,8 +100,6 @@ export const TEST_ONLY_IMPORTS: AllowedImports = {
   icons: ["i18n"],
   // The test Data Process and the `notes` test module, to test the client over the real core.
   "data-client": ["data-process", "storage"],
-  // Instants written as text in the fixtures of the Backups the core answers with.
-  "data-process": ["time"],
   // The app's catalogs: the texts of the checks in both languages, and a story's language switch.
   forms: ["i18n"],
   // The test Data Process, to run the module's hooks end to end without the app (#33).

@@ -15,12 +15,12 @@
     "@self-engine/settings-rows": "workspace:*",
     "@self-engine/spaces": "workspace:*",
     "@self-engine/storage": "workspace:*",
+    "@self-engine/time": "workspace:*",
     "kysely": "catalog:"
   },
   "devDependencies": {
     "@orpc/client": "catalog:",
     "@orpc/contract": "catalog:",
-    "@self-engine/time": "workspace:*",
     "@types/node": "catalog:",
     "vite-plus": "catalog:",
     "zod": "catalog:"

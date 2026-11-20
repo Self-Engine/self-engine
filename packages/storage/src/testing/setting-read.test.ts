@@ -44,7 +44,7 @@ test.each([
   },
 );
 
-const examples = { hours: undefined, readHours: undefined };
+const examples = { hours: undefined, readHours: undefined, zone: undefined };
 
 test("the contract kit passes a Query that names the Settings table among its reads", async () => {
   await expect(checkContract(workday, () => {}, examples)).resolves.toEqual([]);
@@ -57,6 +57,16 @@ test("the contract kit fails a Query that reads a Setting and does not name the 
   };
   await expect(checkContract(forgetful, () => {}, examples)).resolves.toEqual([
     { entry: "hours", rule: "query reads an undeclared table: settings" },
+  ]);
+});
+
+test("the contract kit fails a Query that asks for the Time Zone and does not name the table", async () => {
+  const forgetful = {
+    ...workday,
+    entries: { ...workday.entries, zone: { ...workday.entries.zone, reads: [] } },
+  };
+  await expect(checkContract(forgetful, () => {}, examples)).resolves.toEqual([
+    { entry: "zone", rule: "query reads an undeclared table: settings" },
   ]);
 });
 
