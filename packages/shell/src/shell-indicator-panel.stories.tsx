@@ -495,6 +495,13 @@ async function startFromThePalette(canvas: Canvas, label: string) {
   await paletteGone();
 }
 
+/** However the panel opened, closing it puts the focus on its indicator. */
+async function expectFocusBackOnTheIndicatorAfterClosing(canvas: Canvas) {
+  await pressEscape();
+  await panelGone();
+  await waitFor(() => expect(canvas.getByRole("button", { name: "Open panel" })).toHaveFocus());
+}
+
 export const ACommandOpensThePanelWhileAnotherModuleIsActive: Story = {
   ...atViewport("wide"),
   // Time is active; the Command belongs to Projects.
@@ -502,6 +509,7 @@ export const ACommandOpensThePanelWhileAnotherModuleIsActive: Story = {
   play: async ({ canvas }) => {
     await startFromThePalette(canvas, "open the note");
     await expectFocusInPanel();
+    await expectFocusBackOnTheIndicatorAfterClosing(canvas);
   },
 };
 
@@ -512,6 +520,17 @@ export const TheActionOfANoticeOpensThePanel: Story = {
     await startFromThePalette(canvas, "remind me");
     await userEvent.click(await screen.findByRole("button", { name: "Stop at …" }));
     await expectFocusInPanel();
+    await expectFocusBackOnTheIndicatorAfterClosing(canvas);
+  },
+};
+
+export const ACommandOpensTheSheetOnThePhoneAndClosingReturnsToTheIndicator: Story = {
+  ...atViewport("phone"),
+  args: { contributions: [PROJECTS_WITH_COMMANDS, time, third] },
+  play: async ({ canvas }) => {
+    await startFromThePalette(canvas, "open the note");
+    await expectFocusInPanel();
+    await expectFocusBackOnTheIndicatorAfterClosing(canvas);
   },
 };
 

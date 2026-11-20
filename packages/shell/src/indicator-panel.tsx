@@ -4,7 +4,7 @@
 
 import { useLingui } from "@lingui/react/macro";
 import { Box, Drawer, Popover, rem } from "@mantine/core";
-import { useClickOutside, useMergedRef, useWindowEvent } from "@mantine/hooks";
+import { useClickOutside, useDidUpdate, useMergedRef, useWindowEvent } from "@mantine/hooks";
 import { LoadingState, NOT_WINDOW_DRAG_STYLE } from "@self-engine/ui";
 import { type CSSProperties, useCallback, useEffect, useRef, useState } from "react";
 import { useCommandPaletteOpen } from "./command-palette-state.tsx";
@@ -76,6 +76,35 @@ function usePanelPreload({ load, panel }: IndicatorPanelFrameProps["indicator"])
   }, [load, panel]);
 }
 
+const FOCUSABLE =
+  'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
+/**
+ * Puts the focus back on the indicator when the panel closes, however it opened: on the control
+ * that opened it, or on the indicator's first control when a Command or a Notice opened it. Mantine's
+ * own return goes to whatever had the focus at the opening, such as the Command Palette's field.
+ * Its rule of when to return stays: only when the focus is nowhere or has not moved since closing.
+ */
+function useFocusBackToTheIndicator(opened: boolean, place: HTMLElement | null) {
+  const opener = useRef<HTMLElement | null>(null);
+  useDidUpdate(() => {
+    const focused = document.activeElement;
+    if (opened) {
+      opener.current = focused instanceof HTMLElement && place?.contains(focused) ? focused : null;
+      return undefined;
+    }
+    const timeout = window.setTimeout(() => {
+      const now = document.activeElement;
+      if (now !== null && now !== document.body && now !== focused) return;
+      const indicator = opener.current?.isConnected
+        ? opener.current
+        : place?.querySelector<HTMLElement>(FOCUSABLE);
+      indicator?.focus({ preventScroll: true });
+    }, 10);
+    return () => window.clearTimeout(timeout);
+  }, [opened]);
+}
+
 /**
  * Whether a press happened inside the panel, also in a layer one of its fields draws in a portal,
  * such as the calendar of a date field or the list of a Select: such a layer is outside the
@@ -126,7 +155,7 @@ function usePanelQuestion(moduleId: string, opened: boolean, frameOf: () => HTML
 
 /**
  * The frame the Shell gives a module's Indicator Panel: a popover below the place, or a sheet
- * from below on the phone. The focus moves in on opening and back on closing; Escape, a click
+ * from below on the phone. The focus moves in on opening and back to the indicator on closing; Escape, a click
  * outside and a second click on the indicator close it, asking first when the content reports
  * unsaved changes.
  */
@@ -165,6 +194,7 @@ export default function IndicatorPanelFrame({
   // Stable refs: Mantine's focus trap moves the focus into the panel each time its ref changes.
   const dropdownRef = useMergedRef(popoverEscape, setDropdown);
   const sheetRef = useMergedRef(sheetFrame, setSheetNode);
+  useFocusBackToTheIndicator(opened, place);
   const pressInside = usePressInside();
   // A click on the place is the indicator's own: a second click on it leaves through its toggle.
   useClickOutside(
@@ -202,7 +232,7 @@ export default function IndicatorPanelFrame({
         closeOnEscape={false}
         opened={opened && !sheet}
         position="bottom-end"
-        returnFocus
+        returnFocus={false}
         shadow="md"
         trapFocus
         width={INDICATOR_PANEL_WIDTH}
@@ -232,6 +262,7 @@ export default function IndicatorPanelFrame({
         opened={opened && sheet}
         position="bottom"
         ref={sheetRef}
+        returnFocus={false}
         size="auto"
         styles={SHEET_STYLES}
         title={name}
