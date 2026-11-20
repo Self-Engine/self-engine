@@ -134,7 +134,13 @@ export function IndicatorPanelsProvider({ modules, page, children }: IndicatorPa
   const known = useRef(modules);
   useLayoutEffect(() => {
     known.current = modules;
-  });
+    // A module that left the module list took its panel along: its opening ends, so the panel
+    // does not open by itself should the module return.
+    const open = panels.current();
+    const stillThere = (module: ShellContribution) =>
+      module.id === open?.moduleId && module.indicator?.panel !== undefined;
+    if (open !== undefined && !modules.some(stillThere)) panels.close();
+  }, [panels, modules]);
   const [value] = useState<IndicatorPanelsContextValue>(() => ({
     panels,
     openIndicatorPanel: (indicator) => {

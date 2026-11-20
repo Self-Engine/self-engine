@@ -271,6 +271,39 @@ export const AChangeOfPageCloses: Story = {
   },
 };
 
+/** Takes the first module out of the module list and brings it back, as a turned-off module. */
+function ShellWhoseFirstModuleLeaves(args: ShellProps) {
+  const [present, setPresent] = useState(true);
+  return (
+    <>
+      <button
+        onClick={() => setPresent(!present)}
+        style={{ position: "fixed", bottom: 0, left: 0, zIndex: 1000 }}
+      >
+        {present ? "Remove the module" : "Bring the module back"}
+      </button>
+      <Shell {...args} contributions={present ? args.contributions : args.contributions.slice(1)} />
+    </>
+  );
+}
+
+export const AModuleThatLeavesClosesItsPanelForGood: Story = {
+  ...atViewport("wide"),
+  args: WITH_PANEL,
+  render: (args) => <ShellWhoseFirstModuleLeaves {...args} />,
+  play: async ({ canvas }) => {
+    await openByClick(canvas);
+    // Not by a click, which would close the panel as a click outside.
+    canvas.getByRole("button", { name: "Remove the module" }).click();
+    await panelGone();
+    canvas.getByRole("button", { name: "Bring the module back" }).click();
+    await indicatorButton(canvas);
+    await nextFrame();
+    await nextFrame();
+    await expect(screen.queryByRole("dialog", { name: "Projects" })).toBeNull();
+  },
+};
+
 const thePaletteOverThePanel = (step: "wide" | "narrow"): Story => ({
   ...atViewport(step),
   args: WITH_PANEL,
