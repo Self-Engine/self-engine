@@ -1,7 +1,7 @@
 ---
 status: accepted
 date: 2026-11-14
-decisions: D284, D195
+decisions: D284, D195, D348
 ---
 
 # `Date` and `Temporal` exist only inside `time`, and no clock has a default
@@ -22,14 +22,30 @@ and still allowed `new Date(ms)`, and `.getDate()` on that gives the day in the 
    the milliseconds of a UUIDv7 from the clock's Instant through `epochMsOf`.
 2. **The system clock has an entry of its own, `@self-engine/time/system-clock`, and only code in
    `apps/` loads it.** The dependency-cruiser rule `system-clock-only-in-apps` rejects an import
-   of that entry from anywhere else; the tests of `time` reach it by relative path. The desktop
-   app assembles it in one place, `systemSources`, together with the random source of ids;
-   the page hands it to the settings area in its module list. It builds its Instant without
-   the schemas of `time`, so the page can load it at its start, and throws a `RangeError`
-   for a system time outside the supported years. The
-   _Data Process_ takes both from there and hands them to the data files, the _Backups_ and the
-   _Storage_ context; `pnpm nightly:local` takes the clock to stamp the version of a Nightly
-   built on the owner's machine.
+   of that entry from anywhere else; the tests of `time` reach it by relative path. It builds its
+   Instant without the schemas of `time`, so the page can load it at its start, and throws a
+   `RangeError` for a system time outside the supported years. It enters the program in three
+   places:
+   - **The desktop app** assembles it in one place, `systemSources`, together with the random
+     source of ids. The _Data Process_ takes both from there and hands them to the data files,
+     the _Backups_ and the _Storage_ context.
+   - **The page** loads it in one file, `apps/web/src/page-clock.ts`, as `pageClock`; the rule
+     `page-clock-in-one-place` rejects it in any other file of the page. The page hands that one
+     Clock to the settings area in its module list and to `PageClockProvider` of
+     `@self-engine/time/react`, mounted once beside the other providers (D348). A _View_ reads
+     the time only through two hooks of that entry: `useNow(step)`, read again at every full
+     second or minute, and `useToday(timeZone)`, the Calendar Day in the zone the caller passes.
+     One ticker serves every reading with a single timeout, set to the earliest moment one of
+     them shows something new: the next full second or minute, or the start of the next day
+     (`nextTick` and `startOfNextDay` of `time`). It runs only while a reading is rendered and
+     the window is visible; the app supplies the window's visibility, watched once for the page.
+     A reading takes the Clock's time and never counts ticks, so it is right at once after a
+     sleep. A hook without a provider above it throws at its first render; nothing falls back to
+     the system clock. The page clock displays and prefills only: every stored Instant comes
+     from the Data Process's clock. The rule `data-process-stays-off-the-page-clock` keeps the
+     React entry out of everything the desktop app starts.
+   - **`pnpm nightly:local`** takes the clock to stamp the version of a Nightly built on the
+     owner's machine.
 3. **A test uses `fixedClock` and writes Instants as text with `requireInstant`**, both from
    `@self-engine/time/testing`. `createTestSources` in `db` moves its clock by whole milliseconds
    with `advanceInstantByMilliseconds`, never by days.
@@ -57,8 +73,15 @@ and still allowed `new Date(ms)`, and `.getDate()` on that gives the day in the 
   runtime's own clock.
 - A Mantine date field that hands out a `Date` gets one conversion in `time` with the first date
   field.
-- On the page only the settings area gets the clock so far. Where a View gets "now" and
-  "today" from is decided with the first View that needs them.
+- A story or a test renders a View with "now" and "today" the same every time: it hands
+  `PageClockProvider` a `fixedClock` and `alwaysVisible` from `@self-engine/time/testing`. The
+  app's stories hand the same fixed Clock to their settings area.
+- While nothing reads "now" or "today", or the window is hidden, no timeout runs. A reading per
+  second costs one timeout per second and redraws only the components that read per second; one
+  per minute wakes once a minute, and "today" once a day.
+- The settings area still reads the Clock itself, when its Time Zone list opens, instead of
+  through a hook: the list wants the offsets of that moment, not one that moves while it is
+  open.
 
 ## Considered Options
 
@@ -68,3 +91,7 @@ and still allowed `new Date(ms)`, and `.getDate()` on that gives the day in the 
   and reads the real time in a test.
 - **The system clock in the main entry of `time`:** rejected. Any package could load it; an entry
   of its own lets the boundary rules keep it in `apps/`.
+- **A timeout per reading of "now":** rejected (D348). Ten timers on a page would each wake the
+  page, and none of them stops while the window is hidden.
+- **The ticker and the hooks in a package above `time`:** rejected (D348). Everything that reads,
+  computes or ticks time stays in `time`, so the rule of the lint plugin keeps one sentence.

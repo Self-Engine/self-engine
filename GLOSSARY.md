@@ -239,7 +239,7 @@ A date on the calendar, such as 14 November 2026, without a time of day or a _Ti
 _Avoid_: date (on its own), day (for an _Instant_), midnight
 
 **Clock** (de: _Uhr_):
-The source of the current _Instant_, always handed to whatever needs it. The real clock of the device is only one _Clock_; a test uses a fixed one.
+The source of the current _Instant_, always handed to whatever needs it. The real clock of the device is only one _Clock_; a test uses a fixed one. The page has exactly one _Clock_, and a _View_ reads "now" and "today" from it without calling it.
 _Avoid_: now (for the source), system time, timer
 
 **Day Span** (de: _Tagesspanne_):
