@@ -14,6 +14,10 @@ import {
 } from "../first-day-of-week.ts";
 import { NAME_SHAPE, resolveTimeZoneOr, sameTimeZone, type TimeZone } from "../zone.ts";
 
+// For the page's composition, which hands the device's zone to `decideZoneOffer` at its start:
+// the main entry of `time` would bring Zod's full build into the start.
+export { deviceTimeZone } from "../zone.ts";
+
 /**
  * The user's Time Zone (D147): a zone name, or `null` while none is set. Open to names this
  * runtime does not know, so that a zone of a newer runtime stays stored; `resolveTimeZoneSetting`

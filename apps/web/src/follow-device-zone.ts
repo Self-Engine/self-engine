@@ -50,7 +50,9 @@ export function followDeviceZone({
   showOffer,
   onSwitched,
 }: DeviceZoneWatch): () => void {
-  let open: { readonly stored: TimeZone; readonly device: TimeZone; readonly close: () => void } | undefined;
+  let open:
+    | { readonly stored: TimeZone; readonly device: TimeZone; readonly close: () => void }
+    | undefined;
 
   function closeOffer(): void {
     open?.close();

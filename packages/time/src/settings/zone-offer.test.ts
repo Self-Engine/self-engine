@@ -52,7 +52,12 @@ describe("the offer to switch to the device's zone", () => {
 
   it("names the device's zone to follow", () => {
     expect(
-      decideZoneOffer({ stored: "Europe/Berlin", device: KOLKATA, followDevice: true, dismissed: false }),
+      decideZoneOffer({
+        stored: "Europe/Berlin",
+        device: KOLKATA,
+        followDevice: true,
+        dismissed: false,
+      }),
     ).toEqual({ kind: "follow", device: KOLKATA });
   });
 

@@ -513,6 +513,10 @@ msgctxt "Icon"
 msgid "Dollar"
 msgstr "Dollar"
 
+#: apps/web/src/device-zone-offer.tsx
+msgid "Don't ask again"
+msgstr "Nicht mehr fragen"
+
 #: packages/icons/src/directory/labels.ts
 msgctxt "Icon"
 msgid "Double check mark"
@@ -1291,6 +1295,11 @@ msgctxt "Icon"
 msgid "Sunrise"
 msgstr "Sonnenaufgang"
 
+#: apps/web/src/device-zone-offer.tsx
+msgctxt "Time zone"
+msgid "Switch"
+msgstr "Umstellen"
+
 #: packages/ui/src/entry-pickers/emoji-tab.tsx
 msgid "Symbols"
 msgstr "Symbole"
@@ -1398,6 +1407,10 @@ msgstr "Die Veröffentlichungslinie, zu der diese App gehört."
 msgid "The size of the text in the whole app."
 msgstr "Wie groß der Text in der ganzen App ist."
 
+#: apps/web/src/device-zone-offer.tsx
+msgid "The time zone is now {to}."
+msgstr "Die Zeitzone ist jetzt {to}."
+
 #: packages/settings-area/src/theme-rows.tsx
 msgid "Theme"
 msgstr "Theme"
@@ -1421,6 +1434,10 @@ msgstr "Diese Sicherung lässt sich nicht mehr lesen. Es wurde nichts wiederherg
 #: packages/data-client/src/react/reason-texts.ts
 msgid "This change is not allowed."
 msgstr "Diese Änderung ist nicht erlaubt."
+
+#: apps/web/src/device-zone-offer.tsx
+msgid "This device is in the time zone {device}. Switch from {stored} to {device}?"
+msgstr "Dieses Gerät ist in der Zeitzone {device}. Von {stored} auf {device} umstellen?"
 
 #: packages/data-client/src/react/operation-hook.ts
 msgid "This entry no longer exists."

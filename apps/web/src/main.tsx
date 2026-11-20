@@ -4,6 +4,7 @@ import "@self-engine/theme/fonts.css";
 import { DataProvider } from "@self-engine/data-client/react";
 import { activateLanguage, createI18n } from "@self-engine/i18n";
 import { appLanguageOf } from "@self-engine/settings-area/settings";
+import { deviceTimeZone } from "@self-engine/time/settings";
 import { FeedbackHost } from "@self-engine/ui";
 import { RouterProvider } from "@tanstack/react-router";
 import { StrictMode } from "react";
@@ -11,6 +12,7 @@ import { createRoot } from "react-dom/client";
 import { AppLanguage, browserLanguages } from "./app-language.tsx";
 import { AppearanceProvider } from "./appearance.tsx";
 import { dataConnection, startPageData } from "./desktop-data.ts";
+import { DeviceZoneOffer } from "./device-zone-offer.tsx";
 import { appModules } from "./modules.ts";
 import { appReasonTexts } from "./reason-texts.ts";
 import { router } from "./router.ts";
@@ -43,6 +45,7 @@ createRoot(container).render(
     <AppLanguage i18n={i18n} initialLanguage={language} store={settingsStore}>
       <AppearanceProvider>
         <FeedbackHost>
+          <DeviceZoneOffer deviceZone={deviceTimeZone} store={settingsStore} />
           <DataProvider access={dataAccess} reasonTexts={reasonTexts}>
             <RouterProvider router={router} />
           </DataProvider>

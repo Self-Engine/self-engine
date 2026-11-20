@@ -157,7 +157,9 @@ export const DangerUsesTheErrorColorRole: Story = {
 const noticeGone = (text: string) => waitFor(() => expect(screen.queryByText(text)).toBeNull());
 
 const noticeWith = async (text: string) => {
-  const notice = (await screen.findByText(text)).closest<HTMLElement>('[role="alert"], [role="status"]');
+  const notice = (await screen.findByText(text)).closest<HTMLElement>(
+    '[role="alert"], [role="status"]',
+  );
   if (notice === null) throw new Error(`"${text}" is not in a notice`);
   return notice;
 };
