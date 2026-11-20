@@ -10,13 +10,16 @@
     "./settings": "./src/settings/index.ts",
     "./testing": "./src/testing.ts",
     "./system-clock": "./src/system-clock.ts",
-    "./check": "./src/check/program.ts"
+    "./check": "./src/check/program.ts",
+    "./react": "./src/react/index.tsx"
   },
   "dependencies": {
     "@self-engine/settings": "workspace:*",
+    "react": "catalog:",
     "zod": "catalog:"
   },
   "devDependencies": {
+    "@types/react": "catalog:",
     "fast-check": "catalog:",
     "vite-plus": "catalog:"
   }
