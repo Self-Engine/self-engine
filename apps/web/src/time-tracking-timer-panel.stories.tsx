@@ -250,7 +250,8 @@ const aRefusedEnd = (reason: "end_in_future" | "end_before_start", text: string)
     await typeTime(stopAt.time("Ende"), "1130");
     await userEvent.click(stopAt.button("Stoppen"));
     // At the end; the panel stays open with what was typed.
-    await expect(await stopAt.panel.findByText(text)).toBeVisible();
+    // Retried: the field may draw its picker anew once the answer has arrived.
+    await waitFor(() => expect(stopAt.panel.getByText(text)).toBeVisible());
     await expect(stopAt.time("Ende")).toHaveAccessibleDescription(expect.stringContaining(text));
     await expect(stopAt.dialog).toBeVisible();
     await expect(port.calls).toEqual([
@@ -277,7 +278,8 @@ export const AStartInTheFutureShowsItsMessageAtTheStart: Story = {
     await typeTime(form.time("Beginn"), "1130");
     await userEvent.click(form.button("Speichern"));
     const message = "Der Beginn darf nicht in der Zukunft liegen.";
-    await expect(await form.panel.findByText(message)).toBeVisible();
+    // Retried: the field may draw its picker anew once the answer has arrived.
+    await waitFor(() => expect(form.panel.getByText(message)).toBeVisible());
     await expect(form.time("Beginn")).toHaveAccessibleDescription(expect.stringContaining(message));
     await expect(port.calls).toEqual([
       { entry: "editTimer", input: { id: RUNNING.id, startedAt: "2026-11-20T10:30:00.000Z" } },
