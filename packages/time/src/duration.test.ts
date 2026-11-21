@@ -1,5 +1,11 @@
 import { expect, expectTypeOf, test } from "vite-plus/test";
-import { durationBetween, instantSchema, type Duration } from "./index.ts";
+import {
+  durationBetween,
+  type Duration,
+  type Instant,
+  instantSchema,
+  wholeSecondOf,
+} from "./index.ts";
 const instant = (value: string) => instantSchema.parse(value);
 
 test.each([
@@ -22,3 +28,15 @@ test.each(["2026-11-14T07:30:00.100Z", "2026-11-14T07:29:59.999Z"])(
     );
   },
 );
+
+test.each([
+  ["2026-11-14T07:30:00.999Z", "2026-11-14T07:30:00.000Z"],
+  ["2026-11-14T07:30:00.000Z", "2026-11-14T07:30:00.000Z"],
+  ["1969-12-31T23:59:59.900Z", "1969-12-31T23:59:59.000Z"],
+  ["1000-01-01T00:00:00.001Z", "1000-01-01T00:00:00.000Z"],
+  ["9999-12-31T23:59:59.999Z", "9999-12-31T23:59:59.000Z"],
+] as const)("the whole second of %s is %s", (text, expected) => {
+  const result = wholeSecondOf(instant(text));
+  expect(result).toBe(expected);
+  expectTypeOf(result).toEqualTypeOf<Instant>();
+});

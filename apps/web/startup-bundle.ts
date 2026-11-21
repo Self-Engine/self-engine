@@ -19,20 +19,31 @@ export interface LazyOnlyDependency {
   readonly instead: string;
 }
 
+/** A module that loads on demand, such as a View, and what must not load with it. */
+export interface OnDemandRule {
+  /** How the failure names it: "The week View of time-tracking". */
+  readonly name: string;
+  /** A part of its module id: "/packages/time-tracking/src/week.tsx". */
+  readonly path: string;
+  /** What it must not bring, by itself or through the chunks it imports statically. */
+  readonly without: readonly LazyOnlyDependency[];
+}
+
 export interface StartupRules {
   readonly maxBytes: number;
   readonly lazyOnly?: readonly LazyOnlyDependency[];
+  readonly onDemand?: readonly OnDemandRule[];
 }
 
 const inDependency = (id: string) => id.includes("/node_modules/");
 
 /**
- * The startup modules of the workspace that import `found` directly or through other dependency
- * modules: the imports to change. A module that only loads on demand may import it and is not named.
+ * The modules of the workspace in `loaded` that import `found` directly or through other dependency
+ * modules: the imports to change. A module outside `loaded` may import it and is not named.
  */
-function startupImporters(
+function importersWithin(
   found: readonly string[],
-  startupModules: ReadonlySet<string>,
+  loaded: ReadonlySet<string>,
   importersOf: (id: string) => readonly string[],
 ): string[] {
   const seen = new Set(found);
@@ -43,20 +54,14 @@ function startupImporters(
       if (seen.has(importer)) continue;
       seen.add(importer);
       if (inDependency(importer)) queue.push(importer);
-      else if (startupModules.has(importer)) importers.add(importer);
+      else if (loaded.has(importer)) importers.add(importer);
     }
   }
   return [...importers].sort();
 }
 
-/** Follow only static imports: loading a View on demand must not spend the startup budget. */
-export function inspectStartup(
-  chunks: readonly StartupChunk[],
-  lazyModules: ReadonlySet<string>,
-  { maxBytes, lazyOnly = [] }: StartupRules,
-  importersOf: (id: string) => readonly string[] = () => [],
-) {
-  const byName = new Map(chunks.map((chunk) => [chunk.fileName, chunk]));
+/** The chunks that `from` loads with them: themselves and every chunk they import statically. */
+function staticallyReached(byName: ReadonlyMap<string, StartupChunk>, from: readonly string[]) {
   const reached = new Set<string>();
   const visit = (name: string): void => {
     if (reached.has(name)) return;
@@ -65,7 +70,56 @@ export function inspectStartup(
     reached.add(name);
     chunk.imports.forEach(visit);
   };
-  chunks.filter((chunk) => chunk.isEntry).forEach((chunk) => visit(chunk.fileName));
+  from.forEach(visit);
+  return reached;
+}
+
+/** The problems of the modules that load on demand: what each brings although its rule forbids it. */
+function inspectOnDemand(
+  chunks: readonly StartupChunk[],
+  byName: ReadonlyMap<string, StartupChunk>,
+  rules: readonly OnDemandRule[],
+  importersOf: (id: string) => readonly string[],
+): string[] {
+  const problems: string[] = [];
+  for (const rule of rules) {
+    const own = chunks.filter((chunk) =>
+      Object.keys(chunk.modules).some((id) => id.includes(rule.path)),
+    );
+    if (own.length === 0) {
+      problems.push(`${rule.name} is missing from the build: no module matches ${rule.path}`);
+      continue;
+    }
+    const reached = staticallyReached(
+      byName,
+      own.map((chunk) => chunk.fileName),
+    );
+    const loaded = new Set(
+      [...reached].flatMap((name) => Object.keys(byName.get(name)?.modules ?? {})),
+    );
+    for (const { name, path, instead } of rule.without) {
+      const found = [...loaded].filter((id) => id.includes(path));
+      if (found.length === 0) continue;
+      const importers = importersWithin(found, loaded, importersOf);
+      const from = importers.length > 0 ? `, imported by ${importers.join(", ")}` : "";
+      problems.push(`${name} loads with ${rule.name}${from}: ${instead}`);
+    }
+  }
+  return problems;
+}
+
+/** Follow only static imports: loading a View on demand must not spend the startup budget. */
+export function inspectStartup(
+  chunks: readonly StartupChunk[],
+  lazyModules: ReadonlySet<string>,
+  { maxBytes, lazyOnly = [], onDemand = [] }: StartupRules,
+  importersOf: (id: string) => readonly string[] = () => [],
+) {
+  const byName = new Map(chunks.map((chunk) => [chunk.fileName, chunk]));
+  const reached = staticallyReached(
+    byName,
+    chunks.filter((chunk) => chunk.isEntry).map((chunk) => chunk.fileName),
+  );
   if (reached.size === 0) throw new Error("No startup entry found");
   const startup = chunks.filter((chunk) => reached.has(chunk.fileName));
   const bytes = startup.reduce((total, chunk) => total + Buffer.byteLength(chunk.code), 0);
@@ -75,10 +129,11 @@ export function inspectStartup(
   for (const { name, path, instead } of lazyOnly) {
     const found = [...startupModules].filter((id) => id.includes(path));
     if (found.length === 0) continue;
-    const importers = startupImporters(found, startupModules, importersOf);
+    const importers = importersWithin(found, startupModules, importersOf);
     const from = importers.length > 0 ? `, imported by ${importers.join(", ")}` : "";
     problems.push(`${name} entered the startup bundle${from}: ${instead}`);
   }
+  problems.push(...inspectOnDemand(chunks, byName, onDemand, importersOf));
   if (bytes > maxBytes)
     problems.push(`Startup JavaScript is ${bytes} bytes; limit is ${maxBytes} bytes`);
   return { bytes, maxBytes, chunks: [...reached].sort(), eagerLazyModules, problems };

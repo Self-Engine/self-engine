@@ -12,6 +12,9 @@ import {
 } from "../startup-bundle.ts";
 import { STARTUP_RULES } from "../startup-rules.ts";
 
+/** The startup rules alone: the chunks of these tests hold none of the Views of the on-demand rules. */
+const LAZY_ONLY_RULES: StartupRules = { maxBytes: 100, lazyOnly: STARTUP_RULES.lazyOnly };
+
 function chunk(fileName: string, options: Partial<StartupChunk> = {}): StartupChunk {
   return { fileName, isEntry: false, imports: [], code: "abc", modules: {}, ...options };
 }
@@ -239,7 +242,7 @@ describe("the web app's startup rules", () => {
         chunk("view.js", { modules: onDemand }),
       ],
       new Set(),
-      { ...STARTUP_RULES, maxBytes: 100 },
+      LAZY_ONLY_RULES,
       (id) => importers[id] ?? [],
     ).problems;
 
@@ -312,7 +315,7 @@ describe("the web app's startup rules", () => {
           chunk("drawer.js", { modules: onDemand }),
         ],
         new Set(),
-        { ...STARTUP_RULES, maxBytes: 100 },
+        LAZY_ONLY_RULES,
         (id) => formImporters[id] ?? [],
       ).problems;
 
@@ -339,7 +342,7 @@ describe("the web app's startup rules", () => {
           chunk("drawer.js", { modules: onDemand }),
         ],
         new Set(),
-        { ...STARTUP_RULES, maxBytes: 100 },
+        LAZY_ONLY_RULES,
         (id) => contractImporters[id] ?? [],
       ).problems;
 
@@ -360,7 +363,7 @@ describe("the web app's startup rules", () => {
     const result = inspectStartup(
       [chunk("main.js", { isEntry: true, modules: { [contribution]: {}, [rows]: {} } })],
       new Set(),
-      STARTUP_RULES,
+      { ...LAZY_ONLY_RULES, maxBytes: STARTUP_RULES.maxBytes },
       (id) => (id === rows ? [contribution] : []),
     );
     expect(result.problems).toEqual([
@@ -379,7 +382,7 @@ describe("the web app's startup rules", () => {
           chunk("drawer.js", { modules: onDemand }),
         ],
         new Set(),
-        { ...STARTUP_RULES, maxBytes: 100 },
+        LAZY_ONLY_RULES,
         (id) => (id === pickerEntry ? [drawer] : []),
       ).problems;
 
@@ -407,7 +410,7 @@ describe("the web app's startup rules", () => {
           chunk("indicator.js", { modules: onDemand }),
         ],
         new Set(),
-        { ...STARTUP_RULES, maxBytes: 100 },
+        LAZY_ONLY_RULES,
         (id) => (id === indicator ? [contribution] : []),
       ).problems;
 
@@ -421,7 +424,7 @@ describe("the web app's startup rules", () => {
         inspectStartup(
           [chunk("main.js", { isEntry: true, modules: { [contribution]: {}, [panel]: {} } })],
           new Set(),
-          { ...STARTUP_RULES, maxBytes: 100 },
+          LAZY_ONLY_RULES,
           (id) => (id === panel ? [contribution] : []),
         ).problems,
       ).toEqual([
@@ -446,7 +449,7 @@ describe("the web app's startup rules", () => {
           chunk("frame.js", { modules: onDemand }),
         ],
         new Set(),
-        { ...STARTUP_RULES, maxBytes: 100 },
+        LAZY_ONLY_RULES,
         (id) => (id === frame ? [place] : []),
       ).problems;
     expect(problems({ [place]: {} }, { [frame]: {} })).toEqual([]);
@@ -463,6 +466,55 @@ describe("the web app's startup rules", () => {
       ),
     ).toEqual([
       "The emoji data entered the startup bundle, imported by /repo/packages/ui/src/entry-pickers/emoji-data.ts: load it with a dynamic import, one chunk per language, when the Emoji tab first opens.",
+    ]);
+  });
+});
+
+describe("a module that loads on demand", () => {
+  const week = "/repo/packages/time-tracking/src/week.tsx";
+  const address = "/repo/packages/time-tracking/src/project-filter-address.ts";
+  const ids = "/repo/packages/projects/src/contracts/project-id.ts";
+  const contract = "/repo/packages/projects/src/contracts/index.ts";
+  const builder = "/repo/node_modules/@orpc/contract/dist/index.mjs";
+  const drawer = "/repo/packages/time-tracking/src/edit-drawer.tsx";
+  const importers: Readonly<Record<string, readonly string[]>> = {
+    [builder]: [contract],
+    [contract]: [address, drawer],
+    [ids]: [address, contract],
+  };
+  const rules: StartupRules = {
+    maxBytes: 100,
+    onDemand: STARTUP_RULES.onDemand.filter((rule) => rule.path.endsWith("/week.tsx")),
+  };
+  const inspect = (week: Record<string, unknown>, shared: Record<string, unknown>) =>
+    inspectStartup(
+      [
+        chunk("main.js", { isEntry: true }),
+        chunk("week.js", { imports: ["shared.js"], modules: week }),
+        chunk("shared.js", { modules: shared }),
+        chunk("drawer.js", { modules: { [drawer]: {}, [contract]: {}, [builder]: {} } }),
+      ],
+      new Set(),
+      rules,
+      (id) => importers[id] ?? [],
+    ).problems;
+
+  it("accepts the week View with the light id entry while the drawer loads the Contract", () => {
+    expect(inspect({ [week]: {}, [address]: {} }, { [ids]: {} })).toEqual([]);
+  });
+
+  it("rejects a Contract that a chunk of the week View brings and names the code that imports it", () => {
+    expect(
+      inspect({ [week]: {}, [address]: {} }, { [ids]: {}, [contract]: {}, [builder]: {} }),
+    ).toEqual([
+      `A module's Contract loads with The week View of time-tracking, imported by ${address}: import it as a type in a View; parse an id with the module's light id entry, such as @self-engine/projects/ids.`,
+      `oRPC's contract builder loads with The week View of time-tracking, imported by ${contract}: import a Contract only as a type in a View; only a lazy form loads it.`,
+    ]);
+  });
+
+  it("fails when the module of a rule is no longer in the build", () => {
+    expect(inspect({ [address]: {} }, {})).toEqual([
+      "The week View of time-tracking is missing from the build: no module matches /packages/time-tracking/src/week.tsx",
     ]);
   });
 });

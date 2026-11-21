@@ -21,9 +21,17 @@ function mountWithoutDataTexts() {
 }
 void mountWithoutDataTexts;
 
-test("the app mounts projects and no placeholder module (D315)", () => {
-  expect(appModules.modules.map((module) => module.id)).toEqual(["projects"]);
-  expect(contributions.map((module) => module.id)).toEqual(["projects", "settings"]);
+test("the app mounts projects and time-tracking and no placeholder module (D315)", () => {
+  expect(appModules.modules.map((module) => module.id)).toEqual(["projects", "time-tracking"]);
+  expect(contributions.map((module) => module.id)).toEqual([
+    "projects",
+    "time-tracking",
+    "settings",
+  ]);
+});
+
+test('"Time" opens the week, at its address', () => {
+  expect(appModules.find("time-tracking")?.views.map((view) => view.id)).toEqual(["week"]);
 });
 
 test('the app starts on the View "Active" of projects', () => {

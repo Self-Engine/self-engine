@@ -1,7 +1,7 @@
 import { Trans } from "@lingui/react/macro";
-import type { RefusalNoticeOptions } from "@self-engine/data-client/react";
-import { notifyDone, notifyUndoable } from "@self-engine/ui";
-import { type ReactNode, useCallback } from "react";
+import { type RefusalNoticeOptions, useWithUndo } from "@self-engine/data-client/react";
+import { notifyDone } from "@self-engine/ui";
+import { useCallback } from "react";
 import {
   type Project,
   useArchiveProject,
@@ -10,36 +10,8 @@ import {
   useUnarchiveProject,
 } from "./port.ts";
 
-type Run = (
-  input: { readonly id: Project["id"] },
-  refusal?: RefusalNoticeOptions,
-) => Promise<{ readonly status: string }>;
-
 /** Whether the project is left: changed, or gone already. False when the Operation failed. */
 type Leave = (id: Project["id"], refusal?: RefusalNoticeOptions) => Promise<boolean>;
-
-/**
- * Runs `change` at once and, when it succeeded, shows `message` in a Notice whose undo runs
- * `undo`: the Notice offers the way back instead of asking first.
- */
-function useWithUndo(change: Run, undo: Run, message: ReactNode): Leave {
-  return useCallback(
-    async (id: Project["id"], refusal?: RefusalNoticeOptions) => {
-      const changed = await change({ id }, refusal);
-      // The building block has announced it: a project that is gone is left, a failure is not.
-      if (changed.status !== "success") return changed.status === "notFound";
-      notifyUndoable({
-        message,
-        // "Not found" and unexpected errors are announced by the building block.
-        undo: async () => {
-          await undo({ id });
-        },
-      });
-      return true;
-    },
-    [change, undo, message],
-  );
-}
 
 // Elements, not text: `Trans` translates when the Notice renders, in the language active then.
 const DELETED = <Trans>Project deleted</Trans>;

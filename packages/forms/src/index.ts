@@ -11,6 +11,7 @@ export {
 } from "./field-binding.ts";
 export {
   type Draft,
+  type DraftOfEntry,
   type InputOfEntry,
   type OperationForm,
   type OperationFormOptions,
@@ -46,3 +47,4 @@ export { ClearanceAction, type ClearanceActionProps } from "./clearance-actions.
 
 export type { FormTexts } from "./check.ts";
 export { TimeRangeField, type TimeRangeFieldProps } from "./time-range-field.tsx";
+export { type LeavingEntry, useLeavingEntry } from "./leaving-entry.ts";

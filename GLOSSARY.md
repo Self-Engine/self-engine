@@ -291,6 +291,20 @@ _Avoid_: local time, time (on its own), hour
 The named day that begins a seven-day calendar week, such as Monday or Sunday. The _Synced Setting_ named Week Start can choose a day or follow the _Region_ automatically.
 _Avoid_: week number, start date, weekday index
 
+### Time Tracking
+
+**Time Entry** (de: _Zeiteintrag_):
+A record of time spent between two _Instants_, with a _Booked Duration_ and an optional project and note.
+_Avoid_: time log (for one entry), timer
+
+**Booked Duration** (de: _gebuchte Dauer_):
+The _Duration_ that counts toward the totals for a _Time Entry_.
+_Avoid_: elapsed time (for the amount counted), billed time
+
+**Day Share** (de: _Tagesanteil_):
+The part of a _Time Entry_'s _Booked Duration_ that counts toward one _Calendar Day_.
+_Avoid_: daily total, split entry
+
 ### Translation
 
 **App Language** (de: _App-Sprache_):

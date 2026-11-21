@@ -4,6 +4,7 @@
 // counts 24 hours, so a time is typed as four digits.
 
 import { DataProvider } from "@self-engine/data-client/react";
+import { type CalendarDay, calendarDaySchema } from "@self-engine/time";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { expect, screen, userEvent, waitFor, within } from "storybook/test";
 import { fieldsDrawnDuring } from "./fields-drawn.ts";
@@ -31,6 +32,8 @@ const portFor = (): Loaded => ({
 interface Args {
   /** The stretch the form edits; without it, the form creates one. */
   readonly stored?: Stretch;
+  /** The day a new stretch opens on. */
+  readonly startDay?: CalendarDay;
 }
 
 const meta = {
@@ -39,7 +42,10 @@ const meta = {
   loaders: [portFor],
   render: (args: Args, { loaded }) => (
     <DataProvider access={(loaded as Loaded).port.access}>
-      <StretchForm {...(args.stored === undefined ? {} : { stored: args.stored })} />
+      <StretchForm
+        {...(args.stored === undefined ? {} : { stored: args.stored })}
+        {...(args.startDay === undefined ? {} : { startDay: args.startDay })}
+      />
     </DataProvider>
   ),
 } satisfies Meta<Args>;
@@ -107,6 +113,25 @@ export const ANewRangeWritesTwoInstants: Story = {
     await waitFor(() =>
       expect(callsOf(loaded)).toEqual([
         created("2026-11-13T08:00:00.000Z", "2026-11-13T16:30:00.000Z"),
+      ]),
+    );
+  },
+};
+
+export const ANewRangeOpensOnTheDayHandedIn: Story = {
+  args: { startDay: calendarDaySchema.parse("2026-11-18") },
+  play: async ({ canvasElement, loaded }) => {
+    const range = rangeIn(canvasElement);
+    await expect(range.date()).toHaveValue("18.11.2026");
+    // The times stay empty: only the day is given.
+    await expect(range.canvas.queryByText(/^Dauer/)).toBeNull();
+    await userEvent.type(range.title(), "Kitchen");
+    await typeTime(range.start(), "0900");
+    await typeTime(range.end(), "1030");
+    await range.save();
+    await waitFor(() =>
+      expect(callsOf(loaded)).toEqual([
+        created("2026-11-18T08:00:00.000Z", "2026-11-18T09:30:00.000Z"),
       ]),
     );
   },

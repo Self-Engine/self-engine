@@ -24,6 +24,14 @@ msgstr "{count, plural, one {Projekteintrag} other {Projekteinträge}}"
 msgid "{count, plural, one {project} other {projects}}"
 msgstr "{count, plural, one {Projekt} other {Projekte}}"
 
+#: packages/time-tracking/src/table-names.ts
+msgid "{count, plural, one {time entry} other {time entries}}"
+msgstr "{count, plural, one {Zeiteintrag} other {Zeiteinträge}}"
+
+#: packages/time-tracking/src/week.tsx
+msgid "{first} – {last}"
+msgstr "{first} – {last}"
+
 #: packages/forms/src/violation-texts.ts
 msgid "{maximum, plural, one {At most # character.} other {At most # characters.}}"
 msgstr "{maximum, plural, one {Höchstens # Zeichen.} other {Höchstens # Zeichen.}}"
@@ -51,6 +59,11 @@ msgstr "{minimum, plural, other {Mehr als #.}}"
 #: packages/shell/src/module-indicators.tsx
 msgid "{name} indicator failed. Try again."
 msgstr "Die Modulanzeige für {name} ist ausgefallen. Erneut versuchen."
+
+#. A time entry's project and its start
+#: packages/time-tracking/src/edit-drawer.tsx
+msgid "{project}, {start}"
+msgstr "{project}, {start}"
 
 #. A wall-clock time and its UTC offset
 #: packages/forms/src/time-range-field.tsx
@@ -106,6 +119,11 @@ msgstr "Enddatum hinzufügen"
 msgid "Add sample entry"
 msgstr "Beispieleintrag hinzufügen"
 
+#: packages/time-tracking/src/projects-group.tsx
+#: packages/time-tracking/src/week-project-filter.tsx
+msgid "All"
+msgstr "Alle"
+
 #: packages/placeholder-alpha/src/groups.tsx
 msgid "All clients"
 msgstr "Alle Kunden"
@@ -147,6 +165,7 @@ msgid "Archive"
 msgstr "Archiv"
 
 #: packages/projects/src/archive.tsx
+#: packages/time-tracking/src/week-project-filter.tsx
 msgid "Archived projects"
 msgstr "Archivierte Projekte"
 
@@ -331,6 +350,7 @@ msgstr "Uhr"
 
 #: packages/placeholder-alpha/src/edit-drawer.tsx
 #: packages/projects/src/edit-drawer.tsx
+#: packages/time-tracking/src/edit-drawer.tsx
 msgctxt "Close the drawer"
 msgid "Close"
 msgstr "Schließen"
@@ -479,6 +499,10 @@ msgctxt "Icon"
 msgid "Cross"
 msgstr "Kreuz"
 
+#: packages/time-tracking/src/week-day.tsx
+msgid "Crosses midnight"
+msgstr "Über Mitternacht"
+
 #: packages/ui/src/color-set-labels.ts
 msgctxt "Color"
 msgid "Cyan"
@@ -519,6 +543,14 @@ msgstr "Daten"
 msgid "Date"
 msgstr "Datum"
 
+#: packages/time-tracking/src/week-day.tsx
+msgid "Day total"
+msgstr "Summe des Tages"
+
+#: packages/time-tracking/src/week.tsx
+msgid "Days of the week"
+msgstr "Tage der Woche"
+
 #: packages/ui/src/entry-pickers/emoji-tab.tsx
 msgid "Default skin tone"
 msgstr "Standard-Hautton"
@@ -526,6 +558,7 @@ msgstr "Standard-Hautton"
 #: packages/placeholder-alpha/src/edit-drawer.tsx
 #: packages/placeholder-alpha/src/entries.tsx
 #: packages/projects/src/edit-drawer.tsx
+#: packages/time-tracking/src/edit-drawer.tsx
 msgid "Delete"
 msgstr "Löschen"
 
@@ -617,6 +650,10 @@ msgstr "Eintrag nicht gefunden"
 #: packages/shell/src/shell.tsx
 msgid "Expand module sidebar"
 msgstr "Modul-Sidebar ausklappen"
+
+#: packages/time-tracking/src/week-project-filter.tsx
+msgid "Filter by project"
+msgstr "Nach Projekt filtern"
 
 #: packages/icons/src/directory/labels.ts
 msgctxt "Icon"
@@ -840,6 +877,7 @@ msgctxt "Color"
 msgid "Lime"
 msgstr "Limette"
 
+#: packages/time-tracking/src/week-project-filter.tsx
 #: packages/ui/src/state-blocks.tsx
 msgid "Loading"
 msgstr "Wird geladen"
@@ -924,6 +962,11 @@ msgstr "Neutral"
 msgid "Neutral background"
 msgstr "Neutraler Hintergrund"
 
+#: packages/time-tracking/src/week-day.tsx
+msgctxt "Create a time entry on this day"
+msgid "New"
+msgstr "Neu"
+
 #: packages/placeholder-alpha/src/edit-drawer.tsx
 #: packages/placeholder-alpha/src/entries.tsx
 #: packages/placeholder-alpha/src/index.ts
@@ -935,6 +978,19 @@ msgstr "Neuer Eintrag"
 #: packages/projects/src/index.ts
 msgid "New project"
 msgstr "Neues Projekt"
+
+#: packages/time-tracking/src/edit-drawer.tsx
+#: packages/time-tracking/src/index.ts
+msgid "New time entry"
+msgstr "Neuer Zeiteintrag"
+
+#: packages/time-tracking/src/week-day.tsx
+msgid "New time entry on {fullDate}"
+msgstr "Neuer Zeiteintrag am {fullDate}"
+
+#: packages/time-tracking/src/week.tsx
+msgid "Next week"
+msgstr "Nächste Woche"
 
 #: packages/settings-area/src/rows.tsx
 msgid "Night"
@@ -978,6 +1034,17 @@ msgctxt "Icon"
 msgid "No phone"
 msgstr "Handyverbot"
 
+#: packages/time-tracking/src/project-mark.tsx
+#: packages/time-tracking/src/projects-group.tsx
+#: packages/time-tracking/src/week-project-filter.tsx
+msgid "No project"
+msgstr "Kein Projekt"
+
+#. A time entry without a project and its start
+#: packages/time-tracking/src/edit-drawer.tsx
+msgid "No project, {start}"
+msgstr "Ohne Projekt, {start}"
+
 #: packages/projects/src/active.tsx
 msgid "No projects yet"
 msgstr "Noch keine Projekte"
@@ -996,6 +1063,7 @@ msgid "No Time Zone found"
 msgstr "Keine Zeitzone gefunden"
 
 #: packages/placeholder-alpha/src/indicator/panel.tsx
+#: packages/time-tracking/src/edit-drawer.tsx
 msgid "Note"
 msgstr "Notiz"
 
@@ -1137,10 +1205,18 @@ msgctxt "Icon"
 msgid "Praying hands"
 msgstr "Betende Hände"
 
+#: packages/time-tracking/src/week.tsx
+msgid "Previous week"
+msgstr "Vorige Woche"
+
 #: packages/icons/src/directory/labels.ts
 msgctxt "Icon"
 msgid "Prohibited"
 msgstr "Verbot"
+
+#: packages/time-tracking/src/edit-drawer.tsx
+msgid "Project"
+msgstr "Projekt"
 
 #: packages/projects/src/with-undo.tsx
 msgid "Project archived"
@@ -1159,6 +1235,8 @@ msgid "Project unarchived"
 msgstr "Projekt reaktiviert"
 
 #: packages/projects/src/index.ts
+#: packages/time-tracking/src/projects-group.tsx
+#: packages/time-tracking/src/week-sums.tsx
 msgid "Projects"
 msgstr "Projekte"
 
@@ -1488,6 +1566,7 @@ msgid "The end lies on the next day."
 msgstr "Das Ende liegt am nächsten Tag."
 
 #: packages/forms/src/testing/example/stretch.tsx
+#: packages/time-tracking/src/edit-drawer.tsx
 msgid "The end must lie after the start."
 msgstr "Das Ende muss nach dem Beginn liegen."
 
@@ -1528,6 +1607,7 @@ msgid "The part of Self-Engine that keeps your data stopped after it crashed sev
 msgstr "Der Teil von Self-Engine, der deine Daten verwaltet, wurde nach mehreren Abstürzen angehalten."
 
 #: packages/projects/src/picker/index.tsx
+#: packages/time-tracking/src/week-project-filter.tsx
 msgid "The projects could not be loaded."
 msgstr "Die Projekte konnten nicht geladen werden."
 
@@ -1617,6 +1697,27 @@ msgstr "Daumen hoch"
 msgid "Thursday"
 msgstr "Donnerstag"
 
+#: packages/time-tracking/src/index.ts
+msgid "Time"
+msgstr "Zeit"
+
+#: packages/time-tracking/src/edit-drawer.tsx
+msgctxt "When a time entry took place"
+msgid "Time"
+msgstr "Zeit"
+
+#: packages/time-tracking/src/edit-drawer.tsx
+msgid "Time entry"
+msgstr "Zeiteintrag"
+
+#: packages/time-tracking/src/edit-drawer.tsx
+msgid "Time entry deleted"
+msgstr "Zeiteintrag gelöscht"
+
+#: packages/time-tracking/src/edit-drawer.tsx
+msgid "Time entry not found"
+msgstr "Zeiteintrag nicht gefunden"
+
 #: packages/settings-area/src/region-rows.tsx
 msgid "Time Zone"
 msgstr "Zeitzone"
@@ -1624,6 +1725,20 @@ msgstr "Zeitzone"
 #: packages/projects/src/edit-drawer.tsx
 msgid "Title"
 msgstr "Titel"
+
+#: packages/time-tracking/src/week-day.tsx
+msgctxt "Day badge"
+msgid "Today"
+msgstr "Heute"
+
+#: packages/time-tracking/src/week.tsx
+msgctxt "Go to the week of today"
+msgid "Today"
+msgstr "Heute"
+
+#: packages/time-tracking/src/week-sums.tsx
+msgid "Total"
+msgstr "Gesamt"
 
 #: packages/settings-area/src/rows.tsx
 msgid "Translation"
@@ -1667,6 +1782,10 @@ msgstr "Rückgängig"
 msgctxt "Version of the app"
 msgid "Unknown"
 msgstr "Unbekannt"
+
+#: packages/time-tracking/src/week-project-filter.tsx
+msgid "Unknown project"
+msgstr "Unbekanntes Projekt"
 
 #: packages/settings-area/src/about-rows.tsx
 msgid "Version"
@@ -1718,9 +1837,22 @@ msgstr "Winkende Hand"
 msgid "Wednesday"
 msgstr "Mittwoch"
 
+#: packages/time-tracking/src/index.ts
+msgctxt "View title"
+msgid "Week"
+msgstr "Woche"
+
 #: packages/settings-area/src/region-rows.tsx
 msgid "Week Start"
 msgstr "Wochenstart"
+
+#: packages/time-tracking/src/week-sums.tsx
+msgid "Week total"
+msgstr "Summe der Woche"
+
+#: packages/time-tracking/src/week-sums.tsx
+msgid "Week totals"
+msgstr "Summen der Woche"
 
 #: packages/shell/src/frame-exits.tsx
 msgid "What you changed here will be lost."

@@ -314,9 +314,11 @@ const today = useToday(timeZone);
 The Contract declares the fields with `calendarDaySchema` and `wallClockTimeSchema` of `time`,
 `.nullable()` when the field may stay empty, and the Draft starts with `null`. The field writes a
 `CalendarDay` (`YYYY-MM-DD`) or a `WallClockTime` (`HH:MM`); a picker never hands on a `Date`.
-`name` accepts only a field that takes the value or `null`. The compiler cannot tell a day from a
-title: a Contract's input type carries no brand of Zod, so the Draft holds `string | null` for
-both, and the field checks the value it reads.
+`name` accepts only a field that holds the value or `null`, and never a title: a Contract's
+input type carries no brand of Zod, but the Draft takes the brand from what the input schema hands
+on, so it holds `CalendarDay | null` for a day and `string | null` for a title (D365). The same
+holds for every branded value, such as a project's id. The field still checks the value it reads,
+since the binding hands it on untyped.
 
 - **Typing a day:** the language's numeric order, `5.11.2026` in German, `11/5/2026` in English,
   with any separators and a two-digit year for 2000–2099, or `2026-11-05`. The field shows the
@@ -366,8 +368,8 @@ are properties; the field reads no Setting and no clock:
 
 The Contract declares both with `instantSchema`, ties them with a rule such as "the end lies after
 the start" at the end (`path: ["ended_at"]`, a Reason with its text, D320), and an edit names them
-in `edit.tiedFields`, so both travel together (D323). As with a day, the Draft holds a text for an
-Instant, and the field checks what it reads.
+in `edit.tiedFields`, so both travel together (D323). As with a day, the Draft holds an
+`Instant | null`, and the field checks what it reads.
 
 - **The next day:** an end time that is not after the start time lies on the next day, and the
   field shows "+1". "Add an end date" opens a separate end date for a longer range; a loaded range
@@ -376,11 +378,14 @@ Instant, and the field checks what it reads.
   time it shows changes. A start moved past the end moves the end to the next day (D362), as "+1" then
   says; one passing there while a time is typed brings it back with its seconds.
 - **Clock changes (D347):** a time the zone shows twice is resolved by `resolveWallClockTime` of
-  `time`: on an edit with the Instant the draft held, else the end with the start as its lower
-  bound. A correction inside the repeated hour stays in the same one of the two: the second 02:05
+  `time`: on an edit with the Instant the field was drawn with (D366), never one that passed
+  while a time was typed, else the end with the start as its lower bound. A correction inside the repeated hour stays in the same one of the two: the second 02:05
   corrected to 02:55 is the second 02:55 (D361). The field calls the rule and never repeats it. A note under the time names the offset,
   such as "02:30 (UTC+2)", as the Time Zone picker writes it (`formatUtcOffset`,
   `repeatedOffsetOf`). A time the clocks skip shows a message and blocks the save, like "25:00".
+- **A day to start on:** `startDay` is the date the field shows while the draft holds no start,
+  such as the day a new entry was opened on; the times stay empty. It is no value of the draft:
+  the start takes the day once its time is typed, and closing the empty form asks nothing.
 - **The duration** below the field is the time that really passed between the two Instants
   (`durationBetween`, `formatDuration`), also across a clock change.
 - **Messages:** text that is no value, a skipped time and the Contract's messages of the start

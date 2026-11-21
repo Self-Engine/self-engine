@@ -65,6 +65,9 @@ den Vermerk `_Überholt durch D<n>._`
 | [D351–D356](decisions/d351-d356-settings-in-the-database.md) | 2026-11-20 | Einstellungen in der Datenbank, Zeitzone und Wochenstart: lokale Kopie für den ersten Render, Lesen im Datenprozess über den Kontext, Gerätezone beim Start, Abfrage über eine Spanne von Tagen, Wochenstart als Name des Tages, der Besitzer deklariert | #109, #110, #275 |
 | [D357–D360](decisions/d357-d360-module-indicator.md) | 2026-11-20 | Modulanzeige, der ständige Platz in der Hülle: rechts in der Kopfzeile des Inhalts in voller Form oder Kurzform, eine Fläche der Hülle, zwei später ladende Bausteine im Hüllen-Beitrag, die Namen „Module Indicator“ und „Indicator Panel“ | #276, #277 |
 | [D361–D364](decisions/d361-d364-time-fields-and-settings-copy.md) | 2026-11-21 | Nachträge aus dem Bau von #332 und #109: die doppelte Stunde beim Bearbeiten, ein Beginn hinter dem Ende, der Wecker für „heute“, der Name „Settings Copy“ | #332, #109 |
+| [D365](decisions/d365-branded-draft.md) | 2026-11-21 | Der Entwurf eines Formulars behält die Marke eines Werts, den das Eingabe-Schema markiert; der Vertrag bleibt unmarkiert | #275 |
+| [D366](decisions/d366-previous-value-is-the-stored-value.md) | 2026-11-21 | Beim Bearbeiten in der doppelten Stunde ist der bisherige Wert der gespeicherte, nicht ein Zwischenstand beim Tippen | #332, #275 |
+| [D367–D368](decisions/d367-d368-week-address-and-refusal-at-the-project.md) | 2026-11-21 | Nachträge aus dem Bau von #275: Die Adresse nennt keine Woche, solange die gezeigte die von heute ist; die Ablehnung am Projektfeld nennt die Art des Ziels, nicht seinen Namen | #275 |
 
 D109 und D110 sind doppelt vergeben, in den Runden 18 und 19. Wer eine der beiden nennt, nennt die
 Runde dazu.

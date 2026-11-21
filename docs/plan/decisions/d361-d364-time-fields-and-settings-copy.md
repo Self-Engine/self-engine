@@ -30,6 +30,7 @@ entstanden und standen seitdem offen.
   eine Stunde im Jahr. _Laufzeit:_ eine Abfrage der Zeitumstellung je Auflösung einer doppelten
   Uhrzeit beim Bearbeiten, sonst nichts. _Verworfen:_ „am nächsten“ wie in D347.1 (eine Korrektur
   um mehr als die halbe Länge der Umstellung wechselt die Stunde, ohne dass der Nutzer es wollte).
+  _Ergänzt durch D366: Der bisherige Wert ist der gespeicherte Wert; der Preis ändert sich._
 - **D362 Ein Beginn, der hinter das Ende geschoben wird, rückt das Ende auf den Folgetag
   (ergänzt D344 und den Vorschlag „Feld für die Zeit“ aus Runde 45).** Das Ende zeigt „+1“ und
   behält seine Sekunden. Es ist dieselbe Regel wie für eine Ende-Uhrzeit, die nicht nach der
@@ -57,6 +58,6 @@ entstanden und standen seitdem offen.
 ## Vorgemerkt
 
 - **Typ der Zeitwerte im Entwurf eines Formulars:** ob die Schemas von `time` ihre Marke auch auf
-  der Eingabe eines Vertrags verlangen. Vor #275.
+  der Eingabe eines Vertrags verlangen. Vor #275. _Entschieden in D365._
 - **Popovers der Datums- und Zeitfelder (#377):** vor dem Formular des Zeiteintrags.
 - **Laden der Modulanzeige gegen das erste Bild:** vor #277, mit der Messung der Timer-Anzeige.
