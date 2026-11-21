@@ -2,7 +2,6 @@
 // It shows a date, a start time and an end time, and on demand an end date, with the inputs of
 // `date-inputs.tsx`. `time-range.ts` turns what it shows into the two Instants; this file draws.
 
-import { msg } from "@lingui/core/macro";
 import { useLingui } from "@lingui/react/macro";
 import { Badge, Button, CloseButton, Fieldset, Group, Text } from "@mantine/core";
 import {
@@ -11,16 +10,15 @@ import {
   epochMsOf,
   type FirstDayOfWeek,
   formatDuration,
-  formatInstant,
   type Instant,
   instantSchema,
-  repeatedTimeOffset,
   type TimeZone,
   type WallClockTime,
 } from "@self-engine/time";
 import { type ReactNode, useRef, useState } from "react";
 import { checkedOrNull } from "./checked-value.ts";
 import { DayInput, TimeInput } from "./date-inputs.tsx";
+import { tell, useRepeatedNote } from "./instant-field.tsx";
 import {
   type FieldTaking,
   type TakingBinding,
@@ -33,13 +31,9 @@ import {
   isNextDay,
   partsOf,
   type RangeInstants,
-  type RangeOutcome,
   type RangeParts,
   rangeFrom,
 } from "./time-range.ts";
-
-/** Shown at a start or end time the clocks skip on that day (D347). */
-const SKIPPED = msg`This time does not exist on this day: the clocks skip it. Choose another.`;
 
 export interface TimeRangeFieldProps<FormDraft> {
   readonly form: OperationForm<FormDraft>;
@@ -108,33 +102,6 @@ function heldOf({ unfinished, skipped }: View) {
     start: skipped.start || unfinished.has("day") || unfinished.has("startTime"),
     end: skipped.end || unfinished.has("endTime") || unfinished.has("endDay"),
   };
-}
-
-/**
- * Hands one side's outcome to its field of the draft: text that is no value, a skipped time, a
- * new Instant, or nothing, in which case an older message of this field is taken back.
- */
-function tell(
-  field: TakingBinding<Instant | null>,
-  current: Instant | null,
-  outcome: RangeOutcome,
-  unfinished: boolean,
-  wasHeld: boolean,
-): void {
-  if (unfinished) field.onUnfinished();
-  else if (outcome.case === "skipped") field.onUnfinished(SKIPPED);
-  else if (outcome.case === "set" && outcome.instant !== current) field.onChange(outcome.instant);
-  // The Instant stays: handing it on again drops the text the field held that was no value.
-  else if (wasHeld) field.onChange(current);
-}
-
-/** The note at a time the zone shows twice: which of the two is meant (D347). */
-function useRepeatedNote(instant: Instant | null, timeZone: TimeZone): string | undefined {
-  const { i18n, t } = useLingui();
-  const utc = instant === null ? null : repeatedTimeOffset(instant, timeZone);
-  if (instant === null || utc === null) return undefined;
-  const time = formatInstant(instant, "time", i18n.locale, timeZone);
-  return t({ message: `${time} (${utc})`, comment: "A wall-clock time and its UTC offset" });
 }
 
 /**

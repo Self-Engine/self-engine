@@ -104,6 +104,8 @@ export interface EditDrawerFormProps extends OperationFormBodyProps {
   readonly actions?: ReactNode;
   /** The entry and the kinds of write shown as ClearanceActions. Read when the edit form opens. */
   readonly clearance?: ClearanceQuery & { readonly rows: readonly [string] };
+  /** The text of the button that submits, for a form whose Operation is no save; "Save" without. */
+  readonly submitLabel?: ReactNode;
 }
 
 /** Fields written by the module, with the shared Edit Drawer actions. */
@@ -112,6 +114,7 @@ export function EditDrawerForm({
   onCancel,
   actions,
   clearance,
+  submitLabel,
   children,
 }: EditDrawerFormProps) {
   const { t } = useLingui();
@@ -122,7 +125,9 @@ export function EditDrawerForm({
     <Group justify="flex-end" mt="auto">
       {actions && <Group me="auto">{actions}</Group>}
       <Button type="button" variant="default" onClick={onCancel}>{t`Cancel`}</Button>
-      <Button type="submit" disabled={!canSubmit}>{t`Save`}</Button>
+      <Button type="submit" disabled={!canSubmit}>
+        {submitLabel ?? t`Save`}
+      </Button>
     </Group>
   );
   return (
