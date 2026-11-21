@@ -6,14 +6,27 @@
 
 import { Plural, Trans } from "@lingui/react/macro";
 import type { DataAccess } from "@self-engine/data-client/react";
+import type { OpenIndicatorPanel } from "@self-engine/shell";
 import { notifyDone, notifyRefused, notifyUndoable } from "@self-engine/ui";
 // Types only: the Contract's schemas never load with the indicator (startup check).
 import type { TimerId, TimerStop, TimerUndo } from "./contracts/index.ts";
-import { startTimer, stopTimer, undoStopTimer } from "./port.ts";
+import { indicator } from "./indicator-entry.ts";
+import { panelPart } from "./indicator/panel-part.ts";
+import { discardTimer, startTimer, stopTimer, undoDiscardTimer, undoStopTimer } from "./port.ts";
 
 type StartInput = Parameters<typeof startTimer>[1];
 type StartResult = Awaited<ReturnType<typeof startTimer>>;
 type StopResult = Awaited<ReturnType<typeof stopTimer>>;
+type DiscardResult = Awaited<ReturnType<typeof discardTimer>>;
+
+/**
+ * What a caller with a screen hands the actions: the Shell's function that opens an Indicator
+ * Panel, which the Notice of a clock before the start offers as "Stop at …". A caller without a
+ * screen, such as a Command for an assistant, has none, and that Notice offers no action.
+ */
+export interface TimerActionOptions {
+  readonly openIndicatorPanel?: OpenIndicatorPanel | undefined;
+}
 
 // Elements, not text: `Trans` translates when the Notice renders, in the language active then.
 const SAVED = <Trans>Time entry saved</Trans>;
@@ -21,9 +34,30 @@ const NOTHING_SAVED = <Trans>Stopped within the same second: nothing was saved.<
 const CLOCK_BEFORE_START = (
   <Trans>The clock shows a time before the timer's start. The timer keeps running.</Trans>
 );
+const DISCARDED = <Trans>Timer discarded</Trans>;
+const STOP_AT = <Trans>Stop at …</Trans>;
+
+/**
+ * Says that the clock lies before the timer's start (D349): the timer keeps running, and with a
+ * screen the Notice offers "Stop at …", which opens the timer's panel at that part.
+ */
+function tellClockBeforeStart({ openIndicatorPanel }: TimerActionOptions) {
+  notifyRefused({
+    reasons: [CLOCK_BEFORE_START],
+    ...(openIndicatorPanel !== undefined && {
+      action: {
+        label: STOP_AT,
+        run: () => {
+          panelPart.request("stopAt");
+          openIndicatorPanel(indicator);
+        },
+      },
+    }),
+  });
+}
 
 /** Says what stopping the timers that ran before did: a start's and an undo's `others`. */
-function tellOthers(others: readonly TimerStop[]) {
+function tellOthers(others: readonly TimerStop[], options: TimerActionOptions) {
   let saved = 0;
   let clockBeforeStart = false;
   for (const other of others) {
@@ -52,14 +86,14 @@ function tellOthers(others: readonly TimerStop[]) {
       ),
     });
   }
-  if (clockBeforeStart) notifyRefused({ reasons: [CLOCK_BEFORE_START] });
+  if (clockBeforeStart) tellClockBeforeStart(options);
 }
 
 /** Says what an undo did. A second click on "Undo" finds the timer running and says nothing. */
-function tellUndo(undo: TimerUndo) {
+function tellUndo(undo: TimerUndo, options: TimerActionOptions) {
   switch (undo.kind) {
     case "restored":
-      tellOthers(undo.others);
+      tellOthers(undo.others, options);
       return;
     case "alreadyRunning":
       return;
@@ -69,21 +103,23 @@ function tellUndo(undo: TimerUndo) {
 }
 
 /**
- * Stops the timer and tells what happened (D349): a saved entry with "Undo", which lets the timer
- * run again as one Operation; a stop within the same second saved nothing (D344); a clock before
- * the start leaves the timer running. Any other result the building block has told already.
+ * Tells what a stop did (D349): a saved entry with "Undo", which lets the timer run again as one
+ * Operation; a stop within the same second saved nothing (D344); a clock before the start leaves
+ * the timer running. For a stop the caller ran itself, such as the form of "Stop at …".
  */
-export async function stopTimerAndTell(data: DataAccess, id: TimerId): Promise<StopResult> {
-  const result = await stopTimer(data, { id });
-  if (result.status !== "success") return result;
-  const stop = result.data;
+export function tellStop(
+  data: DataAccess,
+  id: TimerId,
+  stop: TimerStop,
+  options: TimerActionOptions = {},
+) {
   switch (stop.kind) {
     case "saved":
       notifyUndoable({
         message: SAVED,
         undo: async () => {
           const undone = await undoStopTimer(data, { id });
-          if (undone.status === "success") tellUndo(undone.data);
+          if (undone.status === "success") tellUndo(undone.data, options);
         },
       });
       break;
@@ -91,11 +127,45 @@ export async function stopTimerAndTell(data: DataAccess, id: TimerId): Promise<S
       notifyDone({ message: NOTHING_SAVED });
       break;
     case "clockBeforeStart":
-      notifyRefused({ reasons: [CLOCK_BEFORE_START] });
+      tellClockBeforeStart(options);
       break;
     default:
       stop satisfies never;
   }
+}
+
+/**
+ * Stops the timer and tells what happened, see `tellStop`. Any other result the building block
+ * has told already.
+ */
+export async function stopTimerAndTell(
+  data: DataAccess,
+  id: TimerId,
+  options: TimerActionOptions = {},
+): Promise<StopResult> {
+  const result = await stopTimer(data, { id });
+  if (result.status === "success") tellStop(data, id, result.data, options);
+  return result;
+}
+
+/**
+ * Discards the timer and tells it with "Undo", which lets the timer run again with its own start,
+ * project and note as one Operation (D349). Any other result the building block has told already.
+ */
+export async function discardTimerAndTell(
+  data: DataAccess,
+  id: TimerId,
+  options: TimerActionOptions = {},
+): Promise<DiscardResult> {
+  const result = await discardTimer(data, { id });
+  if (result.status !== "success") return result;
+  notifyUndoable({
+    message: DISCARDED,
+    undo: async () => {
+      const undone = await undoDiscardTimer(data, { id });
+      if (undone.status === "success") tellUndo(undone.data, options);
+    },
+  });
   return result;
 }
 
@@ -106,8 +176,9 @@ export async function stopTimerAndTell(data: DataAccess, id: TimerId): Promise<S
 export async function startTimerAndTell(
   data: DataAccess,
   input: StartInput = {},
+  options: TimerActionOptions = {},
 ): Promise<StartResult> {
   const result = await startTimer(data, input);
-  if (result.status === "success") tellOthers(result.data.others);
+  if (result.status === "success") tellOthers(result.data.others, options);
   return result;
 }

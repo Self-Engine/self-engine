@@ -1,9 +1,22 @@
 import { useLingui } from "@lingui/react/macro";
-import { ActionIcon, Badge, Box, Button, Group, Text } from "@mantine/core";
+import {
+  ActionIcon,
+  Badge,
+  Box,
+  Button,
+  Group,
+  Text,
+  UnstyledButton,
+  VisuallyHidden,
+} from "@mantine/core";
 import { useDataAccess } from "@self-engine/data-client/react";
 import { iconLength, TimeIcon } from "@self-engine/icons";
 import { StartTimerIcon, StopTimerIcon } from "@self-engine/icons/indicator";
-import type { IndicatorForm, ModuleIndicatorProps } from "@self-engine/shell";
+import {
+  type IndicatorForm,
+  type ModuleIndicatorWithPanelProps,
+  useOpenIndicatorPanel,
+} from "@self-engine/shell";
 // Types only from the main entry, whose schemas need Zod's full build; the running time comes
 // from its light entry.
 import type { Instant } from "@self-engine/time";
@@ -34,6 +47,15 @@ const TIME_STYLE: CSSProperties = {
 };
 
 const ICON_STYLE: CSSProperties = { display: "flex" };
+
+// The part that opens the panel holds what the timer shows; its title shortens inside it.
+const OPENER_STYLE: CSSProperties = {
+  alignItems: "center",
+  borderRadius: "var(--mantine-radius-sm)",
+  display: "flex",
+  gap: 6,
+  minWidth: 0,
+};
 
 /**
  * The running time, "now" minus the start, read again at every full second (D348). The only part
@@ -90,16 +112,39 @@ interface RunningProps {
   readonly count: number;
   readonly stopping: boolean;
   readonly onStop: (id: TimerId) => void;
+  readonly togglePanel: () => void;
+  readonly panelOpen: boolean;
 }
 
-/** The running timer: in the full form with its project, in the short form without. */
-function RunningTimer({ form, timer, count, stopping, onStop }: RunningProps) {
+/**
+ * The running timer: in the full form with its project, in the short form without. What it shows
+ * opens the Indicator Panel, which edits this timer; the stop button beside it stops with one
+ * click (D314, D358). The opener is named by what it shows, after "Edit timer", which only a
+ * screen reader reads.
+ */
+function RunningTimer({
+  form,
+  timer,
+  count,
+  stopping,
+  onStop,
+  togglePanel,
+  panelOpen,
+}: RunningProps) {
   const { t } = useLingui();
   return (
     <Group gap={6} miw={0} wrap="nowrap">
-      {form === "full" && <TimerProject project={timer.project} />}
-      <RunningTime startedAt={timer.startedAt} />
-      <TimerCount count={count} />
+      <UnstyledButton
+        aria-expanded={panelOpen}
+        aria-haspopup="dialog"
+        onClick={togglePanel}
+        style={OPENER_STYLE}
+      >
+        <VisuallyHidden>{t`Edit timer`}</VisuallyHidden>
+        {form === "full" && <TimerProject project={timer.project} />}
+        <RunningTime startedAt={timer.startedAt} />
+        <TimerCount count={count} />
+      </UnstyledButton>
       <ActionIcon
         aria-label={t`Stop timer`}
         disabled={stopping}
@@ -174,15 +219,21 @@ function TimerWaiting({ retry }: { readonly retry?: (() => void) | undefined }) 
 }
 
 /**
- * The timer's Module Indicator (D314, D357): the running timer with its time and one click to
- * stop it, or the offer to start one. With several running it shows the most recently started
+ * The timer's Module Indicator (D314, D357, D358): the running timer with its time and one click
+ * to stop it, what opens its Indicator Panel, or the offer to start one. With several running it shows the most recently started
  * and their count. It reads the running timers through the module's Query, which follows every
  * Operation through the Table Change; nothing reads or writes per second, and with no timer
  * running nothing ticks.
  */
-export default function TimerIndicator({ form }: ModuleIndicatorProps) {
+export default function TimerIndicator({
+  form,
+  togglePanel,
+  panelOpen,
+}: ModuleIndicatorWithPanelProps) {
   const running = useRunningTimers();
   const data = useDataAccess();
+  // The Notice of a clock before the start offers "Stop at …" through it.
+  const openIndicatorPanel = useOpenIndicatorPanel();
   // The timer a stop was sent for, and whether a start was, so a double click sends one call. A
   // stop that left the timer running, or a start that failed, frees the button again.
   const [stopping, setStopping] = useState<TimerId | null>(null);
@@ -199,13 +250,13 @@ export default function TimerIndicator({ form }: ModuleIndicatorProps) {
 
   const stop = (id: TimerId) => {
     setStopping(id);
-    void stopTimerAndTell(data, id).then((result) => {
+    void stopTimerAndTell(data, id, { openIndicatorPanel }).then((result) => {
       if (result.status !== "success" || result.data.kind === "clockBeforeStart") setStopping(null);
     });
   };
   const start = () => {
     setStarting(true);
-    void startTimerAndTell(data).then((result) => {
+    void startTimerAndTell(data, {}, { openIndicatorPanel }).then((result) => {
       if (result.status !== "success") setStarting(false);
     });
   };
@@ -216,8 +267,10 @@ export default function TimerIndicator({ form }: ModuleIndicatorProps) {
       count={timers.length}
       form={form}
       onStop={stop}
+      panelOpen={panelOpen}
       stopping={stopping === latest.id}
       timer={latest}
+      togglePanel={togglePanel}
     />
   );
 }
