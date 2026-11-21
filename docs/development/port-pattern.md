@@ -42,6 +42,11 @@ check outputs; the packaged app skips that check. Inputs are always checked in t
 Forms also check with the same input schema for field feedback (D317), but the Data Process
 still checks every input and decides. Trimming belongs in the input schema, not a form-only
 rule. Load the Contract with the lazy form, never at startup; see [the form guide](forms.md).
+A View or a Group never loads the Contract either: its barrel builds every entry with `oc`, which
+no bundler can drop. When a View parses an entry's id from its address, the module exports the id
+schema alone as a light entry, as `@self-engine/projects/ids` does from
+`src/contracts/project-id.ts`, and the View imports that. `onDemand` in
+`apps/web/startup-rules.ts` fails the build when a listed View loads a Contract or oRPC's builder.
 
 Every input is strict: write `z.strictObject(...)`, so an unknown key is an input error and
 nothing is dropped silently ([ADR 0032](../adr/0032-every-edit-names-what-changes-and-its-inputs-come-from-one-field-list.md)).

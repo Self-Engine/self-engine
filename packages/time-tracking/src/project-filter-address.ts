@@ -1,4 +1,6 @@
-import { type ProjectId, projectIdSchema } from "@self-engine/projects/contracts";
+// The light entry: the week and the Group parse the address with the id schema alone, without
+// the Contract and its builder (ADR 0021).
+import { type ProjectId, projectIdSchema } from "@self-engine/projects/ids";
 import type { ViewSearch } from "@self-engine/shell";
 import type { TimeEntryFilter } from "./contracts/days.ts";
 
