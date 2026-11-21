@@ -104,6 +104,14 @@ export const STARTUP_RULES = {
         "import it only through the indicator's load in the module's Shell Contribution, which the Shell calls after the first paint.",
     },
     {
+      // The timer's Operations with their Notices, which its Module Indicator, its Commands and
+      // its Indicator Panel share (#349). Outside `src/indicator/`, so a Command imports it too.
+      name: "The timer's actions of time-tracking",
+      path: "/packages/time-tracking/src/timer-actions.tsx",
+      instead:
+        "import it only from the timer's Module Indicator, a Command or the Indicator Panel, which load on demand.",
+    },
+    {
       // The frame of an Indicator Panel with Mantine's Popover and its positioning: 16 KB at
       // startup (#369). The Shell loads it beside the indicators after the first paint.
       name: "The frame of an Indicator Panel",

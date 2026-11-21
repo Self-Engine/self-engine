@@ -116,12 +116,19 @@ export interface AppAtProps {
  * none running. An empty list needs no Fixed Answer: there is nothing in it to check.
  */
 export function withNoTimerRunning(access: PortAccess): PortAccess {
+  const isRunningTimers = (module: string, entry: string) =>
+    module === "timeTracking" && entry === "runningTimers";
   return {
     ...access,
     call: (module, entry, input, signal) =>
-      module === "timeTracking" && entry === "runningTimers"
+      isRunningTimers(module, entry)
         ? Promise.resolve([])
         : access.call(module, entry, input, signal),
+    // A Query, as the Data Process's Query-to-tables list names it, whatever `access` knows.
+    describeEntry: (module, entry) =>
+      isRunningTimers(module, entry)
+        ? { kind: "query", reads: ["timers"] }
+        : access.describeEntry(module, entry),
   };
 }
 
