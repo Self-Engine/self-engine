@@ -53,6 +53,11 @@ export interface TimeRangeFieldProps<FormDraft> {
   readonly firstDayOfWeek: FirstDayOfWeek;
   /** The day the calendars mark as today and open on while empty: `useToday(timeZone)`. */
   readonly today: CalendarDay;
+  /**
+   * The date the field shows while the draft holds no start, such as the day a new entry was
+   * opened on. It is no value of the draft: the start takes it once its time is typed.
+   */
+  readonly startDay?: CalendarDay;
   /** The name of the whole field, such as "Worked". */
   readonly label?: ReactNode;
   readonly disabled?: boolean;
@@ -188,12 +193,16 @@ function RangeInputs({
   firstDayOfWeek,
   today,
   label,
+  startDay,
   disabled = false,
 }: RangeInputsProps) {
   const { t, i18n } = useLingui();
   const startInstant = checkedOrNull(instantSchema, start.value);
   const endInstant = checkedOrNull(instantSchema, end.value);
-  const [view, setView] = useState(() => fresh(partsOf(startInstant, endInstant, timeZone)));
+  const [view, setView] = useState(() => {
+    const parts = partsOf(startInstant, endInstant, timeZone);
+    return fresh(parts.day === null && startDay !== undefined ? { ...parts, day: startDay } : parts);
+  });
   // The view as the last event left it: a picker reports unfinished text after a timeout, which
   // may run after a newer event than the draw it was scheduled in.
   const latest = useRef(view);
