@@ -4,6 +4,7 @@ import type {
   CalendarDay,
   CalendarDayFormat,
   Clock,
+  DayRange,
   DaySpan,
   Duration,
   DurationFormat,
@@ -79,6 +80,17 @@ test("the public functions use only package values and require all arguments", (
   expectTypeOf(time.instantRangeOf).toEqualTypeOf<
     (days: CalendarDay | DaySpan, timeZone: TimeZone) => InstantRange
   >();
+  expectTypeOf(time.dayRangesOf).toEqualTypeOf<
+    (span: DaySpan, timeZone: TimeZone) => readonly DayRange[]
+  >();
+  expectTypeOf(time.cutAtDays).toEqualTypeOf<
+    (range: InstantRange, days: readonly DayRange[]) => readonly DayRange[]
+  >();
+  expectTypeOf<DayRange>().toEqualTypeOf<{
+    readonly day: CalendarDay;
+    readonly start: Instant;
+    readonly end: Instant;
+  }>();
   expectTypeOf(time.today).toEqualTypeOf<(clock: Clock, timeZone: TimeZone) => CalendarDay>();
   expectTypeOf(time.formatInstant).toEqualTypeOf<
     (instant: Instant, format: InstantFormat, locale: string, timeZone: TimeZone) => string
@@ -113,6 +125,8 @@ test("the public functions use only package values and require all arguments", (
       "calendarDaySchema",
       "calendarLabels",
       "clockFormatOf",
+      "cutAtDays",
+      "dayRangesOf",
       "deviceTimeZone",
       "instantAt",
       "instantRangeOf",
