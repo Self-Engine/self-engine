@@ -154,12 +154,17 @@ test("starting from the palette saves the previous timer's entry and leaves only
   );
 });
 
-test("the palette's Stop timer reports a same-second discard and does nothing while idle", async () => {
-  const { data } = await start();
+test("the palette's Stop timer reports a same-second discard, and while idle says that no timer runs", async () => {
+  const { data: quiet } = await start();
+  const notices: unknown[] = [];
+  const data: DataAccess = { ...quiet, notify: (notice) => notices.push(notice) };
   const context = { data, openIndicatorPanel };
   const stop = () => runCommand(command("stop-timer", "open"), {}, context);
 
+  // The value stays `null` for a caller without a screen; a person reads the Notice.
   await expect(stop()).resolves.toEqual({ ok: true, value: null });
+  expect(notices).toMatchObject([{ message: "No timer is running." }]);
+  notices.length = 0;
   await runCommand(command("start-timer", "open"), {}, context);
 
   await expect(stop()).resolves.toMatchObject({
@@ -167,6 +172,7 @@ test("the palette's Stop timer reports a same-second discard and does nothing wh
     value: { status: "success", data: { kind: "discarded", timer: { startedAt: NOW } } },
   });
   await expect(data.access.call("timeTracking", "runningTimers", undefined)).resolves.toEqual([]);
+  expect(notices).toEqual([]);
 });
 
 test("Toggle timer starts when idle and stops the running timer on the next invocation", async () => {

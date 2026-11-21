@@ -354,6 +354,22 @@ export const StartAndStopFromAnotherModulesPalette: Story = {
   },
 };
 
+export const StopFromThePaletteWhileIdleSaysThatNoTimerRuns: Story = {
+  beforeEach: cleanNotices,
+  args: { stored: {} },
+  play: async ({ canvas }) => {
+    await canvas.findByRole("heading", { name: "Active", level: 1 });
+    await openPalette();
+    await userEvent.keyboard("stop timer{Enter}");
+    await paletteGone();
+    await noticeShown("No timer is running.");
+    await expect(port.calls).toEqual([]);
+    await expect(
+      await contentHeader(canvas).findByRole("button", { name: "Start timer" }, ARRIVES),
+    ).toBeVisible();
+  },
+};
+
 export const TheShortcutStartsWhenIdleAndStopsTheLatestOfSeveral: Story = {
   beforeEach: cleanNotices,
   args: {

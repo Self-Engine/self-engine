@@ -23,7 +23,7 @@ import {
   timeTrackingContract,
 } from "../contracts/index.ts";
 import { type TimerWithProject, useEditTimer, useRunningTimers, useStopTimer } from "../port.ts";
-import { discardTimerAndTell, tellStop } from "../timer-actions.tsx";
+import { discardTimerAndTell, NO_TIMER_RUNNING, tellStop } from "../timer-actions.tsx";
 import { type PanelPart, panelPart, STOP_AT_IN_PLACE } from "../timer-panel-part.ts";
 
 /** The texts of the reasons the Operations raise at a field (D369); the compiler asks for each. */
@@ -64,10 +64,10 @@ function OpenedTimer({
 
 /** No timer runs, or the panel's timer stopped elsewhere while it was open. */
 function NoTimer({ gone, onDone }: { readonly gone: boolean; readonly onDone: () => void }) {
-  const { t } = useLingui();
+  const { t, i18n } = useLingui();
   return (
     <Stack gap="sm">
-      <Text size="sm">{gone ? t`This timer is no longer running.` : t`No timer is running.`}</Text>
+      <Text size="sm">{gone ? t`This timer is no longer running.` : i18n._(NO_TIMER_RUNNING)}</Text>
       <Button onClick={onDone} variant="default">
         {t({ message: "Close", context: "Close the panel" })}
       </Button>
