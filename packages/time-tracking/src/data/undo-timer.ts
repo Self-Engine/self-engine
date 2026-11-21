@@ -6,23 +6,11 @@ import {
   type WriteTransaction,
 } from "@self-engine/storage";
 import { timeEntryIdOfTimer, type TimerId, type TimerUndo } from "../contracts/index.ts";
-import { TIMER_COLUMNS, type timeTrackingRowMap, toTimer } from "./rows.ts";
-import { stopRunningTimers, storedEntryOfTimer } from "./stop-timer.ts";
+import { type timeTrackingRowMap, toTimer } from "./rows.ts";
+import { stopRunningTimers, storedEntryOfTimer, storedTimer } from "./stop-timer.ts";
 
 type Tables = TablesOf<typeof timeTrackingRowMap>;
 type Writes = WriteTransaction<Tables>;
-
-/** The timer with the id in the call's Space, running or not: one lookup by primary key. */
-async function storedTimer(tx: Writes, context: StorageContext, id: TimerId) {
-  const timer = await tx
-    .selectFrom("timers")
-    .select([...TIMER_COLUMNS, "timers.deleted_at"])
-    .where("timers.id", "=", id)
-    .where("timers.space_id", "=", context.spaceId)
-    .executeTakeFirst();
-  if (timer === undefined) throw notFound();
-  return timer;
-}
 
 /**
  * Brings a stopped or discarded timer back (D349): every other running timer stops first, by the

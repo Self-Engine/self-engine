@@ -371,6 +371,20 @@ test("stopping a discarded or an unknown timer is not found", async () => {
   await expect(dayEntries(client)).resolves.toEqual([]);
 });
 
+test("stopping with the id of a Time Entry made by hand is not found: no timer of that id ever ran", async () => {
+  const { client } = await start();
+  const entry = await client.timeTracking.create({
+    startedAt: "2026-11-20T07:00:00.000Z",
+    endedAt: "2026-11-20T08:00:00.000Z",
+  });
+  // A caller without the types can send an entry's id: both ids are the same kind of text.
+  const id = timerIdSchema.parse(entry.id);
+  await expect(errorOf(client.timeTracking.stopTimer({ id }))).resolves.toMatchObject({
+    code: "NOT_FOUND",
+    defined: true,
+  });
+});
+
 test("a stop within the second of the start discards the timer, saves no entry and says so", async () => {
   const { client, clock, process } = await start();
   const { timer } = await client.timeTracking.startTimer({ note: "Slip" });

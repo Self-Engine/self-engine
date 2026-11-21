@@ -170,6 +170,10 @@ test("a start that stops the running timer leaves the new one running alone", as
   const second = await hooks.current().start({});
   if (second.status !== "success") throw new Error(`start: ${second.status}`);
   expect(second.data.others).toMatchObject([{ kind: "saved" }]);
-  await expect(hooks.until(one)).resolves.toMatchObject([{ id: second.data.timer.id }]);
+  // The Query may still hold the first timer alone: wait for the new one.
+  const { id } = second.data.timer;
+  await expect(
+    hooks.until((running) => running.length === 1 && running[0]?.id === id),
+  ).resolves.toMatchObject([{ id }]);
   expect(first).toBeDefined();
 });

@@ -1,6 +1,7 @@
 import type { TablesOf } from "@self-engine/db";
 import {
   inputError,
+  notFound,
   sharedEntry,
   sharedWrites,
   type StorageContext,
@@ -106,23 +107,34 @@ export async function storedEntryOfTimer(
 }
 
 /**
+ * The timer with the id in the call's Space, running or not: one lookup by primary key. Not found
+ * when no timer of that id was ever stored.
+ */
+export async function storedTimer(tx: Writes, context: StorageContext, id: TimerId) {
+  const timer = await tx
+    .selectFrom("timers")
+    .select([...TIMER_COLUMNS, "timers.deleted_at"])
+    .where("timers.id", "=", id)
+    .where("timers.space_id", "=", context.spaceId)
+    .executeTakeFirst();
+  if (timer === undefined) throw notFound();
+  return timer;
+}
+
+/**
  * The stop Operation: the running timer with the id, or, once a stop has saved its entry, that
- * entry again without a write (D349). A discarded or unknown timer is not found.
+ * entry again without a write (D349). A discarded or unknown timer is not found, and so is the id
+ * of a Time Entry made by hand: only a timer that was stored has an entry of its id to answer.
  */
 export async function stopTimer(
   tx: Writes,
   context: StorageContext,
   input: { readonly id: TimerId; readonly endedAt?: Instant | undefined },
 ): Promise<TimerStop> {
-  const reads = sharedEntry(tx, context);
-  const timer = await reads
-    .live("timers")
-    .where("timers.id", "=", input.id)
-    .select(TIMER_COLUMNS)
-    .executeTakeFirst();
-  if (timer !== undefined) return stopRunningTimer(tx, context, timer, input.endedAt);
-  // Not found without a live entry of the timer's id: the timer was discarded, or never existed.
-  const entry = await reads.lookup("time_entries", timeEntryIdOfTimer(input.id));
+  const timer = await storedTimer(tx, context, input.id);
+  if (timer.deleted_at === null) return stopRunningTimer(tx, context, timer, input.endedAt);
+  // Not found without a live entry of the timer's id: the timer was discarded.
+  const entry = await sharedEntry(tx, context).lookup("time_entries", timeEntryIdOfTimer(input.id));
   return { kind: "saved", entry: toTimeEntry(entry) };
 }
 
