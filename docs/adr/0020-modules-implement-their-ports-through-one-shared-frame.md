@@ -54,8 +54,10 @@ changes atomically without opening a transaction for each call.
 - Expected errors are `NOT_FOUND`, `CONFLICT` with operation-specific reason codes, and the
   Refusal `REFUSED`, which every Operation carries through the shared `refusal` block and no
   Query does
-  ([ADR 0033](0033-protection-rules-guard-every-write-path-and-answer-with-typed-reasons.md)).
-  Each
+  ([ADR 0033](0033-protection-rules-guard-every-write-path-and-answer-with-typed-reasons.md)),
+  and an input error `BAD_REQUEST`: the frame's own check of the input, or one the Operation
+  raises with a reason its entry declares
+  ([ADR 0039](0039-an-operation-answers-an-input-error-a-form-shows-at-its-field.md)). Each
   unique index maps to a reason; create and restore share that mapping. Lower functions throw
   business conflicts that no index expresses. Unmapped violations and other unexpected errors
   become a generic internal error. Details and large-result warnings go through one injected

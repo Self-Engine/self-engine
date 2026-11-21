@@ -122,8 +122,9 @@ texts of its own passes `texts`: `texts.fields` replaces a field’s generic tex
 `texts.reasons` names special rules, such as
 ``{ reasons: { body_matches_title: msg`The body must differ from the title.` } }`` for the rule
 of `memos` above. A reason takes precedence over a field text.
-Descriptors follow an open-form language switch. The types do not find a missing reason text;
-a story does, at runtime: the field shows the fallback and an error is logged, which the
+Descriptors follow an open-form language switch. A reason the Operation declares for its own input
+errors (`inputErrors` in its Contract) needs a text here, and the types demand it. The types do not
+find a missing text for a reason of the input schema; a story does, at runtime: the field shows the fallback and an error is logged, which the
 console-error gate rejects. Exercise every reason in a story.
 No raw Zod message reaches the screen.
 
@@ -137,7 +138,12 @@ Every other Reason goes to that Notice, the Draft stays and the form stays open:
 form does not show, and one at a field that changed while the save ran. The form asks again when
 it takes the answer: a Reason whose field changed or went after the hook's answer, such as by code
 the first Notice runs, goes to a Notice of its own through the provider's `notifyRefused`, never to
-its field. A violation of a Check outranks a Conflict or a Reason at the same field.
+its field. An input error the Operation answers (`invalid`, ADR 0039) shows each issue at the
+field its path names, worded as the Check words it, with the module's text for its reason; the
+first such field on screen takes the focus once the save's lock ends, the message leaves when its
+field changes, and the next answer replaces it. An issue at a field the form does not show, or one
+whose field changed while the save ran, goes to the general Notice. A violation of a Check
+outranks a Conflict, a Reason or an issue at the same field.
 Unexpected failure preserves input; Data Client owns its Notice. Success and not-found call `onDone`; `onSuccess(data)` optionally consumes
 the successful answer. Pass the Shell’s `onDone`, so a completed save bypasses the leave guard.
 
