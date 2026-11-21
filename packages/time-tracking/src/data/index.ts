@@ -1,11 +1,13 @@
-import { projectReferences } from "@self-engine/projects/data";
+import {
+  projectReferenceColumns,
+  projectReferenceOf,
+  projectReferences,
+} from "@self-engine/projects/data";
 import { defineStorageModule, sharedEntry, sharedWrites } from "@self-engine/storage";
 import { timeEntryIdSchema, timeTrackingContract } from "../contracts/index.ts";
 import { DAYS_READS, spanDays } from "./days.ts";
 import {
-  JOINED_PROJECT_COLUMNS,
   TIME_ENTRY_COLUMNS,
-  projectReferenceOf,
   storedTimes,
   timeTrackingMigrations,
   timeTrackingRowMap,
@@ -77,7 +79,7 @@ export const timeTracking = defineStorageModule({
           "time_entries.project_id",
         )
         .select(TIME_ENTRY_COLUMNS)
-        .select(JOINED_PROJECT_COLUMNS)
+        .select(projectReferenceColumns("project"))
         .where("time_entries.id", "=", input.id)
         .executeTakeFirst();
       return row === undefined ? null : { ...toTimeEntry(row), project: projectReferenceOf(row) };

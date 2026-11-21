@@ -2,7 +2,11 @@
 // that touches the span, joined with the Read Piece of `projects`. TypeScript groups: the Day
 // Shares, the days and the sums. Day logic never runs in SQL.
 import type { TablesOf } from "@self-engine/db";
-import { projectReferences } from "@self-engine/projects/data";
+import {
+  projectReferenceColumns,
+  projectReferenceOf,
+  projectReferences,
+} from "@self-engine/projects/data";
 import {
   type ReadTransaction,
   SETTINGS_TABLE,
@@ -12,13 +16,7 @@ import {
 import { dayRangesOf, type DaySpan, type DayRange } from "@self-engine/time";
 import type { DaysAnswer, TimeEntryFilter } from "../contracts/index.ts";
 import { groupDays } from "./group-days.ts";
-import {
-  JOINED_PROJECT_COLUMNS,
-  TIME_ENTRY_COLUMNS,
-  projectReferenceOf,
-  type timeTrackingRowMap,
-  toTimeEntry,
-} from "./rows.ts";
+import { TIME_ENTRY_COLUMNS, type timeTrackingRowMap, toTimeEntry } from "./rows.ts";
 
 type Tables = TablesOf<typeof timeTrackingRowMap>;
 type Reads = ReadTransaction<Tables>;
@@ -40,7 +38,7 @@ export function windowRows(
     .live("time_entries")
     .leftJoin(projectReferences(tx, context, "project"), "project.id", "time_entries.project_id")
     .select(TIME_ENTRY_COLUMNS)
-    .select(JOINED_PROJECT_COLUMNS)
+    .select(projectReferenceColumns("project"))
     .where("time_entries.started_at", "<", window.end)
     .where("time_entries.ended_at", ">", window.start);
   if (filter?.kind === "project")

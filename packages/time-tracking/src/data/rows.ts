@@ -1,5 +1,5 @@
 import { defineMigrations, type TablesOf } from "@self-engine/db";
-import { type ProjectReference, projectIdSchema } from "@self-engine/projects/contracts";
+import { projectIdSchema } from "@self-engine/projects/ids";
 import { spaceIdSchema } from "@self-engine/storage";
 import {
   durationBetween,
@@ -70,39 +70,3 @@ export const toTimeEntry = (row: TimeEntryValues): TimeEntry => ({
   projectId: row.project_id,
   note: row.note,
 });
-
-/**
- * The columns a Query selects from the Read Piece of `projects`, joined as `project`; they give
- * the fields of `JoinedProject`.
- */
-export const JOINED_PROJECT_COLUMNS = [
-  "project.id as projectRefId",
-  "project.title as projectTitle",
-  "project.icon as projectIcon",
-  "project.color as projectColor",
-  "project.archivedAt as projectArchivedAt",
-  "project.deletedAt as projectDeletedAt",
-] as const;
-
-/** The columns of the Read Piece of `projects`, as a Query of this module selects them. */
-export interface JoinedProject {
-  readonly projectRefId: ProjectReference["id"] | null;
-  readonly projectTitle: string | null;
-  readonly projectIcon: string | null;
-  readonly projectColor: string | null;
-  readonly projectArchivedAt: ProjectReference["archivedAt"];
-  readonly projectDeletedAt: ProjectReference["deletedAt"];
-}
-
-/** The joined Read Piece as a Project Reference; `null` when no project of this Space was found. */
-export function projectReferenceOf(row: JoinedProject): ProjectReference | null {
-  if (row.projectRefId === null || row.projectTitle === null) return null;
-  return {
-    id: row.projectRefId,
-    title: row.projectTitle,
-    icon: row.projectIcon,
-    color: row.projectColor,
-    archivedAt: row.projectArchivedAt,
-    deletedAt: row.projectDeletedAt,
-  };
-}

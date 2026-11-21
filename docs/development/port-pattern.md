@@ -450,7 +450,9 @@ twice:
   and sort or filter by its fields there. It is scoped to the current Space and keeps an
   archived and a deleted project with their marks, so an entry never loses its project. It takes
   `ReadTransaction<DB>`, which a write transaction satisfies too. Declare `projects` in the
-  Query's `reads`.
+  Query's `reads`. Select its fields with `projectReferenceColumns(alias)` and turn each row into
+  the reference with `projectReferenceOf(row)`, both from the same entry: `projects` alone knows
+  how its columns become a Project Reference.
 - **The schema** `projectReferenceSchema` from `@self-engine/projects/contracts`. Build it into
   the module's own answers, such as `project: projectReferenceSchema.nullable()`, `null` where
   the left join found no project in this Space. It is strict and accepts exactly what the Read
