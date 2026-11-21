@@ -172,7 +172,9 @@ non-deleted select, and `.lookup(table, id)` for one live row or `NOT_FOUND`. Us
 `softDelete(table, id)` and `restore(table, id)`. These set convention columns; callers cannot supply those columns in fields, even through
 non-literal objects, and runtime writes discard injected convention fields. Update and
 soft delete require a live row; restore requires a deleted row. Unknown ids and ids in another
-Space are not found; restoring a live row is also not found.
+Space are not found; restoring a live row is also not found. An Operation whose own lookup
+finds nothing to act on, such as an undo with nothing to undo, throws `notFound()` from
+`storage` rather than building the error itself.
 
 `update` writes only the fields that are not `undefined`, so an edit hands its input on field by
 field, `{ title: input.title, body: input.body }`, and a missing field stays untouched. With no
