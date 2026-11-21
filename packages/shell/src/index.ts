@@ -22,6 +22,7 @@ export type {
   FrameExitProps,
   IndicatorPanelProps,
   IndicatorWithPanel,
+  IndicatorWithoutPanel,
   ModuleIndicator,
   ModuleIndicatorProps,
   ModuleIndicatorWithPanelProps,

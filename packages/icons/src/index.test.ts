@@ -22,12 +22,14 @@ const ICON_NAMES = [
   "ThemeColorsIcon",
 ] as const;
 
-/** The icons of `./view`, which only Views draw and which load with them. */
+/** The icons of `./view`, which only Views and Module Indicators draw and which load with them. */
 const VIEW_ICON_NAMES = [
   "PreviousIcon",
   "NextIcon",
   "CrossesMidnightIcon",
   "OverlapsEntryIcon",
+  "StartTimerIcon",
+  "StopTimerIcon",
 ] as const;
 
 const icons = { ...catalog, ...viewCatalog };

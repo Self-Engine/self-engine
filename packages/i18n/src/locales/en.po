@@ -32,6 +32,10 @@ msgstr "{count, plural, one {time entry} other {time entries}}"
 msgid "{count, plural, one {timer} other {timers}}"
 msgstr "{count, plural, one {timer} other {timers}}"
 
+#: packages/time-tracking/src/indicator/index.tsx
+msgid "{count} timers running"
+msgstr "{count} timers running"
+
 #: packages/time-tracking/src/week.tsx
 msgid "{first} – {last}"
 msgstr "{first} – {last}"
@@ -68,6 +72,10 @@ msgstr "{name} indicator failed. Try again."
 #: packages/time-tracking/src/edit-drawer.tsx
 msgid "{project}, {start}"
 msgstr "{project}, {start}"
+
+#: packages/time-tracking/src/timer-actions.tsx
+msgid "{saved, plural, one {The running timer was stopped and its time entry saved.} other {# running timers were stopped and their time entries saved.}}"
+msgstr "{saved, plural, one {The running timer was stopped and its time entry saved.} other {# running timers were stopped and their time entries saved.}}"
 
 #. A wall-clock time and its UTC offset
 #: packages/forms/src/time-range-field.tsx
@@ -1474,10 +1482,22 @@ msgctxt "beginning of a stretch of time"
 msgid "Start"
 msgstr "Start"
 
+#: packages/time-tracking/src/indicator/index.tsx
+msgid "Start timer"
+msgstr "Start timer"
+
 #: packages/icons/src/directory/labels.ts
 msgctxt "Icon"
 msgid "Stop"
 msgstr "Stop"
+
+#: packages/time-tracking/src/indicator/index.tsx
+msgid "Stop timer"
+msgstr "Stop timer"
+
+#: packages/time-tracking/src/timer-actions.tsx
+msgid "Stopped within the same second: nothing was saved."
+msgstr "Stopped within the same second: nothing was saved."
 
 #: packages/placeholder-alpha/src/groups.tsx
 msgid "Studio"
@@ -1557,6 +1577,10 @@ msgstr "That could not be undone."
 msgid "The action could not be completed. Please try again."
 msgstr "The action could not be completed. Please try again."
 
+#: packages/time-tracking/src/timer-actions.tsx
+msgid "The clock shows a time before the timer's start. The timer keeps running."
+msgstr "The clock shows a time before the timer's start. The timer keeps running."
+
 #: packages/settings-area/src/theme-rows.tsx
 msgid "The colors of the app. When the app follows the system, light and dark each have their own Theme."
 msgstr "The colors of the app. When the app follows the system, light and dark each have their own Theme."
@@ -1630,6 +1654,10 @@ msgstr "The size of the text in the whole app."
 #: apps/web/src/device-zone-offer.tsx
 msgid "The Time Zone is now {to}."
 msgstr "The Time Zone is now {to}."
+
+#: packages/time-tracking/src/indicator/index.tsx
+msgid "The timer could not be loaded. Try again."
+msgstr "The timer could not be loaded. Try again."
 
 #: packages/settings-area/src/region-rows.tsx
 msgid "The zone in which the app counts days and shows times."
@@ -1706,6 +1734,7 @@ msgid "Thursday"
 msgstr "Thursday"
 
 #: packages/time-tracking/src/index.ts
+#: packages/time-tracking/src/indicator/index.tsx
 msgid "Time"
 msgstr "Time"
 
@@ -1725,6 +1754,10 @@ msgstr "Time entry deleted"
 #: packages/time-tracking/src/edit-drawer.tsx
 msgid "Time entry not found"
 msgstr "Time entry not found"
+
+#: packages/time-tracking/src/timer-actions.tsx
+msgid "Time entry saved"
+msgstr "Time entry saved"
 
 #: packages/settings-area/src/region-rows.tsx
 msgid "Time Zone"
