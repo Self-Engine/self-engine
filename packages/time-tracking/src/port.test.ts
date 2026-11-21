@@ -4,16 +4,20 @@
 
 import { createORPCClient } from "@orpc/client";
 import { RPCLink } from "@orpc/client/message-port";
-import type { ContractRouterClient } from "@orpc/contract";
+import type {
+  ContractRouterClient,
+  InferContractRouterOutputs,
+  InferSchemaOutput,
+} from "@orpc/contract";
 import type { ProtocolContract } from "@self-engine/data-protocol";
 import { startTestDataProcess, type TestDataProcess } from "@self-engine/data-process/testing";
-import { projectIdSchema } from "@self-engine/projects/contracts";
+import { type ProjectId, projectIdSchema } from "@self-engine/projects/contracts";
 import { projects } from "@self-engine/projects/data";
 import { settings } from "@self-engine/settings-data/data";
-import { resolveTimeZone } from "@self-engine/time";
+import { type Instant, resolveTimeZone } from "@self-engine/time";
 import { TIME_ZONE_SETTING } from "@self-engine/time/settings";
-import { afterEach, expect, test } from "vite-plus/test";
-import { timeEntryIdSchema } from "./contracts/index.ts";
+import { afterEach, expect, expectTypeOf, test } from "vite-plus/test";
+import { type TimeEntryId, timeEntryIdSchema, timeTrackingContract } from "./contracts/index.ts";
 import { timeTracking } from "./data/index.ts";
 
 const started: TestDataProcess[] = [];
@@ -67,6 +71,249 @@ async function errorOf(call: Promise<unknown>) {
 
 const START = "2026-11-16T09:00:00.000Z";
 const END = "2026-11-16T10:30:00.000Z";
+
+test("validated edits carry both Instants or neither, and Operation answers keep their brands", () => {
+  type CheckedEdit = InferSchemaOutput<
+    NonNullable<(typeof timeTrackingContract.edit)["~orpc"]["inputSchema"]>
+  >;
+  expectTypeOf<Extract<CheckedEdit, { startedAt: Instant }>["endedAt"]>().toEqualTypeOf<Instant>();
+  expectTypeOf<Extract<CheckedEdit, { endedAt: Instant }>["startedAt"]>().toEqualTypeOf<Instant>();
+
+  type Outputs = InferContractRouterOutputs<typeof timeTrackingContract>;
+  expectTypeOf<
+    Pick<Outputs["edit" | "delete" | "restore"], "id" | "startedAt" | "endedAt" | "projectId">
+  >().toEqualTypeOf<{
+    id: TimeEntryId;
+    startedAt: Instant;
+    endedAt: Instant;
+    projectId: ProjectId | null;
+  }>();
+});
+
+test("editing only the note preserves both Instants, the Booked Duration and the creation Time Zone", async () => {
+  const { client, saveTimeZone, storedTimeZone } = await start();
+  await saveTimeZone("Asia/Bangkok");
+  const created = await client.timeTracking.create({
+    startedAt: "2026-11-16T10:00:50.000Z",
+    endedAt: "2026-11-16T10:05:10.000Z",
+    note: "Draft",
+  });
+  await saveTimeZone("America/Los_Angeles");
+  const expected = { ...created, note: "Review" };
+
+  await expect(client.timeTracking.edit({ id: created.id, note: " Review " })).resolves.toEqual(
+    expected,
+  );
+  await expect(client.timeTracking.entry({ id: created.id })).resolves.toEqual({
+    ...expected,
+    project: null,
+  });
+  await expect(storedTimeZone(created.id)).resolves.toEqual(["Asia/Bangkok"]);
+});
+
+test("editing the time range stores whole seconds and recomputes the Booked Duration", async () => {
+  const { client, saveTimeZone, storedTimeZone } = await start();
+  const created = await client.timeTracking.create({
+    startedAt: START,
+    endedAt: END,
+    note: "Design",
+  });
+  await saveTimeZone("Asia/Bangkok");
+  const expected = {
+    ...created,
+    startedAt: "2026-11-16T11:00:23.000Z",
+    endedAt: "2026-11-16T11:05:03.000Z",
+    durationSeconds: 280,
+  };
+
+  await expect(
+    client.timeTracking.edit({
+      id: created.id,
+      startedAt: "2026-11-16T11:00:23.297Z",
+      endedAt: "2026-11-16T11:05:03.812Z",
+    }),
+  ).resolves.toEqual(expected);
+  await expect(client.timeTracking.entry({ id: created.id })).resolves.toEqual({
+    ...expected,
+    project: null,
+  });
+  await expect(storedTimeZone(created.id)).resolves.toEqual(["Europe/Berlin"]);
+});
+
+test("an edit with only one Instant, an invalid range or an unknown field changes nothing", async () => {
+  const { client } = await start();
+  const created = await client.timeTracking.create({ startedAt: START, endedAt: END });
+  const { id } = created;
+  for (const fields of [{ startedAt: START }, { endedAt: END }]) {
+    await expect(errorOf(client.timeTracking.edit({ id, ...fields }))).resolves.toMatchObject({
+      code: "BAD_REQUEST",
+      data: { issues: [{ params: { reason: "start_and_end_together" } }] },
+    });
+  }
+  const badRange = {
+    id,
+    startedAt: "2026-11-16T10:00:00.100Z",
+    endedAt: "2026-11-16T10:00:00.900Z",
+  };
+  await expect(errorOf(client.timeTracking.edit(badRange))).resolves.toMatchObject({
+    code: "BAD_REQUEST",
+    data: { issues: [{ path: ["endedAt"], params: { reason: "end_before_start" } }] },
+  });
+  for (const field of ["notes", "durationSeconds", "timeZone"]) {
+    const input = { id, [field]: "unexpected" };
+    await expect(errorOf(client.timeTracking.edit(input))).resolves.toMatchObject({
+      code: "BAD_REQUEST",
+      data: { issues: [{ code: "unrecognized_keys", keys: [field] }] },
+    });
+  }
+  await expect(client.timeTracking.entry({ id })).resolves.toEqual({ ...created, project: null });
+});
+
+test("deleting an entry returns it and removes it from the Query", async () => {
+  const { client } = await start();
+  const created = await client.timeTracking.create({ startedAt: START, endedAt: END });
+  const { id } = created;
+
+  await expect(client.timeTracking.delete({ id })).resolves.toEqual(created);
+  await expect(client.timeTracking.entry({ id })).resolves.toBeNull();
+  await expect(errorOf(client.timeTracking.edit({ id }))).resolves.toMatchObject({
+    code: "NOT_FOUND",
+    defined: true,
+  });
+  await expect(errorOf(client.timeTracking.delete({ id }))).resolves.toMatchObject({
+    code: "NOT_FOUND",
+    defined: true,
+  });
+});
+
+test("restore brings an entry back as it was", async () => {
+  const { client, saveTimeZone, storedTimeZone } = await start();
+  await saveTimeZone("Asia/Bangkok");
+  const project = await client.projects.create({ title: "Website", icon: "house", color: "teal" });
+  const created = await client.timeTracking.create({
+    startedAt: START,
+    endedAt: END,
+    projectId: project.id,
+    note: "Design",
+  });
+  const { id } = created;
+  const before = await client.timeTracking.entry({ id });
+  await client.timeTracking.delete({ id });
+  await saveTimeZone("America/Los_Angeles");
+
+  await expect(client.timeTracking.restore({ id })).resolves.toEqual(created);
+  await expect(client.timeTracking.entry({ id })).resolves.toEqual(before);
+  await expect(storedTimeZone(id)).resolves.toEqual(["Asia/Bangkok"]);
+  await expect(errorOf(client.timeTracking.restore({ id }))).resolves.toMatchObject({
+    code: "NOT_FOUND",
+    defined: true,
+  });
+});
+
+test("restore is refused when the project was deleted and succeeds after the project is restored", async () => {
+  const { client } = await start();
+  const project = await client.projects.create({ title: "Website" });
+  const created = await client.timeTracking.create({
+    startedAt: START,
+    endedAt: END,
+    projectId: project.id,
+  });
+  const { id } = created;
+  await client.timeTracking.delete({ id });
+  await client.projects.delete({ id: project.id });
+
+  await expect(errorOf(client.timeTracking.restore({ id }))).resolves.toMatchObject({
+    code: "REFUSED",
+    defined: true,
+    data: {
+      reasons: [
+        {
+          code: "target_deleted",
+          severity: "blocking",
+          table: "time_entries",
+          row: id,
+          field: "project_id",
+          details: { target: { table: "projects", id: project.id } },
+        },
+      ],
+    },
+  });
+  await expect(client.timeTracking.entry({ id })).resolves.toBeNull();
+
+  await client.projects.restore({ id: project.id });
+  await expect(client.timeTracking.restore({ id })).resolves.toEqual(created);
+});
+
+test("null clears the project and note, and an edit without fields sends no Table Change", async () => {
+  const { client } = await start();
+  const project = await client.projects.create({ title: "Website" });
+  const created = await client.timeTracking.create({
+    startedAt: START,
+    endedAt: END,
+    projectId: project.id,
+    note: "Design",
+  });
+  const { id } = created;
+  const cleared = { ...created, projectId: null, note: null };
+
+  await expect(client.timeTracking.edit({ id, projectId: null, note: null })).resolves.toEqual(
+    cleared,
+  );
+  await expect(client.timeTracking.entry({ id })).resolves.toEqual({ ...cleared, project: null });
+
+  const events = await client.tablesChanged();
+  await expect(events.next()).resolves.toMatchObject({ value: { kind: "opened" } });
+  await expect(client.timeTracking.edit({ id })).resolves.toEqual(cleared);
+  // A write to a different table marks how far the stream has advanced.
+  await client.projects.create({ title: "Garden" });
+  await expect(events.next()).resolves.toMatchObject({
+    value: { kind: "changed", tables: ["projects"] },
+  });
+  await events.return?.();
+});
+
+test("editing an entry on an archived project succeeds, while assigning a deleted project is refused", async () => {
+  const { client } = await start();
+  const archived = await client.projects.create({ title: "Archived" });
+  const deleted = await client.projects.create({ title: "Deleted" });
+  const created = await client.timeTracking.create({ startedAt: START, endedAt: END });
+  const { id } = created;
+  await client.projects.archive({ id: archived.id });
+  await client.projects.delete({ id: deleted.id });
+
+  await expect(client.timeTracking.edit({ id, projectId: archived.id })).resolves.toEqual({
+    ...created,
+    projectId: archived.id,
+  });
+  await expect(client.timeTracking.edit({ id, note: "Review" })).resolves.toEqual({
+    ...created,
+    projectId: archived.id,
+    note: "Review",
+  });
+  await expect(
+    errorOf(client.timeTracking.edit({ id, projectId: deleted.id })),
+  ).resolves.toMatchObject({
+    code: "REFUSED",
+    defined: true,
+    data: {
+      reasons: [
+        {
+          code: "target_deleted",
+          severity: "blocking",
+          table: "time_entries",
+          row: id,
+          field: "project_id",
+          details: { target: { table: "projects", id: deleted.id } },
+        },
+      ],
+    },
+  });
+  await expect(client.timeTracking.entry({ id })).resolves.toMatchObject({
+    projectId: archived.id,
+    note: "Review",
+    project: { id: archived.id, archivedAt: expect.any(String), deletedAt: null },
+  });
+});
 
 test("create answers with the entry, and the Query returns it with its Project Reference", async () => {
   const { client } = await start();
