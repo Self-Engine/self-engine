@@ -13,7 +13,12 @@ import { settings } from "@self-engine/settings-data/data";
 import { resolveTimeZone } from "@self-engine/time";
 import { TIME_ZONE_SETTING } from "@self-engine/time/settings";
 import { afterEach, expect, test } from "vite-plus/test";
-import { type TimerStop, timeEntryIdOfTimer, timerIdSchema } from "./contracts/index.ts";
+import {
+  type TimerStop,
+  type TimerUndo,
+  timeEntryIdOfTimer,
+  timerIdSchema,
+} from "./contracts/index.ts";
 import { timeTracking } from "./data/index.ts";
 
 const started: TestDataProcess[] = [];
@@ -574,4 +579,248 @@ test("undo stop removes the entry from the week and the timer runs with its orig
   await expect(client.timeTracking.runningTimers()).resolves.toMatchObject([
     { ...timer, startedAt: "2026-11-16T09:00:00.000Z" },
   ]);
+});
+
+test("undo discard lets the timer run again with its original start, project and note", async () => {
+  const { client, clock } = await start();
+  const project = await client.projects.create({ title: "Website" });
+  const { timer } = await client.timeTracking.startTimer({ projectId: project.id, note: "Design" });
+  clock.advance(20 * 60_000);
+  await client.timeTracking.discardTimer({ id: timer.id });
+  clock.advance(5_000);
+
+  const events = await client.tablesChanged();
+  await expect(events.next()).resolves.toMatchObject({ value: { kind: "opened" } });
+  await expect(client.timeTracking.undoDiscardTimer({ id: timer.id })).resolves.toEqual({
+    kind: "restored",
+    timer,
+    others: [],
+  });
+  await expect(events.next()).resolves.toEqual({
+    done: false,
+    value: { kind: "changed", tables: ["timers"] },
+  });
+  await events.return?.();
+  await expect(client.timeTracking.runningTimers()).resolves.toMatchObject([
+    { ...timer, startedAt: "2026-11-16T09:00:00.000Z" },
+  ]);
+  await expect(dayEntries(client)).resolves.toEqual([]);
+});
+
+test("stop, undo, stop again gives one live entry with the timer's id, the new end, duration and Time Zone", async () => {
+  const { client, clock, process, saveTimeZone } = await start();
+  const { timer } = await client.timeTracking.startTimer({ note: "Design" });
+  clock.advance(30 * 60_000);
+  await client.timeTracking.stopTimer({ id: timer.id });
+  await client.timeTracking.undoStopTimer({ id: timer.id });
+  clock.advance(30 * 60_000);
+  await saveTimeZone("Asia/Bangkok");
+
+  const events = await client.tablesChanged();
+  await expect(events.next()).resolves.toMatchObject({ value: { kind: "opened" } });
+  await expect(client.timeTracking.stopTimer({ id: timer.id })).resolves.toEqual({
+    kind: "saved",
+    entry: {
+      id: timer.id,
+      startedAt: "2026-11-16T09:00:00.000Z",
+      endedAt: "2026-11-16T10:00:00.000Z",
+      durationSeconds: 3600,
+      projectId: null,
+      note: "Design",
+    },
+  });
+  await expect(events.next()).resolves.toMatchObject({
+    value: { kind: "changed", tables: ["time_entries", "timers"] },
+  });
+  await events.return?.();
+  await expect(storedEntries(process, timer.id)).resolves.toEqual([
+    { id: timer.id, time_zone: "Asia/Bangkok", deleted_at: null },
+  ]);
+  await expect(dayEntries(client)).resolves.toMatchObject([
+    { id: timer.id, durationSeconds: 3600 },
+  ]);
+});
+
+test("undo stop called twice writes once: the second call answers that the timer already runs", async () => {
+  const { client, clock } = await start();
+  const { timer } = await client.timeTracking.startTimer({ note: "Design" });
+  clock.advance(60_000);
+  await client.timeTracking.stopTimer({ id: timer.id });
+  await client.timeTracking.undoStopTimer({ id: timer.id });
+
+  const events = await client.tablesChanged();
+  await expect(events.next()).resolves.toMatchObject({ value: { kind: "opened" } });
+  for (const undo of [client.timeTracking.undoStopTimer, client.timeTracking.undoDiscardTimer])
+    await expect(undo({ id: timer.id })).resolves.toEqual({ kind: "alreadyRunning", timer });
+  // A write to a different table marks how far the stream has advanced.
+  await client.projects.create({ title: "Garden" });
+  await expect(events.next()).resolves.toMatchObject({
+    value: { kind: "changed", tables: ["projects"] },
+  });
+  await events.return?.();
+  await expect(client.timeTracking.runningTimers()).resolves.toMatchObject([{ id: timer.id }]);
+});
+
+test("a refused undo writes nothing: the timer's project was deleted meanwhile", async () => {
+  const { client, clock } = await start();
+  const website = await client.projects.create({ title: "Website" });
+  const garden = await client.projects.create({ title: "Garden" });
+  const { timer: stopped } = await client.timeTracking.startTimer({ projectId: website.id });
+  clock.advance(60_000);
+  const saved = await client.timeTracking.stopTimer({ id: stopped.id });
+  // The entry moves to another project, so the timer's project can be deleted.
+  const entry = await client.timeTracking.edit({
+    id: timeEntryIdOfTimer(stopped.id),
+    projectId: garden.id,
+  });
+  const { timer: discarded } = await client.timeTracking.startTimer({ projectId: website.id });
+  clock.advance(60_000);
+  await client.timeTracking.discardTimer({ id: discarded.id });
+  // Another timer runs; a refused undo must not stop it either.
+  const { timer: running } = await client.timeTracking.startTimer({ note: "Mail" });
+  clock.advance(60_000);
+  await client.projects.delete({ id: website.id });
+
+  const events = await client.tablesChanged();
+  await expect(events.next()).resolves.toMatchObject({ value: { kind: "opened" } });
+  for (const [undo, id] of [
+    [client.timeTracking.undoStopTimer, stopped.id],
+    [client.timeTracking.undoDiscardTimer, discarded.id],
+  ] as const) {
+    const error = await errorOf(undo({ id }));
+    expect(error.code).toBe("REFUSED");
+    expect(error.data?.reasons).toEqual([
+      expect.objectContaining({
+        code: "target_deleted",
+        table: "timers",
+        row: id,
+        field: "project_id",
+        details: { target: { table: "projects", id: website.id } },
+      }),
+    ]);
+  }
+  await client.projects.create({ title: "Marker" });
+  await expect(events.next()).resolves.toMatchObject({
+    value: { kind: "changed", tables: ["projects"] },
+  });
+  await events.return?.();
+
+  expect(saved.kind).toBe("saved");
+  await expect(dayEntries(client)).resolves.toMatchObject([{ id: entry.id, projectId: garden.id }]);
+  await expect(client.timeTracking.runningTimers()).resolves.toMatchObject([{ id: running.id }]);
+});
+
+test("an undo while another timer runs stops that timer into its entry and names it; one timer runs", async () => {
+  const { client, clock } = await start();
+  const { timer: undone } = await client.timeTracking.startTimer({ note: "Design" });
+  clock.advance(10 * 60_000);
+  await client.timeTracking.stopTimer({ id: undone.id });
+  const { timer: discarded } = await client.timeTracking.startTimer({ note: "Slip" });
+  clock.advance(60_000);
+  await client.timeTracking.discardTimer({ id: discarded.id });
+  const { timer: other } = await client.timeTracking.startTimer({ note: "Mail" });
+  clock.advance(5 * 60_000);
+
+  const events = await client.tablesChanged();
+  await expect(events.next()).resolves.toMatchObject({ value: { kind: "opened" } });
+  const answer = await client.timeTracking.undoStopTimer({ id: undone.id });
+  await expect(events.next()).resolves.toMatchObject({
+    value: { kind: "changed", tables: ["time_entries", "timers"] },
+  });
+
+  expect(answer).toEqual({
+    kind: "restored",
+    timer: undone,
+    others: [
+      {
+        kind: "saved",
+        entry: expect.objectContaining({ id: other.id, durationSeconds: 300, note: "Mail" }),
+      },
+    ],
+  });
+  await expect(client.timeTracking.runningTimers()).resolves.toMatchObject([{ id: undone.id }]);
+
+  // Undo discard by the same rules: the timer just brought back stops into its entry.
+  clock.advance(60_000);
+  await expect(client.timeTracking.undoDiscardTimer({ id: discarded.id })).resolves.toEqual({
+    kind: "restored",
+    timer: discarded,
+    others: [{ kind: "saved", entry: expect.objectContaining({ id: undone.id }) }],
+  });
+  await events.return?.();
+  await expect(client.timeTracking.runningTimers()).resolves.toMatchObject([{ id: discarded.id }]);
+});
+
+test("after an edit of the entry, undo stop removes the entry as it is and the timer comes back as it was", async () => {
+  const { client, clock } = await start();
+  const project = await client.projects.create({ title: "Website" });
+  const { timer } = await client.timeTracking.startTimer({ projectId: project.id, note: "Design" });
+  clock.advance(60 * 60_000);
+  await client.timeTracking.stopTimer({ id: timer.id });
+  await client.timeTracking.edit({
+    id: timeEntryIdOfTimer(timer.id),
+    startedAt: "2026-11-16T08:00:00.000Z",
+    endedAt: "2026-11-16T08:30:00.000Z",
+    projectId: null,
+    note: "Review",
+  });
+
+  await expect(client.timeTracking.undoStopTimer({ id: timer.id })).resolves.toEqual({
+    kind: "restored",
+    timer,
+    others: [],
+  });
+  await expect(dayEntries(client)).resolves.toEqual([]);
+  await expect(client.timeTracking.runningTimers()).resolves.toMatchObject([
+    { id: timer.id, startedAt: "2026-11-16T09:00:00.000Z", projectId: project.id, note: "Design" },
+  ]);
+});
+
+test("undo stop without a live entry and undo discard of a stopped timer are not found and write nothing", async () => {
+  const { client, clock } = await start();
+  const { timer: stopped } = await client.timeTracking.startTimer({});
+  clock.advance(60_000);
+  await client.timeTracking.stopTimer({ id: stopped.id });
+  const { timer: deletedByHand } = await client.timeTracking.startTimer({});
+  clock.advance(60_000);
+  await client.timeTracking.stopTimer({ id: deletedByHand.id });
+  await client.timeTracking.delete({ id: timeEntryIdOfTimer(deletedByHand.id) });
+  const { timer: discarded } = await client.timeTracking.startTimer({});
+  clock.advance(60_000);
+  await client.timeTracking.discardTimer({ id: discarded.id });
+  const unknown = timerIdSchema.parse("01a1cfa1-0b00-7000-8000-0000000000ff");
+
+  for (const call of [
+    client.timeTracking.undoStopTimer({ id: deletedByHand.id }),
+    client.timeTracking.undoStopTimer({ id: discarded.id }),
+    client.timeTracking.undoStopTimer({ id: unknown }),
+    client.timeTracking.undoDiscardTimer({ id: stopped.id }),
+    client.timeTracking.undoDiscardTimer({ id: unknown }),
+  ])
+    await expect(errorOf(call)).resolves.toMatchObject({ code: "NOT_FOUND", defined: true });
+  await expect(dayEntries(client)).resolves.toMatchObject([{ id: stopped.id }]);
+  await expect(client.timeTracking.runningTimers()).resolves.toEqual([]);
+});
+
+test("a caller tells the two answers of an undo apart, and the compiler holds it to both", async () => {
+  const { client, clock } = await start();
+  const { timer } = await client.timeTracking.startTimer({});
+  clock.advance(1_000);
+  await client.timeTracking.discardTimer({ id: timer.id });
+
+  // As a Notice would: a third kind added to the answer fails to compile here.
+  const notice = (undo: TimerUndo) => {
+    switch (undo.kind) {
+      case "restored":
+        return `runs again, ${undo.others.length} stopped`;
+      case "alreadyRunning":
+        return "already runs";
+      default:
+        return undo satisfies never;
+    }
+  };
+  expect(notice(await client.timeTracking.undoDiscardTimer({ id: timer.id }))).toBe(
+    "runs again, 0 stopped",
+  );
+  expect(notice(await client.timeTracking.undoDiscardTimer({ id: timer.id }))).toBe("already runs");
 });
