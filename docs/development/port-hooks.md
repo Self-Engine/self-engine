@@ -175,7 +175,7 @@ handling for an entry with a conflict, nor a `field` that is not a key of the in
 out `field`. An entry without a conflict takes no handling (`alphaPort.operation("delete")`). A
 conflict reason arriving without a text counts as unexpected.
 
-**An input error** (`invalid`, [ADR 0039](../adr/0039-an-operation-answers-an-input-error-a-form-shows-at-its-field.md))
+**An input error** (`invalid`, [ADR 0040](../adr/0040-an-operation-answers-an-input-error-a-form-shows-at-its-field.md))
 is the frame's own check of the input, or one the Operation raised for a limit only the Data
 Process can judge. Each issue names its `field` (the dotted path), `path`, `reason` (or
 `undefined`) and the `issue` as it arrived; `atFields` holds those at a field the caller's

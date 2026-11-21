@@ -9,6 +9,11 @@ import type { RegisteredRule } from "./registry.ts";
 export type { RowMap };
 export type StorageContract = Readonly<Record<string, AnyContractProcedure>>;
 export type ReadTransaction<Rows> = Pick<Transaction<Rows>, "selectFrom" | "selectNoFrom">;
+/**
+ * An Operation's write transaction, for a lower function that writes inside it, such as one an
+ * Operation over two tables shares with others (D349).
+ */
+export type WriteTransaction<Rows> = Transaction<Rows>;
 type Handler<Tx, Input, Output> = (
   tx: Tx,
   context: StorageContext,
@@ -76,7 +81,7 @@ type OperationEntry<Procedure extends AnyContractProcedure, Rows extends RowMap>
    */
   readonly edit?: true;
   readonly run: Handler<
-    Transaction<TablesOf<Rows>>,
+    WriteTransaction<TablesOf<Rows>>,
     InferSchemaOutput<Procedure["~orpc"]["inputSchema"]>,
     InferSchemaInput<Procedure["~orpc"]["outputSchema"]>
   >;

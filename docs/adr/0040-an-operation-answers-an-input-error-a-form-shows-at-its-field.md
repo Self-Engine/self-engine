@@ -46,8 +46,9 @@ Refusal and "not found" each had a result of their own (ADR 0021, ADR 0033).
 
 ## Consequences
 
-One way serves both limits of the timer, the start of a running timer and the end of "Stop at …",
-and every caller, also one without a screen. Every form knows one more result, without code of
+One way serves both limits of the timer, the start of a running timer (`editTimer` declares
+`start_in_future`) and the end of "Stop at …" (`stopTimer` declares `end_before_start` and
+`end_in_future`), and every caller, also one without a screen. Every form knows one more result, without code of
 its own. The reasons stay strings in the issue on the wire; the tie to the texts is a type of the
 Contract entry, and the frame's report catches a raised reason the entry does not declare in tests
 and development. Comparing the input with "now" costs one comparison per call.

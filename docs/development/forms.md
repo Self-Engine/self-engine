@@ -138,7 +138,7 @@ Every other Reason goes to that Notice, the Draft stays and the form stays open:
 form does not show, and one at a field that changed while the save ran. The form asks again when
 it takes the answer: a Reason whose field changed or went after the hook's answer, such as by code
 the first Notice runs, goes to a Notice of its own through the provider's `notifyRefused`, never to
-its field. An input error the Operation answers (`invalid`, ADR 0039) shows each issue at the
+its field. An input error the Operation answers (`invalid`, ADR 0040) shows each issue at the
 field its path names, worded as the Check words it, with the module's text for its reason; the
 first such field on screen takes the focus once the save's lock ends, the message leaves when its
 field changes, and the next answer replaces it. An issue at a field the form does not show, or one

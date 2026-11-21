@@ -1,4 +1,5 @@
 import { ORPCError } from "@orpc/server";
+import { notFound } from "./not-found.ts";
 import type { TablesOf } from "@self-engine/db";
 import {
   refusal,
@@ -82,7 +83,7 @@ export async function askRules<DB>(
       rows.map(({ id }) => id),
       isArchiveWrite(write),
     );
-    if (rows.some(({ id }) => !findsRow(write, found.get(id)))) throw new ORPCError("NOT_FOUND");
+    if (rows.some(({ id }) => !findsRow(write, found.get(id)))) throw notFound();
     reasons = reasons.filter(({ row }) => changesRow(write, found.get(row)));
     if (reasons.length === 0) return;
   }

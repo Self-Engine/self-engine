@@ -38,7 +38,7 @@ is spent drawing.
   for page lists comes with the list that draws only what is visible (#137).
 - **Expected errors are values.** An Operation returns success, a Conflict with its reason,
   not found, a Refusal with its Reasons, an input error with its issues
-  ([ADR 0039](0039-an-operation-answers-an-input-error-a-form-shows-at-its-field.md)), or
+  ([ADR 0040](0040-an-operation-answers-an-input-error-a-form-shows-at-its-field.md)), or
   unexpected. The module gives every conflict reason
   of an entry a translated text and a field, or states `field: null` where no field can show it;
   the types demand all of them. The building block announces “not found”, which a module may

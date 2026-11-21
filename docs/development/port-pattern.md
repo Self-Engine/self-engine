@@ -173,7 +173,9 @@ non-deleted select, and `.lookup(table, id)` for one live row or `NOT_FOUND`. Us
 `softDelete(table, id)` and `restore(table, id)`. These set convention columns; callers cannot supply those columns in fields, even through
 non-literal objects, and runtime writes discard injected convention fields. Update and
 soft delete require a live row; restore requires a deleted row. Unknown ids and ids in another
-Space are not found; restoring a live row is also not found.
+Space are not found; restoring a live row is also not found. An Operation whose own lookup
+finds nothing to act on, such as an undo with nothing to undo, throws `notFound()` from
+`storage` rather than building the error itself.
 
 `update` writes only the fields that are not `undefined`, so an edit hands its input on field by
 field, `{ title: input.title, body: input.body }`, and a missing field stays untouched. With no
@@ -221,7 +223,7 @@ conflict that no index expresses. Errors carry codes/reasons for the renderer to
 
 A limit at the input that only the Data Process can judge, such as a start after its "now" (D348),
 is an input error, not a conflict or a Refusal
-([ADR 0039](../adr/0039-an-operation-answers-an-input-error-a-form-shows-at-its-field.md)): throw
+([ADR 0040](../adr/0040-an-operation-answers-an-input-error-a-form-shows-at-its-field.md)): throw
 `inputError(["startedAt"], START_IN_FUTURE)` from `@self-engine/storage`, and declare the reason in
 the entry's `.errors({ ...inputErrors(START_IN_FUTURE), ...refusal })`, as `editTimer` of
 `time-tracking` does. The frame rolls back and announces nothing; the page shows the reason's text
