@@ -397,6 +397,30 @@ test("with no timer running, one click starts one without a project, and no Noti
   expect(notices()).toEqual([]);
 });
 
+test("the focus follows a start and a stop to the control that took the pressed one's place", async () => {
+  await renderShell();
+  const start = await shown(() => button(document.body, "Start timer"));
+  // As from the keyboard: the pressed control holds the focus.
+  start.focus();
+  start.click();
+  await shown(() => expect(document.activeElement).toBe(button(document.body, "Stop timer")));
+
+  button(document.body, "Stop timer").click();
+  await shown(() => expect(document.activeElement).toBe(button(document.body, "Start timer")));
+});
+
+test("a start leaves the focus alone once it has moved elsewhere", async () => {
+  await renderShell();
+  const start = await shown(() => button(document.body, "Start timer"));
+  const elsewhere = document.body.appendChild(document.createElement("input"));
+  start.focus();
+  start.click();
+  elsewhere.focus();
+  await shown(() => expect(button(document.body, "Stop timer")).toBeDefined());
+  expect(document.activeElement).toBe(elsewhere);
+  elsewhere.remove();
+});
+
 /** Two running timers, as a sync would leave them: one started at nine, the other at ten. */
 async function twoRunning({ client, process }: Setup) {
   const project = await client.projects.create({ title: "Website" });

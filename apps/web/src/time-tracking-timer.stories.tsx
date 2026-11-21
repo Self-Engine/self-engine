@@ -326,6 +326,40 @@ const doubleClickOnStartAt = (step: Step): Story => ({
 export const ADoubleClickOnStartStartsOneTimerAtTheWideStep = doubleClickOnStartAt("wide");
 export const ADoubleClickOnStartStartsOneTimerAtTheNarrowStep = doubleClickOnStartAt("narrow");
 
+/**
+ * Start and stop from the keyboard: the pressed control goes, and the focus follows to the one
+ * that took its place, so the next press of Enter reaches it.
+ */
+export const TheFocusFollowsAStartAndAStopFromTheKeyboard: Story = {
+  beforeEach: cleanNotices,
+  args: {
+    stored: {},
+    answers: { startTimer: { data: { timer: RUNNING_TIMER, others: [] } } },
+    afterCall(call, of) {
+      if (call.entry === "startTimer") of.change({ timers: [RUNNING] });
+      else stopAndUndo(call, of);
+    },
+  },
+  play: async ({ canvas }) => {
+    await canvas.findByRole("heading", { level: 1 });
+    const header = contentHeader(canvas);
+    const start = await header.findByRole("button", { name: "Start timer" }, ARRIVES);
+    start.focus();
+    await userEvent.keyboard("{Enter}");
+    const stop = await header.findByRole("button", { name: "Stop timer" });
+    await waitFor(() => expect(stop).toHaveFocus());
+
+    await userEvent.keyboard("{Enter}");
+    await waitFor(async () =>
+      expect(await header.findByRole("button", { name: "Start timer" })).toHaveFocus(),
+    );
+    await expect(port.calls).toEqual([
+      { entry: "startTimer", input: {} },
+      { entry: "stopTimer", input: { id: RUNNING.id } },
+    ]);
+  },
+};
+
 export const StartAndStopFromAnotherModulesPalette: Story = {
   beforeEach: cleanNotices,
   args: {

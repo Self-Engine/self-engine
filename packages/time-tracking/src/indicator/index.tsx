@@ -18,7 +18,18 @@ import type { IndicatorForm, ModuleIndicatorWithPanelProps } from "@self-engine/
 import type { Instant } from "@self-engine/time";
 import { useNow } from "@self-engine/time/react";
 import { formatRunningTime } from "@self-engine/time/running-time";
-import { type CSSProperties, lazy, type MouseEvent, Suspense, useEffect, useState } from "react";
+import {
+  type CSSProperties,
+  type KeyboardEvent,
+  lazy,
+  type MouseEvent,
+  type Ref,
+  Suspense,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
 // Types only: the Contract's schemas never load with the indicator (startup check).
 import type { TimerId, TimerWithProject } from "../contracts/index.ts";
 import { useRunningTimers } from "../port.ts";
@@ -55,6 +66,14 @@ const ICON_STYLE: CSSProperties = { display: "flex" };
  */
 const firstClickOnly = (act: () => void) => (event: MouseEvent) => {
   if (event.detail <= 1) act();
+};
+
+/**
+ * A held Enter repeats: once the focus has followed a start or a stop to the other control, the
+ * repeats would start and stop in turn. Only the first press acts.
+ */
+const firstPressOnly = (event: KeyboardEvent) => {
+  if (event.repeat) event.preventDefault();
 };
 
 // The part that opens the panel holds what the timer shows; its title shortens inside it.
@@ -123,6 +142,8 @@ interface RunningProps {
   readonly onStop: (id: TimerId) => void;
   readonly togglePanel: () => void;
   readonly panelOpen: boolean;
+  /** The control that starts or stops, for the focus after the two have swapped. */
+  readonly action: Ref<HTMLButtonElement>;
 }
 
 /**
@@ -139,6 +160,7 @@ function RunningTimer({
   onStop,
   togglePanel,
   panelOpen,
+  action,
 }: RunningProps) {
   const { t } = useLingui();
   return (
@@ -159,6 +181,8 @@ function RunningTimer({
         disabled={stopping}
         flex="none"
         onClick={firstClickOnly(() => onStop(timer.id))}
+        onKeyDown={firstPressOnly}
+        ref={action}
         size={24}
         variant="subtle"
       >
@@ -173,10 +197,12 @@ function StartTimer({
   form,
   starting,
   onStart,
+  action,
 }: {
   readonly form: IndicatorForm;
   readonly starting: boolean;
   readonly onStart: () => void;
+  readonly action: Ref<HTMLButtonElement>;
 }) {
   const { t } = useLingui();
   if (form === "short") {
@@ -185,6 +211,8 @@ function StartTimer({
         aria-label={t`Start timer`}
         disabled={starting}
         onClick={firstClickOnly(onStart)}
+        onKeyDown={firstPressOnly}
+        ref={action}
         size={24}
         variant="subtle"
       >
@@ -197,6 +225,8 @@ function StartTimer({
       disabled={starting}
       leftSection={<StartTimerIcon size="sm" />}
       onClick={firstClickOnly(onStart)}
+      onKeyDown={firstPressOnly}
+      ref={action}
       size="compact-sm"
       variant="subtle"
     >
@@ -251,6 +281,23 @@ export default function TimerIndicator({
   // stop that left the timer running, or a start that failed, frees the button again.
   const [stopping, setStopping] = useState<TimerId | null>(null);
   const [starting, setStarting] = useState(false);
+  // Start and stop take each other's place, and a pressed one is disabled until its answer. When
+  // it held the focus, as from the keyboard, the focus follows to the control that starts or
+  // stops once the shown timer has changed, instead of being lost with the pressed one; not when
+  // it has moved on to something else in the meantime.
+  const action = useRef<HTMLButtonElement>(null);
+  const follow = useRef(false);
+  // The timer shown, none while idle, unknown until the first answer.
+  const shown =
+    running.status === "loading" || running.status === "loadFailed"
+      ? undefined
+      : (running.data.at(0)?.id ?? null);
+  useLayoutEffect(() => {
+    if (!follow.current || shown === undefined) return;
+    follow.current = false;
+    const focused = document.activeElement;
+    if (focused === null || focused === document.body) action.current?.focus();
+  }, [shown]);
 
   if (running.status === "loading") return <TimerWaiting />;
   if (running.status === "loadFailed") return <TimerWaiting retry={running.retry} />;
@@ -262,21 +309,30 @@ export default function TimerIndicator({
   if (starting && latest !== undefined) setStarting(false);
 
   const stop = (id: TimerId) => {
+    follow.current = document.activeElement === action.current;
     setStopping(id);
     void stopTimerAndTell(data, id, FORM_IN_PLACE).then((result) => {
-      if (result.status !== "success" || result.data.kind === "clockBeforeStart") setStopping(null);
+      if (result.status === "success" && result.data.kind !== "clockBeforeStart") return;
+      follow.current = false;
+      setStopping(null);
     });
   };
   const start = () => {
+    follow.current = document.activeElement === action.current;
     setStarting(true);
     void startTimerAndTell(data, {}, FORM_IN_PLACE).then((result) => {
-      if (result.status !== "success") setStarting(false);
+      if (result.status === "success") return;
+      follow.current = false;
+      setStarting(false);
     });
   };
 
-  if (latest === undefined) return <StartTimer form={form} onStart={start} starting={starting} />;
+  if (latest === undefined) {
+    return <StartTimer action={action} form={form} onStart={start} starting={starting} />;
+  }
   return (
     <RunningTimer
+      action={action}
       count={timers.length}
       form={form}
       onStop={stop}
