@@ -2,17 +2,55 @@
 // the page names the span, the Data Process reads the Time Zone and answers with the entries of
 // each day, their Day Shares and the sums. 16 November 2026 is a Monday.
 
-import type { TestDataProcess } from "@self-engine/data-process/testing";
+import { createORPCClient } from "@orpc/client";
+import { RPCLink } from "@orpc/client/message-port";
+import type { ContractRouterClient } from "@orpc/contract";
+import type { ProtocolContract } from "@self-engine/data-protocol";
+import { startTestDataProcess, type TestDataProcess } from "@self-engine/data-process/testing";
+import { projects } from "@self-engine/projects/data";
+import { settings } from "@self-engine/settings-data/data";
+import { resolveTimeZone } from "@self-engine/time";
 import { SETTINGS_TABLE } from "@self-engine/storage";
-import { WEEK_START_SETTING } from "@self-engine/time/settings";
+import { TIME_ZONE_SETTING, WEEK_START_SETTING } from "@self-engine/time/settings";
 import { afterEach, expect, test } from "vite-plus/test";
 import type { DaysInput } from "./contracts/index.ts";
-import { errorOf, startTimeTracking, type TimeTrackingClient } from "./test-data-process.ts";
+import { timeTracking } from "./data/index.ts";
 
 const started: TestDataProcess[] = [];
 afterEach(async () => {
   for (const process of started.splice(0)) await process.close();
 });
+
+type TimeTrackingClient = ContractRouterClient<
+  ProtocolContract & {
+    projects: typeof projects.contract;
+    timeTracking: typeof timeTracking.contract;
+    settings: typeof settings.contract;
+  }
+>;
+
+/** Starts the test Data Process with `projects`, `time-tracking` and `settings`; the device runs in Berlin. */
+async function startTimeTracking() {
+  const process = await startTestDataProcess({
+    modules: { projects, timeTracking, settings },
+    deviceZone: resolveTimeZone("Europe/Berlin").timeZone,
+  });
+  started.push(process);
+  const client: TimeTrackingClient = createORPCClient(new RPCLink({ port: process.openPort() }));
+  /** Saves the Time Zone as the settings area does. */
+  const saveTimeZone = (name: string) =>
+    client.settings.save({ entries: [{ key: TIME_ZONE_SETTING.key, value: name }] });
+  return { process, client, saveTimeZone };
+}
+
+/** The error a call answers with, or `undefined` when it answers. */
+async function errorOf(call: Promise<unknown>) {
+  const error: unknown = await call.then(
+    () => undefined,
+    (thrown: unknown) => thrown,
+  );
+  return error as { code: string; data?: { issues?: unknown[]; reasons?: unknown[] } } | undefined;
+}
 
 const hours = (count: number) => count * 3600;
 const LAST_WEEK = { first: "2026-11-09", last: "2026-11-15" };
@@ -39,7 +77,7 @@ const create = (
 ) => client.timeTracking.create({ startedAt, endedAt, ...rest });
 
 test("an entry from Sunday 22:00 to Monday 02:00 appears on both days with 2:00, marked, and each week counts 2:00", async () => {
-  const { client } = await startTimeTracking(started);
+  const { client } = await startTimeTracking();
   // Berlin: 21:00 UTC is 22:00.
   const night = await create(client, "2026-11-15T21:00:00.000Z", "2026-11-16T01:00:00.000Z", {
     note: "Night",
@@ -72,7 +110,7 @@ test("an entry from Sunday 22:00 to Monday 02:00 appears on both days with 2:00,
 });
 
 test("every day of the span is listed in order, an empty one with a sum of zero, each with its entries sorted by start", async () => {
-  const { client } = await startTimeTracking(started);
+  const { client } = await startTimeTracking();
   await create(client, "2026-11-17T13:00:00.000Z", "2026-11-17T14:00:00.000Z", { note: "Late" });
   await create(client, "2026-11-17T08:00:00.000Z", "2026-11-17T09:30:00.000Z", { note: "Early" });
 
@@ -95,7 +133,7 @@ test("every day of the span is listed in order, an empty one with a sum of zero,
 });
 
 test("an empty span answers its days with zero and no project line", async () => {
-  const { client } = await startTimeTracking(started);
+  const { client } = await startTimeTracking();
   const answer = await client.timeTracking.days({ span: THIS_WEEK });
   expect(answer.days).toHaveLength(7);
   expect(answer.projects).toEqual([]);
@@ -103,7 +141,7 @@ test("an empty span answers its days with zero and no project line", async () =>
 });
 
 test("an entry over three days counts a share on each, and a span counts only the parts inside it", async () => {
-  const { client } = await startTimeTracking(started);
+  const { client } = await startTimeTracking();
   // Monday 20:00 to Wednesday 04:00 in Berlin.
   const long = await create(client, "2026-11-16T19:00:00.000Z", "2026-11-18T03:00:00.000Z", {
     note: "Long",
@@ -127,7 +165,7 @@ test("an entry over three days counts a share on each, and a span counts only th
 });
 
 test("a night of a clock change in Berlin counts the time that passed, and a 25-hour day its whole length", async () => {
-  const { client } = await startTimeTracking(started);
+  const { client } = await startTimeTracking();
   // Saturday 22:00 to Sunday 06:00 on the wall clock, the night the clocks go forward: 7 hours.
   const forward = await create(client, "2026-03-28T21:00:00.000Z", "2026-03-29T04:00:00.000Z", {
     note: "Forward",
@@ -154,7 +192,7 @@ test("a night of a clock change in Berlin counts the time that passed, and a 25-
 });
 
 test("the days follow the Time Zone of the Setting: east and west of UTC the same entries fall on other days", async () => {
-  const { client, saveTimeZone } = await startTimeTracking(started);
+  const { client, saveTimeZone } = await startTimeTracking();
   // 22:00 UTC on Sunday 15 November to 00:00 UTC on Monday.
   await create(client, "2026-11-15T22:00:00.000Z", "2026-11-16T00:00:00.000Z", { note: "Evening" });
   const span = { first: "2026-11-15", last: "2026-11-16" };
@@ -179,7 +217,7 @@ test("the days follow the Time Zone of the Setting: east and west of UTC the sam
 });
 
 test("the Query names the Settings table among its reads, so a change of the Time Zone reloads it", async () => {
-  const { client, saveTimeZone } = await startTimeTracking(started);
+  const { client, saveTimeZone } = await startTimeTracking();
   const events = await client.tablesChanged();
   const opened = await events.next();
   expect(opened.value).toMatchObject({ kind: "opened" });
@@ -196,7 +234,7 @@ test("the Query names the Settings table among its reads, so a change of the Tim
 });
 
 test("the sums per day, per project and in total match the entries; no project has its own line, last", async () => {
-  const { client } = await startTimeTracking(started);
+  const { client } = await startTimeTracking();
   const website = await client.projects.create({ title: "Website", icon: "house", color: "teal" });
   const shop = await client.projects.create({ title: "Shop" });
   await create(client, "2026-11-16T08:00:00.000Z", "2026-11-16T09:00:00.000Z", {
@@ -250,7 +288,7 @@ test("the sums per day, per project and in total match the entries; no project h
 });
 
 test("two projects with the same title stay two lines", async () => {
-  const { client } = await startTimeTracking(started);
+  const { client } = await startTimeTracking();
   const first = await client.projects.create({ title: "Same" });
   const second = await client.projects.create({ title: "Same" });
   await create(client, "2026-11-16T08:00:00.000Z", "2026-11-16T10:00:00.000Z", {
@@ -269,7 +307,7 @@ test("two projects with the same title stay two lines", async () => {
 });
 
 test("a filter by project or by no project acts on the entries and on every sum", async () => {
-  const { client } = await startTimeTracking(started);
+  const { client } = await startTimeTracking();
   const website = await client.projects.create({ title: "Website" });
   const shop = await client.projects.create({ title: "Shop" });
   await create(client, "2026-11-16T08:00:00.000Z", "2026-11-16T09:00:00.000Z", {
@@ -307,7 +345,7 @@ test("a filter by project or by no project acts on the entries and on every sum"
 });
 
 test("a deleted entry appears nowhere, and an entry of an archived project keeps its archive mark", async () => {
-  const { client, process } = await startTimeTracking(started);
+  const { client, process } = await startTimeTracking();
   const archived = await client.projects.create({ title: "Old" });
   const kept = await create(client, "2026-11-16T08:00:00.000Z", "2026-11-16T09:00:00.000Z", {
     projectId: archived.id,
@@ -334,7 +372,7 @@ test("a deleted entry appears nowhere, and an entry of an archived project keeps
 });
 
 test("the Query takes any span up to 42 days and refuses a longer one, or one that ends before it starts, as an input error", async () => {
-  const { client } = await startTimeTracking(started);
+  const { client } = await startTimeTracking();
   await expect(
     client.timeTracking.days({ span: { first: "2026-11-16", last: "2026-11-16" } }),
   ).resolves.toMatchObject({ days: [{ day: "2026-11-16" }] });
@@ -358,7 +396,7 @@ test("the Query takes any span up to 42 days and refuses a longer one, or one th
 });
 
 test("the week start never changes the answer: the span the page names decides the days", async () => {
-  const { client } = await startTimeTracking(started);
+  const { client } = await startTimeTracking();
   await create(client, "2026-11-15T21:00:00.000Z", "2026-11-16T01:00:00.000Z");
   const before = await client.timeTracking.days({ span: THIS_WEEK });
 
