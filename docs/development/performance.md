@@ -759,3 +759,38 @@ build was **8,736 bytes** below the limit, with the Module Indicator, panel cont
 outside the static startup chunks. The build with Alpha mounted was not measured again after the
 review fixes; the stock table above shows what they added. Median timings rose by about 3 ms for the Shell and 4 ms for the first answer, with
 overlapping ranges.
+
+### The indicators' load against the first paint
+
+The Shell asks for the idle moment that loads the indicators' code two frame callbacks after it
+mounted. An app check at `01c8459` measured where that lands, in the built desktop app with
+`placeholder-alpha` mounted through a temporary module list, on the same machine. Five cold
+starts, each a fresh Electron process and temporary profile, the window shown on
+`ready-to-show`. Times are milliseconds from the renderer's navigation start. The Shell's frame
+is the first animation frame after the Shell is in the DOM; the requests are timed where the
+app's protocol handler receives them; the paint is Chromium's `first-contentful-paint`, a whole
+multiple of 4 ms in every run.
+
+| Run    | Shell's first frame | Indicator request | Panel frame request | First contentful paint |
+| ------ | ------------------: | ----------------: | ------------------: | ---------------------: |
+| 1      |               226.5 |             237.3 |               237.7 |                    264 |
+| 2      |               228.2 |             242.7 |               243.3 |                    264 |
+| 3      |               221.1 |             251.5 |               251.9 |                    260 |
+| 4      |               228.6 |             239.7 |               240.2 |                    272 |
+| 5      |               224.4 |             259.5 |               259.9 |                    268 |
+| Median |               226.5 |             242.7 |               243.3 |                    264 |
+
+Both requests began before the first contentful paint in all five runs, by 21.3 ms in the
+median (8.5 to 32.3 ms). The two frame callbacks do not wait for a paint: one traced start ran
+them at 222.7 and 223.8 ms, the idle callback at 233.2 ms. The stock app without Alpha had its
+Shell frame at 219.5 ms and its first contentful paint at 256 ms in the median of five starts;
+Alpha's own startup code is part of that difference, so these runs do not say what the early
+load costs the paint.
+
+One start kept the window hidden (`show: false`, background throttling off; the document
+reported itself visible). The indicator's code, the panel frame and the panel content were
+requested at 170.9, 171.6 and 477.2 ms, the first contentful paint was reported at 204 ms, and
+the window was shown at about 2,690 ms: a hidden window loads them while hidden.
+
+No module of the app declares an indicator yet. Whether the load should wait for an observed
+paint is open, and belongs to the first module that declares one.

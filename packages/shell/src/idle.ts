@@ -14,7 +14,9 @@ export function whenIdle(work: () => void): () => void {
  * Runs `work` in an idle moment two frames from now. An effect may run before the first paint, and
  * an idle callback needs no paint. The callback of a frame runs before that frame is drawn, so the
  * second callback comes after the browser had its chance to draw the first. A chance, not a
- * promise: nothing here observes a paint.
+ * promise: nothing here observes a paint. In the desktop app the two callbacks came about a
+ * millisecond apart and the work began before the first paint was reported
+ * (docs/development/performance.md, "Module Indicator startup").
  */
 function whenIdleAfterTwoFrames(work: () => void): () => void {
   let cancel = () => cancelAnimationFrame(first);
