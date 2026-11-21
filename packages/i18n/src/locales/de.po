@@ -1117,6 +1117,10 @@ msgctxt "Color"
 msgid "Orange"
 msgstr "Orange"
 
+#: packages/time-tracking/src/week-day.tsx
+msgid "Overlaps another entry"
+msgstr "Überschneidet sich mit einem anderen Eintrag"
+
 #: packages/placeholder-alpha/src/index.ts
 #: packages/placeholder-beta/src/index.ts
 msgid "Overview"

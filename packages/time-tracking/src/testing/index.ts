@@ -136,14 +136,14 @@ export function timeTrackingAnswers(
         return fixed.call(module, entry, input, signal);
       }
       const { span, filter } = daysInputSchema.parse(input);
-      const kept = entries.filter((stored) =>
-        filter === undefined
-          ? true
-          : filter.kind === "noProject"
-            ? stored.projectId === null
-            : stored.projectId === filter.projectId,
-      );
-      return daysAnswerSchema.parse(groupDays(dayRangesOf(span, timeZone), kept));
+      const days = dayRangesOf(span, timeZone);
+      const first = days[0];
+      const last = days.at(-1);
+      const windowEntries =
+        first === undefined || last === undefined
+          ? []
+          : entries.filter((stored) => stored.startedAt < last.end && stored.endedAt > first.start);
+      return daysAnswerSchema.parse(groupDays(days, windowEntries, filter));
     },
   };
 }

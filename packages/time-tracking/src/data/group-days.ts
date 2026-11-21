@@ -1,8 +1,13 @@
 // The grouping of the Query of a Day Span (D343): entries in, days with their Day Shares and the
 // sums out. Pure, so the Query and the Fixed Answers of the stories group alike.
 import type { ProjectReference } from "@self-engine/projects/contracts";
-import { type DayRange, durationSchema } from "@self-engine/time";
-import type { DayEntry, DaysAnswer, TimeEntryWithProject } from "../contracts/index.ts";
+import { type DayRange, durationSchema, type Instant } from "@self-engine/time";
+import type {
+  DayEntry,
+  DaysAnswer,
+  TimeEntryFilter,
+  TimeEntryWithProject,
+} from "../contracts/index.ts";
 import { dayShares } from "./day-shares.ts";
 
 /** Sums in whole seconds, keyed by project id; `null` is "no project". */
@@ -36,24 +41,36 @@ class ProjectSums {
 }
 
 /**
- * The answer for `days`, consecutive whole days as `dayRangesOf` gives them, from `entries`
- * sorted by start: each day with the entries that touch it and its sum, the sums per project and
- * the total, all in whole seconds. Parts of an entry outside the days count nowhere.
+ * The answer for `days`, consecutive whole days as `dayRangesOf` gives them. Pass every entry
+ * that touches the window, sorted by start, so a filter can hide an entry without hiding its
+ * overlaps. Only the Day Shares of visible entries inside the span contribute to the sums.
  */
 export function groupDays(
   days: readonly DayRange[],
-  entries: Iterable<TimeEntryWithProject>,
+  entries: readonly TimeEntryWithProject[],
+  filter?: TimeEntryFilter,
 ): DaysAnswer {
   const byDay = new Map(days.map(({ day }) => [day, { entries: [] as DayEntry[], seconds: 0 }]));
   const projects = new ProjectSums();
   let total = 0;
-  for (const entry of entries) {
+  let latestEnd: Instant | undefined;
+  for (const [index, entry] of entries.entries()) {
+    // If any later entry overlaps, the next one has the earliest start and overlaps too.
+    const next = entries[index + 1];
+    const overlaps =
+      (latestEnd !== undefined && entry.startedAt < latestEnd) ||
+      (next !== undefined && next.startedAt < entry.endedAt);
+    if (latestEnd === undefined || entry.endedAt > latestEnd) latestEnd = entry.endedAt;
+
+    if (filter?.kind === "project" && entry.projectId !== filter.projectId) continue;
+    if (filter?.kind === "noProject" && entry.projectId !== null) continue;
+
     const { shares, crossesMidnight } = dayShares(entry, days);
     for (const share of shares) {
       const day = byDay.get(share.day);
       if (day === undefined) continue;
       // Entries come sorted by start, so each day's entries do too.
-      day.entries.push({ ...entry, dayShare: share.seconds, crossesMidnight });
+      day.entries.push({ ...entry, dayShare: share.seconds, crossesMidnight, overlaps });
       day.seconds += share.seconds;
       projects.add(entry.project, share.seconds);
       total += share.seconds;
