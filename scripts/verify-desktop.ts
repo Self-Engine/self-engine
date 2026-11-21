@@ -11,8 +11,8 @@ import {
   serveRenderer,
   withDesktopApp,
   waitForApp,
-  DESKTOP_HIDDEN_ENV,
   type DesktopLaunch,
+  type DesktopWindow,
 } from "./desktop-app.ts";
 import { DESKTOP_DIR, ensureElectron } from "./ensure-electron.ts";
 import {
@@ -266,9 +266,10 @@ export function failureReport(summary: DesktopSummary, folder: string): string {
   ].join("\n");
 }
 
+/** `window` is unset when neither `--visible` nor `--hidden` names one. */
 export function verifyDesktopOptions(args: readonly string[]): {
   executable: string | undefined;
-  visible: boolean;
+  window: DesktopWindow | undefined;
 } {
   const { values } = parseArgs({
     args: [...args],
@@ -276,9 +277,12 @@ export function verifyDesktopOptions(args: readonly string[]): {
     options: {
       executable: { type: "string" },
       visible: { type: "boolean", default: false },
+      hidden: { type: "boolean", default: false },
     },
   });
-  return { executable: values.executable, visible: values.visible };
+  if (values.visible && values.hidden) throw new Error("Pass --visible or --hidden, not both.");
+  const shown = values.visible ? "visible" : values.hidden ? "hidden" : undefined;
+  return { executable: values.executable, window: shown };
 }
 
 export interface DesktopProcess {
@@ -507,7 +511,7 @@ export function verifyDesktopDriver(app: ElectronApplication, folder: string): V
 }
 
 async function main(): Promise<void> {
-  const { executable, visible } = verifyDesktopOptions(process.argv.slice(2));
+  const { executable, window: shown } = verifyDesktopOptions(process.argv.slice(2));
   const root = resolve(import.meta.dirname, "..");
   if (executable === undefined) {
     assertNoDesktopDev(root, desktopProcesses());
@@ -529,7 +533,7 @@ async function main(): Promise<void> {
       {
         ...launch,
         args: [...launch.args, "--lang=en-US"],
-        env: { ...launch.env, [DESKTOP_HIDDEN_ENV]: visible ? "" : "1" },
+        ...(shown === undefined ? {} : { window: shown }),
       },
       async (app) => {
         summary = await verifyDesktop(verifyDesktopDriver(app, folder));

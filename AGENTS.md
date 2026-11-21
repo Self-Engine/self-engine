@@ -32,7 +32,7 @@ missing translations, in seconds. Run it until clean before every `pnpm verify`.
 `pnpm verify`, commit any formatter output and extracted catalogs, push. A hook blocks `git push` and `gh pr create` (also behind
 `sh -c`, shell keywords, or `git -C <other-checkout>`) unless the last pass covered exactly
 HEAD of the checkout being pushed, so any edit after a pass needs another run (unchanged
-stages replay from the cache). Run the app only when the user asks. If a change is visual
+stages replay from the cache). Run the app only when the user asks, and keep its window hidden: an agent's start of the app through `scripts/desktop-app.ts` is hidden unless the user asks to watch it (`--visible`, `window: "visible"`); say so in the brief of every subagent that checks the app. If a change is visual
 and was not checked in the app, say so in the final report and offer the [`verify-desktop`](.agents/skills/verify-desktop/SKILL.md) skill.
 
 ## Pull Requests

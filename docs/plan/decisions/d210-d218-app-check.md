@@ -19,7 +19,10 @@
   App-Check noch bei `pnpm verify` ein Fenster nach vorne und nimmt den Fokus. Eine paketierte
   Nightly oder Stable lässt sich so nicht verstecken. _Verworfen:_ `showInactive()` (das Fenster
   springt trotzdem achtmal sichtbar um); ein Fenster außerhalb des Bildschirms (macOS und D207
-  holen es zurück).
+  holen es zurück). _Später (2026-11-21):_ Ohne Angabe entscheidet der Starter: Wer im Terminal
+  startet, sieht das Fenster; ein Agent (kein Terminal, oder `CLAUDECODE` bzw. `CODEX_THREAD_ID`
+  gesetzt) bekommt es versteckt, auch in einem eigenen Skript. `--hidden` und `--visible` gehen
+  vor; `smoke` bleibt immer versteckt.
 - **D213 Screenshots zeigen nur die Seite, die Fensterknöpfe prüft die Geometrie.** macOS zeichnet
   die Knöpfe über die Seite, sie fehlen also auf den Bildern; der Skill sagt das dem Agenten. Das
   Skript prüft stattdessen in jeder Layoutstufe, dass der Streifen für die Knöpfe frei bleibt, mit
