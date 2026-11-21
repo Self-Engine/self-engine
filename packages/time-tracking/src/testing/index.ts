@@ -29,6 +29,7 @@ import {
   timeTrackingContract,
 } from "../contracts/index.ts";
 import { groupDays } from "../data/group-days.ts";
+import { TIME_TRACKING_READS } from "../data/reads.ts";
 
 const contracts = { timeTracking: timeTrackingContract };
 const byIdSchema = z.strictObject({ id: timeEntryIdSchema });
@@ -149,7 +150,7 @@ export function timeTrackingAnswers(
 
 /** The tables each Query reads, as the Data Process's Query-to-tables list names them. */
 const QUERIES = {
-  timeTracking: { days: ["time_entries", "projects"], entry: ["time_entries", "projects"] },
+  timeTracking: { entry: [...TIME_TRACKING_READS.entry], days: [...TIME_TRACKING_READS.days] },
 };
 
 /** A call of an Operation that reached a story's Port. */

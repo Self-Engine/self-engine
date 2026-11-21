@@ -1,7 +1,8 @@
 import { defineStorageModule, sharedWrites } from "@self-engine/storage";
 import { timeEntryIdSchema, timeTrackingContract } from "../contracts/index.ts";
-import { DAYS_READS, spanDays } from "./days.ts";
+import { spanDays } from "./days.ts";
 import { liveEntriesWithProject, toTimeEntryWithProject } from "./entries-with-project.ts";
+import { TIME_TRACKING_READS } from "./reads.ts";
 import { storedTimes, timeTrackingMigrations, timeTrackingRowMap, toTimeEntry } from "./rows.ts";
 
 /**
@@ -59,7 +60,7 @@ export const timeTracking = defineStorageModule({
   },
   entry: {
     kind: "query",
-    reads: ["time_entries", "projects"],
+    reads: TIME_TRACKING_READS.entry,
     async run(tx, context, input) {
       const row = await liveEntriesWithProject(tx, context)
         .where("time_entries.id", "=", input.id)
@@ -67,5 +68,5 @@ export const timeTracking = defineStorageModule({
       return row === undefined ? null : toTimeEntryWithProject(row);
     },
   },
-  days: { kind: "query", reads: DAYS_READS, run: spanDays },
+  days: { kind: "query", reads: TIME_TRACKING_READS.days, run: spanDays },
 });

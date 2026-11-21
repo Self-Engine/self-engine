@@ -2,7 +2,7 @@
 // that touches the span, joined with the Read Piece of `projects`. TypeScript groups: the Day
 // Shares, the days and the sums. Day logic never runs in SQL.
 import type { TablesOf } from "@self-engine/db";
-import { type ReadTransaction, SETTINGS_TABLE, type StorageContext } from "@self-engine/storage";
+import type { ReadTransaction, StorageContext } from "@self-engine/storage";
 import { dayRangesOf, type DaySpan, type DayRange } from "@self-engine/time";
 import type { DaysAnswer, TimeEntryFilter } from "../contracts/index.ts";
 import { groupDays } from "./group-days.ts";
@@ -11,9 +11,6 @@ import type { timeTrackingRowMap } from "./rows.ts";
 
 type Tables = TablesOf<typeof timeTrackingRowMap>;
 type Reads = ReadTransaction<Tables>;
-
-/** The tables the Query reads: the Time Zone is a Setting, so a change of it reloads the Query. */
-export const DAYS_READS = ["time_entries", "projects", SETTINGS_TABLE] as const;
 
 /**
  * Every Live Row that touches the window, not only those that begin in it, with its Project
