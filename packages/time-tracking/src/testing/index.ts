@@ -26,6 +26,11 @@ import {
   timeEntryIdSchema,
   type TimeEntryWithProject,
   timeEntryWithProjectSchema,
+  type Timer,
+  type TimerId,
+  timerIdSchema,
+  type TimerWithProject,
+  timerWithProjectSchema,
   timeTrackingContract,
 } from "../contracts/index.ts";
 import { groupDays } from "../data/group-days.ts";
@@ -76,9 +81,39 @@ export function timeEntry(
   };
 }
 
+/** A well-formed Timer id, numbered: what the Data Process would hand out. */
+export function sampleTimerId(index: number): TimerId {
+  return timerIdSchema.parse(`01a1cfa1-0b00-7000-8000-${index.toString(16).padStart(12, "0")}`);
+}
+
+/**
+ * A running Timer with its Project Reference, as the Query of the running timers answers it: its
+ * start on a whole second. Without a project unless `project` names one (`projectReference` of
+ * `@self-engine/projects/testing`).
+ */
+export function runningTimer(
+  index: number,
+  fields: {
+    readonly startedAt: string;
+    readonly project?: ProjectReference | null;
+    readonly note?: string | null;
+  },
+): TimerWithProject {
+  const project = fields.project ?? null;
+  return {
+    id: sampleTimerId(index),
+    startedAt: instantSchema.parse(fields.startedAt),
+    projectId: project?.id ?? null,
+    note: fields.note ?? null,
+    project,
+  };
+}
+
 /** The Live Rows a story's Port holds, and the Time Zone of the Setting its Data Process reads. */
 export interface StoredTimeEntries {
   readonly entries?: readonly TimeEntryWithProject[];
+  /** The running timers, in any order: the Query answers the most recently started first. */
+  readonly timers?: readonly TimerWithProject[];
   /** Berlin unless a story says else, as the app's stories' device zone. */
   readonly timeZone?: TimeZone;
 }
@@ -92,6 +127,11 @@ const SAMPLE = timeEntry(100, {
 });
 const { project: _sampleProject, ...SAMPLE_ENTRY } = SAMPLE;
 
+/** A sample timer, as every timer Operation's Fixed Answer returns it. */
+const SAMPLE_TIMER: Timer = (({ project: _project, ...timer }) => timer)(
+  runningTimer(100, { startedAt: "2026-11-16T08:00:00.000Z" }),
+);
+
 /**
  * The answers of a story where every Operation succeeds with a sample entry. An Operation changes
  * nothing: no Table Change follows.
@@ -102,13 +142,22 @@ export const SUCCEEDING = {
   delete: { data: SAMPLE_ENTRY },
   restore: { data: SAMPLE_ENTRY },
   entry: { data: SAMPLE },
+  startTimer: { data: { timer: SAMPLE_TIMER, others: [] } },
+  editTimer: { data: SAMPLE_TIMER },
+  stopTimer: { data: { kind: "saved", entry: SAMPLE_ENTRY } },
+  discardTimer: { data: SAMPLE_TIMER },
+  undoStopTimer: { data: { kind: "restored", timer: SAMPLE_TIMER, others: [] } },
+  undoDiscardTimer: { data: { kind: "restored", timer: SAMPLE_TIMER, others: [] } },
 } satisfies TimeTrackingAnswers;
+
+const runningTimersSchema = z.array(timerWithProjectSchema);
 
 /**
  * The Port access of a story. The Query of a Day Span answers from `stored` for the span and the
  * filter the View asks, grouped in the stored Time Zone as the Data Process groups them, and
  * checked against the Contract on both ends; the Query of one entry answers the stored entry of
- * that id, or `null`. `answers` replace either or the succeeding Operations.
+ * that id, or `null`; the running timers answer the stored timers, the most recently started
+ * first. `answers` replace any of them or the succeeding Operations.
  */
 export function timeTrackingAnswers(
   stored: StoredTimeEntries = {},
@@ -124,9 +173,19 @@ export function timeTrackingAnswers(
   const entries = (stored.entries ?? []).toSorted(
     (a, b) => a.startedAt.localeCompare(b.startedAt) || a.id.localeCompare(b.id),
   );
+  const timers = (stored.timers ?? []).toSorted(
+    (a, b) => b.startedAt.localeCompare(a.startedAt) || b.id.localeCompare(a.id),
+  );
   return {
     ...fixed,
     async call(module, entry, input, signal) {
+      if (
+        module === "timeTracking" &&
+        entry === "runningTimers" &&
+        answers.runningTimers === undefined
+      ) {
+        return runningTimersSchema.parse(timers);
+      }
       if (module === "timeTracking" && entry === "entry" && answers.entry === undefined) {
         const { id } = byIdSchema.parse(input);
         const found = entries.find((stored) => stored.id === id) ?? null;
@@ -171,7 +230,10 @@ export interface TimeTrackingStoryPort {
   readonly access: PortAccess;
   /** The Operations called so far, in order; the Queries are left out. */
   readonly calls: readonly TimeTrackingCall[];
-  /** Answers from `next` from now on and delivers the Table Change of `time_entries`. */
+  /**
+   * Answers from `next` from now on and delivers the Table Change of `time_entries` and `timers`,
+   * as a stop or an undo of the Data Process would.
+   */
   readonly change: (next: StoredTimeEntries) => void;
 }
 
@@ -202,7 +264,8 @@ export function timeTrackingStoryPort(
         }
       },
     },
-    change: (next) => changing.change(timeTrackingAnswers(next, answers), ["time_entries"]),
+    change: (next) =>
+      changing.change(timeTrackingAnswers(next, answers), ["time_entries", "timers"]),
   };
   return port;
 }

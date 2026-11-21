@@ -661,6 +661,14 @@ rejects files from that folder in static startup chunks. This path rule misses c
 elsewhere. Keep the small declaration outside the folder, for example in `src/indicator-entry.ts`,
 so the Shell Contribution and a Command can import the same entry without loading either component.
 
+Code that the indicator shares with a Command or the panel, such as the timer's Operations with
+their Notices (`packages/time-tracking/src/timer-actions.tsx`), lives outside the folder, since a
+Command must not reach into it. Give such a file its own `lazyOnly` rule in
+`apps/web/startup-rules.ts`. An indicator loads after every start: name it among the on-demand
+rules there too, so its chunk brings no Contract, and read time values through a light entry of
+`time` such as `@self-engine/time/running-time` instead of its main entry, whose schemas need
+Zod's full build. See the [timer's indicator](../../packages/time-tracking/src/indicator/index.tsx).
+
 In a page or open Command, call `openIndicatorPanel(indicator)` from the Command's context.
 Inside the Shell, call `useOpenIndicatorPanel()` and use the returned function in the Notice's
 action. Pass the same entry object that the Shell Contribution declares. TypeScript accepts any

@@ -21,11 +21,12 @@ import {
   paletteGone,
   StoryTimeSettings,
   storyModules,
+  withNoTimerRunning,
 } from "./story-app.tsx";
 
 const i18n = createI18n();
 /** The rows of `placeholder-alpha`, which some stories show. */
-const access = placeholderAlphaAnswers();
+const access = withNoTimerRunning(placeholderAlphaAnswers());
 const ENGLISH_SYSTEM = () => ["en"];
 const resetLanguage = () => settingsStore.write(APP_LANGUAGE_SETTING, APP_LANGUAGE_SETTING.default);
 

@@ -11,6 +11,12 @@ export type {
   ProjectTotal,
   SpanDay,
   TimeEntryWithProject,
+  Timer,
+  TimerId,
+  TimerStart,
+  TimerStop,
+  TimerUndo,
+  TimerWithProject,
 } from "./contracts/index.ts";
 
 // The module's hooks, built from its Contract and its mount name (D249). The Contract arrives as a
@@ -51,3 +57,32 @@ export function useSpanDays(span: DaySpan, filter?: TimeEntryFilter) {
   );
   return useDays(input);
 }
+
+/** The frame refuses a deleted project at the timer's column (D334, D337). */
+const AT_TIMER_PROJECT = { columns: { timers: { project_id: "projectId" } } } as const;
+
+const useRunning = timeTrackingPort.query("runningTimers");
+
+/**
+ * The running Timers with their Project References, the most recently started first (D310). It
+ * follows every Operation through the Table Change alone; nothing reads it on a clock.
+ */
+export function useRunningTimers() {
+  return useRunning(undefined);
+}
+
+export const useStartTimer = timeTrackingPort.operation("startTimer", AT_TIMER_PROJECT);
+export const useEditTimer = timeTrackingPort.operation("editTimer", AT_TIMER_PROJECT);
+export const useStopTimer = timeTrackingPort.operation("stopTimer");
+export const useDiscardTimer = timeTrackingPort.operation("discardTimer");
+export const useUndoStopTimer = timeTrackingPort.operation("undoStopTimer");
+export const useUndoDiscardTimer = timeTrackingPort.operation("undoDiscardTimer");
+
+// The same Operations as functions of the Port access, for code outside React (D261): the timer's
+// actions with their Notices, which the Module Indicator, a Command and the Indicator Panel share.
+// None of them shows a field, so a Refusal goes to the Notice.
+export const startTimer = timeTrackingPort.run("startTimer");
+export const stopTimer = timeTrackingPort.run("stopTimer");
+export const discardTimer = timeTrackingPort.run("discardTimer");
+export const undoStopTimer = timeTrackingPort.run("undoStopTimer");
+export const undoDiscardTimer = timeTrackingPort.run("undoDiscardTimer");

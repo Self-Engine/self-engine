@@ -21,8 +21,32 @@ const NO_CONTRACT: readonly LazyOnlyDependency[] = [
 
 const view = (name: string, path: string): OnDemandRule => ({ name, path, without: NO_CONTRACT });
 
-/** The Views and Groups that load on demand, each held to `NO_CONTRACT`. */
+/** What `import … from "zod"` loads: 85 KB at startup, 35 KB more than the parts that `zod/mini` needs (#136). */
+const ZOD_FULL: LazyOnlyDependency = {
+  name: "Zod's full build",
+  path: "/node_modules/zod/v4/classic/",
+  instead: 'declare a schema that startup code reads, such as a Setting\'s, with "zod/mini".',
+};
+
+/**
+ * The Views, Groups and Module Indicators that load on demand, each held to `NO_CONTRACT`. An
+ * indicator loads after every start, so it reads its Contract as a type as well.
+ */
 const VIEWS: readonly OnDemandRule[] = [
+  {
+    // It loads after every start, so it reads the duration through the light entry of `time`,
+    // whose main entry builds its schemas with Zod's full build (#349).
+    name: "The timer's Module Indicator of time-tracking",
+    path: "/packages/time-tracking/src/indicator/index.tsx",
+    without: [
+      ...NO_CONTRACT,
+      {
+        ...ZOD_FULL,
+        instead:
+          "read time values in an indicator through a light entry of time, such as @self-engine/time/running-time.",
+      },
+    ],
+  },
   view("The week View of time-tracking", "/packages/time-tracking/src/week.tsx"),
   view('The Group "Projects" of time-tracking', "/packages/time-tracking/src/projects-group.tsx"),
   view('The View "Active" of projects', "/packages/projects/src/active.tsx"),
@@ -34,13 +58,7 @@ export const STARTUP_RULES = {
   // Baseline 839,270 raw JS bytes (#136); measured plus 6 %, rounded up to whole KiB (D258).
   maxBytes: 869 * 1024,
   lazyOnly: [
-    {
-      // What `import … from "zod"` loads: 85 KB at startup, 35 KB more than the parts that
-      // `zod/mini` needs (#136).
-      name: "Zod's full build",
-      path: "/node_modules/zod/v4/classic/",
-      instead: 'declare a schema that startup code reads, such as a Setting\'s, with "zod/mini".',
-    },
+    ZOD_FULL,
     {
       // 107 icons, each carrying all six Phosphor weights: 343,907 bytes (88,198 gzipped) with
       // the mark, against 46,650 left below the limit (#260).
@@ -102,6 +120,14 @@ export const STARTUP_RULES = {
       path: "/src/indicator/",
       instead:
         "import it only through the indicator's load in the module's Shell Contribution, which the Shell calls after the first paint.",
+    },
+    {
+      // The timer's Operations with their Notices, which its Module Indicator, its Commands and
+      // its Indicator Panel share (#349). Outside `src/indicator/`, so a Command imports it too.
+      name: "The timer's actions of time-tracking",
+      path: "/packages/time-tracking/src/timer-actions.tsx",
+      instead:
+        "import it only from the timer's Module Indicator, a Command or the Indicator Panel, which load on demand.",
     },
     {
       // The frame of an Indicator Panel with Mantine's Popover and its positioning: 16 KB at

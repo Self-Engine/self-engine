@@ -3,7 +3,7 @@ import { createHashHistory, RouterProvider } from "@tanstack/react-router";
 import { contribution as alpha } from "@self-engine/placeholder-alpha";
 import { DataProvider, type PortAccess } from "@self-engine/data-client/react";
 import type { PageCommand } from "@self-engine/shell";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { expect, screen, spyOn, userEvent, waitFor, within } from "storybook/test";
 import { createAppRouter } from "./app-router.ts";
 import {
@@ -17,6 +17,7 @@ import {
   pressWithMod,
   QUESTION,
   storyModules,
+  withNoTimerRunning,
 } from "./story-app.tsx";
 import { placeholderAlphaAnswers, STUDIO_WORK } from "@self-engine/placeholder-alpha/testing";
 
@@ -36,8 +37,9 @@ function AppAt({ address, access }: { readonly address: string; readonly access:
     return openRouter;
   });
   useEffect(() => () => history.destroy(), [history]);
+  const storyAccess = useMemo(() => withNoTimerRunning(access), [access]);
   return (
-    <DataProvider access={access}>
+    <DataProvider access={storyAccess}>
       <RouterProvider router={router} />
     </DataProvider>
   );

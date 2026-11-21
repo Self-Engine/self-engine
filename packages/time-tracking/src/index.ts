@@ -4,6 +4,7 @@ import { TimeIcon } from "@self-engine/icons";
 import { defineContribution, type ShellCommand } from "@self-engine/shell";
 // A type only: the storage module stays out of the start; its tables type the texts.
 import type { timeTracking } from "./data/index.ts";
+import { indicator } from "./indicator-entry.ts";
 import { timeTrackingTableNames } from "./table-names.ts";
 
 const newTimeEntry = {
@@ -21,7 +22,8 @@ const createTimeEntry = {
   load: () => import("./create-time-entry.ts"),
 } as const satisfies ShellCommand;
 
-/** The Shell Contribution of `time-tracking` (#275): "Time" in the Navbar, opening the week. */
+/** The Shell Contribution of `time-tracking` (#275): "Time" in the Navbar, opening the
+ * week, and the timer's Module Indicator on every page (#349). */
 export const contribution = defineContribution({
   id: "time-tracking",
   name: msg`Time`,
@@ -39,4 +41,5 @@ export const contribution = defineContribution({
   commands: [newTimeEntry, createTimeEntry],
   primaryAction: newTimeEntry,
   editDrawer: () => import("./edit-drawer.tsx"),
+  indicator,
 });

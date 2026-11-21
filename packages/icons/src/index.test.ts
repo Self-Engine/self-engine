@@ -3,6 +3,7 @@ import { type ComponentProps, createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, expectTypeOf, it } from "vite-plus/test";
 import * as catalog from "./index.ts";
+import * as indicatorCatalog from "./indicator-icons.ts";
 import * as viewCatalog from "./view-icons.ts";
 
 const ICON_NAMES = [
@@ -30,9 +31,12 @@ const VIEW_ICON_NAMES = [
   "OverlapsEntryIcon",
 ] as const;
 
-const icons = { ...catalog, ...viewCatalog };
+/** The icons of `./indicator`, which only Module Indicators draw. */
+const INDICATOR_ICON_NAMES = ["StartTimerIcon", "StopTimerIcon"] as const;
 
-describe.each([...ICON_NAMES, ...VIEW_ICON_NAMES])("%s", (name) => {
+const icons = { ...catalog, ...viewCatalog, ...indicatorCatalog };
+
+describe.each([...ICON_NAMES, ...VIEW_ICON_NAMES, ...INDICATOR_ICON_NAMES])("%s", (name) => {
   const markup = renderToStaticMarkup(createElement(icons[name]));
 
   it("takes the color of the element around it", () => {
@@ -74,6 +78,10 @@ describe("the catalog", () => {
     expect(Object.keys(viewCatalog).toSorted()).toEqual([...VIEW_ICON_NAMES].toSorted());
   });
 
+  it("keeps the icons only Module Indicators draw in their own entry", () => {
+    expect(Object.keys(indicatorCatalog).toSorted()).toEqual([...INDICATOR_ICON_NAMES].toSorted());
+  });
+
   it("draws the picture of Phosphor's regular weight", () => {
     const picture = (markup: string) => markup.replace(/^<svg [^>]*>/, "");
     const regular = renderToStaticMarkup(createElement(PlusIcon, { weight: "regular" }));
@@ -81,7 +89,7 @@ describe("the catalog", () => {
   });
 
   it("shows a different picture for every meaning", () => {
-    const names = [...ICON_NAMES, ...VIEW_ICON_NAMES];
+    const names = [...ICON_NAMES, ...VIEW_ICON_NAMES, ...INDICATOR_ICON_NAMES];
     const pictures = names.map((name) =>
       renderToStaticMarkup(createElement(icons[name])).replace(/^<svg [^>]*>/, ""),
     );
