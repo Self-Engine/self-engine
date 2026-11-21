@@ -1,7 +1,7 @@
 ---
 status: accepted
 date: 2026-11-09
-decisions: D62, D113, D114, D115, D116, D117, D118, D119, D351, D352
+decisions: D62, D113, D114, D115, D116, D117, D118, D119, D351, D352, D364
 ---
 
 # Settings are single entries behind an asynchronous port
@@ -22,7 +22,7 @@ owners declare their Settings and how the Time Zone and Week Start use this port
   index `settings_live_key` covers live rows by `(space_id, key)`. A reset writes the default.
   The Settings Port has no delete entry. Device Settings live in `localStorage`, and the web
   app uses the local adapter for both scopes.
-- **The first render can start from the local copy.** The asynchronous adapter contract is
+- **The first render can start from the _Settings Copy_.** The asynchronous adapter contract is
   `load`, `save` and `subscribe`. On desktop the Synced Settings adapter answers `load` from
   the existing `localStorage` entries and asks the Data Process in the background. Before
   rendering, the page awaits the local load and activates the App Language catalog. The Start
@@ -30,20 +30,20 @@ owners declare their Settings and how the Time Zone and Week Start use this port
   the page on the stored copy. The store reads from its in-memory snapshot and applies writes
   there immediately, then saves them in order in the background.
 - **The database wins.** The first successful database load reports its values and moves
-  entries from the original local copy that the load lacks, one entry per save. This runs on
+  entries from the original _Settings Copy_ that the load lacks, one entry per save. This runs on
   the first load of each store instance, so later starts find the keys that already moved and
   leave them alone. If the first database load fails, the next report of the database repeats
   it, the move included: the Port adapter reads and reports the rows on the connection's first
   `ready` after a failed load, as after a refused call to a Data Process that later restarts
   ready. That report is sent even when nothing differs, so a database that holds no Setting
   gets its move too. A first database load that overlaps a save or a report of the database is
-  repeated, so it never brings back an older value. The local copy takes the database's loaded
+  repeated, so it never brings back an older value. The _Settings Copy_ takes the database's loaded
   and reported values and writes local changes to the copy after the database save succeeds.
   When the database reports a row as removed, the adapter forgets it in the copy, also when the
   copy cannot store the other entries of that report, and the store falls back to the default.
   An unreadable value reads as the declared default. A failed local load starts from defaults
   for that scope. A failed database save leaves the change in memory and keeps the stored value. The
-  store or local copy reports those failures through `onError`; a failed background refresh
+  store or _Settings Copy_ reports those failures through `onError`; a failed background refresh
   in the Port adapter leaves the previous answer until another change or reconnect.
 - **One Port serves the renderer.** The Data Process mounts `settings-data` as `settings`.
   Its Query loads the live entries of the Personal Space. Its save Operation checks the entry
@@ -57,7 +57,7 @@ owners declare their Settings and how the Time Zone and Week Start use this port
   first `ready` after its `load` failed. It
   reports differences from the entries it last knew. A refresh read that overlaps the
   adapter's own save is dropped and repeated after the save, so a late answer cannot undo
-  a finished save. The local copy also repeats its initial read if one of its writes overlaps it.
+  a finished save. The _Settings Copy_ also repeats its initial read if one of its writes overlaps it.
 - **Operations and Queries read through the call's transaction.** Pass the call's `tx` to
   `context.readSetting(tx, setting)`. It reads one indexed row of the Personal Space through
   that transaction, parses and validates the value with the same declaration the page uses,
@@ -76,7 +76,7 @@ owners declare their Settings and how the Time Zone and Week Start use this port
 
 ## Consequences
 
-A restore or another window can leave the local copy out of date. The app can briefly show
+A restore or another window can leave the _Settings Copy_ out of date. The app can briefly show
 the old appearance or App Language until the database answers. The Table Change covers the
 whole table, so a change to any Setting reloads every visible Query that declares it.
 The [performance checks](../development/performance.md) record the cost of startup and of a

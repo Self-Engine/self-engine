@@ -96,6 +96,7 @@ Grundlage: der Stand auf `main` nach #330 und die alte App (nur gelesen, Pfad in
 - **D347 Das Formular löst eine Zeitumstellung ohne Nachfrage auf; eine übersprungene Uhrzeit ist
   kein Wert (beantwortet „doppelte Stunde“ aus Runde 36).**
   1. **Beim Bearbeiten** gilt der Zeitpunkt, der dem bisherigen Wert am nächsten liegt.
+     _Überholt durch D361._
   2. **Bei einem neuen Wert** gilt der frühere der beiden Zeitpunkte. Nur wenn das Ende damit
      nicht nach dem Beginn läge, gilt der spätere.
   3. **Ein kleiner Vermerk am Feld** zeigt bei einer doppelten Uhrzeit, welche der beiden gemeint
@@ -123,6 +124,7 @@ Grundlage: der Stand auf `main` nach #330 und die alte App (nur gelesen, Pfad in
      Fenster sichtbar ist. Jede Anzeige rechnet aus der Uhr und zählt nie Takte, also stimmt die
      Zeit nach dem Ruhezustand sofort wieder.
   4. **„Heute“ wechselt über einen einzelnen Wecker zum Tagesbeginn,** nicht über einen Takt.
+     _Überholt durch D363._
   5. **Die Uhr der Oberfläche zeigt nur an und belegt vor.** Jeder gespeicherte Zeitpunkt kommt
      aus der Uhr des Datenprozesses: Beginn und Ende eines Timers setzt die Operation.
 
@@ -193,7 +195,8 @@ baut, darf anders entscheiden und nennt es im Pull Request.
 - **Projekt:** optional; die Auswahl lässt sich leeren.
 - **Feld für die Zeit:** ein Datum und zwei Uhrzeiten, gebunden an Beginn und Ende. Liegt die
   Ende-Uhrzeit nicht nach der Beginn-Uhrzeit, gilt sie als Folgetag, und das Feld zeigt „+1“. Für
-  längere Einträge klappt ein eigenes Enddatum auf.
+  längere Einträge klappt ein eigenes Enddatum auf. _Ergänzt durch D362: Das gilt auch, wenn der
+  Beginn hinter das Ende geschoben wird._
 - **Vorbelegung:** das Datum des Tages, an dem in der Woche „Neu“ geklickt wurde, sonst heute; die
   Uhrzeiten sind leer.
 - **Grenzen:** keine Höchstdauer; Einträge in der Zukunft sind erlaubt.

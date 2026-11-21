@@ -1,4 +1,4 @@
-// The store over a local copy in front of the database (D351), as the app composes it for the
+// The store over the Settings Copy in front of the database (D351), as the app composes it for the
 // `synced` scope. The copy and the database are test adapters, so each test decides when the
 // database answers.
 
@@ -10,7 +10,7 @@ import {
   settle,
   type TestAdapter,
 } from "../testing/index.ts";
-import { createLocalCopyAdapter, createSettingsStore, defineSetting } from "./index.ts";
+import { createSettingsCopyAdapter, createSettingsStore, defineSetting } from "./index.ts";
 
 const accent = defineSetting({
   key: "test.accent",
@@ -24,7 +24,7 @@ function storeOver(copy: TestAdapter, database: TestAdapter) {
   const onError = ({ operation }: { readonly operation: string }) => failures.push(operation);
   const store = createSettingsStore({
     adapters: {
-      synced: createLocalCopyAdapter({ copy, database, onError }),
+      synced: createSettingsCopyAdapter({ copy, database, onError }),
       device: createTestAdapter(),
     },
     onError,
@@ -274,11 +274,11 @@ it("forgets in the copy an entry the database no longer holds", async () => {
   expect(copy.stored.has("test.accent")).toBe(false);
 });
 
-describeAdapterContract("a local copy in front of the database", () => {
+describeAdapterContract("the Settings Copy in front of the database", () => {
   const copy = createTestAdapter();
   const database = createTestAdapter();
   return {
-    open: () => createLocalCopyAdapter({ copy, database, onError: () => {} }),
+    open: () => createSettingsCopyAdapter({ copy, database, onError: () => {} }),
     changeFromOutside: async (entries) => {
       database.changeFromOutside(entries);
       await settle();

@@ -5,7 +5,7 @@ import type {
   SettingEntry,
 } from "../core/index.ts";
 
-/** It can forget entries, as the local adapter can, so it can stand in for the local copy too. */
+/** It can forget entries, as the local adapter can, so it can stand in for the Settings Copy too. */
 export interface TestAdapter extends LocalSettingsAdapter {
   /** What the adapter holds right now. */
   readonly stored: ReadonlyMap<string, JsonValue>;

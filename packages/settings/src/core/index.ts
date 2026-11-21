@@ -8,7 +8,7 @@ export {
   type LocalStorageChange,
   type LocalStorageEvents,
 } from "./local-adapter.ts";
-export { createLocalCopyAdapter, type LocalCopyOptions } from "./local-copy.ts";
+export { createSettingsCopyAdapter, type SettingsCopyOptions } from "./settings-copy.ts";
 export {
   defineSetting,
   type JsonValue,

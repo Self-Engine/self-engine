@@ -71,7 +71,7 @@ function itemNames(scope: SettingScope) {
   };
 }
 
-/** An adapter that can also forget entries: the local copy follows a removed row with it. */
+/** An adapter that can also forget entries: the Settings Copy follows a removed row with it. */
 export interface LocalSettingsAdapter extends SettingsAdapter {
   /** Removes the entries of `keys`; a key without an entry is skipped. */
   readonly remove: (keys: readonly string[]) => Promise<void>;

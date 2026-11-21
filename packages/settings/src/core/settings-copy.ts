@@ -1,4 +1,4 @@
-// A local copy in front of the adapter of the database (D351). The store's `load` is answered
+// The Settings Copy in front of the adapter of the database (D351, D364). The store's `load` is answered
 // from the copy, so the first render never waits for the database; the database's entries follow
 // as a report, and where they differ, the database wins.
 
@@ -7,7 +7,7 @@ import { reportFailure, type SettingsStorageFailure, type StorageOperation } fro
 import { createListeners } from "./listeners.ts";
 import type { LocalSettingsAdapter } from "./local-adapter.ts";
 
-export interface LocalCopyOptions {
+export interface SettingsCopyOptions {
   /** Where the copy lives: in the app, the local adapter of the `synced` scope. */
   readonly copy: LocalSettingsAdapter;
   /** The truth: in the desktop app, the adapter over the Settings Port. */
@@ -17,7 +17,7 @@ export interface LocalCopyOptions {
 }
 
 /**
- * The Synced Settings from a local copy, with the database as the truth (D351).
+ * The Synced Settings from the Settings Copy, with the database as the truth (D351).
  *
  * - `load` answers from the copy, so the first render never waits. The first `load` also reads
  *   the database: it reports its rows, which win where the copy differs, and moves every entry of
@@ -30,11 +30,11 @@ export interface LocalCopyOptions {
  *   reported. The copy's own changes are never reported: the database is the truth.
  * - A failure in the background goes to `onError`; the app keeps running.
  */
-export function createLocalCopyAdapter({
+export function createSettingsCopyAdapter({
   copy,
   database,
   onError,
-}: LocalCopyOptions): SettingsAdapter {
+}: SettingsCopyOptions): SettingsAdapter {
   /** The copy's entries while the first read of the database failed: the next report retries. */
   let unread: readonly SettingEntry[] | undefined;
   /**

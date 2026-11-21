@@ -9,7 +9,7 @@ import type { TablesChanged } from "@self-engine/data-protocol";
 import { createMigrationRunner } from "@self-engine/db";
 import { openDatabase } from "@self-engine/db/better-sqlite3";
 import {
-  createLocalCopyAdapter,
+  createSettingsCopyAdapter,
   createSettingsStore,
   defineSetting,
   type ReportedSettingEntry,
@@ -331,14 +331,14 @@ test("after a reconnect the adapter reads the rows again and reports what change
   await expect(reported).resolves.toEqual([{ key: "appearance.accent", value: "grape" }]);
 });
 
-/** The store of a window, as the desktop app composes it: the local copy in front of the Port. */
+/** The store of a window, as the desktop app composes it: the Settings Copy in front of the Port. */
 function windowStore(
   connection: SettingsPortConnection,
   copy: ReturnType<typeof createTestAdapter>,
 ) {
   return createSettingsStore({
     adapters: {
-      synced: createLocalCopyAdapter({
+      synced: createSettingsCopyAdapter({
         copy,
         database: createSettingsPortAdapter(connection),
         onError: (failure) => {
@@ -376,7 +376,7 @@ function untilStoreReads(
   });
 }
 
-test("behind the local copy, the database wins, gets what it lacked, and keeps it over a restart", async () => {
+test("behind the Settings Copy, the database wins, gets what it lacked, and keeps it over a restart", async () => {
   const dataProcess = startPort();
   const observerConnection = connect(dataProcess);
   const observer = createSettingsPortAdapter(observerConnection);
@@ -411,7 +411,7 @@ async function startRefusing(): Promise<TestDataProcess> {
 }
 
 /**
- * A window behind the local copy whose Data Process refuses every call. Resolves once the copy's
+ * A window behind the Settings Copy whose Data Process refuses every call. Resolves once the copy's
  * first read of the database failed, with the connection to hand a working Data Process to.
  */
 async function windowAfterRefusedRead(copy: TestAdapter) {
@@ -421,7 +421,7 @@ async function windowAfterRefusedRead(copy: TestAdapter) {
   const refused = Promise.withResolvers<void>();
   const store = createSettingsStore({
     adapters: {
-      synced: createLocalCopyAdapter({
+      synced: createSettingsCopyAdapter({
         copy,
         database: createSettingsPortAdapter(connection),
         onError: ({ operation }) => {
@@ -472,7 +472,7 @@ test("after a refused first read, the copy's entries move into a database that h
   await expect(moved).resolves.toEqual([{ key: "i18n.language", value: "de" }]);
 });
 
-test("behind the local copy, two quick writes end on the last value, though a late Table Change answers late", async () => {
+test("behind the Settings Copy, two quick writes end on the last value, though a late Table Change answers late", async () => {
   const dataProcess = startPort();
   const connection = connect(dataProcess);
   await untilReady(connection);
@@ -480,7 +480,7 @@ test("behind the local copy, two quick writes end on the last value, though a la
   const copy = createTestAdapter({ "appearance.accent": "green" });
   const store = windowStore(slow.connection, copy);
   await store.load();
-  // The local copy's first read of the database, which moves the copy's entry into it.
+  // The Settings Copy's first read of the database, which moves the copy's entry into it.
   await slow.loads.reach(1);
   await slow.saves.reach(1);
   await settle();

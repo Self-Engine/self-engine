@@ -1,5 +1,5 @@
 import {
-  createLocalCopyAdapter,
+  createSettingsCopyAdapter,
   createLocalSettingsAdapter,
   createSettingsStore,
   type LocalSettingsEnvironment,
@@ -28,7 +28,7 @@ export function createAppSettingsStore(
       synced:
         data === undefined
           ? copy
-          : createLocalCopyAdapter({ copy, database: createSettingsPortAdapter(data), onError }),
+          : createSettingsCopyAdapter({ copy, database: createSettingsPortAdapter(data), onError }),
       device: createLocalSettingsAdapter(environment, "device"),
     },
     onError,

@@ -170,6 +170,10 @@ _Avoid_: local setting, device-local setting
 One decision of the user about how the app behaves or looks. Two values that only make sense together are one _Setting_.
 _Avoid_: preference, option, config
 
+**Settings Copy** (de: _Einstellungskopie_):
+The copy of the _Synced Settings_ that a device keeps outside the database, so the first render never waits for the database. The database wins where the two differ, and the copy then takes its values. It is not the _Start Cache_, which only paints the first frame.
+_Avoid_: local copy, settings cache
+
 **Settings Row** (de: _Einstellungszeile_):
 One line of the settings area with a title, an optional description and a control or a value, and the thing the settings search finds. It is not a _Setting_: a row may serve one _Setting_, several or none, and a _Setting_ may have no row.
 _Avoid_: setting (for the line), settings item, settings section
