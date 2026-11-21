@@ -12,6 +12,32 @@ import { _electron, type ElectronApplication, type Page } from "playwright";
 
 export const DESKTOP_HIDDEN_ENV = "SELF_ENGINE_HIDDEN";
 
+/**
+ * Whether the app's window appears. A hidden window never takes the focus or shows a Dock icon
+ * (apps/desktop/src/main.ts); only the `dev` channel can hide it, a packaged Nightly or Stable
+ * always shows its window.
+ */
+export type DesktopWindow = "visible" | "hidden";
+
+/** Variables an agent sets in the commands it runs: Claude Code and Codex. */
+export const AGENT_ENV = ["CLAUDECODE", "CODEX_THREAD_ID"] as const;
+
+/** The process that starts the app: its environment, and whether its input is a terminal. */
+export interface DesktopCaller {
+  readonly env: Readonly<Record<string, string | undefined>>;
+  readonly terminal: boolean;
+}
+
+/**
+ * The window of a start that names none: visible for a person at a terminal, hidden for an agent,
+ * so that an agent's checks never pull a window to the front of the owner's screen. An agent runs
+ * commands without a terminal, or names itself through one of `AGENT_ENV`.
+ */
+export function defaultDesktopWindow({ env, terminal }: DesktopCaller): DesktopWindow {
+  const agent = AGENT_ENV.some((name) => Boolean(env[name]));
+  return terminal && !agent ? "visible" : "hidden";
+}
+
 export const RENDERER_DIR = resolve(import.meta.dirname, "../apps/web/dist");
 
 /** What to start: an Electron binary with the app's folder, or a packaged app's executable. */
@@ -20,6 +46,8 @@ export interface DesktopLaunch {
   readonly args: readonly string[];
   /** Added to this process's environment. */
   readonly env: Readonly<Record<string, string>>;
+  /** Unset: `defaultDesktopWindow`. */
+  readonly window?: DesktopWindow;
 }
 
 /** What `withDesktopApp` needs of a started app. */
@@ -31,6 +59,8 @@ export interface StartOptions {
   readonly executablePath: string;
   readonly args: readonly string[];
   readonly env: Readonly<Record<string, string | undefined>>;
+  /** Unset: `defaultDesktopWindow`. */
+  readonly window?: DesktopWindow;
 }
 
 /**
@@ -52,6 +82,7 @@ export async function withDesktopApp<App extends DesktopApp, T>(
       executablePath: launch.executablePath,
       args: [...launch.args, `--user-data-dir=${profile}`],
       env: { ...inherited, ...launch.env },
+      ...(launch.window === undefined ? {} : { window: launch.window }),
     });
     try {
       return await use(app, profile);
@@ -65,16 +96,29 @@ export async function withDesktopApp<App extends DesktopApp, T>(
 
 const CLOSE_TIMEOUT_MS = 10_000;
 
-/** Starts the app with Playwright. Closing kills it if it does not quit in time. */
-export async function launchElectron(options: StartOptions): Promise<ElectronApplication> {
+/**
+ * The environment of a started app: `options.env` without unset values, and the window flag that
+ * `options.window` names or `defaultDesktopWindow` picks for `caller`. The flag replaces one in
+ * `options.env`, so a start shows its window only when it asks for that by name.
+ */
+export function electronEnv(options: StartOptions, caller: DesktopCaller): Record<string, string> {
   const env: Record<string, string> = {};
   for (const [name, value] of Object.entries(options.env)) {
     if (value !== undefined) env[name] = value;
   }
+  const shown = options.window ?? defaultDesktopWindow(caller);
+  env[DESKTOP_HIDDEN_ENV] = shown === "hidden" ? "1" : "";
+  return env;
+}
+
+/** Starts the app with Playwright. Closing kills it if it does not quit in time. */
+export async function launchElectron(options: StartOptions): Promise<ElectronApplication> {
   const app = await _electron.launch({
     executablePath: options.executablePath,
     args: [...options.args],
-    env,
+    // Standard input, not output: a person who pipes the output into a file still sits at a
+    // terminal.
+    env: electronEnv(options, { env: process.env, terminal: Boolean(process.stdin.isTTY) }),
   });
   const close = app.close.bind(app);
   app.close = async () => {

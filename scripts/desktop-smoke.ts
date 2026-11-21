@@ -22,7 +22,6 @@ import {
   serveRenderer,
   withDesktopApp,
   waitForApp,
-  DESKTOP_HIDDEN_ENV,
 } from "./desktop-app.ts";
 import { checkElectronTime } from "./time-runtime-check.ts";
 import { DESKTOP_DIR } from "./ensure-electron.ts";
@@ -290,10 +289,7 @@ async function main(): Promise<void> {
     const server = await serveRenderer(RENDERER_DIR);
     try {
       const launch = builtDesktopApp(DESKTOP_DIR, server.url);
-      result = await smokeTestApp({
-        ...launch,
-        env: { ...launch.env, [DESKTOP_HIDDEN_ENV]: "1" },
-      });
+      result = await smokeTestApp({ ...launch, window: "hidden" });
     } finally {
       await server.close();
     }

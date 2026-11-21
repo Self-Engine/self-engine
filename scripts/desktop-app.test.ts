@@ -10,6 +10,8 @@ import {
   type DesktopApp,
   type DesktopLaunch,
   builtDesktopApp,
+  defaultDesktopWindow,
+  electronEnv,
   rendererFile,
   serveRenderer,
   withDesktopApp,
@@ -47,6 +49,7 @@ interface Started {
   readonly executablePath: string;
   readonly args: readonly string[];
   readonly env: Readonly<Record<string, string | undefined>>;
+  readonly window?: "visible" | "hidden";
   closed: boolean;
 }
 
@@ -110,6 +113,13 @@ describe("withDesktopApp", () => {
     }
   });
 
+  it("passes the window a launch names on, and leaves an unnamed one to the launcher", async () => {
+    const launcher = fakeLauncher();
+    await withDesktopApp({ ...LAUNCH, window: "visible" }, async () => {}, launcher.launch);
+    await withDesktopApp(LAUNCH, async () => {}, launcher.launch);
+    expect(launcher.started.map((started) => started.window)).toEqual(["visible", undefined]);
+  });
+
   it("closes the app and removes the data folder afterwards", async () => {
     const launcher = fakeLauncher();
     await withDesktopApp(LAUNCH, async () => {}, launcher.launch);
@@ -147,6 +157,57 @@ describe("withDesktopApp", () => {
     );
     await expect(run).rejects.toThrow("no binary");
     expect(profile !== undefined && existsSync(profile)).toBe(false);
+  });
+});
+
+describe("defaultDesktopWindow", () => {
+  it("shows the window to a person at a terminal", () => {
+    expect(defaultDesktopWindow({ env: {}, terminal: true })).toBe("visible");
+  });
+
+  it("hides the window from a start without a terminal", () => {
+    expect(defaultDesktopWindow({ env: {}, terminal: false })).toBe("hidden");
+  });
+
+  it.each([["CLAUDECODE"], ["CODEX_THREAD_ID"]])(
+    "hides the window from an agent that sets %s, also at a terminal",
+    (name) => {
+      expect(defaultDesktopWindow({ env: { [name]: "1" }, terminal: true })).toBe("hidden");
+    },
+  );
+
+  it("ignores an agent variable that is set but empty", () => {
+    expect(defaultDesktopWindow({ env: { CLAUDECODE: "" }, terminal: true })).toBe("visible");
+  });
+});
+
+describe("electronEnv", () => {
+  const person = { env: {}, terminal: true };
+  const agent = { env: { CLAUDECODE: "1" }, terminal: false };
+  const options = { executablePath: "/electron", args: [] };
+
+  it("drops unset values", () => {
+    const env = electronEnv({ ...options, env: { KEPT: "a", DROPPED: undefined } }, person);
+    expect(env).toEqual({ KEPT: "a", SELF_ENGINE_HIDDEN: "" });
+  });
+
+  it("hides the window for an agent and shows it for a person when the start names none", () => {
+    expect(electronEnv({ ...options, env: {} }, agent).SELF_ENGINE_HIDDEN).toBe("1");
+    expect(electronEnv({ ...options, env: {} }, person).SELF_ENGINE_HIDDEN).toBe("");
+  });
+
+  it("follows the window a start names, whoever starts it", () => {
+    expect(electronEnv({ ...options, env: {}, window: "visible" }, agent).SELF_ENGINE_HIDDEN).toBe(
+      "",
+    );
+    expect(electronEnv({ ...options, env: {}, window: "hidden" }, person).SELF_ENGINE_HIDDEN).toBe(
+      "1",
+    );
+  });
+
+  it("replaces a window flag in the passed environment, so only `window` can show it", () => {
+    const env = electronEnv({ ...options, env: { SELF_ENGINE_HIDDEN: "" } }, agent);
+    expect(env.SELF_ENGINE_HIDDEN).toBe("1");
   });
 });
 

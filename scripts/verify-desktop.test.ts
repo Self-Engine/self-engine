@@ -162,14 +162,17 @@ it("reports failure before the Shell starts", async () => {
 });
 
 describe("verifyDesktopOptions", () => {
-  it("defaults to a hidden built app and accepts an executable and visible window", () => {
-    expect(verifyDesktopOptions([])).toEqual({ executable: undefined, visible: false });
+  it("defaults to the built app and leaves the window to the launcher", () => {
+    expect(verifyDesktopOptions([])).toEqual({ executable: undefined, window: undefined });
+  });
+  it("accepts an executable and a named window", () => {
     expect(verifyDesktopOptions(["--executable", "/Applications/App", "--visible"])).toEqual({
       executable: "/Applications/App",
-      visible: true,
+      window: "visible",
     });
+    expect(verifyDesktopOptions(["--hidden"])).toEqual({ executable: undefined, window: "hidden" });
   });
-  it.each([["--executable"], ["--unknown"], ["extra"]])(
+  it.each([["--executable"], ["--unknown"], ["extra"], ["--visible", "--hidden"]])(
     "rejects invalid arguments %j",
     (...args) => {
       expect(() => verifyDesktopOptions(args)).toThrow();
