@@ -16,6 +16,7 @@ import {
   toTimeEntry,
   toTimer,
 } from "./rows.ts";
+import { stopRunningTimers, stopTimer } from "./stop-timer.ts";
 import { runningTimers, toTimerWithProject } from "./timers.ts";
 
 /**
@@ -86,8 +87,10 @@ export const timeTracking = defineStorageModule({
     kind: "operation",
     // The frame's reference check refuses a deleted or unknown project; an archived one is a
     // valid target (D330, D337).
+    // One timer at a time is a flow of the Operation (D310, D349): it stops the others first.
     async run(tx, context, input) {
-      return toTimer(
+      const others = await stopRunningTimers(tx, context);
+      const timer = toTimer(
         await sharedWrites(tx, context).insert("timers", context.newId(timerIdSchema), {
           // The Data Process's Clock, never the page's (D348), on the whole second (D344).
           started_at: wholeSecondOf(context.now),
@@ -95,6 +98,7 @@ export const timeTracking = defineStorageModule({
           note: input.note ?? null,
         }),
       );
+      return { timer, others };
     },
   },
   editTimer: {
@@ -114,6 +118,7 @@ export const timeTracking = defineStorageModule({
       );
     },
   },
+  stopTimer: { kind: "operation", run: stopTimer },
   discardTimer: {
     kind: "operation",
     async run(tx, context, input) {

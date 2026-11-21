@@ -6,6 +6,7 @@ export {
   type ModuleEntries,
   type ReadTransaction,
   type StorageContract,
+  type WriteTransaction,
   type RowMap,
 } from "./module.ts";
 export { createContext, type StorageContext, type ContextSources } from "./context.ts";
