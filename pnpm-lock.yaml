@@ -581,6 +581,9 @@ importers:
       '@self-engine/time':
         specifier: workspace:*
         version: link:../../packages/time
+      '@self-engine/time-tracking':
+        specifier: workspace:*
+        version: link:../../packages/time-tracking
       '@self-engine/ui':
         specifier: workspace:*
         version: link:../../packages/ui
@@ -1586,6 +1589,12 @@ importers:
       '@lingui/core':
         specifier: 'catalog:'
         version: 6.12.0(@babel/core@8.1.0)
+      '@lingui/react':
+        specifier: 'catalog:'
+        version: 6.12.0(@babel/core@8.1.0)(react@19.3.1)
+      '@mantine/core':
+        specifier: 'catalog:'
+        version: 9.8.0(@mantine/hooks@9.8.0(react@19.3.1))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
       '@orpc/contract':
         specifier: 'catalog:'
         version: 1.16.2
@@ -1595,15 +1604,27 @@ importers:
       '@self-engine/db':
         specifier: workspace:*
         version: link:../db
+      '@self-engine/icons':
+        specifier: workspace:*
+        version: link:../icons
       '@self-engine/projects':
         specifier: workspace:*
         version: link:../projects
+      '@self-engine/shell':
+        specifier: workspace:*
+        version: link:../shell
       '@self-engine/storage':
         specifier: workspace:*
         version: link:../storage
       '@self-engine/time':
         specifier: workspace:*
         version: link:../time
+      '@self-engine/ui':
+        specifier: workspace:*
+        version: link:../ui
+      react:
+        specifier: 'catalog:'
+        version: 19.3.1
       zod:
         specifier: 'catalog:'
         version: 4.6.7
@@ -1626,9 +1647,21 @@ importers:
       '@types/node':
         specifier: 24.19.2
         version: 24.19.2
+      '@types/react':
+        specifier: 'catalog:'
+        version: 19.3.0
+      '@types/react-dom':
+        specifier: 'catalog:'
+        version: 19.3.0(@types/react@19.3.0)
       fast-check:
         specifier: 'catalog:'
         version: 4.10.2
+      happy-dom:
+        specifier: 'catalog:'
+        version: 21.0.4
+      react-dom:
+        specifier: 'catalog:'
+        version: 19.3.1(react@19.3.1)
       vite-plus:
         specifier: 1.5.0
         version: 1.5.0(@types/node@24.19.2)(@vitest/browser-playwright@5.1.0)(@vitest/ui@5.1.0)(esbuild@0.28.2)(happy-dom@21.0.4)(jiti@2.7.0)(playwright@1.65.0)(typescript@7.0.2)

@@ -89,8 +89,9 @@ export const ALLOWED_IMPORTS: AllowedImports = {
   time: ["settings"],
   // The second real module (#275): it builds on `projects` and refers to a project by its id and
   // its released Project Reference; `projects` never imports it (D308). The table names of its
-  // Refusal texts are typed by the data building block (D335).
-  "time-tracking": ["data-client", "db", "projects", "storage", "time"],
+  // Refusal texts are typed by the data building block (D335). Its View draws with the Shell,
+  // the icons and `ui`, as `projects` does.
+  "time-tracking": ["data-client", "db", "icons", "projects", "shell", "storage", "time", "ui"],
   ui: ["icons", "theme"],
 };
 
