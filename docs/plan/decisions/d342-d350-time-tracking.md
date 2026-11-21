@@ -212,7 +212,8 @@ baut, darf anders entscheiden und nennt es im Pull Request.
   Gesamtsumme. Kein Zeitraster.
 - **Filter:** Die Gruppe zeigt die aktiven Projekte und „Ohne Projekt“; der Filter der Ansicht
   bietet auch archivierte an. Er wirkt auf Liste und Summen.
-- **Adresse:** Der erste Tag der Woche und das Projekt stehen in der Adresse.
+- **Adresse:** Der erste Tag der Woche und das Projekt stehen in der Adresse. _Geändert durch
+  D367: Die Woche von heute steht nicht in der Adresse._
 - **Abfrage:** Die Oberfläche nennt die Woche, der Datenprozess liefert Einträge, Tagesanteile und
   Summen fertig. Dazu je ein Index auf Beginn und Ende und die Messung mit Daten von zwei Jahren.
   _Geändert durch D354: Die Oberfläche nennt eine Spanne von Kalendertagen. Den Wochenstart

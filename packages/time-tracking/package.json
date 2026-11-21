@@ -1,0 +1,45 @@
+{
+  "name": "@self-engine/time-tracking",
+  "version": "0.0.0",
+  "private": true,
+  "license": "AGPL-3.0-only",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./contracts": "./src/contracts/index.ts",
+    "./data": "./src/data/index.ts",
+    "./testing": "./src/testing/index.ts"
+  },
+  "dependencies": {
+    "@lingui/core": "catalog:",
+    "@lingui/react": "catalog:",
+    "@mantine/core": "catalog:",
+    "@orpc/contract": "catalog:",
+    "@self-engine/data-client": "workspace:*",
+    "@self-engine/db": "workspace:*",
+    "@self-engine/forms": "workspace:*",
+    "@self-engine/icons": "workspace:*",
+    "@self-engine/projects": "workspace:*",
+    "@self-engine/shell": "workspace:*",
+    "@self-engine/storage": "workspace:*",
+    "@self-engine/time": "workspace:*",
+    "@self-engine/ui": "workspace:*",
+    "react": "catalog:",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@orpc/client": "catalog:",
+    "@self-engine/data-process": "workspace:*",
+    "@self-engine/data-protocol": "workspace:*",
+    "@self-engine/i18n": "workspace:*",
+    "@self-engine/settings": "workspace:*",
+    "@self-engine/settings-data": "workspace:*",
+    "@types/node": "catalog:",
+    "@types/react": "catalog:",
+    "@types/react-dom": "catalog:",
+    "fast-check": "catalog:",
+    "happy-dom": "catalog:",
+    "react-dom": "catalog:",
+    "vite-plus": "catalog:"
+  }
+}

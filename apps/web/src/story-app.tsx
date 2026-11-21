@@ -2,7 +2,7 @@
 
 import { DataProvider, type PortAccess } from "@self-engine/data-client/react";
 import { LANGUAGE_TAGS, loadAppCatalog } from "@self-engine/i18n";
-import { resolveTimeZone } from "@self-engine/time";
+import { type Clock, type Region, resolveTimeZone, type TimeZone } from "@self-engine/time";
 import { PageClockProvider, TimeSettingsProvider } from "@self-engine/time/react";
 import { alwaysVisible } from "@self-engine/time/testing";
 import { holdTimers } from "@self-engine/ui/story-timers";
@@ -49,19 +49,34 @@ const throwError = (error: Error) => {
 };
 
 /**
+ * The time of a story's page: its Clock, the device's zone, which the Time Zone follows while
+ * none is set, and the region of the App Language, which an "Automatic" week start follows.
+ */
+export interface StoryTime {
+  readonly clock?: Clock;
+  readonly deviceZone?: TimeZone;
+  readonly region?: Region;
+}
+
+/**
  * The time settings and the page's Clock as `main.tsx` provides them, with a named device zone
  * and region and the fixed Clock the stories' settings area gets too, so that a story renders the
  * same everywhere and on every day. Every story that mounts the app's router needs it.
  */
-export function StoryTimeSettings({ children }: { readonly children: ReactNode }) {
+export function StoryTimeSettings({
+  children,
+  clock = STORY_CLOCK,
+  deviceZone = STORY_DEVICE_ZONE,
+  region = "en-US",
+}: StoryTime & { readonly children: ReactNode }) {
   return (
     <TimeSettingsProvider
-      deviceZone={STORY_DEVICE_ZONE}
+      deviceZone={deviceZone}
       onError={throwError}
-      region="en-US"
+      region={region}
       store={settingsStore}
     >
-      <PageClockProvider clock={STORY_CLOCK} visibility={alwaysVisible}>
+      <PageClockProvider clock={clock} visibility={alwaysVisible}>
         {children}
       </PageClockProvider>
     </TimeSettingsProvider>
@@ -87,10 +102,12 @@ export interface AppAtProps {
   readonly access: PortAccess;
   /** Names of tables contributed by a story's test modules. */
   readonly testTableName?: ModuleList["tableName"];
+  /** Another Clock, device zone or region than the stories' fixed ones. */
+  readonly time?: StoryTime;
 }
 
 /** The whole app at `address`, on a history that stays in memory, with its own query cache. */
-export function AppAt({ address, access, testTableName }: AppAtProps) {
+export function AppAt({ address, access, testTableName, time }: AppAtProps) {
   const [router] = useState(() => {
     lastRouter = createAppRouter(createMemoryHistory({ initialEntries: [address] }), storyModules);
     return lastRouter;
@@ -104,7 +121,7 @@ export function AppAt({ address, access, testTableName }: AppAtProps) {
         }),
   );
   return (
-    <StoryTimeSettings>
+    <StoryTimeSettings {...time}>
       <DataProvider access={access} reasonTexts={reasonTexts}>
         <RouterProvider router={router} />
       </DataProvider>

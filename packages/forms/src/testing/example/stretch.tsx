@@ -8,7 +8,13 @@ import { Button, Stack } from "@mantine/core";
 import { oc } from "@orpc/contract";
 import { portHooks } from "@self-engine/data-client/react";
 import { refusal } from "@self-engine/db/schema";
-import { epochMsOf, type Instant, instantSchema, resolveTimeZone } from "@self-engine/time";
+import {
+  type CalendarDay,
+  epochMsOf,
+  type Instant,
+  instantSchema,
+  resolveTimeZone,
+} from "@self-engine/time";
 import { useState } from "react";
 import { z } from "zod";
 import { OperationFormBody, TextField, TimeRangeField, useOperationForm } from "../../index.ts";
@@ -63,15 +69,23 @@ const useUpdateStretch = stretchPort.operation("update");
 const texts = { reasons: { end_before_start: msg`The end must lie after the start.` } };
 
 /** Creates a stretch, or edits `stored`. */
-export function StretchForm({ stored }: { readonly stored?: Stretch }) {
-  return stored === undefined ? <NewStretch /> : <EditStretch stored={stored} />;
+export function StretchForm({
+  stored,
+  startDay,
+}: {
+  readonly stored?: Stretch;
+  /** The day a new stretch opens on; without it, the date is empty too. */
+  readonly startDay?: CalendarDay;
+}) {
+  if (stored !== undefined) return <EditStretch stored={stored} />;
+  return startDay === undefined ? <NewStretch /> : <NewStretch startDay={startDay} />;
 }
 
 function Saved({ saved }: { readonly saved: boolean }) {
   return saved ? <output>Saved</output> : null;
 }
 
-function NewStretch() {
+function NewStretch({ startDay }: { readonly startDay?: CalendarDay }) {
   const [saved, setSaved] = useState(false);
   const form = useOperationForm({
     entry: stretchContract.create,
@@ -90,6 +104,7 @@ function NewStretch() {
           form={form}
           label="Worked"
           start="started_at"
+          {...(startDay === undefined ? {} : { startDay })}
           timeZone={STRETCH_TIME_ZONE}
           today={EXAMPLE_TODAY}
         />

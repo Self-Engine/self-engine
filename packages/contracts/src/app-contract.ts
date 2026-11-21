@@ -1,6 +1,7 @@
 import { protocolContract } from "@self-engine/data-protocol";
 import { projectsContract } from "@self-engine/projects/contracts";
 import { settingsContract } from "@self-engine/settings-data/contracts";
+import { timeTrackingContract } from "@self-engine/time-tracking/contracts";
 
 /**
  * Every procedure the data process serves: the protocol's `health` and `tablesChanged`, and each
@@ -12,6 +13,7 @@ export const appContract = {
   ...protocolContract,
   projects: projectsContract,
   settings: settingsContract,
+  timeTracking: timeTrackingContract,
 };
 
 /** The app contract's type, which the module list is checked against. */

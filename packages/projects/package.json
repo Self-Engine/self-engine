@@ -8,7 +8,9 @@
     ".": "./src/index.ts",
     "./contracts": "./src/contracts/index.ts",
     "./data": "./src/data/index.ts",
+    "./ids": "./src/contracts/project-id.ts",
     "./picker": "./src/picker/index.tsx",
+    "./queries": "./src/queries.ts",
     "./testing": "./src/testing/index.ts"
   },
   "dependencies": {
