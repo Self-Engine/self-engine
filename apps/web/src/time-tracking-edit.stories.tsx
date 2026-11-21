@@ -140,7 +140,9 @@ async function openRow(canvas: Canvas, name: string, note: string) {
     .find((button) => button.textContent.includes(note));
   if (row === undefined) throw new Error(`No row ${note}`);
   await userEvent.click(row);
-  return drawerNamed("Zeiteintrag");
+  const form = await drawerNamed("Zeiteintrag");
+  await waitFor(() => expect(form.start()).toBeVisible());
+  return form;
 }
 
 /** Wednesday 14:00 to 15:30 in Berlin, as the create of the first story stores it. */
@@ -164,7 +166,7 @@ export const ANewEntryOpensOnTheClickedDayAndAppearsThere: Story = {
     await typeTime(form.start(), "1400");
     await typeTime(form.end(), "1530");
     // The duration follows while the user types, and is no field.
-    await expect(form.drawer.getByText("Dauer: 1:30")).toBeVisible();
+    await expect(await form.drawer.findByText("Dauer: 1:30")).toBeVisible();
     await expect(form.drawer.queryByRole("textbox", { name: /Dauer/ })).toBeNull();
     await userEvent.type(form.note(), "Call");
     await userEvent.click(form.save());
@@ -190,8 +192,8 @@ export const AnEndTimeNotAfterTheStartLiesOnTheNextDay: Story = {
     const form = await newOn(canvas, WEDNESDAY);
     await typeTime(form.start(), "2200");
     await typeTime(form.end(), "0130");
-    await expect(form.drawer.getByText("+1")).toBeVisible();
-    await expect(form.drawer.getByText("Dauer: 3:30")).toBeVisible();
+    await expect(await form.drawer.findByText("+1")).toBeVisible();
+    await expect(await form.drawer.findByText("Dauer: 3:30")).toBeVisible();
     await userEvent.click(form.save());
 
     await noDrawer();
