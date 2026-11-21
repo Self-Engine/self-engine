@@ -4,6 +4,7 @@
 
 import { CaretLeftIcon } from "@phosphor-icons/react/dist/csr/CaretLeft";
 import { CaretRightIcon } from "@phosphor-icons/react/dist/csr/CaretRight";
+import { IntersectSquareIcon } from "@phosphor-icons/react/dist/csr/IntersectSquare";
 import { MoonIcon } from "@phosphor-icons/react/dist/csr/Moon";
 import { catalogIcon } from "./catalog-icon.ts";
 
@@ -11,3 +12,5 @@ export const PreviousIcon = catalogIcon(CaretLeftIcon);
 export const NextIcon = catalogIcon(CaretRightIcon);
 /** An entry that runs past midnight into another day. */
 export const CrossesMidnightIcon = catalogIcon(MoonIcon);
+/** A time entry that overlaps another entry. */
+export const OverlapsEntryIcon = catalogIcon(IntersectSquareIcon);

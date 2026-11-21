@@ -1,8 +1,8 @@
 import { useLingui } from "@lingui/react/macro";
 import { Badge, Button, Group, Paper, Stack, Text, Tooltip, UnstyledButton } from "@mantine/core";
-import { CrossesMidnightIcon } from "@self-engine/icons/view";
+import { CrossesMidnightIcon, OverlapsEntryIcon } from "@self-engine/icons/view";
 import { formatCalendarDay, formatDuration, formatInstant, type TimeZone } from "@self-engine/time";
-import { memo } from "react";
+import { memo, type ReactElement } from "react";
 import { newEntryAddress } from "./entry-address.ts";
 import type { DayEntry, SpanDay } from "./port.ts";
 import { ProjectMark } from "./project-mark.tsx";
@@ -82,9 +82,8 @@ export const WeekDay = memo(function WeekDay({
 });
 
 /**
- * An entry on one day: start and end, its project, its note and its Day Share there; an entry
- * that touches another day too carries the mark for crossing midnight. A click opens it in the
- * Edit Drawer.
+ * An entry on one day: start and end, its marks, project, note and Day Share. A click opens it
+ * in the Edit Drawer.
  */
 const DayEntryRow = memo(function DayEntryRow({
   entry,
@@ -102,17 +101,14 @@ const DayEntryRow = memo(function DayEntryRow({
           {start} – {end}
         </Text>
         {entry.crossesMidnight && (
-          <Tooltip label={t`Crosses midnight`}>
-            <Text
-              aria-label={t`Crosses midnight`}
-              c="dimmed"
-              component="span"
-              role="img"
-              style={MARK}
-            >
-              <CrossesMidnightIcon size="sm" />
-            </Text>
-          </Tooltip>
+          <EntryHint label={t`Crosses midnight`}>
+            <CrossesMidnightIcon size="sm" aria-hidden />
+          </EntryHint>
+        )}
+        {entry.overlaps && (
+          <EntryHint label={t`Overlaps another entry`}>
+            <OverlapsEntryIcon size="sm" aria-hidden />
+          </EntryHint>
         )}
         <ProjectMark project={entry.project} />
         <Text c="dimmed" flex={1} miw={0} size="sm" truncate>
@@ -125,6 +121,22 @@ const DayEntryRow = memo(function DayEntryRow({
     </li>
   );
 });
+
+function EntryHint({
+  label,
+  children,
+}: {
+  readonly label: string;
+  readonly children: ReactElement;
+}) {
+  return (
+    <Tooltip label={label}>
+      <Text aria-label={label} c="dimmed" component="span" role="img" style={MARK}>
+        {children}
+      </Text>
+    </Tooltip>
+  );
+}
 
 const TODAY_STYLE = { borderColor: "var(--mantine-primary-color-filled)", borderWidth: 2 } as const;
 const TIMES = { ...NUMBERS, flexShrink: 0 } as const;
