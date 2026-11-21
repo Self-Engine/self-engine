@@ -336,7 +336,15 @@ export const AnEntryAddedElsewhereRedrawsOneDayAndOneRow: Story = {
   loaders: [() => ({ port: timeTrackingStoryPort({ entries: SAMPLE_WEEK_ENTRIES }) })],
   render: ({ address, time }, { loaded }) => {
     const port = loaded["port"] as TimeTrackingStoryPort;
-    return <AppAt access={port.access} address={address} time={time} />;
+    const projects = projectsAnswers();
+    const access = {
+      ...port.access,
+      call: (module, entry, input, signal) =>
+        (module === "projects" ? projects : port.access).call(module, entry, input, signal),
+      describeEntry: (module, entry) =>
+        (module === "projects" ? projects : port.access).describeEntry(module, entry),
+    } satisfies TimeTrackingStoryPort["access"];
+    return <AppAt access={access} address={address} time={time} />;
   },
   play: async ({ canvas, canvasElement, loaded }) => {
     const port = loaded["port"] as TimeTrackingStoryPort;
