@@ -6,6 +6,7 @@ import { memo } from "react";
 import { newEntryAddress } from "./entry-address.ts";
 import type { DayEntry, SpanDay } from "./port.ts";
 import { ProjectMark } from "./project-mark.tsx";
+import { NUMBERS, ROW_STYLE } from "./week-styles.ts";
 
 interface Shown {
   readonly locale: string;
@@ -126,10 +127,8 @@ const DayEntryRow = memo(function DayEntryRow({
 });
 
 const TODAY_STYLE = { borderColor: "var(--mantine-primary-color-filled)", borderWidth: 2 } as const;
-const NUMBERS = { fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap" } as const;
 const TIMES = { ...NUMBERS, flexShrink: 0 } as const;
 const MARK = { display: "inline-flex", flexShrink: 0 } as const;
-const ROW_STYLE = { listStyle: "none" } as const;
 const ROW_BUTTON = {
   alignItems: "center",
   display: "flex",
