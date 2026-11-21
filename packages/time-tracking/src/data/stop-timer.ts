@@ -22,6 +22,7 @@ import {
   toTimeEntry,
   toTimer,
 } from "./rows.ts";
+import { runningTimers } from "./timers.ts";
 
 type Tables = TablesOf<typeof timeTrackingRowMap>;
 type Writes = WriteTransaction<Tables>;
@@ -100,12 +101,7 @@ export async function stopTimer(
  * timer whose start lies after "now" keeps running.
  */
 export async function stopRunningTimers(tx: Writes, context: StorageContext): Promise<TimerStop[]> {
-  const running = await sharedEntry(tx, context)
-    .live("timers")
-    .select(TIMER_COLUMNS)
-    .orderBy("timers.started_at", "desc")
-    .orderBy("timers.id", "desc")
-    .execute();
+  const running = await runningTimers(tx, context).execute();
   const stops: TimerStop[] = [];
   for (const timer of running) stops.push(await stopRunningTimer(tx, context, timer));
   return stops;
