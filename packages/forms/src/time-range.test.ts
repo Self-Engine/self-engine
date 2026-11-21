@@ -251,4 +251,14 @@ describe("a loaded range", () => {
       instant: at("2026-10-25T01:05:00.000Z"),
     });
   });
+
+  test("an ordinary overnight edit does not resolve the end on the start day", () => {
+    const zone = resolveTimeZone("Etc/GMT-1").timeZone;
+    const stored = { start: at("1000-01-01T00:15:00.000Z"), end: at("1000-01-01T00:30:00.000Z") };
+    // 00:30 on the start day is outside the supported years in UTC.
+    expect(rangeFrom(parts("1000-01-01", "01:15", "00:30"), stored, zone, true).end).toEqual({
+      case: "set",
+      instant: at("1000-01-01T23:30:00.000Z"),
+    });
+  });
 });

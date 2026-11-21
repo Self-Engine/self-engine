@@ -174,7 +174,8 @@ export function rangeFrom(
     lowerBound !== null &&
     isEdit &&
     original.end !== null &&
-    calendarDayOf(original.end, timeZone) === day
+    calendarDayOf(original.end, timeZone) === day &&
+    repeatedTimeOffset(lowerBound, timeZone) !== null
   ) {
     const end = outcomeOf(day, endTime, current.end, original.end, timeZone, endOptions);
     const instant = instantOf(end, current.end);
