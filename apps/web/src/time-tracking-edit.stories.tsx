@@ -95,8 +95,12 @@ const day = (canvas: Canvas, name: string) => canvas.findByRole("region", { name
 
 /** The drawer named `name` and its parts, as a user finds them. */
 async function drawerNamed(name: string) {
-  const drawer = within(await screen.findByRole("dialog", { name }));
+  const dialog = await screen.findByRole("dialog", { name });
+  const drawer = within(dialog);
   const time = (label: string) => drawer.getByRole("spinbutton", { name: label });
+  // The drawer fades in and then takes the focus; keys typed before that would be lost.
+  await waitFor(() => expect(dialog.contains(document.activeElement)).toBe(true));
+  await waitFor(() => expect(time("Beginn")).toBeVisible());
   return {
     drawer,
     date: () => drawer.getByRole("textbox", { name: "Datum" }),
@@ -123,6 +127,10 @@ async function typeDay(input: HTMLElement, text: string) {
   await userEvent.keyboard("{Escape}");
 }
 
+/** The hours and minutes of the start and of the end, as their inputs show them. */
+const typedTimes = (form: Awaited<ReturnType<typeof drawerNamed>>) =>
+  form.drawer.getAllByRole("spinbutton").map((input) => (input as HTMLInputElement).value);
+
 /** Opens a new entry from the "New" of a day. */
 async function newOn(canvas: Canvas, name: string) {
   const section = await day(canvas, name);
@@ -140,9 +148,7 @@ async function openRow(canvas: Canvas, name: string, note: string) {
     .find((button) => button.textContent.includes(note));
   if (row === undefined) throw new Error(`No row ${note}`);
   await userEvent.click(row);
-  const form = await drawerNamed("Zeiteintrag");
-  await waitFor(() => expect(form.start()).toBeVisible());
-  return form;
+  return drawerNamed("Zeiteintrag");
 }
 
 /** Wednesday 14:00 to 15:30 in Berlin, as the create of the first story stores it. */
@@ -166,6 +172,7 @@ export const ANewEntryOpensOnTheClickedDayAndAppearsThere: Story = {
     await typeTime(form.start(), "1400");
     await typeTime(form.end(), "1530");
     // The duration follows while the user types, and is no field.
+    await expect(typedTimes(form)).toEqual(["14", "00", "15", "30"]);
     await expect(await form.drawer.findByText("Dauer: 1:30")).toBeVisible();
     await expect(form.drawer.queryByRole("textbox", { name: /Dauer/ })).toBeNull();
     await userEvent.type(form.note(), "Call");
@@ -192,6 +199,7 @@ export const AnEndTimeNotAfterTheStartLiesOnTheNextDay: Story = {
     const form = await newOn(canvas, WEDNESDAY);
     await typeTime(form.start(), "2200");
     await typeTime(form.end(), "0130");
+    await expect(typedTimes(form)).toEqual(["22", "00", "01", "30"]);
     await expect(await form.drawer.findByText("+1")).toBeVisible();
     await expect(await form.drawer.findByText("Dauer: 3:30")).toBeVisible();
     await userEvent.click(form.save());
