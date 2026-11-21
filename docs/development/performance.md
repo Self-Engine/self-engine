@@ -852,6 +852,71 @@ and "Discard". Production builds of `apps/web`, `apps/web/dist/startup-bundle.js
   redraws alone. The indicator draws again only when the panel opens or closes, through
   `panelOpen`.
 
+## The indicators' load and an observed paint (#380)
+
+Two ways for the Shell to start loading the Module Indicators' code (`useAfterFirstIdle`,
+`packages/shell/src/idle.ts`), measured with the timer of `time-tracking`, the stock app's only
+Module Indicator:
+
+- **A, two frames:** two frame callbacks after the mount, then an idle moment (`801c4d7`).
+- **B, observed paint:** the page's `first-contentful-paint` entry, read through a buffered
+  `PerformanceObserver`, then an idle moment; a page without paint timing keeps the two frames
+  (`facbc05`, on the branch of this measurement).
+
+**Method.** Both web builds ran in the same built desktop app (`apps/desktop/dist-electron` does
+not differ) on an Apple M3 Pro (macOS 27.2.1, Node 26.13.0, Electron 45.2.3), started through
+`scripts/desktop-app.ts` with the window hidden. Each start was a fresh Electron process with a
+fresh temporary data folder: empty for the idle state, a copy of one migrated database with one
+project and one timer running on it for the running state. Twelve rounds, each with both states
+and both variants, the order of A and B flipped every round: 12 starts per cell. The load average
+was 1.65 before and 1.39 after the series. A script put first in a copy of each build's
+`index.html` recorded, in milliseconds from the page's navigation start: the paint entries; the
+Shell's first frame (the first animation frame after `[data-layout-step]` is in the DOM); and the
+moment the indicator showed ("Start timer", or a running time in `role="timer"`), in the DOM and
+at the next frame. Requests were timed where the renderer's HTTP server received them, on the
+same clock as the page's `timeOrigin` (Resource Timing does not see the app's own protocol).
+A further 6 starts per cell recorded a Chromium trace from the first window on, for the
+main-thread time of the panel's preload.
+
+| Median (range), ms                    | A, idle              | B, idle             | A, running            | B, running          |
+| ------------------------------------- | -------------------- | ------------------- | --------------------- | ------------------- |
+| First contentful paint                | 200.0 (196–204)      | 200.0 (196–208)     | 200.0 (196–208)       | 198.0 (196–200)     |
+| Shell's first frame                   | 159.4 (153.2–161.4)  | 158.9 (156.1–170.4) | 158.7 (155.4–164.9)   | 158.5 (156.3–163.0) |
+| Indicator request                     | 190.3 (166.6–192.9)  | 203.7 (198.9–214.3) | 189.5 (169.8–196.0)   | 203.1 (200.0–207.0) |
+| … after the Shell's frame             | 30.7 (13.3–32.4)     | 45.5 (41.1–51.7)    | 30.6 (12.5–34.4)      | 44.0 (40.6–48.4)    |
+| … after the first contentful paint    | −9.5 (−29.4 to −3.1) | 4.7 (1.9–9.0)       | −10.2 (−30.2 to −3.0) | 4.8 (1.8–8.4)       |
+| Panel frame request, after the paint  | −7.9 (−26.6 to −1.4) | 5.6 (2.8–9.7)       | −9.0 (−27.0 to −1.6)  | 5.9 (2.7–9.2)       |
+| Indicator shows (next frame)          | 504.7 (478.3–511.9)  | 521.8 (511.8–535.0) | 509.1 (483.5–518.2)   | 525.1 (512.6–529.1) |
+| Panel preload, first request          | 501.7 (478.6–507.4)  | 517.2 (514.2–527.5) | 503.6 (481.2–522.2)   | 517.7 (506.5–525.7) |
+| Panel preload, main thread (6 traced) | 11.2 (6.2–12.4)      | 10.0 (6.2–11.8)     | 11.9 (8.4–13.2)       | 10.8 (8.1–12.5)     |
+| Panel preload, longest task           | 7.3 (4.7–7.6)        | 6.8 (4.7–7.9)       | 7.4 (6.1–7.8)         | 7.2 (6.1–7.4)       |
+
+- **The paint.** A asked for the indicator before the first contentful paint in 24 of 24 starts,
+  B after it in 24 of 24. The first contentful paint did not move: Chromium reports it in whole
+  multiples of 4 ms, and the medians lie within one step.
+- **When the indicator shows.** B shows it 17 ms later in the idle state and 16 ms later in the
+  running state (medians). Both variants show it about 300 ms after its code arrived: React 19
+  holds a resolved Suspense boundary until 300 ms after the last fallback it showed
+  (`FALLBACK_THROTTLE_MS` in `react-dom`), and the indicator's place shows its fallback from the
+  moment the load begins. A log of the data port in one start of A showed the indicator's Query
+  sent at 501.8 ms and answered at 508.0 ms, after its code had arrived at about 210 ms: the
+  indicator mounts when the throttle ends, not when its code or its data arrive.
+- **The panel's preload.** It begins once the indicator is on screen, about 500 ms after the
+  start in A and 517 ms in B, and its requests end within 15 ms. It loads **210,785 bytes** of
+  JavaScript in the idle state and **211,822** in the running state, plus **31,222 bytes** of
+  CSS, not the 588,257 of "The timer's Indicator Panel (#350)": the directory of entry pictures
+  (348,941) is already loaded by the Projects View the app opens on. Parsing runs off the main
+  thread; on it, the idle callback and the evaluation of the modules took 6 to 13 ms, the longest
+  task at most 7.9 ms, no task reached 50 ms, and the work ended by 540 ms in every traced start.
+  A click or a key in that moment waits at most one such task.
+- **A hidden window.** Every start above kept the window hidden. The page reported itself
+  visible and Chromium reported its first contentful paint, so B loaded the indicator and
+  preloaded the panel while hidden, as A does. The window was never shown, so a show after a
+  hidden start was not measured. A page that is never drawn, such as a browser tab opened in the
+  background, reports no paint until it is shown; under B its indicators load only then.
+- **Startup JavaScript** (`apps/web/dist/startup-bundle.json`): **869,576 bytes** (30 chunks) for
+  A and **869,907 bytes** (30 chunks) for B, +331 bytes. The limit of 889,856 stays.
+
 ## The Time Entry window (#275)
 
 Measured during #345 on an Apple M3 Pro (arm64), Node 26.13.1 and SQLite 3.53.4.
