@@ -1,6 +1,6 @@
-// What a field reads from the draft. A Contract's input carries no brands, so to the compiler a
-// draft holds plain text where `time` has a Calendar Day, a Wall-Clock Time or an Instant: a field
-// checks the value by its schema before it hands it to a function of `time`.
+// What a field reads from the draft. The compiler binds a field of `time` only to a draft field
+// of its value (D365), but the binding hands every value on as `unknown`: a field checks it by its
+// schema before it hands it to a function of `time`, which is the conversion without a cast.
 
 import type { z } from "zod";
 

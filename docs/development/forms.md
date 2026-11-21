@@ -314,9 +314,11 @@ const today = useToday(timeZone);
 The Contract declares the fields with `calendarDaySchema` and `wallClockTimeSchema` of `time`,
 `.nullable()` when the field may stay empty, and the Draft starts with `null`. The field writes a
 `CalendarDay` (`YYYY-MM-DD`) or a `WallClockTime` (`HH:MM`); a picker never hands on a `Date`.
-`name` accepts only a field that takes the value or `null`. The compiler cannot tell a day from a
-title: a Contract's input type carries no brand of Zod, so the Draft holds `string | null` for
-both, and the field checks the value it reads.
+`name` accepts only a field that holds the value or `null`, and never a title: a Contract's
+input type carries no brand of Zod, but the Draft takes the brand from what the input schema hands
+on, so it holds `CalendarDay | null` for a day and `string | null` for a title (D365). The same
+holds for every branded value, such as a project's id. The field still checks the value it reads,
+since the binding hands it on untyped.
 
 - **Typing a day:** the language's numeric order, `5.11.2026` in German, `11/5/2026` in English,
   with any separators and a two-digit year for 2000–2099, or `2026-11-05`. The field shows the
@@ -366,8 +368,8 @@ are properties; the field reads no Setting and no clock:
 
 The Contract declares both with `instantSchema`, ties them with a rule such as "the end lies after
 the start" at the end (`path: ["ended_at"]`, a Reason with its text, D320), and an edit names them
-in `edit.tiedFields`, so both travel together (D323). As with a day, the Draft holds a text for an
-Instant, and the field checks what it reads.
+in `edit.tiedFields`, so both travel together (D323). As with a day, the Draft holds an
+`Instant | null`, and the field checks what it reads.
 
 - **The next day:** an end time that is not after the start time lies on the next day, and the
   field shows "+1". "Add an end date" opens a separate end date for a longer range; a loaded range

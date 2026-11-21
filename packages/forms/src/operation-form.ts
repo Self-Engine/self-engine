@@ -1,6 +1,6 @@
 import type { MessageDescriptor } from "@lingui/core";
 import { useForm, type UseFormReturnType } from "@mantine/form";
-import type { AnyContractProcedure, InferSchemaInput } from "@orpc/contract";
+import type { AnyContractProcedure, InferSchemaInput, InferSchemaOutput } from "@orpc/contract";
 import {
   type DataAccess,
   describeReasons,
@@ -11,6 +11,7 @@ import {
   useDataAccess,
 } from "@self-engine/data-client/react";
 import { useLayoutEffect, useRef, useState } from "react";
+import type { $brand } from "zod/v4/core";
 import { checkDraft, type FormTexts, type InputSchema } from "./check.ts";
 import { FieldListeners } from "./field-listeners.ts";
 import { FieldMessages, type FieldText } from "./field-messages.ts";
@@ -21,14 +22,44 @@ export type InputOfEntry<Entry extends AnyContractProcedure> = InferSchemaInput<
   NonNullable<Entry["~orpc"]["inputSchema"]>
 >;
 
+/** The input of an entry as its input schema hands it on: where the schema brands, branded. */
+type CheckedInputOfEntry<Entry extends AnyContractProcedure> = InferSchemaOutput<
+  NonNullable<Entry["~orpc"]["inputSchema"]>
+>;
+
+// A draft may show a stored string a newer Contract no longer accepts (for example an icon).
+type DraftValue<Value> = Value extends string ? string : Value;
+
+/** The type of `Field` after the check, when the input schema brands it there; else `never`. */
+type BrandedValue<Checked, Field> = Field extends keyof Checked
+  ? [NonNullable<Checked[Field]>] extends [$brand]
+    ? Checked[Field]
+    : never
+  : never;
+
 /**
  * What a form holds while the user fills it in (D319): the field names and values of the
  * Operation's input. Every field may still be empty: an empty text is `""`, and a field without an
  * empty text, such as a picker, holds `null`.
+ *
+ * A value the input schema brands, such as a Calendar Day or an Instant of `time`, keeps its brand
+ * here (D365), though the Operation's input takes plain text: `Checked` is the input as the schema
+ * hands it on. So the compiler binds a date field to a day and never to a title. Every other text
+ * is plain `string`.
  */
-// A draft may show a stored string a newer Contract no longer accepts (for example an icon).
-type DraftValue<Value> = Value extends string ? string : Value;
-export type Draft<Input> = { [Field in keyof Input]-?: DraftValue<Input[Field]> | null };
+export type Draft<Input, Checked = Input> = {
+  [Field in keyof Input]-?:
+    | ([BrandedValue<Checked, Field>] extends [never]
+        ? DraftValue<Input[Field]>
+        : BrandedValue<Checked, Field>)
+    | null;
+};
+
+/** The draft of a form that submits to `Entry`. */
+export type DraftOfEntry<Entry extends AnyContractProcedure> = Draft<
+  InputOfEntry<Entry>,
+  CheckedInputOfEntry<Entry>
+>;
 
 /** Any result of an Operation hook (`OperationResult` of `@self-engine/data-client/react`). */
 type AnyResult = OperationResult<unknown, string, string>;
@@ -58,7 +89,7 @@ export interface OperationFormOptions<
    * compared with the new state. Give it on every draw; a new object with the same values does
    * nothing.
    */
-  readonly draft: Draft<InputOfEntry<Entry>>;
+  readonly draft: DraftOfEntry<Entry>;
   /** Editing compares against the stored entry and submits only changed fields plus identity. */
   readonly edit?: {
     /** Required routing keys (usually { id }); never counted as editable fields. */
@@ -195,7 +226,7 @@ interface Latest {
  */
 export function useOperationForm<Entry extends AnyContractProcedure, Result extends AnyResult>(
   options: OperationFormOptions<Entry, Result>,
-): OperationForm<Draft<InputOfEntry<Entry>>> {
+): OperationForm<DraftOfEntry<Entry>> {
   const draft = useForm<Values>({ mode: "uncontrolled", initialValues: options.draft });
   const { notifyRefused } = useDataAccess();
   // Read when the user acts, never while drawing: the latest Operation state and callback.

@@ -1,7 +1,7 @@
 ---
 status: accepted
 date: 2026-11-14
-decisions: D317, D318, D319, D320, D321, D322, D323, D324, D325, D326
+decisions: D317, D318, D319, D320, D321, D322, D323, D324, D325, D326, D365
 ---
 
 # Forms check the Contract and share one submit flow
@@ -21,7 +21,10 @@ the startup chunks merely because a View can open an Edit Drawer.
   for feedback. The Data Process still checks every input and decides (ADR 0020, D317).
   Hooks retain type-only Contract imports (ADR 0021). Startup checks forbid runtime
   Contracts, the full Zod build and form libraries in startup chunks.
-- A Draft uses the input’s field names and values; fields can be empty. A field owns unfinished
+- A Draft uses the input’s field names and values; fields can be empty. A value the input schema
+  brands, such as a Calendar Day or an id, keeps its brand in the Draft's type, so the compiler
+  binds its field only to a field made for it (D365). The Contract's input stays unbranded. A
+  field owns unfinished
   text, reports it through its Field Binding and cannot silently submit its previous value.
 - The first Check is on submit; a failed Check shows field messages and focuses the first
   affected field, then rechecks on every change. Helper texts are translated descriptors;
