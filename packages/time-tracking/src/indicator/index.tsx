@@ -12,21 +12,21 @@ import {
 import { useDataAccess } from "@self-engine/data-client/react";
 import { iconLength, TimeIcon } from "@self-engine/icons";
 import { StartTimerIcon, StopTimerIcon } from "@self-engine/icons/indicator";
-import {
-  type IndicatorForm,
-  type ModuleIndicatorWithPanelProps,
-  useOpenIndicatorPanel,
-} from "@self-engine/shell";
+import type { IndicatorForm, ModuleIndicatorWithPanelProps } from "@self-engine/shell";
 // Types only from the main entry, whose schemas need Zod's full build; the running time comes
 // from its light entry.
 import type { Instant } from "@self-engine/time";
 import { useNow } from "@self-engine/time/react";
 import { formatRunningTime } from "@self-engine/time/running-time";
-import { type CSSProperties, lazy, Suspense, useState } from "react";
+import { type CSSProperties, lazy, Suspense, useEffect, useState } from "react";
 // Types only: the Contract's schemas never load with the indicator (startup check).
 import type { TimerId, TimerWithProject } from "../contracts/index.ts";
 import { useRunningTimers } from "../port.ts";
 import { startTimerAndTell, stopTimerAndTell } from "../timer-actions.tsx";
+import { panelPart } from "../timer-panel-part.ts";
+
+/** The Notice of a clock before the start opens the panel at "Stop at …" (D358). */
+const ACTIONS = { openStopAt: () => panelPart.open("stopAt") };
 
 // The mark draws a project's icon from the directory of entry pictures. It loads only once a
 // running timer has a project, so an idle indicator or one without a project never fetches it.
@@ -232,8 +232,8 @@ export default function TimerIndicator({
 }: ModuleIndicatorWithPanelProps) {
   const running = useRunningTimers();
   const data = useDataAccess();
-  // The Notice of a clock before the start offers "Stop at …" through it.
-  const openIndicatorPanel = useOpenIndicatorPanel();
+  // The Shell's opener of this panel, for "Stop at …" from a Notice while the panel is closed.
+  useEffect(() => panelPart.register(togglePanel), [togglePanel]);
   // The timer a stop was sent for, and whether a start was, so a double click sends one call. A
   // stop that left the timer running, or a start that failed, frees the button again.
   const [stopping, setStopping] = useState<TimerId | null>(null);
@@ -250,13 +250,13 @@ export default function TimerIndicator({
 
   const stop = (id: TimerId) => {
     setStopping(id);
-    void stopTimerAndTell(data, id, { openIndicatorPanel }).then((result) => {
+    void stopTimerAndTell(data, id, ACTIONS).then((result) => {
       if (result.status !== "success" || result.data.kind === "clockBeforeStart") setStopping(null);
     });
   };
   const start = () => {
     setStarting(true);
-    void startTimerAndTell(data, {}, { openIndicatorPanel }).then((result) => {
+    void startTimerAndTell(data, {}, ACTIONS).then((result) => {
       if (result.status !== "success") setStarting(false);
     });
   };

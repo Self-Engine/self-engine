@@ -836,7 +836,7 @@ and "Discard". Production builds of `apps/web`, `apps/web/dist/startup-bundle.js
   panel, the form helper or the Contract enters the start.
 - **What loads with the indicator.** **14,115 bytes** after the first paint, 1,523 more than in
   #349: the part of the indicator that opens the panel, the discard action with its Notice, and
-  `src/indicator/panel-part.ts`, the module's state of which part the panel shows. The indicator
+  `src/timer-panel-part.ts`, the module's state of which part the panel shows. The indicator
   still reads its Contract as a type only, as the startup check holds it to.
 - **What the first opening loads.** The panel's own chunk is **7,283 bytes**. With it come
   **588,257 bytes** of JavaScript and 31,222 of CSS the start and the indicator do not hold,

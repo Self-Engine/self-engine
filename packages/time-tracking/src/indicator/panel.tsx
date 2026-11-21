@@ -10,7 +10,7 @@ import { Button, Stack, Text } from "@mantine/core";
 import { useDataAccess } from "@self-engine/data-client/react";
 import { EditDrawerForm, InstantField, LongTextField, useOperationForm } from "@self-engine/forms";
 import { ProjectField } from "@self-engine/projects/picker";
-import { type IndicatorPanelProps, useOpenIndicatorPanel } from "@self-engine/shell";
+import type { IndicatorPanelProps } from "@self-engine/shell";
 import { formatInstant } from "@self-engine/time";
 import { useFirstDayOfWeek, useTimeZone, useToday } from "@self-engine/time/react";
 import { QueryStateBlock } from "@self-engine/ui";
@@ -24,7 +24,10 @@ import {
 } from "../contracts/index.ts";
 import { type TimerWithProject, useEditTimer, useRunningTimers, useStopTimer } from "../port.ts";
 import { discardTimerAndTell, tellStop } from "../timer-actions.tsx";
-import { type PanelPart, panelPart } from "./panel-part.ts";
+import { type PanelPart, panelPart } from "../timer-panel-part.ts";
+
+/** The Notice of a clock before the start switches to "Stop at …", or opens the panel there. */
+const ACTIONS = { openStopAt: () => panelPart.open("stopAt") };
 
 /** The texts of the reasons the Operations raise at a field (D369); the compiler asks for each. */
 const EDIT_TEXTS = { reasons: { [START_IN_FUTURE]: msg`The start cannot lie in the future.` } };
@@ -131,7 +134,6 @@ function partOf(part: PanelPart, props: PartProps) {
 function EditTimerForm({ timer, onCancel, onDone, confirmDiscard, switchTo }: PartProps) {
   const { t } = useLingui();
   const data = useDataAccess();
-  const openIndicatorPanel = useOpenIndicatorPanel();
   const timeZone = useTimeZone();
   const today = useToday(timeZone);
   const firstDayOfWeek = useFirstDayOfWeek();
@@ -153,7 +155,7 @@ function EditTimerForm({ timer, onCancel, onDone, confirmDiscard, switchTo }: Pa
   const discard = async () => {
     if (!(await confirmDiscard())) return;
     setDiscarding(true);
-    const result = await discardTimerAndTell(data, timer.id, { openIndicatorPanel });
+    const result = await discardTimerAndTell(data, timer.id, ACTIONS);
     switch (result.status) {
       // Gone already: nothing is left to edit here, and the building block told why.
       case "success":
@@ -213,7 +215,6 @@ function EditTimerForm({ timer, onCancel, onDone, confirmDiscard, switchTo }: Pa
 function StopAtForm({ timer, onCancel, onDone, switchTo }: PartProps) {
   const { t, i18n } = useLingui();
   const data = useDataAccess();
-  const openIndicatorPanel = useOpenIndicatorPanel();
   const timeZone = useTimeZone();
   const today = useToday(timeZone);
   const firstDayOfWeek = useFirstDayOfWeek();
@@ -222,7 +223,7 @@ function StopAtForm({ timer, onCancel, onDone, switchTo }: PartProps) {
     operation: useStopTimer(),
     draft: { id: timer.id, endedAt: null },
     texts: STOP_TEXTS,
-    onSuccess: (stop) => tellStop(data, timer.id, stop, { openIndicatorPanel }),
+    onSuccess: (stop) => tellStop(data, timer.id, stop, ACTIONS),
     onDone,
   });
   const start = formatInstant(timer.startedAt, "dateTime", i18n.locale, timeZone);

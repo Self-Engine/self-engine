@@ -6,12 +6,9 @@
 
 import { Plural, Trans } from "@lingui/react/macro";
 import type { DataAccess } from "@self-engine/data-client/react";
-import type { OpenIndicatorPanel } from "@self-engine/shell";
 import { notifyDone, notifyRefused, notifyUndoable } from "@self-engine/ui";
 // Types only: the Contract's schemas never load with the indicator (startup check).
 import type { TimerId, TimerStop, TimerUndo } from "./contracts/index.ts";
-import { indicator } from "./indicator-entry.ts";
-import { panelPart } from "./indicator/panel-part.ts";
 import { discardTimer, startTimer, stopTimer, undoDiscardTimer, undoStopTimer } from "./port.ts";
 
 type StartInput = Parameters<typeof startTimer>[1];
@@ -20,12 +17,14 @@ type StopResult = Awaited<ReturnType<typeof stopTimer>>;
 type DiscardResult = Awaited<ReturnType<typeof discardTimer>>;
 
 /**
- * What a caller with a screen hands the actions: the Shell's function that opens an Indicator
- * Panel, which the Notice of a clock before the start offers as "Stop at …". A caller without a
- * screen, such as a Command for an assistant, has none, and that Notice offers no action.
+ * What a caller with a screen hands the actions: how to open the timer's Indicator Panel at
+ * "Stop at …", which the Notice of a clock before the start offers. A Command a person starts
+ * builds it with `stopAtThrough` from the Shell's function in its context; the indicator and the
+ * panel take `panelPart.open`. A caller without a screen, such as a Command for an assistant, has
+ * none, and that Notice offers no action.
  */
 export interface TimerActionOptions {
-  readonly openIndicatorPanel?: OpenIndicatorPanel | undefined;
+  readonly openStopAt?: (() => void) | undefined;
 }
 
 // Elements, not text: `Trans` translates when the Notice renders, in the language active then.
@@ -41,18 +40,10 @@ const STOP_AT = <Trans>Stop at …</Trans>;
  * Says that the clock lies before the timer's start (D349): the timer keeps running, and with a
  * screen the Notice offers "Stop at …", which opens the timer's panel at that part.
  */
-function tellClockBeforeStart({ openIndicatorPanel }: TimerActionOptions) {
+function tellClockBeforeStart({ openStopAt }: TimerActionOptions) {
   notifyRefused({
     reasons: [CLOCK_BEFORE_START],
-    ...(openIndicatorPanel !== undefined && {
-      action: {
-        label: STOP_AT,
-        run: () => {
-          panelPart.request("stopAt");
-          openIndicatorPanel(indicator);
-        },
-      },
-    }),
+    ...(openStopAt !== undefined && { action: { label: STOP_AT, run: openStopAt } }),
   });
 }
 
