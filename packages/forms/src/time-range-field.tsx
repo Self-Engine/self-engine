@@ -68,6 +68,7 @@ type Part = "day" | "startTime" | "endTime" | "endDay";
 
 interface View {
   readonly parts: RangeParts;
+  readonly sameDayEnd: CalendarDay | undefined;
   /** Parts holding unfinished text; their older value stays in `parts`. */
   readonly unfinished: ReadonlySet<Part>;
   /** The side whose time the clocks skip. */
@@ -76,6 +77,7 @@ interface View {
 
 const fresh = (parts: RangeParts): View => ({
   parts,
+  sameDayEnd: undefined,
   unfinished: new Set(),
   skipped: { start: false, end: false },
 });
@@ -95,6 +97,7 @@ function sameParts(a: RangeParts, b: RangeParts): boolean {
 function sameView(a: View, b: View): boolean {
   return (
     sameParts(a.parts, b.parts) &&
+    a.sameDayEnd === b.sameDayEnd &&
     a.unfinished.size === b.unfinished.size &&
     [...a.unfinished].every((part) => b.unfinished.has(part)) &&
     a.skipped.start === b.skipped.start &&
@@ -140,8 +143,9 @@ function useRepeatedNote(instant: Instant | null, timeZone: TimeZone): string | 
 /**
  * A stretch of time, entered as a date, a start time and an end time, bound to two Instants of
  * the draft in the given Time Zone. An end time that is not after the start time lies on the next
- * day ("+1"); a separate end date can be opened for a longer range. A part the user did not
- * change keeps its Instant with its seconds (D344). A time the zone shows twice is resolved by
+ * day ("+1") unless a correction resolves to a later Instant in the repeated hour on the same day.
+ * A separate end date can be opened for a longer range. A part the user did not change keeps
+ * its Instant with its seconds (D344). A time the zone shows twice is resolved by
  * `resolveWallClockTime` of `time` and named at the field; a skipped one blocks the save with a
  * message (D347). A message of the Contract at the end, such as "the end lies after the start",
  * shows at the end time. The field reads no Setting and no clock.
@@ -221,6 +225,7 @@ function RangeInputs({
     const outcome = rangeFrom(parts, current, timeZone, isEdit, original.current);
     const next: View = {
       parts,
+      sameDayEnd: outcome.sameDayEnd,
       unfinished,
       skipped: { start: outcome.start.case === "skipped", end: outcome.end.case === "skipped" },
     };
@@ -293,7 +298,7 @@ function RangeInputs({
           <TimeInput
             beside={
               <>
-                {isNextDay(parts) && (
+                {isNextDay(parts) && view.sameDayEnd === undefined && (
                   <Badge title={t`The end lies on the next day.`} variant="light">
                     +1
                   </Badge>
@@ -303,7 +308,11 @@ function RangeInputs({
                     disabled={disabled}
                     onClick={() =>
                       apply(
-                        (now) => ({ ...now, endDayOpen: true, endDay: dayOfEnd(now) ?? today }),
+                        (now) => ({
+                          ...now,
+                          endDayOpen: true,
+                          endDay: latest.current.sameDayEnd ?? dayOfEnd(now) ?? today,
+                        }),
                         "endDay",
                         true,
                       )

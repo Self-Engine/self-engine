@@ -8,8 +8,10 @@ import {
   addDays,
   type CalendarDay,
   calendarDayOf,
+  epochMsOf,
   type Instant,
   moveToDay,
+  repeatedTimeOffset,
   resolveWallClockTime,
   type TimeZone,
   type WallClockTime,
@@ -44,8 +46,8 @@ export type RangeOutcome =
   | { readonly case: "skipped" };
 
 /**
- * Whether the end lies on the day after the date: no end date is opened and the end time is not
- * after the start time. The field shows "+1" then.
+ * Whether the parts imply "+1" before resolving a clock change: no end date is open and the
+ * end time is at or before the start time.
  */
 export function isNextDay(parts: RangeParts): boolean {
   const { endDayOpen, startTime, endTime } = parts;
@@ -119,6 +121,17 @@ function outcomeOf(
   return resolved.case === "skipped" ? resolved : { case: "set", instant: resolved.instant };
 }
 
+function instantOf(outcome: RangeOutcome, current: Instant | null): Instant | null {
+  switch (outcome.case) {
+    case "keep":
+      return current;
+    case "set":
+      return outcome.instant;
+    case "skipped":
+      return null;
+  }
+}
+
 /**
  * The two Instants for what the field shows. An Instant that still shows its date and time stays
  * with its seconds, and so does one of `original`, the Instants the field was drawn with: a value
@@ -126,9 +139,9 @@ function outcomeOf(
  * its time on another day moves to the field's day with its seconds (`moveToDay`). Any other
  * Instant is resolved by `time` (D347, D361): on an edit (`isEdit`) with the Instant of `original`
  * as the previous value, else, also where `original` holds none, the end with the start as its
- * lower bound. The previous value is
- * never the one the draft holds now: a picker hands on every keystroke, so typing "0255" over
- * 02:40 passes 00:40, and the outcome may not depend on what was passed.
+ * lower bound. The previous value is never the one the draft holds now: a picker hands on
+ * every keystroke, so typing "0255" over 02:40 passes 00:40, and the outcome may not depend on
+ * what was passed.
  */
 export function rangeFrom(
   parts: RangeParts,
@@ -136,17 +149,46 @@ export function rangeFrom(
   timeZone: TimeZone,
   isEdit: boolean,
   original: RangeInstants = current,
-): { readonly start: RangeOutcome; readonly end: RangeOutcome } {
+): {
+  readonly start: RangeOutcome;
+  readonly end: RangeOutcome;
+  /** The end stays on the start day despite its wall-clock time suggesting "+1". */
+  readonly sameDayEnd?: CalendarDay;
+} {
   const previous = (instant: Instant | null) =>
     isEdit && instant !== null ? { previous: instant } : {};
   const start = outcomeOf(parts.day, parts.startTime, current.start, original.start, timeZone, {
     ...previous(original.start),
   });
-  const lowerBound =
-    start.case === "set" ? start.instant : start.case === "keep" ? current.start : null;
-  const end = outcomeOf(dayOfEnd(parts), parts.endTime, current.end, original.end, timeZone, {
+  const lowerBound = instantOf(start, current.start);
+  const endOptions = {
     ...(lowerBound === null ? {} : { lowerBound }),
     ...previous(original.end),
-  });
+  };
+  const { day, endTime } = parts;
+  // An end that reads as not after the start can still follow it on this day: the second showing
+  // of an earlier time, after a start in the first. It is resolved as for an explicit end date
+  // (D361, D366). On an edit only while the stored end lies on this day: an end stored on the
+  // next day stays there, however the field is touched.
+  const mayStayOnDay =
+    !isEdit || (original.end !== null && calendarDayOf(original.end, timeZone) === day);
+  if (
+    isNextDay(parts) &&
+    day !== null &&
+    lowerBound !== null &&
+    mayStayOnDay &&
+    repeatedTimeOffset(lowerBound, timeZone) !== null
+  ) {
+    const end = outcomeOf(day, endTime, current.end, original.end, timeZone, endOptions);
+    const instant = instantOf(end, current.end);
+    if (
+      instant !== null &&
+      epochMsOf(instant) > epochMsOf(lowerBound) &&
+      repeatedTimeOffset(instant, timeZone) !== null
+    ) {
+      return { start, end, sameDayEnd: day };
+    }
+  }
+  const end = outcomeOf(dayOfEnd(parts), endTime, current.end, original.end, timeZone, endOptions);
   return { start, end };
 }
