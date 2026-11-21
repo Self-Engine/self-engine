@@ -643,3 +643,64 @@ test("new texts given to the provider reach a Reason drawn in the same render", 
 
   expect(text.current()).toBe("After.");
 });
+
+// An input error (D369): the frame's own check of the input, or one the Operation raises, in the
+// same shape. An issue at a field the caller shows is the form's; any other tells the general
+// notice, as an unexpected failure does.
+const invalidWith = (...issues: readonly object[]) =>
+  new ORPCError("BAD_REQUEST", { message: "Input validation failed", data: { issues } });
+const RESERVED_ISSUE = {
+  code: "custom",
+  path: ["title"],
+  message: "title_reserved",
+  params: { reason: "title_reserved" },
+};
+const ID_ISSUE = { code: "invalid_type", expected: "string", path: ["id"], message: "Required" };
+
+test("an input error at a field the caller shows returns invalid with that issue, and no notice", async () => {
+  const { result, notices } = await renameAtField(invalidWith(RESERVED_ISSUE));
+
+  const issue = {
+    field: "title",
+    path: ["title"],
+    reason: "title_reserved",
+    issue: RESERVED_ISSUE,
+  };
+  expect(result).toEqual({ status: "invalid", issues: [issue], atFields: [issue] });
+  expect(notices).toEqual([]);
+});
+
+test("an issue at a field the caller does not show tells the general notice once", async () => {
+  const { result, notices } = await renameAtField(invalidWith(RESERVED_ISSUE, ID_ISSUE));
+
+  expect(result).toMatchObject({
+    status: "invalid",
+    issues: [{ field: "title" }, { field: "id", reason: undefined }],
+    atFields: [{ field: "title" }],
+  });
+  expect(notices).toEqual([UNEXPECTED_NOTICE]);
+});
+
+test("an issue inside a list names its field by its dotted path", async () => {
+  const { result } = await renameAtField(
+    invalidWith({ ...RESERVED_ISSUE, path: ["lines", 2, "title"] }),
+    {
+      showsField: () => false,
+    },
+  );
+
+  expect(result).toMatchObject({
+    issues: [{ field: "lines.2.title", path: ["lines", 2, "title"] }],
+  });
+});
+
+test.each([
+  ["without issues", new ORPCError("BAD_REQUEST")],
+  ["with an empty list", invalidWith()],
+  ["with an issue without a path", invalidWith({ code: "custom", message: "x" })],
+])("an input error %s is unexpected", async (_case, error) => {
+  const { result, notices } = await renameAtField(error);
+
+  expect(result).toMatchObject({ status: "unexpected" });
+  expect(notices).toEqual([UNEXPECTED_NOTICE]);
+});

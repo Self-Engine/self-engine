@@ -160,6 +160,7 @@ rejects:
 | `conflict`   | `reason`, `field`, `text` | none: show `text` at `field`; `text` when `field` is `null`                                                                                             |
 | `notFound`   | none                      | “This entry no longer exists.”, unless the module replaces it                                                                                           |
 | `refused`    | `reasons`, `atFields`     | the shared Notice of a Refusal with the Reasons not in `atFields`, unless the module replaces it; none when every Reason is at a field the caller shows |
+| `invalid`    | `issues`, `atFields`      | “Something went wrong, and the change was not saved.” when an issue is at no field the caller shows; else none                                          |
 | `unexpected` | `error`                   | “Something went wrong, and the change was not saved.”                                                                                                   |
 
 `running` is true while any call of this hook instance waits for its result; use it to lock the
@@ -173,6 +174,13 @@ exactly one per reason: a missing or an extra reason does not compile, nor does 
 handling for an entry with a conflict, nor a `field` that is not a key of the input, nor leaving
 out `field`. An entry without a conflict takes no handling (`alphaPort.operation("delete")`). A
 conflict reason arriving without a text counts as unexpected.
+
+**An input error** (`invalid`, [ADR 0040](../adr/0040-an-operation-answers-an-input-error-a-form-shows-at-its-field.md))
+is the frame's own check of the input, or one the Operation raised for a limit only the Data
+Process can judge. Each issue names its `field` (the dotted path), `path`, `reason` (or
+`undefined`) and the `issue` as it arrived; `atFields` holds those at a field the caller's
+`showsField` shows. The form helper of `@self-engine/forms` shows them at their fields; any other
+caller gets the general Notice. A Fixed Answer gives one only with a reason the entry declares.
 
 **A form** shows the conflict at its field and keeps the drawer open
 ([`edit-drawer.tsx`](../../packages/placeholder-alpha/src/edit-drawer.tsx)):
@@ -408,6 +416,7 @@ story fixes for it:
 | `{ conflict: "…" }` | The entry’s conflict with that reason.                                 |
 | `"notFound"`        | The entry’s “not found”.                                               |
 | `{ refused: […] }`  | The entry’s Refusal with these Reasons, each `blocking`.               |
+| `{ invalid: […] }`  | The entry’s input error, one issue per `{ path, reason }`.             |
 
 Each answer is checked when `fixedAnswers` is called, and the story fails naming the entry and,
 for data, the field: data the output schema rejects, a reason the entry does not declare,

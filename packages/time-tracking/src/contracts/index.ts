@@ -1,5 +1,5 @@
 import { oc } from "@orpc/contract";
-import { entryFields, refusal } from "@self-engine/db/schema";
+import { entryFields, inputErrors, refusal } from "@self-engine/db/schema";
 import { projectIdSchema } from "@self-engine/projects/ids";
 import { type Instant, instantSchema, wholeSecondOf } from "@self-engine/time";
 import { z } from "zod";
@@ -8,6 +8,8 @@ import { timeEntrySchema, timeEntryWithProjectSchema } from "./entries.ts";
 import { timeEntryIdSchema, timerIdSchema } from "./ids.ts";
 import { noteSchema } from "./note.ts";
 import {
+  END_IN_FUTURE,
+  START_IN_FUTURE,
   timerFields,
   timerSchema,
   timerStartInput,
@@ -181,7 +183,7 @@ export const timeTrackingContract = {
   editTimer: oc
     .input(timerFields.edit)
     .output(timerSchema)
-    .errors({ NOT_FOUND: {}, ...refusal }),
+    .errors({ NOT_FOUND: {}, ...inputErrors(START_IN_FUTURE), ...refusal }),
   /**
    * Stops a Timer into its Time Entry in one transaction (D349): the entry takes the timer's id,
    * start, project and note, the end (the Data Process's "now" or the one given) cut to the second
@@ -193,7 +195,7 @@ export const timeTrackingContract = {
   stopTimer: oc
     .input(timerStopInput)
     .output(timerStopSchema)
-    .errors({ NOT_FOUND: {}, ...refusal }),
+    .errors({ NOT_FOUND: {}, ...inputErrors(END_BEFORE_START, END_IN_FUTURE), ...refusal }),
   /** Removes a running Timer without a Time Entry: a soft delete. */
   discardTimer: oc
     .input(byTimerId)

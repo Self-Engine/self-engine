@@ -27,10 +27,13 @@ Befunde aus #377.
   schreibt nichts, und am Feld „Beginn“ steht, dass der Beginn nicht in der Zukunft liegen darf.
   _Abgrenzung:_ Eine Grenze, die vom Datenbestand abhängt, bleibt eine Schutzregel mit Ablehnung
   (D331–D340). D369 gilt für Grenzen an der Eingabe selbst, die erst der Datenprozess beurteilen
-  kann, bisher sein „Jetzt“. _Preis:_ eine neue Antwortart, die jedes Formular kennt. Der Grund
-  ist ein einfacher Text wie bei den Gründen des Eingabe-Schemas („Ende vor Beginn“); fehlt sein
-  Text, schlägt eine Story fehl, nicht der Compiler. _Laufzeit:_ ein Vergleich je Operation, nicht
-  messbar. _Verworfen:_ die Seite mit ihrer eigenen Uhr prüfen lassen (die Regel stünde an zwei
+  kann, bisher sein „Jetzt“. _Typen (gebaut in #390):_ Der Vertrag nennt die Gründe, die eine
+  Operation melden darf (`inputErrors`), wie er es für die Gründe eines Konflikts tut. Der
+  Compiler verlangt vom Formular einen Text für jeden genannten Grund; einen nicht genannten Grund
+  meldet der Rahmen in Tests und in der Entwicklung als unerwartet. _Preis:_ eine neue
+  Antwortart, die jedes Formular kennt, und eine Zeile je Eintrag im Vertrag. Der Grund, den die
+  Operation an `inputError` übergibt, bleibt ein einfacher Text. _Laufzeit:_ ein Vergleich je
+  Operation, nicht messbar. _Verworfen:_ die Seite mit ihrer eigenen Uhr prüfen lassen (die Regel stünde an zwei
   Stellen, und `forms` bräuchte eine Prüfung neben dem Vertrag); eine Schutzregel mit Ablehnung
   (passt für den Beginn des Timers, nicht für „Stoppen um …“: das Ende landet im Zeiteintrag, und
   dort sind Einträge in der Zukunft erlaubt); als Konflikt melden (ein Konflikt ist ein doppelter

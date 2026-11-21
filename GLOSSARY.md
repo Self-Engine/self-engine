@@ -107,7 +107,7 @@ To bring an archived entry back among the active ones. Unarchiving an active ent
 _Avoid_: restore, reopen, reactivate
 
 **Operation** (de: _Operation_):
-An entry of a _Port_ that changes data, all of it or nothing. Its expected failures, "not found", a conflict and a _Refusal_, are part of its answer, not surprises.
+An entry of a _Port_ that changes data, all of it or nothing. Its expected failures, "not found", a conflict, a _Refusal_ and an input error at its fields, are part of its answer, not surprises.
 _Avoid_: mutation, command, action, write
 
 **Query** (de: _Abfrage_):
@@ -147,7 +147,7 @@ The place outside the app where every shared building block can be seen and trie
 _Avoid_: catalog (on its own), design system, Storybook
 
 **Fixed Answer** (de: _feste Antwort_):
-What one _Port_ entry returns in a story or component test, without a _Data Process_: data, loading that never ends, an unexpected error, a declared conflict or "not found". It is checked against the entry's _Contract_, and a call to an entry without one fails.
+What one _Port_ entry returns in a story or component test, without a _Data Process_: data, loading that never ends, an unexpected error, a declared conflict, "not found", a _Refusal_ or a declared input error. It is checked against the entry's _Contract_, and a call to an entry without one fails.
 _Avoid_: mock, fixture, stub
 
 ### Projects

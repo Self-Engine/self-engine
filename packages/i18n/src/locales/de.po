@@ -324,6 +324,10 @@ msgstr "Wähle eine Farbe für den Stern."
 msgid "Choose an icon"
 msgstr "Icon wählen"
 
+#: packages/forms/src/testing/example/example-form.tsx
+msgid "Choose today or an earlier day."
+msgstr "Wähle heute oder einen früheren Tag."
+
 #: packages/icons/src/directory/labels.ts
 msgctxt "Icon"
 msgid "Circle"

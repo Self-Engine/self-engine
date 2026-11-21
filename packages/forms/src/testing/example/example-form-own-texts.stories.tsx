@@ -7,7 +7,7 @@ import { useCreateExample } from "./port.ts";
 import { DataProvider } from "@self-engine/data-client/react";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { expect, spyOn, userEvent, within } from "storybook/test";
-import { ExampleForm } from "./example-form.tsx";
+import { ExampleForm, exampleCreateTexts } from "./example-form.tsx";
 import { recordingPort, type RecordingPort } from "./story-port.ts";
 
 const meta = {
@@ -80,6 +80,7 @@ function MissingReasonForm() {
   const form = useOperationForm({
     entry: exampleContract.create,
     operation: useCreateExample(),
+    texts: exampleCreateTexts,
     draft: {
       title: "Kitchen",
       description: "Kitchen",
