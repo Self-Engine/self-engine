@@ -18,7 +18,7 @@ import type { IndicatorForm, ModuleIndicatorWithPanelProps } from "@self-engine/
 import type { Instant } from "@self-engine/time";
 import { useNow } from "@self-engine/time/react";
 import { formatRunningTime } from "@self-engine/time/running-time";
-import { type CSSProperties, lazy, Suspense, useEffect, useState } from "react";
+import { type CSSProperties, lazy, type MouseEvent, Suspense, useEffect, useState } from "react";
 // Types only: the Contract's schemas never load with the indicator (startup check).
 import type { TimerId, TimerWithProject } from "../contracts/index.ts";
 import { useRunningTimers } from "../port.ts";
@@ -47,6 +47,17 @@ const TIME_STYLE: CSSProperties = {
 };
 
 const ICON_STYLE: CSSProperties = { display: "flex" };
+
+/**
+ * A click handler that acts on the first click of a series only. Stop and start swap places as
+ * soon as the running timers change, so the second click of a double click lands on the other
+ * one: it would start a fresh timer after a stop, or stop the one just started. The browser
+ * counts the clicks of a series in `detail` (2 for the second); a single click is 1, and a press
+ * of Enter or Space is 0, so both act at once and nothing waits.
+ */
+const firstClickOnly = (act: () => void) => (event: MouseEvent) => {
+  if (event.detail <= 1) act();
+};
 
 // The part that opens the panel holds what the timer shows; its title shortens inside it.
 const OPENER_STYLE: CSSProperties = {
@@ -149,7 +160,7 @@ function RunningTimer({
         aria-label={t`Stop timer`}
         disabled={stopping}
         flex="none"
-        onClick={() => onStop(timer.id)}
+        onClick={firstClickOnly(() => onStop(timer.id))}
         size={24}
         variant="subtle"
       >
@@ -175,7 +186,7 @@ function StartTimer({
       <ActionIcon
         aria-label={t`Start timer`}
         disabled={starting}
-        onClick={onStart}
+        onClick={firstClickOnly(onStart)}
         size={24}
         variant="subtle"
       >
@@ -187,7 +198,7 @@ function StartTimer({
     <Button
       disabled={starting}
       leftSection={<StartTimerIcon size="sm" />}
-      onClick={onStart}
+      onClick={firstClickOnly(onStart)}
       size="compact-sm"
       variant="subtle"
     >
