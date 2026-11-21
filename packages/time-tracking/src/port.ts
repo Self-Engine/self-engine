@@ -1,4 +1,5 @@
-import { portHooks } from "@self-engine/data-client/react";
+import type { InferContractRouterInputs, InferContractRouterOutputs } from "@orpc/contract";
+import { type DataAccess, portHooks } from "@self-engine/data-client/react";
 import type { TablesOf } from "@self-engine/db";
 import type { DaySpan } from "@self-engine/time";
 import { useMemo } from "react";
@@ -22,10 +23,11 @@ export type {
 // The module's hooks, built from its Contract and its mount name (D249). The Contract arrives as a
 // type only, so its schemas never load with a View (D255); the module names no tables (D248).
 // Its tables type where a form shows a Reason (D334), also as a type only.
+const MOUNT = "timeTracking";
 const timeTrackingPort = portHooks<
   typeof timeTrackingContract,
   TablesOf<typeof timeTrackingRowMap>
->("timeTracking");
+>(MOUNT);
 
 /** The frame refuses a deleted project at the column; the form shows it at the project (D334). */
 const AT_PROJECT = { columns: { time_entries: { project_id: "projectId" } } } as const;
@@ -61,7 +63,18 @@ export function useSpanDays(span: DaySpan, filter?: TimeEntryFilter) {
 /** The frame refuses a deleted project at the timer's column (D334, D337). */
 const AT_TIMER_PROJECT = { columns: { timers: { project_id: "projectId" } } } as const;
 
-const useRunning = timeTrackingPort.query("runningTimers");
+const RUNNING_TIMERS = "runningTimers";
+const useRunning = timeTrackingPort.query(RUNNING_TIMERS);
+
+/** One fresh read for a Command, in the same order as the Module Indicator's Query. */
+export async function readLatestRunningTimer({ access }: DataAccess) {
+  type Contract = typeof timeTrackingContract;
+  const input: InferContractRouterInputs<Contract>[typeof RUNNING_TIMERS] = undefined;
+  const answer = await access.call(MOUNT, RUNNING_TIMERS, input);
+  // PortAccess erases the types. The Data Process answers according to this Contract.
+  const timers = answer as InferContractRouterOutputs<Contract>[typeof RUNNING_TIMERS];
+  return timers.at(0);
+}
 
 /**
  * The running Timers with their Project References, the most recently started first (D310). It

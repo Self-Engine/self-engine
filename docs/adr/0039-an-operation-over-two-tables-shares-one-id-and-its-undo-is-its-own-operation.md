@@ -1,7 +1,7 @@
 ---
 status: accepted
 date: 2026-11-21
-decisions: D310, D349
+decisions: D310, D349, D371
 ---
 
 # An Operation over two tables shares one id, and its undo is its own Operation
@@ -21,9 +21,10 @@ from two calls and the second call failed, the entry would be gone and no Timer 
   function that turns one into the other. No column records where the entry came from.
 - **Stopping twice writes once.** `stopTimer` on a Timer that is already stopped finds the Live
   entry with the Timer's id, answers with it and writes nothing. When a stop finds a deleted
-  entry with that id, left by an earlier "undo stop", it restores that row and writes the new
-  end, Booked Duration and Time Zone into it. Every stop of a Timer therefore leaves at most one
-  Live entry with the Timer's id.
+  entry with that id, left by an earlier "undo stop", it restores that row with the Timer's
+  project and note and the new end, Booked Duration and Time Zone in one write (D371), so the
+  reference check judges the project the Timer has now. Every stop of a Timer therefore leaves
+  at most one Live entry with the Timer's id.
 - **The Operation and its undo are each one Operation in one transaction, with one Table
   Change.** `stopTimer` writes the entry and soft-deletes the Timer. `undoStopTimer`
   soft-deletes the entry as it currently is, including any edits, and restores the Timer with
@@ -53,11 +54,8 @@ from two calls and the second call failed, the entry would be gone and no Timer 
   discarded if it ran for less than a second.
 - Every stop costs one more lookup by primary key, which also finds deleted rows. Measured
   through the Port of the test Data Process, the median stop rose from 0.139 ms to 0.152 ms. One
-  "undo stop" takes 0.18 ms, and a stop after an undo 0.20 ms.
-- A stop after "undo stop" restores the old entry before it writes the new values. The frame's
-  reference check therefore judges the project the deleted entry still holds. If the Timer was
-  moved to another project after the undo and the old project was then deleted, the stop is
-  refused, and only "Discard" ends the Timer.
+  "undo stop" takes 0.18 ms, and a stop after an undo 0.20 ms; since the restore writes the
+  values itself (D371), 0.17 ms.
 
 ## Considered Options
 

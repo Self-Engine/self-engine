@@ -1,7 +1,7 @@
 ---
 status: accepted
 date: 2026-11-17
-decisions: D331, D332, D333, D334, D337, D338, D339
+decisions: D331, D332, D333, D334, D337, D338, D339, D371
 ---
 
 # Protection Rules guard every write path and answer with typed Reasons
@@ -21,7 +21,8 @@ area above it. Soft deletion also means the database's own foreign keys never fi
   restore, archive or unarchive. It is stated with
   `protectionRule(rowMap, { table, write, reasons, answer })`; the row map types its table, its
   rows and its reads. `answer` receives a list of rows (with the written `values` for insert and
-  update) and answers per row with Reasons. Its access only reads: by type, and a write throws at
+  update, and for a restore the values written with it, if any) and answers per row with
+  Reasons. Its access only reads: by type, and a write throws at
   runtime.
 - **Rules come from three sources into one registry** per Data Process
   (`protectionRules`), handed to every frame in its context:
@@ -70,8 +71,11 @@ area above it. Soft deletion also means the database's own foreign keys never fi
 
   An archived row is a Live Row: it protects its target and is a valid target. Archive and
   unarchive are not guarded. Counts are taken only for a refused row. A row's reference to
-  itself does not protect it. An update that writes no reference column runs no query. An
-  unknown or foreign row being deleted or restored gets no answer, so it stays "not found".
+  itself does not protect it. A restore may write fields in the same statement
+  (`restore(table, id, fields?)`, D371); the rules judge the row as it stands afterwards: a
+  reference written with it is checked like an insert's, every other one as stored. An update
+  that writes no reference column runs no query. An unknown or foreign row being deleted or
+  restored gets no answer, so it stays "not found".
   The conventions check requires an index that begins with every referring column, full or
   partial on `deleted_at IS NULL`, and no DEFAULT but NULL on it, since the check reads a
   reference from the written values.

@@ -641,6 +641,45 @@ test("stop, undo, stop again gives one live entry with the timer's id, the new e
   ]);
 });
 
+test("stop again after undo saves the entry with the timer's new project, though the project of the first stop was deleted meanwhile", async () => {
+  const { client, clock, process } = await start();
+  const legacy = await client.projects.create({ title: "Legacy" });
+  const garden = await client.projects.create({ title: "Garden" });
+  const { timer } = await client.timeTracking.startTimer({ projectId: legacy.id, note: "Design" });
+  clock.advance(30 * 60_000);
+  await client.timeTracking.stopTimer({ id: timer.id });
+  await client.timeTracking.undoStopTimer({ id: timer.id });
+  // No Live Row refers to "Legacy" any more, so it can be deleted.
+  await client.timeTracking.editTimer({ id: timer.id, projectId: garden.id });
+  await client.projects.delete({ id: legacy.id });
+  clock.advance(30 * 60_000);
+
+  const events = await client.tablesChanged();
+  await expect(events.next()).resolves.toMatchObject({ value: { kind: "opened" } });
+  await expect(client.timeTracking.stopTimer({ id: timer.id })).resolves.toEqual({
+    kind: "saved",
+    entry: {
+      id: timer.id,
+      startedAt: "2026-11-16T09:00:00.000Z",
+      endedAt: "2026-11-16T10:00:00.000Z",
+      durationSeconds: 3600,
+      projectId: garden.id,
+      note: "Design",
+    },
+  });
+  await expect(events.next()).resolves.toMatchObject({
+    value: { kind: "changed", tables: ["time_entries", "timers"] },
+  });
+  await events.return?.();
+  await expect(storedEntries(process, timer.id)).resolves.toMatchObject([
+    { id: timer.id, deleted_at: null },
+  ]);
+  await expect(dayEntries(client)).resolves.toMatchObject([
+    { id: timer.id, projectId: garden.id, endedAt: "2026-11-16T10:00:00.000Z" },
+  ]);
+  await expect(client.timeTracking.runningTimers()).resolves.toEqual([]);
+});
+
 test("undo stop called twice writes once: the second call answers that the timer already runs", async () => {
   const { client, clock } = await start();
   const { timer } = await client.timeTracking.startTimer({ note: "Design" });

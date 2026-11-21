@@ -170,7 +170,7 @@ or looks up one.
 For synchronized rows, use `sharedEntry(tx, context).live(table)` for a Space-filtered,
 non-deleted select, and `.lookup(table, id)` for one live row or `NOT_FOUND`. Use
 `sharedWrites(tx, context)` for `insert(table, id, fields)`, `update(table, id, fields)`,
-`softDelete(table, id)` and `restore(table, id)`. These set convention columns; callers cannot supply those columns in fields, even through
+`softDelete(table, id)` and `restore(table, id, fields?)`. These set convention columns; callers cannot supply those columns in fields, even through
 non-literal objects, and runtime writes discard injected convention fields. Update and
 soft delete require a live row; restore requires a deleted row. Unknown ids and ids in another
 Space are not found; restoring a live row is also not found. An Operation whose own lookup
@@ -183,6 +183,14 @@ field left it reads instead: it answers with the live row, writes nothing, leave
 and sends no Table Change. Mark such an entry `kind: "operation", edit: true`, as [`memos/data/index.ts`](../../packages/storage/test/memos-module/data/index.ts) does;
 the kit then checks the edit pattern (step 6). The Operation does not compare with the stored
 state: sending the value already stored writes and advances `updated_at` (ADR 0032).
+
+`restore` takes the same optional fields as `update`: the row comes back with them in one
+statement, and a missing field keeps its stored value (D371). The rules judge the row as it
+stands afterwards, so a reference written with the restore is checked instead of the one the
+deleted row held. An Operation that takes a deleted row up again under its id writes its new
+values this way, as a stop after "undo stop" does in
+[`stop-timer.ts`](../../packages/time-tracking/src/data/stop-timer.ts), never as a restore
+followed by an update. Without a field left it is a plain restore.
 
 On an archivable table, `sharedEntry(tx, context).active(table)` selects the Live Rows that are
 not archived; `live(table)` and `lookup` keep archived rows, because an archived row is a Live
@@ -274,6 +282,8 @@ export const pinnedNotesStay = protectionRule(notesRowMap, {
 
 - `rows` is a list: answer for all of them with one query, never one query per row. Insert and
   update rows also carry the `values` being written; an update carries only the fields it sets.
+  A restore row carries `values` only when fields are written with it; read any other field
+  from the stored row.
 - `tx` reads only; a write is a type error and fails at runtime.
 - A row the write would not find (unknown, deleted for a delete, or of another Space) answers
   "not found" whatever the rule answers: the frame looks the rows of a refused write up before
@@ -303,7 +313,8 @@ table, the row id and chosen fields), the way it releases a Read Piece (D341).
 tables when the Data Process starts and guards it: a row that a Live Row refers to is not
 deleted (Reason `referenced`, each referring table with its count), and a reference to a
 deleted, unknown or foreign row is not inserted, updated or restored (Reason `target_deleted`,
-with the column as its field and the target). An archived row is a Live Row: it protects its
+with the column as its field and the target); a restore is judged with the references written
+with it. An archived row is a Live Row: it protects its
 target and stays a valid one. What a module owes it is the index on every referring column
 (step 2). Test it as [`guarded.test.ts`](../../packages/projects/src/data/guarded.test.ts) does
 for `projects`.

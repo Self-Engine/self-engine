@@ -178,9 +178,20 @@ export function sharedWrites<DB>(tx: Transaction<DB>, context: StorageContext) {
       await askRules(tx, context, table, "delete", [{ id }]);
       return change(table, id, { deleted_at: context.now }, false);
     },
-    async restore<Table extends SyncedTable<DB>>(table: Table, id: RowId<DB, Table>) {
-      await askRules(tx, context, table, "restore", [{ id }]);
-      return change(table, id, { deleted_at: null }, true);
+    /**
+     * Brings a deleted row back. Fields given are written in the same statement, and a missing
+     * (`undefined`) one stays as stored (D329, D371): the rules, the reference check among them,
+     * judge the row as it stands afterwards. Without a field left it is a plain restore.
+     */
+    async restore<Table extends SyncedTable<DB>>(
+      table: Table,
+      id: RowId<DB, Table>,
+      fields?: EditFields<Updateable<DB[Table]>>,
+    ) {
+      const values = fields === undefined ? {} : writableFields(fields);
+      const row = Object.keys(values).length === 0 ? { id } : { id, values };
+      await askRules(tx, context, table, "restore", [row]);
+      return change(table, id, { ...values, deleted_at: null }, true);
     },
     archive<Table extends ArchivableTable<DB>>(table: Table, id: RowId<DB, Table>) {
       return setArchived(table, id, true);

@@ -1518,6 +1518,7 @@ msgctxt "beginning of a stretch of time"
 msgid "Start"
 msgstr "Start"
 
+#: packages/time-tracking/src/index.ts
 #: packages/time-tracking/src/indicator/index.tsx
 msgid "Start timer"
 msgstr "Start timer"
@@ -1537,6 +1538,7 @@ msgstr "Stop"
 msgid "Stop at …"
 msgstr "Stop at …"
 
+#: packages/time-tracking/src/index.ts
 #: packages/time-tracking/src/indicator/index.tsx
 msgid "Stop timer"
 msgstr "Stop timer"
@@ -1839,6 +1841,10 @@ msgstr "Today"
 msgctxt "Go to the week of today"
 msgid "Today"
 msgstr "Today"
+
+#: packages/time-tracking/src/index.ts
+msgid "Toggle timer"
+msgstr "Toggle timer"
 
 #: packages/time-tracking/src/week-sums.tsx
 msgid "Total"

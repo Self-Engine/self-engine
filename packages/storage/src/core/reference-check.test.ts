@@ -336,6 +336,63 @@ test("a reference to an archived row is accepted on insert, update and restore",
   });
 });
 
+test("a restore with fields judges the reference it writes, not the one the deleted row held, and writes in one statement", async () => {
+  const gone = await folder({ deleted: true });
+  const live = await folder();
+  const child = await folder({ parent_id: gone, deleted: true });
+  ran.length = 0;
+
+  await expect(
+    folderWrites((writes) => writes.restore("folders", child, { parent_id: live })),
+  ).resolves.toMatchObject({ id: child, parent_id: live, deleted_at: null, updated_at: now });
+  // The rule's lookups of the row and of the target, then one write.
+  expect(ran.map(({ sql }) => sql.split(" ")[0])).toEqual(["select", "select", "update"]);
+});
+
+test("a restore with fields that name a deleted or unknown target is refused at that field and writes nothing", async () => {
+  const live = await folder();
+  const gone = await folder({ deleted: true });
+  const unknown = nextId();
+  const child = await folder({ parent_id: live, deleted: true });
+  const stored = await db().selectFrom("folders").selectAll().where("id", "=", child).execute();
+
+  for (const target of [gone, unknown])
+    await expect(
+      refusalOf(folderWrites((writes) => writes.restore("folders", child, { parent_id: target }))),
+    ).resolves.toEqual([targetDeleted(child, target)]);
+  await expect(
+    db().selectFrom("folders").selectAll().where("id", "=", child).execute(),
+  ).resolves.toEqual(stored);
+});
+
+test("a restore whose fields leave a stored reference to a deleted row untouched is refused as without fields", async () => {
+  const note = await client().create({ title: "Target", isPinned: false });
+  const linked = { ...row(), note_id: note.id, label: "Before", deleted_at: now };
+  await db().insertInto("note_links").values(linked).execute();
+  await client().delete({ id: note.id });
+
+  // A field that is no reference, and a reference left `undefined`, keep the stored reference.
+  await expect(
+    refusalOf(
+      folderWrites((writes) =>
+        writes.restore("note_links", linked.id, { label: "After", note_id: undefined }),
+      ),
+    ),
+  ).resolves.toEqual([
+    {
+      code: "target_deleted",
+      severity: "blocking",
+      table: "note_links",
+      row: linked.id,
+      field: "note_id",
+      details: { target: { table: "notes", id: note.id } },
+    },
+  ]);
+  await expect(
+    db().selectFrom("note_links").select("label").where("id", "=", linked.id).execute(),
+  ).resolves.toEqual([{ label: "Before" }]);
+});
+
 test("a reference to a row of another Space is refused like a deleted one", async () => {
   const foreign = await folder({ space_id: SECOND_SPACE_ID });
   const child = nextId();
