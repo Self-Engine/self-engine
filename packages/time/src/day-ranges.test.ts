@@ -103,6 +103,21 @@ test("a range that ends at midnight touches only the day before", () => {
   ]);
 });
 
+test("a day the zone skips gives no piece to a range that passes it", () => {
+  // Samoa crossed the date line: 29 December 2011 was followed by 31 December.
+  const apia = resolveTimeZone("Pacific/Apia").timeZone;
+  const days = dayRangesOf(span("2011-12-29", "2011-12-31"), apia);
+  expect(days[1]).toEqual({
+    day: "2011-12-30",
+    start: "2011-12-30T10:00:00.000Z",
+    end: "2011-12-30T10:00:00.000Z",
+  });
+  expect(secondsPerDay("2011-12-30T09:00:00.000Z", "2011-12-30T11:00:00.000Z", days)).toEqual([
+    ["2011-12-29", hours(1)],
+    ["2011-12-31", hours(1)],
+  ]);
+});
+
 // Ranges of up to four days, from 1972 on, when every zone in use had whole-minute offsets.
 const startMs = fc.integer({ min: 63072000000, max: 2208988800000 });
 const lengthMs = fc.integer({ min: 1, max: 4 * 86_400_000 });

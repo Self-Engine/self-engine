@@ -50,6 +50,8 @@ export function cutAtDays(range: InstantRange, days: readonly DayRange[]): reado
   const pieces: DayPiece[] = [];
   // Instants of the supported years compare as text in time order.
   for (const { day, start, end } of days) {
+    // A day the zone skips holds no Instant, so no range touches it.
+    if (start >= end) continue;
     if (end <= range.start) continue;
     if (start >= range.end) break;
     pieces.push({
