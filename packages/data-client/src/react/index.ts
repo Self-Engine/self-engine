@@ -15,6 +15,7 @@ export {
   type ReasonAtField,
   type OperationState,
   type RunOptions,
+  UNEXPECTED_NOTICE,
 } from "./operation-hook.ts";
 export type { DeclaredInputReason, InputReasonOf } from "./contract-types.ts";
 export { NO_DATA_PROCESS, type PortAccess, portAccessOf } from "./port-access.ts";

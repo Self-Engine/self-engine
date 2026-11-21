@@ -4,6 +4,7 @@ import {
   type KeyboardEvent,
   type ReactNode,
   type SyntheticEvent,
+  useLayoutEffect,
   useSyncExternalStore,
 } from "react";
 import type { ClearanceQuery } from "@self-engine/data-client/react";
@@ -39,6 +40,10 @@ function DeletedEntryMessage({ binding }: { readonly binding: FormBinding }) {
 export function OperationFormBody({ form, children }: OperationFormBodyProps) {
   const binding = bindingOf(form);
   const running = useSyncExternalStore(binding.subscribeRunning, binding.isRunning);
+  // Once the lock ends, the field a failed save named takes the focus (D369).
+  useLayoutEffect(() => {
+    if (!running) binding.focusPending();
+  }, [binding, running]);
   // A picker can render into a portal, outside the disabled fieldset. Its React events still
   // pass here, so it shares the lock without requiring a special API from every picker.
   const blockWhileRunning = (event: SyntheticEvent) => {

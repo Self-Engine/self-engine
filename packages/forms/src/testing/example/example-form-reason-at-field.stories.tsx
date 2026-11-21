@@ -31,7 +31,7 @@ import {
   useOperationForm,
 } from "../../index.ts";
 import { exampleContract } from "./contract.ts";
-import { ExampleForm } from "./example-form.tsx";
+import { ExampleForm, exampleCreateTexts } from "./example-form.tsx";
 import { useCreateExample, useUpdateExample } from "./port.ts";
 import { CREATED, type RecordingPort, recordingPortOf } from "./story-port.ts";
 
@@ -287,6 +287,7 @@ function FormWithoutItsDescription({ created }: { readonly created: () => void }
   const form = useOperationForm({
     entry: exampleContract.create,
     operation: useCreateExample(),
+    texts: exampleCreateTexts,
     draft: {
       title: "Kitchen",
       description: "Paint the walls.",
@@ -425,6 +426,7 @@ function FormWithAColorSetByCode() {
   const form = useOperationForm({
     entry: exampleContract.create,
     operation: useCreateExample(),
+    texts: exampleCreateTexts,
     draft: { title: "", description: "", icon: null, color: "ocean", day: null, start: null },
     entryName: "Kitchen",
   });
@@ -474,6 +476,7 @@ function FormWithAnUnfinishedDescription() {
   const form = useOperationForm({
     entry: exampleContract.create,
     operation: useCreateExample(),
+    texts: exampleCreateTexts,
     draft: { title: "", description: "", icon: null, color: null, day: null, start: null },
   });
   const field = useFieldBinding(form, "description");
@@ -503,6 +506,7 @@ function FormWithADescriptionReportedUnfinishedByCode() {
   const form = useOperationForm({
     entry: exampleContract.create,
     operation: useCreateExample(),
+    texts: exampleCreateTexts,
     draft: { title: "", description: "", icon: null, color: null, day: null, start: null },
     entryName: "Kitchen",
   });
@@ -661,6 +665,7 @@ function FormTheNoticeChanges({ removesTheColor }: { readonly removesTheColor: b
   const form = useOperationForm({
     entry: exampleContract.create,
     operation: useCreateExample(),
+    texts: exampleCreateTexts,
     draft: { title: "", description: "", icon: null, color: "ocean", day: null, start: null },
     entryName: "Kitchen",
   });
