@@ -202,7 +202,7 @@ export const AnArchivedProjectKeepsItsMark: Story = {
     const title = within(handover!).getByText("Old site");
     // The mark stands before the title: the house of the archived project, in its color.
     const mark = title.previousElementSibling;
-    await expect(mark?.querySelector("svg")).not.toBeNull();
+    await expect(mark?.querySelector("svg")).toBeInstanceOf(SVGElement);
     await expect(projectSums(canvas)).resolves.toContain("Old site1:00");
   },
 };
