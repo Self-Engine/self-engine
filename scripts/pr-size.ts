@@ -91,7 +91,7 @@ export function describeLabel(label: SizeLabel): string {
     next === undefined
       ? `${label.from.toLocaleString("en")}+`
       : `${label.from.toLocaleString("en")}-${(next.from - 1).toLocaleString("en")}`;
-  const review = label.name === REVIEW_LABEL ? " Needs a CodeRabbit review and an app check." : "";
+  const review = label.name === REVIEW_LABEL ? " Needs a review and an app check." : "";
   return `${range} changed lines, without tests, lockfiles and catalogs.${review}`;
 }
 

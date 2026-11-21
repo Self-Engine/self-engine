@@ -103,8 +103,12 @@ describe("describeLabel", () => {
     if (xs === undefined) throw new Error("no labels");
     expect(describeLabel(xs)).toBe("0-9 changed lines, without tests, lockfiles and catalogs.");
     expect(describeLabel(sizeLabel(1000))).toBe(
-      "1,000+ changed lines, without tests, lockfiles and catalogs. Needs a CodeRabbit review and an app check.",
+      "1,000+ changed lines, without tests, lockfiles and catalogs. Needs a review and an app check.",
     );
+  });
+
+  it("fits GitHub's limit of 100 characters for every label", () => {
+    for (const label of SIZE_LABELS) expect(describeLabel(label).length).toBeLessThanOrEqual(100);
   });
 });
 
