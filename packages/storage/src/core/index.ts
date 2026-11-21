@@ -16,6 +16,7 @@ export { spaceIdSchema, type SpaceId } from "@self-engine/spaces";
 export { SETTINGS_TABLE } from "@self-engine/settings-rows";
 export { sharedEntry, sharedWrites } from "./shared-entry.ts";
 export { inputError } from "./input-error.ts";
+export { notFound } from "./not-found.ts";
 export type { SyncedTable } from "./convention.ts";
 export { protectionRule, type ProtectionRule, type RuleRow, type WrittenValues } from "./rules.ts";
 export { referenceCheck } from "./reference-check.ts";

@@ -16,8 +16,10 @@ const seedId = (n: number) => `01a1cfa1-0a00-7000-8000-${String(n).padStart(12, 
 const projectId = projectIdSchema.parse(seedId(0));
 const entryId = timeEntryIdSchema.parse(seedId(1));
 const deletedEntryId = timeEntryIdSchema.parse(seedId(2));
-// Then a discarded timer and a running one.
-const timerId = timerIdSchema.parse(seedId(4));
+// Then a discarded timer, a stopped one with its entry of the same id, and a running one.
+const discardedTimerId = timerIdSchema.parse(seedId(3));
+const stoppedTimerId = timerIdSchema.parse(seedId(4));
+const timerId = timerIdSchema.parse(seedId(5));
 const instant = (text: string) => instantSchema.parse(text);
 
 test("the time entries and timers tables follow the conventions and agrees with its row map", async () => {
@@ -53,6 +55,15 @@ test("time-tracking passes the storage contract kit with `projects` below it", a
         await entries.delete.run(tx, context, { id: deleted.id });
         const { timer: discarded } = await entries.startTimer.run(tx, context, {});
         await entries.discardTimer.run(tx, context, { id: discarded.id });
+        const { timer: stopped } = await entries.startTimer.run(tx, context, { note: "Mail" });
+        await entries.editTimer.run(tx, context, {
+          id: stopped.id,
+          startedAt: instant("2026-11-11T09:00:00.000Z"),
+        });
+        await entries.stopTimer.run(tx, context, {
+          id: stopped.id,
+          endedAt: instant("2026-11-11T10:00:00.000Z"),
+        });
         const { timer } = await entries.startTimer.run(tx, context, {
           projectId: website.id,
           note: "Design",
@@ -91,6 +102,8 @@ test("time-tracking passes the storage contract kit with `projects` below it", a
         },
         stopTimer: { id: timerId },
         discardTimer: { id: timerId },
+        undoStopTimer: { id: stoppedTimerId },
+        undoDiscardTimer: { id: discardedTimerId },
         runningTimers: undefined,
       },
       {},

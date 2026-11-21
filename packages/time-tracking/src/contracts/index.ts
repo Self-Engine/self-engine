@@ -14,6 +14,7 @@ import {
   timerStartSchema,
   timerStopInput,
   timerStopSchema,
+  timerUndoSchema,
   timerWithProjectSchema,
 } from "./timers.ts";
 
@@ -113,6 +114,7 @@ export {
   type Timer,
   type TimerStart,
   type TimerStop,
+  type TimerUndo,
   type TimerWithProject,
   timerFields,
   timerSchema,
@@ -120,6 +122,7 @@ export {
   timerStartSchema,
   timerStopInput,
   timerStopSchema,
+  timerUndoSchema,
   timerWithProjectSchema,
 } from "./timers.ts";
 
@@ -195,6 +198,28 @@ export const timeTrackingContract = {
   discardTimer: oc
     .input(byTimerId)
     .output(timerSchema)
+    .errors({ NOT_FOUND: {}, ...refusal }),
+  /**
+   * The undo of a stop, one Operation in one transaction with one Table Change (D349): it first
+   * stops every other running timer by the rules of `stopTimer`, then soft-deletes the timer's
+   * entry as it is and restores the timer with its own start, project and note. A refused restore
+   * (the timer's project was deleted meanwhile) refuses the whole undo and writes nothing. A timer
+   * that runs again answers `alreadyRunning` and writes nothing; one without a live entry of its
+   * id (discarded, unknown, or its entry deleted by hand) is not found. See `timerUndoSchema`.
+   */
+  undoStopTimer: oc
+    .input(byTimerId)
+    .output(timerUndoSchema)
+    .errors({ NOT_FOUND: {}, ...refusal }),
+  /**
+   * The undo of a discard, one Operation in one transaction (D349): it first stops every other
+   * running timer by the rules of `stopTimer`, then restores the timer. A refused restore refuses
+   * the whole undo and writes nothing. A timer that runs again answers `alreadyRunning` and writes
+   * nothing; a stopped timer (one with a live entry of its id) and an unknown one are not found.
+   */
+  undoDiscardTimer: oc
+    .input(byTimerId)
+    .output(timerUndoSchema)
     .errors({ NOT_FOUND: {}, ...refusal }),
   /**
    * The running Timers with their Project References, the most recently started first. One runs

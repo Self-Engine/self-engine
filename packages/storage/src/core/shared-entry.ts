@@ -1,4 +1,3 @@
-import { ORPCError } from "@orpc/server";
 import type {
   Transaction,
   Insertable,
@@ -18,6 +17,7 @@ import type {
 } from "./convention.ts";
 import type { ReadTransaction } from "./module.ts";
 import { askRules } from "./rules.ts";
+import { notFound } from "./not-found.ts";
 import { isLocalTable } from "@self-engine/db";
 
 type Fields<Row> = Omit<Row, ConventionKey> & { [Key in ConventionKey]?: never };
@@ -80,7 +80,7 @@ export function sharedEntry<DB>(tx: ReadAccess<DB>, context: StorageContext) {
       .where(`${String(table)}.id`, "=", id)
       .selectAll()
       .executeTakeFirst();
-    if (row === undefined) throw new ORPCError("NOT_FOUND");
+    if (row === undefined) throw notFound();
     return row as Selectable<DB[Table]>;
   }
   return { live, active, lookup };
@@ -106,7 +106,7 @@ export function sharedWrites<DB>(tx: Transaction<DB>, context: StorageContext) {
       .where("deleted_at", restoring ? "is not" : "is", null)
       .returningAll()
       .executeTakeFirst();
-    if (result === undefined) throw new ORPCError("NOT_FOUND");
+    if (result === undefined) throw notFound();
     return result as Selectable<DB[Table]>;
   }
   /**

@@ -63,15 +63,45 @@ async function saveEntry(
   end: Instant,
 ): Promise<TimerStop> {
   const writes = sharedWrites(tx, context);
-  const row = await writes.insert("time_entries", timeEntryIdOfTimer(timer.id), {
+  const id = timeEntryIdOfTimer(timer.id);
+  const values = {
     ...storedTimes(timer.started_at, end),
     project_id: timer.project_id,
     note: timer.note,
     // The zone of the Setting at the moment of stopping, read in the transaction (D342).
     time_zone: await context.readTimeZone(tx),
-  });
+  };
+  const stored = await storedEntryOfTimer(tx, context, timer.id);
+  if (stored === "none") {
+    const row = await writes.insert("time_entries", id, values);
+    await writes.softDelete("timers", timer.id);
+    return { kind: "saved", entry: toTimeEntry(row) };
+  }
+  // A stop after "undo stop": the entry of an earlier stop comes back with the new end, duration
+  // and Time Zone, so the timer keeps one entry (D349).
+  if (stored === "deleted") await writes.restore("time_entries", id);
+  const row = await writes.update("time_entries", id, values);
   await writes.softDelete("timers", timer.id);
   return { kind: "saved", entry: toTimeEntry(row) };
+}
+
+/**
+ * Whether the Time Entry of a timer's id is stored, and as a Live Row or a deleted one: one
+ * lookup by primary key in the call's Space, which also sees the deleted row an "undo stop" left.
+ */
+export async function storedEntryOfTimer(
+  tx: Writes,
+  context: StorageContext,
+  id: TimerId,
+): Promise<"live" | "deleted" | "none"> {
+  const row = await tx
+    .selectFrom("time_entries")
+    .select("deleted_at")
+    .where("id", "=", timeEntryIdOfTimer(id))
+    .where("space_id", "=", context.spaceId)
+    .executeTakeFirst();
+  if (row === undefined) return "none";
+  return row.deleted_at === null ? "live" : "deleted";
 }
 
 /**

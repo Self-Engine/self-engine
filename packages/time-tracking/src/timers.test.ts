@@ -548,3 +548,30 @@ test("a timer whose project was archived meanwhile stops into an entry of the ar
     entry: { id: timer.id, projectId: project.id },
   });
 });
+
+test("undo stop removes the entry from the week and the timer runs with its original start, in one Table Change", async () => {
+  const { client, clock } = await start();
+  const project = await client.projects.create({ title: "Website" });
+  const { timer } = await client.timeTracking.startTimer({ projectId: project.id, note: "Design" });
+  clock.advance(30 * 60_000);
+  await client.timeTracking.stopTimer({ id: timer.id });
+  clock.advance(5_000);
+
+  const events = await client.tablesChanged();
+  await expect(events.next()).resolves.toMatchObject({ value: { kind: "opened" } });
+  await expect(client.timeTracking.undoStopTimer({ id: timer.id })).resolves.toEqual({
+    kind: "restored",
+    timer,
+    others: [],
+  });
+  await expect(events.next()).resolves.toEqual({
+    done: false,
+    value: { kind: "changed", tables: ["time_entries", "timers"] },
+  });
+  await events.return?.();
+
+  await expect(dayEntries(client)).resolves.toEqual([]);
+  await expect(client.timeTracking.runningTimers()).resolves.toMatchObject([
+    { ...timer, startedAt: "2026-11-16T09:00:00.000Z" },
+  ]);
+});

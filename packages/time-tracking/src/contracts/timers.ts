@@ -80,3 +80,15 @@ export const timerStartSchema = z.object({
   others: z.array(timerStopSchema),
 });
 export type TimerStart = z.output<typeof timerStartSchema>;
+
+/**
+ * The answer of "undo stop" and "undo discard" (D349), one of two: the timer was restored and
+ * runs again with its own start, project and note, beside what stopping each timer that ran
+ * before did, in the shape of start; or the timer already runs, so the undo wrote nothing (a
+ * second click on "Undo"). A caller tells them apart by `kind`.
+ */
+export const timerUndoSchema = z.discriminatedUnion("kind", [
+  z.object({ kind: z.literal("restored"), timer: timerSchema, others: z.array(timerStopSchema) }),
+  z.object({ kind: z.literal("alreadyRunning"), timer: timerSchema }),
+]);
+export type TimerUndo = z.output<typeof timerUndoSchema>;

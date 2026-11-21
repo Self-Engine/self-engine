@@ -18,6 +18,7 @@ import {
 } from "./rows.ts";
 import { stopRunningTimers, stopTimer } from "./stop-timer.ts";
 import { runningTimers, toTimerWithProject } from "./timers.ts";
+import { undoDiscardTimer, undoStopTimer } from "./undo-timer.ts";
 
 /**
  * The Storage of `time-tracking` (D252). It registers no Protection Rule: "end after start" is a
@@ -125,6 +126,8 @@ export const timeTracking = defineStorageModule({
       return toTimer(await sharedWrites(tx, context).softDelete("timers", input.id));
     },
   },
+  undoStopTimer: { kind: "operation", run: undoStopTimer },
+  undoDiscardTimer: { kind: "operation", run: undoDiscardTimer },
   // Small: one timer runs through the app's own Operations, a few after a sync (D310).
   runningTimers: smallSetList(TIME_TRACKING_READS.runningTimers, async (tx, context) =>
     (await runningTimers(tx, context).execute()).map(toTimerWithProject),
