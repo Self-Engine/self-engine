@@ -39,7 +39,7 @@ const ICON_STYLE: CSSProperties = { display: "flex" };
  * The running time, "now" minus the start, read again at every full second (D348). The only part
  * that redraws on a tick. A plain text and no live region: a screen reader reads it when asked and
  * is not told every second. A page clock behind the start, after the computer's clock jumped
- * back, shows no time rather than a negative one.
+ * back, shows `0:00:00` rather than a negative time.
  */
 function RunningTime({ startedAt }: { readonly startedAt: Instant }) {
   const { i18n } = useLingui();
