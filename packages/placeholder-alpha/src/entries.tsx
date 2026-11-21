@@ -57,7 +57,7 @@ const EntryRow = memo(function EntryRow({
   onDelete,
 }: {
   readonly entry: Entry;
-  readonly onDelete: (id: Entry["id"]) => Promise<void>;
+  readonly onDelete: (id: Entry["id"]) => Promise<boolean>;
 }) {
   const { t } = useLingui();
   const write = useWriteViewSearch();
