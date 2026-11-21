@@ -69,6 +69,7 @@ den Vermerk `_Überholt durch D<n>._`
 | [D366](decisions/d366-previous-value-is-the-stored-value.md) | 2026-11-21 | Beim Bearbeiten in der doppelten Stunde ist der bisherige Wert der gespeicherte, nicht ein Zwischenstand beim Tippen | #332, #275 |
 | [D367–D368](decisions/d367-d368-week-address-and-refusal-at-the-project.md) | 2026-11-21 | Nachträge aus dem Bau von #275: Die Adresse nennt keine Woche, solange die gezeigte die von heute ist; die Ablehnung am Projektfeld nennt die Art des Ziels, nicht seinen Namen | #275 |
 | [D369–D370](decisions/d369-d370-input-error-from-the-data-process.md) | 2026-11-21 | Nachträge aus dem Bau von #277: Eine Operation meldet eine Grenze, die nur der Datenprozess kennt, als Eingabefehler, und das Formular zeigt ihn am Feld; die Datums- und Zeitfelder behalten vorerst Mantines Verhalten | #277, #377 |
+| [D371](decisions/d371-restore-writes-fields.md) | 2026-11-21 | Nachtrag aus dem Bau von #277: Das Zurückholen einer Zeile im Speicher-Rahmen kann zugleich Felder schreiben | #277 |
 
 D109 und D110 sind doppelt vergeben, in den Runden 18 und 19. Wer eine der beiden nennt, nennt die
 Runde dazu.
