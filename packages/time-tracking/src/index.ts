@@ -22,6 +22,40 @@ const createTimeEntry = {
   load: () => import("./create-time-entry.ts"),
 } as const satisfies ShellCommand;
 
+const startTimer = {
+  id: "start-timer",
+  kind: "open",
+  label: msg`Start timer`,
+  load: () => import("./start-timer.ts"),
+} as const satisfies ShellCommand;
+
+const stopTimer = {
+  id: "stop-timer",
+  kind: "open",
+  label: msg`Stop timer`,
+  load: () => import("./stop-timer.ts"),
+} as const satisfies ShellCommand;
+
+const toggleTimer = {
+  id: "toggle-timer",
+  kind: "open",
+  label: msg`Toggle timer`,
+  defaultShortcut: "Mod+Shift+K",
+  load: () => import("./toggle-timer.ts"),
+} as const satisfies ShellCommand;
+
+const startTimerForProject = {
+  id: "start-timer-for-project",
+  kind: "input",
+  load: () => import("./start-timer-for-project.ts"),
+} as const satisfies ShellCommand;
+
+const stopTimerById = {
+  id: "stop-timer-by-id",
+  kind: "input",
+  load: () => import("./stop-timer-by-id.ts"),
+} as const satisfies ShellCommand;
+
 /** The Shell Contribution of `time-tracking` (#275): "Time" in the Navbar, opening the
  * week, and the timer's Module Indicator on every page (#349). */
 export const contribution = defineContribution({
@@ -38,7 +72,15 @@ export const contribution = defineContribution({
       load: () => import("./week.tsx"),
     },
   ],
-  commands: [newTimeEntry, createTimeEntry],
+  commands: [
+    newTimeEntry,
+    createTimeEntry,
+    startTimer,
+    stopTimer,
+    toggleTimer,
+    startTimerForProject,
+    stopTimerById,
+  ],
   primaryAction: newTimeEntry,
   editDrawer: () => import("./edit-drawer.tsx"),
   indicator,
