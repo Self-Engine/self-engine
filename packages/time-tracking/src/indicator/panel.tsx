@@ -89,9 +89,15 @@ function RunningTimerPanel(props: IndicatorPanelProps & { readonly timer: TimerW
   const { confirmDiscard } = props;
   const [part, setPart] = useState<PanelPart>(panelPart.opening);
   const shown = useRef(part);
+  // The latest question of the frame, before the paint, as `useUnsavedChanges` reads its check:
+  // the switch below is made once and outlives the render that made it.
+  const confirm = useRef(confirmDiscard);
+  useLayoutEffect(() => {
+    confirm.current = confirmDiscard;
+  });
   const switchTo = useRef(async (next: PanelPart) => {
     if (next === shown.current) return;
-    if (!(await confirmDiscard())) return;
+    if (!(await confirm.current())) return;
     shown.current = next;
     setPart(next);
   });
