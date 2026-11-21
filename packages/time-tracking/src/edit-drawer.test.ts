@@ -427,7 +427,9 @@ async function pick(title: string) {
   if (input === undefined) throw new Error("Missing the project picker");
   input.click();
   const option = await shown(() => {
-    const found = [...document.querySelectorAll('[role="option"]')].find(
+    // The picker's own list: the week's filter offers the projects too.
+    const list = document.getElementById(input.getAttribute("aria-controls") ?? "");
+    const found = [...(list?.querySelectorAll('[role="option"]') ?? [])].find(
       (item) => item.textContent === title,
     );
     expect(found).toBeDefined();
