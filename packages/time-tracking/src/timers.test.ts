@@ -1,0 +1,263 @@
+// A timer through the Port of the test Data Process, as the Module Indicator, a Command or an
+// assistant calls it: `projects` and `time-tracking` mounted, with a Clock the test sets.
+
+import { createORPCClient } from "@orpc/client";
+import { RPCLink } from "@orpc/client/message-port";
+import type { ContractRouterClient } from "@orpc/contract";
+import type { ProtocolContract } from "@self-engine/data-protocol";
+import { startTestDataProcess, type TestDataProcess } from "@self-engine/data-process/testing";
+import { createTestSources } from "@self-engine/db/testing";
+import { projectIdSchema } from "@self-engine/projects/contracts";
+import { projects } from "@self-engine/projects/data";
+import { afterEach, expect, test } from "vite-plus/test";
+import { timeTracking } from "./data/index.ts";
+
+const started: TestDataProcess[] = [];
+afterEach(async () => {
+  for (const process of started.splice(0)) await process.close();
+});
+
+/** The Data Process's "now" at the start of each test, with milliseconds to cut. */
+const NOW = "2026-11-16T09:00:00.297Z";
+
+/** The test Data Process with both modules, and the Clock it reads. */
+async function start() {
+  const sources = createTestSources(NOW);
+  const process = await startTestDataProcess({ modules: { projects, timeTracking }, sources });
+  started.push(process);
+  const client = createORPCClient<
+    ContractRouterClient<
+      ProtocolContract & {
+        projects: typeof projects.contract;
+        timeTracking: typeof timeTracking.contract;
+      }
+    >
+  >(new RPCLink({ port: process.openPort() }));
+  return { process, client, clock: sources };
+}
+
+/** The error a call answers with. */
+async function errorOf(call: Promise<unknown>) {
+  const error: unknown = await call.then(
+    () => undefined,
+    (thrown: unknown) => thrown,
+  );
+  expect(error).toBeDefined();
+  return error as { code: string; data?: { issues?: unknown[]; reasons?: unknown[] } };
+}
+
+test("start answers with the timer, and the Query returns it with its Project Reference", async () => {
+  const { client } = await start();
+  const project = await client.projects.create({ title: "Website", icon: "house", color: "teal" });
+
+  const timer = await client.timeTracking.startTimer({ projectId: project.id, note: " Design " });
+
+  expect(timer).toEqual({
+    id: expect.any(String),
+    startedAt: "2026-11-16T09:00:00.000Z",
+    projectId: project.id,
+    note: "Design",
+  });
+  await expect(client.timeTracking.runningTimers()).resolves.toEqual([
+    {
+      ...timer,
+      project: {
+        id: project.id,
+        title: "Website",
+        icon: "house",
+        color: "teal",
+        archivedAt: null,
+        deletedAt: null,
+      },
+    },
+  ]);
+});
+
+test("the start is the Data Process's now cut to the second, and no input sets it", async () => {
+  const { client, clock } = await start();
+  clock.advance(65_500);
+  await expect(client.timeTracking.startTimer({})).resolves.toMatchObject({
+    startedAt: "2026-11-16T09:01:05.000Z",
+    projectId: null,
+    note: null,
+  });
+
+  // The Operation's types refuse a start; a caller without types can still send one.
+  const input = { startedAt: "2026-11-16T08:00:00.000Z" } as { note?: string };
+  await expect(errorOf(client.timeTracking.startTimer(input))).resolves.toMatchObject({
+    code: "BAD_REQUEST",
+    data: { issues: [{ code: "unrecognized_keys", keys: ["startedAt"] }] },
+  });
+  await expect(client.timeTracking.runningTimers()).resolves.toHaveLength(1);
+});
+
+test("an edit changes the project, the note and the start, and null clears project and note", async () => {
+  const { client, clock } = await start();
+  const project = await client.projects.create({ title: "Website" });
+  const timer = await client.timeTracking.startTimer({});
+  clock.advance(60_000);
+
+  const edited = {
+    ...timer,
+    startedAt: "2026-11-16T08:45:10.000Z",
+    projectId: project.id,
+    note: "Design",
+  };
+  await expect(
+    client.timeTracking.editTimer({
+      id: timer.id,
+      startedAt: "2026-11-16T08:45:10.812Z",
+      projectId: project.id,
+      note: " Design ",
+    }),
+  ).resolves.toEqual(edited);
+  await expect(client.timeTracking.runningTimers()).resolves.toMatchObject([
+    { ...edited, project: { id: project.id, title: "Website" } },
+  ]);
+
+  const cleared = { ...edited, projectId: null, note: null };
+  await expect(
+    client.timeTracking.editTimer({ id: timer.id, projectId: null, note: null }),
+  ).resolves.toEqual(cleared);
+  await expect(client.timeTracking.runningTimers()).resolves.toEqual([
+    { ...cleared, project: null },
+  ]);
+});
+
+test("a start after the Data Process's now is an input error at the start and changes nothing", async () => {
+  const { client } = await start();
+  const timer = await client.timeTracking.startTimer({ note: "Design" });
+
+  // The same second as now, cut, is no start in the future.
+  await expect(
+    client.timeTracking.editTimer({ id: timer.id, startedAt: "2026-11-16T09:00:00.900Z" }),
+  ).resolves.toEqual(timer);
+  for (const startedAt of ["2026-11-16T09:00:01.000Z", "2026-11-17T09:00:00.000Z"]) {
+    await expect(
+      errorOf(client.timeTracking.editTimer({ id: timer.id, startedAt, note: "Build" })),
+    ).resolves.toMatchObject({
+      code: "BAD_REQUEST",
+      data: { issues: [{ path: ["startedAt"], params: { reason: "start_in_future" } }] },
+    });
+  }
+  await expect(client.timeTracking.runningTimers()).resolves.toEqual([{ ...timer, project: null }]);
+});
+
+test("an edit without fields answers the timer and sends no Table Change", async () => {
+  const { client } = await start();
+  const timer = await client.timeTracking.startTimer({ note: "Design" });
+
+  const events = await client.tablesChanged();
+  await expect(events.next()).resolves.toMatchObject({ value: { kind: "opened" } });
+  await expect(client.timeTracking.editTimer({ id: timer.id })).resolves.toEqual(timer);
+  // A write to a different table marks how far the stream has advanced.
+  await client.projects.create({ title: "Garden" });
+  await expect(events.next()).resolves.toMatchObject({
+    value: { kind: "changed", tables: ["projects"] },
+  });
+  await events.return?.();
+});
+
+test("discard removes the timer from the Query and writes no time entry", async () => {
+  const { client, clock } = await start();
+  const timer = await client.timeTracking.startTimer({ note: "Design" });
+  clock.advance(3_600_000);
+
+  await expect(client.timeTracking.discardTimer({ id: timer.id })).resolves.toEqual(timer);
+  await expect(client.timeTracking.runningTimers()).resolves.toEqual([]);
+  await expect(
+    client.timeTracking.days({ span: { first: "2026-11-16", last: "2026-11-16" } }),
+  ).resolves.toMatchObject({ days: [{ entries: [] }] });
+  for (const call of [
+    client.timeTracking.discardTimer({ id: timer.id }),
+    client.timeTracking.editTimer({ id: timer.id }),
+  ])
+    await expect(errorOf(call)).resolves.toMatchObject({ code: "NOT_FOUND", defined: true });
+});
+
+test("a project with a running timer is not deleted, and the Refusal names the timers", async () => {
+  const { client } = await start();
+  const project = await client.projects.create({ title: "Website" });
+  await client.timeTracking.startTimer({ projectId: project.id });
+
+  const error = await errorOf(client.projects.delete({ id: project.id }));
+
+  expect(error.code).toBe("REFUSED");
+  expect(error.data?.reasons).toEqual([
+    {
+      code: "referenced",
+      severity: "blocking",
+      table: "projects",
+      row: project.id,
+      details: { tables: [{ table: "timers", count: 1 }] },
+    },
+  ]);
+  await expect(client.projects.archive({ id: project.id })).resolves.toMatchObject({
+    id: project.id,
+  });
+  await expect(client.timeTracking.runningTimers()).resolves.toMatchObject([
+    { projectId: project.id, project: { archivedAt: expect.any(String), deletedAt: null } },
+  ]);
+});
+
+test("an archived project is accepted at start, a deleted or unknown one is refused at the project", async () => {
+  const { client } = await start();
+  const archived = await client.projects.create({ title: "Archived" });
+  await client.projects.archive({ id: archived.id });
+  const deleted = await client.projects.create({ title: "Deleted" });
+  await client.projects.delete({ id: deleted.id });
+  const unknown = projectIdSchema.parse("01a1cfa1-0b00-7000-8000-0000000000ff");
+
+  await expect(client.timeTracking.startTimer({ projectId: archived.id })).resolves.toMatchObject({
+    projectId: archived.id,
+  });
+  for (const projectId of [deleted.id, unknown]) {
+    const error = await errorOf(client.timeTracking.startTimer({ projectId }));
+    expect(error.code).toBe("REFUSED");
+    expect(error.data?.reasons).toEqual([
+      expect.objectContaining({
+        code: "target_deleted",
+        table: "timers",
+        field: "project_id",
+        details: { target: { table: "projects", id: projectId } },
+      }),
+    ]);
+  }
+  await expect(client.timeTracking.runningTimers()).resolves.toHaveLength(1);
+});
+
+test("two running timers written into the database are both returned, the most recently started first", async () => {
+  const { client, process } = await start();
+  const project = await client.projects.create({ title: "Website" });
+  const first = await client.timeTracking.startTimer({ note: "On this device" });
+  const rows = process.database.kysely.withTables<{
+    timers: Record<string, string | null>;
+  }>();
+  const [stored] = await rows.selectFrom("timers").selectAll().execute();
+  // As a sync would bring it: a timer another device started a minute earlier, and arrived later.
+  const other = {
+    id: "01a1cfa1-0b00-7000-8000-0000000000aa",
+    startedAt: "2026-11-16T08:59:00.000Z",
+  };
+  await rows
+    .insertInto("timers")
+    .values({
+      ...stored,
+      id: other.id,
+      started_at: other.startedAt,
+      project_id: project.id,
+      note: "On another device",
+    })
+    .execute();
+
+  await expect(client.timeTracking.runningTimers()).resolves.toEqual([
+    { ...first, project: null },
+    {
+      id: other.id,
+      startedAt: other.startedAt,
+      projectId: project.id,
+      note: "On another device",
+      project: expect.objectContaining({ id: project.id, title: "Website" }),
+    },
+  ]);
+});

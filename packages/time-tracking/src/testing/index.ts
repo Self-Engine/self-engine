@@ -150,7 +150,11 @@ export function timeTrackingAnswers(
 
 /** The tables each Query reads, as the Data Process's Query-to-tables list names them. */
 const QUERIES = {
-  timeTracking: { entry: [...TIME_TRACKING_READS.entry], days: [...TIME_TRACKING_READS.days] },
+  timeTracking: {
+    entry: [...TIME_TRACKING_READS.entry],
+    days: [...TIME_TRACKING_READS.days],
+    runningTimers: [...TIME_TRACKING_READS.runningTimers],
+  },
 };
 
 /** A call of an Operation that reached a story's Port. */

@@ -30,7 +30,13 @@ test("the app mounts Projects, Settings and Time Tracking beside the protocol, w
   );
   await expect(client.health()).resolves.toMatchObject({
     state: "ready",
-    migrations: ["projects/0001", "settings/0001", "spaces/0001", "time-tracking/0001"],
+    migrations: [
+      "projects/0001",
+      "settings/0001",
+      "spaces/0001",
+      "time-tracking/0001",
+      "time-tracking/0002",
+    ],
   });
   const events = await client.tablesChanged();
   await expect(events.next()).resolves.toEqual({
@@ -43,6 +49,7 @@ test("the app mounts Projects, Settings and Time Tracking beside the protocol, w
         timeTracking: {
           entry: ["time_entries", "projects"],
           days: ["time_entries", "projects", "settings"],
+          runningTimers: ["timers", "projects"],
         },
         backups: { list: [] },
       },

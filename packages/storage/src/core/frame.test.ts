@@ -13,6 +13,7 @@ import { createSpaceRows, SECOND_SPACE_ID } from "@self-engine/spaces/testing";
 import {
   createFrame,
   createContext,
+  inputError,
   type ContextSources,
   type FrameReport,
   type SpaceId,
@@ -119,6 +120,40 @@ test("a failed operation rolls back every write and announces nothing", async ()
   );
   await expect(client.create({ title: "Rolled back", isPinned: false })).rejects.toMatchObject({
     code: "INTERNAL_SERVER_ERROR",
+  });
+  await expect(client.list({})).resolves.toEqual([]);
+  expect(announcements).toEqual([]);
+});
+
+test("an input error the module raises answers as the input check does and rolls back", async () => {
+  const announcements: ReadonlySet<string>[] = [];
+  const module = {
+    ...notes,
+    entries: {
+      ...notes.entries,
+      create: {
+        kind: "operation" as const,
+        async run(...args: Parameters<typeof notes.entries.create.run>) {
+          await notes.entries.create.run(...args);
+          throw inputError(["title"], "title_taken_later");
+        },
+      },
+    },
+  };
+  const client = await connect(module, true, (tables) => {
+    announcements.push(tables);
+  });
+  const checked = await client
+    .create({ title: "", isPinned: true })
+    .catch((error: unknown) => error);
+  const raised = await client
+    .create({ title: "Rolled back", isPinned: false })
+    .catch((error: unknown) => error);
+
+  expect(raised).toMatchObject({
+    code: "BAD_REQUEST",
+    message: (checked as Error).message,
+    data: { issues: [{ path: ["title"], params: { reason: "title_taken_later" } }] },
   });
   await expect(client.list({})).resolves.toEqual([]);
   expect(announcements).toEqual([]);
