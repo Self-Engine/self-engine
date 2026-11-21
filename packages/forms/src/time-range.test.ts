@@ -205,6 +205,35 @@ describe("a loaded range", () => {
     });
   });
 
+  test("retyping the hour inside the repeated hour stays in the stored hour (D361)", () => {
+    // A timer stopped at the second 02:40 of 25 October 2026, shown with its end date open. The
+    // picker hands on every keystroke: typing "0255" over 02:40 passes 00:40 first.
+    const timer = { start: at("2026-10-25T00:10:00.000Z"), end: at("2026-10-25T01:40:30.000Z") };
+    const passing = rangeFrom(
+      parts("2026-10-25", "02:10", "00:40", "2026-10-25"),
+      timer,
+      berlin,
+      true,
+      timer,
+    );
+    expect(passing.end).toEqual({ case: "set", instant: at("2026-10-24T22:40:00.000Z") });
+    const passed = { start: timer.start, end: at("2026-10-24T22:40:00.000Z") };
+    expect(
+      rangeFrom(parts("2026-10-25", "02:10", "02:55", "2026-10-25"), passed, berlin, true, timer)
+        .end,
+    ).toEqual({ case: "set", instant: at("2026-10-25T01:55:00.000Z") });
+  });
+
+  test("a stored time outside the repeated hour takes the occurrence nearest to itself", () => {
+    // Stored at 03:10, after the repeated hour; typing "0250" passes 00:10.
+    const stored = { start: at("2026-10-25T00:10:00.000Z"), end: at("2026-10-25T02:10:00.000Z") };
+    const passed = { start: stored.start, end: at("2026-10-24T22:10:00.000Z") };
+    expect(
+      rangeFrom(parts("2026-10-25", "02:10", "02:50", "2026-10-25"), passed, berlin, true, stored)
+        .end,
+    ).toEqual({ case: "set", instant: at("2026-10-25T01:50:00.000Z") });
+  });
+
   test("a correction inside the repeated hour stays in the same hour (D347)", () => {
     // A timer stopped at the second 02:40 of 25 October 2026; the end is corrected to 02:45.
     const timer = { start: at("2026-10-25T00:10:00.000Z"), end: at("2026-10-25T01:40:30.000Z") };

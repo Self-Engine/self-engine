@@ -124,8 +124,11 @@ function outcomeOf(
  * with its seconds, and so does one of `original`, the Instants the field was drawn with: a value
  * passing while a time is typed may move the end to another day and back. One that still shows
  * its time on another day moves to the field's day with its seconds (`moveToDay`). Any other
- * Instant is resolved by `time` (D347): on an edit (`isEdit`) with the Instant the draft held as the previous
- * value, else the end with the start as its lower bound.
+ * Instant is resolved by `time` (D347, D361): on an edit (`isEdit`) with the Instant of `original`
+ * as the previous value, else, also where `original` holds none, the end with the start as its
+ * lower bound. The previous value is
+ * never the one the draft holds now: a picker hands on every keystroke, so typing "0255" over
+ * 02:40 passes 00:40, and the outcome may not depend on what was passed.
  */
 export function rangeFrom(
   parts: RangeParts,
@@ -137,13 +140,13 @@ export function rangeFrom(
   const previous = (instant: Instant | null) =>
     isEdit && instant !== null ? { previous: instant } : {};
   const start = outcomeOf(parts.day, parts.startTime, current.start, original.start, timeZone, {
-    ...previous(current.start),
+    ...previous(original.start),
   });
   const lowerBound =
     start.case === "set" ? start.instant : start.case === "keep" ? current.start : null;
   const end = outcomeOf(dayOfEnd(parts), parts.endTime, current.end, original.end, timeZone, {
     ...(lowerBound === null ? {} : { lowerBound }),
-    ...previous(current.end),
+    ...previous(original.end),
   });
   return { start, end };
 }
