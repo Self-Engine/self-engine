@@ -227,3 +227,49 @@ export const ProjectTableChangesUpdateTheGroupAndKeepTheArchivedFilter: Story = 
     await expect(canvas.getByText("Raised beds")).toBeVisible();
   },
 };
+
+/** The story's answers, with those of `projects` held until `release` is called. */
+function projectsArriveLater() {
+  const fixed = answers();
+  let release = () => {};
+  const arrived = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  const access = {
+    ...fixed,
+    async call(module, entry, input, signal) {
+      if (module === "projects") await arrived;
+      return fixed.call(module, entry, input, signal);
+    },
+  } satisfies typeof fixed;
+  return { access, release };
+}
+
+export const ADeepLinkKeepsItsFilterWhileTheProjectsLoad: Story = {
+  args: { address: `${WEEK}?week=2026-11-16&project=${WEBSITE.id}` },
+  loaders: [() => ({ port: projectsArriveLater() })],
+  render: ({ address }, { loaded }) => {
+    const port = loaded["port"] as ReturnType<typeof projectsArriveLater>;
+    return <AppAt access={port.access} address={address} time={TIME} />;
+  },
+  play: async ({ canvas, loaded }) => {
+    const port = loaded["port"] as ReturnType<typeof projectsArriveLater>;
+    await expectTotal(canvas, "8:05");
+    const control = await canvas.findByRole("combobox", { name: "Filter by project" });
+    // Neither the raw id nor a choice that clears the filter while the list is on its way.
+    await expect(control).toHaveValue("Loading");
+    await userEvent.click(control);
+    const waiting = await screen.findByRole("option", { name: "Loading" });
+    await expect(waiting).toHaveAttribute("data-combobox-disabled", "true");
+    await userEvent.click(waiting);
+    await expect(storyRouter().state.location.search).toEqual({
+      week: "2026-11-16",
+      project: WEBSITE.id,
+    });
+    await userEvent.keyboard("{Escape}");
+
+    port.release();
+    await waitFor(async () => expect(control).toHaveValue("Website"));
+    await expectTotal(canvas, "8:05");
+  },
+};

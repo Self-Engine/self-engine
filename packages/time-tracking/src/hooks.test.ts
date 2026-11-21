@@ -104,7 +104,7 @@ async function renderWeek(
 const content = (days: Days) =>
   days.status === "content" || days.status === "reloading" ? days.data : undefined;
 
-test("an entry created through the Port appears in the open week, and a renamed project with it, through the Table Change alone", async () => {
+test("an entry created, edited, deleted and restored through the Port follows in the open week, and a renamed project with it, through the Table Change alone", async () => {
   let project = { id: "" };
   const week = await renderWeek(async (call) => {
     project = (await call("projects", "create", { title: "Website" })) as { id: string };
@@ -112,12 +112,12 @@ test("an entry created through the Port appears in the open week, and a renamed 
   const empty = content(await week.until((days) => days.status === "content"));
   expect(empty?.days.map(({ total }) => total)).toEqual([0, 0, 0, 0, 0, 0, 0]);
 
-  await week.call("timeTracking", "create", {
+  const entry = (await week.call("timeTracking", "create", {
     startedAt: "2026-11-18T21:00:00.000Z",
     endedAt: "2026-11-19T00:30:00.000Z",
     projectId: project.id,
     note: "Release",
-  });
+  })) as { id: string };
 
   const created = content(
     await week.until((days) => days.status === "content" && days.data.total === 12_600),
@@ -135,4 +135,30 @@ test("an entry created through the Port appears in the open week, and a renamed 
     ),
   );
   expect(renamed?.days[2]?.entries[0]?.project?.title).toBe("Shop");
+
+  // 22:00 to 23:00 on Wednesday alone: the entry no longer crosses midnight.
+  await week.call("timeTracking", "edit", {
+    id: entry.id,
+    startedAt: "2026-11-18T21:00:00.000Z",
+    endedAt: "2026-11-18T22:00:00.000Z",
+  });
+  const edited = content(
+    await week.until((days) => days.status === "content" && days.data.total === 3600),
+  );
+  expect(edited?.days.map(({ total }) => total)).toEqual([0, 0, 3600, 0, 0, 0, 0]);
+  expect(edited?.days[2]?.entries).toMatchObject([{ crossesMidnight: false }]);
+
+  await week.call("timeTracking", "delete", { id: entry.id });
+  const deleted = content(
+    await week.until((days) => days.status === "content" && days.data.total === 0),
+  );
+  expect(deleted?.days[2]?.entries).toEqual([]);
+
+  await week.call("timeTracking", "restore", { id: entry.id });
+  const restored = content(
+    await week.until((days) => days.status === "content" && days.data.total === 3600),
+  );
+  expect(restored?.days[2]?.entries).toMatchObject([
+    { note: "Release", project: { title: "Shop" } },
+  ]);
 });

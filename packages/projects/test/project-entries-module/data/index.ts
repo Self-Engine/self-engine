@@ -1,5 +1,9 @@
 import { defineStorageModule, sharedEntry, sharedWrites, smallSetList } from "@self-engine/storage";
-import { projectReferences } from "../../../src/data/index.ts";
+import {
+  projectReferenceColumns,
+  projectReferenceOf,
+  projectReferences,
+} from "../../../src/data/index.ts";
 import { projectEntriesContract, projectEntryIdSchema } from "../contracts/index.ts";
 import { projectEntriesMigrations, projectEntriesRowMap, toProjectEntry } from "./rows.ts";
 
@@ -47,30 +51,13 @@ export const projectEntries = defineStorageModule({
           "project_entries.project_id",
         )
         .selectAll("project_entries")
-        .select([
-          "project.id as projectRefId",
-          "project.title as projectTitle",
-          "project.icon as projectIcon",
-          "project.color as projectColor",
-          "project.archivedAt as projectArchivedAt",
-          "project.deletedAt as projectDeletedAt",
-        ])
+        .select(projectReferenceColumns("project"))
         .orderBy("project.title")
         .orderBy("project_entries.id")
         .execute()
     ).map((row) => ({
       ...toProjectEntry(row),
-      project:
-        row.projectRefId === null || row.projectTitle === null
-          ? null
-          : {
-              id: row.projectRefId,
-              title: row.projectTitle,
-              icon: row.projectIcon,
-              color: row.projectColor,
-              archivedAt: row.projectArchivedAt,
-              deletedAt: row.projectDeletedAt,
-            },
+      project: projectReferenceOf(row),
     })),
   ),
 });

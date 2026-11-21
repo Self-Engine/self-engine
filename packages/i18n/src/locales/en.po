@@ -877,6 +877,7 @@ msgctxt "Color"
 msgid "Lime"
 msgstr "Lime"
 
+#: packages/time-tracking/src/week-project-filter.tsx
 #: packages/ui/src/state-blocks.tsx
 msgid "Loading"
 msgstr "Loading"
@@ -1781,6 +1782,10 @@ msgstr "Undo"
 msgctxt "Version of the app"
 msgid "Unknown"
 msgstr "Unknown"
+
+#: packages/time-tracking/src/week-project-filter.tsx
+msgid "Unknown project"
+msgstr "Unknown project"
 
 #: packages/settings-area/src/about-rows.tsx
 msgid "Version"

@@ -12,12 +12,13 @@ import {
   LongTextField,
   type OperationForm,
   TextField,
+  useLeavingEntry,
   useOperationForm,
 } from "@self-engine/forms";
 import { type EditDrawerProps, useEditDrawerTitle } from "@self-engine/shell";
 import { ErrorState, QueryStateBlock } from "@self-engine/ui";
 import type { ReactNode } from "react";
-import { useLayoutEffect, useRef, useState } from "react";
+import { useLayoutEffect, useRef } from "react";
 import type { z } from "zod";
 import {
   type ProjectId,
@@ -102,11 +103,7 @@ function FoundProject({
   const archive = useArchiveWithUndo();
   const archiveWithoutUndo = useArchiveWithoutUndo();
   const unarchive = useUnarchiveWithUndo();
-  const [last, setLast] = useState(found);
-  const [leaving, setLeaving] = useState(false);
-  // The lock of a named Operation. A ref beside the state: two activations in one tick both
-  // read the state before it changes.
-  const busy = useRef(false);
+  const { entry: project, leaving, leave: leaveWith } = useLeavingEntry(found);
   const mounted = useRef(false);
   useLayoutEffect(() => {
     mounted.current = true;
@@ -114,23 +111,15 @@ function FoundProject({
       mounted.current = false;
     };
   }, []);
-  if (!leaving && found !== undefined && found !== last) setLast(found);
-  const project = leaving ? last : (found ?? last);
   // What the open drawer knows of the stored project now, for an action that runs later.
   const shownActive = useRef(false);
   useLayoutEffect(() => {
     shownActive.current = found?.archivedAt === null;
   });
   if (project === undefined) return <NotFound {...props} />;
+  // One named Operation at a time; once the project is left, the lock stays: the drawer is closing.
   const leave = (operation: () => Promise<boolean>, asks: boolean) => async () => {
-    if (busy.current) return;
-    busy.current = true;
-    const goes = !asks || (await props.confirmDiscard());
-    if (goes) setLeaving(true);
-    // Once the project is left, the lock stays: the drawer is closing.
-    if (goes && (await operation())) return props.onDone();
-    busy.current = false;
-    setLeaving(false);
+    if (await leaveWith(operation, asks ? props.confirmDiscard : undefined)) props.onDone();
   };
   const active = project.archivedAt === null;
   const archiveOrUnarchive = leave(

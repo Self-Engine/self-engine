@@ -4,6 +4,7 @@ import type {
   CalendarDay,
   CalendarDayFormat,
   Clock,
+  DayPiece,
   DayRange,
   DaySpan,
   Duration,
@@ -84,8 +85,13 @@ test("the public functions use only package values and require all arguments", (
     (span: DaySpan, timeZone: TimeZone) => readonly DayRange[]
   >();
   expectTypeOf(time.cutAtDays).toEqualTypeOf<
-    (range: InstantRange, days: readonly DayRange[]) => readonly DayRange[]
+    (range: InstantRange, days: readonly DayRange[]) => readonly DayPiece[]
   >();
+  expectTypeOf<DayPiece>().toEqualTypeOf<{
+    readonly day: CalendarDay;
+    readonly start: Instant;
+    readonly end: Instant;
+  }>();
   expectTypeOf<DayRange>().toEqualTypeOf<{
     readonly day: CalendarDay;
     readonly start: Instant;

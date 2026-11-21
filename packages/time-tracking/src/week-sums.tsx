@@ -4,6 +4,7 @@ import { type Duration, formatDuration } from "@self-engine/time";
 import { memo } from "react";
 import type { ProjectTotal } from "./port.ts";
 import { ProjectMark } from "./project-mark.tsx";
+import { NUMBERS, ROW_STYLE } from "./week-styles.ts";
 
 /**
  * The sums of the week per project, in the Query's order (largest first, "no project" last), and
@@ -51,6 +52,3 @@ export const WeekSums = memo(function WeekSums({
     </Paper>
   );
 });
-
-const NUMBERS = { fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap" } as const;
-const ROW_STYLE = { listStyle: "none" } as const;

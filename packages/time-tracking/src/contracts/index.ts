@@ -1,6 +1,6 @@
 import { oc } from "@orpc/contract";
 import { entryFields, refusal } from "@self-engine/db/schema";
-import { projectIdSchema } from "@self-engine/projects/contracts";
+import { projectIdSchema } from "@self-engine/projects/ids";
 import { type Instant, instantSchema, wholeSecondOf } from "@self-engine/time";
 import { z } from "zod";
 import { daysAnswerSchema, daysInputSchema } from "./days.ts";

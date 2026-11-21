@@ -32,13 +32,22 @@ export function dayRangesOf(span: DaySpan, timeZone: TimeZone): readonly DayRang
 }
 
 /**
+ * The part of a range of Instants that lies in one Calendar Day, half-open: from the later of the
+ * range's start and the day's first moment up to the earlier of the range's end and the next
+ * day's first. It is the whole day only where the range covers it.
+ */
+export interface DayPiece extends InstantRange {
+  readonly day: CalendarDay;
+}
+
+/**
  * The pieces of `range` that lie in each of `days`, in order: each piece carries its day and the
  * part of the range inside it. A day the range does not touch gives no piece, and a part outside
  * every day is left out. `days` are consecutive and in order, as `dayRangesOf` gives them; when
  * they cover the range, the pieces follow each other without a gap from its start to its end.
  */
-export function cutAtDays(range: InstantRange, days: readonly DayRange[]): readonly DayRange[] {
-  const pieces: DayRange[] = [];
+export function cutAtDays(range: InstantRange, days: readonly DayRange[]): readonly DayPiece[] {
+  const pieces: DayPiece[] = [];
   // Instants of the supported years compare as text in time order.
   for (const { day, start, end } of days) {
     if (end <= range.start) continue;
