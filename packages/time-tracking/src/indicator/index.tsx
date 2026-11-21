@@ -2,10 +2,13 @@ import { useLingui } from "@lingui/react/macro";
 import { ActionIcon, Badge, Box, Button, Group, Text } from "@mantine/core";
 import { useDataAccess } from "@self-engine/data-client/react";
 import { iconLength, TimeIcon } from "@self-engine/icons";
-import { StartTimerIcon, StopTimerIcon } from "@self-engine/icons/view";
+import { StartTimerIcon, StopTimerIcon } from "@self-engine/icons/indicator";
 import type { IndicatorForm, ModuleIndicatorProps } from "@self-engine/shell";
-import { durationBetween, formatDuration, type Instant } from "@self-engine/time";
+// Types only from the main entry, whose schemas need Zod's full build; the running time comes
+// from its light entry.
+import type { Instant } from "@self-engine/time";
 import { useNow } from "@self-engine/time/react";
+import { formatRunningTime } from "@self-engine/time/running-time";
 import { type CSSProperties, lazy, Suspense, useState } from "react";
 // Types only: the Contract's schemas never load with the indicator (startup check).
 import type { TimerId, TimerWithProject } from "../contracts/index.ts";
@@ -41,11 +44,9 @@ const ICON_STYLE: CSSProperties = { display: "flex" };
 function RunningTime({ startedAt }: { readonly startedAt: Instant }) {
   const { i18n } = useLingui();
   const now = useNow("second");
-  // Instants of the supported years compare as text in time order.
-  const elapsed = durationBetween(startedAt, now < startedAt ? startedAt : now);
   return (
     <Text component="span" fw={500} role="timer" size="sm" style={TIME_STYLE}>
-      {formatDuration(elapsed, "hoursMinutesSeconds", i18n.locale)}
+      {formatRunningTime(startedAt, now, i18n.locale)}
     </Text>
   );
 }

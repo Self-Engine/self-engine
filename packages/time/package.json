@@ -12,7 +12,8 @@
     "./system-clock": "./src/system-clock.ts",
     "./check": "./src/check/program.ts",
     "./react": "./src/react/index.tsx",
-    "./zone-list": "./src/zone-list.ts"
+    "./zone-list": "./src/zone-list.ts",
+    "./running-time": "./src/running-time.ts"
   },
   "dependencies": {
     "@self-engine/settings": "workspace:*",
