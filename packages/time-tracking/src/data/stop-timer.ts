@@ -1,8 +1,12 @@
-import { ORPCError } from "@orpc/server";
 import type { TablesOf } from "@self-engine/db";
-import { inputError, sharedEntry, sharedWrites, type StorageContext } from "@self-engine/storage";
+import {
+  inputError,
+  sharedEntry,
+  sharedWrites,
+  type StorageContext,
+  type WriteTransaction,
+} from "@self-engine/storage";
 import { type Instant, wholeSecondOf } from "@self-engine/time";
-import type { Transaction } from "kysely";
 import {
   END_BEFORE_START,
   END_IN_FUTURE,
@@ -12,7 +16,6 @@ import {
 } from "../contracts/index.ts";
 import {
   storedTimes,
-  TIME_ENTRY_COLUMNS,
   TIMER_COLUMNS,
   type TimerValues,
   type timeTrackingRowMap,
@@ -21,7 +24,7 @@ import {
 } from "./rows.ts";
 
 type Tables = TablesOf<typeof timeTrackingRowMap>;
-type WriteTransaction = Transaction<Tables>;
+type Writes = WriteTransaction<Tables>;
 
 /**
  * Stops one running Timer inside the caller's transaction, by the rules of D349: with an end given
@@ -31,7 +34,7 @@ type WriteTransaction = Transaction<Tables>;
  * undos that bring one back.
  */
 export async function stopRunningTimer(
-  tx: WriteTransaction,
+  tx: Writes,
   context: StorageContext,
   timer: TimerValues,
   endedAt?: Instant,
@@ -53,7 +56,7 @@ export async function stopRunningTimer(
 }
 
 async function saveEntry(
-  tx: WriteTransaction,
+  tx: Writes,
   context: StorageContext,
   timer: TimerValues,
   end: Instant,
@@ -75,7 +78,7 @@ async function saveEntry(
  * entry again without a write (D349). A discarded or unknown timer is not found.
  */
 export async function stopTimer(
-  tx: WriteTransaction,
+  tx: Writes,
   context: StorageContext,
   input: { readonly id: TimerId; readonly endedAt?: Instant | undefined },
 ): Promise<TimerStop> {
@@ -86,12 +89,8 @@ export async function stopTimer(
     .select(TIMER_COLUMNS)
     .executeTakeFirst();
   if (timer !== undefined) return stopRunningTimer(tx, context, timer, input.endedAt);
-  const entry = await reads
-    .live("time_entries")
-    .where("time_entries.id", "=", timeEntryIdOfTimer(input.id))
-    .select(TIME_ENTRY_COLUMNS)
-    .executeTakeFirst();
-  if (entry === undefined) throw new ORPCError("NOT_FOUND");
+  // Not found without a live entry of the timer's id: the timer was discarded, or never existed.
+  const entry = await reads.lookup("time_entries", timeEntryIdOfTimer(input.id));
   return { kind: "saved", entry: toTimeEntry(entry) };
 }
 
@@ -100,10 +99,7 @@ export async function stopTimer(
  * Operation, not a rule (D310). Answers what each stop did, the most recently started first; a
  * timer whose start lies after "now" keeps running.
  */
-export async function stopRunningTimers(
-  tx: WriteTransaction,
-  context: StorageContext,
-): Promise<TimerStop[]> {
+export async function stopRunningTimers(tx: Writes, context: StorageContext): Promise<TimerStop[]> {
   const running = await sharedEntry(tx, context)
     .live("timers")
     .select(TIMER_COLUMNS)
