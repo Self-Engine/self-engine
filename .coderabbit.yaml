@@ -1,0 +1,10 @@
+# CodeRabbit reviews a pull request on its own only when it carries the `large` label, which
+# .github/workflows/large-pr.yml adds (docs/agents/workflow.md, "Large pull requests"). Any other
+# pull request gets a review on request: comment `@coderabbitai review`. Everything not set here
+# comes from the settings in CodeRabbit's web interface.
+inheritance: true
+reviews:
+  auto_review:
+    enabled: false
+    labels:
+      - large

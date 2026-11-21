@@ -11,9 +11,19 @@ A work package takes one path: layer, work package, slice, pull request. A chang
 5. **Write the spec** (`to-spec`) into the package issue. Done when the body holds the spec, with its `Problem Statement` and the questions left for later, each with its proposed answer.
 6. **Cut slices** (`to-tickets`). Done when each slice is a sub-issue with `## Parent`, `layer:<n>` and `ready-for-agent`, and the package has swapped `needs-grilling` for `ready-for-agent`.
 7. **Build** (`implement-spec`) on one integration branch for the package, with one branch per slice. Add the package's ADRs and glossary entries here, since they state what the code does. Done when every slice is merged into the integration branch and `pnpm verify` prints `VERIFY: PASS`.
-8. **Open one pull request per package** (`pr-convention`), closing the package and its slices. Done when both checks are green, it is merged and [the overview](#the-overview) is refreshed.
+8. **Open one pull request per package** (`pr-convention`), closing the package and its slices. Done when both checks are green, the [large pull request](#large-pull-requests) steps are done, it is merged and [the overview](#the-overview) is refreshed.
 
 Build work packages in number order unless the owner picks another. A slice may have a higher number than a later package, because that package depends on the slice's parent.
+
+## Large pull requests
+
+A pull request is **large** when it closes a work package or changes 1,000 lines or more, not counting lockfiles and translation catalogs. The `Large PR` workflow labels such a pull request `large` (`scripts/large-pr.ts` counts), and the label starts CodeRabbit's review (`.coderabbit.yaml`); a package pull request below the limit gets the label by hand. Before you report a large pull request as ready to merge:
+
+1. **Review.** Once CodeRabbit's walkthrough comment appears, the review runs. If none appears within five minutes of the push, comment `@coderabbitai review`.
+2. **App check.** While the review runs, a subagent checks the app with the [`verify-desktop`](../../.agents/skills/verify-desktop/SKILL.md) skill, with its window hidden. Put the screenshots that show the change into the body's Evidence. A pull request that changes no code the app runs skips this step and says so.
+3. **Findings.** Answer every CodeRabbit comment in its thread: fix it, or say why not. After a fix, run `pnpm verify` again and push; CodeRabbit reviews the new commits itself.
+
+Done when the review has no unanswered comment and the app check passed. Report both to the owner, with the screenshots.
 
 ## Sorting the questions
 

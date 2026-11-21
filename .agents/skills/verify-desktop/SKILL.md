@@ -1,11 +1,11 @@
 ---
 name: verify-desktop
-description: Check desktop Layout Steps, every View, reloads and deep links in the built app when the user requests or accepts an app check.
+description: Check desktop Layout Steps, every View, reloads and deep links in the built app when the user requests or accepts an app check, or a large pull request needs one.
 ---
 
 # Verify desktop
 
-Run when the user requests or accepts an app check. This is a visual inspection aid; `pnpm verify` remains the completion gate.
+Run when the user requests or accepts an app check, and for every [large pull request](../../../docs/agents/workflow.md#large-pull-requests). This is a visual inspection aid; `pnpm verify` remains the completion gate.
 
 1. From the checkout root, run `pnpm verify:desktop`. It builds the dev app and starts it with a throwaway profile and its own renderer port. Started by an agent, the window stays hidden: it never takes the user's focus. Pass `--visible` only when the user asks to watch; a script of your own that starts the app through `launchElectron` (`scripts/desktop-app.ts`) stays hidden the same way, and only `window: "visible"` shows it. If it reports a running `pnpm dev` in this checkout, let the user decide when to end that session before retrying. `--executable <path>` checks a packaged app instead. Nightly and stable executables always show their window.
 2. A failed run exits with code 1 and prints the failing step and its errors; screenshots up to that step stay in the folder. Read `summary.json` in the absolute output folder printed by the command. Use its steps, screenshots and skipped checks to guide the inspection.
