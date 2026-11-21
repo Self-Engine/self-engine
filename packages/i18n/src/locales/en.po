@@ -24,6 +24,10 @@ msgstr "{count, plural, one {project entry} other {project entries}}"
 msgid "{count, plural, one {project} other {projects}}"
 msgstr "{count, plural, one {project} other {projects}}"
 
+#: packages/time-tracking/src/table-names.ts
+msgid "{count, plural, one {time entry} other {time entries}}"
+msgstr "{count, plural, one {time entry} other {time entries}}"
+
 #: packages/forms/src/violation-texts.ts
 msgid "{maximum, plural, one {At most # character.} other {At most # characters.}}"
 msgstr "{maximum, plural, one {At most # character.} other {At most # characters.}}"

@@ -33,6 +33,7 @@ test("the public functions use only package values and require all arguments", (
   >();
   expectTypeOf(time.isoWeekNumber).toEqualTypeOf<(day: CalendarDay) => number>();
   expectTypeOf(time.durationBetween).toEqualTypeOf<(from: Instant, to: Instant) => Duration>();
+  expectTypeOf(time.wholeSecondOf).toEqualTypeOf<(instant: Instant) => Instant>();
   expectTypeOf(time.epochMsOf).toEqualTypeOf<(instant: Instant) => number>();
   expectTypeOf(time.instantFromDate).toEqualTypeOf<(date: Date) => Instant>();
   expectTypeOf(time.resolveTimeZone).toEqualTypeOf<(name: string) => ResolvedTimeZone>();
@@ -140,6 +141,7 @@ test("the public functions use only package values and require all arguments", (
       "startOfNextDay",
       "wallClockTimeSchema",
       "weekOf",
+      "wholeSecondOf",
     ].sort(),
   );
 });

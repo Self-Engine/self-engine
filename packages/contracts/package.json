@@ -12,6 +12,7 @@
     "@self-engine/data-protocol": "workspace:*",
     "@self-engine/projects": "workspace:*",
     "@self-engine/settings-data": "workspace:*",
+    "@self-engine/time-tracking": "workspace:*",
     "zod": "catalog:"
   },
   "devDependencies": {

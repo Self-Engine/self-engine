@@ -28,7 +28,7 @@ export const ALLOWED_IMPORTS: AllowedImports = {
   backup: ["data-protocol", "db", "time"],
   // Composes the protocol and the modules' contracts (D187): `contracts → module`. Only the
   // desktop app's module list imports it.
-  contracts: ["data-protocol", "projects", "settings-data"],
+  contracts: ["data-protocol", "projects", "settings-data", "time-tracking"],
   // The building block tells the user through `ui`'s feedback system. It takes the protocol from
   // `data-protocol`, which knows no module, so no cycle runs through a module (ADR 0006). The
   // texts of the frame's Reasons list tables with `i18n`'s counted names (D335).
@@ -87,6 +87,10 @@ export const ALLOWED_IMPORTS: AllowedImports = {
   // Its Settings entry declares the Time Zone and week start (D356), and its React entry
   // subscribes to them. The time arithmetic imports no repo package (D143).
   time: ["settings"],
+  // The second real module (#275): it builds on `projects` and refers to a project by its id and
+  // its released Project Reference; `projects` never imports it (D308). The table names of its
+  // Refusal texts are typed by the data building block (D335).
+  "time-tracking": ["data-client", "db", "projects", "storage", "time"],
   ui: ["icons", "theme"],
 };
 
@@ -109,6 +113,9 @@ export const TEST_ONLY_IMPORTS: AllowedImports = {
   projects: ["data-process", "data-protocol", "spaces"],
   // Exercise the Settings Port and its adapter over the Data Process.
   "settings-data": ["data-process", "data-protocol"],
+  // The test Data Process with `projects` and `settings`, to save the Time Zone through the Port,
+  // and the app's catalogs for the texts of a Refusal in both languages.
+  "time-tracking": ["data-process", "data-protocol", "i18n", "settings-data"],
   // The app's catalogs, so a story of the icon field switches the language as the Settings do.
   ui: ["i18n"],
 };

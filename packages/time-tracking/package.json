@@ -1,0 +1,30 @@
+{
+  "name": "@self-engine/time-tracking",
+  "version": "0.0.0",
+  "private": true,
+  "license": "AGPL-3.0-only",
+  "type": "module",
+  "exports": {
+    "./contracts": "./src/contracts/index.ts",
+    "./data": "./src/data/index.ts"
+  },
+  "dependencies": {
+    "@lingui/core": "catalog:",
+    "@orpc/contract": "catalog:",
+    "@self-engine/data-client": "workspace:*",
+    "@self-engine/db": "workspace:*",
+    "@self-engine/projects": "workspace:*",
+    "@self-engine/storage": "workspace:*",
+    "@self-engine/time": "workspace:*",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@orpc/client": "catalog:",
+    "@self-engine/data-process": "workspace:*",
+    "@self-engine/data-protocol": "workspace:*",
+    "@self-engine/i18n": "workspace:*",
+    "@self-engine/settings-data": "workspace:*",
+    "@types/node": "catalog:",
+    "vite-plus": "catalog:"
+  }
+}

@@ -27,6 +27,7 @@
     "@self-engine/projects": "workspace:*",
     "@self-engine/settings-data": "workspace:*",
     "@self-engine/time": "workspace:*",
+    "@self-engine/time-tracking": "workspace:*",
     "@types/node": "catalog:",
     "electron": "catalog:",
     "electron-builder": "catalog:",
