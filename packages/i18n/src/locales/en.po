@@ -28,6 +28,10 @@ msgstr "{count, plural, one {project} other {projects}}"
 msgid "{count, plural, one {time entry} other {time entries}}"
 msgstr "{count, plural, one {time entry} other {time entries}}"
 
+#: packages/time-tracking/src/table-names.ts
+msgid "{count, plural, one {timer} other {timers}}"
+msgstr "{count, plural, one {timer} other {timers}}"
+
 #: packages/time-tracking/src/week.tsx
 msgid "{first} – {last}"
 msgstr "{first} – {last}"

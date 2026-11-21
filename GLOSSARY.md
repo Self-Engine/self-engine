@@ -305,6 +305,10 @@ _Avoid_: elapsed time (for the amount counted), billed time
 The part of a _Time Entry_'s _Booked Duration_ that counts toward one _Calendar Day_.
 _Avoid_: daily total, split entry
 
+**Timer** (de: _Timer_):
+A running measurement of time from a stored start _Instant_, with an optional project and note; its running time is "now" minus the start, and nothing is written while it runs. Stopping it turns it into a _Time Entry_; discarding it leaves none. It is not a _Time Entry_ without an end.
+_Avoid_: stopwatch, open entry, running entry, tracker
+
 ### Translation
 
 **App Language** (de: _App-Sprache_):

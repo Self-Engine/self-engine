@@ -11,4 +11,5 @@ import type { timeTrackingRowMap } from "./data/rows.ts";
  */
 export const timeTrackingTableNames = {
   time_entries: (count) => msg`${plural(count, { one: "time entry", other: "time entries" })}`,
+  timers: (count) => msg`${plural(count, { one: "timer", other: "timers" })}`,
 } satisfies TableNames<SyncedTable<TablesOf<typeof timeTrackingRowMap>>>;

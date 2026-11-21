@@ -5,12 +5,12 @@ import { type Instant, instantSchema, wholeSecondOf } from "@self-engine/time";
 import { z } from "zod";
 import { daysAnswerSchema, daysInputSchema } from "./days.ts";
 import { timeEntrySchema, timeEntryWithProjectSchema } from "./entries.ts";
-import { timeEntryIdSchema } from "./ids.ts";
+import { timeEntryIdSchema, timerIdSchema } from "./ids.ts";
+import { noteSchema } from "./note.ts";
+import { timerFields, timerSchema, timerStartInput, timerWithProjectSchema } from "./timers.ts";
 
-export { type TimeEntryId, timeEntryIdSchema } from "./ids.ts";
-
-/** The longest note, in characters after trimming. */
-export const NOTE_MAX = 10_000;
+export { type TimeEntryId, timeEntryIdSchema, type TimerId, timerIdSchema } from "./ids.ts";
+export { NOTE_MAX } from "./note.ts";
 
 /**
  * A Time Entry's fields, once: the inputs of create and edit are derived from them (D329, ADR
@@ -22,12 +22,7 @@ export const timeEntryFields = entryFields(timeEntryIdSchema, {
   startedAt: instantSchema,
   endedAt: instantSchema,
   projectId: projectIdSchema.nullable(),
-  note: z
-    .string()
-    .trim()
-    .max(NOTE_MAX)
-    .transform((text) => (text === "" ? null : text))
-    .nullable(),
+  note: noteSchema,
 });
 
 /** The Reason of the rule across start and end; the module's form gives its text (D320). */
@@ -98,7 +93,18 @@ export {
   timeEntryFilterSchema,
 } from "./days.ts";
 
+export {
+  START_IN_FUTURE,
+  type Timer,
+  type TimerWithProject,
+  timerFields,
+  timerSchema,
+  timerStartInput,
+  timerWithProjectSchema,
+} from "./timers.ts";
+
 const byId = z.strictObject({ id: timeEntryIdSchema });
+const byTimerId = z.strictObject({ id: timerIdSchema });
 
 /** The module's Port (D252): mounted as `timeTracking` in the app contract. */
 export const timeTrackingContract = {
@@ -133,4 +139,32 @@ export const timeTrackingContract = {
    * `daysAnswerSchema`. A span over `SPAN_MAX_DAYS` days is an input error.
    */
   days: oc.input(daysInputSchema).output(daysAnswerSchema),
+  /**
+   * Starts a Timer at the Data Process's "now", cut to the second (D344, D348). It does not check
+   * the project: the frame's reference check refuses a deleted or unknown one and accepts an
+   * archived one (D337).
+   */
+  startTimer: oc
+    .input(timerStartInput)
+    .output(timerSchema)
+    .errors({ ...refusal }),
+  /**
+   * The edit pattern (D329): a missing field stays untouched, `null` clears the project or the
+   * note, and an edit without fields reads. A start after the Data Process's "now" is an input
+   * error at the start, with the Reason `START_IN_FUTURE`.
+   */
+  editTimer: oc
+    .input(timerFields.edit)
+    .output(timerSchema)
+    .errors({ NOT_FOUND: {}, ...refusal }),
+  /** Removes a running Timer without a Time Entry: a soft delete. */
+  discardTimer: oc
+    .input(byTimerId)
+    .output(timerSchema)
+    .errors({ NOT_FOUND: {}, ...refusal }),
+  /**
+   * The running Timers with their Project References, the most recently started first. One runs
+   * at a time through the app's own Operations; after a sync there may be several (D310).
+   */
+  runningTimers: oc.output(z.array(timerWithProjectSchema)),
 };
