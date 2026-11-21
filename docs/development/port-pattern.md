@@ -694,3 +694,14 @@ has changed. Use `onCancel` to ask before closing and `onDone` after a successfu
 date, time and Select fields of `forms` work in the panel as they are: a pick in their dropdown
 keeps the panel open.
 See the [example panel](../../packages/placeholder-alpha/src/indicator/panel.tsx).
+
+Content with several parts shows one at a time, such as the timer's form and its "Stop at …".
+Which part shows is the module's own state, outside React and outside `src/indicator/`, since a
+Command uses it too: a Notice's action or a Command asks for a part and then opens the panel; an
+open panel switches, asking first through `confirmDiscard` when its form holds unsaved changes,
+and puts the focus on the new part's first field. The indicator and the panel cannot name the
+indicator's entry for `openIndicatorPanel`: the entry loads them, so the import would be a cycle,
+which the boundary check rejects. The indicator hands its `togglePanel` to the module's state
+instead, and both open the closed panel through it. See the
+[timer's panel](../../packages/time-tracking/src/indicator/panel.tsx) and
+[its state](../../packages/time-tracking/src/timer-panel-part.ts).

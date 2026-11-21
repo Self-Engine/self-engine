@@ -9,12 +9,11 @@ import {
   type CalendarDay,
   calendarDayOf,
   type Instant,
-  moveToDay,
-  resolveWallClockTime,
   type TimeZone,
   type WallClockTime,
   wallClockTimeOf,
 } from "@self-engine/time";
+import { type InstantOutcome, outcomeOf } from "./instant-parts.ts";
 
 /** What the field shows; each part may still be empty. */
 export interface RangeParts {
@@ -35,13 +34,7 @@ export interface RangeInstants {
 }
 
 /** What becomes of one Instant of the draft after the field changed. */
-export type RangeOutcome =
-  /** It still shows the field's date and time: it stays, with its seconds (D344). */
-  | { readonly case: "keep" }
-  /** It takes this Instant, or "empty" while a part it needs is empty. */
-  | { readonly case: "set"; readonly instant: Instant | null }
-  /** The clocks skip the time on that day: no value, the save is blocked (D347). */
-  | { readonly case: "skipped" };
+export type RangeOutcome = InstantOutcome;
 
 /**
  * Whether the end lies on the day after the date: no end date is opened and the end time is not
@@ -80,43 +73,6 @@ export function partsOf(
   if (end === null) return closed;
   const endDay = calendarDayOf(end, timeZone);
   return dayOfEnd(closed) === endDay ? closed : { ...closed, endDayOpen: true, endDay };
-}
-
-function shows(
-  instant: Instant | null,
-  day: CalendarDay,
-  time: WallClockTime,
-  timeZone: TimeZone,
-): boolean {
-  return (
-    instant !== null &&
-    calendarDayOf(instant, timeZone) === day &&
-    wallClockTimeOf(instant, timeZone) === time
-  );
-}
-
-function outcomeOf(
-  day: CalendarDay | null,
-  time: WallClockTime | null,
-  current: Instant | null,
-  original: Instant | null,
-  timeZone: TimeZone,
-  options: { readonly previous?: Instant; readonly lowerBound?: Instant },
-): RangeOutcome {
-  if (day === null || time === null) return { case: "set", instant: null };
-  if (shows(current, day, time, timeZone)) return { case: "keep" };
-  if (original !== null && shows(original, day, time, timeZone))
-    return { case: "set", instant: original };
-  // A time the user did not touch whose day changed moves to that day with its seconds (D344).
-  const untouched = [current, original].find(
-    (instant): instant is Instant =>
-      instant !== null && wallClockTimeOf(instant, timeZone) === time,
-  );
-  const resolved =
-    untouched === undefined
-      ? resolveWallClockTime(day, time, timeZone, options)
-      : moveToDay(untouched, day, timeZone, options);
-  return resolved.case === "skipped" ? resolved : { case: "set", instant: resolved.instant };
 }
 
 /**

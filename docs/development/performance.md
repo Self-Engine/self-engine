@@ -824,6 +824,34 @@ The first module with a Module Indicator: `time-tracking`'s timer, on every page
   indicator's chunk to no Contract and no full Zod build. The project's mark, with the directory
   of entry pictures, loads only once a running timer has a project.
 
+## The timer's Indicator Panel (#350)
+
+The content of the timer's Indicator Panel: the form for project, note and start, "Stop at …"
+and "Discard". Production builds of `apps/web`, `apps/web/dist/startup-bundle.json`.
+
+- **Startup JavaScript.** **867,296 bytes** (29 chunks) at `31c4329`, before the panel, and
+  **869,483 bytes** (30 chunks) with it: **+2,187 bytes**, below the limit of 889,856, which
+  stays. No code of the panel, the form helper or the Contract enters the start. About 1,600
+  bytes are the panel's loader in the contribution's indicator entry: Vite's preload list names
+  each chunk the panel needs, so its first opening fetches them at once. The rest, and the
+  thirtieth chunk, is the indicator's entry itself: the timer's Commands now import it to open
+  "Stop at …" (`src/stop-at.ts`), so the bundler moved it out of the start's main chunk into a
+  chunk of its own, with its imports and exports.
+- **What loads with the indicator.** **14,115 bytes** after the first paint, 1,523 more than in
+  #349: the part of the indicator that opens the panel, the discard action with its Notice, and
+  `src/timer-panel-part.ts`, the module's state of which part the panel shows. The indicator
+  still reads its Contract as a type only, as the startup check holds it to.
+- **What the first opening loads.** The panel's own chunk is **7,283 bytes**. With it come
+  **588,257 bytes** of JavaScript and 31,222 of CSS the start and the indicator do not hold,
+  nearly all of them what an Edit Drawer with a project picker brings as well: the directory of
+  entry pictures for the picker's marks (348,941), Mantine's date fields (84,992), the form helper
+  (40,333) and the Contract's schemas with Zod's full build (39,301). The Shell preloads them in
+  an idle moment once the indicator is on screen, so the first click rarely waits for them; an
+  Edit Drawer opened before shares every one of them.
+- **A tick while the panel is open.** The panel reads no `useNow`; the running time still
+  redraws alone. The indicator draws again only when the panel opens or closes, through
+  `panelOpen`.
+
 ## The Time Entry window (#275)
 
 Measured during #345 on an Apple M3 Pro (arm64), Node 26.13.1 and SQLite 3.53.4.

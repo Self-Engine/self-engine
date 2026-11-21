@@ -130,6 +130,19 @@ export const STARTUP_RULES = {
         "import it only from the timer's Module Indicator, a Command or the Indicator Panel, which load on demand.",
     },
     {
+      // Which part the timer's Indicator Panel shows, and how a Command opens it at "Stop at …"
+      // (#350): outside `src/indicator/`, so a Command imports them too.
+      name: "The state of the timer's Indicator Panel of time-tracking",
+      path: "/packages/time-tracking/src/timer-panel-part.ts",
+      instead:
+        "import it only from the timer's Module Indicator, its Indicator Panel or a Command, which load on demand.",
+    },
+    {
+      name: 'The opener of the timer\'s "Stop at …" for a Command of time-tracking',
+      path: "/packages/time-tracking/src/stop-at.ts",
+      instead: "import it only from a Command, which loads on demand.",
+    },
+    {
       // The frame of an Indicator Panel with Mantine's Popover and its positioning: 16 KB at
       // startup (#369). The Shell loads it beside the indicators after the first paint.
       name: "The frame of an Indicator Panel",
