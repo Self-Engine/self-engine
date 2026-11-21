@@ -33,8 +33,8 @@ ist bewusst schmal. Der Owner nutzt die alte App weiter, bis die neue ihn überz
 | L4.25 | Mitternacht | Ein Eintrag bleibt eine Zeile und erscheint an jedem Tag, den er berührt, mit seinem Tagesanteil; die Anteile ergeben zusammen seine Dauer (D343) |
 | L4.26 | Genauigkeit | Beginn und Ende auf ganzen Sekunden, das Ende mindestens eine Sekunde nach dem Beginn; Schicht 4 rundet die Dauer nicht, die Anzeige rundet auf die volle Minute auf (D344, D345) |
 | L4.27 | Dauer | Keine Eingabe: Die Operation rechnet sie aus Beginn und Ende (D346) |
-| L4.28 | Zeitumstellung | Das Formular löst die doppelte Stunde ohne Nachfrage auf; eine übersprungene Uhrzeit ist kein Wert (D347) |
-| L4.29 | Uhr der Oberfläche | Eine Uhr von der App, zwei Hooks für „jetzt“ und „heute“, ein gemeinsamer Taktgeber; alles liegt in `time` mit einem eigenen Einstieg für React (D348) |
+| L4.28 | Zeitumstellung | Das Formular löst die doppelte Stunde ohne Nachfrage auf; eine Korrektur innerhalb der doppelten Stunde bleibt in derselben der beiden Stunden; eine übersprungene Uhrzeit ist kein Wert (D347, D361) |
+| L4.29 | Uhr der Oberfläche | Eine Uhr von der App, zwei Hooks für „jetzt“ und „heute“, ein gemeinsamer Taktgeber, dessen Wecker höchstens eine Minute wartet; alles liegt in `time` mit einem eigenen Einstieg für React (D348, D363) |
 | L4.30 | Stoppen | Der Eintrag bekommt die Id des Timers; Rückgängig ist eine eigene Operation in einer Transaktion; wer einen Timer laufen lässt, stoppt zuerst jeden anderen (D349) |
 | L4.31 | Abfrage der Woche | Die Seite rechnet die Woche und nennt eine Spanne von Kalendertagen; der Datenprozess liest nur die Zeitzone, in der Transaktion über den Kontext (D352, D354) |
 | L4.11 | Projektseite | Keine in Schicht 4; #201 wird mit ihr gegrillt (D313) |

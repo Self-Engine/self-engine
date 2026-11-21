@@ -373,11 +373,12 @@ Instant, and the field checks what it reads.
   field shows "+1". "Add an end date" opens a separate end date for a longer range; a loaded range
   that "+1" cannot show opens it by itself.
 - **Untouched parts keep their seconds (D344):** an Instant is replaced only when the date or the
-  time it shows changes. A start moved past the end moves the end to the next day, as "+1" then
+  time it shows changes. A start moved past the end moves the end to the next day (D362), as "+1" then
   says; one passing there while a time is typed brings it back with its seconds.
 - **Clock changes (D347):** a time the zone shows twice is resolved by `resolveWallClockTime` of
   `time`: on an edit with the Instant the draft held, else the end with the start as its lower
-  bound. The field calls the rule and never repeats it. A note under the time names the offset,
+  bound. A correction inside the repeated hour stays in the same one of the two: the second 02:05
+  corrected to 02:55 is the second 02:55 (D361). The field calls the rule and never repeats it. A note under the time names the offset,
   such as "02:30 (UTC+2)", as the Time Zone picker writes it (`formatUtcOffset`,
   `repeatedOffsetOf`). A time the clocks skip shows a message and blocks the save, like "25:00".
 - **The duration** below the field is the time that really passed between the two Instants

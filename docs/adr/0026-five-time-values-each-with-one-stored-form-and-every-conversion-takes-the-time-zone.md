@@ -1,7 +1,7 @@
 ---
 status: accepted
 date: 2026-11-14
-decisions: D281, D282, D283
+decisions: D281, D282, D283, D347, D361
 ---
 
 # Five time values, each with one stored form, and every conversion takes the time zone
@@ -60,8 +60,10 @@ the app supplies the Time Zone.
      last. An Instant at midnight belongs to exactly one day.
    - `today` gives the calendar day of a _Clock_ in a zone.
    - `resolveWallClockTime` gives the Instant a form uses for a day and wall-clock time: no
-     Instant for a skipped time, and for a repeated one the occurrence nearest the previous
-     value on an edit, else the earlier one unless it lies at or before a lower bound.
+     Instant for a skipped time. For a repeated one on an edit, a previous value inside the
+     repeated stretch keeps its side of the clock change, and one outside it takes the nearer
+     occurrence (D361). Without a previous value it is the earlier one, unless that lies at or
+     before a lower bound.
      `moveToDay` moves an Instant to another day at the same wall-clock time, with its seconds,
      and resolves a clock change on that day the same way, comparing the whole time with the
      lower bound.

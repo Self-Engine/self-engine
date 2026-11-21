@@ -87,21 +87,28 @@ export type WallClockTimeResolution =
       readonly occurrence: Occurrence;
     };
 
-function nearestOccurrence(
+/**
+ * Which occurrence an edit means. A previous value inside the repeated stretch keeps its side of
+ * the clock change, however far the correction moves the minutes; one outside it takes the nearer
+ * occurrence. The stretch runs from the first Instant that shows a repeated time up to the first
+ * that shows a time once again: the length of the change on either side of it.
+ */
+function occurrenceOnEdit(
   earlier: Temporal.ZonedDateTime,
   later: Temporal.ZonedDateTime,
   previous: Instant,
 ): Occurrence {
-  const previousInstant = Temporal.Instant.from(previous);
-  const previousMs = previousInstant.epochMilliseconds;
+  const previousMs = epochMsOf(previous);
+  const change = earlier.getTimeZoneTransition("next");
+  if (change !== null) {
+    const length = later.epochMilliseconds - earlier.epochMilliseconds;
+    const distance = previousMs - change.epochMilliseconds;
+    if (distance >= -length && distance < length) return distance < 0 ? "earlier" : "later";
+  }
+  // No tie here: the moment halfway between the two occurrences lies inside the stretch.
   const earlierDistance = Math.abs(earlier.epochMilliseconds - previousMs);
   const laterDistance = Math.abs(later.epochMilliseconds - previousMs);
-  if (earlierDistance !== laterDistance)
-    return earlierDistance < laterDistance ? "earlier" : "later";
-
-  // On a tie, stay in the previous occurrence. An unmatched offset defaults to the earlier one.
-  const previousOffset = previousInstant.toZonedDateTimeISO(later.timeZoneId).offsetNanoseconds;
-  return previousOffset === later.offsetNanoseconds ? "later" : "earlier";
+  return earlierDistance < laterDistance ? "earlier" : "later";
 }
 
 /** What a form knows beside the day and the time: the value before an edit, or a lower bound. */
@@ -122,7 +129,7 @@ function resolveLocal(
     return { case: "unambiguous", instant: instantFrom(candidates.zoned.toInstant()) };
   const occurrence =
     previous !== undefined
-      ? nearestOccurrence(candidates.earlier, candidates.later, previous)
+      ? occurrenceOnEdit(candidates.earlier, candidates.later, previous)
       : lowerBound !== undefined && candidates.earlier.epochMilliseconds <= epochMsOf(lowerBound)
         ? "later"
         : "earlier";
@@ -131,8 +138,10 @@ function resolveLocal(
 
 /**
  * Resolve a form value without moving a skipped time. On an edit, the previous Instant takes
- * precedence. For a new repeated value, use the earlier occurrence unless it is at or before
- * the lower bound. The caller still validates the resulting range.
+ * precedence: a correction inside the repeated stretch stays on its side of the clock change, and
+ * a value from outside it takes the nearer occurrence. For a new repeated value, use the earlier
+ * occurrence unless it is at or before the lower bound. The caller still validates the resulting
+ * range.
  */
 export function resolveWallClockTime(
   day: CalendarDay,

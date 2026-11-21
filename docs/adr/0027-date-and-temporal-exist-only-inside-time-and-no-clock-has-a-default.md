@@ -1,7 +1,7 @@
 ---
 status: accepted
 date: 2026-11-14
-decisions: D284, D195, D348
+decisions: D284, D195, D348, D363
 ---
 
 # `Date` and `Temporal` exist only inside `time`, and no clock has a default
@@ -94,5 +94,7 @@ and still allowed `new Date(ms)`, and `.getDate()` on that gives the day in the 
   of its own lets the boundary rules keep it in `apps/`.
 - **A timeout per reading of "now":** rejected (D348). Ten timers on a page would each wake the
   page, and none of them stops while the window is hidden.
+- **One alarm set for the start of the next day, for "today":** rejected (D363). A timer may not
+  count the time the computer slept, so "today" could stay on yesterday for hours after waking.
 - **The ticker and the hooks in a package above `time`:** rejected (D348). Everything that reads,
   computes or ticks time stays in `time`, so the rule of the lint plugin keeps one sentence.

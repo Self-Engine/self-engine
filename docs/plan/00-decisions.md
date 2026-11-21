@@ -64,6 +64,7 @@ den Vermerk `_Überholt durch D<n>._`
 | [D342–D350](decisions/d342-d350-time-tracking.md) | 2026-11-19 | `time-tracking`: Zeitzone am Eintrag, Tagesanteile über Mitternacht, ganze Sekunden, Anzeige rundet auf, keine Dauer von Hand, Zeitumstellung im Formular, Uhr der Oberfläche, Stoppen über zwei Tabellen, Uhr und Felder als eigenes Arbeitspaket | #275, #277, #332, #110, #276 |
 | [D351–D356](decisions/d351-d356-settings-in-the-database.md) | 2026-11-20 | Einstellungen in der Datenbank, Zeitzone und Wochenstart: lokale Kopie für den ersten Render, Lesen im Datenprozess über den Kontext, Gerätezone beim Start, Abfrage über eine Spanne von Tagen, Wochenstart als Name des Tages, der Besitzer deklariert | #109, #110, #275 |
 | [D357–D360](decisions/d357-d360-module-indicator.md) | 2026-11-20 | Modulanzeige, der ständige Platz in der Hülle: rechts in der Kopfzeile des Inhalts in voller Form oder Kurzform, eine Fläche der Hülle, zwei später ladende Bausteine im Hüllen-Beitrag, die Namen „Module Indicator“ und „Indicator Panel“ | #276, #277 |
+| [D361–D364](decisions/d361-d364-time-fields-and-settings-copy.md) | 2026-11-21 | Nachträge aus dem Bau von #332 und #109: die doppelte Stunde beim Bearbeiten, ein Beginn hinter dem Ende, der Wecker für „heute“, der Name „Settings Copy“ | #332, #109 |
 
 D109 und D110 sind doppelt vergeben, in den Runden 18 und 19. Wer eine der beiden nennt, nennt die
 Runde dazu.
