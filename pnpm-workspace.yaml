@@ -47,7 +47,7 @@ catalog:
   "@mantine/notifications": 9.8.0
   "@mantine/spotlight": 9.8.0
   # The JS plugin API of the Oxlint that vite-plus ships; move it with vite-plus.
-  "@oxlint/plugins": 1.91.0
+  "@oxlint/plugins": 1.92.0
   # The transport between the renderer and the data process (D93): contracts, the
   # message-port server in the data process and the typed client. Every oRPC package moves together.
   "@orpc/client": 1.16.2
@@ -69,7 +69,7 @@ catalog:
   # The query cache of the page (D249). Only packages/data-client/src/react/ imports it.
   "@tanstack/react-query": 5.107.1
   "@tanstack/react-router": 1.170.46
-  "@tanstack/router-plugin": 1.168.48
+  "@tanstack/router-plugin": 1.169.0
   # Pinned to the Node version inside Electron (45.x ships Node 24), so TypeScript
   # flags Node 26 APIs that the desktop main process does not have (D34).
   "@types/node": 24.19.2
