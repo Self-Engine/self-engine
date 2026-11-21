@@ -14,7 +14,7 @@ import { type IndicatorPanelProps, useOpenIndicatorPanel } from "@self-engine/sh
 import { formatInstant } from "@self-engine/time";
 import { useFirstDayOfWeek, useTimeZone, useToday } from "@self-engine/time/react";
 import { QueryStateBlock } from "@self-engine/ui";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import {
   END_BEFORE_START,
   END_IN_FUTURE,
@@ -96,12 +96,27 @@ function RunningTimerPanel(props: IndicatorPanelProps & { readonly timer: TimerW
     setPart(next);
   });
   useEffect(() => panelPart.attach((next) => void switchTo.current(next)), []);
+  // The control that switched is gone with its part: the focus goes to the new part's first
+  // field, as the Shell gives it to the first field when the panel opens.
+  const content = useRef<HTMLDivElement>(null);
+  const switched = useRef(false);
+  useLayoutEffect(() => {
+    if (!switched.current) {
+      switched.current = true;
+      return;
+    }
+    content.current?.querySelector<HTMLElement>("input:not([disabled]), textarea")?.focus();
+  }, [part]);
   const partProps = { ...props, switchTo: (next: PanelPart) => void switchTo.current(next) };
+  return <div ref={content}>{partOf(part, partProps)}</div>;
+}
+
+function partOf(part: PanelPart, props: PartProps) {
   switch (part) {
     case "edit":
-      return <EditTimerForm {...partProps} />;
+      return <EditTimerForm {...props} />;
     case "stopAt":
-      return <StopAtForm {...partProps} />;
+      return <StopAtForm {...props} />;
     default:
       return part satisfies never;
   }
