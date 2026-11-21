@@ -177,6 +177,9 @@ const theFormAt = (step: Step): Story => ({
     const form = await panelParts();
     await expectFrameAt(step, form.dialog, openedBy);
     await expect(openedBy).toHaveAttribute("aria-expanded", "true");
+    // The note holds the focus, so the project's list stays closed.
+    await waitFor(() => expect(form.note()).toHaveFocus());
+    await expect(screen.queryByRole("listbox")).toBeNull();
     await expect(form.project()).toHaveValue("Website");
     await expect(form.note()).toHaveValue("Landing page");
     await expect(form.date()).toHaveValue("20.11.2026");
@@ -214,7 +217,10 @@ const stopAtAValidEnd = (step: Step): Story => ({
     const form = await openPanel(canvas);
     await userEvent.click(form.button("Stoppen um …"));
     const stopAt = await panelParts();
-    await expect(stopAt.panel.getByText("Läuft seit 20.11.2026, 09:47")).toBeVisible();
+    // The panel may still be fading in.
+    await waitFor(() =>
+      expect(stopAt.panel.getByText("Läuft seit 20.11.2026, 09:47")).toBeVisible(),
+    );
     await typeTime(stopAt.time("Ende"), "1050");
     await userEvent.click(stopAt.button("Stoppen"));
 

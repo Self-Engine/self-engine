@@ -96,16 +96,16 @@ function RunningTimerPanel(props: IndicatorPanelProps & { readonly timer: TimerW
     setPart(next);
   });
   useEffect(() => panelPart.attach((next) => void switchTo.current(next)), []);
-  // The control that switched is gone with its part: the focus goes to the new part's first
-  // field, as the Shell gives it to the first field when the panel opens.
+  // The focus goes into each part as it appears, on the field marked for it or else on the first
+  // field: when the panel opens, the Shell's focus trap may have looked before the timers' first
+  // answer drew the form, and after a switch the control that switched is gone with its part.
   const content = useRef<HTMLDivElement>(null);
-  const switched = useRef(false);
   useLayoutEffect(() => {
-    if (!switched.current) {
-      switched.current = true;
-      return;
-    }
-    content.current?.querySelector<HTMLElement>("input:not([disabled]), textarea")?.focus();
+    const within = content.current;
+    (
+      within?.querySelector<HTMLElement>("[data-autofocus]") ??
+      within?.querySelector<HTMLElement>("input:not([disabled]), textarea")
+    )?.focus();
   }, [part]);
   const partProps = { ...props, switchTo: (next: PanelPart) => void switchTo.current(next) };
   return <div ref={content}>{partOf(part, partProps)}</div>;
@@ -191,7 +191,8 @@ function EditTimerForm({ timer, onCancel, onDone, confirmDiscard, switchTo }: Pa
         label={t`Project`}
         name="projectId"
       />
-      <LongTextField form={form} label={t`Note`} name="note" />
+      {/* The note takes the focus when the panel opens: the picker above opens its list on focus. */}
+      <LongTextField data-autofocus form={form} label={t`Note`} name="note" />
       <InstantField
         firstDayOfWeek={firstDayOfWeek}
         form={form}
