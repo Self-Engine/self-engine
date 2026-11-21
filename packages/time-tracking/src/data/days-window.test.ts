@@ -1,5 +1,4 @@
-// The window of the Query of a Day Span, as SQLite plans it: the indexes on start and on end serve
-// its two bounds, so a week reads only the rows near it, however many years the table holds.
+// SQLite uses the end bound of the Day Span window for filtered and unfiltered Queries.
 import { projects } from "@self-engine/projects/data";
 import { createContext } from "@self-engine/storage";
 import { createTestContext, createTestDatabase, queryPlan } from "@self-engine/storage/testing";
@@ -15,7 +14,7 @@ const window = {
 };
 const projectId = projectIdSchema.parse("01a1cfa1-0b00-7000-8000-0000000000ff");
 
-test("the window is searched through an index on the start or the end, with and without a filter", async () => {
+test("the window uses the end index with and without a filter", async () => {
   const database = await createTestDatabase(timeTracking, [projects]);
   try {
     const context = createContext(createTestContext());
@@ -28,9 +27,7 @@ test("the window is searched through an index on the start or the end, with and 
       const plan = await queryPlan(database, windowRows(tx, context, window, filter).compile());
       const entries = plan.filter((line) => line.includes("time_entries"));
       expect(entries, JSON.stringify(filter)).toEqual([
-        expect.stringMatching(
-          /^SEARCH time_entries USING INDEX time_entries_(started|ended) \(space_id=\? AND (started_at<\?|ended_at>\?)\)$/,
-        ),
+        "SEARCH time_entries USING INDEX time_entries_ended (space_id=? AND ended_at>?)",
       ]);
     }
   } finally {

@@ -82,7 +82,7 @@ function NotFound({ onDone }: EditDrawerProps) {
 }
 
 /**
- * The name a person knows a time entry by, in a Notice of a Refusal: its project and its start.
+ * The name a person knows a Time Entry by, in a Notice of a Refusal: its project and its start.
  * A refused undo names the project that has to come back first this way.
  */
 function useEntryName(entry: TimeEntryWithProject | undefined): string | undefined {

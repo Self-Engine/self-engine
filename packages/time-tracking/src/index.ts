@@ -14,7 +14,7 @@ const newTimeEntry = {
   load: () => import("./new-time-entry.ts"),
 } as const satisfies ShellCommand;
 
-/** Creates a time entry without the form, for a later assistant (D85). */
+/** Creates a Time Entry without the form, for a later assistant (D85). */
 const createTimeEntry = {
   id: "create-time-entry",
   kind: "input",

@@ -14,6 +14,7 @@ import type { DaysAnswer, TimeEntryFilter } from "../contracts/index.ts";
 import { groupDays } from "./group-days.ts";
 import {
   JOINED_PROJECT_COLUMNS,
+  TIME_ENTRY_COLUMNS,
   projectReferenceOf,
   type timeTrackingRowMap,
   toTimeEntry,
@@ -27,7 +28,7 @@ export const DAYS_READS = ["time_entries", "projects", SETTINGS_TABLE] as const;
 
 /**
  * Every Live Row that touches the window, not only those that begin in it, with its Project
- * Reference, sorted by start. The indexes on start and on end serve the two bounds.
+ * Reference, sorted by start. The end index skips rows that end before the window.
  */
 export function windowRows(
   tx: Reads,
@@ -38,7 +39,7 @@ export function windowRows(
   let query = sharedEntry<Tables>(tx, context)
     .live("time_entries")
     .leftJoin(projectReferences(tx, context, "project"), "project.id", "time_entries.project_id")
-    .selectAll("time_entries")
+    .select(TIME_ENTRY_COLUMNS)
     .select(JOINED_PROJECT_COLUMNS)
     .where("time_entries.started_at", "<", window.end)
     .where("time_entries.ended_at", ">", window.start);

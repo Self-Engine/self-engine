@@ -33,7 +33,22 @@ export const timeTrackingRowMap = {
     time_zone: z.string(),
   }),
 };
-export type TimeEntryRow = TablesOf<typeof timeTrackingRowMap>["time_entries"];
+type TimeEntryRow = TablesOf<typeof timeTrackingRowMap>["time_entries"];
+
+/** Only the columns returned in a Query answer. The creation Time Zone stays in storage. */
+export const TIME_ENTRY_COLUMNS = [
+  "time_entries.id",
+  "time_entries.started_at",
+  "time_entries.ended_at",
+  "time_entries.duration_seconds",
+  "time_entries.project_id",
+  "time_entries.note",
+] as const;
+
+type TimeEntryValues = Pick<
+  TimeEntryRow,
+  (typeof TIME_ENTRY_COLUMNS)[number] extends `time_entries.${infer Column}` ? Column : never
+>;
 
 /**
  * The columns of start, end and Booked Duration, the one place that computes them (D344, D346):
@@ -47,7 +62,7 @@ export function storedTimes(startedAt: Instant, endedAt: Instant) {
 }
 
 // Do not parse the row here: agreement is checked in tests, not on every query.
-export const toTimeEntry = (row: TimeEntryRow): TimeEntry => ({
+export const toTimeEntry = (row: TimeEntryValues): TimeEntry => ({
   id: row.id,
   startedAt: row.started_at,
   endedAt: row.ended_at,

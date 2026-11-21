@@ -69,7 +69,7 @@ const aroundChanges = fc.constantFrom(
 const offset = fc.integer({ min: 0, max: 4 * 86_400 });
 const length = fc.integer({ min: 1, max: 3 * 86_400 });
 
-test("the Day Shares of an entry add up to exactly its duration, also across a clock change", () => {
+test("the Day Shares of a Time Entry add up to its Booked Duration, also across a clock change", () => {
   fc.assert(
     fc.property(aroundChanges, offset, length, (base, after, seconds) => {
       const startedAt = advanceInstantByMilliseconds(base, after * 1000);
