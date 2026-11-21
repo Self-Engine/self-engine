@@ -58,3 +58,9 @@ to scan:
 
 Write the body with the global `pr` skill's template when it is available, in English, and
 end it with `Closes #<issue>` when the PR finishes an issue.
+
+## Before the merge
+
+A pull request labelled `size:XXL`, or one that closes a work package, needs a CodeRabbit review
+and an app check first: follow
+[Large pull requests](../../../docs/agents/workflow.md#large-pull-requests).
