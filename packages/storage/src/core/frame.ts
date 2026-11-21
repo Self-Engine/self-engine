@@ -1,4 +1,4 @@
-import { declaresConflict } from "./conflict-declared.ts";
+import { declaresError } from "./error-declared.ts";
 import { ContractProcedure, type AnySchema, type ErrorMap, type Meta } from "@orpc/contract";
 import { z } from "zod";
 import { implement, ORPCError, type ImplementedProcedure } from "@orpc/server";
@@ -108,6 +108,15 @@ export function createFrame(
                 return next({ context: { tx, storageContext: context } });
               });
             } catch (error) {
+              // Input validation runs before this middleware: an input error here is the module's
+              // own (D369), and its reasons must be the ones its Contract declares.
+              if (
+                error instanceof ORPCError &&
+                error.code === "BAD_REQUEST" &&
+                options.checkOutputs &&
+                !(await declaresError(module.contract[name]!, error))
+              )
+                reportUnexpected(name, error);
               if (
                 error instanceof ORPCError &&
                 (error.code === "BAD_REQUEST" ||
@@ -147,7 +156,7 @@ export function createFrame(
                   const conflict = new ORPCError("CONFLICT", { data: { reason } });
                   if (
                     options.checkOutputs &&
-                    !(await declaresConflict(module.contract[name]!, conflict))
+                    !(await declaresError(module.contract[name]!, conflict))
                   )
                     reportUnexpected(name, conflict, index);
                   throw conflict;

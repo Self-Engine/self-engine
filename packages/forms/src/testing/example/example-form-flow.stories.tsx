@@ -11,6 +11,7 @@ import {
   TextField,
   useOperationForm,
 } from "../../index.ts";
+import { exampleCreateTexts } from "./example-form.tsx";
 import { exampleContract } from "./contract.ts";
 import { useCreateExample } from "./port.ts";
 import { StoryDrawer, loadStoryShell } from "./drawer-story.tsx";
@@ -27,6 +28,7 @@ function Flow({
   const form = useOperationForm({
     entry: exampleContract.create,
     operation: useCreateExample(),
+    texts: exampleCreateTexts,
     draft: {
       title: "Kitchen",
       description: "Paint the walls.",

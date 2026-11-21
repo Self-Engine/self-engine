@@ -34,7 +34,8 @@ renderer side, in [the second guide](port-hooks.md); start it once step 7 is don
 Copy the shape of [`notes/contracts/index.ts`](../../packages/storage/test/notes-module/contracts/index.ts):
 use Zod schemas and `oc.input(...).output(...).errors(...)`. Share entity id schemas and
 `Instant` through pure schema/value entries. Declare `NOT_FOUND` where applicable and
-`CONFLICT` with the operation’s allowed reason codes. Every Operation carries the Refusal: spread
+`CONFLICT` with the operation’s allowed reason codes, and the reasons of the input errors it
+raises itself with `inputErrors(...)` from `@self-engine/db/schema` (see below). Every Operation carries the Refusal: spread
 `refusal` from `@self-engine/db/schema` into its `.errors()`, and list no Reason's code; a Query
 does not carry it. An Operation without it does not compile, and the contract kit fails it. Write normal output schemas that
 preserve values: no transforms, defaults, coercion or other conversions. Tests and development
@@ -219,6 +220,14 @@ index enforce uniqueness, rather than querying first. Unique indexes over the sa
 must map to the same reason: SQLite's diagnostic cannot distinguish their partial predicates. Restore into a reused title produces the
 same conflict as create. Throw `ORPCError("CONFLICT", { data: { reason } })` for a business
 conflict that no index expresses. Errors carry codes/reasons for the renderer to translate.
+
+A limit at the input that only the Data Process can judge, such as a start after its "now" (D348),
+is an input error, not a conflict or a Refusal
+([ADR 0040](../adr/0040-an-operation-answers-an-input-error-a-form-shows-at-its-field.md)): throw
+`inputError(["startedAt"], START_IN_FUTURE)` from `@self-engine/storage`, and declare the reason in
+the entry's `.errors({ ...inputErrors(START_IN_FUTURE), ...refusal })`, as `editTimer` of
+`time-tracking` does. The frame rolls back and announces nothing; the page shows the reason's text
+at the field the path names. A limit that depends on stored rows is a Protection Rule.
 
 ### Protection Rules
 
@@ -621,7 +630,8 @@ when enabled, and rolls back on failure. After commit it announces a nonempty ta
 queries, failed operations and zero-row writes (including empty `RETURNING` results) announce nothing. A failing announcer is
 reported as an unexpected error; the caller still receives the committed result. With output
 checks on, a translated conflict reason not declared by the entry is also reported as an
-unexpected error; the caller still receives the conflict. With checks off, translation is unchanged.
+unexpected error; the caller still receives the conflict, and so is an input error the Operation
+raises with a reason its entry does not declare. With checks off, translation is unchanged.
 Unmapped unique violations
 and other unexpected errors become `INTERNAL_SERVER_ERROR` and go to the same injected
 `report` callback as large-result warnings. The Data Process passes that callback through.

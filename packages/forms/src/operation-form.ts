@@ -3,16 +3,20 @@ import { useForm, type UseFormReturnType } from "@mantine/form";
 import type { AnyContractProcedure, InferSchemaInput, InferSchemaOutput } from "@orpc/contract";
 import {
   type DataAccess,
+  type DeclaredInputReason,
   describeReasons,
+  type InputIssue,
   type OperationResult,
   type OperationState,
   type Reason,
   type RunOptions,
+  UNEXPECTED_NOTICE,
   useDataAccess,
 } from "@self-engine/data-client/react";
 import { useLayoutEffect, useRef, useState } from "react";
+import type { StandardSchemaV1 } from "@standard-schema/spec";
 import type { $brand } from "zod/v4/core";
-import { checkDraft, type FormTexts, type InputSchema } from "./check.ts";
+import { checkDraft, type FormTexts, type InputSchema, issueTexts } from "./check.ts";
 import { FieldListeners } from "./field-listeners.ts";
 import { FieldMessages, type FieldText } from "./field-messages.ts";
 import { UnfinishedTexts } from "./unfinished-texts.ts";
@@ -69,17 +73,27 @@ type SuccessData<Result> = Result extends { readonly status: "success"; readonly
   ? Data
   : never;
 
-export interface OperationFormOptions<
+/**
+ * The texts of a form of `Entry`: only those special to the module (D320), and a text for every
+ * reason the entry declares for its own input errors (D369), which the compiler asks for.
+ */
+type TextsOption<Entry extends AnyContractProcedure> = [DeclaredInputReason<Entry>] extends [never]
+  ? { readonly texts?: FormTexts<keyof InputOfEntry<Entry> & string> }
+  : {
+      readonly texts: FormTexts<keyof InputOfEntry<Entry> & string, DeclaredInputReason<Entry>>;
+    };
+
+export type OperationFormOptions<
   Entry extends AnyContractProcedure,
   Result extends AnyResult,
-> {
+> = OperationFormBase<Entry, Result> & TextsOption<Entry>;
+
+interface OperationFormBase<Entry extends AnyContractProcedure, Result extends AnyResult> {
   /**
    * The Contract entry the form submits to, such as `notesContract.create`. Its input schema
    * checks the draft (D317), so the module's Contract loads with the form, never at startup.
    */
   readonly entry: Entry;
-  /** Only the texts special to this module (D320). */
-  readonly texts?: FormTexts<keyof InputOfEntry<Entry> & string>;
   /** What the Operation hook of that entry returns, such as `useCreateNote()`. */
   readonly operation: OperationState<InputOfEntry<Entry>, Result>;
   /**
@@ -170,6 +184,11 @@ export interface FormBinding {
   readonly subscribeChanged: (listener: () => void) => () => void;
   readonly isRunning: () => boolean;
   readonly subscribeRunning: (listener: () => void) => () => void;
+  /**
+   * Gives the focus to the field a failed save named, once that field takes it: the body of the
+   * form calls it when its lock ends, since a field inside the locked fieldset takes no focus.
+   */
+  readonly focusPending: () => void;
   /** Makes `element` the one the focus goes to for `field`; returns the function that undoes it. */
   readonly register: (field: string, element: HTMLElement) => () => void;
 }
@@ -187,6 +206,8 @@ type Values = Record<string, unknown>;
 
 interface Latest {
   readonly draft: UseFormReturnType<Values>;
+  /** The general notice, for an issue whose field changed before the form took it. */
+  readonly notify: DataAccess["notify"];
   /** The shared Notice of a Refusal, for a Reason whose field changed before the form took it. */
   readonly notifyRefused: DataAccess["notifyRefused"];
   /** The options without the types that tie them to one entry. */
@@ -228,15 +249,15 @@ export function useOperationForm<Entry extends AnyContractProcedure, Result exte
   options: OperationFormOptions<Entry, Result>,
 ): OperationForm<DraftOfEntry<Entry>> {
   const draft = useForm<Values>({ mode: "uncontrolled", initialValues: options.draft });
-  const { notifyRefused } = useDataAccess();
+  const { notify, notifyRefused } = useDataAccess();
   // Read when the user acts, never while drawing: the latest Operation state and callback.
-  const latest = useRef<Latest>({ draft, notifyRefused, options } as unknown as Latest);
+  const latest = useRef<Latest>({ draft, notify, notifyRefused, options } as unknown as Latest);
   const [{ form, follow }] = useState(() =>
     createForm(() => latest.current, options.edit !== undefined),
   );
   // Before the browser paints: no frame shows a field's old value beside the new entry (D324).
   useLayoutEffect(() => {
-    latest.current = { draft, notifyRefused, options } as unknown as Latest;
+    latest.current = { draft, notify, notifyRefused, options } as unknown as Latest;
     follow();
   });
   return form;
@@ -258,6 +279,14 @@ function createForm(latest: () => Latest, isEdit: boolean): MadeForm {
   const conflicts = new Map<string, MessageDescriptor>();
   // The Reasons of the last refused save at the fields the Operation maps their columns to (D334).
   const refusedAt = new Map<string, FieldText>();
+  // The input error of the last save, at the fields its issues name (D369).
+  const invalidAt = new Map<string, MessageDescriptor>();
+  // The field a failed save named, until it takes the focus.
+  let focusField: string | undefined;
+  const focusPending = () => {
+    const element = focusField === undefined ? undefined : elements.get(focusField);
+    if (element !== undefined && focusInto(element)) focusField = undefined;
+  };
   const elements = new Map<string, HTMLElement>();
   const changedListeners = new Set<() => void>();
   const normalize = (values: Values): Values => {
@@ -327,6 +356,7 @@ function createForm(latest: () => Latest, isEdit: boolean): MadeForm {
       new Map<string, FieldText>([
         ...conflicts,
         ...refusedAt,
+        ...invalidAt,
         ...violations,
         ...unfinished.shown(),
       ]),
@@ -342,7 +372,8 @@ function createForm(latest: () => Latest, isEdit: boolean): MadeForm {
   const answerAt = (field: string) => {
     const hadConflict = conflicts.delete(field);
     const hadReason = refusedAt.delete(field);
-    return hadConflict || hadReason;
+    const hadIssue = invalidAt.delete(field);
+    return hadConflict || hadReason || hadIssue;
   };
   const change = (field: string, value: unknown) => {
     // Without the forced update: the field already shows what was typed.
@@ -390,6 +421,7 @@ function createForm(latest: () => Latest, isEdit: boolean): MadeForm {
   const form: OperationForm<never> = {
     async submit() {
       if (running || !canSubmit()) return;
+      focusField = undefined;
       unfinished.reportAll();
       const found = check();
       const blocked = new Set([...found.keys(), ...unfinished.shown().keys()]);
@@ -416,9 +448,22 @@ function createForm(latest: () => Latest, isEdit: boolean): MadeForm {
           sameValue(normalized()[field], drafted[field]);
         const entry = options.entryName === undefined ? {} : { entry: options.entryName };
         const result = await options.operation.run(sent, { ...entry, showsField: showsAsSent });
-        // Every answer replaces the Reasons of the last refused save: they spoke of that save.
-        const hadReasons = refusedAt.size > 0;
+        // Every answer replaces the Reasons of the last refused save and the issues of the last
+        // invalid one: they spoke of that save.
+        const hadReasons = refusedAt.size > 0 || invalidAt.size > 0;
         refusedAt.clear();
+        invalidAt.clear();
+        if (result.status === "invalid") {
+          // As for a Reason: an issue whose field changed meanwhile goes to the general notice.
+          const atFields = result.atFields.filter(({ field }) => showsAsSent(field));
+          for (const [field, text] of textsOf(atFields, drafted, options.texts)) {
+            invalidAt.set(field, text);
+          }
+          if (atFields.length < result.atFields.length) latest().notify(UNEXPECTED_NOTICE);
+          // The first such field on screen takes the focus, once the lock of the save ends.
+          const first = firstOnScreen(invalidAt.keys(), elements);
+          focusField = [...invalidAt.keys()].find((field) => elements.get(field) === first);
+        }
         if (result.status === "refused") {
           // The hook told every other Reason in its Notice. A field can change, or go, between
           // the hook's answer and this moment, such as by code the Notice runs: asked again here,
@@ -434,7 +479,11 @@ function createForm(latest: () => Latest, isEdit: boolean): MadeForm {
         if (result.status === "conflict" && result.field !== null) {
           conflicts.set(result.field, result.text);
         }
-        if (result.status === "refused" || (result.status === "conflict" && result.field !== null))
+        if (
+          result.status === "refused" ||
+          result.status === "invalid" ||
+          (result.status === "conflict" && result.field !== null)
+        )
           check();
         else if (hadReasons) show();
         if (result.status === "success") {
@@ -447,6 +496,8 @@ function createForm(latest: () => Latest, isEdit: boolean): MadeForm {
       } finally {
         setRunning(false);
       }
+      // A form without the shared body has no lock, and its field takes the focus now.
+      focusPending();
     },
     setValue(field, value) {
       // Also a value the draft holds already reaches the field, which drops any text it holds.
@@ -480,6 +531,7 @@ function createForm(latest: () => Latest, isEdit: boolean): MadeForm {
       return () => changedListeners.delete(listener);
     },
     isRunning: () => running,
+    focusPending,
     subscribeRunning(listener) {
       runningListeners.add(listener);
       return () => {
@@ -541,16 +593,33 @@ function firstOnScreen(
 }
 
 /**
- * Focuses a field: its element where that takes the focus, such as a text input, else the first
- * element inside it that does, such as the button of a picker or its chosen radio.
+ * The text at each field of an input error's issues, the way the form's own check words them
+ * (D369): the Operation's issues have the shape of the input schema's.
  */
-function focusInto(field: HTMLElement): void {
+function textsOf(
+  issues: readonly InputIssue[],
+  draft: Values,
+  texts: FormTexts | undefined,
+): ReadonlyMap<string, MessageDescriptor> {
+  const asSchemaIssues = issues.map(
+    ({ issue, path }) => ({ message: "", ...issue, path }) as StandardSchemaV1.Issue,
+  );
+  return issueTexts(asSchemaIssues, draft, texts ?? {}, "The Operation");
+}
+
+/**
+ * Focuses a field: its element where that takes the focus, such as a text input, else the first
+ * element inside it that does, such as the button of a picker or its chosen radio. Whether one
+ * took it: inside a locked form, none does.
+ */
+function focusInto(field: HTMLElement): boolean {
   const takesFocus = (element: HTMLElement) =>
     element.tabIndex >= 0 && !element.matches(":disabled");
   const target = takesFocus(field)
     ? field
     : [...field.querySelectorAll<HTMLElement>("*")].find(takesFocus);
   target?.focus();
+  return target !== undefined;
 }
 
 /**

@@ -3,7 +3,7 @@
 // `exampleFields`, so a story that needs another field adds its own line.
 
 import { oc } from "@orpc/contract";
-import { refusal } from "@self-engine/db/schema";
+import { inputErrors, refusal } from "@self-engine/db/schema";
 import { calendarDaySchema, wallClockTimeSchema } from "@self-engine/time";
 import { z } from "zod";
 
@@ -29,6 +29,12 @@ export const exampleEntrySchema = z.object({
   ...exampleFields,
   description: exampleFields.description.nullable(),
 });
+
+/**
+ * The reason of the input error the example's create raises for a day after the Data Process's
+ * today (D369): a limit the page cannot judge, as the timer's start after its "now".
+ */
+export const DAY_AFTER_TODAY = "day_after_today";
 
 /** The example's Port, mounted as `example` in the stories. */
 export const exampleTiedFields = [["icon", "color"]] as const;
@@ -69,6 +75,7 @@ export const exampleContract = {
     .errors({
       NOT_FOUND: {},
       CONFLICT: { data: z.object({ reason: z.literal("title_taken") }) },
+      ...inputErrors(DAY_AFTER_TODAY),
       ...refusal,
     }),
 };

@@ -242,9 +242,10 @@ test("the Data Process rejects an unknown field, an empty title and an unknown i
     { title: "Website", icon: "no-such-icon" },
     { title: "Website", color: "gray" },
   ]) {
-    // The Operation's types refuse these inputs; a caller without types can still send them.
+    // The Operation's types refuse these inputs; a caller without types can still send them. The
+    // frame's check answers an input error (ADR 0040).
     expect(await createProject(rendered.data, input as { title: string })).toMatchObject({
-      status: "unexpected",
+      status: "invalid",
     });
   }
   const ready = await rendered.until((list) => list.status === "content");
