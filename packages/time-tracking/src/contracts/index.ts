@@ -65,6 +65,12 @@ function timesTravelTogether(input: EditFields): input is EditFields & EditTimes
 
 // A predicate narrows what the Data Process receives. The strict Field List object still
 // supplies the caller input type and lets the contract kit check the edit pattern.
+/** The input of create, which the input Command checks with too: the same checks for every caller. */
+export const timeEntryCreateInput = timeEntryFields.create.refine(
+  endsAfterStart,
+  endsAfterStartIssue,
+);
+
 const timeEntryEditSchema = timeEntryFields.edit
   .refine(endsAfterStart, endsAfterStartIssue)
   .refine(timesTravelTogether, { params: { reason: "start_and_end_together" } });
@@ -102,7 +108,7 @@ export const timeTrackingContract = {
    * unknown one and accepts an archived one (D337).
    */
   create: oc
-    .input(timeEntryFields.create.refine(endsAfterStart, endsAfterStartIssue))
+    .input(timeEntryCreateInput)
     .output(timeEntrySchema)
     .errors({ ...refusal }),
   /** A missing field stays untouched, `null` clears it, and an edit without fields reads. */

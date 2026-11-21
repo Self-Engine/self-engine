@@ -111,3 +111,20 @@ test("the story Port changes the stored entries and delivers the Table Change of
   const days = daysOf(await port.access.call("timeTracking", "days", { span: WEEK }));
   expect(days[4]?.total).toBe(2650);
 });
+
+test("the Query of one entry answers the stored entry of that id, or no entry", async () => {
+  const access = timeTrackingAnswers({ entries: [NIGHT] });
+  await expect(access.call("timeTracking", "entry", { id: NIGHT.id })).resolves.toEqual(NIGHT);
+  await expect(access.call("timeTracking", "entry", { id: MORNING.id })).resolves.toBeNull();
+});
+
+test("the story Port records each Operation, and its change follows in the Query of one entry", async () => {
+  const port = timeTrackingStoryPort({ entries: [NIGHT] }, {}, (call, of) => {
+    if (call.entry === "delete") of.change({ entries: [] });
+  });
+  await port.access.call("timeTracking", "entry", { id: NIGHT.id });
+  await port.access.call("timeTracking", "delete", { id: NIGHT.id });
+
+  expect(port.calls).toEqual([{ entry: "delete", input: { id: NIGHT.id } }]);
+  await expect(port.access.call("timeTracking", "entry", { id: NIGHT.id })).resolves.toBeNull();
+});

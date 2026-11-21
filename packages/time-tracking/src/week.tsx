@@ -10,7 +10,7 @@ import {
 } from "@self-engine/time";
 import { useFirstDayOfWeek, useTimeZone, useToday } from "@self-engine/time/react";
 import { QueryStateBlock } from "@self-engine/ui";
-import { useMemo } from "react";
+import { useCallback, useMemo } from "react";
 import { type DaysAnswer, useSpanDays } from "./port.ts";
 import { shownProjectFilter, timeEntryFilter } from "./project-filter-address.ts";
 import { WeekProjectFilter } from "./week-project-filter.tsx";
@@ -130,6 +130,12 @@ function WeekContent({
   readonly timeZone: TimeZone;
 }) {
   const { t } = useLingui();
+  const write = useWriteViewSearch();
+  // One function for every day and row, so that a Table Change redraws only the changed day.
+  const open = useCallback(
+    (address: string) => write((search) => ({ ...search, edit: address })),
+    [write],
+  );
   return (
     <Grid>
       <Grid.Col span={{ base: 12, md: 8 }}>
@@ -140,6 +146,7 @@ function WeekContent({
               isToday={day.day === today}
               key={day.day}
               locale={locale}
+              onOpen={open}
               timeZone={timeZone}
             />
           ))}

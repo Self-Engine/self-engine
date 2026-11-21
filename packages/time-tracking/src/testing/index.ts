@@ -2,6 +2,8 @@
 // boundary rule keeps this entry, and the Contract schemas it loads, out of the app.
 
 import type { PortAccess } from "@self-engine/data-client/react";
+import { targetDeleted } from "@self-engine/db/schema";
+import { z } from "zod";
 import {
   changingAnswers,
   type FixedAnswerOptions,
@@ -23,14 +25,22 @@ import {
   type TimeEntryId,
   timeEntryIdSchema,
   type TimeEntryWithProject,
+  timeEntryWithProjectSchema,
   timeTrackingContract,
 } from "../contracts/index.ts";
 import { groupDays } from "../data/group-days.ts";
 
 const contracts = { timeTracking: timeTrackingContract };
+const byIdSchema = z.strictObject({ id: timeEntryIdSchema });
 
-/** What each entry of `time-tracking` answers in a story. */
-export type TimeTrackingAnswers = NonNullable<FixedAnswers<typeof contracts>["timeTracking"]>;
+/**
+ * What each entry of `time-tracking` answers in a story. A refused write may carry the frame's
+ * Reason of a deleted project (D337), the only Reason its writes meet.
+ */
+export type TimeTrackingAnswers = NonNullable<
+  FixedAnswers<typeof contracts, typeof targetDeleted>["timeTracking"]
+>;
+export type TimeTrackingAnswerOptions = Omit<FixedAnswerOptions<typeof targetDeleted>, "reasons">;
 
 /** A well-formed time entry id, numbered: what the Data Process would hand out. */
 export function sampleTimeEntryId(index: number): TimeEntryId {
@@ -96,15 +106,19 @@ export const SUCCEEDING = {
 /**
  * The Port access of a story. The Query of a Day Span answers from `stored` for the span and the
  * filter the View asks, grouped in the stored Time Zone as the Data Process groups them, and
- * checked against the Contract on both ends; `answers` replace that or the succeeding Operations.
+ * checked against the Contract on both ends; the Query of one entry answers the stored entry of
+ * that id, or `null`. `answers` replace either or the succeeding Operations.
  */
 export function timeTrackingAnswers(
   stored: StoredTimeEntries = {},
   answers: TimeTrackingAnswers = {},
-  options?: FixedAnswerOptions,
+  options: TimeTrackingAnswerOptions = {},
 ): PortAccess {
-  const fixed = fixedAnswers(contracts, { timeTracking: { ...SUCCEEDING, ...answers } }, options);
-  if (answers.days !== undefined) return fixed;
+  const fixed = fixedAnswers(
+    contracts,
+    { timeTracking: { ...SUCCEEDING, ...answers } },
+    { ...options, reasons: [targetDeleted] },
+  );
   const timeZone = stored.timeZone ?? BERLIN;
   const entries = (stored.entries ?? []).toSorted(
     (a, b) => a.startedAt.localeCompare(b.startedAt) || a.id.localeCompare(b.id),
@@ -112,7 +126,12 @@ export function timeTrackingAnswers(
   return {
     ...fixed,
     async call(module, entry, input, signal) {
-      if (module !== "timeTracking" || entry !== "days") {
+      if (module === "timeTracking" && entry === "entry" && answers.entry === undefined) {
+        const { id } = byIdSchema.parse(input);
+        const found = entries.find((stored) => stored.id === id) ?? null;
+        return timeEntryWithProjectSchema.nullable().parse(found);
+      }
+      if (module !== "timeTracking" || entry !== "days" || answers.days !== undefined) {
         return fixed.call(module, entry, input, signal);
       }
       const { span, filter } = daysInputSchema.parse(input);
@@ -128,25 +147,59 @@ export function timeTrackingAnswers(
   };
 }
 
-/** The tables the Query of a Day Span reads, as the Data Process's Query-to-tables list names them. */
-const QUERIES = { timeTracking: { days: ["time_entries", "projects"] } };
+/** The tables each Query reads, as the Data Process's Query-to-tables list names them. */
+const QUERIES = {
+  timeTracking: { days: ["time_entries", "projects"], entry: ["time_entries", "projects"] },
+};
+
+/** A call of an Operation that reached a story's Port. */
+export interface TimeTrackingCall {
+  readonly entry: string;
+  readonly input: unknown;
+}
 
 /**
  * The Port of a story that changes the stored entries under an open View, as another window, an
- * assistant or the sync would (Changing Answers).
+ * assistant or the sync would (Changing Answers). It records each Operation's call.
  */
 export interface TimeTrackingStoryPort {
   readonly access: PortAccess;
+  /** The Operations called so far, in order; the Queries are left out. */
+  readonly calls: readonly TimeTrackingCall[];
   /** Answers from `next` from now on and delivers the Table Change of `time_entries`. */
   readonly change: (next: StoredTimeEntries) => void;
 }
 
-export function timeTrackingStoryPort(first: StoredTimeEntries = {}): TimeTrackingStoryPort {
-  const changing = changingAnswers(timeTrackingAnswers(first), QUERIES);
-  return {
-    access: changing.access,
-    change: (next) => changing.change(timeTrackingAnswers(next), ["time_entries"]),
+/**
+ * `answers` replace what the Operations answer; `afterCall` runs after each Operation's answer,
+ * such as to change the stored entries as the Data Process would have.
+ */
+export function timeTrackingStoryPort(
+  first: StoredTimeEntries = {},
+  answers: TimeTrackingAnswers = {},
+  afterCall?: (call: TimeTrackingCall, port: TimeTrackingStoryPort) => void,
+): TimeTrackingStoryPort {
+  const changing = changingAnswers(timeTrackingAnswers(first, answers), QUERIES);
+  const calls: TimeTrackingCall[] = [];
+  const port: TimeTrackingStoryPort = {
+    calls,
+    access: {
+      ...changing.access,
+      async call(module, entry, input, signal) {
+        if (changing.access.describeEntry(module, entry)?.kind === "query")
+          return changing.access.call(module, entry, input, signal);
+        const call = { entry, input };
+        calls.push(call);
+        try {
+          return await changing.access.call(module, entry, input, signal);
+        } finally {
+          afterCall?.(call, port);
+        }
+      },
+    },
+    change: (next) => changing.change(timeTrackingAnswers(next, answers), ["time_entries"]),
   };
+  return port;
 }
 
 /**

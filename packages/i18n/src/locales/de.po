@@ -60,6 +60,11 @@ msgstr "{minimum, plural, other {Mehr als #.}}"
 msgid "{name} indicator failed. Try again."
 msgstr "Die Modulanzeige für {name} ist ausgefallen. Erneut versuchen."
 
+#. A time entry's project and its start
+#: packages/time-tracking/src/edit-drawer.tsx
+msgid "{project}, {start}"
+msgstr "{project}, {start}"
+
 #. A wall-clock time and its UTC offset
 #: packages/forms/src/time-range-field.tsx
 msgid "{time} ({utc})"
@@ -345,6 +350,7 @@ msgstr "Uhr"
 
 #: packages/placeholder-alpha/src/edit-drawer.tsx
 #: packages/projects/src/edit-drawer.tsx
+#: packages/time-tracking/src/edit-drawer.tsx
 msgctxt "Close the drawer"
 msgid "Close"
 msgstr "Schließen"
@@ -552,6 +558,7 @@ msgstr "Standard-Hautton"
 #: packages/placeholder-alpha/src/edit-drawer.tsx
 #: packages/placeholder-alpha/src/entries.tsx
 #: packages/projects/src/edit-drawer.tsx
+#: packages/time-tracking/src/edit-drawer.tsx
 msgid "Delete"
 msgstr "Löschen"
 
@@ -954,6 +961,11 @@ msgstr "Neutral"
 msgid "Neutral background"
 msgstr "Neutraler Hintergrund"
 
+#: packages/time-tracking/src/week-day.tsx
+msgctxt "Create a time entry on this day"
+msgid "New"
+msgstr "Neu"
+
 #: packages/placeholder-alpha/src/edit-drawer.tsx
 #: packages/placeholder-alpha/src/entries.tsx
 #: packages/placeholder-alpha/src/index.ts
@@ -965,6 +977,15 @@ msgstr "Neuer Eintrag"
 #: packages/projects/src/index.ts
 msgid "New project"
 msgstr "Neues Projekt"
+
+#: packages/time-tracking/src/edit-drawer.tsx
+#: packages/time-tracking/src/index.ts
+msgid "New time entry"
+msgstr "Neuer Zeiteintrag"
+
+#: packages/time-tracking/src/week-day.tsx
+msgid "New time entry on {fullDate}"
+msgstr "Neuer Zeiteintrag am {fullDate}"
 
 #: packages/time-tracking/src/week.tsx
 msgid "Next week"
@@ -1018,6 +1039,11 @@ msgstr "Handyverbot"
 msgid "No project"
 msgstr "Kein Projekt"
 
+#. A time entry without a project and its start
+#: packages/time-tracking/src/edit-drawer.tsx
+msgid "No project, {start}"
+msgstr "Ohne Projekt, {start}"
+
 #: packages/projects/src/active.tsx
 msgid "No projects yet"
 msgstr "Noch keine Projekte"
@@ -1036,6 +1062,7 @@ msgid "No Time Zone found"
 msgstr "Keine Zeitzone gefunden"
 
 #: packages/placeholder-alpha/src/indicator/panel.tsx
+#: packages/time-tracking/src/edit-drawer.tsx
 msgid "Note"
 msgstr "Notiz"
 
@@ -1185,6 +1212,10 @@ msgstr "Vorige Woche"
 msgctxt "Icon"
 msgid "Prohibited"
 msgstr "Verbot"
+
+#: packages/time-tracking/src/edit-drawer.tsx
+msgid "Project"
+msgstr "Projekt"
 
 #: packages/projects/src/with-undo.tsx
 msgid "Project archived"
@@ -1534,6 +1565,7 @@ msgid "The end lies on the next day."
 msgstr "Das Ende liegt am nächsten Tag."
 
 #: packages/forms/src/testing/example/stretch.tsx
+#: packages/time-tracking/src/edit-drawer.tsx
 msgid "The end must lie after the start."
 msgstr "Das Ende muss nach dem Beginn liegen."
 
@@ -1667,6 +1699,23 @@ msgstr "Donnerstag"
 #: packages/time-tracking/src/index.ts
 msgid "Time"
 msgstr "Zeit"
+
+#: packages/time-tracking/src/edit-drawer.tsx
+msgctxt "When a time entry took place"
+msgid "Time"
+msgstr "Zeit"
+
+#: packages/time-tracking/src/edit-drawer.tsx
+msgid "Time entry"
+msgstr "Zeiteintrag"
+
+#: packages/time-tracking/src/edit-drawer.tsx
+msgid "Time entry deleted"
+msgstr "Zeiteintrag gelöscht"
+
+#: packages/time-tracking/src/edit-drawer.tsx
+msgid "Time entry not found"
+msgstr "Zeiteintrag nicht gefunden"
 
 #: packages/settings-area/src/region-rows.tsx
 msgid "Time Zone"
