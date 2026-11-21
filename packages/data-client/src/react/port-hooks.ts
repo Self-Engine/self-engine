@@ -12,7 +12,14 @@ import {
   operationFunction,
   operationHook,
 } from "./operation-hook.ts";
-import { type QueryHook, queryHook, type ReloadHook, reloadHook } from "./query-hook.ts";
+import {
+  type QueryFunction,
+  queryFunction,
+  type QueryHook,
+  queryHook,
+  type ReloadHook,
+  reloadHook,
+} from "./query-hook.ts";
 
 /** The handling an Operation hook needs: required when the entry declares a conflict. */
 type HandlingArgument<Input, Reason extends string, Tables = never> = [Reason] extends [never]
@@ -28,6 +35,14 @@ export interface PortHooks<Contract extends ModuleContract, Tables = never> {
   query<Entry extends EntryName<Contract>>(
     entry: Entry,
   ): QueryHook<InputOf<Contract, Entry>, OutputOf<Contract, Entry>>;
+  /**
+   * The same Query as a function of the Port access, for code outside React such as a Command
+   * (D261): one fresh read, typed from the Contract, that neither reads nor fills the page's
+   * cache and rejects with the call's error.
+   */
+  read<Entry extends EntryName<Contract>>(
+    entry: Entry,
+  ): QueryFunction<InputOf<Contract, Entry>, OutputOf<Contract, Entry>>;
   /**
    * The hook that calls the Operation `entry`, typed from the Contract (D251). An entry that
    * declares conflicts needs a text and a field for each of its reasons.
@@ -85,6 +100,7 @@ export function portHooks<Contract extends ModuleContract, Tables = never>(
 ): PortHooks<Contract, Tables> {
   return {
     query: (entry) => queryHook(module, entry),
+    read: (entry) => queryFunction(module, entry),
     operation: (entry, handling = {}) => operationHook(module, entry, handling),
     run: (entry, handling = {}) => operationFunction(module, entry, handling),
     reload: (entry) => reloadHook(module, entry),

@@ -398,6 +398,19 @@ export default defineOpenCommand({
 });
 ```
 
+A Command that reads before it acts, such as one that stops the latest running timer, builds
+the Query’s function form the same way, with `read` instead of `query`. It takes the Port access,
+the input and an optional `AbortSignal`, typed from the Contract, and resolves with the answer:
+one fresh read that neither reads nor fills the page’s cache, and that rejects with the call’s
+error, so the Command fails as any other start does.
+
+```ts
+// port.ts
+const readRunning = timeTrackingPort.read("runningTimers");
+export const readLatestRunningTimer = async (data: DataAccess) =>
+  (await readRunning(data, undefined)).at(0);
+```
+
 A Command for a later agent returns the result as its value, conflict and field included
 ([`create-named-entry.ts`](../../packages/placeholder-alpha/src/create-named-entry.ts) with
 `createEntry`). A story or test that gives a Command its own `data` collects its Notices too.

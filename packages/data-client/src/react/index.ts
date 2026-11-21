@@ -46,5 +46,5 @@ export {
   useDataAccess,
   useReasonTexts,
 } from "./provider.ts";
-export type { QueryHook, QueryState, ReloadHook } from "./query-hook.ts";
+export type { QueryFunction, QueryHook, QueryState, ReloadHook } from "./query-hook.ts";
 export { useWithUndo } from "./with-undo.ts";
