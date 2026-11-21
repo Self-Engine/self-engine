@@ -509,6 +509,9 @@ importers:
       '@self-engine/time':
         specifier: workspace:*
         version: link:../../packages/time
+      '@self-engine/time-tracking':
+        specifier: workspace:*
+        version: link:../../packages/time-tracking
       '@types/node':
         specifier: 24.19.2
         version: 24.19.2
@@ -667,6 +670,9 @@ importers:
       '@self-engine/settings-data':
         specifier: workspace:*
         version: link:../settings-data
+      '@self-engine/time-tracking':
+        specifier: workspace:*
+        version: link:../time-tracking
       zod:
         specifier: 'catalog:'
         version: 4.6.7
@@ -1571,6 +1577,55 @@ importers:
       storybook:
         specifier: 'catalog:'
         version: 10.6.6(@types/react@19.3.0)(prettier@3.9.10)(react@19.3.1)(vite-plus@1.5.0(@types/node@24.19.2)(@vitest/browser-playwright@5.1.0)(@vitest/ui@5.1.0)(esbuild@0.28.2)(happy-dom@21.0.4)(jiti@2.7.0)(playwright@1.65.0)(typescript@7.0.2))
+      vite-plus:
+        specifier: 1.5.0
+        version: 1.5.0(@types/node@24.19.2)(@vitest/browser-playwright@5.1.0)(@vitest/ui@5.1.0)(esbuild@0.28.2)(happy-dom@21.0.4)(jiti@2.7.0)(playwright@1.65.0)(typescript@7.0.2)
+
+  packages/time-tracking:
+    dependencies:
+      '@lingui/core':
+        specifier: 'catalog:'
+        version: 6.12.0(@babel/core@8.1.0)
+      '@orpc/contract':
+        specifier: 'catalog:'
+        version: 1.16.2
+      '@self-engine/data-client':
+        specifier: workspace:*
+        version: link:../data-client
+      '@self-engine/db':
+        specifier: workspace:*
+        version: link:../db
+      '@self-engine/projects':
+        specifier: workspace:*
+        version: link:../projects
+      '@self-engine/storage':
+        specifier: workspace:*
+        version: link:../storage
+      '@self-engine/time':
+        specifier: workspace:*
+        version: link:../time
+      zod:
+        specifier: 'catalog:'
+        version: 4.6.7
+    devDependencies:
+      '@orpc/client':
+        specifier: 'catalog:'
+        version: 1.16.2
+      '@self-engine/data-process':
+        specifier: workspace:*
+        version: link:../data-process
+      '@self-engine/data-protocol':
+        specifier: workspace:*
+        version: link:../data-protocol
+      '@self-engine/i18n':
+        specifier: workspace:*
+        version: link:../i18n
+      '@self-engine/settings-data':
+        specifier: workspace:*
+        version: link:../settings-data
+      '@types/node':
+        specifier: 24.19.2
+        version: 24.19.2
       vite-plus:
         specifier: 1.5.0
         version: 1.5.0(@types/node@24.19.2)(@vitest/browser-playwright@5.1.0)(@vitest/ui@5.1.0)(esbuild@0.28.2)(happy-dom@21.0.4)(jiti@2.7.0)(playwright@1.65.0)(typescript@7.0.2)
