@@ -278,7 +278,10 @@ test("an invalid name stays at the field without an Operation; the Data Process 
   expect(rendered.done()).toBe(0);
   const ready = await rendered.until((hooks) => hooks.list.status === "content");
   expect(names(ready)).toEqual([]);
-  expect(await createEntry(rendered.data, { name: "" })).toMatchObject({ status: "unexpected" });
+  expect(await createEntry(rendered.data, { name: "" })).toMatchObject({
+    status: "invalid",
+    issues: [{ field: "name", reason: undefined }],
+  });
 });
 
 test("Enter creates an entry and a taken name remains at the field", async () => {
