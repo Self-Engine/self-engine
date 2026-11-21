@@ -683,3 +683,10 @@ has changed. Use `onCancel` to ask before closing and `onDone` after a successfu
 date, time and Select fields of `forms` work in the panel as they are: a pick in their dropdown
 keeps the panel open.
 See the [example panel](../../packages/placeholder-alpha/src/indicator/panel.tsx).
+
+Content with several parts shows one at a time, such as the timer's form and its "Stop at …".
+Which part shows is the module's own state, outside React: a Notice's action or a Command asks
+for a part and then opens the panel; an open panel switches, asking first through
+`confirmDiscard` when its form holds unsaved changes, and puts the focus on the new part's first
+field. See the [timer's panel](../../packages/time-tracking/src/indicator/panel.tsx) and
+[its state](../../packages/time-tracking/src/indicator/panel-part.ts).
