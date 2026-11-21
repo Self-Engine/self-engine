@@ -9,6 +9,7 @@ import {
   fixedAnswers,
 } from "@self-engine/data-client/testing";
 import type { ProjectReference } from "@self-engine/projects/contracts";
+import { GARDEN, OLD_SITE, projectReference, WEBSITE } from "@self-engine/projects/testing";
 import {
   dayRangesOf,
   durationBetween,
@@ -147,3 +148,61 @@ export function timeTrackingStoryPort(first: StoredTimeEntries = {}): TimeTracki
     change: (next) => changing.change(timeTrackingAnswers(next), ["time_entries"]),
   };
 }
+
+/**
+ * A sample week, Monday 16 to Sunday 22 November 2026, as Berlin (UTC+1) sees it; the times in
+ * the comments are Berlin's. Saturday and Sunday are empty.
+ */
+export const SAMPLE_WEEK = {
+  /** Monday 08:00 to 11:30. */
+  landingPage: timeEntry(1, {
+    startedAt: "2026-11-16T07:00:00.000Z",
+    endedAt: "2026-11-16T10:30:00.000Z",
+    project: projectReference(WEBSITE),
+    note: "Landing page",
+  }),
+  /** Monday 13:00 to 14:15, without a project. */
+  emails: timeEntry(2, {
+    startedAt: "2026-11-16T12:00:00.000Z",
+    endedAt: "2026-11-16T13:15:00.000Z",
+    note: "Emails",
+  }),
+  /** Tuesday 09:00 to 12:00, a project with an emoji. */
+  beds: timeEntry(3, {
+    startedAt: "2026-11-17T08:00:00.000Z",
+    endedAt: "2026-11-17T11:00:00.000Z",
+    project: projectReference(GARDEN),
+    note: "Raised beds",
+  }),
+  /** Wednesday 09:30 to 10:14:10, as a timer leaves it: 44:10 shows "0:45" (D345). */
+  review: timeEntry(4, {
+    startedAt: "2026-11-18T08:30:00.000Z",
+    endedAt: "2026-11-18T09:14:10.000Z",
+    project: projectReference(WEBSITE),
+    note: "Review",
+  }),
+  /** Wednesday 10:30 to 10:50:10: 20:10 shows "0:21", and the day 64:20 shows "1:05". */
+  fixes: timeEntry(5, {
+    startedAt: "2026-11-18T09:30:00.000Z",
+    endedAt: "2026-11-18T09:50:10.000Z",
+    project: projectReference(WEBSITE),
+    note: "Fixes",
+  }),
+  /** Thursday 22:00 to Friday 01:30: across midnight. */
+  release: timeEntry(6, {
+    startedAt: "2026-11-19T21:00:00.000Z",
+    endedAt: "2026-11-20T00:30:00.000Z",
+    project: projectReference(WEBSITE),
+    note: "Release",
+  }),
+  /** Friday 09:00 to 10:00, of an archived project. */
+  handover: timeEntry(7, {
+    startedAt: "2026-11-20T08:00:00.000Z",
+    endedAt: "2026-11-20T09:00:00.000Z",
+    project: projectReference(OLD_SITE),
+    note: "Handover",
+  }),
+} as const;
+
+/** The entries of the sample week, as a story's Port stores them. */
+export const SAMPLE_WEEK_ENTRIES: readonly TimeEntryWithProject[] = Object.values(SAMPLE_WEEK);
