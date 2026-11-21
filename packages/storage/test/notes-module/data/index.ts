@@ -1,5 +1,6 @@
 import {
   defineStorageModule,
+  inputError,
   sharedEntry,
   sharedWrites,
   smallSetList,
@@ -7,7 +8,7 @@ import {
   pageList,
   protectionRule,
 } from "../../../src/core/index.ts";
-import { notesContract, pinnedNote } from "../contracts/index.ts";
+import { notesContract, pinnedNote, TITLE_RESERVED } from "../contracts/index.ts";
 import { notesMigrations, notesRowMap, noteIdSchema, toNote } from "./rows.ts";
 /** The module's Protection Rule: a pinned note is not deleted; it answers for many rows at once. */
 export const pinnedNotesStay = protectionRule(notesRowMap, {
@@ -75,6 +76,8 @@ export const notes = defineStorageModule({
         title: input.title,
         is_pinned: input.isPinned ? 1 : 0,
       });
+      // After the write, so a test sees the frame roll it back.
+      if (input.title === "Inbox") throw inputError(["title"], TITLE_RESERVED);
       return toNote(row);
     },
   },

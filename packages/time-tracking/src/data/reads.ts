@@ -12,4 +12,5 @@ const SETTINGS: typeof SETTINGS_TABLE = "settings";
 export const TIME_TRACKING_READS = {
   entry: ["time_entries", "projects"],
   days: ["time_entries", "projects", SETTINGS],
+  runningTimers: ["timers", "projects"],
 } as const;

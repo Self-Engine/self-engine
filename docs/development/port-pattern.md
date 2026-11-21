@@ -34,7 +34,8 @@ renderer side, in [the second guide](port-hooks.md); start it once step 7 is don
 Copy the shape of [`notes/contracts/index.ts`](../../packages/storage/test/notes-module/contracts/index.ts):
 use Zod schemas and `oc.input(...).output(...).errors(...)`. Share entity id schemas and
 `Instant` through pure schema/value entries. Declare `NOT_FOUND` where applicable and
-`CONFLICT` with the operation’s allowed reason codes. Every Operation carries the Refusal: spread
+`CONFLICT` with the operation’s allowed reason codes, and the reasons of the input errors it
+raises itself with `inputErrors(...)` from `@self-engine/db/schema` (see below). Every Operation carries the Refusal: spread
 `refusal` from `@self-engine/db/schema` into its `.errors()`, and list no Reason's code; a Query
 does not carry it. An Operation without it does not compile, and the contract kit fails it. Write normal output schemas that
 preserve values: no transforms, defaults, coercion or other conversions. Tests and development
@@ -169,10 +170,12 @@ or looks up one.
 For synchronized rows, use `sharedEntry(tx, context).live(table)` for a Space-filtered,
 non-deleted select, and `.lookup(table, id)` for one live row or `NOT_FOUND`. Use
 `sharedWrites(tx, context)` for `insert(table, id, fields)`, `update(table, id, fields)`,
-`softDelete(table, id)` and `restore(table, id)`. These set convention columns; callers cannot supply those columns in fields, even through
+`softDelete(table, id)` and `restore(table, id, fields?)`. These set convention columns; callers cannot supply those columns in fields, even through
 non-literal objects, and runtime writes discard injected convention fields. Update and
 soft delete require a live row; restore requires a deleted row. Unknown ids and ids in another
-Space are not found; restoring a live row is also not found.
+Space are not found; restoring a live row is also not found. An Operation whose own lookup
+finds nothing to act on, such as an undo with nothing to undo, throws `notFound()` from
+`storage` rather than building the error itself.
 
 `update` writes only the fields that are not `undefined`, so an edit hands its input on field by
 field, `{ title: input.title, body: input.body }`, and a missing field stays untouched. With no
@@ -180,6 +183,14 @@ field left it reads instead: it answers with the live row, writes nothing, leave
 and sends no Table Change. Mark such an entry `kind: "operation", edit: true`, as [`memos/data/index.ts`](../../packages/storage/test/memos-module/data/index.ts) does;
 the kit then checks the edit pattern (step 6). The Operation does not compare with the stored
 state: sending the value already stored writes and advances `updated_at` (ADR 0032).
+
+`restore` takes the same optional fields as `update`: the row comes back with them in one
+statement, and a missing field keeps its stored value (D371). The rules judge the row as it
+stands afterwards, so a reference written with the restore is checked instead of the one the
+deleted row held. An Operation that takes a deleted row up again under its id writes its new
+values this way, as a stop after "undo stop" does in
+[`stop-timer.ts`](../../packages/time-tracking/src/data/stop-timer.ts), never as a restore
+followed by an update. Without a field left it is a plain restore.
 
 On an archivable table, `sharedEntry(tx, context).active(table)` selects the Live Rows that are
 not archived; `live(table)` and `lookup` keep archived rows, because an archived row is a Live
@@ -217,6 +228,14 @@ index enforce uniqueness, rather than querying first. Unique indexes over the sa
 must map to the same reason: SQLite's diagnostic cannot distinguish their partial predicates. Restore into a reused title produces the
 same conflict as create. Throw `ORPCError("CONFLICT", { data: { reason } })` for a business
 conflict that no index expresses. Errors carry codes/reasons for the renderer to translate.
+
+A limit at the input that only the Data Process can judge, such as a start after its "now" (D348),
+is an input error, not a conflict or a Refusal
+([ADR 0040](../adr/0040-an-operation-answers-an-input-error-a-form-shows-at-its-field.md)): throw
+`inputError(["startedAt"], START_IN_FUTURE)` from `@self-engine/storage`, and declare the reason in
+the entry's `.errors({ ...inputErrors(START_IN_FUTURE), ...refusal })`, as `editTimer` of
+`time-tracking` does. The frame rolls back and announces nothing; the page shows the reason's text
+at the field the path names. A limit that depends on stored rows is a Protection Rule.
 
 ### Protection Rules
 
@@ -263,6 +282,8 @@ export const pinnedNotesStay = protectionRule(notesRowMap, {
 
 - `rows` is a list: answer for all of them with one query, never one query per row. Insert and
   update rows also carry the `values` being written; an update carries only the fields it sets.
+  A restore row carries `values` only when fields are written with it; read any other field
+  from the stored row.
 - `tx` reads only; a write is a type error and fails at runtime.
 - A row the write would not find (unknown, deleted for a delete, or of another Space) answers
   "not found" whatever the rule answers: the frame looks the rows of a refused write up before
@@ -292,7 +313,8 @@ table, the row id and chosen fields), the way it releases a Read Piece (D341).
 tables when the Data Process starts and guards it: a row that a Live Row refers to is not
 deleted (Reason `referenced`, each referring table with its count), and a reference to a
 deleted, unknown or foreign row is not inserted, updated or restored (Reason `target_deleted`,
-with the column as its field and the target). An archived row is a Live Row: it protects its
+with the column as its field and the target); a restore is judged with the references written
+with it. An archived row is a Live Row: it protects its
 target and stays a valid one. What a module owes it is the index on every referring column
 (step 2). Test it as [`guarded.test.ts`](../../packages/projects/src/data/guarded.test.ts) does
 for `projects`.
@@ -619,7 +641,8 @@ when enabled, and rolls back on failure. After commit it announces a nonempty ta
 queries, failed operations and zero-row writes (including empty `RETURNING` results) announce nothing. A failing announcer is
 reported as an unexpected error; the caller still receives the committed result. With output
 checks on, a translated conflict reason not declared by the entry is also reported as an
-unexpected error; the caller still receives the conflict. With checks off, translation is unchanged.
+unexpected error; the caller still receives the conflict, and so is an input error the Operation
+raises with a reason its entry does not declare. With checks off, translation is unchanged.
 Unmapped unique violations
 and other unexpected errors become `INTERNAL_SERVER_ERROR` and go to the same injected
 `report` callback as large-result warnings. The Data Process passes that callback through.
@@ -649,6 +672,14 @@ rejects files from that folder in static startup chunks. This path rule misses c
 elsewhere. Keep the small declaration outside the folder, for example in `src/indicator-entry.ts`,
 so the Shell Contribution and a Command can import the same entry without loading either component.
 
+Code that the indicator shares with a Command or the panel, such as the timer's Operations with
+their Notices (`packages/time-tracking/src/timer-actions.tsx`), lives outside the folder, since a
+Command must not reach into it. Give such a file its own `lazyOnly` rule in
+`apps/web/startup-rules.ts`. An indicator loads after every start: name it among the on-demand
+rules there too, so its chunk brings no Contract, and read time values through a light entry of
+`time` such as `@self-engine/time/running-time` instead of its main entry, whose schemas need
+Zod's full build. See the [timer's indicator](../../packages/time-tracking/src/indicator/index.tsx).
+
 In a page or open Command, call `openIndicatorPanel(indicator)` from the Command's context.
 Inside the Shell, call `useOpenIndicatorPanel()` and use the returned function in the Notice's
 action. Pass the same entry object that the Shell Contribution declares. TypeScript accepts any
@@ -663,3 +694,16 @@ has changed. Use `onCancel` to ask before closing and `onDone` after a successfu
 date, time and Select fields of `forms` work in the panel as they are: a pick in their dropdown
 keeps the panel open.
 See the [example panel](../../packages/placeholder-alpha/src/indicator/panel.tsx).
+
+Content with several parts shows one at a time, such as the timer's form and its "Stop at …",
+and every opening shows the first. A Notice's action or a Command that leads to the panel asks
+for that part through the module's own state, outside React and outside `src/indicator/`, since
+a Command uses it too: a closed panel opens; an open panel that shows another part switches,
+asking first through `confirmDiscard` when its form holds unsaved changes, and puts the focus on
+the new part's first field. The indicator and the panel cannot name the
+indicator's entry for `openIndicatorPanel`: the entry loads them, so the import would be a cycle,
+which the boundary check rejects. The indicator hands its `togglePanel` to the module's state
+instead, only while its panel is closed, so a request never closes an open panel that is still
+loading or shows no part; a Command passes the Shell's opener. See the
+[timer's panel](../../packages/time-tracking/src/indicator/panel.tsx) and
+[its state](../../packages/time-tracking/src/timer-panel-form.ts).

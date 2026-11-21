@@ -795,6 +795,133 @@ the window was shown at about 2,690 ms: a hidden window loads them while hidden.
 No module of the app declares an indicator yet. Whether the load should wait for an observed
 paint is open, and belongs to the first module that declares one.
 
+## The timer's Module Indicator (#349)
+
+The first module with a Module Indicator: `time-tracking`'s timer, on every page.
+
+- **A tick.** The running time is the component `RunningTime`, the only one that reads `useNow`
+  with a step of one second. The story
+  `apps/web/src/time-tracking-timer.stories.tsx` ("A Tick Redraws Only The Running Time", stage
+  `stories`) moves the page's Clock by a second and asserts that `RunningTime` drew once and that
+  **zero components** drew outside its React subtree; inside it, only Mantine's `Text` holding
+  the time. Nothing reads or writes the database per second: the indicator reads the running
+  timers through the module's Query, which reloads only on a Table Change of `timers` or
+  `projects`. With no timer running nothing reads `useNow`, so the page clock sets no
+  timeout for the indicator.
+- **Startup JavaScript.** Production builds of `apps/web`, `apps/web/dist/startup-bundle.json`:
+  **864,132 bytes** (25 chunks) at `bca0efd`, before the indicator, and **865,346 bytes**
+  (29 chunks) with it: **+1,214 bytes**, below the limit of 889,856, which stays. About 330 bytes
+  are the contribution's entry: its loader and the names of the chunks it preloads. The rest is
+  the price of sharing: the indicator imports Mantine's `Box`, `ActionIcon` and `Text`, which the
+  start already holds, so the bundler moved them out of the start's main chunk into chunks of
+  their own (four more static chunks), each with its imports and exports.
+- **What loads after the start.** In the idle moment after the first paint the indicator brings
+  **12,592 bytes** of JavaScript the start does not hold: its own chunk (10,423, with the two
+  icons of `@self-engine/icons/indicator`), the duration format of `time` (1,157) and the chunk
+  of its hooks (1,012). A first build that took the running time from the main entry of `time`
+  loaded **63,642 bytes**, 39,216 of them the schemas of `time` with Zod's full build; the light
+  entry `@self-engine/time/running-time` avoids them, and the startup check now holds the
+  indicator's chunk to no Contract and no full Zod build. The project's mark, with the directory
+  of entry pictures, loads only once a running timer has a project.
+
+## The timer's Indicator Panel (#350)
+
+The content of the timer's Indicator Panel: the form for project, note and start, "Stop at …"
+and "Discard". Production builds of `apps/web`, `apps/web/dist/startup-bundle.json`.
+
+- **Startup JavaScript.** **867,296 bytes** (29 chunks) at `31c4329`, before the panel, and
+  **869,483 bytes** (30 chunks) with it: **+2,187 bytes**, below the limit of 889,856, which
+  stays. No code of the panel, the form helper or the Contract enters the start. About 1,600
+  bytes are the panel's loader in the contribution's indicator entry: Vite's preload list names
+  each chunk the panel needs, so its first opening fetches them at once. The rest, and the
+  thirtieth chunk, is the indicator's entry itself: the timer's Commands now import it to open
+  the timer's form (`src/open-timer-form.ts`), so the bundler moved it out of the start's main chunk into a
+  chunk of its own, with its imports and exports.
+- **What loads with the indicator.** **14,115 bytes** after the first paint, 1,523 more than in
+  #349: the part of the indicator that opens the panel, the discard action with its Notice, and
+  `src/timer-panel-form.ts`, the module's state that brings the panel's form up. The indicator
+  still reads its Contract as a type only, as the startup check holds it to.
+- **What the first opening loads.** The panel's own chunk is **7,283 bytes**. With it come
+  **588,257 bytes** of JavaScript and 31,222 of CSS the start and the indicator do not hold,
+  nearly all of them what an Edit Drawer with a project picker brings as well: the directory of
+  entry pictures for the picker's marks (348,941), Mantine's date fields (84,992), the form helper
+  (40,333) and the Contract's schemas with Zod's full build (39,301). The Shell preloads them in
+  an idle moment once the indicator is on screen, so the first click rarely waits for them; an
+  Edit Drawer opened before shares every one of them. In the app the preload fetches about
+  211,000 bytes of JavaScript, because the Projects View it opens on has loaded the directory of
+  entry pictures already ("The indicators' load and an observed paint (#380)").
+- **A tick while the panel is open.** The panel reads no `useNow`; the running time still
+  redraws alone. The indicator draws again only when the panel opens or closes, through
+  `panelOpen`.
+
+## The indicators' load and an observed paint (#380)
+
+Two ways for the Shell to start loading the Module Indicators' code (`useAfterFirstIdle`,
+`packages/shell/src/idle.ts`), measured with the timer of `time-tracking`, the stock app's only
+Module Indicator:
+
+- **A, two frames:** two frame callbacks after the mount, then an idle moment (`801c4d7`).
+- **B, observed paint:** the page's `first-contentful-paint` entry, read through a buffered
+  `PerformanceObserver`, then an idle moment; a page without paint timing keeps the two frames
+  (`facbc05`).
+
+The Shell uses B (D373): the load now begins after the paint in every start, for 331 bytes at
+the start and an indicator that shows about 16 ms later.
+
+**Method.** Both web builds ran in the same built desktop app (`apps/desktop/dist-electron` does
+not differ) on an Apple M3 Pro (macOS 27.2.1, Node 26.13.0, Electron 45.2.3), started through
+`scripts/desktop-app.ts` with the window hidden. Each start was a fresh Electron process with a
+fresh temporary data folder: empty for the idle state, a copy of one migrated database with one
+project and one timer running on it for the running state. Twelve rounds, each with both states
+and both variants, the order of A and B flipped every round: 12 starts per cell. The load average
+was 1.65 before and 1.39 after the series. A script put first in a copy of each build's
+`index.html` recorded, in milliseconds from the page's navigation start: the paint entries; the
+Shell's first frame (the first animation frame after `[data-layout-step]` is in the DOM); and the
+moment the indicator showed ("Start timer", or a running time in `role="timer"`), in the DOM and
+at the next frame. Requests were timed where the renderer's HTTP server received them, on the
+same clock as the page's `timeOrigin` (Resource Timing does not see the app's own protocol).
+A further 6 starts per cell recorded a Chromium trace from the first window on, for the
+main-thread time of the panel's preload.
+
+| Median (range), ms                    | A, idle              | B, idle             | A, running            | B, running          |
+| ------------------------------------- | -------------------- | ------------------- | --------------------- | ------------------- |
+| First contentful paint                | 200.0 (196–204)      | 200.0 (196–208)     | 200.0 (196–208)       | 198.0 (196–200)     |
+| Shell's first frame                   | 159.4 (153.2–161.4)  | 158.9 (156.1–170.4) | 158.7 (155.4–164.9)   | 158.5 (156.3–163.0) |
+| Indicator request                     | 190.3 (166.6–192.9)  | 203.7 (198.9–214.3) | 189.5 (169.8–196.0)   | 203.1 (200.0–207.0) |
+| … after the Shell's frame             | 30.7 (13.3–32.4)     | 45.5 (41.1–51.7)    | 30.6 (12.5–34.4)      | 44.0 (40.6–48.4)    |
+| … after the first contentful paint    | −9.5 (−29.4 to −3.1) | 4.7 (1.9–9.0)       | −10.2 (−30.2 to −3.0) | 4.8 (1.8–8.4)       |
+| Panel frame request, after the paint  | −7.9 (−26.6 to −1.4) | 5.6 (2.8–9.7)       | −9.0 (−27.0 to −1.6)  | 5.9 (2.7–9.2)       |
+| Indicator shows (next frame)          | 504.7 (478.3–511.9)  | 521.8 (511.8–535.0) | 509.1 (483.5–518.2)   | 525.1 (512.6–529.1) |
+| Panel preload, first request          | 501.7 (478.6–507.4)  | 517.2 (514.2–527.5) | 503.6 (481.2–522.2)   | 517.7 (506.5–525.7) |
+| Panel preload, main thread (6 traced) | 11.2 (6.2–12.4)      | 10.0 (6.2–11.8)     | 11.9 (8.4–13.2)       | 10.8 (8.1–12.5)     |
+| Panel preload, longest task           | 7.3 (4.7–7.6)        | 6.8 (4.7–7.9)       | 7.4 (6.1–7.8)         | 7.2 (6.1–7.4)       |
+
+- **The paint.** A asked for the indicator before the first contentful paint in 24 of 24 starts,
+  B after it in 24 of 24. The first contentful paint did not move: Chromium reports it in whole
+  multiples of 4 ms, and the medians lie within one step.
+- **When the indicator shows.** B shows it 17 ms later in the idle state and 16 ms later in the
+  running state (medians). Both variants show it about 300 ms after its code arrived: React 19
+  holds a resolved Suspense boundary until 300 ms after the last fallback it showed
+  (`FALLBACK_THROTTLE_MS` in `react-dom`), and the indicator's place shows its fallback from the
+  moment the load begins. A log of the data port in one start of A showed the indicator's Query
+  sent at 501.8 ms and answered at 508.0 ms, after its code had arrived at about 210 ms: the
+  indicator mounts when the throttle ends, not when its code or its data arrive.
+- **The panel's preload.** It begins once the indicator is on screen, about 500 ms after the
+  start in A and 517 ms in B, and its requests end within 15 ms. It loads **210,785 bytes** of
+  JavaScript in the idle state and **211,822** in the running state, plus **31,222 bytes** of
+  CSS, not the 588,257 of "The timer's Indicator Panel (#350)": the directory of entry pictures
+  (348,941) is already loaded by the Projects View the app opens on. Parsing runs off the main
+  thread; on it, the idle callback and the evaluation of the modules took 6 to 13 ms, the longest
+  task at most 7.9 ms, no task reached 50 ms, and the work ended by 540 ms in every traced start.
+  A click or a key in that moment waits at most one such task.
+- **A hidden window.** Every start above kept the window hidden. The page reported itself
+  visible and Chromium reported its first contentful paint, so B loaded the indicator and
+  preloaded the panel while hidden, as A does. The window was never shown, so a show after a
+  hidden start was not measured. A page that is never drawn, such as a browser tab opened in the
+  background, reports no paint until it is shown; under B its indicators load only then.
+- **Startup JavaScript** (`apps/web/dist/startup-bundle.json`): **869,576 bytes** (30 chunks) for
+  A and **869,907 bytes** (30 chunks) for B, +331 bytes. The limit of 889,856 stays.
+
 ## The Time Entry window (#275)
 
 Measured during #345 on an Apple M3 Pro (arm64), Node 26.13.1 and SQLite 3.53.4.

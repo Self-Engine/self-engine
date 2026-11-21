@@ -5,7 +5,9 @@ import { OLD_SITE, projectReference, WEBSITE } from "@self-engine/projects/testi
 import { resolveTimeZone } from "@self-engine/time";
 import { expect, test } from "vite-plus/test";
 import {
+  runningTimer,
   sampleTimeEntryId,
+  sampleTimerId,
   timeEntry,
   timeTrackingAnswers,
   timeTrackingStoryPort,
@@ -99,7 +101,7 @@ test("a story may fix the answer of the days instead, such as a failed load", as
   await expect(access.call("timeTracking", "days", { span: WEEK })).rejects.toThrow();
 });
 
-test("the story Port changes the stored entries and delivers the Table Change of time_entries", async () => {
+test("the story Port changes the stored entries and delivers the Table Change of both tables", async () => {
   const port = timeTrackingStoryPort({ entries: [] });
   const changed: unknown[] = [];
   port.access.onTablesChanged((tables) => changed.push(tables));
@@ -107,7 +109,7 @@ test("the story Port changes the stored entries and delivers the Table Change of
 
   port.change({ entries: [MORNING] });
 
-  expect(changed).toEqual([["time_entries"]]);
+  expect(changed).toEqual([["time_entries", "timers"]]);
   const days = daysOf(await port.access.call("timeTracking", "days", { span: WEEK }));
   expect(days[4]?.total).toBe(2650);
 });
@@ -127,4 +129,67 @@ test("the story Port records each Operation, and its change follows in the Query
 
   expect(port.calls).toEqual([{ entry: "delete", input: { id: NIGHT.id } }]);
   await expect(port.access.call("timeTracking", "entry", { id: NIGHT.id })).resolves.toBeNull();
+});
+
+const NINE = runningTimer(1, { startedAt: "2026-11-20T08:00:00.000Z", note: "Mail" });
+const TEN = runningTimer(2, {
+  startedAt: "2026-11-20T09:00:00.000Z",
+  project: projectReference(WEBSITE),
+});
+
+test("a sample timer runs from a whole second, with a numbered id and its Project Reference", () => {
+  expect(TEN).toMatchObject({
+    id: sampleTimerId(2),
+    startedAt: "2026-11-20T09:00:00.000Z",
+    projectId: WEBSITE.id,
+    note: null,
+    project: { title: WEBSITE.title },
+  });
+  expect(NINE).toMatchObject({ projectId: null, project: null, note: "Mail" });
+});
+
+test("the running timers answer the stored ones, the most recently started first, and none by default", async () => {
+  await expect(
+    timeTrackingAnswers().call("timeTracking", "runningTimers", undefined),
+  ).resolves.toEqual([]);
+  const access = timeTrackingAnswers({ timers: [NINE, TEN] });
+  await expect(access.call("timeTracking", "runningTimers", undefined)).resolves.toEqual([
+    TEN,
+    NINE,
+  ]);
+});
+
+test("every timer Operation succeeds with a sample answer", async () => {
+  const access = timeTrackingAnswers();
+  const id = sampleTimerId(1);
+  await expect(access.call("timeTracking", "startTimer", {})).resolves.toMatchObject({
+    timer: { startedAt: expect.any(String) },
+    others: [],
+  });
+  await expect(access.call("timeTracking", "stopTimer", { id })).resolves.toMatchObject({
+    kind: "saved",
+  });
+  await expect(access.call("timeTracking", "undoStopTimer", { id })).resolves.toMatchObject({
+    kind: "restored",
+    others: [],
+  });
+  await expect(access.call("timeTracking", "undoDiscardTimer", { id })).resolves.toMatchObject({
+    kind: "restored",
+  });
+  // A Fixed Answer is fixed: the sample timer, whichever id was asked.
+  const sample = { id: sampleTimerId(100), startedAt: "2026-11-16T08:00:00.000Z" };
+  await expect(access.call("timeTracking", "discardTimer", { id })).resolves.toMatchObject(sample);
+  await expect(access.call("timeTracking", "editTimer", { id })).resolves.toMatchObject(sample);
+});
+
+test("a story's Port changes the running timers, with the Table Change of both tables", async () => {
+  const port = timeTrackingStoryPort({ timers: [TEN] });
+  const changed: unknown[] = [];
+  port.access.onTablesChanged((tables) => changed.push(tables));
+  await expect(port.access.call("timeTracking", "runningTimers", undefined)).resolves.toEqual([
+    TEN,
+  ]);
+  port.change({ timers: [] });
+  await expect(port.access.call("timeTracking", "runningTimers", undefined)).resolves.toEqual([]);
+  expect(changed).toEqual([["time_entries", "timers"]]);
 });

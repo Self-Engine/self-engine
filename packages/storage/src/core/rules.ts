@@ -1,4 +1,5 @@
 import { ORPCError } from "@orpc/server";
+import { notFound } from "./not-found.ts";
 import type { TablesOf } from "@self-engine/db";
 import {
   refusal,
@@ -16,12 +17,18 @@ import { recordTableWrites } from "./table-writes.ts";
 /** The fields a write sets, without the convention columns the frame writes itself. */
 export type WrittenValues<Row> = Readonly<Omit<Updateable<Row>, ConventionKey>>;
 
-/** One row a rule answers for; insert and update also hand over the values being written. */
+/**
+ * One row a rule answers for; insert and update also hand over the values being written, and a
+ * restore those written with it, if any (D371). A field a restore leaves out keeps its stored
+ * value, which a rule reads itself.
+ */
 export type RuleRow<DB, Table extends keyof DB, Write extends WriteKind> = Write extends
   | "insert"
   | "update"
   ? { readonly id: RowId<DB, Table>; readonly values: WrittenValues<DB[Table]> }
-  : { readonly id: RowId<DB, Table> };
+  : Write extends "restore"
+    ? { readonly id: RowId<DB, Table>; readonly values?: WrittenValues<DB[Table]> }
+    : { readonly id: RowId<DB, Table> };
 
 /**
  * A Protection Rule (D331, D333): it guards one table and one kind of write, reads through the
@@ -82,7 +89,7 @@ export async function askRules<DB>(
       rows.map(({ id }) => id),
       isArchiveWrite(write),
     );
-    if (rows.some(({ id }) => !findsRow(write, found.get(id)))) throw new ORPCError("NOT_FOUND");
+    if (rows.some(({ id }) => !findsRow(write, found.get(id)))) throw notFound();
     reasons = reasons.filter(({ row }) => changesRow(write, found.get(row)));
     if (reasons.length === 0) return;
   }

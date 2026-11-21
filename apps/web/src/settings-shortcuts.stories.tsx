@@ -74,6 +74,15 @@ export const ListsNewProjectWithItsShortcut: Story = {
   },
 };
 
+export const ListsToggleTimerWithItsShortcut: Story = {
+  play: async ({ canvas }) => {
+    await expectShortcutsView(canvas);
+    const time = await groupOf(canvas, "Time");
+    await expect(time.getByText("Toggle timer")).toBeVisible();
+    await expect(await time.findByText(/^(⌘⇧|⇧⌘|Ctrl\+Shift\+)K$/)).toBeVisible();
+  },
+};
+
 export const IsAViewOfTheSettings: Story = {
   args: { address: "/settings/appearance" },
   play: async ({ canvas }) => {

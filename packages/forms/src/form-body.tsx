@@ -4,6 +4,7 @@ import {
   type KeyboardEvent,
   type ReactNode,
   type SyntheticEvent,
+  useLayoutEffect,
   useSyncExternalStore,
 } from "react";
 import type { ClearanceQuery } from "@self-engine/data-client/react";
@@ -39,6 +40,10 @@ function DeletedEntryMessage({ binding }: { readonly binding: FormBinding }) {
 export function OperationFormBody({ form, children }: OperationFormBodyProps) {
   const binding = bindingOf(form);
   const running = useSyncExternalStore(binding.subscribeRunning, binding.isRunning);
+  // Once the lock ends, the field a failed save named takes the focus (D369).
+  useLayoutEffect(() => {
+    if (!running) binding.focusPending();
+  }, [binding, running]);
   // A picker can render into a portal, outside the disabled fieldset. Its React events still
   // pass here, so it shares the lock without requiring a special API from every picker.
   const blockWhileRunning = (event: SyntheticEvent) => {
@@ -99,6 +104,8 @@ export interface EditDrawerFormProps extends OperationFormBodyProps {
   readonly actions?: ReactNode;
   /** The entry and the kinds of write shown as ClearanceActions. Read when the edit form opens. */
   readonly clearance?: ClearanceQuery & { readonly rows: readonly [string] };
+  /** The text of the button that submits, for a form whose Operation is no save; "Save" without. */
+  readonly submitLabel?: ReactNode;
 }
 
 /** Fields written by the module, with the shared Edit Drawer actions. */
@@ -107,6 +114,7 @@ export function EditDrawerForm({
   onCancel,
   actions,
   clearance,
+  submitLabel,
   children,
 }: EditDrawerFormProps) {
   const { t } = useLingui();
@@ -117,7 +125,9 @@ export function EditDrawerForm({
     <Group justify="flex-end" mt="auto">
       {actions && <Group me="auto">{actions}</Group>}
       <Button type="button" variant="default" onClick={onCancel}>{t`Cancel`}</Button>
-      <Button type="submit" disabled={!canSubmit}>{t`Save`}</Button>
+      <Button type="submit" disabled={!canSubmit}>
+        {submitLabel ?? t`Save`}
+      </Button>
     </Group>
   );
   return (

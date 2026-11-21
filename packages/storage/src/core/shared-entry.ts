@@ -1,4 +1,3 @@
-import { ORPCError } from "@orpc/server";
 import type {
   Transaction,
   Insertable,
@@ -18,6 +17,7 @@ import type {
 } from "./convention.ts";
 import type { ReadTransaction } from "./module.ts";
 import { askRules } from "./rules.ts";
+import { notFound } from "./not-found.ts";
 import { isLocalTable } from "@self-engine/db";
 
 type Fields<Row> = Omit<Row, ConventionKey> & { [Key in ConventionKey]?: never };
@@ -80,7 +80,7 @@ export function sharedEntry<DB>(tx: ReadAccess<DB>, context: StorageContext) {
       .where(`${String(table)}.id`, "=", id)
       .selectAll()
       .executeTakeFirst();
-    if (row === undefined) throw new ORPCError("NOT_FOUND");
+    if (row === undefined) throw notFound();
     return row as Selectable<DB[Table]>;
   }
   return { live, active, lookup };
@@ -106,7 +106,7 @@ export function sharedWrites<DB>(tx: Transaction<DB>, context: StorageContext) {
       .where("deleted_at", restoring ? "is not" : "is", null)
       .returningAll()
       .executeTakeFirst();
-    if (result === undefined) throw new ORPCError("NOT_FOUND");
+    if (result === undefined) throw notFound();
     return result as Selectable<DB[Table]>;
   }
   /**
@@ -178,9 +178,20 @@ export function sharedWrites<DB>(tx: Transaction<DB>, context: StorageContext) {
       await askRules(tx, context, table, "delete", [{ id }]);
       return change(table, id, { deleted_at: context.now }, false);
     },
-    async restore<Table extends SyncedTable<DB>>(table: Table, id: RowId<DB, Table>) {
-      await askRules(tx, context, table, "restore", [{ id }]);
-      return change(table, id, { deleted_at: null }, true);
+    /**
+     * Brings a deleted row back. Fields given are written in the same statement, and a missing
+     * (`undefined`) one stays as stored (D329, D371): the rules, the reference check among them,
+     * judge the row as it stands afterwards. Without a field left it is a plain restore.
+     */
+    async restore<Table extends SyncedTable<DB>>(
+      table: Table,
+      id: RowId<DB, Table>,
+      fields?: EditFields<Updateable<DB[Table]>>,
+    ) {
+      const values = fields === undefined ? {} : writableFields(fields);
+      const row = Object.keys(values).length === 0 ? { id } : { id, values };
+      await askRules(tx, context, table, "restore", [row]);
+      return change(table, id, { ...values, deleted_at: null }, true);
     },
     archive<Table extends ArchivableTable<DB>>(table: Table, id: RowId<DB, Table>) {
       return setArchived(table, id, true);

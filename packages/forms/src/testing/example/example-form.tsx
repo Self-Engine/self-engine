@@ -17,7 +17,7 @@ import {
   useOperationForm,
   WallClockTimeField,
 } from "../../index.ts";
-import { exampleContract, type exampleEntrySchema } from "./contract.ts";
+import { DAY_AFTER_TODAY, exampleContract, type exampleEntrySchema } from "./contract.ts";
 import { useCreateExample } from "./port.ts";
 
 export type ExampleEntry = z.output<typeof exampleEntrySchema>;
@@ -33,6 +33,14 @@ export const exampleEditTexts = {
   reasons: { star_needs_color: msg`Choose a color for the star.` },
 };
 
+/**
+ * The texts every form of the example's create gives: the reason of the input error it declares
+ * (D369), which the compiler asks for.
+ */
+export const exampleCreateTexts = {
+  reasons: { [DAY_AFTER_TODAY]: msg`Choose today or an earlier day.` },
+};
+
 export interface ExampleFormProps {
   /** Called once the entry was created, with the Operation's answer. */
   readonly onSuccess: (entry: ExampleEntry) => void;
@@ -46,7 +54,10 @@ export function ExampleForm({ onSuccess }: ExampleFormProps) {
     draft: { title: "", description: "", icon: null, color: null, day: null, start: null },
     texts: {
       fields: { title: msg`Give this entry a title of at most 80 characters.` },
-      reasons: { description_matches_title: msg`The description must differ from the title.` },
+      reasons: {
+        ...exampleCreateTexts.reasons,
+        description_matches_title: msg`The description must differ from the title.`,
+      },
     },
     onSuccess,
   });

@@ -46,5 +46,6 @@ export {
 export { ClearanceAction, type ClearanceActionProps } from "./clearance-actions.tsx";
 
 export type { FormTexts } from "./check.ts";
+export { InstantField, type InstantFieldProps } from "./instant-field.tsx";
 export { TimeRangeField, type TimeRangeFieldProps } from "./time-range-field.tsx";
 export { type LeavingEntry, useLeavingEntry } from "./leaving-entry.ts";

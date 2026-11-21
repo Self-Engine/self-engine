@@ -1,7 +1,7 @@
 ---
 status: accepted
 date: 2026-11-20
-decisions: D314, D357, D358, D359, D360
+decisions: D314, D357, D358, D359, D360, D373
 ---
 
 # The Shell places Module Indicators and owns their panels
@@ -26,12 +26,16 @@ module's hooks. When a panel is declared, its Module Indicator also receives `to
 by the module's indicator entry. An entry that no module of the Shell holds opens nothing and is
 reported as a failed Command start is, so a Notice's action cannot take the page down.
 
-The Shell starts loading the Module Indicator and the panel frame in an idle moment after it
-mounted, never at the start: it waits for two frame callbacks and asks for the idle moment then.
-Nothing observes a paint, and the two frames do not wait for one: measured in the desktop app,
-the load began after the Shell's first frame and before the first paint Chromium reported, in a
-visible window and in one kept hidden (`docs/development/performance.md`, "Module Indicator
-startup"). Until the Module Indicator arrives, its place shows the module's icon.
+The Shell starts loading the Module Indicator and the panel frame in an idle moment after the
+page's first contentful paint, never at the start (D373): it reads the paint entry through a
+buffered `PerformanceObserver` and asks for the idle moment then. Two frame callbacks, which the
+Shell waited for before, do not wait for a paint: measured in the desktop app, the load began
+before the first paint Chromium reported in every start, and after it with the observed paint
+(`docs/development/performance.md`, "The indicators' load and an observed paint"). A window kept
+hidden reports its paint as a visible one does. A page without paint timing waits two frames; a
+page that is never drawn, such as a browser tab opened in the background, loads its Module
+Indicators once it is shown. Until the Module Indicator arrives, its place shows the module's
+icon.
 The Shell preloads the panel's content in an idle moment once the Module Indicator's code is on
 screen, also after a retry of a Module Indicator that failed to load. An opening can load the content on demand if the preload has yet to finish. The
 startup check covers `src/indicator/` and the panel frame.

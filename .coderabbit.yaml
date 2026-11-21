@@ -12,9 +12,14 @@ reviews:
       - "size:XXL"
   # CodeRabbit skips a pull request with more than 100 files, counted after these filters. Left
   # out is what `pnpm verify` checks by itself and a review adds little to: the lock file, the
-  # extracted translation catalogs and the package manifests.
+  # extracted translation catalogs and the package manifests. Also left out: the documents, which
+  # the owner reads and no stage checks beyond an ADR's name and front matter. Tests, stories and
+  # the fixtures they use stay in the review, also when a pull request goes over the limit with
+  # them.
   path_filters:
     - "!**/pnpm-lock.yaml"
     - "!packages/i18n/src/locales/*.po"
     - "!**/package.json"
     - "!**/tsconfig*.json"
+    - "!docs/**"
+    - "!GLOSSARY.md"

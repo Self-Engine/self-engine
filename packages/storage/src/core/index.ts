@@ -6,6 +6,7 @@ export {
   type ModuleEntries,
   type ReadTransaction,
   type StorageContract,
+  type WriteTransaction,
   type RowMap,
 } from "./module.ts";
 export { createContext, type StorageContext, type ContextSources } from "./context.ts";
@@ -14,6 +15,8 @@ export { spaceIdSchema, type SpaceId } from "@self-engine/spaces";
 // A Query that reads a Setting names this table among its reads (D352).
 export { SETTINGS_TABLE } from "@self-engine/settings-rows";
 export { sharedEntry, sharedWrites } from "./shared-entry.ts";
+export { inputError } from "./input-error.ts";
+export { notFound } from "./not-found.ts";
 export type { SyncedTable } from "./convention.ts";
 export { protectionRule, type ProtectionRule, type RuleRow, type WrittenValues } from "./rules.ts";
 export { referenceCheck } from "./reference-check.ts";

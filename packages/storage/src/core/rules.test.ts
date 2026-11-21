@@ -178,6 +178,48 @@ describe("the six write paths", () => {
     await expect(write((w) => w.unarchive("cards", archived))).rejects.toMatchObject(refused);
   });
 
+  test("a restore with fields hands its rules the values written with it; with every field missing it is a plain restore", async () => {
+    const id = cardIdSchema.parse("01a1c0a2-f079-7000-8000-000000000001");
+    await write((writes) => writes.insert("cards", id, { title: "First" }));
+    await write((writes) => writes.softDelete("cards", id));
+    asked = [];
+    let restored: unknown;
+    await write(async (writes) => {
+      restored = await writes.restore("cards", id, { title: "Back" });
+    });
+    await write((writes) => writes.softDelete("cards", id));
+    await write((writes) => writes.restore("cards", id, { title: undefined }));
+
+    expect(asked).toEqual([
+      { write: "restore", rows: [{ id, values: { title: "Back" } }] },
+      { write: "delete", rows: [{ id }] },
+      { write: "restore", rows: [{ id }] },
+    ]);
+    expect(restored).toMatchObject({ id, title: "Back", deleted_at: null });
+  });
+
+  test("a rule on restore reads the written values typed by its table, and a restore writes only the table's own fields", () => {
+    protectionRule(cardsRowMap, {
+      table: "cards",
+      write: "restore",
+      reasons: [],
+      async answer(_tx, _context, rows) {
+        expectTypeOf(rows[0]!.values?.title).toEqualTypeOf<string | undefined>();
+        return [];
+      },
+    });
+    type Restore = ReturnType<typeof sharedWrites<CardRows>>["restore"];
+    const restore: (fields: Parameters<Restore>[2]) => void = () => {};
+    restore({ title: "Back" });
+    restore(undefined);
+    // @ts-expect-error The frame writes the convention columns itself.
+    restore({ deleted_at: null });
+    // @ts-expect-error The frame writes the convention columns itself.
+    restore({ id: "01a1c0a2-f079-7000-8000-000000000001" });
+    // @ts-expect-error Only fields of the table.
+    restore({ colour: "red" });
+  });
+
   test("an update that writes no field asks no rule", async () => {
     const id = cardIdSchema.parse("01a1c0a2-f079-7000-8000-000000000001");
     await write((writes) => writes.insert("cards", id, { title: "First" }));

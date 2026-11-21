@@ -5,13 +5,33 @@ import { CATCH_ALL, violationText } from "./violation-texts.ts";
 /** A Contract's input schema: Zod, read through the Standard Schema interface oRPC uses too. */
 export type InputSchema = StandardSchemaV1;
 
-/** Module-owned descriptors, translated only when a field displays them. */
-export interface FormTexts<Field extends string = string> {
+/**
+ * Module-owned descriptors, translated only when a field displays them. `Reason` are the reasons
+ * the Operation declares for its own input errors (D369): each needs a text.
+ */
+export type FormTexts<Field extends string = string, Reason extends string = never> = {
   /** Replaces the helper's generic text at this field. */
   readonly fields?: Partial<Record<Field, MessageDescriptor>>;
-  /** Custom schema issues carry `params: { reason }`; Zod does not expose reasons in its types. */
-  readonly reasons?: Readonly<Record<string, MessageDescriptor>>;
-}
+} & ([Reason] extends [never]
+  ? {
+      /**
+       * Custom schema issues carry `params: { reason }`; Zod does not expose reasons in its
+       * types, so a missing text fails a story, not the compiler.
+       */
+      readonly reasons?: Readonly<Record<string, MessageDescriptor>>;
+    }
+  : {
+      /**
+       * The texts of the reasons of the input schema, as above, and of every reason the
+       * Operation declares with `inputErrors`, which the compiler asks for.
+       */
+      readonly reasons: Readonly<Record<string, MessageDescriptor>> & {
+        readonly [Key in Reason]: MessageDescriptor;
+      };
+    });
+
+/** Who reported an issue, as a missing text names it. */
+export type IssueSource = "The input schema" | "The Operation";
 
 /**
  * What the input schema finds wrong with a draft (D317): the helper's text for each field that
@@ -29,8 +49,23 @@ export function checkDraft(
       "A form checks its draft as the user types, so the Contract's input schema has to check synchronously.",
     );
   }
+  return issueTexts(result.issues ?? [], draft, texts, "The input schema");
+}
+
+/**
+ * The text of each field with an issue, by the field's name or dotted path: of the input schema,
+ * or of an input error the Operation answered with (D369), which has the same shape. A reason
+ * takes the module's text for it, anything else the helper's text for its kind. A field with
+ * several issues shows the first.
+ */
+export function issueTexts(
+  issues: readonly StandardSchemaV1.Issue[],
+  draft: Readonly<Record<string, unknown>>,
+  texts: FormTexts,
+  source: IssueSource,
+): ReadonlyMap<string, MessageDescriptor> {
   const found = new Map<string, MessageDescriptor>();
-  for (const issue of result.issues ?? []) {
+  for (const issue of issues) {
     const segments = (issue.path ?? []).map((segment) =>
       typeof segment === "object" ? segment.key : segment,
     );
@@ -40,9 +75,7 @@ export function checkDraft(
     const reason = reasonOf(issue);
     const reasonText = reason === undefined ? undefined : ownText(texts.reasons, reason);
     if (reason !== undefined && reasonText === undefined) {
-      console.error(
-        `The input schema reports reason "${reason}", but the form gives no text for it.`,
-      );
+      console.error(`${source} reports reason "${reason}", but the form gives no text for it.`);
     }
     const text =
       reason === undefined

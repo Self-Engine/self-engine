@@ -9,7 +9,12 @@ import {
   wholeSecondOf,
 } from "@self-engine/time";
 import { z } from "zod";
-import { type TimeEntry, timeEntryIdSchema } from "../contracts/index.ts";
+import {
+  type TimeEntry,
+  timeEntryIdSchema,
+  type Timer,
+  timerIdSchema,
+} from "../contracts/index.ts";
 
 export const timeTrackingMigrations = defineMigrations(
   "time-tracking",
@@ -32,8 +37,19 @@ export const timeTrackingRowMap = {
     // The stored name, as chosen; a later runtime may not know it, so it is no `TimeZone`.
     time_zone: z.string(),
   }),
+  timers: z.object({
+    id: timerIdSchema,
+    created_at: instantSchema,
+    updated_at: instantSchema,
+    deleted_at: instantSchema.nullable(),
+    space_id: spaceIdSchema,
+    started_at: instantSchema,
+    project_id: projectIdSchema.nullable(),
+    note: z.string().nullable(),
+  }),
 };
 type TimeEntryRow = TablesOf<typeof timeTrackingRowMap>["time_entries"];
+type TimerRow = TablesOf<typeof timeTrackingRowMap>["timers"];
 
 /** Only the columns returned in a Query answer. The creation Time Zone stays in storage. */
 export const TIME_ENTRY_COLUMNS = [
@@ -67,6 +83,27 @@ export const toTimeEntry = (row: TimeEntryValues): TimeEntry => ({
   startedAt: row.started_at,
   endedAt: row.ended_at,
   durationSeconds: row.duration_seconds,
+  projectId: row.project_id,
+  note: row.note,
+});
+
+/** Only the columns returned in a Query answer. */
+export const TIMER_COLUMNS = [
+  "timers.id",
+  "timers.started_at",
+  "timers.project_id",
+  "timers.note",
+] as const;
+
+export type TimerValues = Pick<
+  TimerRow,
+  (typeof TIMER_COLUMNS)[number] extends `timers.${infer Column}` ? Column : never
+>;
+
+// Do not parse the row here: agreement is checked in tests, not on every query.
+export const toTimer = (row: TimerValues): Timer => ({
+  id: row.id,
+  startedAt: row.started_at,
   projectId: row.project_id,
   note: row.note,
 });

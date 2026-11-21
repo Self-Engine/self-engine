@@ -13,6 +13,7 @@ import { createSpaceRows, SECOND_SPACE_ID } from "@self-engine/spaces/testing";
 import {
   createFrame,
   createContext,
+  inputError,
   type ContextSources,
   type FrameReport,
   type SpaceId,
@@ -122,6 +123,72 @@ test("a failed operation rolls back every write and announces nothing", async ()
   });
   await expect(client.list({})).resolves.toEqual([]);
   expect(announcements).toEqual([]);
+});
+
+test("an input error the module raises answers as the input check does and rolls back", async () => {
+  const announcements: ReadonlySet<string>[] = [];
+  const reports: FrameReport[] = [];
+  const database = await createTestDatabase(notes);
+  cleanups.push(() => database.close());
+  const client = createRouterClient(
+    createFrame(notes, {
+      database,
+      sources: createTestContext(),
+      checkOutputs: true,
+      announce: (tables) => {
+        announcements.push(tables);
+      },
+      report: (report) => reports.push(report),
+    }),
+  );
+  const checked = await client
+    .create({ title: "", isPinned: true })
+    .catch((error: unknown) => error);
+  // The notes module writes the note, then finds the title reserved.
+  const raised = await client
+    .create({ title: "Inbox", isPinned: false })
+    .catch((error: unknown) => error);
+
+  expect(raised).toMatchObject({
+    code: "BAD_REQUEST",
+    message: (checked as Error).message,
+    data: { issues: [{ path: ["title"], params: { reason: "title_reserved" } }] },
+  });
+  await expect(client.list({})).resolves.toEqual([]);
+  expect(announcements).toEqual([]);
+  expect(reports).toEqual([]);
+});
+
+test("an input error with a reason the entry does not declare is reported, and still answered", async () => {
+  const reports: FrameReport[] = [];
+  const module = {
+    ...notes,
+    entries: {
+      ...notes.entries,
+      create: {
+        kind: "operation" as const,
+        run() {
+          throw inputError(["title"], "title_taken_later");
+        },
+      },
+    },
+  };
+  const database = await createTestDatabase(notes);
+  cleanups.push(() => database.close());
+  const client = createRouterClient(
+    createFrame(module, {
+      database,
+      sources: createTestContext(),
+      checkOutputs: true,
+      report: (report) => reports.push(report),
+    }),
+  );
+
+  await expect(client.create({ title: "Later", isPinned: false })).rejects.toMatchObject({
+    code: "BAD_REQUEST",
+    data: { issues: [{ path: ["title"], params: { reason: "title_taken_later" } }] },
+  });
+  expect(reports).toMatchObject([{ kind: "unexpected-error", entry: "create" }]);
 });
 
 test("transaction time is read once, including for branded id generation", async () => {

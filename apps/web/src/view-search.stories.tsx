@@ -20,10 +20,10 @@ import { memo, type ReactNode, useState } from "react";
 import { contribution as alpha } from "@self-engine/placeholder-alpha";
 import { createAppRouter } from "./app-router.ts";
 import { ROUTING } from "./shell-routing.tsx";
-import { loadStoryApp, storyModules } from "./story-app.tsx";
+import { loadStoryApp, storyModules, withNoTimerRunning } from "./story-app.tsx";
 
 /** These Views call no Port entry and show no notice, so any call fails the story. */
-const noAnswers = fixedAnswers({}, {});
+const noAnswers = withNoTimerRunning(fixedAnswers({}, {}));
 const noData = { access: noAnswers, notify: fn(), notifyRefused: fn() };
 
 const rendered = fn();

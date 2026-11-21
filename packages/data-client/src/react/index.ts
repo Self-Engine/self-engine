@@ -6,6 +6,7 @@ export { type DataTexts, dataTexts, NO_DATA_TEXTS, type TableNames } from "./dat
 export type { Clearance, ClearanceWrite, RowClearance } from "@self-engine/data-protocol";
 export {
   type ConflictText,
+  type InputIssue,
   type OperationFunction,
   type OperationHandling,
   type OperationHook,
@@ -14,7 +15,9 @@ export {
   type ReasonAtField,
   type OperationState,
   type RunOptions,
+  UNEXPECTED_NOTICE,
 } from "./operation-hook.ts";
+export type { DeclaredInputReason, InputReasonOf } from "./contract-types.ts";
 export { NO_DATA_PROCESS, type PortAccess, portAccessOf } from "./port-access.ts";
 export { type PortHooks, portHooks } from "./port-hooks.ts";
 // The Reasons' types, for the app's list of Reasons and a page that asks for one (D334).
@@ -43,5 +46,5 @@ export {
   useDataAccess,
   useReasonTexts,
 } from "./provider.ts";
-export type { QueryHook, QueryState, ReloadHook } from "./query-hook.ts";
+export type { QueryFunction, QueryHook, QueryState, ReloadHook } from "./query-hook.ts";
 export { useWithUndo } from "./with-undo.ts";

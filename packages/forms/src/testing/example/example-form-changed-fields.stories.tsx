@@ -14,7 +14,7 @@ import {
 import { exampleContract, exampleTiedFields } from "./contract.ts";
 import { useCreateExample, useUpdateExample } from "./port.ts";
 import { StoryDrawer, loadStoryShell } from "./drawer-story.tsx";
-import { exampleEditTexts } from "./example-form.tsx";
+import { exampleEditTexts, exampleCreateTexts } from "./example-form.tsx";
 import { CREATED, recordingPort } from "./story-port.ts";
 
 function EditExample({
@@ -248,6 +248,7 @@ function CreateExample({ onCancel }: { readonly onCancel: () => void }) {
   const form = useOperationForm({
     entry: exampleContract.create,
     operation: useCreateExample(),
+    texts: exampleCreateTexts,
     draft: { title: "", description: "", icon: null, color: null, day: null, start: null },
     onSuccess: () => setSaved(true),
   });

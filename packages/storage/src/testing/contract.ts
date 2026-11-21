@@ -1,4 +1,4 @@
-import { declaresConflict } from "../core/conflict-declared.ts";
+import { declaresError } from "../core/error-declared.ts";
 import { checkConflicts, type ConflictExamples } from "./conflicts.ts";
 import { acceptsUnknownField, checkEdits } from "./edits.ts";
 import { seedScoping, returnsSeededRow, checkEntryScoping, scopedRowsChanged } from "./scoping.ts";
@@ -307,7 +307,7 @@ export async function checkContract<Contract extends StorageContract, Rows exten
           if (
             error instanceof ORPCError &&
             error.code === "CONFLICT" &&
-            !(await declaresConflict(procedure, error))
+            !(await declaresError(procedure, error))
           )
             violations.push({ entry, rule: "operation returns an undeclared conflict or reason" });
         }

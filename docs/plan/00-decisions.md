@@ -68,6 +68,10 @@ den Vermerk `_Überholt durch D<n>._`
 | [D365](decisions/d365-branded-draft.md) | 2026-11-21 | Der Entwurf eines Formulars behält die Marke eines Werts, den das Eingabe-Schema markiert; der Vertrag bleibt unmarkiert | #275 |
 | [D366](decisions/d366-previous-value-is-the-stored-value.md) | 2026-11-21 | Beim Bearbeiten in der doppelten Stunde ist der bisherige Wert der gespeicherte, nicht ein Zwischenstand beim Tippen | #332, #275 |
 | [D367–D368](decisions/d367-d368-week-address-and-refusal-at-the-project.md) | 2026-11-21 | Nachträge aus dem Bau von #275: Die Adresse nennt keine Woche, solange die gezeigte die von heute ist; die Ablehnung am Projektfeld nennt die Art des Ziels, nicht seinen Namen | #275 |
+| [D369–D370](decisions/d369-d370-input-error-from-the-data-process.md) | 2026-11-21 | Nachträge aus dem Bau von #277: Eine Operation meldet eine Grenze, die nur der Datenprozess kennt, als Eingabefehler, und das Formular zeigt ihn am Feld; die Datums- und Zeitfelder behalten vorerst Mantines Verhalten | #277, #377 |
+| [D371](decisions/d371-restore-writes-fields.md) | 2026-11-21 | Nachtrag aus dem Bau von #277: Das Zurückholen einer Zeile im Speicher-Rahmen kann zugleich Felder schreiben | #277 |
+| [D372](decisions/d372-clock-before-start-opens-the-timer-form.md) | 2026-11-21 | Nachtrag aus dem Bau von #277: Der Hinweis „Uhr vor dem Start“ öffnet das Formular des Timers statt „Stoppen um …“ | #277 |
+| [D373](decisions/d373-indicators-load-after-the-observed-first-paint.md) | 2026-11-22 | Nachtrag aus dem Bau von #277: Die Hülle wartet auf das erste Bild, das der Browser meldet, bevor sie die Modul-Indikatoren lädt | #277, #380 |
 
 D109 und D110 sind doppelt vergeben, in den Runden 18 und 19. Wer eine der beiden nennt, nennt die
 Runde dazu.

@@ -10,13 +10,12 @@ import {
   calendarDayOf,
   epochMsOf,
   type Instant,
-  moveToDay,
   repeatedTimeOffset,
-  resolveWallClockTime,
   type TimeZone,
   type WallClockTime,
   wallClockTimeOf,
 } from "@self-engine/time";
+import { type InstantOutcome, outcomeOf } from "./instant-parts.ts";
 
 /** What the field shows; each part may still be empty. */
 export interface RangeParts {
@@ -35,15 +34,6 @@ export interface RangeInstants {
   readonly start: Instant | null;
   readonly end: Instant | null;
 }
-
-/** What becomes of one Instant of the draft after the field changed. */
-export type RangeOutcome =
-  /** It still shows the field's date and time: it stays, with its seconds (D344). */
-  | { readonly case: "keep" }
-  /** It takes this Instant, or "empty" while a part it needs is empty. */
-  | { readonly case: "set"; readonly instant: Instant | null }
-  /** The clocks skip the time on that day: no value, the save is blocked (D347). */
-  | { readonly case: "skipped" };
 
 /**
  * Whether the parts imply "+1" before resolving a clock change: no end date is open and the
@@ -84,44 +74,7 @@ export function partsOf(
   return dayOfEnd(closed) === endDay ? closed : { ...closed, endDayOpen: true, endDay };
 }
 
-function shows(
-  instant: Instant | null,
-  day: CalendarDay,
-  time: WallClockTime,
-  timeZone: TimeZone,
-): boolean {
-  return (
-    instant !== null &&
-    calendarDayOf(instant, timeZone) === day &&
-    wallClockTimeOf(instant, timeZone) === time
-  );
-}
-
-function outcomeOf(
-  day: CalendarDay | null,
-  time: WallClockTime | null,
-  current: Instant | null,
-  original: Instant | null,
-  timeZone: TimeZone,
-  options: { readonly previous?: Instant; readonly lowerBound?: Instant },
-): RangeOutcome {
-  if (day === null || time === null) return { case: "set", instant: null };
-  if (shows(current, day, time, timeZone)) return { case: "keep" };
-  if (original !== null && shows(original, day, time, timeZone))
-    return { case: "set", instant: original };
-  // A time the user did not touch whose day changed moves to that day with its seconds (D344).
-  const untouched = [current, original].find(
-    (instant): instant is Instant =>
-      instant !== null && wallClockTimeOf(instant, timeZone) === time,
-  );
-  const resolved =
-    untouched === undefined
-      ? resolveWallClockTime(day, time, timeZone, options)
-      : moveToDay(untouched, day, timeZone, options);
-  return resolved.case === "skipped" ? resolved : { case: "set", instant: resolved.instant };
-}
-
-function instantOf(outcome: RangeOutcome, current: Instant | null): Instant | null {
+function instantOf(outcome: InstantOutcome, current: Instant | null): Instant | null {
   switch (outcome.case) {
     case "keep":
       return current;
@@ -150,8 +103,8 @@ export function rangeFrom(
   isEdit: boolean,
   original: RangeInstants = current,
 ): {
-  readonly start: RangeOutcome;
-  readonly end: RangeOutcome;
+  readonly start: InstantOutcome;
+  readonly end: InstantOutcome;
   /** The end stays on the start day despite its wall-clock time suggesting "+1". */
   readonly sameDayEnd?: CalendarDay;
 } {
