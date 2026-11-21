@@ -1,5 +1,5 @@
 import { oc } from "@orpc/contract";
-import { entryFields, refusal } from "@self-engine/db/schema";
+import { entryFields, inputErrors, refusal } from "@self-engine/db/schema";
 import { projectIdSchema } from "@self-engine/projects/ids";
 import { type Instant, instantSchema, wholeSecondOf } from "@self-engine/time";
 import { z } from "zod";
@@ -7,7 +7,13 @@ import { daysAnswerSchema, daysInputSchema } from "./days.ts";
 import { timeEntrySchema, timeEntryWithProjectSchema } from "./entries.ts";
 import { timeEntryIdSchema, timerIdSchema } from "./ids.ts";
 import { noteSchema } from "./note.ts";
-import { timerFields, timerSchema, timerStartInput, timerWithProjectSchema } from "./timers.ts";
+import {
+  START_IN_FUTURE,
+  timerFields,
+  timerSchema,
+  timerStartInput,
+  timerWithProjectSchema,
+} from "./timers.ts";
 
 export { type TimeEntryId, timeEntryIdSchema, type TimerId, timerIdSchema } from "./ids.ts";
 export { NOTE_MAX } from "./note.ts";
@@ -156,7 +162,7 @@ export const timeTrackingContract = {
   editTimer: oc
     .input(timerFields.edit)
     .output(timerSchema)
-    .errors({ NOT_FOUND: {}, ...refusal }),
+    .errors({ NOT_FOUND: {}, ...inputErrors(START_IN_FUTURE), ...refusal }),
   /** Removes a running Timer without a Time Entry: a soft delete. */
   discardTimer: oc
     .input(byTimerId)

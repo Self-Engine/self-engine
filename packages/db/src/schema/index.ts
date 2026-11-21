@@ -45,3 +45,9 @@ export {
   type WriteKind,
   writeKinds,
 } from "./clearance.ts";
+export {
+  type InputErrorReason,
+  inputErrorData,
+  inputErrors,
+  type InputPath,
+} from "./input-error.ts";
