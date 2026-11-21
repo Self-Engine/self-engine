@@ -13,6 +13,7 @@ import { settings } from "@self-engine/settings-data/data";
 import { resolveTimeZone } from "@self-engine/time";
 import { TIME_ZONE_SETTING } from "@self-engine/time/settings";
 import { afterEach, expect, test } from "vite-plus/test";
+import { type TimerStop, timeEntryIdOfTimer, timerIdSchema } from "./contracts/index.ts";
 import { timeTracking } from "./data/index.ts";
 
 const started: TestDataProcess[] = [];
@@ -304,9 +305,160 @@ test("stop answers with the saved entry: the timer's id, start, project and note
   };
   expect(answer).toEqual({ kind: "saved", entry });
   await expect(client.timeTracking.runningTimers()).resolves.toEqual([]);
-  await expect(client.timeTracking.entry({ id: entry.id as never })).resolves.toMatchObject(entry);
+  await expect(
+    client.timeTracking.entry({ id: timeEntryIdOfTimer(timer.id) }),
+  ).resolves.toMatchObject(entry);
   // The zone of the Setting at the moment of stopping (D342).
   await expect(storedEntries(process, timer.id)).resolves.toEqual([
     { id: timer.id, time_zone: "Asia/Bangkok", deleted_at: null },
   ]);
+});
+
+/** The day of the tests, as `days` answers its entries. */
+const dayEntries = async (client: Awaited<ReturnType<typeof start>>["client"]) =>
+  (await client.timeTracking.days({ span: { first: "2026-11-16", last: "2026-11-16" } })).days[0]
+    ?.entries;
+
+test("stop announces one Table Change naming both tables; stopping again answers the same entry and announces nothing", async () => {
+  const { client, clock, process } = await start();
+  const { timer } = await client.timeTracking.startTimer({ note: "Design" });
+  clock.advance(60_000);
+
+  const events = await client.tablesChanged();
+  await expect(events.next()).resolves.toMatchObject({ value: { kind: "opened" } });
+  const first = await client.timeTracking.stopTimer({ id: timer.id });
+  await expect(events.next()).resolves.toEqual({
+    done: false,
+    value: { kind: "changed", tables: ["time_entries", "timers"] },
+  });
+
+  // A double click, or a later stop at another moment: the same entry, nothing written.
+  clock.advance(60_000);
+  await expect(client.timeTracking.stopTimer({ id: timer.id })).resolves.toEqual(first);
+  await expect(
+    client.timeTracking.stopTimer({ id: timer.id, endedAt: "2026-11-16T09:00:30.000Z" }),
+  ).resolves.toEqual(first);
+  // A write to a different table marks how far the stream has advanced.
+  await client.projects.create({ title: "Garden" });
+  await expect(events.next()).resolves.toMatchObject({
+    value: { kind: "changed", tables: ["projects"] },
+  });
+  await events.return?.();
+  await expect(storedEntries(process, timer.id)).resolves.toHaveLength(1);
+  await expect(dayEntries(client)).resolves.toHaveLength(1);
+});
+
+test("stopping a discarded or an unknown timer is not found", async () => {
+  const { client, clock } = await start();
+  const { timer } = await client.timeTracking.startTimer({});
+  clock.advance(60_000);
+  await client.timeTracking.discardTimer({ id: timer.id });
+  const unknown = timerIdSchema.parse("01a1cfa1-0b00-7000-8000-0000000000ff");
+
+  for (const id of [timer.id, unknown])
+    await expect(errorOf(client.timeTracking.stopTimer({ id }))).resolves.toMatchObject({
+      code: "NOT_FOUND",
+      defined: true,
+    });
+  await expect(dayEntries(client)).resolves.toEqual([]);
+});
+
+test("a stop within the second of the start discards the timer, saves no entry and says so", async () => {
+  const { client, clock, process } = await start();
+  const { timer } = await client.timeTracking.startTimer({ note: "Slip" });
+  clock.advance(600);
+
+  await expect(client.timeTracking.stopTimer({ id: timer.id })).resolves.toEqual({
+    kind: "discarded",
+    timer,
+  });
+  await expect(client.timeTracking.runningTimers()).resolves.toEqual([]);
+  await expect(storedEntries(process, timer.id)).resolves.toEqual([]);
+  // A discarded timer stays discarded.
+  await expect(errorOf(client.timeTracking.stopTimer({ id: timer.id }))).resolves.toMatchObject({
+    code: "NOT_FOUND",
+  });
+});
+
+test("stop at an end between the start and now writes that end, cut to the second", async () => {
+  const { client, clock } = await start();
+  const { timer } = await client.timeTracking.startTimer({});
+  clock.advance(8 * 3_600_000);
+
+  await expect(
+    client.timeTracking.stopTimer({ id: timer.id, endedAt: "2026-11-16T09:00:01.999Z" }),
+  ).resolves.toEqual({
+    kind: "saved",
+    entry: expect.objectContaining({
+      startedAt: "2026-11-16T09:00:00.000Z",
+      endedAt: "2026-11-16T09:00:01.000Z",
+      durationSeconds: 1,
+    }),
+  });
+  await expect(client.timeTracking.runningTimers()).resolves.toEqual([]);
+});
+
+test("stop at an end not after the start or after now is an input error at the end and writes nothing", async () => {
+  const { client, clock } = await start();
+  const { timer } = await client.timeTracking.startTimer({});
+  clock.advance(3_600_000);
+
+  for (const [endedAt, reason] of [
+    ["2026-11-16T08:59:59.000Z", "end_before_start"],
+    // Within the start's second: the end must lie a whole second after it (D344).
+    ["2026-11-16T09:00:00.900Z", "end_before_start"],
+    ["2026-11-16T10:00:01.000Z", "end_in_future"],
+  ] as const)
+    await expect(
+      errorOf(client.timeTracking.stopTimer({ id: timer.id, endedAt })),
+    ).resolves.toMatchObject({
+      code: "BAD_REQUEST",
+      data: { issues: [{ path: ["endedAt"], params: { reason } }] },
+    });
+  // Now's own second, cut, is no end in the future.
+  await expect(
+    client.timeTracking.stopTimer({ id: timer.id, endedAt: "2026-11-16T10:00:00.400Z" }),
+  ).resolves.toMatchObject({ kind: "saved", entry: { endedAt: "2026-11-16T10:00:00.000Z" } });
+});
+
+test("with the clock before the timer's start, stop writes nothing, the timer runs on and the answer says why", async () => {
+  const { client, clock, process } = await start();
+  const { timer } = await client.timeTracking.startTimer({ note: "Design" });
+  // The computer's clock jumped back.
+  clock.advance(-3_600_000);
+
+  const events = await client.tablesChanged();
+  await expect(events.next()).resolves.toMatchObject({ value: { kind: "opened" } });
+  await expect(client.timeTracking.stopTimer({ id: timer.id })).resolves.toEqual({
+    kind: "clockBeforeStart",
+    timer,
+  });
+  await client.projects.create({ title: "Garden" });
+  await expect(events.next()).resolves.toMatchObject({
+    value: { kind: "changed", tables: ["projects"] },
+  });
+  await events.return?.();
+  await expect(client.timeTracking.runningTimers()).resolves.toEqual([{ ...timer, project: null }]);
+  await expect(storedEntries(process, timer.id)).resolves.toEqual([]);
+});
+
+test("a caller tells the three answers of stop apart, and the compiler holds it to all three", async () => {
+  const { client, clock } = await start();
+  const { timer } = await client.timeTracking.startTimer({});
+  clock.advance(1_000);
+
+  // As a Notice would: a fourth kind added to the answer fails to compile here.
+  const notice = (stop: TimerStop) => {
+    switch (stop.kind) {
+      case "saved":
+        return `saved ${stop.entry.durationSeconds}s`;
+      case "discarded":
+        return "nothing saved";
+      case "clockBeforeStart":
+        return "stop at";
+      default:
+        return stop satisfies never;
+    }
+  };
+  expect(notice(await client.timeTracking.stopTimer({ id: timer.id }))).toBe("saved 1s");
 });
