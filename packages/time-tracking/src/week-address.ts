@@ -11,7 +11,8 @@ import {
 /**
  * The search parameter of the week's address: the first day of the shown week. It is missing
  * while the week holds today, so that the View follows "today" over midnight and into the next
- * week; a reload and a deep link then show the week of that day's today.
+ * week; a reload and a deep link then show the week of that day's today. A week named while it is
+ * the week of today, opened ahead or from a link, is taken out by the View (D367).
  */
 export const WEEK_PARAMETER = "week";
 

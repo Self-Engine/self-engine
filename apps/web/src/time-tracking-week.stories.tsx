@@ -303,6 +303,37 @@ export const AtTheEndOfTheWeekTheViewFollowsTodayIntoTheNext: Story = {
   },
 };
 
+const sundayBeforeTheNamedWeek = movingClock("2026-11-22T22:59:59.900Z");
+
+export const AWeekOpenedAheadFollowsTodayOnceItIsTheWeekOfToday: Story = {
+  args: {
+    address: `${WEEK}?week=2026-11-23`,
+    time: { ...IN_BERLIN, clock: sundayBeforeTheNamedWeek.clock },
+  },
+  loaders: [() => sundayBeforeTheNamedWeek.moveTo("2026-11-22T22:59:59.900Z")],
+  play: async ({ canvas }) => {
+    await heading(canvas, "Mon, Nov 23 – Sun, Nov 29");
+    await expect(weekInAddress()).toBe("2026-11-23");
+    await expect(canvas.getByRole("button", { name: "Today" })).toBeEnabled();
+
+    sundayBeforeTheNamedWeek.moveTo("2026-11-22T23:00:01.000Z");
+
+    // The named week is now the week of today and leaves the address, as if reached with "Today".
+    await waitFor(async () => expect(weekInAddress()).toBeUndefined(), { timeout: 4000 });
+    await heading(canvas, "Mon, Nov 23 – Sun, Nov 29");
+    await expect(await today(canvas)).toEqual(["Monday, November 23, 2026"]);
+    await expect(canvas.getByRole("button", { name: "Today" })).toBeDisabled();
+  },
+};
+
+export const ADeepLinkToTheWeekOfTodayFollowsToday: Story = {
+  args: { address: `${WEEK}?week=2026-11-16` },
+  play: async ({ canvas }) => {
+    await heading(canvas, "Mon, Nov 16 – Sun, Nov 22");
+    await waitFor(async () => expect(weekInAddress()).toBeUndefined());
+  },
+};
+
 export const WestOfUtcTheSameEntriesFallOnOtherDays: Story = {
   args: {
     time: { clock: FRIDAY_MORNING, deviceZone: LOS_ANGELES, region: "de-DE" },

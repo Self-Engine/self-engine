@@ -10,7 +10,7 @@ import {
 } from "@self-engine/time";
 import { useFirstDayOfWeek, useTimeZone, useToday } from "@self-engine/time/react";
 import { QueryStateBlock } from "@self-engine/ui";
-import { useCallback, useMemo } from "react";
+import { useCallback, useEffect, useMemo } from "react";
 import { type DaysAnswer, useSpanDays } from "./port.ts";
 import { shownProjectFilter, timeEntryFilter } from "./project-filter-address.ts";
 import { WeekProjectFilter } from "./week-project-filter.tsx";
@@ -21,7 +21,8 @@ import { WeekSums } from "./week-sums.tsx";
 /**
  * The View "Week" (D303, D345, D354): seven days below each other with their entries and sums,
  * and beside them the sums per project and the total. The week is the one of the day in the
- * address, or of today, from the first day of the week of the Settings. "Today" comes from the
+ * address, or of today, from the first day of the week of the Settings; the address names no week
+ * while the shown one is the week of today (D367). "Today" comes from the
  * page clock and moves at midnight; nothing here reads "now". The Query reloads after a Table
  * Change of its tables, and after a change of the span.
  */
@@ -32,6 +33,19 @@ export default function Week() {
   const firstDayOfWeek = useFirstDayOfWeek();
   const addressDay = useViewSearch(weekDayOf);
   const { span, todaysFirst } = shownWeek(addressDay, today, firstDayOfWeek);
+  const write = useWriteViewSearch();
+  // A week the address names leaves it once it is the week of today (D367): opened ahead or from
+  // a link, it then follows "today" like the week "Today" goes to. The entry in the history is
+  // rewritten, so that Back does not return to the named week.
+  const namesTodaysWeek = addressDay !== undefined && span.first === todaysFirst;
+  useEffect(() => {
+    if (!namesTodaysWeek) return;
+    write(
+      (search) =>
+        weekDayOf(search) === addressDay ? withWeek(search, todaysFirst, todaysFirst) : search,
+      { replace: true },
+    );
+  }, [namesTodaysWeek, addressDay, todaysFirst, write]);
   return (
     <Stack gap="md">
       <WeekNavigation locale={i18n.locale} span={span} todaysFirst={todaysFirst} />
