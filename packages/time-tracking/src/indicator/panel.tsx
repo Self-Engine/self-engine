@@ -24,10 +24,7 @@ import {
 } from "../contracts/index.ts";
 import { type TimerWithProject, useEditTimer, useRunningTimers, useStopTimer } from "../port.ts";
 import { discardTimerAndTell, tellStop } from "../timer-actions.tsx";
-import { type PanelPart, panelPart } from "../timer-panel-part.ts";
-
-/** The Notice of a clock before the start switches to "Stop at …", or opens the panel there. */
-const ACTIONS = { openStopAt: () => panelPart.open("stopAt") };
+import { type PanelPart, panelPart, STOP_AT_IN_PLACE } from "../timer-panel-part.ts";
 
 /** The texts of the reasons the Operations raise at a field (D369); the compiler asks for each. */
 const EDIT_TEXTS = { reasons: { [START_IN_FUTURE]: msg`The start cannot lie in the future.` } };
@@ -155,7 +152,7 @@ function EditTimerForm({ timer, onCancel, onDone, confirmDiscard, switchTo }: Pa
   const discard = async () => {
     if (!(await confirmDiscard())) return;
     setDiscarding(true);
-    const result = await discardTimerAndTell(data, timer.id, ACTIONS);
+    const result = await discardTimerAndTell(data, timer.id, STOP_AT_IN_PLACE);
     switch (result.status) {
       // Gone already: nothing is left to edit here, and the building block told why.
       case "success":
@@ -223,7 +220,7 @@ function StopAtForm({ timer, onCancel, onDone, switchTo }: PartProps) {
     operation: useStopTimer(),
     draft: { id: timer.id, endedAt: null },
     texts: STOP_TEXTS,
-    onSuccess: (stop) => tellStop(data, timer.id, stop, ACTIONS),
+    onSuccess: (stop) => tellStop(data, timer.id, stop, STOP_AT_IN_PLACE),
     onDone,
   });
   const start = formatInstant(timer.startedAt, "dateTime", i18n.locale, timeZone);
