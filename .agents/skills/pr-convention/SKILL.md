@@ -61,6 +61,6 @@ end it with `Closes #<issue>` when the PR finishes an issue.
 
 ## Before the merge
 
-A pull request labelled `large`, or one that closes a work package, needs a CodeRabbit review
+A pull request labelled `size:XXL`, or one that closes a work package, needs a CodeRabbit review
 and an app check first: follow
 [Large pull requests](../../../docs/agents/workflow.md#large-pull-requests).

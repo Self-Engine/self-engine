@@ -17,9 +17,9 @@ Build work packages in number order unless the owner picks another. A slice may 
 
 ## Large pull requests
 
-A pull request is **large** when it closes a work package or changes 1,000 lines or more, not counting lockfiles and translation catalogs. The `Large PR` workflow labels such a pull request `large` (`scripts/large-pr.ts` counts), and the label starts CodeRabbit's review (`.coderabbit.yaml`); a package pull request below the limit gets the label by hand. Before you report a large pull request as ready to merge:
+A pull request is **large** when it closes a work package or carries `size:XXL`. The `PR size` workflow gives every pull request one `size:*` label from the lines it changes, without tests, lockfiles and translation catalogs (`scripts/pr-size.ts` counts); `size:XXL` starts CodeRabbit's review (`.coderabbit.yaml`). Before you report a large pull request as ready to merge:
 
-1. **Review.** Once CodeRabbit's walkthrough comment appears, the review runs. If none appears within five minutes of the push, comment `@coderabbitai review`.
+1. **Review.** Once CodeRabbit's walkthrough comment appears, the review runs. If none appears within five minutes of the push, or the pull request is a package below `size:XXL`, comment `@coderabbitai review`.
 2. **App check.** While the review runs, a subagent checks the app with the [`verify-desktop`](../../.agents/skills/verify-desktop/SKILL.md) skill, with its window hidden. Put the screenshots that show the change into the body's Evidence. A pull request that changes no code the app runs skips this step and says so.
 3. **Findings.** Answer every CodeRabbit comment in its thread: fix it, or say why not. After a fix, run `pnpm verify` again and push; CodeRabbit reviews the new commits itself.
 
