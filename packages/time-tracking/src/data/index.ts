@@ -1,18 +1,8 @@
-import {
-  projectReferenceColumns,
-  projectReferenceOf,
-  projectReferences,
-} from "@self-engine/projects/data";
-import { defineStorageModule, sharedEntry, sharedWrites } from "@self-engine/storage";
+import { defineStorageModule, sharedWrites } from "@self-engine/storage";
 import { timeEntryIdSchema, timeTrackingContract } from "../contracts/index.ts";
 import { DAYS_READS, spanDays } from "./days.ts";
-import {
-  TIME_ENTRY_COLUMNS,
-  storedTimes,
-  timeTrackingMigrations,
-  timeTrackingRowMap,
-  toTimeEntry,
-} from "./rows.ts";
+import { liveEntriesWithProject, toTimeEntryWithProject } from "./entries-with-project.ts";
+import { storedTimes, timeTrackingMigrations, timeTrackingRowMap, toTimeEntry } from "./rows.ts";
 
 /**
  * The Storage of `time-tracking` (D252). It registers no Protection Rule: "end after start" is a
@@ -71,18 +61,10 @@ export const timeTracking = defineStorageModule({
     kind: "query",
     reads: ["time_entries", "projects"],
     async run(tx, context, input) {
-      const row = await sharedEntry(tx, context)
-        .live("time_entries")
-        .leftJoin(
-          projectReferences(tx, context, "project"),
-          "project.id",
-          "time_entries.project_id",
-        )
-        .select(TIME_ENTRY_COLUMNS)
-        .select(projectReferenceColumns("project"))
+      const row = await liveEntriesWithProject(tx, context)
         .where("time_entries.id", "=", input.id)
         .executeTakeFirst();
-      return row === undefined ? null : { ...toTimeEntry(row), project: projectReferenceOf(row) };
+      return row === undefined ? null : toTimeEntryWithProject(row);
     },
   },
   days: { kind: "query", reads: DAYS_READS, run: spanDays },

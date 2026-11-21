@@ -45,7 +45,7 @@ export const TIME_ENTRY_COLUMNS = [
   "time_entries.note",
 ] as const;
 
-type TimeEntryValues = Pick<
+export type TimeEntryValues = Pick<
   TimeEntryRow,
   (typeof TIME_ENTRY_COLUMNS)[number] extends `time_entries.${infer Column}` ? Column : never
 >;
