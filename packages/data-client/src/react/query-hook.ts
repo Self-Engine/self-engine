@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { useCallback } from "react";
-import { useDataContext } from "./provider.ts";
+import { type DataAccess, useDataContext } from "./provider.ts";
 
 /**
  * What a Query hook shows (D250, D257), one variant per display, so the shared state piece in
@@ -51,6 +51,28 @@ export function queryHook<Input, Output>(module: string, entry: string): QueryHo
     }
     return { status: "content", data: result.data };
   };
+}
+
+/**
+ * A Query as a function of the Port access, for code outside React such as a Command (D261): one
+ * fresh read, past the page's cache, that resolves with the answer and rejects with the call's
+ * error.
+ */
+export type QueryFunction<Input, Output> = (
+  data: DataAccess,
+  input: Input,
+  signal?: AbortSignal,
+) => Promise<Output>;
+
+/** The function form of the Query `entry` of the module mounted as `module` (`portHooks`). */
+export function queryFunction<Input, Output>(
+  module: string,
+  entry: string,
+): QueryFunction<Input, Output> {
+  // The Port access erases the types; the Data Process answers according to the Contract, which
+  // `portHooks` types this function from, as it types the Query hook's answer above.
+  return async ({ access }, input, signal) =>
+    (await access.call(module, entry, input, signal)) as Output;
 }
 
 /**

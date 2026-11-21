@@ -2,7 +2,7 @@ import { defineOpenCommand } from "@self-engine/shell";
 import { z } from "zod";
 import { readLatestRunningTimer } from "./port.ts";
 import { stopAtThrough } from "./stop-at.ts";
-import { stopTimerAndTell } from "./timer-actions.tsx";
+import { NO_TIMER_RUNNING, stopTimerAndTell } from "./timer-actions.tsx";
 
 export default defineOpenCommand({
   description:
@@ -10,8 +10,12 @@ export default defineOpenCommand({
   schema: z.strictObject({}),
   async run(_input, { data, openIndicatorPanel }) {
     const timer = await readLatestRunningTimer(data);
-    return timer === undefined
-      ? null
-      : stopTimerAndTell(data, timer.id, { openStopAt: stopAtThrough(openIndicatorPanel) });
+    if (timer === undefined) {
+      // Through the building block's seam: a person reads it, a caller without a screen gets the
+      // value `null` and a seam that shows nothing.
+      data.notify(NO_TIMER_RUNNING);
+      return null;
+    }
+    return stopTimerAndTell(data, timer.id, { openStopAt: stopAtThrough(openIndicatorPanel) });
   },
 });

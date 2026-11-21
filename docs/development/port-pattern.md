@@ -702,6 +702,7 @@ open panel switches, asking first through `confirmDiscard` when its form holds u
 and puts the focus on the new part's first field. The indicator and the panel cannot name the
 indicator's entry for `openIndicatorPanel`: the entry loads them, so the import would be a cycle,
 which the boundary check rejects. The indicator hands its `togglePanel` to the module's state
-instead, and both open the closed panel through it. See the
+instead, only while its panel is closed, so a request never closes an open panel that is still
+loading or shows no part; a Command passes the Shell's opener. See the
 [timer's panel](../../packages/time-tracking/src/indicator/panel.tsx) and
 [its state](../../packages/time-tracking/src/timer-panel-part.ts).

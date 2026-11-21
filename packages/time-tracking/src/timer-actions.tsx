@@ -4,6 +4,7 @@
 // calls them as a component does. The file loads with its first caller, never at startup, and
 // loads none of the module's Views.
 
+import { msg } from "@lingui/core/macro";
 import { Plural, Trans } from "@lingui/react/macro";
 import type { DataAccess } from "@self-engine/data-client/react";
 import { notifyDone, notifyRefused, notifyUndoable } from "@self-engine/ui";
@@ -20,12 +21,18 @@ type DiscardResult = Awaited<ReturnType<typeof discardTimer>>;
  * What a caller with a screen hands the actions: how to open the timer's Indicator Panel at
  * "Stop at …", which the Notice of a clock before the start offers. A Command a person starts
  * builds it with `stopAtThrough` from the Shell's function in its context; the indicator and the
- * panel take `panelPart.open`. A caller without a screen, such as a Command for an assistant, has
+ * panel take `STOP_AT_IN_PLACE`. A caller without a screen, such as a Command for an assistant, has
  * none, and that Notice offers no action.
  */
 export interface TimerActionOptions {
   readonly openStopAt?: (() => void) | undefined;
 }
+
+/**
+ * What a person reads when they ask to stop the timer while none runs: the Notice of the palette's
+ * "Stop timer", and the panel opened with no timer. A descriptor, translated where it shows.
+ */
+export const NO_TIMER_RUNNING = msg`No timer is running.`;
 
 // Elements, not text: `Trans` translates when the Notice renders, in the language active then.
 const SAVED = <Trans>Time entry saved</Trans>;

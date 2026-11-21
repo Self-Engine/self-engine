@@ -1,4 +1,3 @@
-import type { InferContractRouterInputs, InferContractRouterOutputs } from "@orpc/contract";
 import { type DataAccess, portHooks } from "@self-engine/data-client/react";
 import type { TablesOf } from "@self-engine/db";
 import type { DaySpan } from "@self-engine/time";
@@ -63,17 +62,12 @@ export function useSpanDays(span: DaySpan, filter?: TimeEntryFilter) {
 /** The frame refuses a deleted project at the timer's column (D334, D337). */
 const AT_TIMER_PROJECT = { columns: { timers: { project_id: "projectId" } } } as const;
 
-const RUNNING_TIMERS = "runningTimers";
-const useRunning = timeTrackingPort.query(RUNNING_TIMERS);
+const useRunning = timeTrackingPort.query("runningTimers");
+const readRunning = timeTrackingPort.read("runningTimers");
 
 /** One fresh read for a Command, in the same order as the Module Indicator's Query. */
-export async function readLatestRunningTimer({ access }: DataAccess) {
-  type Contract = typeof timeTrackingContract;
-  const input: InferContractRouterInputs<Contract>[typeof RUNNING_TIMERS] = undefined;
-  const answer = await access.call(MOUNT, RUNNING_TIMERS, input);
-  // PortAccess erases the types. The Data Process answers according to this Contract.
-  const timers = answer as InferContractRouterOutputs<Contract>[typeof RUNNING_TIMERS];
-  return timers.at(0);
+export async function readLatestRunningTimer(data: DataAccess) {
+  return (await readRunning(data, undefined)).at(0);
 }
 
 /**

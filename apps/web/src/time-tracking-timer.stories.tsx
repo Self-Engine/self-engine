@@ -27,7 +27,7 @@ import {
   rendersOutside,
 } from "@self-engine/ui/story-render-counts";
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { expect, screen, userEvent, waitFor, within } from "storybook/test";
+import { expect, fireEvent, screen, userEvent, waitFor, within } from "storybook/test";
 import { clearNotices } from "@self-engine/ui/story-notices";
 import {
   AppAt,
@@ -246,6 +246,84 @@ export const StoppingShowsANoticeWhoseUndoLetsTheTimerRunAgain: Story = {
   },
 };
 
+/** The middle of `element` on screen, where a click on it lands. */
+function middleOf(element: Element) {
+  const box = element.getBoundingClientRect();
+  return { x: box.left + box.width / 2, y: box.top + box.height / 2 };
+}
+
+/**
+ * The second click of a double click, 100 ms after the first, as the browser sends it: to
+ * whatever now lies at the place of the first, counted as the series' second click (`detail`).
+ */
+async function secondClickAt({ x, y }: { readonly x: number; readonly y: number }) {
+  const target = document.elementFromPoint(x, y);
+  if (target === null) throw new Error("Nothing lies at the place of the first click");
+  const init = { bubbles: true, cancelable: true, clientX: x, clientY: y, detail: 2 };
+  await fireEvent.mouseDown(target, init);
+  await fireEvent.mouseUp(target, init);
+  await fireEvent.click(target, init);
+  await new Promise((resolve) => setTimeout(resolve, 100));
+  return target;
+}
+
+/**
+ * A double click on the stop button: the first click stops the timer, and the offer to start
+ * appears in its place before the second click lands there. The second click starts nothing.
+ */
+const doubleClickOnStopAt = (step: Step): Story => ({
+  globals: { viewport: { value: step, isRotated: false } },
+  beforeEach: cleanNotices,
+  args: { afterCall: stopAndUndo },
+  play: async ({ canvas }) => {
+    await runningTime(canvas);
+    const header = contentHeader(canvas);
+    const stop = header.getByRole("button", { name: "Stop timer" });
+    const place = middleOf(stop);
+    await userEvent.click(stop);
+    const start = await header.findByRole("button", { name: "Start timer" });
+    const hit = await secondClickAt(place);
+    await expect(start.contains(hit)).toBe(true);
+    await expect(port.calls).toEqual([{ entry: "stopTimer", input: { id: RUNNING.id } }]);
+    await expect(header.queryByRole("timer")).toBeNull();
+    await expect(start).toBeEnabled();
+  },
+});
+
+export const ADoubleClickOnStopStartsNoTimerAtTheWideStep = doubleClickOnStopAt("wide");
+export const ADoubleClickOnStopStartsNoTimerAtTheNarrowStep = doubleClickOnStopAt("narrow");
+
+/**
+ * A double click on the offer to start: the first click starts one timer, and the second, which
+ * lands on what replaced the offer, neither starts another nor stops this one.
+ */
+const doubleClickOnStartAt = (step: Step): Story => ({
+  globals: { viewport: { value: step, isRotated: false } },
+  beforeEach: cleanNotices,
+  args: {
+    stored: {},
+    answers: { startTimer: { data: { timer: RUNNING_TIMER, others: [] } } },
+    afterCall(call, of) {
+      if (call.entry === "startTimer") of.change({ timers: [RUNNING] });
+      else stopAndUndo(call, of);
+    },
+  },
+  play: async ({ canvas }) => {
+    await canvas.findByRole("heading", { level: 1 });
+    const header = contentHeader(canvas);
+    const start = await header.findByRole("button", { name: "Start timer" }, ARRIVES);
+    const place = middleOf(start);
+    await userEvent.click(start);
+    await expect(await runningTime(canvas)).toHaveTextContent("1:12:47");
+    await secondClickAt(place);
+    await expect(port.calls).toEqual([{ entry: "startTimer", input: {} }]);
+    await expect(header.getByRole("timer")).toBeVisible();
+  },
+});
+
+export const ADoubleClickOnStartStartsOneTimerAtTheWideStep = doubleClickOnStartAt("wide");
+export const ADoubleClickOnStartStartsOneTimerAtTheNarrowStep = doubleClickOnStartAt("narrow");
+
 export const StartAndStopFromAnotherModulesPalette: Story = {
   beforeEach: cleanNotices,
   args: {
@@ -273,6 +351,22 @@ export const StartAndStopFromAnotherModulesPalette: Story = {
     await userEvent.click(await screen.findByRole("button", { name: "Undo" }));
     await expect(await runningTime(canvas)).toHaveTextContent("1:12:47");
     await expect(storyRouter().state.location.pathname).toBe("/projects/active");
+  },
+};
+
+export const StopFromThePaletteWhileIdleSaysThatNoTimerRuns: Story = {
+  beforeEach: cleanNotices,
+  args: { stored: {} },
+  play: async ({ canvas }) => {
+    await canvas.findByRole("heading", { name: "Active", level: 1 });
+    await openPalette();
+    await userEvent.keyboard("stop timer{Enter}");
+    await paletteGone();
+    await noticeShown("No timer is running.");
+    await expect(port.calls).toEqual([]);
+    await expect(
+      await contentHeader(canvas).findByRole("button", { name: "Start timer" }, ARRIVES),
+    ).toBeVisible();
   },
 };
 

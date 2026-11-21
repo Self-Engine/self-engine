@@ -72,18 +72,16 @@ async function saveEntry(
     time_zone: await context.readTimeZone(tx),
   };
   const stored = await storedEntryOfTimer(tx, context, timer.id);
-  if (stored === "none") {
-    const row = await writes.insert("time_entries", id, values);
-    await writes.softDelete("timers", timer.id);
-    return { kind: "saved", entry: toTimeEntry(row) };
-  }
-  // A stop after "undo stop": the entry of an earlier stop comes back with the timer's project
-  // and note and the new end, duration and Time Zone, in one write, so the timer keeps one entry
-  // (D349) and the reference check judges the project the timer has now (D371).
+  // The first stop inserts the entry. After "undo stop", the entry of the earlier stop comes back
+  // with the timer's project and note and the new end, duration and Time Zone, in one write, so
+  // the timer keeps one entry (D349) and the reference check judges the project the timer has now
+  // (D371).
   const row =
-    stored === "deleted"
-      ? await writes.restore("time_entries", id, values)
-      : await writes.update("time_entries", id, values);
+    stored === "none"
+      ? await writes.insert("time_entries", id, values)
+      : stored === "deleted"
+        ? await writes.restore("time_entries", id, values)
+        : await writes.update("time_entries", id, values);
   await writes.softDelete("timers", timer.id);
   return { kind: "saved", entry: toTimeEntry(row) };
 }

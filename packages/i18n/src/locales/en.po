@@ -1099,7 +1099,7 @@ msgstr "No smoking"
 msgid "No Time Zone found"
 msgstr "No Time Zone found"
 
-#: packages/time-tracking/src/indicator/panel.tsx
+#: packages/time-tracking/src/timer-actions.tsx
 msgid "No timer is running."
 msgstr "No timer is running."
 

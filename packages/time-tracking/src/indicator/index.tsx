@@ -18,15 +18,12 @@ import type { IndicatorForm, ModuleIndicatorWithPanelProps } from "@self-engine/
 import type { Instant } from "@self-engine/time";
 import { useNow } from "@self-engine/time/react";
 import { formatRunningTime } from "@self-engine/time/running-time";
-import { type CSSProperties, lazy, Suspense, useEffect, useState } from "react";
+import { type CSSProperties, lazy, type MouseEvent, Suspense, useEffect, useState } from "react";
 // Types only: the Contract's schemas never load with the indicator (startup check).
 import type { TimerId, TimerWithProject } from "../contracts/index.ts";
 import { useRunningTimers } from "../port.ts";
 import { startTimerAndTell, stopTimerAndTell } from "../timer-actions.tsx";
-import { panelPart } from "../timer-panel-part.ts";
-
-/** The Notice of a clock before the start opens the panel at "Stop at …" (D358). */
-const ACTIONS = { openStopAt: () => panelPart.open("stopAt") };
+import { panelPart, STOP_AT_IN_PLACE } from "../timer-panel-part.ts";
 
 // The mark draws a project's icon from the directory of entry pictures. It loads only once a
 // running timer has a project, so an idle indicator or one without a project never fetches it.
@@ -47,6 +44,17 @@ const TIME_STYLE: CSSProperties = {
 };
 
 const ICON_STYLE: CSSProperties = { display: "flex" };
+
+/**
+ * A click handler that acts on the first click of a series only. Stop and start swap places as
+ * soon as the running timers change, so the second click of a double click lands on the other
+ * one: it would start a fresh timer after a stop, or stop the one just started. The browser
+ * counts the clicks of a series in `detail` (2 for the second); a single click is 1, and a press
+ * of Enter or Space is 0, so both act at once and nothing waits.
+ */
+const firstClickOnly = (act: () => void) => (event: MouseEvent) => {
+  if (event.detail <= 1) act();
+};
 
 // The part that opens the panel holds what the timer shows; its title shortens inside it.
 const OPENER_STYLE: CSSProperties = {
@@ -149,7 +157,7 @@ function RunningTimer({
         aria-label={t`Stop timer`}
         disabled={stopping}
         flex="none"
-        onClick={() => onStop(timer.id)}
+        onClick={firstClickOnly(() => onStop(timer.id))}
         size={24}
         variant="subtle"
       >
@@ -175,7 +183,7 @@ function StartTimer({
       <ActionIcon
         aria-label={t`Start timer`}
         disabled={starting}
-        onClick={onStart}
+        onClick={firstClickOnly(onStart)}
         size={24}
         variant="subtle"
       >
@@ -187,7 +195,7 @@ function StartTimer({
     <Button
       disabled={starting}
       leftSection={<StartTimerIcon size="sm" />}
-      onClick={onStart}
+      onClick={firstClickOnly(onStart)}
       size="compact-sm"
       variant="subtle"
     >
@@ -232,8 +240,12 @@ export default function TimerIndicator({
 }: ModuleIndicatorWithPanelProps) {
   const running = useRunningTimers();
   const data = useDataAccess();
-  // The Shell's opener of this panel, for "Stop at …" from a Notice while the panel is closed.
-  useEffect(() => panelPart.register(togglePanel), [togglePanel]);
+  // The Shell's opener of this panel while it is closed, for "Stop at …" from a Notice; while it is
+  // open, none, so that a request never closes it.
+  useEffect(
+    () => panelPart.register(panelOpen ? undefined : togglePanel),
+    [panelOpen, togglePanel],
+  );
   // The timer a stop was sent for, and whether a start was, so a double click sends one call. A
   // stop that left the timer running, or a start that failed, frees the button again.
   const [stopping, setStopping] = useState<TimerId | null>(null);
@@ -250,13 +262,13 @@ export default function TimerIndicator({
 
   const stop = (id: TimerId) => {
     setStopping(id);
-    void stopTimerAndTell(data, id, ACTIONS).then((result) => {
+    void stopTimerAndTell(data, id, STOP_AT_IN_PLACE).then((result) => {
       if (result.status !== "success" || result.data.kind === "clockBeforeStart") setStopping(null);
     });
   };
   const start = () => {
     setStarting(true);
-    void startTimerAndTell(data, {}, ACTIONS).then((result) => {
+    void startTimerAndTell(data, {}, STOP_AT_IN_PLACE).then((result) => {
       if (result.status !== "success") setStarting(false);
     });
   };

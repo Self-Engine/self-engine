@@ -726,3 +726,28 @@ test("when the panel's timer stops elsewhere, the panel says so and turns to no 
   button(panel(), "Close").click();
   await shown(() => expect(panelClosed()).toBe(true));
 });
+
+test('"Stop at …" from a Notice keeps the open panel open when it shows no timer', async () => {
+  const shell = await renderShell({
+    setup: async ({ client, clock }) => {
+      await client.timeTracking.startTimer({});
+      // The computer's clock jumped back an hour.
+      clock.advance(-3_600_000);
+    },
+  });
+  await shown(() => expect(runningTime()).toBe("0:00:00"));
+  button(document.body, "Stop timer").click();
+  const stopAt = await shown(() =>
+    button(document.querySelector(".mantine-Notification-root")!, "Stop at …"),
+  );
+  await openPanel();
+  // The clock is right again, and the timer stops elsewhere while the panel is open.
+  shell.clock.advance(2 * 3_600_000);
+  await shell.client.timeTracking.stopTimer({ id: shell.timerId()! });
+  await shown(() => expect(panel().textContent).toContain("This timer is no longer running."));
+
+  stopAt.click();
+  await new Promise((resolve) => setTimeout(resolve, 100));
+  expect(panelClosed()).toBe(false);
+  expect(panel().textContent).toContain("This timer is no longer running.");
+});

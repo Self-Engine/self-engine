@@ -10,7 +10,7 @@ import { startTestDataProcess, type TestDataProcess } from "@self-engine/data-pr
 import { notes, notesContract, pinnedNote } from "@self-engine/storage/testing";
 import { createElement, type ReactNode } from "react";
 import { createRoot, type Root } from "react-dom/client";
-import { afterEach, expect, test } from "vite-plus/test";
+import { afterEach, expect, expectTypeOf, test } from "vite-plus/test";
 import { createDataConnection, type DataConnection } from "../index.ts";
 import { fixedAnswers } from "../testing/index.ts";
 import { type DataAccess, DataProvider, portAccessOf, portHooks } from "./index.ts";
@@ -188,4 +188,31 @@ test("a refused delete arrives as the Refusal a Fixed Answer with the same Reaso
   // Both show the same shared Notice of a Refusal, and no notice of an error.
   const shown = refused.status === "refused" ? { reasons: refused.reasons } : undefined;
   expect(notices).toEqual([shown, shown]);
+});
+
+// The Query's function form (D261): one fresh read for code outside React, typed from the Contract.
+const readNotes = notesPort.read("list");
+
+test("a Query read as a function of the Port access answers what the Data Process holds, typed from the Contract", async () => {
+  const process = await startTestDataProcess({ modules: { notes } });
+  cleanups.push(() => process.close());
+  const connection = createDataConnection();
+  cleanups.push(() => connection.disconnect());
+  connection.connect(process.openPort());
+  await untilReady(connection);
+  const data: DataAccess = {
+    access: portAccessOf(connection),
+    notify: () => {},
+    notifyRefused: () => {},
+  };
+
+  await expect(readNotes(data, {})).resolves.toEqual([]);
+  await createNote(data, { title: "Groceries", isPinned: false });
+  const listed = await readNotes(data, {});
+  expect(listed.map((note) => note.title)).toEqual(["Groceries"]);
+  expectTypeOf(listed[0]!.title).toEqualTypeOf<string>();
+  // Never called: the list takes its own input, not a note.
+  // @ts-expect-error A note's fields are no input of the list.
+  const wrongInput = () => readNotes(data, { title: "Groceries" });
+  expectTypeOf(wrongInput).toBeFunction();
 });

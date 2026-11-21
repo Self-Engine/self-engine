@@ -23,11 +23,8 @@ import {
   timeTrackingContract,
 } from "../contracts/index.ts";
 import { type TimerWithProject, useEditTimer, useRunningTimers, useStopTimer } from "../port.ts";
-import { discardTimerAndTell, tellStop } from "../timer-actions.tsx";
-import { type PanelPart, panelPart } from "../timer-panel-part.ts";
-
-/** The Notice of a clock before the start switches to "Stop at …", or opens the panel there. */
-const ACTIONS = { openStopAt: () => panelPart.open("stopAt") };
+import { discardTimerAndTell, NO_TIMER_RUNNING, tellStop } from "../timer-actions.tsx";
+import { type PanelPart, panelPart, STOP_AT_IN_PLACE } from "../timer-panel-part.ts";
 
 /** The texts of the reasons the Operations raise at a field (D369); the compiler asks for each. */
 const EDIT_TEXTS = { reasons: { [START_IN_FUTURE]: msg`The start cannot lie in the future.` } };
@@ -67,10 +64,10 @@ function OpenedTimer({
 
 /** No timer runs, or the panel's timer stopped elsewhere while it was open. */
 function NoTimer({ gone, onDone }: { readonly gone: boolean; readonly onDone: () => void }) {
-  const { t } = useLingui();
+  const { t, i18n } = useLingui();
   return (
     <Stack gap="sm">
-      <Text size="sm">{gone ? t`This timer is no longer running.` : t`No timer is running.`}</Text>
+      <Text size="sm">{gone ? t`This timer is no longer running.` : i18n._(NO_TIMER_RUNNING)}</Text>
       <Button onClick={onDone} variant="default">
         {t({ message: "Close", context: "Close the panel" })}
       </Button>
@@ -92,9 +89,15 @@ function RunningTimerPanel(props: IndicatorPanelProps & { readonly timer: TimerW
   const { confirmDiscard } = props;
   const [part, setPart] = useState<PanelPart>(panelPart.opening);
   const shown = useRef(part);
+  // The latest question of the frame, before the paint, as `useUnsavedChanges` reads its check:
+  // the switch below is made once and outlives the render that made it.
+  const confirm = useRef(confirmDiscard);
+  useLayoutEffect(() => {
+    confirm.current = confirmDiscard;
+  });
   const switchTo = useRef(async (next: PanelPart) => {
     if (next === shown.current) return;
-    if (!(await confirmDiscard())) return;
+    if (!(await confirm.current())) return;
     shown.current = next;
     setPart(next);
   });
@@ -155,7 +158,7 @@ function EditTimerForm({ timer, onCancel, onDone, confirmDiscard, switchTo }: Pa
   const discard = async () => {
     if (!(await confirmDiscard())) return;
     setDiscarding(true);
-    const result = await discardTimerAndTell(data, timer.id, ACTIONS);
+    const result = await discardTimerAndTell(data, timer.id, STOP_AT_IN_PLACE);
     switch (result.status) {
       // Gone already: nothing is left to edit here, and the building block told why.
       case "success":
@@ -223,7 +226,7 @@ function StopAtForm({ timer, onCancel, onDone, switchTo }: PartProps) {
     operation: useStopTimer(),
     draft: { id: timer.id, endedAt: null },
     texts: STOP_TEXTS,
-    onSuccess: (stop) => tellStop(data, timer.id, stop, ACTIONS),
+    onSuccess: (stop) => tellStop(data, timer.id, stop, STOP_AT_IN_PLACE),
     onDone,
   });
   const start = formatInstant(timer.startedAt, "dateTime", i18n.locale, timeZone);
