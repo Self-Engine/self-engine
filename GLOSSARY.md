@@ -107,7 +107,7 @@ To bring an archived entry back among the active ones. Unarchiving an active ent
 _Avoid_: restore, reopen, reactivate
 
 **Operation** (de: _Operation_):
-An entry of a _Port_ that changes data, all of it or nothing. Its expected failures, "not found", a conflict, a _Refusal_ and an input error at its fields, are part of its answer, not surprises.
+An entry of a _Port_ that changes data, all of it or nothing. Its expected failures, "not found", a conflict, a _Refusal_ and an _Input Error_ at its fields, are part of its answer, not surprises.
 _Avoid_: mutation, command, action, write
 
 **Query** (de: _Abfrage_):
@@ -147,7 +147,7 @@ The place outside the app where every shared building block can be seen and trie
 _Avoid_: catalog (on its own), design system, Storybook
 
 **Fixed Answer** (de: _feste Antwort_):
-What one _Port_ entry returns in a story or component test, without a _Data Process_: data, loading that never ends, an unexpected error, a declared conflict, "not found", a _Refusal_ or a declared input error. It is checked against the entry's _Contract_, and a call to an entry without one fails.
+What one _Port_ entry returns in a story or component test, without a _Data Process_: data, loading that never ends, an unexpected error, a declared conflict, "not found", a _Refusal_ or a declared _Input Error_. It is checked against the entry's _Contract_, and a call to an entry without one fails.
 _Avoid_: mock, fixture, stub
 
 ### Projects
@@ -337,6 +337,10 @@ _Avoid_: guard check, preflight, permission, can-delete flag
 The shared boundary around one module call that checks its input, keeps its changes atomic and announces committed changes. It also gives failures a consistent meaning for the caller.
 _Avoid_: handler, wrapper
 
+**Input Error** (de: _Eingabefehler_):
+The expected failure of an _Operation_ whose input is wrong at a field: the _Frame_'s own check of the input, or a limit only the _Data Process_ can judge, such as a timer's start after its "now". Each issue names its field and, where the Operation raised it, a reason its _Contract_ declares; a form shows it at that field, and nothing was written. It concerns the input itself; a limit that depends on stored rows is a _Refusal_.
+_Avoid_: validation error, invalid input, bad request, form error
+
 **Personal Space** (de: _persönlicher Space_):
 The _Space_ that holds one person's own data. A database has exactly one, created at the first start and never shown.
 _Avoid_: default space, user space, private space
@@ -354,7 +358,7 @@ Why a write is refused: a fixed code with typed details, the row it concerns and
 _Avoid_: error code, message, violation, conflict reason
 
 **Refusal** (de: _Ablehnung_):
-The expected failure of an _Operation_ that a _Protection Rule_ stopped, carrying one or more _Reasons_; nothing was written. It is the third expected failure beside "not found" and a conflict, which is a duplicate value.
+The expected failure of an _Operation_ that a _Protection Rule_ stopped, carrying one or more _Reasons_; nothing was written. It is an expected failure beside "not found", a conflict, which is a duplicate value, and an _Input Error_.
 _Avoid_: rejection, denial, guard error, conflict
 
 **Space** (de: _Space_):
