@@ -2,6 +2,7 @@ import type { MessageDescriptor } from "@lingui/core";
 import { useLingui } from "@lingui/react";
 import { useReasonTexts } from "@self-engine/data-client/react";
 import { memo, useCallback, useMemo, useSyncExternalStore } from "react";
+import type { $brand } from "zod/v4/core";
 import { textOf } from "./field-messages.ts";
 import { bindingOf, type FormBinding, type OperationForm } from "./operation-form.ts";
 import { UNFINISHED } from "./unfinished-texts.ts";
@@ -87,9 +88,20 @@ export function useFieldBinding<FormDraft, Name extends FieldName<FormDraft>>(
   return { value, setFromOutside, error, ref, ...handlers };
 }
 
-/** The fields of a draft that may hold everything `Picked` answers, not only a part of it. */
+/**
+ * The fields of a draft that may hold everything `Picked` answers, not only a part of it. Where
+ * `Picked` is branded, such as a Calendar Day or a project's id, the field holds nothing wider
+ * either (D365): a draft keeps the brands of its Contract, so a date field binds to a day and
+ * never to a title.
+ */
 export type FieldTaking<FormDraft, Picked> = {
-  [Field in FieldName<FormDraft>]: [Picked] extends [FormDraft[Field]] ? Field : never;
+  [Field in FieldName<FormDraft>]: [Picked] extends [FormDraft[Field]]
+    ? [NonNullable<Picked>] extends [$brand]
+      ? [Exclude<FormDraft[Field], undefined>] extends [Picked]
+        ? Field
+        : never
+      : Field
+    : never;
 }[FieldName<FormDraft>];
 
 /** The binding of a field that hands on `Taken`; it reads the draft's value as it stands. */

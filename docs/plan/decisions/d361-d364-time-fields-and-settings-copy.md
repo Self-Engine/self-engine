@@ -57,6 +57,6 @@ entstanden und standen seitdem offen.
 ## Vorgemerkt
 
 - **Typ der Zeitwerte im Entwurf eines Formulars:** ob die Schemas von `time` ihre Marke auch auf
-  der Eingabe eines Vertrags verlangen. Vor #275.
+  der Eingabe eines Vertrags verlangen. Vor #275. _Entschieden in D365._
 - **Popovers der Datums- und Zeitfelder (#377):** vor dem Formular des Zeiteintrags.
 - **Laden der Modulanzeige gegen das erste Bild:** vor #277, mit der Messung der Timer-Anzeige.

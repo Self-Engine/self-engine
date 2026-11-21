@@ -11,6 +11,7 @@ export {
 } from "./field-binding.ts";
 export {
   type Draft,
+  type DraftOfEntry,
   type InputOfEntry,
   type OperationForm,
   type OperationFormOptions,
