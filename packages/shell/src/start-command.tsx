@@ -1,20 +1,11 @@
-import type { I18n } from "@lingui/core";
-import { msg } from "@lingui/core/macro";
 import { useLingui } from "@lingui/react/macro";
 import type { DataAccess } from "@self-engine/data-client/react";
-import { notifyError } from "@self-engine/ui";
 import { createContext, type ReactNode, useContext, useMemo, useState } from "react";
 import { fullCommandId, type PersonCommand } from "./commands.ts";
+import { useOpenIndicatorPanel } from "./indicator-panels.tsx";
 import { useShellRouting } from "./routing.tsx";
+import { reportFailedStart } from "./report-failed-start.ts";
 import { runCommand } from "./run-command.ts";
-
-const START_FAILED = msg`The action could not be completed. Please try again.`;
-
-/** Keeps the cause for the log and tells the person. `i18n` so that an effect can depend on it. */
-export function reportFailedStart(i18n: I18n, error: unknown) {
-  console.error(error);
-  notifyError({ message: i18n._(START_FAILED) });
-}
 
 type StartOnce = (fullId: string, work: () => Promise<void>) => Promise<void>;
 
@@ -68,14 +59,19 @@ export function useStartCommand() {
   const start = useContext(StartContext);
   if (start === null) throw new Error("Starting a Command needs the Shell");
   const { startOnce, data } = start;
+  const openIndicatorPanel = useOpenIndicatorPanel();
 
   return (moduleId: string, command: PersonCommand, goFirstTo?: string) =>
     startOnce(fullCommandId(moduleId, command.id), async () => {
       try {
         if (goFirstTo !== undefined && !(await goToView(goFirstTo))) return;
         const result = await (command.kind === "page"
-          ? runCommand(command, {}, { writeSearch: address.scopedWriteSearch(), data })
-          : runCommand(command, {}, { data }));
+          ? runCommand(
+              command,
+              {},
+              { writeSearch: address.scopedWriteSearch(), data, openIndicatorPanel },
+            )
+          : runCommand(command, {}, { data, openIndicatorPanel }));
         if (!result.ok) reportFailedStart(i18n, result.error);
       } catch (error) {
         // The move asks the leave guards, which are a module's code and may throw.

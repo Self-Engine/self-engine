@@ -48,6 +48,10 @@ msgstr "{minimum, plural, other {At least #.}}"
 msgid "{minimum, plural, other {More than #.}}"
 msgstr "{minimum, plural, other {More than #.}}"
 
+#: packages/shell/src/module-indicators.tsx
+msgid "{name} indicator failed. Try again."
+msgstr "{name} indicator failed. Try again."
+
 #. A wall-clock time and its UTC offset
 #: packages/forms/src/time-range-field.tsx
 msgid "{time} ({utc})"
@@ -347,6 +351,10 @@ msgstr "Close navigation"
 msgid "Close notice"
 msgstr "Close notice"
 
+#: packages/shell/src/indicator-panel.tsx
+msgid "Close panel"
+msgstr "Close panel"
+
 #: packages/icons/src/directory/labels.ts
 msgctxt "Icon"
 msgid "Cloud"
@@ -436,10 +444,18 @@ msgctxt "Button that copies the version information"
 msgid "Copy"
 msgstr "Copy"
 
+#: packages/placeholder-alpha/src/indicator/index.tsx
+msgid "Count up"
+msgstr "Count up"
+
 #: packages/icons/src/directory/labels.ts
 msgctxt "Icon"
 msgid "Countdown"
 msgstr "Countdown"
+
+#: packages/placeholder-alpha/src/indicator/index.tsx
+msgid "Counted {count}"
+msgstr "Counted {count}"
 
 #: packages/settings-area/src/backup-rows.tsx
 msgid "Create backup now"
@@ -534,11 +550,11 @@ msgctxt "Channel"
 msgid "Dev"
 msgstr "Dev"
 
-#: packages/shell/src/edit-drawer-exits.tsx
+#: packages/shell/src/frame-exits.tsx
 msgid "Discard"
 msgstr "Discard"
 
-#: packages/shell/src/edit-drawer-exits.tsx
+#: packages/shell/src/frame-exits.tsx
 msgid "Discard changes?"
 msgstr "Discard changes?"
 
@@ -767,7 +783,7 @@ msgstr "Indigo"
 msgid "Invalid value."
 msgstr "Invalid value."
 
-#: packages/shell/src/edit-drawer-exits.tsx
+#: packages/shell/src/frame-exits.tsx
 msgid "Keep editing"
 msgstr "Keep editing"
 
@@ -979,6 +995,10 @@ msgstr "No smoking"
 msgid "No Time Zone found"
 msgstr "No Time Zone found"
 
+#: packages/placeholder-alpha/src/indicator/panel.tsx
+msgid "Note"
+msgstr "Note"
+
 #: packages/icons/src/directory/labels.ts
 msgctxt "Icon"
 msgid "Notebook"
@@ -1003,6 +1023,10 @@ msgstr "Open module sidebar"
 #: packages/shell/src/shell.tsx
 msgid "Open navigation"
 msgstr "Open navigation"
+
+#: packages/placeholder-alpha/src/index.ts
+msgid "Open note"
+msgstr "Open note"
 
 #: packages/settings-area/src/about-rows.tsx
 msgid "Open source"
@@ -1443,7 +1467,7 @@ msgstr "Text size"
 msgid "That could not be undone."
 msgstr "That could not be undone."
 
-#: packages/shell/src/start-command.tsx
+#: packages/shell/src/report-failed-start.ts
 msgid "The action could not be completed. Please try again."
 msgstr "The action could not be completed. Please try again."
 
@@ -1698,7 +1722,7 @@ msgstr "Wednesday"
 msgid "Week Start"
 msgstr "Week Start"
 
-#: packages/shell/src/edit-drawer-exits.tsx
+#: packages/shell/src/frame-exits.tsx
 msgid "What you changed here will be lost."
 msgstr "What you changed here will be lost."
 

@@ -18,6 +18,16 @@ export {
   type ViewPageProps,
   type EditDrawerProps,
 } from "./contributions.ts";
+export type {
+  FrameExitProps,
+  IndicatorPanelProps,
+  IndicatorWithPanel,
+  ModuleIndicator,
+  ModuleIndicatorProps,
+  ModuleIndicatorWithPanelProps,
+  OpenIndicatorPanel,
+} from "./module-indicator.ts";
+export type { IndicatorForm } from "./module-indicator-form.ts";
 
 export { auditCommands } from "./command-audit.ts";
 export {
@@ -34,6 +44,7 @@ export {
   type PageCommand,
   type DataCommandContext,
   type PageCommandContext,
+  type PersonCommandContext,
   type PersonCommand,
   type RegisteredCommand,
   type ShellCommand,
@@ -47,4 +58,5 @@ export { retainedViewSearch, type ViewSearch } from "./view-search.ts";
 export { useTypedViewSearch } from "./typed-view-search.ts";
 export { ShellGroup, ShellGroupEntry } from "./groups.tsx";
 export { useEditDrawerTitle } from "./edit-drawer-title.ts";
-export { useUnsavedChanges } from "./edit-drawer-exits.tsx";
+export { useUnsavedChanges } from "./frame-exits.tsx";
+export { useOpenIndicatorPanel } from "./indicator-panels.tsx";

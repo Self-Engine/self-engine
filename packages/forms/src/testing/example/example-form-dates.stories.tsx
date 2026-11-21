@@ -303,7 +303,7 @@ export const ThePickersSpeakGermanAndStartTheWeekOnMonday: Story = {
     await typeTheTexts(canvasElement);
     await userEvent.type(form.day(), "5.11.2026");
     const calendar = within(document.body);
-    await expect(await calendar.findByText("November 2026")).toBeVisible();
+    await waitFor(() => expect(calendar.getByText("November 2026")).toBeVisible());
     await expect(
       calendar.getByRole("button", { name: "Donnerstag, 5. November 2026" }),
     ).toBeVisible();

@@ -1,4 +1,5 @@
 import type { PersonCommand, ShellCommand } from "./commands.ts";
+import type { FrameExitProps, ModuleIndicator } from "./module-indicator.ts";
 import type { MessageDescriptor } from "@lingui/core";
 import type { DataTexts } from "@self-engine/data-client/react";
 import type { IconProps } from "@self-engine/icons";
@@ -22,27 +23,9 @@ export interface ShellView {
   readonly load: () => Promise<{ readonly default: ComponentType<ViewPageProps> }>;
 }
 
-export interface EditDrawerProps {
+/** What the content of an Edit Drawer is told: the ways out, and the entry it edits. */
+export interface EditDrawerProps extends FrameExitProps {
   readonly id: string;
-  /** Asks first when `useUnsavedChanges` reports changes. */
-  readonly onCancel: () => void;
-  /**
-   * Closes without asking, after a successful save or named Operation. A failed one calls
-   * neither. Called after the person left this entry, it closes nothing.
-   */
-  readonly onDone: () => void;
-  /**
-   * The question of `onCancel` without the closing, for a named Operation that leaves the entry
-   * and keeps it, such as "Archive": it asks when `useUnsavedChanges` reports changes. True when
-   * nothing is unsaved or the person discards; then run the Operation and call `onDone`.
-   */
-  readonly confirmDiscard: () => Promise<boolean>;
-  /**
-   * Whether the drawer still has this opening open, read when asked: false from the moment the
-   * person leaves it, also while the drawer slides out, and once another opening took its place.
-   * For an action that can outlive the drawer, such as one in a Notice.
-   */
-  readonly isOpen: () => boolean;
 }
 
 interface ContributionMetadata {
@@ -54,6 +37,8 @@ interface ContributionMetadata {
   readonly views: readonly [ShellView, ...ShellView[]];
   readonly groups?: () => Promise<{ readonly default: ComponentType }>;
   readonly editDrawer?: () => Promise<{ readonly default: ComponentType<EditDrawerProps> }>;
+  /** Shown while any module is active, in the order of the module list. */
+  readonly indicator?: ModuleIndicator;
   readonly sharedSearch?: readonly string[];
   /**
    * The names of the module's synced tables and the texts of its rules' Reasons, made by
@@ -88,6 +73,13 @@ export type ShellContribution = ContributionMetadata &
     | { readonly commands?: readonly ShellCommand[]; readonly primaryAction?: never }
     | ContributionAction
   );
+
+/**
+ * A module together with the indicator it declares, for the code that shows that indicator. One
+ * arm per kind of indicator, so a check of `indicator.panel` tells the arms apart.
+ */
+export type ModuleWithIndicator<Indicator extends ModuleIndicator = ModuleIndicator> =
+  Indicator extends ModuleIndicator ? ShellContribution & { readonly indicator: Indicator } : never;
 
 type ContributionInput<Commands extends readonly ShellCommand[]> = ContributionMetadata & {
   readonly commands?: Commands;

@@ -55,6 +55,8 @@ const page = (canvasElement: HTMLElement) => within(canvasElement.ownerDocument.
 const offline = new Error("offline");
 const onceSettled = () => new Promise((resolve) => setTimeout(resolve, 50));
 
+const indicatorRetryLabel = "Placeholder Alpha indicator failed. Try again.";
+
 async function expectEditorShows(canvasElement: HTMLElement, id: string) {
   const dialog = await page(canvasElement).findByRole("dialog");
   await within(dialog).findByText(id);
@@ -162,6 +164,62 @@ export const ViewLoadFailureCanBeRetried: Story = {
     await userEvent.click(within(failure).getByRole("button", { name: "Try again" }));
     await expect(await canvas.findByText("Studio work")).toBeVisible();
     await expect(canvas.queryByRole("alert")).toBeNull();
+  },
+};
+
+let failIndicator: ReturnType<typeof held<void>>;
+let indicatorErrorReported: boolean;
+
+export const IndicatorLoadFailureStaysInTheHeader: Story = {
+  beforeEach: () => {
+    failIndicator = held();
+    indicatorErrorReported = false;
+    const load = spyOn(alpha.indicator!, "load").mockImplementationOnce(async () => {
+      await failIndicator.promise;
+      throw offline;
+    });
+    const report = console.error;
+    const reported = spyOn(console, "error").mockImplementation((...args: unknown[]) => {
+      if (args.includes(offline)) indicatorErrorReported = true;
+      else report(...args);
+    });
+    return () => {
+      load.mockRestore();
+      reported.mockRestore();
+    };
+  },
+  play: async ({ canvas, canvasElement }) => {
+    const entry = await canvas.findByRole("button", { name: "Studio work" });
+    const header = canvas.getByRole("heading", { level: 1 }).parentElement!.parentElement!;
+    const headerContent = within(header);
+    const icon = headerContent.getByRole("img", { name: "Placeholder Alpha" }).querySelector("svg");
+    await expect(icon).not.toBeNull();
+    const height = header.getBoundingClientRect().height;
+    const entryTop = entry.getBoundingClientRect().top;
+    failIndicator.finish();
+
+    const retry = await headerContent.findByRole("button", { name: indicatorRetryLabel });
+    await expect(icon!.isEqualNode(retry.querySelector("svg"))).toBe(true);
+    await expect(retry.getBoundingClientRect().height).toBeLessThan(height);
+    await expect(headerContent.queryByRole("alert")).toBeNull();
+    await expect(header.getBoundingClientRect().height).toBe(height);
+    await expect(entry.getBoundingClientRect().top).toBe(entryTop);
+    await expect(entry).toBeVisible();
+    await expect(indicatorErrorReported).toBe(true);
+
+    canvas.getByRole("button", { name: "Collapse module sidebar" }).focus();
+    await userEvent.tab();
+    await expect(retry).toHaveFocus();
+    await expect(await page(canvasElement).findByRole("tooltip")).toHaveTextContent(
+      indicatorRetryLabel,
+    );
+
+    await userEvent.click(canvas.getByRole("link", { name: "Archive" }));
+    await expect(await canvas.findByRole("heading", { name: "Archive", level: 1 })).toBeVisible();
+    await expect(retry).toBeVisible();
+    await userEvent.click(retry);
+    await expect(await headerContent.findByRole("button", { name: "Count up" })).toBeVisible();
+    await expect(headerContent.queryByRole("button", { name: indicatorRetryLabel })).toBeNull();
   },
 };
 

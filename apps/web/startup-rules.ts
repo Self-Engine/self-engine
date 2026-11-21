@@ -65,6 +65,24 @@ export const STARTUP_RULES = {
       instead: "import its Row Map only as a type in its Shell Contribution.",
     },
     {
+      // Every module keeps its Module Indicator's code in this folder: the Shell loads it in an
+      // idle moment after the first paint and shows the module's icon until then (D359). The
+      // Indicator Panel's content lives here too; it loads at the first opening, preloaded when
+      // idle once the indicator came.
+      name: "A module's Module Indicator",
+      path: "/src/indicator/",
+      instead:
+        "import it only through the indicator's load in the module's Shell Contribution, which the Shell calls after the first paint.",
+    },
+    {
+      // The frame of an Indicator Panel with Mantine's Popover and its positioning: 16 KB at
+      // startup (#369). The Shell loads it beside the indicators after the first paint.
+      name: "The frame of an Indicator Panel",
+      path: "/packages/shell/src/indicator-panel.tsx",
+      instead:
+        "reach it only through LazyIndicatorPanelFrame of lazy-indicator-panel-frame.tsx, which loads it on demand.",
+    },
+    {
       name: "Storage",
       path: "/packages/storage/src/core/",
       instead: "import storage types only in the renderer.",

@@ -13,13 +13,12 @@ import {
 } from "./command-palette-state.tsx";
 import { viewPath, type EditDrawerProps } from "./contributions.ts";
 import { EditDrawerTitleContext } from "./edit-drawer-title.ts";
-import {
-  selectEditId,
-  UnsavedChangesContext,
-  useEditDrawerExits,
-  useEscapeExit,
-} from "./edit-drawer-exits.tsx";
+import { selectEditId, useEditDrawerExits } from "./edit-drawer-exits.tsx";
+import { FrameContent, useEscapeExit } from "./frame-exits.tsx";
 import { LazyContribution, lazyComponents } from "./lazy-contribution.tsx";
+import { indicatorForm, type IndicatorForm } from "./module-indicator-form.ts";
+import { IndicatorPanelsProvider, useIndicatorPanels } from "./indicator-panels.tsx";
+import { ModuleIndicators } from "./module-indicators.tsx";
 import { useCloseOverlayOnPick, useViewSearch, useWriteViewSearch } from "./routing.tsx";
 import { ACTIVE_ENTRY_VARS } from "./navigation-style.ts";
 import type { CommandScope } from "./palette-entries.ts";
@@ -51,7 +50,6 @@ import { useDisclosure } from "@mantine/hooks";
 import { SearchIcon, SidePanelIcon } from "@self-engine/icons";
 import { type ColorSetName, roleColor } from "@self-engine/theme";
 import {
-  LoadingState,
   NOT_WINDOW_DRAG_STYLE,
   NOTICE_CLEARANCE_VARIABLE,
   WINDOW_DRAG_STYLE,
@@ -296,8 +294,8 @@ interface ShellFrameProps {
   readonly activeColor: ColorSetName | undefined;
   /** Sits in the top strip of the navigation, in the drawer at the narrow step, and in the content header while the Navbar holds the window buttons. None at phone width. */
   readonly logo?: ShellLogo;
-  /** The free end of the content header. */
-  readonly headerEnd?: ReactNode;
+  /** The modules whose Module Indicators end the content header, in the order of the module list. */
+  readonly indicatorModules?: readonly ShellContribution[];
   readonly channelBadge?: ReactNode;
   readonly navbar?: ShellNavbarState;
   readonly moduleSidebarWidth?: number;
@@ -449,7 +447,7 @@ type PassedOn<Name extends keyof ShellFrameProps> = {
 
 interface ContentHeaderProps extends PassedOn<
   | "pageTitle"
-  | "headerEnd"
+  | "indicatorModules"
   | "channelBadge"
   | "moduleSidebarCollapsed"
   | "onModuleSidebarCollapsedCommit"
@@ -458,6 +456,7 @@ interface ContentHeaderProps extends PassedOn<
   /** Set while the Navbar holds the window buttons, which is where the mark goes instead. */
   readonly logo: ShellLogo | undefined;
   readonly isPhone: boolean;
+  readonly indicatorForm: IndicatorForm;
   readonly navigationInDrawer: boolean;
   readonly drawerOpened: boolean;
   readonly onToggleDrawer: () => void;
@@ -465,13 +464,14 @@ interface ContentHeaderProps extends PassedOn<
 
 function ContentHeader({
   pageTitle,
-  headerEnd,
+  indicatorModules,
   channelBadge,
   moduleSidebarCollapsed,
   onModuleSidebarCollapsedCommit,
   startsAfterWindowButtons,
   logo,
   isPhone,
+  indicatorForm: form,
   navigationInDrawer,
   drawerOpened,
   onToggleDrawer,
@@ -515,7 +515,9 @@ function ContentHeader({
         </Title>
         {channelBadge && <Box style={NOT_WINDOW_DRAG_STYLE}>{channelBadge}</Box>}
       </Group>
-      {headerEnd && <Box style={NOT_WINDOW_DRAG_STYLE}>{headerEnd}</Box>}
+      {indicatorModules && (
+        <ModuleIndicators form={form} modules={indicatorModules} panelAsSheet={isPhone} />
+      )}
     </Group>
   );
 }
@@ -649,7 +651,7 @@ function ShellFrame({
   pageTitle,
   activeColor,
   logo,
-  headerEnd,
+  indicatorModules,
   channelBadge,
   navbar = SHELL_STANDARD_NAVBAR,
   moduleSidebarWidth = SHELL_STANDARD_MODULE_SIDEBAR_WIDTH,
@@ -813,7 +815,8 @@ function ShellFrame({
               <ContentHeader
                 channelBadge={channelBadge}
                 drawerOpened={drawerOpened}
-                headerEnd={headerEnd}
+                indicatorForm={indicatorForm(step)}
+                indicatorModules={indicatorModules}
                 isPhone={isPhone}
                 logo={navbarHoldsWindowButtons ? logo : undefined}
                 moduleSidebarCollapsed={moduleSidebarCollapsed}
@@ -871,6 +874,7 @@ export interface ShellProps extends Omit<
   | "editDrawer"
   | "commandPalette"
   | "shortcuts"
+  | "indicatorModules"
 > {
   readonly contributions: readonly ShellContribution[];
   readonly settings: ShellContribution;
@@ -906,20 +910,26 @@ export function Shell({
   return (
     <StartOnceProvider data={data}>
       <CommandPaletteProvider>
-        <ShellFrame
-          {...props}
-          entries={contributions.map(entryOf)}
-          settingsEntry={entryOf(settings)}
-          activeEntryId={activeModule?.id ?? ""}
-          activeColor={activeModule?.color}
-          pageTitle={activeView ? i18n._(activeView.title) : ""}
-          editDrawer={<ModuleEditDrawer module={activeView && activeModule} />}
-          commandPalette={<CommandPalette {...commandScope} />}
-          shortcuts={<Shortcuts {...commandScope} />}
-          moduleSidebar={
-            <ModuleViews module={activeModule} activeView={activeView} routing={props.routing} />
-          }
-        />
+        <IndicatorPanelsProvider
+          modules={contributions}
+          page={`${activeModule?.id ?? ""}/${activeView?.id ?? ""}`}
+        >
+          <ShellFrame
+            {...props}
+            entries={contributions.map(entryOf)}
+            indicatorModules={contributions}
+            settingsEntry={entryOf(settings)}
+            activeEntryId={activeModule?.id ?? ""}
+            activeColor={activeModule?.color}
+            pageTitle={activeView ? i18n._(activeView.title) : ""}
+            editDrawer={<ModuleEditDrawer module={activeView && activeModule} />}
+            commandPalette={<CommandPalette {...commandScope} />}
+            shortcuts={<Shortcuts {...commandScope} />}
+            moduleSidebar={
+              <ModuleViews module={activeModule} activeView={activeView} routing={props.routing} />
+            }
+          />
+        </IndicatorPanelsProvider>
       </CommandPaletteProvider>
     </StartOnceProvider>
   );
@@ -1024,13 +1034,18 @@ function ModuleEditDrawer({ module }: { readonly module: ShellContribution | und
   };
   // The question and the Command Palette are modals of Mantine, which listen on the window like
   // the drawer: while one is open, Esc is theirs.
+  // An Indicator Panel lies over the drawer: an Esc with the focus nowhere closes the panel only.
+  const panels = useIndicatorPanels();
   const frameRef = useEscapeExit(
     target !== undefined && !exits.questionOpen && !paletteOpen,
     close,
+    () => panels.current() !== undefined,
   );
   return (
     <Drawer
       {...frame}
+      // Read by `openEditDrawer`.
+      data-edit-drawer-open={target !== undefined || undefined}
       closeOnEscape={false}
       ref={frameRef}
       opened={target !== undefined}
@@ -1042,20 +1057,18 @@ function ModuleEditDrawer({ module }: { readonly module: ShellContribution | und
     >
       {shown?.module.editDrawer && openingProps && (
         <EditDrawerTitleContext value={setEntryTitle}>
-          <UnsavedChangesContext value={exits.register}>
-            <LazyContribution
-              key={shownOpening}
-              components={loadedDrawer}
-              fallback={<LoadingState />}
-              load={shown.module.editDrawer}
-              props={{
-                id: shown.id,
-                onCancel: close,
-                confirmDiscard: exits.confirmDiscard,
-                ...openingProps,
-              }}
-            />
-          </UnsavedChangesContext>
+          <FrameContent
+            components={loadedDrawer}
+            load={shown.module.editDrawer}
+            opening={shownOpening}
+            props={{
+              id: shown.id,
+              onCancel: close,
+              confirmDiscard: exits.confirmDiscard,
+              ...openingProps,
+            }}
+            register={exits.register}
+          />
         </EditDrawerTitleContext>
       )}
     </Drawer>

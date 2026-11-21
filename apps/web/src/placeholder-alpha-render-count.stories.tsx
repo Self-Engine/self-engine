@@ -10,9 +10,10 @@ import {
   commitWhere,
   difference,
   renderCounts,
+  rendersOutside,
 } from "@self-engine/ui/story-render-counts";
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { expect } from "storybook/test";
+import { expect, screen, userEvent, within } from "storybook/test";
 import { AppAt, loadStoryApp } from "./story-app.tsx";
 
 const ROWS = 1000;
@@ -77,5 +78,39 @@ export const RenamingOneOf1000EntriesRedrawsOneRow: Story = {
       EntryList: 1,
       EntryRow: 1,
     });
+  },
+};
+
+export const AnIndicatorTickAndPanelTypingLeaveTheShellStill: Story = {
+  args: { address: "/placeholder-beta/overview" },
+  globals: { viewport: { value: "wide", isRotated: false } },
+  play: async ({ canvas }) => {
+    await canvas.findByText("The minimal module View.");
+    // The indicator's code arrives in an idle moment, which a busy browser takes a while to find.
+    const tick = await canvas.findByRole("button", { name: "Count up" }, { timeout: 4000 });
+    await afterTheCommitsNowDue();
+    const beforeTick = renderCounts();
+
+    const outsideIndicator = await rendersOutside("Indicator", async () => {
+      // Drive the counter without moving the pointer or focus and redrawing a tooltip.
+      tick.click();
+      await commitWhere(() => canvas.queryByRole("button", { name: "Counted 1" }) !== null);
+      await afterTheCommitsNowDue();
+    });
+    await expect(difference(renderCounts(), beforeTick).components["Indicator"]).toBe(1);
+    await expect(outsideIndicator).toEqual({});
+
+    await userEvent.click(canvas.getByRole("button", { name: "Counted 1" }));
+    const panel = await screen.findByRole("dialog", { name: "Placeholder Alpha" });
+    const field = await within(panel).findByRole("textbox", { name: "Note" });
+    await userEvent.click(field);
+    await expect(field).toHaveFocus();
+    await afterTheCommitsNowDue();
+    const outsidePanel = await rendersOutside("IndicatorPanelFrame", async () => {
+      await userEvent.keyboard("A note");
+      await expect(field).toHaveValue("A note");
+      await afterTheCommitsNowDue();
+    });
+    await expect(outsidePanel).toEqual({});
   },
 };

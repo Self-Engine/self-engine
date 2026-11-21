@@ -10,11 +10,15 @@ import { type DataAccess, NO_DATA_PROCESS } from "@self-engine/data-client/react
 import { ProjectsIcon, SettingsIcon, TimeIcon } from "@self-engine/icons";
 import { BrandMark } from "@self-engine/icons/brand-mark";
 import type { Meta, StoryObj } from "@storybook/react-vite";
+import { Button, Group, Text } from "@mantine/core";
 import { useEffect, useState } from "react";
 import { expect, fn, screen, spyOn, userEvent, waitFor, within } from "storybook/test";
 import {
   askLeaveGuards,
   type LeaveGuard,
+  type ModuleIndicator,
+  type ModuleIndicatorProps,
+  type ModuleIndicatorWithPanelProps,
   Shell,
   SHELL_STANDARD_MODULE_SIDEBAR_WIDTH,
   SHELL_STANDARD_NAVBAR,
@@ -40,6 +44,19 @@ export async function pressEscape() {
       ? (await import("vite-plus/test/browser")).userEvent
       : userEvent;
   await keyboard.keyboard("{Escape}");
+}
+
+/**
+ * Turns the mouse wheel over `element` as the browser delivers it, so a lock on scrolling, such as
+ * a drawer's, decides whether anything scrolls. In the Catalog's own page it scrolls by script.
+ */
+export async function wheelOver(element: Element, deltaY: number) {
+  if (import.meta.env.MODE !== "test") {
+    element.scrollBy(0, deltaY);
+    return;
+  }
+  const { userEvent: browser } = await import("vite-plus/test/browser");
+  await browser.wheel(element, { delta: { y: deltaY } });
 }
 
 export { modKey, openPalette, paletteDialog, paletteGone } from "./story-interactions.ts";
@@ -92,6 +109,49 @@ export const SETTINGS: ShellContribution = {
   color: "grape",
   views: [{ id: "overview", title: { id: "story-Settings", message: "Settings" }, load }],
 };
+
+/** Like `placeholder-alpha`'s: a counter and a button in the full form, the counter alone in the short one. */
+export function CountingIndicator({ form }: ModuleIndicatorProps) {
+  const [count, setCount] = useState(0);
+  if (form === "short") return <Text size="sm">{count}</Text>;
+  return (
+    <Group gap="xs" wrap="nowrap">
+      <Text size="sm">Counted {count}</Text>
+      <Button onClick={() => setCount(count + 1)} size="compact-sm" variant="subtle">
+        Count up
+      </Button>
+    </Group>
+  );
+}
+
+/** A new indicator each call: the Shell keeps a loaded indicator per `load`, as React.lazy does. */
+export const countingIndicator = (): ModuleIndicator => ({
+  load: async () => ({ default: CountingIndicator }),
+});
+
+/** Where a module's indicator sits: the Shell's place, drawn in the module's Color Set. */
+export const indicatorPlaceOf = (element: Element): HTMLElement => {
+  const place = element.closest<HTMLElement>("[data-color-set]");
+  if (place === null) throw new Error("the element is not in an indicator's place");
+  return place;
+};
+
+/** An indicator whose one button opens its panel, as `placeholder-alpha`'s does. */
+export function PanelIndicator({ togglePanel }: ModuleIndicatorWithPanelProps) {
+  return (
+    <Button onClick={togglePanel} size="compact-sm" variant="subtle">
+      Open panel
+    </Button>
+  );
+}
+
+/** The panel of the first module, Projects: named after its module, as the Edit Drawer is. */
+export const panel = () => screen.findByRole("dialog", { name: "Projects" });
+export const panelGone = () =>
+  waitFor(() => expect(screen.queryByRole("dialog", { name: "Projects" })).toBeNull());
+
+/** The indicator's code loads in an idle moment, which a busy test browser can put off. */
+export const INDICATOR_ARRIVES = { timeout: 4000 };
 
 /** One real window width per Layout Step, around Mantine's own breakpoints. */
 const viewport = (name: string, width: number) => ({
@@ -201,6 +261,31 @@ export const shellMeta = {
 } satisfies Meta<ShellProps>;
 
 export type Story = StoryObj<typeof shellMeta>;
+
+/**
+ * A fixture made anew for each run of a story, such as code that fails to load until the story lets
+ * it: a replay in Storybook starts as the first run did. Spread `story` into the Story and read
+ * `now` in its `play`.
+ */
+export function freshPerRun<Fixture>(
+  make: () => Fixture,
+  contributionsOf: (fixture: Fixture) => ShellProps["contributions"],
+) {
+  let fixture = make();
+  return {
+    get now() {
+      return fixture;
+    },
+    story: {
+      loaders: [
+        () => {
+          fixture = make();
+        },
+      ],
+      render: (args) => <Shell {...args} contributions={contributionsOf(fixture)} />,
+    } satisfies Partial<Story>,
+  };
+}
 
 /** The largest channel of a computed color, which tells a dark surface from a light one. */
 export function brightnessOf(color: string): number {
@@ -360,6 +445,25 @@ export async function expectReportedOnce(callback: unknown, value: unknown): Pro
 }
 
 export const nextFrame = () => new Promise((resolve) => requestAnimationFrame(resolve));
+
+/**
+ * What a pointer at the middle of `element` reaches, by the browser's own hit test: the layers
+ * decide, which `userEvent.click` ignores.
+ */
+export function hitAtTheMiddleOf(element: Element): Element | null {
+  const { left, top, width, height } = element.getBoundingClientRect();
+  return document.elementFromPoint(left + width / 2, top + height / 2);
+}
+
+/** On top: a pointer at its middle reaches it or something inside it. */
+export async function expectOnTop(element: Element): Promise<void> {
+  await expect(element.contains(hitAtTheMiddleOf(element))).toBe(true);
+}
+
+/** Under another layer: a pointer at its middle reaches something else. */
+export async function expectCovered(element: Element): Promise<void> {
+  await expect(element.contains(hitAtTheMiddleOf(element))).toBe(false);
+}
 
 /** Real pointer events with exact coordinates, which `userEvent` does not promise in a browser. */
 export async function pressHandle(handle: HTMLElement) {

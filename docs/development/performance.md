@@ -141,6 +141,13 @@ renamed, delivers the Table Change by hand and lets the list reload. It asserts 
 - **Cost.** The story takes about 0.45 s (ten runs, 440–495 ms, all passing). The whole `stories`
   stage took a median 14.45 s with it and 14.20 s without it (three runs each, alternating).
 
+The same file drives `placeholder-alpha`'s Module Indicator and its Indicator Panel while
+Placeholder Beta is active. One counter tick draws the Module Indicator once and draws zero
+components outside its React subtree. Typing into the panel's Note field draws zero components
+outside the panel frame's subtree. The counter follows the React tree through portals, so a
+component used both inside and outside the panel is counted where it drew. A temporary change
+that let the tick also update the Shell's surrounding group failed the story.
+
 ## Startup JavaScript budget
 
 Every production web build, including `pnpm verify` and Electron packaging, audits the
@@ -701,3 +708,89 @@ size is the raw static JavaScript reported by `apps/web/dist/startup-bundle.json
 The first render median was unchanged and the first-answer distributions overlapped. Across
 the package startup JavaScript grew by **2,527 bytes**. Of that, **2,412 bytes** came in #358
 (857,127 to 859,539 bytes). The limit stays at **889,856 bytes**.
+
+## Module Indicator startup (#276)
+
+Production builds measured the stock app's raw static JavaScript in
+`apps/web/dist/startup-bundle.json`. Its module list contains Projects. The limit stays at
+**889,856 bytes**.
+
+| Build                   | Startup JavaScript | Static chunks |
+| ----------------------- | -----------------: | ------------: |
+| Before #276 (`2ea2f0f`) |      868,095 bytes |            20 |
+| After #367 (`8b2a8c2`)  |      870,472 bytes |            20 |
+| After #368 (`19322a9`)  |      871,411 bytes |            20 |
+| After #369 (`df135fc`)  |      874,960 bytes |            23 |
+| After #370 (`a14ff91`)  |      876,840 bytes |            23 |
+| After #371 (`6b37664`)  |      876,840 bytes |            23 |
+| After the review fixes  |      877,969 bytes |            23 |
+
+The emitted panel frame and Mantine Popover chunks were **2,883** and **13,233 bytes** at
+#369, **3,638** and **13,233 bytes** after #371, and **4,735** and **13,233 bytes** after the
+review fixes. Both chunks load on demand.
+
+The review fixes added **1,129 bytes** at startup: the question's layer over the popover, the
+report of a panel that no module holds, the close of a panel whose module left, the signal that
+an indicator is on screen, and the frame content the Edit Drawer and the panel now share. Of the
+**9,874 bytes** #276 adds in all, about half is the place's own code (`module-indicators.tsx`, the
+frame's loader), the rest the panel store that Commands reach, the unsaved-changes question it
+shares with the Edit Drawer and the idle helper it shares with the warm-up. A trial moved the
+place's code into a chunk of its own, loaded in the same idle moment and only when a module
+declares an indicator, with the place and its icon left in the start. It saved **859 bytes** and
+added three static chunks: the moved code shares most of its modules with the start, so the
+bundler split those into chunks of their own. The trial was not kept.
+
+For the startup comparison, both production renderers also mounted `placeholder-alpha` after
+`projects` through a temporary module list. The final build includes Alpha's declaration of
+a Module Indicator and an Indicator Panel. Both builds opened the same Projects View against
+the real desktop Data Process using the smoke launcher. On an Apple M3 Pro (macOS 27.2.1,
+Node 26.13.1, Electron 45.2.3), each build ran in 60 alternating hidden-window sessions with
+a fresh temporary data folder. Times start at page load. The Shell time is the first
+animation frame with the Navbar laid out. The first answer is the first `ready` connection
+mark. The hidden window gives frame timings.
+
+| Build with Placeholder Alpha |     Shell, median (range) | First answer, median (range) | Startup JavaScript |
+| ---------------------------- | ------------------------: | ---------------------------: | -----------------: |
+| Before #276 (`2ea2f0f`)      | 156.8 ms (145.4–224.3 ms) |    125.4 ms (117.2–191.2 ms) |      870,162 bytes |
+| After #371 (`6b37664`)       | 159.6 ms (148.2–208.7 ms) |    129.2 ms (119.1–168.4 ms) |      881,120 bytes |
+
+With Alpha mounted at `6b37664`, before the review fixes, startup grew by **10,958 bytes**. That
+build was **8,736 bytes** below the limit, with the Module Indicator, panel content and frame
+outside the static startup chunks. The build with Alpha mounted was not measured again after the
+review fixes; the stock table above shows what they added. Median timings rose by about 3 ms for the Shell and 4 ms for the first answer, with
+overlapping ranges.
+
+### The indicators' load against the first paint
+
+The Shell asks for the idle moment that loads the indicators' code two frame callbacks after it
+mounted. An app check at `01c8459` measured where that lands, in the built desktop app with
+`placeholder-alpha` mounted through a temporary module list, on the same machine. Five cold
+starts, each a fresh Electron process and temporary profile, the window shown on
+`ready-to-show`. Times are milliseconds from the renderer's navigation start. The Shell's frame
+is the first animation frame after the Shell is in the DOM; the requests are timed where the
+app's protocol handler receives them; the paint is Chromium's `first-contentful-paint`, a whole
+multiple of 4 ms in every run.
+
+| Run    | Shell's first frame | Indicator request | Panel frame request | First contentful paint |
+| ------ | ------------------: | ----------------: | ------------------: | ---------------------: |
+| 1      |               226.5 |             237.3 |               237.7 |                    264 |
+| 2      |               228.2 |             242.7 |               243.3 |                    264 |
+| 3      |               221.1 |             251.5 |               251.9 |                    260 |
+| 4      |               228.6 |             239.7 |               240.2 |                    272 |
+| 5      |               224.4 |             259.5 |               259.9 |                    268 |
+| Median |               226.5 |             242.7 |               243.3 |                    264 |
+
+Both requests began before the first contentful paint in all five runs, by 21.3 ms in the
+median (8.5 to 32.3 ms). The two frame callbacks do not wait for a paint: one traced start ran
+them at 222.7 and 223.8 ms, the idle callback at 233.2 ms. The stock app without Alpha had its
+Shell frame at 219.5 ms and its first contentful paint at 256 ms in the median of five starts;
+Alpha's own startup code is part of that difference, so these runs do not say what the early
+load costs the paint.
+
+One start kept the window hidden (`show: false`, background throttling off; the document
+reported itself visible). The indicator's code, the panel frame and the panel content were
+requested at 170.9, 171.6 and 477.2 ms, the first contentful paint was reported at 204 ms, and
+the window was shown at about 2,690 ms: a hidden window loads them while hidden.
+
+No module of the app declares an indicator yet. Whether the load should wait for an observed
+paint is open, and belongs to the first module that declares one.

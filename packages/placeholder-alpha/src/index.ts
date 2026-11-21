@@ -3,6 +3,7 @@ import { dataTexts } from "@self-engine/data-client/react";
 import { ProjectsIcon } from "@self-engine/icons";
 import { defineContribution, type ShellCommand } from "@self-engine/shell";
 import type { placeholderAlpha } from "./data/index.ts";
+import { indicator } from "./indicator-entry.ts";
 
 const createEntry = {
   id: "create-entry",
@@ -26,6 +27,13 @@ const createNamedEntry = {
   load: () => import("./create-named-entry.ts"),
 } as const satisfies ShellCommand;
 
+const openNote = {
+  id: "open-note",
+  kind: "open",
+  label: msg`Open note`,
+  load: () => import("./open-note.ts"),
+} as const satisfies ShellCommand;
+
 const loadEntries = () => import("./entries.tsx");
 
 export const contribution = defineContribution({
@@ -47,9 +55,10 @@ export const contribution = defineContribution({
       load: loadEntries,
     },
   ],
-  commands: [createEntry, addSampleEntry, createNamedEntry],
+  commands: [createEntry, addSampleEntry, createNamedEntry, openNote],
   primaryAction: createEntry,
   editDrawer: () => import("./edit-drawer.tsx"),
   groups: () => import("./groups.tsx"),
+  indicator,
   sharedSearch: ["client"],
 });

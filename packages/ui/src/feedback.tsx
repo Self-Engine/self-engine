@@ -1,7 +1,7 @@
 import "@mantine/notifications/styles.css";
 
 import { Trans, useLingui } from "@lingui/react/macro";
-import { Button, Group, List, MantineThemeProvider, Stack } from "@mantine/core";
+import { Button, getDefaultZIndex, Group, List, MantineThemeProvider, Stack } from "@mantine/core";
 import { modals, ModalsProvider } from "@mantine/modals";
 import { notifications, Notifications, notificationsStore } from "@mantine/notifications";
 import { roleColor } from "@self-engine/theme";
@@ -67,6 +67,13 @@ export interface ConfirmOptions {
 
 let openConfirmations = 0;
 
+/**
+ * A question lies over what asked it, also over a frame on Mantine's popover layer, such as an
+ * Indicator Panel, whose field must not take a click or a key while the question waits. Mantine's
+ * own modals sit on the layer below the popovers.
+ */
+const QUESTION_Z_INDEX = getDefaultZIndex("popover") + 1;
+
 /** Whether a question is waiting for its answer, right now and whoever asked it. */
 export const isConfirmationOpen = () => openConfirmations > 0;
 
@@ -85,6 +92,7 @@ export function confirm({
     modals.openConfirmModal({
       title,
       returnFocus,
+      zIndex: QUESTION_Z_INDEX,
       children: message,
       confirmProps: {
         children: confirmLabel,
