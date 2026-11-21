@@ -10,8 +10,10 @@ import {
 } from "@self-engine/time";
 import { useFirstDayOfWeek, useTimeZone, useToday } from "@self-engine/time/react";
 import { QueryStateBlock } from "@self-engine/ui";
-import { useCallback } from "react";
+import { useCallback, useMemo } from "react";
 import { type DaysAnswer, useSpanDays } from "./port.ts";
+import { shownProjectFilter, timeEntryFilter } from "./project-filter-address.ts";
+import { WeekProjectFilter } from "./week-project-filter.tsx";
 import { shownWeek, weekAfter, weekDayOf, withWeek } from "./week-address.ts";
 import { WeekDay } from "./week-day.tsx";
 import { WeekSums } from "./week-sums.tsx";
@@ -33,11 +35,7 @@ export default function Week() {
   return (
     <Stack gap="md">
       <WeekNavigation locale={i18n.locale} span={span} todaysFirst={todaysFirst} />
-      <QueryStateBlock state={useSpanDays(span)}>
-        {(answer) => (
-          <WeekContent answer={answer} locale={i18n.locale} timeZone={timeZone} today={today} />
-        )}
-      </QueryStateBlock>
+      <WeekResults locale={i18n.locale} span={span} timeZone={timeZone} today={today} />
     </Stack>
   );
 }
@@ -67,6 +65,7 @@ function WeekNavigation({
         {t`${first} – ${last}`}
       </Title>
       <Group gap="xs">
+        <WeekProjectFilter />
         <ActionIcon
           aria-label={t`Previous week`}
           disabled={previous === undefined}
@@ -92,6 +91,29 @@ function WeekNavigation({
         </ActionIcon>
       </Group>
     </Group>
+  );
+}
+
+function WeekResults({
+  span,
+  locale,
+  timeZone,
+  today,
+}: {
+  readonly span: DaySpan;
+  readonly locale: string;
+  readonly timeZone: TimeZone;
+  readonly today: CalendarDay;
+}) {
+  const filter = useViewSearch(shownProjectFilter);
+  const queryFilter = useMemo(() => timeEntryFilter(filter), [filter]);
+  const state = useSpanDays(span, queryFilter);
+  return (
+    <QueryStateBlock state={state}>
+      {(answer) => (
+        <WeekContent answer={answer} locale={locale} timeZone={timeZone} today={today} />
+      )}
+    </QueryStateBlock>
   );
 }
 

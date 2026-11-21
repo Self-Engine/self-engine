@@ -28,6 +28,7 @@ export const contribution = defineContribution({
   icon: TimeIcon,
   color: "cyan",
   dataTexts: dataTexts<typeof timeTracking>()({ tableNames: timeTrackingTableNames }),
+  groups: () => import("./projects-group.tsx"),
   views: [
     {
       id: "week",

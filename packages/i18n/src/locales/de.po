@@ -119,6 +119,11 @@ msgstr "Enddatum hinzufügen"
 msgid "Add sample entry"
 msgstr "Beispieleintrag hinzufügen"
 
+#: packages/time-tracking/src/projects-group.tsx
+#: packages/time-tracking/src/week-project-filter.tsx
+msgid "All"
+msgstr "Alle"
+
 #: packages/placeholder-alpha/src/groups.tsx
 msgid "All clients"
 msgstr "Alle Kunden"
@@ -160,6 +165,7 @@ msgid "Archive"
 msgstr "Archiv"
 
 #: packages/projects/src/archive.tsx
+#: packages/time-tracking/src/week-project-filter.tsx
 msgid "Archived projects"
 msgstr "Archivierte Projekte"
 
@@ -645,6 +651,10 @@ msgstr "Eintrag nicht gefunden"
 msgid "Expand module sidebar"
 msgstr "Modul-Sidebar ausklappen"
 
+#: packages/time-tracking/src/week-project-filter.tsx
+msgid "Filter by project"
+msgstr "Nach Projekt filtern"
+
 #: packages/icons/src/directory/labels.ts
 msgctxt "Icon"
 msgid "Fire"
@@ -1024,6 +1034,8 @@ msgid "No phone"
 msgstr "Handyverbot"
 
 #: packages/time-tracking/src/project-mark.tsx
+#: packages/time-tracking/src/projects-group.tsx
+#: packages/time-tracking/src/week-project-filter.tsx
 msgid "No project"
 msgstr "Kein Projekt"
 
@@ -1222,6 +1234,7 @@ msgid "Project unarchived"
 msgstr "Projekt reaktiviert"
 
 #: packages/projects/src/index.ts
+#: packages/time-tracking/src/projects-group.tsx
 #: packages/time-tracking/src/week-sums.tsx
 msgid "Projects"
 msgstr "Projekte"
@@ -1593,6 +1606,7 @@ msgid "The part of Self-Engine that keeps your data stopped after it crashed sev
 msgstr "Der Teil von Self-Engine, der deine Daten verwaltet, wurde nach mehreren Abstürzen angehalten."
 
 #: packages/projects/src/picker/index.tsx
+#: packages/time-tracking/src/week-project-filter.tsx
 msgid "The projects could not be loaded."
 msgstr "Die Projekte konnten nicht geladen werden."
 
