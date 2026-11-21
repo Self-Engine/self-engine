@@ -54,6 +54,7 @@ test("time-tracking passes the storage contract kit with `projects` below it", a
           note: "Build",
         },
         entry: { id: entryId },
+        days: { span: { first: "2026-11-16", last: "2026-11-22" } },
       },
       {},
       [projects],

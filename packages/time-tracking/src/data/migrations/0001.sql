@@ -21,3 +21,7 @@ CREATE TABLE time_entries (
 CREATE INDEX time_entries_space ON time_entries (space_id);
 -- The reference check looks an entry up by its project, in every Space (D337).
 CREATE INDEX time_entries_project ON time_entries (project_id) WHERE deleted_at IS NULL;
+-- The window of a Day Span (D343): every Live Row that begins before its end and ends after its
+-- start. Each index serves one bound; the measurement of the week decides whether both stay.
+CREATE INDEX time_entries_started ON time_entries (space_id, started_at) WHERE deleted_at IS NULL;
+CREATE INDEX time_entries_ended ON time_entries (space_id, ended_at) WHERE deleted_at IS NULL;
