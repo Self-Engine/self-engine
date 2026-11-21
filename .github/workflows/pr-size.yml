@@ -1,0 +1,62 @@
+# Gives every pull request exactly one `size:*` label (scripts/pr-size.ts counts and names the
+# labels). `size:XXL` opts the pull request into CodeRabbit's automatic review (.coderabbit.yaml)
+# and asks the agent that opens it for an app check before the merge (docs/agents/workflow.md,
+# "Large pull requests"). Not a required check.
+name: PR size
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize, ready_for_review]
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: write
+
+concurrency:
+  group: pr-size-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  size:
+    name: size
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      # The whole history, so the diff from the base to the head can be counted.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      # The script needs no dependencies: Node 26 runs TypeScript directly.
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: package.json
+          package-manager-cache: false
+      - name: Keep the label definitions in step
+        run: |
+          node scripts/pr-size.ts labels | while IFS=$'\t' read -r name color description; do
+            gh label create "$name" --repo "$REPO" --color "$color" --description "$description" --force
+          done
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+      - id: size
+        run: node scripts/pr-size.ts "$BASE" "$HEAD"
+        env:
+          BASE: ${{ github.event.pull_request.base.sha }}
+          HEAD: ${{ github.event.pull_request.head.sha }}
+      - name: Swap the size label
+        run: |
+          current=$(gh pr view "$PR" --repo "$REPO" --json labels --jq '.labels[].name | select(startswith("size:"))')
+          for name in $current; do
+            if [ "$name" != "$LABEL" ]; then gh pr edit "$PR" --repo "$REPO" --remove-label "$name"; fi
+          done
+          if ! printf '%s\n' "$current" | grep -qxF "$LABEL"; then
+            gh pr edit "$PR" --repo "$REPO" --add-label "$LABEL"
+          fi
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          PR: ${{ github.event.pull_request.number }}
+          LABEL: ${{ steps.size.outputs.label }}
