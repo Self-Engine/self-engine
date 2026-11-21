@@ -52,6 +52,11 @@ from two calls and the second call failed, the entry would be gone and no Timer 
   soft-deleted Timer rows, the origin is lost.
 - A click on "Undo" can end a Timer that was just started. That Timer becomes an entry, or is
   discarded if it ran for less than a second.
+- A Timer whose start lies after the Data Process's "now", after the computer's clock was set
+  back, is not stopped by another Timer's start: its stop writes nothing. Two Timers then run.
+  The Module Indicator and its panel show the one with the later start, which is the older
+  Timer, beside the count, and the Notice of that stop leads to this Timer's form, where its
+  start can be corrected or the Timer discarded (D372).
 - Every stop costs one more lookup by primary key, which also finds deleted rows. Measured
   through the Port of the test Data Process, the median stop rose from 0.139 ms to 0.152 ms. One
   "undo stop" takes 0.18 ms, and a stop after an undo 0.20 ms; since the restore writes the

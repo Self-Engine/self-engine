@@ -445,8 +445,8 @@ test("a stop within the same second says that nothing was saved", async () => {
   expect(notices()).toEqual(["Stopped within the same second: nothing was saved."]);
 });
 
-test('a stop while the clock lies before the start keeps the timer, and its Notice leads to "Stop at …"', async () => {
-  const { client, clock, calls } = await renderShell({
+test("a stop while the clock lies before the start keeps the timer, and its Notice leads to the timer's form", async () => {
+  const { client, calls } = await renderShell({
     setup: async ({ client, clock }) => {
       await client.timeTracking.startTimer({});
       // The computer's clock jumped back an hour.
@@ -457,31 +457,49 @@ test('a stop while the clock lies before the start keeps the timer, and its Noti
   button(document.body, "Stop timer").click();
   await shown(() =>
     expect(notices()).toEqual([
-      "The clock shows a time before the timer's start. The timer keeps running.Stop at …",
+      "The clock shows a time before the timer's start. The timer keeps running.Edit timer",
     ]),
   );
   await expect(client.timeTracking.runningTimers()).resolves.toHaveLength(1);
   expect(runningTime()).toBe("0:00:00");
 
-  // The Notice's action opens the panel at "Stop at …".
-  button(document.querySelector(".mantine-Notification-root")!, "Stop at …").click();
-  await shown(() => expect(button(panel(), "Stop")).toBeDefined());
-  expect(panel().textContent).toContain("Running since");
-  // 10:30 in Berlin lies after the start, but after the Data Process's "now" as well.
-  await typeTime(endTime(), "10:30");
-  button(panel(), "Stop").click();
-  await shown(() => expect(panel().textContent).toContain("The end cannot lie in the future."));
-  expect(calls.at(-1)).toMatchObject({
-    entry: "stopTimer",
-    input: { endedAt: "2026-11-20T09:30:00.000Z" },
+  // The Notice's action opens the panel at the form, where the start can be corrected (D372).
+  button(document.querySelector(".mantine-Notification-root")!, "Edit timer").click();
+  await shown(() => expect(panel().querySelector("textarea")).not.toBeNull());
+  // 08:30 in Berlin lies before the Data Process's "now" of 09:00.
+  await typeTime(startTime(), "08:30");
+  await save();
+  const id = (await client.timeTracking.runningTimers())[0]?.id;
+  expect(calls.at(-1)).toEqual({
+    entry: "editTimer",
+    input: { id, startedAt: "2026-11-20T07:30:00.000Z" },
   });
 
-  // Once the clock is right again, the same end stops the timer there.
-  clock.advance(2 * 3_600_000);
-  button(panel(), "Stop").click();
-  await shown(() => expect(panelClosed()).toBe(true));
+  // With the start before the clock, the timer stops as usual.
+  button(document.body, "Stop timer").click();
   await shown(() => expect(notices()).toContain("Time entry savedUndo"));
   await expect(client.timeTracking.runningTimers()).resolves.toEqual([]);
+});
+
+test('the Notice of a clock before the start switches a panel open at "Stop at …" to the form', async () => {
+  await renderShell({
+    setup: async ({ client, clock }) => {
+      await client.timeTracking.startTimer({});
+      // The computer's clock jumped back an hour.
+      clock.advance(-3_600_000);
+    },
+  });
+  await openPanel();
+  button(panel(), "Stop at …").click();
+  await shown(() => expect(button(panel(), "Stop")).toBeDefined());
+
+  button(document.body, "Stop timer").click();
+  const edit = await shown(() =>
+    button(document.querySelector(".mantine-Notification-root")!, "Edit timer"),
+  );
+  edit.click();
+  await shown(() => expect(panel().querySelector("textarea")).not.toBeNull());
+  expect(panelClosed()).toBe(false);
 });
 
 test("a start that stopped another timer says that its entry was saved, also from outside React", async () => {
@@ -727,7 +745,7 @@ test("when the panel's timer stops elsewhere, the panel says so and turns to no 
   await shown(() => expect(panelClosed()).toBe(true));
 });
 
-test('"Stop at …" from a Notice keeps the open panel open when it shows no timer', async () => {
+test('"Edit timer" from a Notice keeps the open panel open when it shows no timer', async () => {
   const shell = await renderShell({
     setup: async ({ client, clock }) => {
       await client.timeTracking.startTimer({});
@@ -737,8 +755,8 @@ test('"Stop at …" from a Notice keeps the open panel open when it shows no tim
   });
   await shown(() => expect(runningTime()).toBe("0:00:00"));
   button(document.body, "Stop timer").click();
-  const stopAt = await shown(() =>
-    button(document.querySelector(".mantine-Notification-root")!, "Stop at …"),
+  const edit = await shown(() =>
+    button(document.querySelector(".mantine-Notification-root")!, "Edit timer"),
   );
   await openPanel();
   // The clock is right again, and the timer stops elsewhere while the panel is open.
@@ -746,7 +764,7 @@ test('"Stop at …" from a Notice keeps the open panel open when it shows no tim
   await shell.client.timeTracking.stopTimer({ id: shell.timerId()! });
   await shown(() => expect(panel().textContent).toContain("This timer is no longer running."));
 
-  stopAt.click();
+  edit.click();
   await new Promise((resolve) => setTimeout(resolve, 100));
   expect(panelClosed()).toBe(false);
   expect(panel().textContent).toContain("This timer is no longer running.");

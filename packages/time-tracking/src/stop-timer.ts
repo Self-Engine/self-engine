@@ -1,7 +1,7 @@
 import { defineOpenCommand } from "@self-engine/shell";
 import { z } from "zod";
 import { readLatestRunningTimer } from "./port.ts";
-import { stopAtThrough } from "./stop-at.ts";
+import { timerFormThrough } from "./open-timer-form.ts";
 import { NO_TIMER_RUNNING, stopTimerAndTell } from "./timer-actions.tsx";
 
 export default defineOpenCommand({
@@ -16,6 +16,6 @@ export default defineOpenCommand({
       data.notify(NO_TIMER_RUNNING);
       return null;
     }
-    return stopTimerAndTell(data, timer.id, { openStopAt: stopAtThrough(openIndicatorPanel) });
+    return stopTimerAndTell(data, timer.id, { openForm: timerFormThrough(openIndicatorPanel) });
   },
 });

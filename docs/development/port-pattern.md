@@ -695,14 +695,15 @@ date, time and Select fields of `forms` work in the panel as they are: a pick in
 keeps the panel open.
 See the [example panel](../../packages/placeholder-alpha/src/indicator/panel.tsx).
 
-Content with several parts shows one at a time, such as the timer's form and its "Stop at …".
-Which part shows is the module's own state, outside React and outside `src/indicator/`, since a
-Command uses it too: a Notice's action or a Command asks for a part and then opens the panel; an
-open panel switches, asking first through `confirmDiscard` when its form holds unsaved changes,
-and puts the focus on the new part's first field. The indicator and the panel cannot name the
+Content with several parts shows one at a time, such as the timer's form and its "Stop at …",
+and every opening shows the first. A Notice's action or a Command that leads to the panel asks
+for that part through the module's own state, outside React and outside `src/indicator/`, since
+a Command uses it too: a closed panel opens; an open panel that shows another part switches,
+asking first through `confirmDiscard` when its form holds unsaved changes, and puts the focus on
+the new part's first field. The indicator and the panel cannot name the
 indicator's entry for `openIndicatorPanel`: the entry loads them, so the import would be a cycle,
 which the boundary check rejects. The indicator hands its `togglePanel` to the module's state
 instead, only while its panel is closed, so a request never closes an open panel that is still
 loading or shows no part; a Command passes the Shell's opener. See the
 [timer's panel](../../packages/time-tracking/src/indicator/panel.tsx) and
-[its state](../../packages/time-tracking/src/timer-panel-part.ts).
+[its state](../../packages/time-tracking/src/timer-panel-form.ts).

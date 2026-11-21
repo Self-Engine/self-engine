@@ -18,14 +18,14 @@ type StopResult = Awaited<ReturnType<typeof stopTimer>>;
 type DiscardResult = Awaited<ReturnType<typeof discardTimer>>;
 
 /**
- * What a caller with a screen hands the actions: how to open the timer's Indicator Panel at
- * "Stop at …", which the Notice of a clock before the start offers. A Command a person starts
- * builds it with `stopAtThrough` from the Shell's function in its context; the indicator and the
- * panel take `STOP_AT_IN_PLACE`. A caller without a screen, such as a Command for an assistant, has
+ * What a caller with a screen hands the actions: how to show the form of the timer's Indicator
+ * Panel, which the Notice of a clock before the start offers. A Command a person starts builds
+ * it with `timerFormThrough` from the Shell's function in its context; the indicator and the
+ * panel take `FORM_IN_PLACE`. A caller without a screen, such as a Command for an assistant, has
  * none, and that Notice offers no action.
  */
 export interface TimerActionOptions {
-  readonly openStopAt?: (() => void) | undefined;
+  readonly openForm?: (() => void) | undefined;
 }
 
 /**
@@ -41,16 +41,17 @@ const CLOCK_BEFORE_START = (
   <Trans>The clock shows a time before the timer's start. The timer keeps running.</Trans>
 );
 const DISCARDED = <Trans>Timer discarded</Trans>;
-const STOP_AT = <Trans>Stop at …</Trans>;
+const EDIT_TIMER = <Trans>Edit timer</Trans>;
 
 /**
  * Says that the clock lies before the timer's start (D349): the timer keeps running, and with a
- * screen the Notice offers "Stop at …", which opens the timer's panel at that part.
+ * screen the Notice offers "Edit timer", which shows the form in the timer's panel: there the
+ * start can be corrected or the timer discarded, while "Stop at …" has no end to accept (D372).
  */
-function tellClockBeforeStart({ openStopAt }: TimerActionOptions) {
+function tellClockBeforeStart({ openForm }: TimerActionOptions) {
   notifyRefused({
     reasons: [CLOCK_BEFORE_START],
-    ...(openStopAt !== undefined && { action: { label: STOP_AT, run: openStopAt } }),
+    ...(openForm !== undefined && { action: { label: EDIT_TIMER, run: openForm } }),
   });
 }
 

@@ -2,7 +2,7 @@
 // (Friday 20 November 2026, 11:00 in Berlin): the form for project, note and start, "Stop at …"
 // with a valid and a refused end, "Discard" with "Undo", the lock while an Operation runs, the
 // question before unsaved changes are lost, and the Notice of a clock before the start that leads
-// to "Stop at …"; as a popover at the wide Layout Step and a sheet from below on the phone. The
+// to the form; as a popover at the wide Layout Step and a sheet from below on the phone. The
 // stories speak German, whose clock counts 24 hours, so a time is typed as four digits. Each story
 // asserts the calls that reach the Port; that the Data Process answers them as the Contract says
 // is shown by the module's tests over the test Data Process.
@@ -347,7 +347,7 @@ export const ClosingWithUnsavedChangesAsksFirst: Story = {
   },
 };
 
-const theNoticeLeadsToStopAt = (step: Step): Story => ({
+const theNoticeLeadsToTheForm = (step: Step): Story => ({
   ...at(step),
   beforeEach: cleanNotices,
   args: { answers: { stopTimer: { data: { kind: "clockBeforeStart", timer: RUNNING_TIMER } } } },
@@ -357,14 +357,15 @@ const theNoticeLeadsToStopAt = (step: Step): Story => ({
     const notice = await noticeShown(
       "Die Uhr zeigt eine Zeit vor dem Beginn des Timers. Der Timer läuft weiter.",
     );
-    await userEvent.click(within(notice).getByRole("button", { name: "Stoppen um …" }));
-    const stopAt = await panelParts();
-    await expect(stopAt.time("Ende")).toBeVisible();
-    await expect(stopAt.button("Stoppen")).toBeVisible();
+    await userEvent.click(within(notice).getByRole("button", { name: "Timer bearbeiten" }));
+    const form = await panelParts();
+    await expect(form.time("Beginn")).toBeVisible();
+    await expect(form.button("Verwerfen")).toBeVisible();
     await expect(port.calls).toEqual([{ entry: "stopTimer", input: { id: RUNNING.id } }]);
   },
 });
 
-export const TheNoticeOfAClockBeforeTheStartOpensStopAtAtTheWideStep =
-  theNoticeLeadsToStopAt("wide");
-export const TheNoticeOfAClockBeforeTheStartOpensStopAtOnThePhone = theNoticeLeadsToStopAt("phone");
+export const TheNoticeOfAClockBeforeTheStartOpensTheFormAtTheWideStep =
+  theNoticeLeadsToTheForm("wide");
+export const TheNoticeOfAClockBeforeTheStartOpensTheFormOnThePhone =
+  theNoticeLeadsToTheForm("phone");

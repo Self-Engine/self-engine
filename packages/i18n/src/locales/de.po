@@ -647,6 +647,7 @@ msgid "Duration: {duration}"
 msgstr "Dauer: {duration}"
 
 #: packages/time-tracking/src/indicator/index.tsx
+#: packages/time-tracking/src/timer-actions.tsx
 msgid "Edit timer"
 msgstr "Timer bearbeiten"
 
@@ -1534,7 +1535,6 @@ msgid "Stop"
 msgstr "Stoppen"
 
 #: packages/time-tracking/src/indicator/panel.tsx
-#: packages/time-tracking/src/timer-actions.tsx
 msgid "Stop at …"
 msgstr "Stoppen um …"
 

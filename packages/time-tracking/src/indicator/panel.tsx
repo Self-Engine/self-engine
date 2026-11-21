@@ -24,7 +24,7 @@ import {
 } from "../contracts/index.ts";
 import { type TimerWithProject, useEditTimer, useRunningTimers, useStopTimer } from "../port.ts";
 import { discardTimerAndTell, NO_TIMER_RUNNING, tellStop } from "../timer-actions.tsx";
-import { type PanelPart, panelPart, STOP_AT_IN_PLACE } from "../timer-panel-part.ts";
+import { FORM_IN_PLACE, timerPanel } from "../timer-panel-form.ts";
 
 /** The texts of the reasons the Operations raise at a field (D369); the compiler asks for each. */
 const EDIT_TEXTS = { reasons: { [START_IN_FUTURE]: msg`The start cannot lie in the future.` } };
@@ -37,7 +37,7 @@ const STOP_TEXTS = {
 
 /**
  * The panel of the running timer the indicator shows, the most recently started (D310): the form
- * for project, note and start, or "Stop at …", whichever the module's state asks for. It keeps
+ * for project, note and start, or "Stop at …". Every opening shows the form. It keeps
  * the timer it opened with: when that one stops elsewhere, the panel says so rather than turning
  * to another.
  */
@@ -75,6 +75,9 @@ function NoTimer({ gone, onDone }: { readonly gone: boolean; readonly onDone: ()
   );
 }
 
+/** The form for project, note and start, or "Stop at …". */
+type PanelPart = "edit" | "stopAt";
+
 type PartProps = IndicatorPanelProps & {
   readonly timer: TimerWithProject;
   /** Shows the other part, asking first when this one holds unsaved changes. */
@@ -82,12 +85,13 @@ type PartProps = IndicatorPanelProps & {
 };
 
 /**
- * One part at a time, so the small panel holds one form. A request of the module's state, such as
- * from the Notice of a clock before the start, switches the open panel as a button here does.
+ * One part at a time, so the small panel holds one form. A request for the form through the
+ * module's state, from the Notice of a clock before the start (D372), switches the open panel as
+ * the button "Back" does.
  */
 function RunningTimerPanel(props: IndicatorPanelProps & { readonly timer: TimerWithProject }) {
   const { confirmDiscard } = props;
-  const [part, setPart] = useState<PanelPart>(panelPart.opening);
+  const [part, setPart] = useState<PanelPart>("edit");
   const shown = useRef(part);
   // The latest question of the frame, before the paint, as `useUnsavedChanges` reads its check:
   // the switch below is made once and outlives the render that made it.
@@ -101,7 +105,7 @@ function RunningTimerPanel(props: IndicatorPanelProps & { readonly timer: TimerW
     shown.current = next;
     setPart(next);
   });
-  useEffect(() => panelPart.attach((next) => void switchTo.current(next)), []);
+  useEffect(() => timerPanel.attach(() => void switchTo.current("edit")), []);
   // The focus goes into each part as it appears, on the field marked for it or else on the first
   // field: when the panel opens, the Shell's focus trap may have looked before the timers' first
   // answer drew the form, and after a switch the control that switched is gone with its part.
@@ -158,7 +162,7 @@ function EditTimerForm({ timer, onCancel, onDone, confirmDiscard, switchTo }: Pa
   const discard = async () => {
     if (!(await confirmDiscard())) return;
     setDiscarding(true);
-    const result = await discardTimerAndTell(data, timer.id, STOP_AT_IN_PLACE);
+    const result = await discardTimerAndTell(data, timer.id, FORM_IN_PLACE);
     switch (result.status) {
       // Gone already: nothing is left to edit here, and the building block told why.
       case "success":
@@ -226,7 +230,7 @@ function StopAtForm({ timer, onCancel, onDone, switchTo }: PartProps) {
     operation: useStopTimer(),
     draft: { id: timer.id, endedAt: null },
     texts: STOP_TEXTS,
-    onSuccess: (stop) => tellStop(data, timer.id, stop, STOP_AT_IN_PLACE),
+    onSuccess: (stop) => tellStop(data, timer.id, stop, FORM_IN_PLACE),
     onDone,
   });
   const start = formatInstant(timer.startedAt, "dateTime", i18n.locale, timeZone);

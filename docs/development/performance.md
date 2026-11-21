@@ -835,11 +835,11 @@ and "Discard". Production builds of `apps/web`, `apps/web/dist/startup-bundle.js
   bytes are the panel's loader in the contribution's indicator entry: Vite's preload list names
   each chunk the panel needs, so its first opening fetches them at once. The rest, and the
   thirtieth chunk, is the indicator's entry itself: the timer's Commands now import it to open
-  "Stop at …" (`src/stop-at.ts`), so the bundler moved it out of the start's main chunk into a
+  the timer's form (`src/open-timer-form.ts`), so the bundler moved it out of the start's main chunk into a
   chunk of its own, with its imports and exports.
 - **What loads with the indicator.** **14,115 bytes** after the first paint, 1,523 more than in
   #349: the part of the indicator that opens the panel, the discard action with its Notice, and
-  `src/timer-panel-part.ts`, the module's state of which part the panel shows. The indicator
+  `src/timer-panel-form.ts`, the module's state that brings the panel's form up. The indicator
   still reads its Contract as a type only, as the startup check holds it to.
 - **What the first opening loads.** The panel's own chunk is **7,283 bytes**. With it come
   **588,257 bytes** of JavaScript and 31,222 of CSS the start and the indicator do not hold,
