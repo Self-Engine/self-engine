@@ -113,18 +113,20 @@ async function drawerNamed(name: string) {
   };
 }
 
-/** Types a time of four digits into the hours of a picker, over what it held. */
+/**
+ * Types a time of four digits into the hours of a picker, over what it held. The list stays open
+ * until the focus moves on: Esc is the drawer's here and would ask whether to discard (#377), and
+ * that question takes the focus from whatever is typed next.
+ */
 async function typeTime(hours: HTMLElement, digits: string) {
   await userEvent.click(hours);
   await userEvent.keyboard(digits);
-  await userEvent.keyboard("{Escape}");
 }
 
-/** Types a day over what the date field held. */
+/** Types a day over what the date field held. No Esc after it, as in `typeTime`. */
 async function typeDay(input: HTMLElement, text: string) {
   await userEvent.clear(input);
   await userEvent.type(input, text);
-  await userEvent.keyboard("{Escape}");
 }
 
 /** The hours and minutes of the start and of the end, as their inputs show them. */
