@@ -45,11 +45,12 @@ interface Referring {
 }
 
 /**
- * A reference that is written or restored points to a Live Row of the same Space (D337). An
- * update asks only for the reference columns it writes, so one that writes none runs no query;
- * an empty optional reference and a row's reference to itself ask nothing. Each target table is
- * asked once, by primary key, for every row; an unknown, deleted or foreign target is refused
- * before the database's own foreign key error.
+ * A reference that is written or restored points to a Live Row of the same Space (D337); a
+ * restore judges the row as it stands afterwards (D371). An update asks only for the reference
+ * columns it writes, so one that writes none runs no query; an empty optional reference and a
+ * row's reference to itself ask nothing. Each target table is asked once, by primary key, for
+ * every row; an unknown, deleted or foreign target is refused before the database's own foreign
+ * key error.
  */
 function targetRule(
   table: string,
@@ -103,15 +104,16 @@ function targetRule(
 }
 
 /**
- * The deleted rows of this Space a restore names, with their reference columns, in one lookup by
- * primary key. A live, unknown or foreign row gets no answer: the restore stays not found.
+ * The deleted rows of this Space a restore names, with their reference columns as they stand
+ * after the restore: the value written with it, the stored one for every other (D371). One lookup
+ * by primary key; a live, unknown or foreign row gets no answer: the restore stays not found.
  */
 async function deletedRows(
   tx: Untyped,
   context: StorageContext,
   table: string,
   references: readonly Reference[],
-  rows: readonly { readonly id: string }[],
+  rows: readonly { readonly id: string; readonly values?: Referring["values"] }[],
 ): Promise<readonly Referring[]> {
   if (rows.length === 0) return [];
   const found = await tx
@@ -125,7 +127,11 @@ async function deletedRows(
     .where("space_id", "=", context.spaceId)
     .where("deleted_at", "is not", null)
     .execute();
-  return found.map((row) => ({ id: row.id as string, values: row }));
+  const written = new Map(rows.map(({ id, values }) => [id, values]));
+  return found.map((row) => ({
+    id: row.id as string,
+    values: { ...row, ...written.get(row.id as string) },
+  }));
 }
 
 /**
