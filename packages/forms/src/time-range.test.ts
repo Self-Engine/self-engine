@@ -243,4 +243,12 @@ describe("a loaded range", () => {
       end: { case: "set", instant: at("2026-10-25T01:45:00.000Z") },
     });
   });
+
+  test("an earlier end in the stored repeated hour stays on the start day", () => {
+    const stored = { start: at("2026-10-25T00:10:00.000Z"), end: at("2026-10-25T01:40:30.000Z") };
+    expect(rangeFrom(parts("2026-10-25", "02:10", "02:05"), stored, berlin, true).end).toEqual({
+      case: "set",
+      instant: at("2026-10-25T01:05:00.000Z"),
+    });
+  });
 });
