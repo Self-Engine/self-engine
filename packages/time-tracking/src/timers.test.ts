@@ -462,3 +462,86 @@ test("a caller tells the three answers of stop apart, and the compiler holds it 
   };
   expect(notice(await client.timeTracking.stopTimer({ id: timer.id }))).toBe("saved 1s");
 });
+
+test("start stops the running timer into its entry in the same transaction and names it; one timer runs", async () => {
+  const { client, clock } = await start();
+  const project = await client.projects.create({ title: "Website" });
+  const { timer: first } = await client.timeTracking.startTimer({ projectId: project.id });
+  clock.advance(30 * 60_000);
+
+  const events = await client.tablesChanged();
+  await expect(events.next()).resolves.toMatchObject({ value: { kind: "opened" } });
+  const { timer: second, others } = await client.timeTracking.startTimer({ note: "Mail" });
+  await expect(events.next()).resolves.toMatchObject({
+    value: { kind: "changed", tables: ["time_entries", "timers"] },
+  });
+  await events.return?.();
+
+  expect(others).toEqual([
+    {
+      kind: "saved",
+      entry: {
+        id: first.id,
+        startedAt: "2026-11-16T09:00:00.000Z",
+        endedAt: "2026-11-16T09:30:00.000Z",
+        durationSeconds: 1800,
+        projectId: project.id,
+        note: null,
+      },
+    },
+  ]);
+  await expect(client.timeTracking.runningTimers()).resolves.toEqual([
+    { ...second, startedAt: "2026-11-16T09:30:00.000Z", project: null },
+  ]);
+  // The stopped timer stays stopped, with its entry.
+  await expect(client.timeTracking.stopTimer({ id: first.id })).resolves.toEqual(others[0]);
+});
+
+test("start stops every running timer by the rules of stop: an entry, a discard, or one left running before its start", async () => {
+  const { client, clock, process } = await start();
+  const { timer: mine } = await client.timeTracking.startTimer({ note: "On this device" });
+  const rows = process.database.kysely.withTables<{ timers: Record<string, string | null> }>();
+  const [stored] = await rows.selectFrom("timers").selectAll().execute();
+  // As a sync would bring them: one started earlier, one whose start lies after this device's now.
+  const ids = {
+    earlier: "01a1cfa1-0b00-7000-8000-0000000000aa",
+    later: "01a1cfa1-0b00-7000-8000-0000000000bb",
+  };
+  await rows
+    .insertInto("timers")
+    .values([
+      { ...stored, id: ids.earlier, started_at: "2026-11-16T08:00:00.000Z", note: "Earlier" },
+      { ...stored, id: ids.later, started_at: "2026-11-16T10:00:00.000Z", note: "Later" },
+    ])
+    .execute();
+  clock.advance(400);
+
+  const { timer, others } = await client.timeTracking.startTimer({});
+
+  expect(others).toEqual([
+    { kind: "clockBeforeStart", timer: expect.objectContaining({ id: ids.later }) },
+    { kind: "discarded", timer: mine },
+    {
+      kind: "saved",
+      entry: expect.objectContaining({ id: ids.earlier, durationSeconds: 3600, note: "Earlier" }),
+    },
+  ]);
+  // The one before its start runs on: no entry with a wrong end is saved (D349).
+  await expect(client.timeTracking.runningTimers()).resolves.toMatchObject([
+    { id: ids.later },
+    { id: timer.id },
+  ]);
+});
+
+test("a timer whose project was archived meanwhile stops into an entry of the archived project", async () => {
+  const { client, clock } = await start();
+  const project = await client.projects.create({ title: "Website" });
+  const { timer } = await client.timeTracking.startTimer({ projectId: project.id });
+  clock.advance(60_000);
+  await client.projects.archive({ id: project.id });
+
+  await expect(client.timeTracking.stopTimer({ id: timer.id })).resolves.toMatchObject({
+    kind: "saved",
+    entry: { id: timer.id, projectId: project.id },
+  });
+});
