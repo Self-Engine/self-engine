@@ -194,6 +194,46 @@ export const AnEntryAcrossMidnightLiesOnBothDaysWithItsShareAndAMark: Story = {
   },
 };
 
+export const OverlappingEntriesShowAHintAndCountInFull: Story = {
+  args: {
+    stored: {
+      entries: [
+        timeEntry(1, {
+          startedAt: "2026-11-16T08:00:00.000Z",
+          endedAt: "2026-11-16T10:00:00.000Z",
+          note: "Design",
+        }),
+        timeEntry(2, {
+          startedAt: "2026-11-16T09:00:00.000Z",
+          endedAt: "2026-11-16T11:00:00.000Z",
+          note: "Review",
+        }),
+        timeEntry(3, {
+          startedAt: "2026-11-16T11:00:00.000Z",
+          endedAt: "2026-11-16T12:00:00.000Z",
+          note: "Handover",
+        }),
+      ],
+    },
+  },
+  play: async ({ canvas }) => {
+    const monday = within(await day(canvas, "Monday, November 16, 2026"));
+    for (const note of ["Design", "Review"]) {
+      const entry = await monday.findByRole("button", { name: new RegExp(note) });
+      await expect(
+        within(entry).getByRole("img", { name: "Overlaps another entry" }),
+      ).toBeVisible();
+      await expect(entry).toHaveAccessibleName(/Overlaps another entry/);
+    }
+    const handover = monday.getByRole("button", { name: /Handover/ });
+    await expect(
+      within(handover).queryByRole("img", { name: "Overlaps another entry" }),
+    ).toBeNull();
+    await expect(monday.getByLabelText("Day total")).toHaveTextContent("5:00");
+    await expect(canvas.getByLabelText("Week total")).toHaveTextContent("5:00");
+  },
+};
+
 export const AnArchivedProjectKeepsItsMark: Story = {
   play: async ({ canvas }) => {
     const [, handover] = within(await day(canvas, "Friday, November 20, 2026")).getAllByRole(

@@ -23,7 +23,12 @@ const ICON_NAMES = [
 ] as const;
 
 /** The icons of `./view`, which only Views draw and which load with them. */
-const VIEW_ICON_NAMES = ["PreviousIcon", "NextIcon", "CrossesMidnightIcon"] as const;
+const VIEW_ICON_NAMES = [
+  "PreviousIcon",
+  "NextIcon",
+  "CrossesMidnightIcon",
+  "OverlapsEntryIcon",
+] as const;
 
 const icons = { ...catalog, ...viewCatalog };
 

@@ -31,13 +31,14 @@ export const daysInputSchema = z.strictObject({
 export type DaysInput = z.input<typeof daysInputSchema>;
 
 /**
- * An entry on one day: the entry with its Project Reference, its Day Share there, and whether it
- * touches more than one day. An entry that crosses midnight appears on each day of the span it
- * touches, with the same id.
+ * An entry on one day: the entry with its Project Reference, its Day Share there, whether it
+ * touches more than one day and whether it overlaps another entry in the window. An entry that
+ * crosses midnight appears on each day of the span it touches, with the same id and marks.
  */
 export const dayEntrySchema = timeEntryWithProjectSchema.extend({
   dayShare: durationSchema,
   crossesMidnight: z.boolean(),
+  overlaps: z.boolean(),
 });
 export type DayEntry = z.output<typeof dayEntrySchema>;
 

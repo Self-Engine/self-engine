@@ -90,12 +90,16 @@ test("an entry from Sunday 22:00 to Monday 02:00 appears on both days with 2:00,
     {
       day: "2026-11-15",
       total: hours(2),
-      entries: [{ ...night, project: null, dayShare: hours(2), crossesMidnight: true }],
+      entries: [
+        { ...night, project: null, dayShare: hours(2), crossesMidnight: true, overlaps: false },
+      ],
     },
     {
       day: "2026-11-16",
       total: hours(2),
-      entries: [{ ...night, project: null, dayShare: hours(2), crossesMidnight: true }],
+      entries: [
+        { ...night, project: null, dayShare: hours(2), crossesMidnight: true, overlaps: false },
+      ],
     },
   ]);
   expect(both.total).toBe(hours(4));
@@ -287,6 +291,77 @@ test("the sums per day, per project and in total match the entries; no project h
   ]);
 });
 
+test("intersecting entries are both marked and count in full in the day and week", async () => {
+  const { client } = await startTimeTracking();
+  const first = await create(client, "2026-11-16T08:00:00.000Z", "2026-11-16T10:00:00.000Z");
+  const second = await create(client, "2026-11-16T09:00:00.000Z", "2026-11-16T12:00:00.000Z");
+
+  const answer = await client.timeTracking.days({ span: THIS_WEEK });
+
+  expect(answer.days[0]).toMatchObject({
+    entries: [
+      { id: first.id, overlaps: true, dayShare: hours(2) },
+      { id: second.id, overlaps: true, dayShare: hours(3) },
+    ],
+    total: hours(5),
+  });
+  expect(answer.total).toBe(hours(5));
+  expect(answer.projects).toEqual([{ project: null, total: hours(5) }]);
+});
+
+test("among three entries, only the two that intersect are marked", async () => {
+  const { client } = await startTimeTracking();
+  const first = await create(client, "2026-11-16T08:00:00.000Z", "2026-11-16T10:00:00.000Z");
+  const second = await create(client, "2026-11-16T09:00:00.000Z", "2026-11-16T11:00:00.000Z");
+  const third = await create(client, "2026-11-16T11:00:00.000Z", "2026-11-16T12:00:00.000Z");
+
+  const answer = await client.timeTracking.days({ span: THIS_WEEK });
+
+  expect(answer.days[0]?.entries).toMatchObject([
+    { id: first.id, overlaps: true },
+    { id: second.id, overlaps: true },
+    { id: third.id, overlaps: false },
+  ]);
+});
+
+test("an entry across midnight is marked only in spans its overlapping entry also touches", async () => {
+  const { client } = await startTimeTracking();
+  const night = await create(client, "2026-11-15T21:00:00.000Z", "2026-11-16T01:00:00.000Z");
+  // Ends at midnight in Berlin, where the next week starts.
+  const evening = await create(client, "2026-11-15T22:00:00.000Z", "2026-11-15T23:00:00.000Z");
+
+  const lastWeek = await client.timeTracking.days({ span: LAST_WEEK });
+  expect(lastWeek.days.at(-1)?.entries).toMatchObject([
+    { id: night.id, overlaps: true },
+    { id: evening.id, overlaps: true },
+  ]);
+  const thisWeek = await client.timeTracking.days({ span: THIS_WEEK });
+  expect(thisWeek.days[0]?.entries).toMatchObject([{ id: night.id, overlaps: false }]);
+});
+
+test("a project entry keeps its overlap mark when a filter hides the other project", async () => {
+  const { client } = await startTimeTracking();
+  const website = await client.projects.create({ title: "Website" });
+  const shop = await client.projects.create({ title: "Shop" });
+  const visible = await create(client, "2026-11-16T08:00:00.000Z", "2026-11-16T10:00:00.000Z", {
+    projectId: website.id,
+  });
+  await create(client, "2026-11-16T09:00:00.000Z", "2026-11-16T12:00:00.000Z", {
+    projectId: shop.id,
+  });
+
+  const answer = await client.timeTracking.days({
+    span: THIS_WEEK,
+    filter: { kind: "project", projectId: website.id },
+  });
+
+  expect(answer.days[0]).toMatchObject({
+    entries: [{ id: visible.id, overlaps: true }],
+    total: hours(2),
+  });
+  expect(answer.total).toBe(hours(2));
+});
+
 test("two projects with the same title stay two lines", async () => {
   const { client } = await startTimeTracking();
   const first = await client.projects.create({ title: "Same" });
@@ -298,8 +373,9 @@ test("two projects with the same title stay two lines", async () => {
     projectId: second.id,
   });
 
-  const { projects } = await client.timeTracking.days({ span: THIS_WEEK });
+  const { days, projects } = await client.timeTracking.days({ span: THIS_WEEK });
 
+  expect(days[0]?.entries).toMatchObject([{ overlaps: false }, { overlaps: false }]);
   expect(projects.map((line) => [line.project?.id, line.project?.title, line.total])).toEqual([
     [first.id, "Same", hours(2)],
     [second.id, "Same", hours(1)],
