@@ -297,6 +297,33 @@ export const ACorrectionInsideTheRepeatedHourStaysInIt: Story = {
   },
 };
 
+export const AnEarlierEndInTheRepeatedHourStaysOnTheStartDay: Story = {
+  args: loadedRange("2026-10-25T00:10:00.000Z", "2026-10-25T01:40:30.000Z"),
+  play: async ({ canvasElement, loaded }) => {
+    const range = rangeIn(canvasElement);
+    await expect(range.canvas.queryByRole("textbox", { name: "Enddatum" })).toBeNull();
+    await typeTime(range.end(), "0205");
+    await expect(range.end()).toHaveAccessibleDescription("02:05 (UTC+1)");
+    await expect(range.canvas.getByText("Dauer: 0:55")).toBeVisible();
+    await expect(range.canvas.queryByText("+1")).toBeNull();
+    await userEvent.click(range.canvas.getByRole("button", { name: "Enddatum hinzufügen" }));
+    await expect(range.endDate()).toHaveValue("25.10.2026");
+    await range.save();
+    await waitFor(() =>
+      expect(callsOf(loaded)).toEqual([
+        {
+          entry: "update",
+          input: {
+            id: SAVED.id,
+            started_at: "2026-10-25T00:10:00.000Z",
+            ended_at: "2026-10-25T01:05:00.000Z",
+          },
+        },
+      ]),
+    );
+  },
+};
+
 export const TheDurationIsTheTimeThatReallyPassed: Story = {
   play: async ({ canvasElement }) => {
     const range = await newRange(canvasElement, "25.10.2026", "0100", "0400");

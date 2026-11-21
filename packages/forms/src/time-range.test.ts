@@ -52,6 +52,14 @@ describe("a new range", () => {
     });
   });
 
+  // Berlin, 25 October 2026: the second 02:05 lies 55 minutes after the first 02:10 (#384).
+  test("an end typed earlier than a start in the repeated hour stays on the start day", () => {
+    const outcome = rangeFrom(parts("2026-10-25", "02:10", "02:05"), none, berlin, false);
+    expect(outcome.start).toEqual({ case: "set", instant: at("2026-10-25T00:10:00.000Z") });
+    expect(outcome.end).toEqual({ case: "set", instant: at("2026-10-25T01:05:00.000Z") });
+    expect(outcome.sameDayEnd).toBe(day("2026-10-25"));
+  });
+
   test("an opened end date carries the end, and no next day is counted", () => {
     const days = parts("2026-11-13", "22:00", "01:30", "2026-11-15");
     expect(isNextDay(days)).toBe(false);
@@ -241,6 +249,24 @@ describe("a loaded range", () => {
     expect(rangeFrom(parts("2026-10-25", "02:10", "02:45"), timer, berlin, true)).toEqual({
       start: { case: "keep" },
       end: { case: "set", instant: at("2026-10-25T01:45:00.000Z") },
+    });
+  });
+
+  test("an earlier end in the stored repeated hour stays on the start day", () => {
+    const stored = { start: at("2026-10-25T00:10:00.000Z"), end: at("2026-10-25T01:40:30.000Z") };
+    expect(rangeFrom(parts("2026-10-25", "02:10", "02:05"), stored, berlin, true).end).toEqual({
+      case: "set",
+      instant: at("2026-10-25T01:05:00.000Z"),
+    });
+  });
+
+  test("an ordinary overnight edit does not resolve the end on the start day", () => {
+    const zone = resolveTimeZone("Etc/GMT-1").timeZone;
+    const stored = { start: at("1000-01-01T00:15:00.000Z"), end: at("1000-01-01T00:30:00.000Z") };
+    // 00:30 on the start day is outside the supported years in UTC.
+    expect(rangeFrom(parts("1000-01-01", "01:15", "00:30"), stored, zone, true).end).toEqual({
+      case: "set",
+      instant: at("1000-01-01T23:30:00.000Z"),
     });
   });
 });
