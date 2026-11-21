@@ -1,12 +1,13 @@
 import { oc } from "@orpc/contract";
-import { entryFields, idSchema, refusal } from "@self-engine/db/schema";
-import { projectIdSchema, projectReferenceSchema } from "@self-engine/projects/contracts";
-import { durationSchema, type Instant, instantSchema, wholeSecondOf } from "@self-engine/time";
+import { entryFields, refusal } from "@self-engine/db/schema";
+import { projectIdSchema } from "@self-engine/projects/contracts";
+import { type Instant, instantSchema, wholeSecondOf } from "@self-engine/time";
 import { z } from "zod";
+import { daysAnswerSchema, daysInputSchema } from "./days.ts";
+import { timeEntrySchema, timeEntryWithProjectSchema } from "./entries.ts";
+import { timeEntryIdSchema } from "./ids.ts";
 
-export const timeEntryIdSchema = idSchema("TimeEntry");
-/** A time entry's id, branded so no other entry's id takes its place. */
-export type TimeEntryId = z.output<typeof timeEntryIdSchema>;
+export { type TimeEntryId, timeEntryIdSchema } from "./ids.ts";
 
 /** The longest note, in characters after trimming. */
 export const NOTE_MAX = 10_000;
@@ -68,29 +69,28 @@ const timeEntryEditSchema = timeEntryFields.edit
   .refine(endsAfterStart, endsAfterStartIssue)
   .refine(timesTravelTogether, { params: { reason: "start_and_end_together" } });
 
-/**
- * A time entry as the Port answers it. `durationSeconds` is the Booked Duration: the time that
- * counts, in layer 4 always end minus start (D308). The Time Zone the row stores is not answered:
- * layer 4 never reads it (D342).
- */
-export const timeEntrySchema = z.object({
-  id: timeEntryIdSchema,
-  startedAt: instantSchema,
-  endedAt: instantSchema,
-  durationSeconds: durationSchema,
-  projectId: projectIdSchema.nullable(),
-  note: z.string().nullable(),
-});
-export type TimeEntry = z.output<typeof timeEntrySchema>;
-
-/**
- * A time entry with its project as a Project Reference (D330), as the Edit Drawer shows it: `null`
- * without a project. An archived or deleted project keeps its marks.
- */
-export const timeEntryWithProjectSchema = timeEntrySchema.extend({
-  project: projectReferenceSchema.nullable(),
-});
-export type TimeEntryWithProject = z.output<typeof timeEntryWithProjectSchema>;
+export {
+  type TimeEntry,
+  type TimeEntryWithProject,
+  timeEntrySchema,
+  timeEntryWithProjectSchema,
+} from "./entries.ts";
+export {
+  type DayEntry,
+  type DaysAnswer,
+  type DaysInput,
+  type ProjectTotal,
+  SPAN_MAX_DAYS,
+  SPAN_TOO_LONG,
+  type SpanDay,
+  type TimeEntryFilter,
+  dayEntrySchema,
+  daysAnswerSchema,
+  daysInputSchema,
+  projectTotalSchema,
+  spanDaySchema,
+  timeEntryFilterSchema,
+} from "./days.ts";
 
 const byId = z.strictObject({ id: timeEntryIdSchema });
 
@@ -122,4 +122,9 @@ export const timeTrackingContract = {
     .errors({ NOT_FOUND: {}, ...refusal }),
   /** One Live Row with its project, for the Edit Drawer; `null` for an unknown or deleted id. */
   entry: oc.input(byId).output(timeEntryWithProjectSchema.nullable()),
+  /**
+   * The entries and sums of a Day Span, in the Time Zone of the call (D343, D354); see
+   * `daysAnswerSchema`. A span over `SPAN_MAX_DAYS` days is an input error.
+   */
+  days: oc.input(daysInputSchema).output(daysAnswerSchema),
 };

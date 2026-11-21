@@ -17,6 +17,7 @@ export { calendarDayOf, wallClockTimeOf, instantAt } from "./zoned.ts";
 export { resolveWallClockTime, type WallClockTimeResolution } from "./zoned.ts";
 export { moveToDay, repeatedTimeOffset } from "./zoned.ts";
 export { startOfCalendarDay, instantRangeOf, today } from "./zoned.ts";
+export { cutAtDays, dayRangesOf, type DayRange } from "./day-ranges.ts";
 export type { InstantRange, ResolvedInstant } from "./zoned.ts";
 export { nextTick, startOfNextDay, type TickStep } from "./next-tick.ts";
 export { formatInstant, type InstantFormat } from "./format.ts";

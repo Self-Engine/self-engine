@@ -25,6 +25,7 @@
     "@self-engine/i18n": "workspace:*",
     "@self-engine/settings-data": "workspace:*",
     "@types/node": "catalog:",
+    "fast-check": "catalog:",
     "vite-plus": "catalog:"
   }
 }

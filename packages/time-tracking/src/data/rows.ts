@@ -56,6 +56,19 @@ export const toTimeEntry = (row: TimeEntryRow): TimeEntry => ({
   note: row.note,
 });
 
+/**
+ * The columns a Query selects from the Read Piece of `projects`, joined as `project`; they give
+ * the fields of `JoinedProject`.
+ */
+export const JOINED_PROJECT_COLUMNS = [
+  "project.id as projectRefId",
+  "project.title as projectTitle",
+  "project.icon as projectIcon",
+  "project.color as projectColor",
+  "project.archivedAt as projectArchivedAt",
+  "project.deletedAt as projectDeletedAt",
+] as const;
+
 /** The columns of the Read Piece of `projects`, as a Query of this module selects them. */
 export interface JoinedProject {
   readonly projectRefId: ProjectReference["id"] | null;
