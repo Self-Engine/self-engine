@@ -345,20 +345,14 @@ test("a filter by project or by no project acts on the entries and on every sum"
 });
 
 test("a deleted entry appears nowhere, and an entry of an archived project keeps its archive mark", async () => {
-  const { client, process } = await startTimeTracking();
+  const { client } = await startTimeTracking();
   const archived = await client.projects.create({ title: "Old" });
   const kept = await create(client, "2026-11-16T08:00:00.000Z", "2026-11-16T09:00:00.000Z", {
     projectId: archived.id,
   });
   await client.projects.archive({ id: archived.id });
   const gone = await create(client, "2026-11-16T09:00:00.000Z", "2026-11-16T10:00:00.000Z");
-  // The delete Operation comes with its own slice; a deleted row is one with `deleted_at` set.
-  await process.database.kysely
-    .withTables<{ time_entries: { id: string; deleted_at: string | null } }>()
-    .updateTable("time_entries")
-    .set({ deleted_at: "2026-11-12T12:00:00.000Z" })
-    .where("id", "=", gone.id)
-    .execute();
+  await client.timeTracking.delete({ id: gone.id });
 
   const answer = await client.timeTracking.days({ span: THIS_WEEK });
 
@@ -369,6 +363,12 @@ test("a deleted entry appears nowhere, and an entry of an archived project keeps
     { project: { id: archived.id, archivedAt: expect.any(String) }, total: hours(1) },
   ]);
   expect(answer.total).toBe(hours(1));
+
+  // Restored, it counts again.
+  await client.timeTracking.restore({ id: gone.id });
+  await expect(client.timeTracking.days({ span: THIS_WEEK })).resolves.toMatchObject({
+    total: hours(2),
+  });
 });
 
 test("the Query takes any span up to 42 days and refuses a longer one, or one that ends before it starts, as an input error", async () => {

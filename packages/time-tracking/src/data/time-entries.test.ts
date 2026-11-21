@@ -15,6 +15,7 @@ const seedId = (n: number) => `01a1cfa1-0a00-7000-8000-${String(n).padStart(12, 
 // The seed creates the project first, then its time entry.
 const projectId = projectIdSchema.parse(seedId(0));
 const entryId = timeEntryIdSchema.parse(seedId(1));
+const deletedEntryId = timeEntryIdSchema.parse(seedId(2));
 const instant = (text: string) => instantSchema.parse(text);
 
 test("the time entries table follows the conventions and agrees with its row map", async () => {
@@ -39,12 +40,15 @@ test("time-tracking passes the storage contract kit with `projects` below it", a
         const website = await projects.entries.create.run(tx.withTables(), context, {
           title: "Website",
         });
-        await timeTracking.entries.create.run(tx, context, {
+        const range = {
           startedAt: instant("2026-11-16T09:00:00.000Z"),
           endedAt: instant("2026-11-16T10:30:00.000Z"),
           projectId: website.id,
-          note: "Design",
-        });
+        };
+        const { entries } = timeTracking;
+        await entries.create.run(tx, context, { ...range, note: "Design" });
+        const deleted = await entries.create.run(tx, context, { ...range, note: "Old design" });
+        await entries.delete.run(tx, context, { id: deleted.id });
       },
       {
         create: {
@@ -53,6 +57,15 @@ test("time-tracking passes the storage contract kit with `projects` below it", a
           projectId,
           note: "Build",
         },
+        edit: {
+          id: entryId,
+          startedAt: "2026-11-16T11:00:00.000Z",
+          endedAt: "2026-11-16T12:00:00.000Z",
+          projectId,
+          note: "Review",
+        },
+        delete: { id: entryId },
+        restore: { id: deletedEntryId },
         entry: { id: entryId },
         days: { span: { first: "2026-11-16", last: "2026-11-22" } },
       },

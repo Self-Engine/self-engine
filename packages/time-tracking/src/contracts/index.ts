@@ -51,6 +51,24 @@ export function endsAfterStart(times: {
 /** Where the rule reports: at the end, with its Reason. */
 export const endsAfterStartIssue = { path: ["endedAt"], params: { reason: END_BEFORE_START } };
 
+/** The Edit Drawer sends both Instants when either one changes (D323). */
+export const timeEntryTiedFields = [["startedAt", "endedAt"]] as const;
+
+type EditFields = z.output<typeof timeEntryFields.edit>;
+type EditTimes =
+  | { startedAt: Instant; endedAt: Instant }
+  | { startedAt?: undefined; endedAt?: undefined };
+
+function timesTravelTogether(input: EditFields): input is EditFields & EditTimes {
+  return (input.startedAt === undefined) === (input.endedAt === undefined);
+}
+
+// A predicate narrows what the Data Process receives. The strict Field List object still
+// supplies the caller input type and lets the contract kit check the edit pattern.
+const timeEntryEditSchema = timeEntryFields.edit
+  .refine(endsAfterStart, endsAfterStartIssue)
+  .refine(timesTravelTogether, { params: { reason: "start_and_end_together" } });
+
 export {
   type TimeEntry,
   type TimeEntryWithProject,
@@ -87,6 +105,21 @@ export const timeTrackingContract = {
     .input(timeEntryFields.create.refine(endsAfterStart, endsAfterStartIssue))
     .output(timeEntrySchema)
     .errors({ ...refusal }),
+  /** A missing field stays untouched, `null` clears it, and an edit without fields reads. */
+  edit: oc
+    .input(timeEntryEditSchema)
+    .output(timeEntrySchema)
+    .errors({ NOT_FOUND: {}, ...refusal }),
+  /** A soft delete, reversible through restore. */
+  delete: oc
+    .input(byId)
+    .output(timeEntrySchema)
+    .errors({ NOT_FOUND: {}, ...refusal }),
+  /** Brings a deleted entry back. The frame refuses it if its project was deleted (D337). */
+  restore: oc
+    .input(byId)
+    .output(timeEntrySchema)
+    .errors({ NOT_FOUND: {}, ...refusal }),
   /** One Live Row with its project, for the Edit Drawer; `null` for an unknown or deleted id. */
   entry: oc.input(byId).output(timeEntryWithProjectSchema.nullable()),
   /**
