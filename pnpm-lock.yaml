@@ -1604,6 +1604,9 @@ importers:
       '@self-engine/db':
         specifier: workspace:*
         version: link:../db
+      '@self-engine/forms':
+        specifier: workspace:*
+        version: link:../forms
       '@self-engine/icons':
         specifier: workspace:*
         version: link:../icons
@@ -1641,6 +1644,9 @@ importers:
       '@self-engine/i18n':
         specifier: workspace:*
         version: link:../i18n
+      '@self-engine/settings':
+        specifier: workspace:*
+        version: link:../settings
       '@self-engine/settings-data':
         specifier: workspace:*
         version: link:../settings-data

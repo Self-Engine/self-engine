@@ -201,7 +201,9 @@ function RangeInputs({
   const endInstant = checkedOrNull(instantSchema, end.value);
   const [view, setView] = useState(() => {
     const parts = partsOf(startInstant, endInstant, timeZone);
-    return fresh(parts.day === null && startDay !== undefined ? { ...parts, day: startDay } : parts);
+    return fresh(
+      parts.day === null && startDay !== undefined ? { ...parts, day: startDay } : parts,
+    );
   });
   // The view as the last event left it: a picker reports unfinished text after a timeout, which
   // may run after a newer event than the draw it was scheduled in.

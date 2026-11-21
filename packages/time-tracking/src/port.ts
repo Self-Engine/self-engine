@@ -1,13 +1,41 @@
 import { portHooks } from "@self-engine/data-client/react";
+import type { TablesOf } from "@self-engine/db";
 import type { DaySpan } from "@self-engine/time";
 import { useMemo } from "react";
 import type { TimeEntryFilter, timeTrackingContract } from "./contracts/index.ts";
+import type { timeTrackingRowMap } from "./data/rows.ts";
 
-export type { DayEntry, DaysAnswer, ProjectTotal, SpanDay } from "./contracts/index.ts";
+export type {
+  DayEntry,
+  DaysAnswer,
+  ProjectTotal,
+  SpanDay,
+  TimeEntryWithProject,
+} from "./contracts/index.ts";
 
 // The module's hooks, built from its Contract and its mount name (D249). The Contract arrives as a
 // type only, so its schemas never load with a View (D255); the module names no tables (D248).
-const timeTrackingPort = portHooks<typeof timeTrackingContract>("timeTracking");
+// Its tables type where a form shows a Reason (D334), also as a type only.
+const timeTrackingPort = portHooks<
+  typeof timeTrackingContract,
+  TablesOf<typeof timeTrackingRowMap>
+>("timeTracking");
+
+/** The frame refuses a deleted project at the column; the form shows it at the project (D334). */
+const AT_PROJECT = { columns: { time_entries: { project_id: "projectId" } } } as const;
+
+/** One stored entry with its Project Reference, for the Edit Drawer; `null` once it is gone. */
+export const useTimeEntry = timeTrackingPort.query("entry");
+export const useCreateTimeEntry = timeTrackingPort.operation("create", AT_PROJECT);
+export const useEditTimeEntry = timeTrackingPort.operation("edit", AT_PROJECT);
+export const useDeleteTimeEntry = timeTrackingPort.operation("delete");
+export const useRestoreTimeEntry = timeTrackingPort.operation("restore");
+
+/**
+ * `create` for the input Command, which runs outside React and is given the Port access (D261).
+ * It shows no field: a Refusal goes to the Notice.
+ */
+export const createTimeEntry = timeTrackingPort.run("create");
 
 const useDays = timeTrackingPort.query("days");
 

@@ -91,7 +91,17 @@ export const ALLOWED_IMPORTS: AllowedImports = {
   // its released Project Reference; `projects` never imports it (D308). The table names of its
   // Refusal texts are typed by the data building block (D335). Its View draws with the Shell,
   // the icons and `ui`, as `projects` does.
-  "time-tracking": ["data-client", "db", "icons", "projects", "shell", "storage", "time", "ui"],
+  "time-tracking": [
+    "data-client",
+    "db",
+    "forms",
+    "icons",
+    "projects",
+    "shell",
+    "storage",
+    "time",
+    "ui",
+  ],
   ui: ["icons", "theme"],
 };
 
@@ -116,7 +126,7 @@ export const TEST_ONLY_IMPORTS: AllowedImports = {
   "settings-data": ["data-process", "data-protocol"],
   // The test Data Process with `projects` and `settings`, to save the Time Zone through the Port,
   // and the app's catalogs for the texts of a Refusal in both languages.
-  "time-tracking": ["data-process", "data-protocol", "i18n", "settings-data"],
+  "time-tracking": ["data-process", "data-protocol", "i18n", "settings", "settings-data"],
   // The app's catalogs, so a story of the icon field switches the language as the Settings do.
   ui: ["i18n"],
 };
