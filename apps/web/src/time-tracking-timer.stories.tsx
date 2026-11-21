@@ -29,7 +29,16 @@ import {
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { expect, screen, userEvent, waitFor, within } from "storybook/test";
 import { clearNotices } from "@self-engine/ui/story-notices";
-import { AppAt, keepNoticesOpen, loadStoryApp, type StoryTime } from "./story-app.tsx";
+import {
+  AppAt,
+  keepNoticesOpen,
+  loadStoryApp,
+  openPalette,
+  paletteGone,
+  pressWithMod,
+  storyRouter,
+  type StoryTime,
+} from "./story-app.tsx";
 
 const viewport = (name: string, width: number) => ({
   name,
@@ -234,6 +243,75 @@ export const StoppingShowsANoticeWhoseUndoLetsTheTimerRunAgain: Story = {
       { entry: "stopTimer", input: { id: RUNNING.id } },
       { entry: "undoStopTimer", input: { id: RUNNING.id } },
     ]);
+  },
+};
+
+export const StartAndStopFromAnotherModulesPalette: Story = {
+  beforeEach: cleanNotices,
+  args: {
+    stored: {},
+    answers: { startTimer: { data: { timer: RUNNING_TIMER, others: [] } } },
+    afterCall(call, of) {
+      if (call.entry === "startTimer") of.change({ timers: [RUNNING] });
+      else stopAndUndo(call, of);
+    },
+  },
+  play: async ({ canvas }) => {
+    await canvas.findByRole("heading", { name: "Active", level: 1 });
+    await openPalette();
+    await userEvent.keyboard("start timer{Enter}");
+    await paletteGone();
+    await expect(await runningTime(canvas)).toHaveTextContent("1:12:47");
+
+    await openPalette();
+    await userEvent.keyboard("stop timer{Enter}");
+    await paletteGone();
+    await noticeShown("Time entry saved");
+    await expect(
+      await contentHeader(canvas).findByRole("button", { name: "Start timer" }),
+    ).toBeVisible();
+    await userEvent.click(await screen.findByRole("button", { name: "Undo" }));
+    await expect(await runningTime(canvas)).toHaveTextContent("1:12:47");
+    await expect(storyRouter().state.location.pathname).toBe("/projects/active");
+  },
+};
+
+export const TheShortcutStartsWhenIdleAndStopsTheLatestOfSeveral: Story = {
+  beforeEach: cleanNotices,
+  args: {
+    stored: {},
+    answers: { startTimer: { data: { timer: RUNNING_TIMER, others: [] } } },
+    afterCall(call, of) {
+      if (call.entry === "startTimer") of.change({ timers: [EARLIER, RUNNING] });
+      if (
+        call.entry === "stopTimer" &&
+        typeof call.input === "object" &&
+        call.input !== null &&
+        "id" in call.input
+      ) {
+        of.change({ timers: [call.input.id === RUNNING.id ? EARLIER : RUNNING] });
+      }
+    },
+  },
+  play: async ({ canvas }) => {
+    await canvas.findByRole("heading", { name: "Active", level: 1 });
+    // Opening the palette also waits for the Shell's lazy Shortcut bindings.
+    await openPalette();
+    await userEvent.keyboard("{Escape}");
+    await paletteGone();
+
+    await pressWithMod("{Shift>}k{/Shift}");
+    await expect(await runningTime(canvas)).toHaveTextContent("1:12:47");
+    await expect(
+      contentHeader(canvas).getByRole("img", { name: "2 timers running" }),
+    ).toBeVisible();
+
+    await pressWithMod("{Shift>}k{/Shift}");
+    await noticeShown("Time entry saved");
+    await waitFor(() =>
+      expect(contentHeader(canvas).getByRole("timer")).toHaveTextContent("3:00:00"),
+    );
+    await expect(storyRouter().state.location.pathname).toBe("/projects/active");
   },
 };
 
