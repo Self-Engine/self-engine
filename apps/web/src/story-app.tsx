@@ -8,7 +8,7 @@ import { alwaysVisible } from "@self-engine/time/testing";
 import { holdTimers } from "@self-engine/ui/story-timers";
 import { loadStoryShell, modKey } from "@self-engine/shell/story-interactions";
 import { createMemoryHistory, RouterProvider } from "@tanstack/react-router";
-import { type ReactNode, useState } from "react";
+import { type ReactNode, useMemo, useState } from "react";
 import { expect, screen, userEvent, waitFor, within } from "storybook/test";
 import { createAppRouter } from "./app-router.ts";
 import type { ModuleList } from "./module-list.ts";
@@ -104,10 +104,29 @@ export interface AppAtProps {
   readonly testTableName?: ModuleList["tableName"];
   /** Another Clock, device zone or region than the stories' fixed ones. */
   readonly time?: StoryTime;
+  /**
+   * Whether `access` answers the running timers. Every page draws the timer's Module Indicator;
+   * without this, it finds no timer running, so a story of another module needs no answer for it.
+   */
+  readonly answersTimers?: boolean;
+}
+
+/**
+ * The access of a story that shows no timer: the timer's Module Indicator, on every page, finds
+ * none running. An empty list needs no Fixed Answer: there is nothing in it to check.
+ */
+export function withNoTimerRunning(access: PortAccess): PortAccess {
+  return {
+    ...access,
+    call: (module, entry, input, signal) =>
+      module === "timeTracking" && entry === "runningTimers"
+        ? Promise.resolve([])
+        : access.call(module, entry, input, signal),
+  };
 }
 
 /** The whole app at `address`, on a history that stays in memory, with its own query cache. */
-export function AppAt({ address, access, testTableName, time }: AppAtProps) {
+export function AppAt({ address, access, testTableName, time, answersTimers }: AppAtProps) {
   const [router] = useState(() => {
     lastRouter = createAppRouter(createMemoryHistory({ initialEntries: [address] }), storyModules);
     return lastRouter;
@@ -120,9 +139,13 @@ export function AppAt({ address, access, testTableName, time }: AppAtProps) {
           tableName: (table) => testTableName(table) ?? storyModules.tableName(table),
         }),
   );
+  const storyAccess = useMemo(
+    () => (answersTimers ? access : withNoTimerRunning(access)),
+    [access, answersTimers],
+  );
   return (
     <StoryTimeSettings {...time}>
-      <DataProvider access={access} reasonTexts={reasonTexts}>
+      <DataProvider access={storyAccess} reasonTexts={reasonTexts}>
         <RouterProvider router={router} />
       </DataProvider>
     </StoryTimeSettings>
