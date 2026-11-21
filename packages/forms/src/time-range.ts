@@ -35,9 +35,6 @@ export interface RangeInstants {
   readonly end: Instant | null;
 }
 
-/** What becomes of one Instant of the draft after the field changed. */
-export type RangeOutcome = InstantOutcome;
-
 /**
  * Whether the parts imply "+1" before resolving a clock change: no end date is open and the
  * end time is at or before the start time.
@@ -77,7 +74,7 @@ export function partsOf(
   return dayOfEnd(closed) === endDay ? closed : { ...closed, endDayOpen: true, endDay };
 }
 
-function instantOf(outcome: RangeOutcome, current: Instant | null): Instant | null {
+function instantOf(outcome: InstantOutcome, current: Instant | null): Instant | null {
   switch (outcome.case) {
     case "keep":
       return current;
@@ -106,8 +103,8 @@ export function rangeFrom(
   isEdit: boolean,
   original: RangeInstants = current,
 ): {
-  readonly start: RangeOutcome;
-  readonly end: RangeOutcome;
+  readonly start: InstantOutcome;
+  readonly end: InstantOutcome;
   /** The end stays on the start day despite its wall-clock time suggesting "+1". */
   readonly sameDayEnd?: CalendarDay;
 } {
