@@ -1,6 +1,8 @@
 // The icons of the app, named by meaning. A new icon is one line here plus its import, and one
 // entry in the name list of index.test.ts. Every import comes from Phosphor's per-icon entry:
-// the barrel file would load more than 1,500 icons.
+// the barrel file would load more than 1,500 icons. An icon that only Views draw goes into
+// `view-icons.ts` (`@self-engine/icons/view`) instead: the bundler keeps a module whole in one
+// chunk, and this module is part of the start, so every icon here loads at startup.
 
 import { CalendarBlankIcon } from "@phosphor-icons/react/dist/csr/CalendarBlank";
 import { ClockIcon } from "@phosphor-icons/react/dist/csr/Clock";

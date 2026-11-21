@@ -3,6 +3,7 @@ import { type ComponentProps, createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, expectTypeOf, it } from "vite-plus/test";
 import * as catalog from "./index.ts";
+import * as viewCatalog from "./view-icons.ts";
 
 const ICON_NAMES = [
   "ProjectsIcon",
@@ -21,8 +22,13 @@ const ICON_NAMES = [
   "ThemeColorsIcon",
 ] as const;
 
-describe.each(ICON_NAMES)("%s", (name) => {
-  const markup = renderToStaticMarkup(createElement(catalog[name]));
+/** The icons of `./view`, which only Views draw and which load with them. */
+const VIEW_ICON_NAMES = ["PreviousIcon", "NextIcon", "CrossesMidnightIcon"] as const;
+
+const icons = { ...catalog, ...viewCatalog };
+
+describe.each([...ICON_NAMES, ...VIEW_ICON_NAMES])("%s", (name) => {
+  const markup = renderToStaticMarkup(createElement(icons[name]));
 
   it("takes the color of the element around it", () => {
     expect(markup).toMatch(/^<svg [^>]*fill="currentColor"/);
@@ -48,7 +54,7 @@ describe.each(ICON_NAMES)("%s", (name) => {
     ["lg", "1.25rem"],
     ["xl", "1.5rem"],
   ] as const)("is %s = %s, grown by the font scale", (size, rem) => {
-    const sized = renderToStaticMarkup(createElement(catalog[name], { size }));
+    const sized = renderToStaticMarkup(createElement(icons[name], { size }));
     const scaled = `calc(${rem} * var(--mantine-scale))`;
     expect(sized).toContain(`width:${scaled};height:${scaled}`);
   });
@@ -59,6 +65,10 @@ describe("the catalog", () => {
     expect(Object.keys(catalog).toSorted()).toEqual([...ICON_NAMES, "iconLength"].toSorted());
   });
 
+  it("keeps the icons only Views draw in their own entry", () => {
+    expect(Object.keys(viewCatalog).toSorted()).toEqual([...VIEW_ICON_NAMES].toSorted());
+  });
+
   it("draws the picture of Phosphor's regular weight", () => {
     const picture = (markup: string) => markup.replace(/^<svg [^>]*>/, "");
     const regular = renderToStaticMarkup(createElement(PlusIcon, { weight: "regular" }));
@@ -66,10 +76,11 @@ describe("the catalog", () => {
   });
 
   it("shows a different picture for every meaning", () => {
-    const pictures = ICON_NAMES.map((name) =>
-      renderToStaticMarkup(createElement(catalog[name])).replace(/^<svg [^>]*>/, ""),
+    const names = [...ICON_NAMES, ...VIEW_ICON_NAMES];
+    const pictures = names.map((name) =>
+      renderToStaticMarkup(createElement(icons[name])).replace(/^<svg [^>]*>/, ""),
     );
-    expect(new Set(pictures).size).toBe(ICON_NAMES.length);
+    expect(new Set(pictures).size).toBe(names.length);
   });
 });
 
