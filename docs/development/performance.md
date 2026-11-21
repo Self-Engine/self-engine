@@ -829,11 +829,14 @@ The first module with a Module Indicator: `time-tracking`'s timer, on every page
 The content of the timer's Indicator Panel: the form for project, note and start, "Stop at …"
 and "Discard". Production builds of `apps/web`, `apps/web/dist/startup-bundle.json`.
 
-- **Startup JavaScript.** **865,996 bytes** (29 chunks) at `663ca97`, before the panel, and
-  **867,640 bytes** (29 chunks) with it: **+1,644 bytes**, below the limit of 889,856, which
-  stays. They are the panel's loader in the contribution's indicator entry: Vite's preload list
-  names each chunk the panel needs, so its first opening fetches them at once. No code of the
-  panel, the form helper or the Contract enters the start.
+- **Startup JavaScript.** **867,296 bytes** (29 chunks) at `31c4329`, before the panel, and
+  **869,483 bytes** (30 chunks) with it: **+2,187 bytes**, below the limit of 889,856, which
+  stays. No code of the panel, the form helper or the Contract enters the start. About 1,600
+  bytes are the panel's loader in the contribution's indicator entry: Vite's preload list names
+  each chunk the panel needs, so its first opening fetches them at once. The rest, and the
+  thirtieth chunk, is the indicator's entry itself: the timer's Commands now import it to open
+  "Stop at …" (`src/stop-at.ts`), so the bundler moved it out of the start's main chunk into a
+  chunk of its own, with its imports and exports.
 - **What loads with the indicator.** **14,115 bytes** after the first paint, 1,523 more than in
   #349: the part of the indicator that opens the panel, the discard action with its Notice, and
   `src/timer-panel-part.ts`, the module's state of which part the panel shows. The indicator
