@@ -13,10 +13,10 @@ export { type TimeEntryId, timeEntryIdSchema } from "./ids.ts";
 export const NOTE_MAX = 10_000;
 
 /**
- * A time entry's fields, once: the inputs of create and edit are derived from them (D329, ADR
- * 0032). Start and end are required; project and note are optional. The duration is no field: the
- * Operation computes it from start and end on every write (D346), so an input that names it is an
- * input error.
+ * A Time Entry's fields, once: the inputs of create and edit are derived from them (D329, ADR
+ * 0032). Start and end are required on create; project and note are optional. The Operation
+ * computes the Booked Duration when it writes the range (D346). The input rejects a duration
+ * field.
  */
 export const timeEntryFields = entryFields(timeEntryIdSchema, {
   startedAt: instantSchema,
@@ -103,7 +103,7 @@ const byId = z.strictObject({ id: timeEntryIdSchema });
 /** The module's Port (D252): mounted as `timeTracking` in the app contract. */
 export const timeTrackingContract = {
   /**
-   * Stores the entry on whole seconds, with its duration and the Time Zone of the call (D342,
+   * Stores the entry on whole seconds, with its Booked Duration and the Time Zone of the call (D342,
    * D344, D346). It does not check the project: the frame's reference check refuses a deleted or
    * unknown one and accepts an archived one (D337).
    */

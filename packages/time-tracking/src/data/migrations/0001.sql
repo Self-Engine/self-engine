@@ -1,4 +1,4 @@
--- A time entry (D308, D342, D344): where it lies, on whole seconds, and how much it counts. The
+-- A Time Entry (D308, D342, D344): where it lies, on whole seconds, and how much it counts. The
 -- project is a column, as a module above may carry one for a module below (ADR 0014); `projects`
 -- carries nothing for time entries.
 CREATE TABLE time_entries (
@@ -22,6 +22,5 @@ CREATE INDEX time_entries_space ON time_entries (space_id);
 -- The reference check looks an entry up by its project, in every Space (D337).
 CREATE INDEX time_entries_project ON time_entries (project_id) WHERE deleted_at IS NULL;
 -- The window of a Day Span (D343): every Live Row that begins before its end and ends after its
--- start. Each index serves one bound; the measurement of the week decides whether both stay.
-CREATE INDEX time_entries_started ON time_entries (space_id, started_at) WHERE deleted_at IS NULL;
+-- start. The end index keeps recent windows from walking the older entries that end before them.
 CREATE INDEX time_entries_ended ON time_entries (space_id, ended_at) WHERE deleted_at IS NULL;

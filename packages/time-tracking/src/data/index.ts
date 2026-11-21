@@ -4,6 +4,7 @@ import { timeEntryIdSchema, timeTrackingContract } from "../contracts/index.ts";
 import { DAYS_READS, spanDays } from "./days.ts";
 import {
   JOINED_PROJECT_COLUMNS,
+  TIME_ENTRY_COLUMNS,
   projectReferenceOf,
   storedTimes,
   timeTrackingMigrations,
@@ -75,7 +76,7 @@ export const timeTracking = defineStorageModule({
           "project.id",
           "time_entries.project_id",
         )
-        .selectAll("time_entries")
+        .select(TIME_ENTRY_COLUMNS)
         .select(JOINED_PROJECT_COLUMNS)
         .where("time_entries.id", "=", input.id)
         .executeTakeFirst();

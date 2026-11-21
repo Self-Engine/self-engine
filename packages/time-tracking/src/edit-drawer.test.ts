@@ -11,6 +11,7 @@ import { MantineProvider } from "@mantine/core";
 import { createORPCClient } from "@orpc/client";
 import { RPCLink } from "@orpc/client/message-port";
 import type { ContractRouterClient } from "@orpc/contract";
+import { createTestSources } from "@self-engine/db/testing";
 import { createDataConnection } from "@self-engine/data-client";
 import {
   type DataAccess,
@@ -36,7 +37,7 @@ import { PageClockProvider, TimeSettingsProvider } from "@self-engine/time/react
 import { alwaysVisible, fixedClock, requireInstant } from "@self-engine/time/testing";
 import { FeedbackHost, undoLatest } from "@self-engine/ui";
 import { clearNotices } from "@self-engine/ui/story-notices";
-import { createElement } from "react";
+import { createElement, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { afterEach, expect, test, vi } from "vite-plus/test";
 import { timeTracking } from "./data/index.ts";
@@ -75,6 +76,7 @@ async function renderWeek(setup: (client: Client) => Promise<void> = async () =>
   const process = await startTestDataProcess({
     modules: { projects, timeTracking },
     deviceZone: BERLIN,
+    sources: createTestSources(FRIDAY_MORNING()),
   });
   cleanups.push(() => process.close());
   const client = createORPCClient<Client>(new RPCLink({ port: process.openPort() }));
@@ -120,11 +122,15 @@ async function renderWeek(setup: (client: Client) => Promise<void> = async () =>
     useLeaveGuard: () => {},
     Link: ({ to, search: _search, ...props }) => createElement("a", { ...props, href: to }),
   };
+  let showProjects: (show: boolean) => void;
   function WeekShell() {
+    const [showingProjects, setShowingProjects] = useState(false);
+    showProjects = setShowingProjects;
+    const activeModule = showingProjects ? projectsContribution : contribution;
     return createElement(Shell, {
-      activeModule: contribution,
-      activeView: contribution.views[0],
-      contributions: [contribution],
+      activeModule,
+      activeView: activeModule.views[0],
+      contributions: [contribution, projectsContribution],
       settings: {
         id: "settings",
         name: { id: "test-settings", message: "Settings" },
@@ -137,7 +143,7 @@ async function renderWeek(setup: (client: Client) => Promise<void> = async () =>
       onModuleSidebarCollapsedCommit: () => {},
       onModuleSidebarWidthCommit: () => {},
       onNavbarCommit: () => {},
-      children: createElement(Week),
+      children: showingProjects ? null : createElement(Week),
     });
   }
   // Happy DOM lacks the browser's FontFaceSet. Mantine listens for font loads on it.
@@ -175,7 +181,14 @@ async function renderWeek(setup: (client: Client) => Promise<void> = async () =>
   );
   /** What a Command is given: the same access and seams as the page (D261). */
   const data: DataAccess = { access, notify: () => {}, notifyRefused: () => {} };
-  return { client, calls, address, data, search: () => search };
+  return {
+    client,
+    calls,
+    address,
+    data,
+    showProjects: (show: boolean) => showProjects(show),
+    search: () => search,
+  };
 }
 
 /**
@@ -394,6 +407,62 @@ test("delete closes the drawer with a Notice whose Undo brings the entry back", 
     { entry: "delete", input: { id: week.id } },
     { entry: "restore", input: { id: week.id } },
   ]);
+});
+
+test("live Time Entries block project deletion and leave Archive available until the entries are deleted", async () => {
+  const week = await renderWeek();
+  const project = await week.client.projects.create({ title: "Website" });
+  for (const note of ["Review", "Implementation"]) {
+    await week.client.timeTracking.create({ ...TIMED, projectId: project.id, note });
+  }
+  const wednesday = "Mittwoch, 18. November 2026";
+  await shown(() => expect(rowsOf(wednesday)).toHaveLength(2));
+
+  const openProject = () => {
+    week.showProjects(true);
+    week.address.writeSearch(() => ({ edit: project.id }));
+  };
+  const closed = () => shown(() => expect(document.querySelector('[role="dialog"]')).toBeNull());
+
+  openProject();
+  await shown(() => {
+    expect(drawer().querySelector("input")?.value).toBe("Website");
+    const remove = button(drawer(), "Delete");
+    expect(remove.disabled).toBe(true);
+    const description = document.getElementById(remove.getAttribute("aria-describedby") ?? "");
+    expect(description?.textContent).toBe("Cannot be deleted: 2 time entries refer to it.");
+    expect(button(drawer(), "Archive").disabled).toBe(false);
+  });
+  await expect(week.client.projects.delete({ id: project.id })).rejects.toMatchObject({
+    code: "REFUSED",
+  });
+  button(drawer(), "Cancel").click();
+  await closed();
+
+  week.showProjects(false);
+  for (const remaining of [2, 1]) {
+    const row = await shown(() => {
+      const rows = day(wednesday).querySelectorAll<HTMLButtonElement>("li button");
+      expect(rows).toHaveLength(remaining);
+      return rows[0]!;
+    });
+    row.click();
+    const remove = await shown(() => button(drawer(), "Delete"));
+    remove.click();
+    await closed();
+  }
+  await shown(() => expect(rowsOf(wednesday)).toEqual([]));
+
+  openProject();
+  const remove = await shown(() => {
+    expect(drawer().querySelector("input")?.value).toBe("Website");
+    const remove = button(drawer(), "Delete");
+    expect(remove.disabled).toBe(false);
+    return remove;
+  });
+  remove.click();
+  await closed();
+  await expect(week.client.projects.active({})).resolves.toEqual([]);
 });
 
 test("an undo refused because the project was deleted meanwhile names the project", async () => {

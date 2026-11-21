@@ -42,13 +42,13 @@ export type TimeTrackingAnswers = NonNullable<
 >;
 export type TimeTrackingAnswerOptions = Omit<FixedAnswerOptions<typeof targetDeleted>, "reasons">;
 
-/** A well-formed time entry id, numbered: what the Data Process would hand out. */
+/** A well-formed Time Entry id, numbered: what the Data Process would hand out. */
 export function sampleTimeEntryId(index: number): TimeEntryId {
   return timeEntryIdSchema.parse(`01a1cfa1-0e00-7000-8000-${index.toString(16).padStart(12, "0")}`);
 }
 
 /**
- * A stored time entry with its Project Reference, as the Data Process answers it: on whole
+ * A stored Time Entry with its Project Reference, as the Data Process answers it: on whole
  * seconds, with its Booked Duration end minus start. Without a project unless `project` names one
  * (`projectReference` of `@self-engine/projects/testing`).
  */

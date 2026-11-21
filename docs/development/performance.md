@@ -794,3 +794,61 @@ the window was shown at about 2,690 ms: a hidden window loads them while hidden.
 
 No module of the app declares an indicator yet. Whether the load should wait for an observed
 paint is open, and belongs to the first module that declares one.
+
+## The Time Entry window (#275)
+
+Measured during #345 on an Apple M3 Pro (arm64), Node 26.13.1 and SQLite 3.53.4.
+In-memory SQLite holds **8,030 Live Rows**, 11 Time Entries per day from 23 November 2024
+through 22 November 2026 UTC. A fixed seed varies the starts and lengths, including entries
+that cross midnight. The fixture uses a fixed Clock on 23 November 2026 and the Device Time Zone
+`Europe/Berlin`. Three quarters of the entries refer to one of three projects.
+
+Each figure is the median of **101 calls after 31 warm-up calls**. The framed
+`timeTracking.days` call uses an oRPC router client with output checks off as in the packaged
+app and no MessagePort hop. It includes the Time Zone lookup, the window and the Day Share and
+total calculations. The window alone executes the same compiled SQL with the same parameters,
+including the Project Reference join and sort. The spans are unfiltered, and SQLite has no
+`ANALYZE` statistics. The benchmark changes only the two window indexes between cases.
+
+| Indexes on the window | Recent week, window / Query | Old week, window / Query | Six weeks, window / Query |
+| --------------------- | --------------------------- | ------------------------ | ------------------------- |
+| Start and end         | 0.597 / 0.703 ms            | 0.085 / 0.223 ms         | 0.834 / 1.311 ms          |
+| Start only            | 0.519 / 0.638 ms            | 0.084 / 0.204 ms         | 0.812 / 1.350 ms          |
+| End only              | 0.082 / 0.202 ms            | 0.720 / 0.814 ms         | 0.362 / 0.853 ms          |
+
+The recent week (16–22 November 2026) and the old week (25 November–1 December 2024) each
+return 77 rows. The six-week span (12 October–22 November 2026) returns 463 rows. All ranges
+produce the same plan within a given setup. With both indexes or only the start index,
+`EXPLAIN QUERY PLAN` reports:
+
+```text
+SEARCH time_entries USING INDEX time_entries_started (space_id=? AND started_at<?)
+SEARCH projects USING INDEX sqlite_autoindex_projects_1 (id=?) LEFT-JOIN
+USE TEMP B-TREE FOR LAST TERM OF ORDER BY
+```
+
+With only the end index, it reports:
+
+```text
+SEARCH time_entries USING INDEX time_entries_ended (space_id=? AND ended_at>?)
+SEARCH projects USING INDEX sqlite_autoindex_projects_1 (id=?) LEFT-JOIN
+USE TEMP B-TREE FOR ORDER BY
+```
+
+The migration keeps the partial index on `(space_id, ended_at)`. It skips entries that ended
+before the requested span, cutting about **0.50 ms** from the recent Query and **0.46 ms**
+from the six-week Query compared with both indexes. The old week takes about **0.59 ms**
+more because SQLite walks the later entries to check the other bound. The work for an old
+window can grow as later Time Entries accumulate. With both indexes SQLite chose the start
+index even for the recent spans. Dropping it also removes one index write per new Time Entry.
+The window still applies both bounds and sorts by start and id.
+
+Rerun from the checkout root with Node 26:
+
+```sh
+MEASURE_TIME_TRACKING=1 pnpm test --reporter=default scripts/measure-time-tracking.test.ts
+```
+
+The [measurement script](../../scripts/measure-time-tracking.ts) prints the row counts,
+plans and medians in milliseconds. Its test checks that the three index setups give the same
+answer and use a window index.

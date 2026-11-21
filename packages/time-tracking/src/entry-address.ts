@@ -4,7 +4,7 @@ import type { WriteViewSearch } from "@self-engine/shell";
 import type { CalendarDay } from "@self-engine/time";
 
 /**
- * The address of a time entry that does not exist yet, in the Edit Drawer's `edit`: "new" for
+ * The address of a Time Entry that does not exist yet, in the Edit Drawer's `edit`: "new" for
  * today, or "new-" and the day that was clicked in the week. The day travels in the one value the
  * Shell clears when the drawer closes, and a reload or a deep link opens the same day.
  */

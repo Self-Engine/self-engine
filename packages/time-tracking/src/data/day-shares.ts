@@ -7,19 +7,19 @@ import {
   type Instant,
 } from "@self-engine/time";
 
-/** The seconds of an entry that lie in one Calendar Day: its Day Share there (D343). */
+/** The seconds of a Time Entry that lie in one Calendar Day: its Day Share there (D343). */
 export interface DayShare {
   readonly day: CalendarDay;
   readonly seconds: Duration;
 }
 
 /**
- * The one place that splits a time entry over days (D343): its Day Share on each of `days` it
+ * The one place that splits a Time Entry over days (D343): its Day Share on each of `days` it
  * touches, in order, and whether it touches more than one day, inside the days or beyond them.
- * In layer 4 the Booked Duration is end minus start, so a share is the length of the entry's
- * piece in that day, and the shares over all days it touches add up to exactly its duration. A
- * later setting ("count for the day it begins") and the rounding rule change this function
- * (D343, D345). `days` are consecutive whole days, as `dayRangesOf` gives them.
+ * In layer 4 the Booked Duration is end minus start, so each Day Share is the length of the entry's
+ * piece in that day. Its Day Shares add up to its Booked Duration. A later setting ("count for the
+ * day it begins") and the rounding rule change this function (D343, D345). `days` are consecutive
+ * whole days, as `dayRangesOf` gives them.
  */
 export function dayShares(
   entry: { readonly startedAt: Instant; readonly endedAt: Instant },
