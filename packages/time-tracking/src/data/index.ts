@@ -36,6 +36,32 @@ export const timeTracking = defineStorageModule({
       );
     },
   },
+  edit: {
+    kind: "operation",
+    edit: true,
+    async run(tx, context, input) {
+      const { startedAt, endedAt } = input;
+      return toTimeEntry(
+        await sharedWrites(tx, context).update("time_entries", input.id, {
+          ...(startedAt === undefined ? {} : storedTimes(startedAt, endedAt)),
+          project_id: input.projectId,
+          note: input.note,
+        }),
+      );
+    },
+  },
+  delete: {
+    kind: "operation",
+    async run(tx, context, input) {
+      return toTimeEntry(await sharedWrites(tx, context).softDelete("time_entries", input.id));
+    },
+  },
+  restore: {
+    kind: "operation",
+    async run(tx, context, input) {
+      return toTimeEntry(await sharedWrites(tx, context).restore("time_entries", input.id));
+    },
+  },
   entry: {
     kind: "query",
     reads: ["time_entries", "projects"],
