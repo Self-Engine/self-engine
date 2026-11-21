@@ -166,15 +166,17 @@ export function rangeFrom(
     ...previous(original.end),
   };
   const { day, endTime } = parts;
-  // A correction can keep the stored end on this day if the repeated time still follows
-  // the start. Use the same resolution as for an explicit end date (D361, D366).
+  // An end that reads as not after the start can still follow it on this day: the second showing
+  // of an earlier time, after a start in the first. It is resolved as for an explicit end date
+  // (D361, D366). On an edit only while the stored end lies on this day: an end stored on the
+  // next day stays there, however the field is touched.
+  const mayStayOnDay =
+    !isEdit || (original.end !== null && calendarDayOf(original.end, timeZone) === day);
   if (
     isNextDay(parts) &&
     day !== null &&
     lowerBound !== null &&
-    isEdit &&
-    original.end !== null &&
-    calendarDayOf(original.end, timeZone) === day &&
+    mayStayOnDay &&
     repeatedTimeOffset(lowerBound, timeZone) !== null
   ) {
     const end = outcomeOf(day, endTime, current.end, original.end, timeZone, endOptions);
