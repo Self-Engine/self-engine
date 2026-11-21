@@ -140,7 +140,13 @@ describe("runDataProcess", () => {
 
     await expect(connection.client.health()).resolves.toMatchObject({
       state: "ready",
-      migrations: ["projects/0001", "settings/0001", "spaces/0001", "time-tracking/0001"],
+      migrations: [
+        "projects/0001",
+        "settings/0001",
+        "spaces/0001",
+        "time-tracking/0001",
+        "time-tracking/0002",
+      ],
     });
   });
 
@@ -476,7 +482,13 @@ describe("the Backups of the data process", () => {
     expect(again.parentPort.sent.map(servingHealth)).toMatchObject([
       {
         state: "ready",
-        migrations: ["projects/0001", "settings/0001", "spaces/0001", "time-tracking/0001"],
+        migrations: [
+          "projects/0001",
+          "settings/0001",
+          "spaces/0001",
+          "time-tracking/0001",
+          "time-tracking/0002",
+        ],
       },
     ]);
     await expect(again.connect().projects.create({ title: "Website" })).resolves.toMatchObject({
