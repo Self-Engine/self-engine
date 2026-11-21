@@ -1,5 +1,5 @@
 import { useLingui } from "@lingui/react/macro";
-import { Group, Select } from "@mantine/core";
+import { type ComboboxItem, type ComboboxItemGroup, Group, Select } from "@mantine/core";
 import {
   ACTIVE_PROJECTS,
   ARCHIVED_PROJECTS,
@@ -31,7 +31,7 @@ export function WeekProjectFilter() {
     value: id,
     label: title,
   });
-  const data = [
+  const data: (ComboboxItem | ComboboxItemGroup<ComboboxItem>)[] = [
     { value: ALL, label: t`All` },
     { value: NO_PROJECT, label: t`No project` },
     ...activeProjects.map(optionOf),
@@ -40,8 +40,15 @@ export function WeekProjectFilter() {
       : [{ group: t`Archived projects`, items: archivedProjects.map(optionOf) }]),
   ];
   if (selected !== undefined && selected !== NO_PROJECT && chosen === undefined) {
-    // Keep the filter visible even while its Project's list is still loading.
-    data.push({ value: selected, label: selected });
+    // The filter stays while its project is not in the lists: they are still loading, or the
+    // address names a project they do not hold. The option shows that, never the raw id, and
+    // cannot be chosen, so the filter does not change by it.
+    const loading = [active, archived].some((state) => state.status === "loading");
+    data.push({
+      value: selected,
+      label: loading ? t`Loading` : t`Unknown project`,
+      disabled: true,
+    });
   }
   const failed = [active, archived].filter(
     (state) => state.status === "loadFailed" || state.status === "reloadFailed",
