@@ -75,7 +75,10 @@ test("start answers with the timer, and the Query returns it with its Project Re
   const { client } = await start();
   const project = await client.projects.create({ title: "Website", icon: "house", color: "teal" });
 
-  const { timer } = await client.timeTracking.startTimer({ projectId: project.id, note: " Design " });
+  const { timer } = await client.timeTracking.startTimer({
+    projectId: project.id,
+    note: " Design ",
+  });
 
   expect(timer).toEqual({
     id: expect.any(String),
