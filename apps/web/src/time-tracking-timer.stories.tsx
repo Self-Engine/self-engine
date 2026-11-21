@@ -295,7 +295,8 @@ export const ADoubleClickOnStopStartsNoTimerAtTheNarrowStep = doubleClickOnStopA
 
 /**
  * A double click on the offer to start: the first click starts one timer, and the second, which
- * lands on what replaced the offer, neither starts another nor stops this one.
+ * lands on what replaced the offer, neither starts another, nor stops this one, nor opens its
+ * panel.
  */
 const doubleClickOnStartAt = (step: Step): Story => ({
   globals: { viewport: { value: step, isRotated: false } },
@@ -318,6 +319,7 @@ const doubleClickOnStartAt = (step: Step): Story => ({
     await secondClickAt(place);
     await expect(port.calls).toEqual([{ entry: "startTimer", input: {} }]);
     await expect(header.getByRole("timer")).toBeVisible();
+    await expect(screen.queryByRole("dialog")).toBeNull();
   },
 });
 

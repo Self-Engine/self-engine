@@ -46,9 +46,10 @@ const TIME_STYLE: CSSProperties = {
 const ICON_STYLE: CSSProperties = { display: "flex" };
 
 /**
- * A click handler that acts on the first click of a series only. Stop and start swap places as
- * soon as the running timers change, so the second click of a double click lands on the other
- * one: it would start a fresh timer after a stop, or stop the one just started. The browser
+ * A click handler that acts on the first click of a series only. Stop, start and the opener of
+ * the panel swap places as soon as the running timers change, so the second click of a double
+ * click lands on another one: it would start a fresh timer after a stop, or stop the one just
+ * started, or open its panel. The browser
  * counts the clicks of a series in `detail` (2 for the second); a single click is 1, and a press
  * of Enter or Space is 0, so both act at once and nothing waits.
  */
@@ -145,7 +146,7 @@ function RunningTimer({
       <UnstyledButton
         aria-expanded={panelOpen}
         aria-haspopup="dialog"
-        onClick={togglePanel}
+        onClick={firstClickOnly(togglePanel)}
         style={OPENER_STYLE}
       >
         <VisuallyHidden>{t`Edit timer`}</VisuallyHidden>
