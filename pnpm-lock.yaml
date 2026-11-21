@@ -929,6 +929,9 @@ importers:
       '@types/react-dom':
         specifier: 'catalog:'
         version: 19.3.0(@types/react@19.3.0)
+      happy-dom:
+        specifier: 'catalog:'
+        version: 21.0.4
       react-dom:
         specifier: 'catalog:'
         version: 19.3.1(react@19.3.1)

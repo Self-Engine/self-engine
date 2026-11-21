@@ -8,6 +8,7 @@ import {
   LongTextField,
   type OperationForm,
   TimeRangeField,
+  useLeavingEntry,
   useOperationForm,
 } from "@self-engine/forms";
 import { ProjectField } from "@self-engine/projects/picker";
@@ -15,7 +16,7 @@ import { type EditDrawerProps, useEditDrawerTitle } from "@self-engine/shell";
 import { type CalendarDay, calendarDaySchema, formatInstant } from "@self-engine/time";
 import { useFirstDayOfWeek, useTimeZone, useToday } from "@self-engine/time/react";
 import { ErrorState, QueryStateBlock } from "@self-engine/ui";
-import { type ReactNode, useCallback, useMemo, useRef, useState } from "react";
+import { type ReactNode, useCallback, useMemo } from "react";
 import {
   END_BEFORE_START,
   type TimeEntryId,
@@ -137,12 +138,7 @@ function FoundEntry({
   found,
   ...props
 }: EditDrawerProps & { readonly found: TimeEntryWithProject | undefined }) {
-  const [last, setLast] = useState(found);
-  const [leaving, setLeaving] = useState(false);
-  // A ref beside the state: two activations in one tick both read the state before it changes.
-  const busy = useRef(false);
-  if (!leaving && found !== undefined && found !== last) setLast(found);
-  const entry = leaving ? last : (found ?? last);
+  const { entry, leaving, leave } = useLeavingEntry(found);
   const name = useEntryName(entry);
   const restore = useRestoreTimeEntry().run;
   // The frame refuses the undo when the project was deleted meanwhile (D337); its Notice names
@@ -154,13 +150,8 @@ function FoundEntry({
   const remove = useWithUndo(useDeleteTimeEntry().run, undo, DELETED);
   if (entry === undefined) return <NotFound {...props} />;
   const deleteHere = async () => {
-    if (busy.current) return;
-    busy.current = true;
-    setLeaving(true);
-    // Once the entry is left, the lock stays: the drawer is closing.
-    if (await remove(entry.id, name === undefined ? {} : { entry: name })) return props.onDone();
-    busy.current = false;
-    setLeaving(false);
+    if (await leave(() => remove(entry.id, name === undefined ? {} : { entry: name })))
+      props.onDone();
   };
   return (
     <EditForm
