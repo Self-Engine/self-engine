@@ -7,9 +7,23 @@ import { daysAnswerSchema, daysInputSchema } from "./days.ts";
 import { timeEntrySchema, timeEntryWithProjectSchema } from "./entries.ts";
 import { timeEntryIdSchema, timerIdSchema } from "./ids.ts";
 import { noteSchema } from "./note.ts";
-import { timerFields, timerSchema, timerStartInput, timerWithProjectSchema } from "./timers.ts";
+import {
+  timerFields,
+  timerSchema,
+  timerStartInput,
+  timerStartSchema,
+  timerStopInput,
+  timerStopSchema,
+  timerWithProjectSchema,
+} from "./timers.ts";
 
-export { type TimeEntryId, timeEntryIdSchema, type TimerId, timerIdSchema } from "./ids.ts";
+export {
+  type TimeEntryId,
+  timeEntryIdOfTimer,
+  timeEntryIdSchema,
+  type TimerId,
+  timerIdSchema,
+} from "./ids.ts";
 export { NOTE_MAX } from "./note.ts";
 
 /**
@@ -94,12 +108,18 @@ export {
 } from "./days.ts";
 
 export {
+  END_IN_FUTURE,
   START_IN_FUTURE,
   type Timer,
+  type TimerStart,
+  type TimerStop,
   type TimerWithProject,
   timerFields,
   timerSchema,
   timerStartInput,
+  timerStartSchema,
+  timerStopInput,
+  timerStopSchema,
   timerWithProjectSchema,
 } from "./timers.ts";
 
@@ -140,13 +160,15 @@ export const timeTrackingContract = {
    */
   days: oc.input(daysInputSchema).output(daysAnswerSchema),
   /**
-   * Starts a Timer at the Data Process's "now", cut to the second (D344, D348). It does not check
-   * the project: the frame's reference check refuses a deleted or unknown one and accepts an
-   * archived one (D337).
+   * Starts a Timer at the Data Process's "now", cut to the second (D344, D348). It first stops
+   * every running timer by the rules of `stopTimer`, in the same transaction, and answers what
+   * each stop did beside the new timer (D349): one timer runs at a time as a flow, not as a rule
+   * (D310). It does not check the project: the frame's reference check refuses a deleted or
+   * unknown one and accepts an archived one (D337).
    */
   startTimer: oc
     .input(timerStartInput)
-    .output(timerSchema)
+    .output(timerStartSchema)
     .errors({ ...refusal }),
   /**
    * The edit pattern (D329): a missing field stays untouched, `null` clears the project or the
@@ -156,6 +178,18 @@ export const timeTrackingContract = {
   editTimer: oc
     .input(timerFields.edit)
     .output(timerSchema)
+    .errors({ NOT_FOUND: {}, ...refusal }),
+  /**
+   * Stops a Timer into its Time Entry in one transaction (D349): the entry takes the timer's id,
+   * start, project and note, the end (the Data Process's "now" or the one given) cut to the second
+   * and the Time Zone of the Setting; the timer is soft-deleted. See `timerStopSchema` for the
+   * three answers. A stopped timer answers its entry again and writes nothing; a discarded or
+   * unknown one is not found. An end not after the start, or after "now", is an input error at
+   * the end (`END_BEFORE_START`, `END_IN_FUTURE`). The project is not checked (D337).
+   */
+  stopTimer: oc
+    .input(timerStopInput)
+    .output(timerStopSchema)
     .errors({ NOT_FOUND: {}, ...refusal }),
   /** Removes a running Timer without a Time Entry: a soft delete. */
   discardTimer: oc
