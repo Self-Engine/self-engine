@@ -3,6 +3,8 @@ import type { AnyContractProcedure, AnySchema, InferSchemaInput } from "@orpc/co
 import {
   type Clearance,
   clearanceContract,
+  inputErrorData,
+  type InputPath,
   type ClearanceWrite,
   type Reason,
   type ReasonDefinition,
@@ -14,6 +16,7 @@ import type {
   CarriesRefusal,
   ConflictReasonOf,
   EntryName,
+  InputReasonOf,
   ModuleContract,
 } from "../react/contract-types.ts";
 import { type ClearanceRequest, NO_DATA_PROCESS, type PortAccess } from "../react/port-access.ts";
@@ -31,12 +34,16 @@ import { type ClearanceRequest, NO_DATA_PROCESS, type PortAccess } from "../reac
  *   whose definition the story passes in `reasons`, the frame's own (`referenced`,
  *   `targetDeleted`) included, with details its definition accepts; the severity is "blocking",
  *   which is all the frame sets (D338).
+ * - `{ invalid }`: an input error the Operation raises (D369), with one issue or more, each at a
+ *   path and with one of the reasons the entry declares with `inputErrors`; for an entry without
+ *   them it does not compile.
  */
 export type FixedAnswer<
   Data,
   ConflictReason extends string,
   Defined = never,
   Refusable extends boolean = true,
+  InputReason extends string = never,
 > =
   | { readonly data: Data }
   | "loading"
@@ -47,7 +54,16 @@ export type FixedAnswer<
       ? never
       : Refusable extends true
         ? { readonly refused: readonly [FixedReason<Defined>, ...FixedReason<Defined>[]] }
-        : never);
+        : never)
+  | ([InputReason] extends [never]
+      ? never
+      : { readonly invalid: readonly [FixedIssue<InputReason>, ...FixedIssue<InputReason>[]] });
+
+/** An issue of an input error a Fixed Answer gives: where in the input, and the declared reason. */
+export interface FixedIssue<Reason extends string> {
+  readonly path: InputPath;
+  readonly reason: Reason;
+}
 
 /**
  * A Reason of a Fixed Answer: as the frame sends it, but for the severity, which it sets. Over
@@ -77,7 +93,8 @@ export type FixedAnswers<Of extends Contracts, Reasons extends ReasonDefinition 
       DataOf<Of[Module][Entry]>,
       ConflictReasonOf<Of[Module], Entry>,
       Reasons,
-      CarriesRefusal<Of[Module], Entry>
+      CarriesRefusal<Of[Module], Entry>,
+      InputReasonOf<Of[Module], Entry>
     >;
   };
 };
@@ -116,7 +133,7 @@ export interface FixedAnswerOptions<Reasons extends ReasonDefinition = never> {
   readonly report?: (problem: string) => void;
 }
 
-type AnyAnswer = FixedAnswer<unknown, string, ReasonDefinition>;
+type AnyAnswer = FixedAnswer<unknown, string, ReasonDefinition, true, string>;
 
 /**
  * The Port access of a story or component test: every entry answers what `answers` fixes for it
@@ -313,6 +330,22 @@ function answerOf(
     const reason = answer.conflict;
     checkConflict(name, errorMap["CONFLICT"]?.data, reason);
     return () => Promise.reject(new ORPCError("CONFLICT", { data: { reason } }));
+  }
+  if ("invalid" in answer) {
+    const declared = errorMap["BAD_REQUEST"]?.data;
+    if (declared === undefined) {
+      throw new Error(`Fixed Answer for ${name}: the entry declares no input error.`);
+    }
+    // As the Data Process sends it: the data `inputError` of the storage frame gives, one issue
+    // per given issue, checked against the reasons the entry declares.
+    const data = checkData(
+      name,
+      declared,
+      { issues: answer.invalid.flatMap(({ path, reason }) => inputErrorData(path, reason).issues) },
+      "its declared input errors",
+    );
+    return () =>
+      Promise.reject(new ORPCError("BAD_REQUEST", { message: "Input validation failed", data }));
   }
   if ("refused" in answer) {
     const refused = errorMap["REFUSED"];

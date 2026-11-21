@@ -9,5 +9,6 @@ export {
   type FixedAnswerOptions,
   type FixedAnswers,
   fixedAnswers,
+  type FixedIssue,
   type FixedReason,
 } from "./fixed-answers.ts";

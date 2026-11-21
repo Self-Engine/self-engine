@@ -1,3 +1,4 @@
+import type { InputErrorReason } from "@self-engine/data-protocol";
 import type {
   AnyContractProcedure,
   AnyContractRouter,
@@ -39,6 +40,23 @@ export type ConflictReasonOf<
       : never
     : never
   : never;
+
+/**
+ * The reasons of the input errors a Contract entry declares with `inputErrors` (D369): the
+ * reasons its Operation raises for a limit only the Data Process can judge. `never` for an entry
+ * without them, and for a procedure type that is not one entry.
+ */
+export type DeclaredInputReason<Procedure> = Procedure extends AnyContractProcedure
+  ? Procedure["~orpc"]["errorMap"] extends { readonly BAD_REQUEST: { readonly data: infer Data } }
+    ? InputErrorReason<Data>
+    : never
+  : never;
+
+/** The reasons of the input errors the entry `Entry` of the Contract declares. */
+export type InputReasonOf<
+  Contract extends ModuleContract,
+  Entry extends EntryName<Contract>,
+> = DeclaredInputReason<Contract[Entry]>;
 
 /**
  * Whether the entry carries the shared `refusal` block, as every Operation does (D334): only such

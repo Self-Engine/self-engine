@@ -11,7 +11,10 @@ import type { RefusalNoticeOptions } from "./refusal-notice.ts";
 /** Shown when the entry an Operation changes no longer exists, unless the module replaces it. */
 export const NOT_FOUND_NOTICE = msg`This entry no longer exists.`;
 
-/** Shown when an Operation failed for a reason the module did not declare. */
+/**
+ * Shown when an Operation failed for a reason the module did not declare, and for an input error
+ * at a field the caller does not show (D369).
+ */
 export const UNEXPECTED_NOTICE = msg`Something went wrong, and the change was not saved.`;
 
 /**
@@ -81,6 +84,20 @@ export interface ReasonAtField<Field extends string> {
 }
 
 /**
+ * One issue of an input error, as the Data Process named it (D369): of the frame's own check of
+ * the input, or one the Operation raised for a limit only it can judge.
+ */
+export interface InputIssue {
+  /** The input field by its name, or by its dotted path inside a list, as a form names it. */
+  readonly field: string;
+  readonly path: readonly (string | number)[];
+  /** The reason of a custom check or of the Operation (`params.reason`); else `undefined`. */
+  readonly reason: string | undefined;
+  /** The issue as it arrived, so a form words it by its kind and bounds as its own check does. */
+  readonly issue: Readonly<Record<string, unknown>>;
+}
+
+/**
  * What an Operation ended with, as a value; the hook throws for none of them (D251).
  * - `success`: the entry's answer. Queries reload through the Table Change of the commit.
  * - `conflict`: a declared reason with the module's text and field, to show at that field. No
@@ -90,6 +107,9 @@ export interface ReasonAtField<Field extends string> {
  *   in `atFields` those at a column the module maps whose field the caller shows (`showsField`),
  *   each with its field, for the form to show there. The shared Notice of a Refusal told the user
  *   every other Reason, unless the module replaced it.
+ * - `invalid`: the input was invalid and nothing changed (D369); every issue the Data Process
+ *   named, and in `atFields` those at a field the caller shows (`showsField`), for the form to show
+ *   there. If any issue is at no such field, the general notice of `unexpected` told the user.
  * - `unexpected`: anything else; a general notice told the user.
  */
 export type OperationResult<Output, Reason extends string, Field extends string> =
@@ -107,6 +127,11 @@ export type OperationResult<Output, Reason extends string, Field extends string>
       readonly status: "refused";
       readonly atFields: readonly ReasonAtField<Field>[];
     } & Refusal)
+  | {
+      readonly status: "invalid";
+      readonly issues: readonly InputIssue[];
+      readonly atFields: readonly InputIssue[];
+    }
   | { readonly status: "unexpected"; readonly error: unknown };
 
 /**
@@ -149,7 +174,7 @@ interface Handling {
 
 type AnyResult = OperationResult<unknown, string, string>;
 
-/** Calls the entry and sorts its answer into the five results. */
+/** Calls the entry and sorts its answer into the six results. */
 async function callOperation(
   access: DataAccess["access"],
   module: string,
@@ -168,6 +193,8 @@ async function callOperation(
       if (refused !== undefined) return refused;
       const conflict = error.code === "CONFLICT" ? conflictOf(error.data, handling) : undefined;
       if (conflict !== undefined) return conflict;
+      const invalid = error.code === "BAD_REQUEST" ? invalidOf(error.data, showsField) : undefined;
+      if (invalid !== undefined) return invalid;
     }
     return { status: "unexpected", error };
   }
@@ -199,6 +226,41 @@ function refusalOf(
     return field === undefined || !showsField(field) ? [] : [{ field, reason }];
   });
   return { status: "refused", reasons, atFields };
+}
+
+/**
+ * The issues of an input error, in the shape the frame's check of the input and `inputError` of
+ * the storage frame give; malformed is unexpected. Checked by hand, like a Refusal.
+ */
+function invalidOf(data: unknown, showsField: (field: string) => boolean): AnyResult | undefined {
+  const given: unknown = isObject(data) ? data["issues"] : undefined;
+  if (!Array.isArray(given) || given.length === 0) return;
+  const issues: InputIssue[] = [];
+  for (const issue of given) {
+    const path = isObject(issue) ? pathOf(issue["path"]) : undefined;
+    if (!isObject(issue) || path === undefined) return;
+    const params = issue["params"];
+    const reason = isObject(params) ? params["reason"] : undefined;
+    issues.push({
+      field: path.map(String).join("."),
+      path,
+      reason: typeof reason === "string" ? reason : undefined,
+      issue,
+    });
+  }
+  return { status: "invalid", issues, atFields: issues.filter(({ field }) => showsField(field)) };
+}
+
+/** A path of field names and list indexes; a segment may arrive as Standard Schema's `{ key }`. */
+function pathOf(value: unknown): (string | number)[] | undefined {
+  if (!Array.isArray(value)) return;
+  const path: (string | number)[] = [];
+  for (const segment of value) {
+    const key: unknown = isObject(segment) ? segment["key"] : segment;
+    if (typeof key !== "string" && typeof key !== "number") return;
+    path.push(key);
+  }
+  return path;
 }
 
 /** The input field the module maps the Reason's table and column to, if it names one. */
@@ -247,7 +309,12 @@ async function runOperation(
 ): Promise<AnyResult> {
   const result = await callOperation(access, module, entry, input, handling, showsField);
   if (result.status === "conflict" && result.field === null) notify(result.text);
-  if (result.status === "unexpected") notify(UNEXPECTED_NOTICE);
+  // An issue no field shows is not lost: the general notice tells the user, as before (D369).
+  if (
+    result.status === "unexpected" ||
+    (result.status === "invalid" && result.atFields.length < result.issues.length)
+  )
+    notify(UNEXPECTED_NOTICE);
   if (result.status === "refused") {
     // A Reason a field shows is the form's; the Notice tells the others.
     const atField = new Set(result.atFields.map(({ reason }) => reason));
