@@ -847,7 +847,9 @@ and "Discard". Production builds of `apps/web`, `apps/web/dist/startup-bundle.js
   entry pictures for the picker's marks (348,941), Mantine's date fields (84,992), the form helper
   (40,333) and the Contract's schemas with Zod's full build (39,301). The Shell preloads them in
   an idle moment once the indicator is on screen, so the first click rarely waits for them; an
-  Edit Drawer opened before shares every one of them.
+  Edit Drawer opened before shares every one of them. In the app the preload fetches about
+  211,000 bytes of JavaScript, because the Projects View it opens on has loaded the directory of
+  entry pictures already ("The indicators' load and an observed paint (#380)").
 - **A tick while the panel is open.** The panel reads no `useNow`; the running time still
   redraws alone. The indicator draws again only when the panel opens or closes, through
   `panelOpen`.
@@ -861,7 +863,10 @@ Module Indicator:
 - **A, two frames:** two frame callbacks after the mount, then an idle moment (`801c4d7`).
 - **B, observed paint:** the page's `first-contentful-paint` entry, read through a buffered
   `PerformanceObserver`, then an idle moment; a page without paint timing keeps the two frames
-  (`facbc05`, on the branch of this measurement).
+  (`facbc05`).
+
+The Shell uses B (D373): the load now begins after the paint in every start, for 331 bytes at
+the start and an indicator that shows about 16 ms later.
 
 **Method.** Both web builds ran in the same built desktop app (`apps/desktop/dist-electron` does
 not differ) on an Apple M3 Pro (macOS 27.2.1, Node 26.13.0, Electron 45.2.3), started through

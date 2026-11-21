@@ -87,7 +87,7 @@ Schicht 3 unter Spec #103.
 | 6b | Uhr der Oberfläche und Felder für Datum und Uhrzeit | #332 | D344, D345, D347, D348, D350 | – |
 | 7 | `time-tracking`, Teil 1: Einträge, Formular, Wochenansicht | #275 | D303, D304, D308, D311, D313, D342–D346, D352–D354, D367–D368 | #110, #273, #274, #313, #332 |
 | 8 | Ständiger Platz in der Hülle (Modulanzeige) | #276 | D314, D357–D360 | – |
-| 9 | `time-tracking`, Teil 2: Timer und Markierung der Überschneidungen | #277 | D310, D311, D314, D344, D345, D348, D349, D357–D359, D369–D372 | #275, #276 |
+| 9 | `time-tracking`, Teil 2: Timer und Markierung der Überschneidungen | #277 | D310, D311, D314, D344, D345, D348, D349, D357–D359, D369–D373 | #275, #276 |
 
 Drei Pakete tragen eine Messung als Abnahmekriterium: die Schutzregeln (Prüfungen mit 50.000
 Zeilen, D332), der ständige Platz (Start und Neuzeichnen, D314) und die Wochenansicht (Abfragezeit
