@@ -795,6 +795,35 @@ the window was shown at about 2,690 ms: a hidden window loads them while hidden.
 No module of the app declares an indicator yet. Whether the load should wait for an observed
 paint is open, and belongs to the first module that declares one.
 
+## The timer's Module Indicator (#349)
+
+The first module with a Module Indicator: `time-tracking`'s timer, on every page.
+
+- **A tick.** The running time is the component `RunningTime`, the only one that reads `useNow`
+  with a step of one second. The story
+  `apps/web/src/time-tracking-timer.stories.tsx` ("A Tick Redraws Only The Running Time", stage
+  `stories`) moves the page's Clock by a second and asserts that `RunningTime` drew once and that
+  **zero components** drew outside its React subtree; inside it, only Mantine's `Text` holding
+  the time. Nothing reads or writes the database per second: the indicator reads the running
+  timers through the module's Query, which reloads only on a Table Change of `timers` or
+  `projects`. With no timer running nothing reads `useNow`, so the page clock sets no
+  timeout for the indicator.
+- **Startup JavaScript.** Production builds of `apps/web`, `apps/web/dist/startup-bundle.json`:
+  **864,132 bytes** (25 chunks) at `bca0efd`, before the indicator, and **865,346 bytes**
+  (29 chunks) with it: **+1,214 bytes**, below the limit of 889,856, which stays. About 330 bytes
+  are the contribution's entry: its loader and the names of the chunks it preloads. The rest is
+  the price of sharing: the indicator imports Mantine's `Box`, `ActionIcon` and `Text`, which the
+  start already holds, so the bundler moved them out of the start's main chunk into chunks of
+  their own (four more static chunks), each with its imports and exports.
+- **What loads after the start.** In the idle moment after the first paint the indicator brings
+  **12,592 bytes** of JavaScript the start does not hold: its own chunk (10,423, with the two
+  icons of `@self-engine/icons/indicator`), the duration format of `time` (1,157) and the chunk
+  of its hooks (1,012). A first build that took the running time from the main entry of `time`
+  loaded **63,642 bytes**, 39,216 of them the schemas of `time` with Zod's full build; the light
+  entry `@self-engine/time/running-time` avoids them, and the startup check now holds the
+  indicator's chunk to no Contract and no full Zod build. The project's mark, with the directory
+  of entry pictures, loads only once a running timer has a project.
+
 ## The Time Entry window (#275)
 
 Measured during #345 on an Apple M3 Pro (arm64), Node 26.13.1 and SQLite 3.53.4.
