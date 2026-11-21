@@ -1,0 +1,11 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+
+reviews:
+  # CodeRabbit skips a pull request with more than 100 files, counted after these filters. Left
+  # out is what `pnpm verify` checks by itself and a review adds little to: the lock file, the
+  # extracted translation catalogs and the package manifests.
+  path_filters:
+    - "!**/pnpm-lock.yaml"
+    - "!packages/i18n/src/locales/*.po"
+    - "!**/package.json"
+    - "!**/tsconfig*.json"

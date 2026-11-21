@@ -1,4 +1,33 @@
-import type { StartupRules } from "./startup-bundle.ts";
+import type { LazyOnlyDependency, OnDemandRule, StartupRules } from "./startup-bundle.ts";
+
+/**
+ * What no View and no Group loads: a View reads a Contract as a type, and only a lazy form loads
+ * its schemas (ADR 0021). A View that parses an id from its address takes the module's light id
+ * entry, such as `@self-engine/projects/ids`, which brings neither (#275).
+ */
+const NO_CONTRACT: readonly LazyOnlyDependency[] = [
+  {
+    name: "A module's Contract",
+    path: "/src/contracts/index.ts",
+    instead:
+      "import it as a type in a View; parse an id with the module's light id entry, such as @self-engine/projects/ids.",
+  },
+  {
+    name: "oRPC's contract builder",
+    path: "/node_modules/@orpc/contract/",
+    instead: "import a Contract only as a type in a View; only a lazy form loads it.",
+  },
+];
+
+const view = (name: string, path: string): OnDemandRule => ({ name, path, without: NO_CONTRACT });
+
+/** The Views and Groups that load on demand, each held to `NO_CONTRACT`. */
+const VIEWS: readonly OnDemandRule[] = [
+  view("The week View of time-tracking", "/packages/time-tracking/src/week.tsx"),
+  view('The Group "Projects" of time-tracking', "/packages/time-tracking/src/projects-group.tsx"),
+  view('The View "Active" of projects', "/packages/projects/src/active.tsx"),
+  view('The View "Archive" of projects', "/packages/projects/src/archive.tsx"),
+];
 
 /** What the startup check of the web app holds the production build to (D258, D269, D293, D300, D330). */
 export const STARTUP_RULES = {
@@ -118,4 +147,5 @@ export const STARTUP_RULES = {
         "load it with a dynamic import, one chunk per language, when the Emoji tab first opens.",
     },
   ],
+  onDemand: VIEWS,
 } as const satisfies StartupRules;

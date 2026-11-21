@@ -4,6 +4,8 @@ import type {
   CalendarDay,
   CalendarDayFormat,
   Clock,
+  DayPiece,
+  DayRange,
   DaySpan,
   Duration,
   DurationFormat,
@@ -33,6 +35,7 @@ test("the public functions use only package values and require all arguments", (
   >();
   expectTypeOf(time.isoWeekNumber).toEqualTypeOf<(day: CalendarDay) => number>();
   expectTypeOf(time.durationBetween).toEqualTypeOf<(from: Instant, to: Instant) => Duration>();
+  expectTypeOf(time.wholeSecondOf).toEqualTypeOf<(instant: Instant) => Instant>();
   expectTypeOf(time.epochMsOf).toEqualTypeOf<(instant: Instant) => number>();
   expectTypeOf(time.instantFromDate).toEqualTypeOf<(date: Date) => Instant>();
   expectTypeOf(time.resolveTimeZone).toEqualTypeOf<(name: string) => ResolvedTimeZone>();
@@ -78,6 +81,22 @@ test("the public functions use only package values and require all arguments", (
   expectTypeOf(time.instantRangeOf).toEqualTypeOf<
     (days: CalendarDay | DaySpan, timeZone: TimeZone) => InstantRange
   >();
+  expectTypeOf(time.dayRangesOf).toEqualTypeOf<
+    (span: DaySpan, timeZone: TimeZone) => readonly DayRange[]
+  >();
+  expectTypeOf(time.cutAtDays).toEqualTypeOf<
+    (range: InstantRange, days: readonly DayRange[]) => readonly DayPiece[]
+  >();
+  expectTypeOf<DayPiece>().toEqualTypeOf<{
+    readonly day: CalendarDay;
+    readonly start: Instant;
+    readonly end: Instant;
+  }>();
+  expectTypeOf<DayRange>().toEqualTypeOf<{
+    readonly day: CalendarDay;
+    readonly start: Instant;
+    readonly end: Instant;
+  }>();
   expectTypeOf(time.today).toEqualTypeOf<(clock: Clock, timeZone: TimeZone) => CalendarDay>();
   expectTypeOf(time.formatInstant).toEqualTypeOf<
     (instant: Instant, format: InstantFormat, locale: string, timeZone: TimeZone) => string
@@ -112,6 +131,8 @@ test("the public functions use only package values and require all arguments", (
       "calendarDaySchema",
       "calendarLabels",
       "clockFormatOf",
+      "cutAtDays",
+      "dayRangesOf",
       "deviceTimeZone",
       "instantAt",
       "instantRangeOf",
@@ -140,6 +161,7 @@ test("the public functions use only package values and require all arguments", (
       "startOfNextDay",
       "wallClockTimeSchema",
       "weekOf",
+      "wholeSecondOf",
     ].sort(),
   );
 });

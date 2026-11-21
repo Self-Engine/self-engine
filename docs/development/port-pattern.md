@@ -42,6 +42,11 @@ check outputs; the packaged app skips that check. Inputs are always checked in t
 Forms also check with the same input schema for field feedback (D317), but the Data Process
 still checks every input and decides. Trimming belongs in the input schema, not a form-only
 rule. Load the Contract with the lazy form, never at startup; see [the form guide](forms.md).
+A View or a Group never loads the Contract either: its barrel builds every entry with `oc`, which
+no bundler can drop. When a View parses an entry's id from its address, the module exports the id
+schema alone as a light entry, as `@self-engine/projects/ids` does from
+`src/contracts/project-id.ts`, and the View imports that. `onDemand` in
+`apps/web/startup-rules.ts` fails the build when a listed View loads a Contract or oRPC's builder.
 
 Every input is strict: write `z.strictObject(...)`, so an unknown key is an input error and
 nothing is dropped silently ([ADR 0032](../adr/0032-every-edit-names-what-changes-and-its-inputs-come-from-one-field-list.md)).
@@ -353,6 +358,12 @@ the device's zone with the `deviceZone` option of `startTestDataProcess` (defaul
 does. One call that asks for the Time Zone costs about 0.003 ms more than one that reads another
 Setting ([performance](performance.md#the-time-zone-of-a-call-362)).
 
+The [`days` Query of `time-tracking`](../../packages/time-tracking/src/data/days.ts) uses this
+pattern for a computed answer. It declares `time_entries`, `projects` and `SETTINGS_TABLE` in
+its reads, uses the Time Zone of the call to find the window, and computes the Day Shares and
+totals in the Data Process. The View computes the Day Span from its Week Start Setting and
+passes that span to the Query.
+
 Done when every entry uses the supplied transaction and context, maps its result to its
 contract shape, and has the appropriate query/operation marker and conflict mapping.
 
@@ -423,18 +434,25 @@ and `ALLOWED_IMPORTS` in `.dependency-cruiser.ts`.
 
 ### Refer to a project
 
-A module above `projects` refers to a project through the project reference (D330): `id`,
+The [`time-tracking` migration](../../packages/time-tracking/src/data/migrations/0001.sql)
+owns the `project_id` foreign key on `time_entries`. The key points down to `projects`, which
+carries no column for Time Entries. This is the direction allowed by
+[ADR 0014](../adr/0014-migrations-belong-to-one-module-and-run-in-one-transaction.md).
+
+A module above `projects` reads a project through the Project Reference (D330): `id`,
 `title`, `icon`, `color`, `archivedAt` and `deletedAt`. These six fields are released; `projects`
 renames none of them without touching every module above. `projects` releases the reference
 twice:
 
 - **The Read Piece** `projectReferences(tx, context, alias)` from `@self-engine/projects/data`.
   Join it in the module's own Query, as
-  [the `project-entries` test module](../../packages/projects/test/project-entries-module/data/index.ts)
-  does, and sort or filter by its fields there. It is scoped to the current Space and keeps an
+  [the `days` Query in `time-tracking`](../../packages/time-tracking/src/data/days.ts) does,
+  and sort or filter by its fields there. It is scoped to the current Space and keeps an
   archived and a deleted project with their marks, so an entry never loses its project. It takes
   `ReadTransaction<DB>`, which a write transaction satisfies too. Declare `projects` in the
-  Query's `reads`.
+  Query's `reads`. Select its fields with `projectReferenceColumns(alias)` and turn each row into
+  the reference with `projectReferenceOf(row)`, both from the same entry: `projects` alone knows
+  how its columns become a Project Reference.
 - **The schema** `projectReferenceSchema` from `@self-engine/projects/contracts`. Build it into
   the module's own answers, such as `project: projectReferenceSchema.nullable()`, `null` where
   the left join found no project in this Space. It is strict and accepts exactly what the Read

@@ -383,6 +383,9 @@ in `edit.tiedFields`, so both travel together (D323). As with a day, the Draft h
   corrected to 02:55 is the second 02:55 (D361). The field calls the rule and never repeats it. A note under the time names the offset,
   such as "02:30 (UTC+2)", as the Time Zone picker writes it (`formatUtcOffset`,
   `repeatedOffsetOf`). A time the clocks skip shows a message and blocks the save, like "25:00".
+- **A day to start on:** `startDay` is the date the field shows while the draft holds no start,
+  such as the day a new entry was opened on; the times stay empty. It is no value of the draft:
+  the start takes the day once its time is typed, and closing the empty form asks nothing.
 - **The duration** below the field is the time that really passed between the two Instants
   (`durationBetween`, `formatDuration`), also across a clock change.
 - **Messages:** text that is no value, a skipped time and the Contract's messages of the start

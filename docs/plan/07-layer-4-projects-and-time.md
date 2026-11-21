@@ -85,7 +85,7 @@ Schicht 3 unter Spec #103.
 | 5 | Einstellungen in der Datenbank | #109 | D62, D113 ff., D351, D352 | – |
 | 6 | Zeitzone und Wochenstart | #110, verkleinert | D147, D153, D316, D353–D356 | #109 |
 | 6b | Uhr der Oberfläche und Felder für Datum und Uhrzeit | #332 | D344, D345, D347, D348, D350 | – |
-| 7 | `time-tracking`, Teil 1: Einträge, Formular, Wochenansicht | #275 | D303, D304, D308, D311, D313, D342–D346, D352–D354 | #110, #273, #274, #313, #332 |
+| 7 | `time-tracking`, Teil 1: Einträge, Formular, Wochenansicht | #275 | D303, D304, D308, D311, D313, D342–D346, D352–D354, D367–D368 | #110, #273, #274, #313, #332 |
 | 8 | Ständiger Platz in der Hülle (Modulanzeige) | #276 | D314, D357–D360 | – |
 | 9 | `time-tracking`, Teil 2: Timer und Markierung der Überschneidungen | #277 | D310, D311, D314, D344, D345, D348, D349, D357–D359 | #275, #276 |
 

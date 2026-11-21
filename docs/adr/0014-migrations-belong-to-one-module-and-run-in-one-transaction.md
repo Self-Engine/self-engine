@@ -1,7 +1,7 @@
 ---
 status: accepted
 date: 2026-11-09
-decisions: D91, D135, D136, D137, D138
+decisions: D91, D135, D136, D137, D138, D308
 ---
 
 # Migrations belong to one module and run in one transaction
@@ -19,9 +19,13 @@ between a fresh install and a database that has grown over many versions.
    `<module>/<number>` and goes forward only. The caller composes the list, so
    `@self-engine/db` knows no module.
 2. **A migration reads and writes only the tables of its own module.** A foreign key to another
-   module's table is allowed, because SQLite accepts it before the parent table exists. Such a key
-   lives in a link table, per [ADR 0003](0003-one-table-per-module-entity-in-local-sqlite.md). This
+   module's table is allowed, because SQLite accepts it before the parent table exists. This
    keeps a run's order from mattering: no migration depends on what another module's has done.
+   The key points down only: a module may carry a foreign key column to a module it builds on,
+   such as `project_id` on `time_entries` of `time-tracking`, and the lower module carries no
+   column for the upper one. A link the lower module would otherwise carry, such as a payout on a
+   time entry, lives in a link table of the upper module, per
+   [ADR 0003](0003-one-table-per-module-entity-in-local-sqlite.md) (D308).
 3. **All pending migrations of a run are one transaction.** SQLite can roll back DDL. Kysely
    assumes it cannot, so a small adapter reports the capability and Kysely wraps the whole run.
 4. **A database that ran a migration this app does not know is refused.** The run ends with an

@@ -29,7 +29,11 @@ export type IconProps = Omit<
 /** An icon of the catalog: a picture that takes only the closed props. */
 export type CatalogIcon = (props: IconProps) => ReactElement;
 
-/** A catalog icon, made from one Phosphor icon. */
+/**
+ * A catalog icon, made from one Phosphor icon. Marked free of side effects, so that an icon only a
+ * View draws stays out of the startup bundle with that View.
+ */
+/* @__NO_SIDE_EFFECTS__ */
 export function catalogIcon(SourceIcon: PhosphorIcon): CatalogIcon {
   return function CatalogIcon({ size = "md", style, ...props }: IconProps) {
     const length = iconLength(size);

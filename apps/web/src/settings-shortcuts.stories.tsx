@@ -49,7 +49,7 @@ export const ListsTheGeneralShortcutsFirst: Story = {
     await expect(general.getByText(mod("Z"))).toBeVisible();
     await expect(
       canvas.getAllByRole("heading", { level: 2 }).map((heading) => heading.textContent),
-    ).toEqual(["General", "Placeholder Alpha", "Projects"]);
+    ).toEqual(["General", "Placeholder Alpha", "Projects", "Time"]);
   },
 };
 
