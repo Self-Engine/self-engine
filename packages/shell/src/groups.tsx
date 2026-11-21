@@ -24,9 +24,11 @@ export function ShellGroup({
 export function ShellGroupEntry({
   label,
   search,
+  leftSection,
   active = false,
 }: {
   readonly label: string;
+  readonly leftSection?: ReactNode;
   readonly search: ViewSearch | ((previous: ViewSearch) => ViewSearch);
   readonly active?: boolean;
 }) {
@@ -38,6 +40,7 @@ export function ShellGroupEntry({
       to="."
       search={search}
       label={label}
+      leftSection={leftSection}
       vars={ACTIVE_ENTRY_VARS}
       active={active}
       aria-current={active ? "true" : undefined}
