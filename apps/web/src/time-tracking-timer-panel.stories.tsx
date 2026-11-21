@@ -104,12 +104,21 @@ async function opener(canvas: Canvas) {
   return canvas.findByRole("button", { name: /^Timer bearbeiten/ }, ARRIVES);
 }
 
-/** The open panel, named after the module, and its parts, once it holds the focus. */
+/**
+ * The open panel, named after the module, and its parts, once it holds the focus and stands fully
+ * shown. It takes the focus while it still fades in, and a busy browser starts the fade only with
+ * its next frame: until then the panel is transparent, and every check of what it shows fails.
+ */
 async function panelParts() {
   const dialog = await screen.findByRole("dialog", { name: "Zeit" }, ARRIVES);
   const panel = within(dialog);
-  // The panel fades in and then takes the focus; keys typed before that would be lost.
+  // Keys typed before the focus is inside would be lost.
   await waitFor(() => expect(dialog.contains(document.activeElement)).toBe(true));
+  // Transparent before the fade starts, then animating: settled once visible with no animation.
+  await waitFor(async () => {
+    await expect(dialog).toBeVisible();
+    await expect(dialog.getAnimations()).toEqual([]);
+  }, ARRIVES);
   return {
     dialog,
     panel,
@@ -217,10 +226,7 @@ const stopAtAValidEnd = (step: Step): Story => ({
     const form = await openPanel(canvas);
     await userEvent.click(form.button("Stoppen um …"));
     const stopAt = await panelParts();
-    // The panel may still be fading in.
-    await waitFor(() =>
-      expect(stopAt.panel.getByText("Läuft seit 20.11.2026, 09:47")).toBeVisible(),
-    );
+    await expect(stopAt.panel.getByText("Läuft seit 20.11.2026, 09:47")).toBeVisible();
     await typeTime(stopAt.time("Ende"), "1050");
     await userEvent.click(stopAt.button("Stoppen"));
 
@@ -250,8 +256,7 @@ const aRefusedEnd = (reason: "end_in_future" | "end_before_start", text: string)
     await typeTime(stopAt.time("Ende"), "1130");
     await userEvent.click(stopAt.button("Stoppen"));
     // At the end; the panel stays open with what was typed.
-    // Retried: the field may draw its picker anew once the answer has arrived.
-    await waitFor(() => expect(stopAt.panel.getByText(text)).toBeVisible());
+    await expect(await stopAt.panel.findByText(text)).toBeVisible();
     await expect(stopAt.time("Ende")).toHaveAccessibleDescription(expect.stringContaining(text));
     await expect(stopAt.dialog).toBeVisible();
     await expect(port.calls).toEqual([
@@ -278,8 +283,7 @@ export const AStartInTheFutureShowsItsMessageAtTheStart: Story = {
     await typeTime(form.time("Beginn"), "1130");
     await userEvent.click(form.button("Speichern"));
     const message = "Der Beginn darf nicht in der Zukunft liegen.";
-    // Retried: the field may draw its picker anew once the answer has arrived.
-    await waitFor(() => expect(form.panel.getByText(message)).toBeVisible());
+    await expect(await form.panel.findByText(message)).toBeVisible();
     await expect(form.time("Beginn")).toHaveAccessibleDescription(expect.stringContaining(message));
     await expect(port.calls).toEqual([
       { entry: "editTimer", input: { id: RUNNING.id, startedAt: "2026-11-20T10:30:00.000Z" } },
@@ -355,8 +359,7 @@ const theNoticeLeadsToStopAt = (step: Step): Story => ({
     );
     await userEvent.click(within(notice).getByRole("button", { name: "Stoppen um …" }));
     const stopAt = await panelParts();
-    // The panel may still be fading in.
-    await waitFor(() => expect(stopAt.time("Ende")).toBeVisible());
+    await expect(stopAt.time("Ende")).toBeVisible();
     await expect(stopAt.button("Stoppen")).toBeVisible();
     await expect(port.calls).toEqual([{ entry: "stopTimer", input: { id: RUNNING.id } }]);
   },
