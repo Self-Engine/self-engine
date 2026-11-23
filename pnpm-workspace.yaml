@@ -55,6 +55,9 @@ catalog:
   "@orpc/server": 1.16.2
   # Only packages/icons may depend on it (#18).
   "@phosphor-icons/react": 2.1.10
+  # Renders the Northstar's SVG to PNG: the desktop icons at build time, GitHub's pictures in
+  # scripts/brand-assets.ts. Prebuilt per platform as optional dependencies, no install script.
+  "@resvg/resvg-js": 2.6.2
   # The interface a form reads a Contract's input schema through (D317); types only. The version
   # oRPC brings.
   "@standard-schema/spec": 1.1.0

@@ -1,0 +1,9 @@
+{
+  // The brand entry runs in Node, in the desktop build and the repo scripts. Without the `DOM`
+  // lib, a use of `document` or `window` fails the typecheck.
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "lib": ["ESNext"]
+  },
+  "include": ["."]
+}

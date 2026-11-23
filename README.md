@@ -1,4 +1,11 @@
-# Self-Engine
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset=".github/brand/logo-dark.svg">
+    <img src=".github/brand/logo-light.svg" alt="" width="96" height="96">
+  </picture>
+</p>
+
+<h1 align="center">Self-Engine</h1>
 
 A local-first, open-source app for organizing life and work — the planned successor of
 Self-Engine.
