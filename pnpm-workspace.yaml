@@ -21,7 +21,7 @@ catalog:
   # Also a dev dependency of the root, so that every package resolves the peers of @lingui/react
   # and @lingui/core against this one version: with two, each package gets its own copy, and a
   # component reads a Lingui context that no provider fills (the start crashed on nightly).
-  "@babel/core": 8.1.0
+  "@babel/core": 8.1.2
   "@rolldown/plugin-babel": 0.3.1
   babel-plugin-react-compiler: 1.0.0
   "@fontsource-variable/inter": 5.3.0
@@ -41,13 +41,13 @@ catalog:
   # The emoji grid of the Entry Mark's field (D300); it ships no data, emojibase-data has it.
   "@mantine/emoji": 9.8.0
   # The draft of every form, in uncontrolled mode (D318). Only packages/forms imports it (D325).
-  "@mantine/form": 9.8.0
+  "@mantine/form": 9.8.1
   "@mantine/hooks": 9.8.0
   "@mantine/modals": 9.8.0
   "@mantine/notifications": 9.8.0
   "@mantine/spotlight": 9.8.0
   # The JS plugin API of the Oxlint that vite-plus ships; move it with vite-plus.
-  "@oxlint/plugins": 1.91.0
+  "@oxlint/plugins": 1.93.0
   # The transport between the renderer and the data process (D93): contracts, the
   # message-port server in the data process and the typed client. Every oRPC package moves together.
   "@orpc/client": 1.16.2
@@ -65,11 +65,11 @@ catalog:
   # JS compiler API, which TypeScript 7 no longer has.
   "@swc/core": 1.16.22
   # Still beta, so pinned exactly (D179). Only packages/shell/src/shortcut-bindings.tsx imports it.
-  "@tanstack/react-hotkeys": 0.22.3
+  "@tanstack/react-hotkeys": 0.26.0
   # The query cache of the page (D249). Only packages/data-client/src/react/ imports it.
   "@tanstack/react-query": 5.107.1
   "@tanstack/react-router": 1.170.46
-  "@tanstack/router-plugin": 1.168.48
+  "@tanstack/router-plugin": 1.169.0
   # Pinned to the Node version inside Electron (45.x ships Node 24), so TypeScript
   # flags Node 26 APIs that the desktop main process does not have (D34).
   "@types/node": 24.19.2
@@ -77,11 +77,11 @@ catalog:
   "@types/culori": 4.0.1
   "@types/react": 19.3.0
   "@types/react-dom": 19.3.0
-  "@vitejs/plugin-react": 6.2.1
+  "@vitejs/plugin-react": 6.3.0
   # Renders the stories in Chromium (the `stories` stage). Move it with vite-plus.
   "@vitest/browser-playwright": 5.1.0
   # N-API, so one binary serves Node and Electron (D33).
-  better-sqlite3: 13.0.3
+  better-sqlite3: 13.2.0
   # Oklab mixing in the theme engine's core (ADR 0009).
   culori: 4.0.2
   # The peer of @mantine/dates, which names months and weekdays through it. Only packages/time
@@ -89,25 +89,25 @@ catalog:
   dayjs: 1.11.23
   # Module boundaries (ADR 0006), configured in .dependency-cruiser.ts.
   dependency-cruiser: 18.7.2
-  electron: 45.2.3
+  electron: 45.3.2
   electron-builder: 26.18.0
   # The emoji names and search words in German and English for @mantine/emoji (D300).
   emojibase-data: 18.0.0
   # A DOM for the hook tests of packages/data-client/src/react/, which run in Node.
   happy-dom: 21.0.4
   # The query layer and the migration runner (D91).
-  kysely: 0.29.8
+  kysely: 0.29.9
   # Its version pins the Chromium revision, so a bump downloads the browser again.
-  playwright: 1.65.0
+  playwright: 1.65.1
   react: 19.3.1
   react-dom: 19.3.1
-  storybook: 10.6.6
+  storybook: 10.6.7
   typescript: 7.0.2
   # Every record's id: a time-ordered UUIDv7 (D141).
   uuid: 14.0.3
   # Vite+ replaces vite with its own core; every package that depends on vite gets it (D28).
   vite: npm:@voidzero-dev/vite-plus-core@1.5.0
-  vite-plus: 1.5.0
+  vite-plus: 1.6.0
   # Checks stored Settings against their declared schema (ADR 0010).
   zod: 4.6.7
   fast-check: 4.10.2
