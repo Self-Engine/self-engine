@@ -34,18 +34,18 @@ catalog:
   "@lingui/vite-plugin": 6.12.0
   # Parses ICU in the catalog check (scripts/check-i18n.ts). The version Lingui itself uses.
   "@messageformat/parser": 5.2.0
-  "@mantine/core": 9.8.0
+  "@mantine/core": 9.8.1
   # The date and time pickers of the form fields (D319). Only packages/forms imports it (D325);
   # it loads with the first form, never at startup.
-  "@mantine/dates": 9.8.0
+  "@mantine/dates": 9.8.1
   # The emoji grid of the Entry Mark's field (D300); it ships no data, emojibase-data has it.
-  "@mantine/emoji": 9.8.0
+  "@mantine/emoji": 9.8.1
   # The draft of every form, in uncontrolled mode (D318). Only packages/forms imports it (D325).
   "@mantine/form": 9.8.1
-  "@mantine/hooks": 9.8.0
-  "@mantine/modals": 9.8.0
-  "@mantine/notifications": 9.8.0
-  "@mantine/spotlight": 9.8.0
+  "@mantine/hooks": 9.8.1
+  "@mantine/modals": 9.8.1
+  "@mantine/notifications": 9.8.1
+  "@mantine/spotlight": 9.8.1
   # The JS plugin API of the Oxlint that vite-plus ships; move it with vite-plus.
   "@oxlint/plugins": 1.93.0
   # The transport between the renderer and the data process (D93): contracts, the
@@ -59,8 +59,8 @@ catalog:
   # oRPC brings.
   "@standard-schema/spec": 1.1.0
   # The Component Catalog (apps/component-catalog). Every Storybook package moves together.
-  "@storybook/addon-vitest": 10.6.6
-  "@storybook/react-vite": 10.6.6
+  "@storybook/addon-vitest": 10.6.7
+  "@storybook/react-vite": 10.6.7
   # dependency-cruiser's TypeScript parser (verify:boundaries): its tsc parser needs the
   # JS compiler API, which TypeScript 7 no longer has.
   "@swc/core": 1.16.22
@@ -106,7 +106,7 @@ catalog:
   # Every record's id: a time-ordered UUIDv7 (D141).
   uuid: 14.0.3
   # Vite+ replaces vite with its own core; every package that depends on vite gets it (D28).
-  vite: npm:@voidzero-dev/vite-plus-core@1.5.0
+  vite: npm:@voidzero-dev/vite-plus-core@1.6.0
   vite-plus: 1.6.0
   # Checks stored Settings against their declared schema (ADR 0010).
   zod: 4.6.7
@@ -121,7 +121,7 @@ overrides:
 # lockfile changes instead of scrolling past as a warning.
 strictPeerDependencies: true
 
-# Vite+ aliases vite to vite-plus-core@1.5.0, so peers like "vite ^8" see 1.5.0
+# Vite+ aliases vite to vite-plus-core@1.6.0, so peers like "vite ^8" see 1.6.0
 # (vite-plus issue #2806). Same rule as t3code.
 peerDependencyRules:
   allowedVersions:
