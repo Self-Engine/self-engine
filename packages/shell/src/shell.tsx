@@ -40,7 +40,6 @@ import {
   ScrollArea,
   Splitter,
   Stack,
-  Text,
   Title,
   Tooltip,
   useMatches,
@@ -60,7 +59,8 @@ import {
   ICON_COLUMN_WIDTH,
   LOGO_START_ON_ICON_AXIS,
   NAVBAR_ICONS_ONLY_WIDTH,
-  navbarLimits,
+  LOGO_MARK_WIDTH,
+  NAVBAR_LIMITS,
   SHELL_STANDARD_NAVBAR,
   type ShellNavbarState,
 } from "./navbar-geometry.ts";
@@ -120,7 +120,7 @@ const LOGO_STYLE: CSSProperties = { ...WINDOW_DRAG_STYLE, pointerEvents: "none" 
 
 /**
  * The part of the header above the Navbar, which follows its width while it is dragged. The mark
- * sits on the icon axis, with or without its name.
+ * sits on the icon axis.
  */
 const LOGO_PLACE_STYLE: CSSProperties = {
   flex: "none",
@@ -128,11 +128,14 @@ const LOGO_PLACE_STYLE: CSSProperties = {
   width: "var(--app-shell-navbar-width)",
 };
 
-/** With window buttons the logo starts after them, and the place is never narrower than they need. */
+/**
+ * With window buttons the mark starts after them, and the place is never narrower than buttons and
+ * mark together, which an icons-only Navbar is.
+ */
 const LOGO_PLACE_AFTER_WINDOW_BUTTONS_STYLE: CSSProperties = {
   flex: "none",
   paddingInlineStart: START_AFTER_WINDOW_BUTTONS,
-  width: `max(var(--app-shell-navbar-width), ${START_AFTER_WINDOW_BUTTONS})`,
+  width: `max(var(--app-shell-navbar-width), calc(${START_AFTER_WINDOW_BUTTONS} + ${rem(LOGO_MARK_WIDTH)}))`,
 };
 
 // It opens over the header, whose drag region would swallow the clicks.
@@ -263,7 +266,7 @@ interface NavigationEntry {
 /** The app's brand. The Shell only places it: its artwork comes in from outside. */
 export interface ShellLogo {
   readonly mark: ReactNode;
-  /** Shown beside the mark. The Navbar's minimum width is measured for "Self-Engine", so a longer name can overflow a Navbar at that minimum. */
+  /** Names the mark for assistive technology; it is not shown. */
   readonly name: string;
 }
 
@@ -282,7 +285,7 @@ interface ShellFrameProps {
   readonly shortcuts?: ReactNode;
   readonly pageTitle: string;
   readonly activeColor: ColorSetName | undefined;
-  /** Sits in the header above the Navbar, and in the drawer at the narrow step. None at phone width. */
+  /** The mark alone, always top left: in the header above the Navbar, before the Burger at the drawer steps, and in the drawer's strip. */
   readonly logo?: ShellLogo;
   /** The modules whose Module Indicators end the header, in the order of the module list. */
   readonly indicatorModules?: readonly ShellContribution[];
@@ -318,20 +321,20 @@ function TopStrip({ children, style }: { children?: ReactNode; style?: CSSProper
 
 interface LogoProps {
   readonly logo: ShellLogo;
-  readonly markOnly?: boolean;
   readonly style?: CSSProperties;
 }
 
-function Logo({ logo, markOnly = false, style }: LogoProps) {
+/** The mark alone, named by the app's name. */
+function Logo({ logo, style }: LogoProps) {
   return (
     <Group
-      gap="xs"
+      aria-label={logo.name}
       h={rem(SHELL_WINDOW_BUTTON_STRIP_HEIGHT)}
+      role="img"
       style={{ ...LOGO_STYLE, ...style }}
       wrap="nowrap"
     >
       {logo.mark}
-      {!markOnly && <Text fw={600}>{logo.name}</Text>}
     </Group>
   );
 }
@@ -444,7 +447,6 @@ interface ShellHeaderProps extends PassedOn<
   | "onModuleSidebarCollapsedCommit"
 > {
   readonly reserveWindowButtons: boolean;
-  readonly navbarIconsOnly: boolean;
   readonly isPhone: boolean;
   readonly indicatorForm: IndicatorForm;
   readonly navigationInDrawer: boolean;
@@ -470,7 +472,6 @@ function ShellHeader({
   moduleSidebarCollapsed,
   onModuleSidebarCollapsedCommit,
   reserveWindowButtons,
-  navbarIconsOnly,
   isPhone,
   indicatorForm: form,
   navigationInDrawer,
@@ -478,8 +479,6 @@ function ShellHeader({
   onToggleDrawer,
 }: ShellHeaderProps) {
   const { t } = useLingui();
-  // The window buttons are wider than an icons-only Navbar, so they take the mark's place above it.
-  const logoShown = logo !== undefined && !(reserveWindowButtons && navbarIconsOnly);
   return (
     <AppShell.Header style={HEADER_STYLE} withBorder={false}>
       <Group
@@ -494,9 +493,10 @@ function ShellHeader({
           <Box
             style={reserveWindowButtons ? LOGO_PLACE_AFTER_WINDOW_BUTTONS_STYLE : LOGO_PLACE_STYLE}
           >
-            {logoShown && <Logo logo={logo} markOnly={navbarIconsOnly} />}
+            {logo && <Logo logo={logo} />}
           </Box>
         )}
+        {navigationInDrawer && logo && <Logo logo={logo} />}
         {navigationInDrawer ? (
           <Burger
             aria-label={isPhone ? t`Open module sidebar` : t`Open navigation`}
@@ -545,10 +545,11 @@ function DrawerTopStrip({ logo, reserveWindowButtons }: DrawerTopStripProps) {
         {logo && (
           <Logo
             logo={logo}
+            // Where the header has it, so the mark does not move when the drawer opens over it.
             style={{
               marginInlineStart: reserveWindowButtons
                 ? START_AFTER_WINDOW_BUTTONS
-                : "var(--mantine-spacing-xs)",
+                : "var(--mantine-spacing-md)",
             }}
           />
         )}
@@ -682,7 +683,7 @@ function ShellFrame({
   const navigationInDrawer = isPhone || step === "narrow";
   // The pane stays either way and is only empty, so that the page beside it does not remount.
   const moduleSidebarShown = !navigationInDrawer && !moduleSidebarCollapsed;
-  const limits = navbarLimits({ scale: theme.scale, reserveWindowButtons });
+  const limits = NAVBAR_LIMITS;
   const navbarResize = useNavbarResize({
     navbar,
     limits,
@@ -734,7 +735,6 @@ function ShellFrame({
           isPhone={isPhone}
           logo={logo}
           moduleSidebarCollapsed={moduleSidebarCollapsed}
-          navbarIconsOnly={navbarIconsOnly}
           navigationInDrawer={navigationInDrawer}
           onModuleSidebarCollapsedCommit={onModuleSidebarCollapsedCommit}
           onToggleDrawer={toggleDrawer}

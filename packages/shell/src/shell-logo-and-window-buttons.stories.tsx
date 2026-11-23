@@ -16,7 +16,7 @@ import {
   appRegionOf,
   atSmallestFontScale,
   atViewport,
-  brandPlace,
+  markPlace,
   burgerOf,
   centerX,
   centerY,
@@ -24,7 +24,6 @@ import {
   countingIndicator,
   expandToggle,
   expectMarkOnTheIconAxis,
-  expectNameFitsTheNavbar,
   expectReportedOnce,
   indicatorPlaceOf,
   markStaysPutWhenToggling,
@@ -160,7 +159,7 @@ export const TheLogoDragsTheWindowAndTakesNoPointer: Story = {
   },
 };
 
-/** The part of the header above the Navbar holds the logo; what belongs to the page follows it. */
+/** The part of the header above the Navbar holds the mark; what belongs to the page follows it. */
 export const TheToggleStartsWhereTheNavbarEnds: Story = {
   ...atViewport("wide"),
   args: LOGO_AND_WINDOW_BUTTONS,
@@ -169,7 +168,6 @@ export const TheToggleStartsWhereTheNavbarEnds: Story = {
       navbarOf(canvas).getBoundingClientRect().right + HEADER_GAP,
       0,
     );
-    await expectNameFitsTheNavbar(canvas);
   },
 };
 
@@ -179,7 +177,7 @@ export const TheToggleFollowsTheNavbarWhileDragging: Story = {
   args: LOGO_AND_WINDOW_BUTTONS,
   play: async ({ args, canvas }) => {
     const navbar = navbarOf(canvas);
-    const place = brandPlace(canvas);
+    const place = markPlace(canvas);
     const drag = await pressHandle(navbarHandle(canvas));
     await drag.moveBy(40);
     await expect(widthOf(navbar)).toBe(260);
@@ -189,16 +187,27 @@ export const TheToggleFollowsTheNavbarWhileDragging: Story = {
     );
     await drag.release(40);
     await expectReportedOnce(args.onNavbarCommit, { collapsed: false, expandedWidth: 260 });
-    await expect(brandPlace(canvas)).toEqual(place);
+    await expect(markPlace(canvas)).toEqual(place);
+  },
+};
+
+/** The logo is the mark alone, named for assistive technology. */
+export const TheLogoIsTheMarkAlone: Story = {
+  ...atViewport("wide"),
+  args: { logo: LOGO },
+  play: async ({ canvas }) => {
+    await expect(canvas.getByRole("img", { name: "Self-Engine" })).toContainElement(
+      canvas.getByTestId("mark"),
+    );
+    await expect(canvas.queryByText("Self-Engine")).toBeNull();
   },
 };
 
 /** Without window buttons, where the entries center their icons: 10 px of padding, 4 to center 28 px in 36. */
-export const TheMarkSitsOnTheIconAxisBesideItsNameWithoutWindowButtons: Story = {
+export const TheMarkSitsOnTheIconAxisWithoutWindowButtons: Story = {
   ...atViewport("wide"),
   args: { logo: LOGO },
   play: async ({ canvas }) => {
-    await expect(canvas.getByText("Self-Engine")).toBeVisible();
     const mark = canvas.getByTestId("mark");
     await expect(mark.getBoundingClientRect().left).toBeCloseTo(14, 0);
     await expect(centerX(mark)).toBeCloseTo(
@@ -208,13 +217,11 @@ export const TheMarkSitsOnTheIconAxisBesideItsNameWithoutWindowButtons: Story = 
   },
 };
 
-/** The name goes with the labels of the Navbar, and the mark stays on the icon axis. */
-export const TheNameGoesWithTheLabelsOfTheNavbar: Story = {
+export const TheMarkStaysOnTheIconAxisOverAnIconsOnlyNavbar: Story = {
   ...atViewport("medium"),
   args: { logo: LOGO },
   play: async ({ canvas }) => {
     await expect(widthOf(navbarOf(canvas))).toBe(56);
-    await expect(canvas.queryByText("Self-Engine")).toBeNull();
     await expectMarkOnTheIconAxis(canvas);
     await expect(collapseToggle(canvas).getBoundingClientRect().left).toBeCloseTo(
       56 + HEADER_GAP,
@@ -223,30 +230,34 @@ export const TheNameGoesWithTheLabelsOfTheNavbar: Story = {
   },
 };
 
-export const ACollapsingNavbarLosesTheNameAndKeepsTheMark: Story = {
+export const TheMarkDoesNotMoveWhenTheNavbarCollapses: Story = {
   ...atViewport("wide"),
   ...resizable,
   args: { logo: LOGO },
   play: async ({ canvas }) => {
-    const left = canvas.getByTestId("mark").getBoundingClientRect().left;
+    const place = markPlace(canvas);
     await userEvent.dblClick(navbarHandle(canvas));
-    await waitFor(() => expect(canvas.queryByText("Self-Engine")).toBeNull());
+    await waitFor(() => expect(widthOf(navbarOf(canvas))).toBe(56));
     await expectMarkOnTheIconAxis(canvas);
-    await expect(canvas.getByTestId("mark").getBoundingClientRect().left).toBe(left);
+    await expect(markPlace(canvas)).toEqual(place);
     await userEvent.dblClick(navbarHandle(canvas));
-    await waitFor(() => expect(canvas.getByText("Self-Engine")).toBeVisible());
+    await waitFor(() => expect(widthOf(navbarOf(canvas))).toBe(220));
+    await expect(markPlace(canvas)).toEqual(place);
   },
 };
 
-/** The buttons are wider than an icons-only Navbar, so they take the mark's place above it. */
-export const TheWindowButtonsTakeTheMarksPlaceAboveAnIconsOnlyNavbar: Story = {
+/** The buttons and the mark are wider than an icons-only Navbar, so the page's part starts after both. */
+export const TheMarkStaysAfterTheWindowButtonsOverAnIconsOnlyNavbar: Story = {
   ...atViewport("wide"),
   args: BOTH_COLLAPSED,
   play: async ({ canvas }) => {
     await expect(widthOf(navbarOf(canvas))).toBe(56);
-    await expect(canvas.queryByTestId("mark")).toBeNull();
+    await expect(canvas.getByTestId("mark").getBoundingClientRect().left).toBeCloseTo(
+      SHELL_START_AFTER_WINDOW_BUTTONS_PX,
+      0,
+    );
     await expect(expandToggle(canvas).getBoundingClientRect().left).toBeCloseTo(
-      SHELL_START_AFTER_WINDOW_BUTTONS_PX + HEADER_GAP,
+      SHELL_START_AFTER_WINDOW_BUTTONS_PX + 28 + HEADER_GAP,
       0,
     );
   },
@@ -255,11 +266,15 @@ export const TheWindowButtonsTakeTheMarksPlaceAboveAnIconsOnlyNavbar: Story = {
 /** The native buttons do not follow the font scale, so neither does the room for them. */
 export const TheRoomForTheWindowButtonsIgnoresTheFontScale: Story = {
   ...atSmallestFontScale("medium"),
-  args: LOGO_AND_WINDOW_BUTTONS,
+  args: { ...LOGO_AND_WINDOW_BUTTONS, logo: SCALING_LOGO },
   play: async ({ canvas }) => {
     await expect(navbarOf(canvas).getBoundingClientRect().width).toBeCloseTo(49, 0);
+    await expect(canvas.getByTestId("mark").getBoundingClientRect().left).toBeCloseTo(
+      SHELL_START_AFTER_WINDOW_BUTTONS_PX,
+      0,
+    );
     await expect(collapseToggle(canvas).getBoundingClientRect().left).toBeCloseTo(
-      SHELL_START_AFTER_WINDOW_BUTTONS_PX + HEADER_GAP * 0.875,
+      SHELL_START_AFTER_WINDOW_BUTTONS_PX + (28 + HEADER_GAP) * 0.875,
       0,
     );
   },
@@ -283,21 +298,39 @@ export const TheLogoDoesNotMoveWhenTogglingWithoutWindowButtons: Story = {
   },
 };
 
-export const NoLogoInTheHeaderAtTheNarrowStep: Story = {
+/** At the drawer steps the mark starts the header, before the Burger. */
+export const TheMarkStartsTheNarrowHeader: Story = {
   ...atViewport("narrow"),
   args: { logo: LOGO },
   play: async ({ canvas }) => {
-    await expect(canvas.queryByTestId("mark")).toBeNull();
-    await expect(canvas.queryByText("Self-Engine")).toBeNull();
+    const mark = canvas.getByTestId("mark");
+    await expect(mark.getBoundingClientRect().left).toBeCloseTo(16, 0);
+    await expect(burgerOf(canvas).getBoundingClientRect().left).toBeGreaterThan(
+      mark.getBoundingClientRect().right,
+    );
   },
 };
 
-export const NoLogoAtPhoneWidth: Story = {
+export const TheMarkStartsTheNarrowHeaderAfterTheWindowButtons: Story = {
+  ...atViewport("narrow"),
+  args: LOGO_AND_WINDOW_BUTTONS,
+  play: async ({ canvas }) => {
+    await expect(canvas.getByTestId("mark").getBoundingClientRect().left).toBeCloseTo(
+      SHELL_START_AFTER_WINDOW_BUTTONS_PX,
+      0,
+    );
+  },
+};
+
+export const TheMarkStartsThePhoneHeader: Story = {
   ...atViewport("phone"),
   args: { logo: LOGO },
   play: async ({ canvas }) => {
-    await expect(canvas.queryByTestId("mark")).toBeNull();
-    await expect(canvas.queryByText("Self-Engine")).toBeNull();
+    const mark = canvas.getByTestId("mark");
+    await expect(mark.getBoundingClientRect().left).toBeCloseTo(16, 0);
+    await expect(
+      canvas.getByRole("button", { name: "Open module sidebar" }).getBoundingClientRect().left,
+    ).toBeGreaterThan(mark.getBoundingClientRect().right);
   },
 };
 
@@ -362,83 +395,12 @@ export const TheNarrowHeaderKeepsItsPaddingWithoutWindowButtons: Story = {
   },
 };
 
-/** 84 px to the logo's start from the window edge, then 129 for mark and name. */
-export const TheMinimumWideWidthClearsTheWindowButtonsAndTheLogo: Story = {
+/** The mark needs no room of its own, so the Navbar's minimum stays 168 with window buttons too. */
+export const TheMinimumWideWidthIs168WithWindowButtons: Story = {
   ...atViewport("wide"),
-  ...resizable,
-  args: LOGO_AND_WINDOW_BUTTONS,
-  play: async ({ args, canvas }) => {
-    const navbar = navbarOf(canvas);
-    const drag = await pressHandle(navbarHandle(canvas));
-    await drag.moveBy(-40);
-    await expect(widthOf(navbar)).toBe(213);
-    await drag.release(-40);
-    await expect(widthOf(navbar)).toBe(213);
-    await expectReportedOnce(args.onNavbarCommit, { collapsed: false, expandedWidth: 213 });
-    await expectNameFitsTheNavbar(canvas);
-  },
-};
-
-/** The midpoint of 56 and 213 is 134.5. */
-export const TheMidpointFollowsTheMinimumWideWidth: Story = {
-  ...atViewport("wide"),
-  ...resizable,
-  args: { reserveWindowButtons: true },
-  play: async ({ args, canvas }) => {
-    const navbar = navbarOf(canvas);
-    const drag = await pressHandle(navbarHandle(canvas));
-    await drag.moveBy(-80);
-    await expect(widthOf(navbar)).toBe(213);
-    await drag.release(-90);
-    await expect(widthOf(navbar)).toBe(56);
-    await expectReportedOnce(args.onNavbarCommit, { collapsed: true, expandedWidth: 220 });
-  },
-};
-
-export const AStoredWidthBelowTheMinimumIsClampedWithWindowButtons: Story = {
-  ...atViewport("wide"),
-  args: { navbar: { collapsed: false, expandedWidth: 168 }, reserveWindowButtons: true },
-  play: async ({ canvas }) => {
-    await expect(widthOf(navbarOf(canvas))).toBe(213);
-  },
-};
-
-/** The logo needs less than today's minimum here, so that minimum stays. */
-export const TheMinimumWideWidthStaysAt168WithoutWindowButtons: Story = {
-  ...atViewport("wide"),
-  args: { logo: LOGO, navbar: { collapsed: false, expandedWidth: 168 } },
+  args: { ...LOGO_AND_WINDOW_BUTTONS, navbar: { collapsed: false, expandedWidth: 100 } },
   play: async ({ canvas }) => {
     await expect(widthOf(navbarOf(canvas))).toBe(168);
-    await expectNameFitsTheNavbar(canvas);
-  },
-};
-
-/** The buttons are real pixels and the rest follows the scale, so the minimum differs per scale. */
-export const TheNameFitsTheMinimumWideWidthAtTheSmallestFontScale: Story = {
-  ...atSmallestFontScale("wide"),
-  args: {
-    logo: SCALING_LOGO,
-    navbar: { collapsed: false, expandedWidth: 168 },
-    reserveWindowButtons: true,
-  },
-  play: async ({ canvas }) => {
-    // 84 px / 0.875 + 129, at the scale of 0.875.
-    await expect(navbarOf(canvas).getBoundingClientRect().width).toBeCloseTo(225 * 0.875, 0);
-    await expectNameFitsTheNavbar(canvas);
-  },
-};
-
-export const TheNameFitsTheMinimumWideWidthAt112Percent: Story = {
-  ...wideAt112Percent,
-  args: {
-    logo: SCALING_LOGO,
-    navbar: { collapsed: false, expandedWidth: 168 },
-    reserveWindowButtons: true,
-  },
-  play: async ({ canvas }) => {
-    // 84 px / 1.125 + 129, rounded up, at the scale of 1.125.
-    await expect(navbarOf(canvas).getBoundingClientRect().width).toBeCloseTo(204 * 1.125, 0);
-    await expectNameFitsTheNavbar(canvas);
   },
 };
 

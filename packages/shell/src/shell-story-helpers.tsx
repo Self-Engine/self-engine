@@ -498,12 +498,6 @@ export const centerX = (element: Element) => {
   return left + width / 2;
 };
 
-export const brandPlace = (canvas: Canvas) => {
-  const mark = canvas.getByTestId("mark").getBoundingClientRect();
-  const name = canvas.getByText("Self-Engine").getBoundingClientRect();
-  return { markLeft: mark.left, markTop: mark.top, nameLeft: name.left };
-};
-
 export const dividerIn = (navbar: Element) => {
   const divider = [...navbar.children].find((child) => widthOf(child) === 1);
   if (divider === undefined) throw new Error("the Navbar has no divider");
@@ -571,11 +565,9 @@ export const markStaysPutWhenToggling = async (canvas: Canvas): Promise<void> =>
   const place = markPlace(canvas);
   await userEvent.click(collapseToggle(canvas));
   await waitFor(() => expect(canvas.queryByText("Sidebar content")).toBeNull());
-  await expect(canvas.getByText("Self-Engine")).toBeVisible();
   await expect(markPlace(canvas)).toEqual(place);
   await userEvent.click(expandToggle(canvas));
   await waitFor(() => expect(canvas.getByText("Sidebar content")).toBeVisible());
-  await expect(canvas.getByText("Self-Engine")).toBeVisible();
   await expect(markPlace(canvas)).toEqual(place);
 };
 
@@ -587,14 +579,6 @@ export const expectMarkOnTheIconAxis = async (canvas: Canvas): Promise<void> => 
 
 /** The real mark, which grows with the font scale where the stories' fixed one would not. */
 export const SCALING_LOGO = { mark: <BrandMark data-testid="mark" />, name: "Self-Engine" };
-
-/** The name ends in the part of the header above the Navbar, before the collapse toggle. */
-export const expectNameFitsTheNavbar = async (canvas: Canvas): Promise<void> => {
-  await document.fonts.ready;
-  await expect(canvas.getByText("Self-Engine").getBoundingClientRect().right).toBeLessThanOrEqual(
-    navbarOf(canvas).getBoundingClientRect().right + 0.5,
-  );
-};
 
 /** What the user sees, and that showing a clamped width reports nothing that would overwrite it. */
 export async function expectShownWithoutReport(
