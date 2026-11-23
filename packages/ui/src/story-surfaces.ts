@@ -31,10 +31,10 @@ function moving(surface: Element): Animation[] {
 }
 
 /**
- * Whether the exit of `surface` has begun: Mantine then sets the surface, or what holds it, to the
- * transparent end of its transition, where an opening one is headed for full opacity.
+ * Whether `surface`, or what holds it, is set to the transparent end of its transition: Mantine
+ * sets that before an opening starts and once a closing has begun.
  */
-function leaving(surface: Element): boolean {
+function headedOut(surface: Element): boolean {
   for (let node: Element | null = surface; node !== null; node = node.parentElement) {
     if (node instanceof HTMLElement && node.style.opacity === "0") return true;
   }
@@ -42,8 +42,10 @@ function leaving(surface: Element): boolean {
 }
 
 /**
- * Waits until `surface` stands fully shown: visible, and with no fade or slide left on it or on
- * what holds it. Takes the element or the query that finds it, and returns the element.
+ * Waits until `surface` stands fully shown, in the two steps it takes: first until its opening has
+ * begun, then until it is visible with no fade or slide left on it or on what holds it. Each step
+ * gets its own wait, as finding the surface does. Takes the element or the query that finds it,
+ * and returns the element.
  *
  *     const dialog = await settled(screen.findByRole("dialog", { name: "Projects" }));
  */
@@ -52,6 +54,10 @@ export async function settled<Surface extends Element>(
   options?: SettleOptions,
 ): Promise<Surface> {
   const element = await surface;
+  await waitFor(
+    () => expect(headedOut(element), "the surface has begun to open").toBe(false),
+    options,
+  );
   await waitFor(async () => {
     await expect(element).toBeVisible();
     await expect(moving(element)).toEqual([]);
@@ -74,7 +80,7 @@ const listed = (found: Found): readonly Element[] =>
  */
 export async function closed(query: () => Found, options?: SettleOptions): Promise<void> {
   await waitFor(async () => {
-    const staying = listed(query()).filter((surface) => !leaving(surface));
+    const staying = listed(query()).filter((surface) => !headedOut(surface));
     await expect(staying, "the surfaces have begun to close").toEqual([]);
   }, options);
   await waitFor(() => expect(listed(query())).toEqual([]), options);
