@@ -31,7 +31,7 @@ export interface DesktopState {
 export interface WindowButtonContent {
   readonly name: string;
   readonly x: number;
-  /** Vertical coordinates relative to the Shell top strip, in unscaled Mantine pixels. */
+  /** Vertical coordinates from the top of the Shell header, in unscaled Mantine pixels. */
   readonly y: number;
   readonly width: number;
   readonly height: number;

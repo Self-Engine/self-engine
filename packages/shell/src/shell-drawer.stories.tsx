@@ -94,9 +94,7 @@ export const TheDrawerHeaderSitsBelowTheStripWithWindowButtons: Story = {
     await waitFor(() =>
       expect(mark.getBoundingClientRect().left).toBeCloseTo(SHELL_START_AFTER_WINDOW_BUTTONS_PX, 0),
     );
-    await expect(
-      within(drawer).getByText("Self-Engine").getBoundingClientRect().right,
-    ).toBeLessThan(drawer.getBoundingClientRect().right);
+    await expect(within(drawer).queryByText("Self-Engine")).toBeNull();
   },
 };
 
@@ -237,17 +235,15 @@ export const TheDrawerNavbarNamesItsEntriesAndMarksTheActiveOne: Story = {
   },
 };
 
-export const TheDrawerLogoStartsAtTheLeftEdgeWithoutWindowButtons: Story = {
+/** The drawer's mark covers the header's, so it does not move when the drawer opens. */
+export const TheDrawerMarkSitsWhereTheHeaderHasItWithoutWindowButtons: Story = {
   ...atViewport("narrow"),
   args: { logo: LOGO },
   play: async ({ canvas }) => {
+    const inHeader = canvas.getByTestId("mark").getBoundingClientRect().left;
     const drawer = await openDrawer(canvas);
     const mark = within(drawer).getByTestId("mark");
-    const firstEntry = within(drawerNavbarOf(drawer)).getByRole("link", { name: "Projects" });
-    await expect(mark.getBoundingClientRect().left).toBeCloseTo(
-      firstEntry.getBoundingClientRect().left,
-      0,
-    );
+    await waitFor(() => expect(mark.getBoundingClientRect().left).toBeCloseTo(inHeader, 0));
     await expect(appRegionOf(mark.parentElement!.parentElement!)).toBe("drag");
     await expect(drawerNavbarOf(drawer).getBoundingClientRect().top).toBeCloseTo(
       mark.parentElement!.parentElement!.getBoundingClientRect().bottom,
@@ -256,7 +252,7 @@ export const TheDrawerLogoStartsAtTheLeftEdgeWithoutWindowButtons: Story = {
   },
 };
 
-export const TheDrawerLogoFitsAtTheSmallestFontScale: Story = {
+export const TheDrawerMarkStaysAfterTheWindowButtonsAtTheSmallestFontScale: Story = {
   ...atSmallestFontScale("narrow"),
   args: LOGO_AND_WINDOW_BUTTONS,
   play: async ({ canvas }) => {
@@ -267,9 +263,6 @@ export const TheDrawerLogoFitsAtTheSmallestFontScale: Story = {
         0,
       ),
     );
-    await expect(
-      within(drawer).getByText("Self-Engine").getBoundingClientRect().right,
-    ).toBeLessThan(drawer.getBoundingClientRect().right);
   },
 };
 

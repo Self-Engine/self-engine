@@ -1,4 +1,4 @@
-import { SHELL_REFERENCE_WIDTHS } from "@self-engine/shell/geometry";
+import { SHELL_REFERENCE_WIDTHS, SHELL_TOP_STRIP_HEIGHT } from "@self-engine/shell/geometry";
 import { ProjectsIcon } from "@self-engine/icons";
 import type { Meta } from "@storybook/react-vite";
 import { expect, screen, userEvent, waitFor, within } from "storybook/test";
@@ -14,6 +14,8 @@ import {
   inDark,
   navbarOf,
   paneOf,
+  sheetOf,
+  shellHeaderOf,
   widthOf,
   type Story,
   shellMeta,
@@ -131,7 +133,10 @@ export const Phone: Story = {
   play: async ({ canvas, globals }) => {
     await expectWindow(canvas, "phone", globals);
     await expect(canvasRoot(canvas)).toHaveAttribute("data-layout-step", "phone");
-    await expect(paneOf(canvas, "Page content").getBoundingClientRect().top).toBeCloseTo(8, 0);
+    await expect(sheetOf(canvas).getBoundingClientRect().top).toBeCloseTo(
+      SHELL_TOP_STRIP_HEIGHT,
+      0,
+    );
     await expect(canvas.queryByRole("separator")).toBeNull();
     await expect(canvas.queryByText("Sidebar content")).toBeNull();
     await expect(canvas.getByText("Nightly")).toBeVisible();
@@ -266,14 +271,17 @@ export const SurfacesUseTheirColorRoles: Story = {
   play: async ({ canvas }) => {
     const navbar = navbarOf(canvas);
     const roleOf = (name: string) => getComputedStyle(navbar).getPropertyValue(name);
-    await expect(navbar).toHaveStyle({ backgroundColor: roleOf("--se-nav-surface") });
+    // The Navbar and the header lie flat on the chrome.
+    await expect(navbar).toHaveStyle({ backgroundColor: "rgba(0, 0, 0, 0)" });
+    await expect(shellHeaderOf(canvas)).toHaveStyle({ backgroundColor: "rgba(0, 0, 0, 0)" });
     await expect(navbar.parentElement).toHaveStyle({ backgroundColor: roleOf("--se-chrome") });
+    await expect(sheetOf(canvas)).toHaveStyle({ backgroundColor: roleOf("--se-canvas") });
     await expect(canvas.getByText("Sidebar content").closest(".mantine-Splitter-pane")).toHaveStyle(
       { backgroundColor: roleOf("--se-nav-surface") },
     );
-    await expect(
-      canvas.getByRole("heading", { name: "Time" }).closest(".mantine-Splitter-pane"),
-    ).toHaveStyle({ backgroundColor: roleOf("--se-canvas") });
+    await expect(paneOf(canvas, "Page content")).toHaveStyle({
+      backgroundColor: roleOf("--se-canvas"),
+    });
   },
 };
 

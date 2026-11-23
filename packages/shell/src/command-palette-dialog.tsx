@@ -19,7 +19,7 @@ import { useStartCommand } from "./start-command.tsx";
 
 type SpotlightStore = ReturnType<typeof createSpotlight>[0];
 
-// It opens over the content header, whose drag region would swallow the clicks.
+// It opens over the Shell's header, whose drag region would swallow the clicks.
 const SPOTLIGHT_STYLES = { content: NOT_WINDOW_DRAG_STYLE, overlay: NOT_WINDOW_DRAG_STYLE };
 
 function PaletteRow({ entry, onPick }: { entry: PaletteEntry; onPick: () => void }) {

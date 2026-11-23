@@ -1,25 +1,22 @@
-import { SHELL_START_AFTER_WINDOW_BUTTONS_PX } from "./geometry.ts";
 import { clamp } from "@mantine/hooks";
 
 /** Starting values from #19, in Mantine's unscaled numbers. */
 export const NAVBAR_ICONS_ONLY_WIDTH = 56;
 const NAVBAR_STANDARD_WIDTH = 220;
-/** Never narrower than this, whatever the logo needs. */
 const NAVBAR_SMALLEST_WIDE_WIDTH = 168;
 export const NAVBAR_MAX_WIDTH = 280;
-/** Mantine's `xs`, which is the Navbar's padding and the gap between the mark and the name. */
+/** Mantine's `xs`, the Navbar's padding. */
 const NAVBAR_PADDING = 10;
 /** What the icons-only Navbar has inside its padding: the column every entry centers its icon in. */
 export const ICON_COLUMN_WIDTH = NAVBAR_ICONS_ONLY_WIDTH - 2 * NAVBAR_PADDING;
-const LOGO_MARK_WIDTH = 28;
-/** The mark, the gap and "Self-Engine" in its weight, measured at the standard scale. */
-const LOGO_WITH_NAME_WIDTH = LOGO_MARK_WIDTH + NAVBAR_PADDING + 91;
+/** The logo is its mark alone, always. */
+export const LOGO_MARK_WIDTH = 28;
 /** Centers the mark in the column of the icons-only Navbar, where the entries center their icons. */
 const LOGO_MARK_INSET = (ICON_COLUMN_WIDTH - LOGO_MARK_WIDTH) / 2;
 /** The gap around and between the Shell's containers. */
 export const GAP = 8;
-/** From the window edge to the mark on the icon axis, with or without its name. */
-export const LOGO_START_ON_ICON_AXIS = GAP + NAVBAR_PADDING + LOGO_MARK_INSET;
+/** From the window edge to the mark on the icon axis. The Navbar starts at the window edge. */
+export const LOGO_START_ON_ICON_AXIS = NAVBAR_PADDING + LOGO_MARK_INSET;
 /** What the user set for the Navbar. Only the wide Layout Step shows it. */
 export interface ShellNavbarState {
   readonly collapsed: boolean;
@@ -37,44 +34,11 @@ export interface NavbarLimits {
   readonly iconsOnlyWidth: number;
 }
 
-/**
- * Where anything beside the window buttons starts inside the frame, in Mantine's unscaled numbers.
- * The frame follows the scale and the buttons stay in real pixels, so it depends on the scale.
- */
-const startAfterWindowButtons = (scale: number) =>
-  SHELL_START_AFTER_WINDOW_BUTTONS_PX / scale - GAP;
-
-/** The narrowest wide Navbar: the logo with its name has to fit its strip. */
-function navbarMinWideWidth(scale: number, reserveWindowButtons: boolean): number {
-  const logoStart = reserveWindowButtons
-    ? startAfterWindowButtons(scale)
-    : NAVBAR_PADDING + LOGO_MARK_INSET;
-  return Math.max(
-    NAVBAR_SMALLEST_WIDE_WIDTH,
-    Math.ceil(logoStart + LOGO_WITH_NAME_WIDTH + NAVBAR_PADDING),
-  );
-}
-
-interface NavbarLimitsInput {
-  readonly scale: number;
-  readonly reserveWindowButtons: boolean;
-  /** Without the Module Sidebar beside it, an icons-only Navbar has to hold the window buttons. */
-  readonly standsAlone: boolean;
-}
-
-export function navbarLimits({
-  scale,
-  reserveWindowButtons,
-  standsAlone,
-}: NavbarLimitsInput): NavbarLimits {
-  return {
-    minWideWidth: navbarMinWideWidth(scale, reserveWindowButtons),
-    iconsOnlyWidth:
-      reserveWindowButtons && standsAlone
-        ? Math.ceil(startAfterWindowButtons(scale))
-        : NAVBAR_ICONS_ONLY_WIDTH,
-  };
-}
+/** The Navbar's two forms do not depend on the logo, which is only a mark above it. */
+export const NAVBAR_LIMITS: NavbarLimits = {
+  minWideWidth: NAVBAR_SMALLEST_WIDE_WIDTH,
+  iconsOnlyWidth: NAVBAR_ICONS_ONLY_WIDTH,
+};
 
 export const collapseMidpointOf = ({ minWideWidth, iconsOnlyWidth }: NavbarLimits) =>
   (iconsOnlyWidth + minWideWidth) / 2;

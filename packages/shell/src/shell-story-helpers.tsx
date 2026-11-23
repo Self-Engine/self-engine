@@ -1,8 +1,4 @@
-import {
-  SHELL_REFERENCE_WIDTHS,
-  SHELL_TOP_STRIP_HEIGHT,
-  SHELL_START_AFTER_WINDOW_BUTTONS_PX,
-} from "@self-engine/shell/geometry";
+import { SHELL_REFERENCE_WIDTHS, SHELL_TOP_STRIP_HEIGHT } from "@self-engine/shell/geometry";
 // Shared by the Shell's Stories, which are split by concern. Not a story file, so the Catalog
 // does not list it.
 
@@ -328,17 +324,28 @@ export function canvasRoot(canvas: Canvas): HTMLElement {
   return canvas.getByRole("main").parentElement!;
 }
 
-/** The narrow step: no Navbar in the frame, and the content has the outer gap on both sides. */
+/** The narrow step: no Navbar beside it, and the sheet has the outer gap on both sides below the header. */
 export async function expectContentFillsTheFrame(
   canvas: Canvas,
   windowWidth: number,
 ): Promise<void> {
   await expect(canvas.queryByRole("navigation", { name: "Modules" })).toBeNull();
-  await expect(canvasRoot(canvas).querySelector(".mantine-AppShell-header")).toBeNull();
-  const content = paneOf(canvas, "Page content").getBoundingClientRect();
-  await expect(content.top).toBeCloseTo(8, 0);
+  const content = sheetOf(canvas).getBoundingClientRect();
+  await expect(content.top).toBeCloseTo(SHELL_TOP_STRIP_HEIGHT, 0);
   await expect(content.left).toBeCloseTo(8, 0);
   await expect(content.right).toBeCloseTo(windowWidth - 8, 0);
+}
+
+/** The window-wide header above the Navbar and the sheet. */
+export function shellHeaderOf(canvas: Canvas): HTMLElement {
+  const header = canvasRoot(canvas).querySelector<HTMLElement>(".mantine-AppShell-header");
+  if (header === null) throw new Error("the Shell has no header");
+  return header;
+}
+
+/** The one surface that holds the Module Sidebar and the content. */
+export function sheetOf(canvas: Canvas): HTMLElement {
+  return canvas.getByRole("main").firstElementChild as HTMLElement;
 }
 
 /** Rendered widths, rounded: subpixel layout must not fail a story. */
@@ -364,29 +371,6 @@ export async function atFrameWidth(width: number, change: () => Promise<void>): 
   } finally {
     frame.style.width = previous;
   }
-}
-
-/**
- * The window buttons end 76 px from the window edge, past a 56 px Navbar, so the strip has to run
- * on over the Module Sidebar. Nothing but the drag region may sit under them.
- */
-export async function expectStripOverAnIconsOnlyNavbar(canvas: Canvas): Promise<void> {
-  const navbar = navbarOf(canvas);
-  await expect(widthOf(navbar)).toBe(56);
-  await expectContainersReachTheTop(canvas);
-  await expect(appRegionOf(navbar.firstElementChild!)).toBe("drag");
-  await expect(Math.round(navbar.firstElementChild!.getBoundingClientRect().height)).toBe(
-    SHELL_TOP_STRIP_HEIGHT,
-  );
-  await expectEntriesBelowTheStrip(canvas);
-  const pane = paneOf(canvas, "Sidebar content");
-  await expect(appRegionOf(pane.firstElementChild!)).toBe("drag");
-  await expect(Math.round(pane.firstElementChild!.getBoundingClientRect().height)).toBe(
-    SHELL_TOP_STRIP_HEIGHT,
-  );
-  await expect(canvas.getByText("Sidebar content").getBoundingClientRect().top).toBeGreaterThan(
-    pane.getBoundingClientRect().top + SHELL_TOP_STRIP_HEIGHT,
-  );
 }
 
 export const centerY = (element: Element) => {
@@ -514,19 +498,11 @@ export const centerX = (element: Element) => {
   return left + width / 2;
 };
 
-export const brandPlace = (canvas: Canvas) => {
-  const mark = canvas.getByTestId("mark").getBoundingClientRect();
-  const name = canvas.getByText("Self-Engine").getBoundingClientRect();
-  return { markLeft: mark.left, markTop: mark.top, nameLeft: name.left };
-};
-
 export const dividerIn = (navbar: Element) => {
   const divider = [...navbar.children].find((child) => widthOf(child) === 1);
   if (divider === undefined) throw new Error("the Navbar has no divider");
   return divider;
 };
-
-export const dividerOf = (canvas: Canvas) => dividerIn(navbarOf(canvas));
 
 /** The real font scale, through the Catalog's toolbar global. */
 export const atSmallestFontScale = (viewport: keyof typeof VIEWPORTS) => ({
@@ -577,24 +553,6 @@ export const BOTH_COLLAPSED = {
   navbar: { collapsed: true, expandedWidth: 260 },
 };
 
-/** The icons-only Navbar ends 8 px after the window buttons, which end 76 px from the window edge. */
-export const expectIconsOnlyNavbarHoldsTheWindowButtons = async (canvas: Canvas): Promise<void> => {
-  await expect(navbarOf(canvas).getBoundingClientRect().right).toBeCloseTo(
-    SHELL_START_AFTER_WINDOW_BUTTONS_PX,
-    0,
-  );
-};
-
-/** Centered on the wider icons-only Navbar, in the geometry an entry has everywhere else. */
-export const expectEntriesCenteredOnTheIconsOnlyNavbar = async (canvas: Canvas): Promise<void> => {
-  const navbar = navbarOf(canvas);
-  for (const entry of within(navbar).getAllByRole("link")) {
-    const icon = entry.querySelector("svg")!;
-    // oxlint-disable-next-line no-await-in-loop -- one assertion per entry, in order
-    await expect(centerX(icon)).toBeCloseTo(centerX(navbar), 0);
-  }
-};
-
 export const headerOf = (canvas: Canvas) =>
   canvas.getByRole("heading", { name: "Time" }).parentElement!.parentElement!;
 
@@ -607,25 +565,10 @@ export const markStaysPutWhenToggling = async (canvas: Canvas): Promise<void> =>
   const place = markPlace(canvas);
   await userEvent.click(collapseToggle(canvas));
   await waitFor(() => expect(canvas.queryByText("Sidebar content")).toBeNull());
-  await expect(canvas.getByText("Self-Engine")).toBeVisible();
   await expect(markPlace(canvas)).toEqual(place);
   await userEvent.click(expandToggle(canvas));
   await waitFor(() => expect(canvas.getByText("Sidebar content")).toBeVisible());
-  await expect(canvas.getByText("Self-Engine")).toBeVisible();
   await expect(markPlace(canvas)).toEqual(place);
-};
-
-/** No row of its own above them, in any state. */
-export const expectContainersReachTheTop = async (canvas: Canvas): Promise<void> => {
-  await expect(canvasRoot(canvas).querySelector(".mantine-AppShell-header")).toBeNull();
-  await expect(navbarOf(canvas).getBoundingClientRect().top).toBeCloseTo(8, 0);
-  await expect(paneOf(canvas, "Page content").getBoundingClientRect().top).toBeCloseTo(8, 0);
-};
-
-export const expectEntriesBelowTheStrip = async (canvas: Canvas): Promise<void> => {
-  await expect(
-    canvas.getByRole("link", { name: "Projects" }).getBoundingClientRect().top,
-  ).toBeCloseTo(navbarOf(canvas).getBoundingClientRect().top + SHELL_TOP_STRIP_HEIGHT, 0);
 };
 
 export const expectMarkOnTheIconAxis = async (canvas: Canvas): Promise<void> => {
@@ -636,15 +579,6 @@ export const expectMarkOnTheIconAxis = async (canvas: Canvas): Promise<void> => 
 
 /** The real mark, which grows with the font scale where the stories' fixed one would not. */
 export const SCALING_LOGO = { mark: <BrandMark data-testid="mark" />, name: "Self-Engine" };
-
-export const expectNameFitsTheNavbar = async (canvas: Canvas): Promise<void> => {
-  await document.fonts.ready;
-  const navbar = navbarOf(canvas).getBoundingClientRect();
-  const padding = Number.parseFloat(getComputedStyle(navbarOf(canvas)).paddingInlineEnd);
-  await expect(canvas.getByText("Self-Engine").getBoundingClientRect().right).toBeLessThanOrEqual(
-    navbar.right - padding + 0.5,
-  );
-};
 
 /** What the user sees, and that showing a clamped width reports nothing that would overwrite it. */
 export async function expectShownWithoutReport(
