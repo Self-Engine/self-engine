@@ -91,7 +91,6 @@ function useLayoutStep() {
 
 const RADIUS = "var(--mantine-radius-md)";
 const CONTAINER_EDGE_COLOR = roleColor("border");
-const CONTAINER_OUTLINE = `inset 0 0 0 1px ${CONTAINER_EDGE_COLOR}`;
 
 const ROOT_STYLE = {
   "--app-shell-border-color": roleColor("border"),
@@ -189,9 +188,12 @@ const DRAWER_NAVBAR_STYLE: CSSProperties = {
 
 const BURGER_STYLE: CSSProperties = { ...NOT_WINDOW_DRAG_STYLE, borderRadius: RADIUS };
 
-/** One sheet holds the Module Sidebar and the content, below the header and beside the Navbar. */
+/**
+ * One sheet holds the Module Sidebar and the content, below the header and beside the Navbar. A
+ * border and not an inset shadow, so the panes sit inside the edge instead of covering it.
+ */
 const SHEET_STYLE: CSSProperties = {
-  boxShadow: CONTAINER_OUTLINE,
+  border: `1px solid ${CONTAINER_EDGE_COLOR}`,
   backgroundColor: roleColor("canvas"),
   borderRadius: RADIUS,
   height: "100%",

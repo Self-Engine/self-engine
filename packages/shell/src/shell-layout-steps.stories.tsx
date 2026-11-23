@@ -133,7 +133,7 @@ export const Phone: Story = {
   play: async ({ canvas, globals }) => {
     await expectWindow(canvas, "phone", globals);
     await expect(canvasRoot(canvas)).toHaveAttribute("data-layout-step", "phone");
-    await expect(paneOf(canvas, "Page content").getBoundingClientRect().top).toBeCloseTo(
+    await expect(sheetOf(canvas).getBoundingClientRect().top).toBeCloseTo(
       SHELL_TOP_STRIP_HEIGHT,
       0,
     );
