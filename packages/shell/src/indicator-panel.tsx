@@ -21,7 +21,7 @@ export const INDICATOR_PANEL_WIDTH = 320;
 /** Taller content scrolls inside the popover. */
 const POPOVER_MAX_HEIGHT = 480;
 
-// It reaches into the content header, whose drag region would swallow the clicks.
+// It reaches into the Shell's header, whose drag region would swallow the clicks.
 const DROPDOWN_STYLE: CSSProperties = {
   ...NOT_WINDOW_DRAG_STYLE,
   maxHeight: rem(POPOVER_MAX_HEIGHT),

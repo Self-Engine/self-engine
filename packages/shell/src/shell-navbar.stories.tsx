@@ -7,7 +7,6 @@ import {
   atSmallestFontScale,
   atViewport,
   centerX,
-  dividerOf,
   expectActiveEntryFillsTheColumn,
   expectReportedOnce,
   navbarHandle,
@@ -395,16 +394,6 @@ export const EntriesKeepTheirHeightAndIconAxisWhenTheLabelGoes: Story = {
     const icon = entry().querySelector("svg")!.getBoundingClientRect();
     const box = navbar.getBoundingClientRect();
     await expect(icon.left + icon.width / 2).toBeCloseTo(box.left + box.width / 2, 0);
-  },
-};
-
-export const TheDividerRunsTheFullHeightWithoutAStrip: Story = {
-  ...atViewport("wide"),
-  play: async ({ canvas }) => {
-    await expect(dividerOf(canvas).getBoundingClientRect().top).toBeCloseTo(
-      navbarOf(canvas).getBoundingClientRect().top,
-      0,
-    );
   },
 };
 

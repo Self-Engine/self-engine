@@ -40,7 +40,6 @@ import {
   ScrollArea,
   Splitter,
   Stack,
-  Text,
   Title,
   Tooltip,
   useMatches,
@@ -60,7 +59,8 @@ import {
   ICON_COLUMN_WIDTH,
   LOGO_START_ON_ICON_AXIS,
   NAVBAR_ICONS_ONLY_WIDTH,
-  navbarLimits,
+  LOGO_MARK_WIDTH,
+  NAVBAR_LIMITS,
   SHELL_STANDARD_NAVBAR,
   type ShellNavbarState,
 } from "./navbar-geometry.ts";
@@ -79,8 +79,6 @@ import { useNavbarResize } from "./use-navbar-resize.ts";
 const BOTTOM_BAR_HEIGHT = 64;
 const ENTRY_HEIGHT = 40;
 const START_AFTER_WINDOW_BUTTONS = `${SHELL_START_AFTER_WINDOW_BUTTONS_PX}px`;
-/** The same place from inside the frame, for the content header that the buttons float over. */
-const HEADER_START_AFTER_WINDOW_BUTTONS = `calc(${START_AFTER_WINDOW_BUTTONS} - ${rem(GAP)})`;
 /** The Layout Steps, on Mantine's own breakpoints. */
 const LAYOUT_STEPS = { base: "phone", xs: "narrow", md: "medium", lg: "wide" } as const;
 
@@ -93,66 +91,53 @@ function useLayoutStep() {
 
 const RADIUS = "var(--mantine-radius-md)";
 const CONTAINER_EDGE_COLOR = roleColor("border");
-const CONTAINER_OUTLINE = `inset 0 0 0 1px ${CONTAINER_EDGE_COLOR}`;
 
 const ROOT_STYLE = {
   "--app-shell-border-color": roleColor("border"),
   backgroundColor: roleColor("chrome"),
   height: "100dvh",
   overflow: "hidden",
-  padding: rem(GAP),
 } as CSSProperties;
 
-const TOP_EDGE_STYLE: CSSProperties = {
-  ...WINDOW_DRAG_STYLE,
-  height: rem(GAP),
-  inset: "0 0 auto 0",
-  position: "fixed",
+/** Spans the window above everything else and moves it. Whatever is clickable in it opts out. */
+const HEADER_STYLE: CSSProperties = { ...WINDOW_DRAG_STYLE, backgroundColor: "transparent" };
+
+/** The Navbar lies flat on the chrome, below the header. */
+const NAVBAR_STYLE: CSSProperties = { backgroundColor: "transparent" };
+
+/** The sheet keeps a gap to the window edge wherever the Navbar does not stand beside it. */
+const MAIN_STYLE: CSSProperties = {
+  minHeight: 0,
+  minWidth: 0,
+  paddingBlockEnd: rem(GAP),
+  paddingInlineEnd: rem(GAP),
 };
 
-const NAVBAR_STYLE: CSSProperties = {
-  boxShadow: `inset 1px 0 ${CONTAINER_EDGE_COLOR}, inset 0 1px ${CONTAINER_EDGE_COLOR}, inset 0 -1px ${CONTAINER_EDGE_COLOR}`,
-  backgroundColor: roleColor("navSurface"),
-  borderRadius: `${RADIUS} 0 0 ${RADIUS}`,
-};
-
-/** Without the Module Sidebar beside it, the Navbar is a container of its own. */
-const NAVBAR_ALONE_STYLE: CSSProperties = {
-  ...NAVBAR_STYLE,
-  boxShadow: CONTAINER_OUTLINE,
-  borderRadius: RADIUS,
-};
-
-const MAIN_STYLE: CSSProperties = { minHeight: 0, minWidth: 0 };
-
-/** The gap that the Module Sidebar's handle keeps while it is there. */
-const MAIN_BESIDE_NAVBAR_ALONE_STYLE: CSSProperties = {
-  ...MAIN_STYLE,
-  paddingInlineStart: rem(GAP),
-};
-
-const NAVBAR_TOP_STRIP_STYLE: CSSProperties = {
-  // Starts where the Navbar starts, not below its padding.
-  marginBlockStart: "calc(-1 * var(--mantine-spacing-xs))",
-};
+const MAIN_WITHOUT_NAVBAR_STYLE: CSSProperties = { ...MAIN_STYLE, paddingInlineStart: rem(GAP) };
 
 const LOGO_STYLE: CSSProperties = { ...WINDOW_DRAG_STYLE, pointerEvents: "none" };
 
-// Outside the Navbar, so that neither its width nor its form can reach the logo.
-const NAVIGATION_LOGO_STYLE: CSSProperties = {
-  insetBlockStart: rem(GAP),
-  position: "fixed",
-  // Over the Navbar, under the Drawer.
-  zIndex: "calc(var(--mantine-z-index-app) + 2)",
+/**
+ * The part of the header above the Navbar, which follows its width while it is dragged. The mark
+ * sits on the icon axis.
+ */
+const LOGO_PLACE_STYLE: CSSProperties = {
+  flex: "none",
+  paddingInlineStart: rem(LOGO_START_ON_ICON_AXIS),
+  width: "var(--app-shell-navbar-width)",
 };
 
-// Its surroundings start at the window edge, the strip at the frame, level with the content header.
-const STRIP_FRAME_STYLE: CSSProperties = {
-  ...WINDOW_DRAG_STYLE,
-  paddingBlockStart: rem(GAP),
+/**
+ * With window buttons the mark starts after them, and the place is never narrower than buttons and
+ * mark together, which an icons-only Navbar is.
+ */
+const LOGO_PLACE_AFTER_WINDOW_BUTTONS_STYLE: CSSProperties = {
+  flex: "none",
+  paddingInlineStart: START_AFTER_WINDOW_BUTTONS,
+  width: `max(var(--app-shell-navbar-width), calc(${START_AFTER_WINDOW_BUTTONS} + ${rem(LOGO_MARK_WIDTH)}))`,
 };
 
-// It opens over the content header, whose drag region would swallow the clicks.
+// It opens over the header, whose drag region would swallow the clicks.
 const DRAWER_STYLES = { content: NOT_WINDOW_DRAG_STYLE, overlay: NOT_WINDOW_DRAG_STYLE };
 
 // Only what is below the strip scrolls, or the title would slide back under the window buttons.
@@ -180,9 +165,9 @@ const FLOATING_EDIT_DRAWER = { size: 460, offset: GAP, radius: "lg" } as const;
 const PHONE_EDIT_DRAWER = { size: "100%", offset: 0, radius: 0 } as const;
 
 /**
- * Notices start top center one gap below the content header, at every step and whether an Edit
- * Drawer is open or not, so a notice never jumps (#230, D267). The drawer's title and close button
- * end above that line, its first field starts below it.
+ * Notices start top center at the same line at every step and whether an Edit Drawer is open or
+ * not, so a notice never jumps (#230, D267). The floating drawer's title and close button end above
+ * that line, its first field starts below it.
  */
 const NOTICE_CLEARANCE = `:root{${NOTICE_CLEARANCE_VARIABLE}:${rem(GAP + SHELL_TOP_STRIP_HEIGHT + GAP)}}`;
 
@@ -203,24 +188,33 @@ const DRAWER_NAVBAR_STYLE: CSSProperties = {
 
 const BURGER_STYLE: CSSProperties = { ...NOT_WINDOW_DRAG_STYLE, borderRadius: RADIUS };
 
-const CONTENT_PANE_STYLE: CSSProperties = {
-  boxShadow: CONTAINER_OUTLINE,
+/**
+ * One sheet holds the Module Sidebar and the content, below the header and beside the Navbar. A
+ * border and not an inset shadow, so the panes sit inside the edge instead of covering it.
+ */
+const SHEET_STYLE: CSSProperties = {
+  border: `1px solid ${CONTAINER_EDGE_COLOR}`,
   backgroundColor: roleColor("canvas"),
   borderRadius: RADIUS,
+  height: "100%",
+  overflow: "hidden",
+};
+
+const CONTENT_PANE_STYLE: CSSProperties = {
+  backgroundColor: roleColor("canvas"),
   display: "flex",
   flexDirection: "column",
   overflow: "hidden",
 };
 
 const MODULE_SIDEBAR_PANE_STYLE: CSSProperties = {
-  boxShadow: `inset -1px 0 ${CONTAINER_EDGE_COLOR}, inset 0 1px ${CONTAINER_EDGE_COLOR}, inset 0 -1px ${CONTAINER_EDGE_COLOR}`,
+  boxShadow: `inset -1px 0 ${CONTAINER_EDGE_COLOR}`,
   backgroundColor: roleColor("navSurface"),
-  borderRadius: `0 ${RADIUS} ${RADIUS} 0`,
   display: "flex",
   flexDirection: "column",
 };
 
-// A line of its own, because Mantine's border could only run the whole height of the Navbar.
+// The line between the drawer's Navbar and its Module Sidebar.
 const NAVBAR_DIVIDER_STYLE: CSSProperties = {
   backgroundColor: roleColor("border"),
   bottom: 0,
@@ -232,7 +226,8 @@ const NAVBAR_DIVIDER_STYLE: CSSProperties = {
 const BOTTOM_BAR_STYLE: CSSProperties = {
   backgroundColor: roleColor("navSurface"),
   borderRadius: RADIUS,
-  marginTop: rem(GAP),
+  marginBlockEnd: rem(GAP),
+  marginInline: rem(GAP),
 };
 
 const ENTRY_ROOT_STYLE: CSSProperties = { borderRadius: "var(--mantine-radius-sm)" };
@@ -273,7 +268,7 @@ interface NavigationEntry {
 /** The app's brand. The Shell only places it: its artwork comes in from outside. */
 export interface ShellLogo {
   readonly mark: ReactNode;
-  /** Shown beside the mark. The Navbar's minimum width is measured for "Self-Engine", so a longer name can overflow a Navbar at that minimum. */
+  /** Names the mark for assistive technology; it is not shown. */
   readonly name: string;
 }
 
@@ -292,9 +287,9 @@ interface ShellFrameProps {
   readonly shortcuts?: ReactNode;
   readonly pageTitle: string;
   readonly activeColor: ColorSetName | undefined;
-  /** Sits in the top strip of the navigation, in the drawer at the narrow step, and in the content header while the Navbar holds the window buttons. None at phone width. */
+  /** The mark alone, always top left: in the header above the Navbar, before the Burger at the drawer steps, and in the drawer's strip. */
   readonly logo?: ShellLogo;
-  /** The modules whose Module Indicators end the content header, in the order of the module list. */
+  /** The modules whose Module Indicators end the header, in the order of the module list. */
   readonly indicatorModules?: readonly ShellContribution[];
   readonly channelBadge?: ReactNode;
   readonly navbar?: ShellNavbarState;
@@ -307,7 +302,7 @@ interface ShellFrameProps {
   readonly onModuleSidebarWidthCommit?: (width: number) => void;
   /** Called once per press of the collapse button. */
   readonly onModuleSidebarCollapsedCommit?: (collapsed: boolean) => void;
-  /** Keeps room for the macOS window buttons: in the navigation's top strip, on an icons-only Navbar widened to hold them while the Module Sidebar is closed, and at the narrow and phone steps in the content header and at the top of the drawer. */
+  /** Keeps room for the macOS window buttons at the start of the header and at the top of the drawer. */
   readonly reserveWindowButtons?: boolean;
   /** The page. Stays mounted whichever Layout Step the window is in. */
   readonly children: ReactNode;
@@ -328,20 +323,20 @@ function TopStrip({ children, style }: { children?: ReactNode; style?: CSSProper
 
 interface LogoProps {
   readonly logo: ShellLogo;
-  readonly markOnly?: boolean;
   readonly style?: CSSProperties;
 }
 
-function Logo({ logo, markOnly = false, style }: LogoProps) {
+/** The mark alone, named by the app's name. */
+function Logo({ logo, style }: LogoProps) {
   return (
     <Group
-      gap="xs"
+      aria-label={logo.name}
       h={rem(SHELL_WINDOW_BUTTON_STRIP_HEIGHT)}
+      role="img"
       style={{ ...LOGO_STYLE, ...style }}
       wrap="nowrap"
     >
       {logo.mark}
-      {!markOnly && <Text fw={600}>{logo.name}</Text>}
     </Group>
   );
 }
@@ -445,16 +440,15 @@ type PassedOn<Name extends keyof ShellFrameProps> = {
   readonly [Key in Name]-?: ShellFrameProps[Key] | undefined;
 };
 
-interface ContentHeaderProps extends PassedOn<
+interface ShellHeaderProps extends PassedOn<
   | "pageTitle"
   | "indicatorModules"
   | "channelBadge"
+  | "logo"
   | "moduleSidebarCollapsed"
   | "onModuleSidebarCollapsedCommit"
 > {
-  readonly startsAfterWindowButtons: boolean;
-  /** Set while the Navbar holds the window buttons, which is where the mark goes instead. */
-  readonly logo: ShellLogo | undefined;
+  readonly reserveWindowButtons: boolean;
   readonly isPhone: boolean;
   readonly indicatorForm: IndicatorForm;
   readonly navigationInDrawer: boolean;
@@ -462,63 +456,81 @@ interface ContentHeaderProps extends PassedOn<
   readonly onToggleDrawer: () => void;
 }
 
-function ContentHeader({
+/** Beside the Navbar the part above it starts the header; at the drawer steps the Burger does. */
+function headerStart(navigationInDrawer: boolean, reserveWindowButtons: boolean): string | number {
+  if (!navigationInDrawer) return 0;
+  return reserveWindowButtons ? START_AFTER_WINDOW_BUTTONS : "var(--mantine-spacing-md)";
+}
+
+/**
+ * Spans the window: the logo above the Navbar, then what belongs to the page, then the Module
+ * Indicators. It holds the window buttons and moves the window.
+ */
+function ShellHeader({
   pageTitle,
   indicatorModules,
   channelBadge,
+  logo,
   moduleSidebarCollapsed,
   onModuleSidebarCollapsedCommit,
-  startsAfterWindowButtons,
-  logo,
+  reserveWindowButtons,
   isPhone,
   indicatorForm: form,
   navigationInDrawer,
   drawerOpened,
   onToggleDrawer,
-}: ContentHeaderProps) {
+}: ShellHeaderProps) {
   const { t } = useLingui();
   return (
-    <Group
-      flex="none"
-      gap="sm"
-      h={rem(SHELL_TOP_STRIP_HEIGHT)}
-      pe="md"
-      ps={startsAfterWindowButtons ? HEADER_START_AFTER_WINDOW_BUTTONS : "md"}
-      style={WINDOW_DRAG_STYLE}
-      wrap="nowrap"
-    >
-      {logo && <Logo logo={logo} markOnly />}
-      {navigationInDrawer ? (
-        <Burger
-          aria-label={isPhone ? t`Open module sidebar` : t`Open navigation`}
-          onClick={onToggleDrawer}
-          opened={drawerOpened}
-          size="sm"
-          style={BURGER_STYLE}
-        />
-      ) : (
-        <ActionIcon
-          aria-label={
-            moduleSidebarCollapsed ? t`Expand module sidebar` : t`Collapse module sidebar`
-          }
-          color="gray"
-          onClick={() => onModuleSidebarCollapsedCommit?.(!moduleSidebarCollapsed)}
-          style={NOT_WINDOW_DRAG_STYLE}
-          variant="subtle"
-        >
-          <SidePanelIcon />
-        </ActionIcon>
-      )}
-      <Group flex={1} gap="sm" miw={0} wrap="nowrap">
-        <Title lineClamp={1} order={1} size="h4">
-          {pageTitle}
-        </Title>
-        {channelBadge && <Box style={NOT_WINDOW_DRAG_STYLE}>{channelBadge}</Box>}
+    <AppShell.Header style={HEADER_STYLE} withBorder={false}>
+      <Group
+        gap="sm"
+        h="100%"
+        pe="md"
+        // Real pixels for the window buttons, which a style prop would turn into rem and scale.
+        style={{ paddingInlineStart: headerStart(navigationInDrawer, reserveWindowButtons) }}
+        wrap="nowrap"
+      >
+        {!navigationInDrawer && (
+          <Box
+            style={reserveWindowButtons ? LOGO_PLACE_AFTER_WINDOW_BUTTONS_STYLE : LOGO_PLACE_STYLE}
+          >
+            {logo && <Logo logo={logo} />}
+          </Box>
+        )}
+        {navigationInDrawer && logo && <Logo logo={logo} />}
+        {navigationInDrawer ? (
+          <Burger
+            aria-label={isPhone ? t`Open module sidebar` : t`Open navigation`}
+            onClick={onToggleDrawer}
+            opened={drawerOpened}
+            size="sm"
+            style={BURGER_STYLE}
+          />
+        ) : (
+          <ActionIcon
+            aria-label={
+              moduleSidebarCollapsed ? t`Expand module sidebar` : t`Collapse module sidebar`
+            }
+            color="gray"
+            onClick={() => onModuleSidebarCollapsedCommit?.(!moduleSidebarCollapsed)}
+            style={NOT_WINDOW_DRAG_STYLE}
+            variant="subtle"
+          >
+            <SidePanelIcon />
+          </ActionIcon>
+        )}
+        <Group flex={1} gap="sm" miw={0} wrap="nowrap">
+          <Title lineClamp={1} order={1} size="h4">
+            {pageTitle}
+          </Title>
+          {channelBadge && <Box style={NOT_WINDOW_DRAG_STYLE}>{channelBadge}</Box>}
+        </Group>
+        {indicatorModules && (
+          <ModuleIndicators form={form} modules={indicatorModules} panelAsSheet={isPhone} />
+        )}
       </Group>
-      {indicatorModules && (
-        <ModuleIndicators form={form} modules={indicatorModules} panelAsSheet={isPhone} />
-      )}
-    </Group>
+    </AppShell.Header>
   );
 }
 
@@ -527,18 +539,19 @@ interface DrawerTopStripProps {
   readonly reserveWindowButtons: boolean;
 }
 
-/** Starts at the window edge, so the native buttons have nothing else under them. */
+/** Level with the header, so the native buttons have nothing else under them. */
 function DrawerTopStrip({ logo, reserveWindowButtons }: DrawerTopStripProps) {
   return (
-    <Box style={STRIP_FRAME_STYLE}>
+    <Box style={WINDOW_DRAG_STYLE}>
       <TopStrip>
         {logo && (
           <Logo
             logo={logo}
+            // Where the header has it, so the mark does not move when the drawer opens over it.
             style={{
               marginInlineStart: reserveWindowButtons
                 ? START_AFTER_WINDOW_BUTTONS
-                : "var(--mantine-spacing-xs)",
+                : "var(--mantine-spacing-md)",
             }}
           />
         )}
@@ -672,13 +685,7 @@ function ShellFrame({
   const navigationInDrawer = isPhone || step === "narrow";
   // The pane stays either way and is only empty, so that the page beside it does not remount.
   const moduleSidebarShown = !navigationInDrawer && !moduleSidebarCollapsed;
-  const navbarStandsAlone = !navigationInDrawer && moduleSidebarCollapsed;
-  // Whatever form the Navbar has right now: a drag has to know the width it would collapse to.
-  const limits = navbarLimits({
-    scale: theme.scale,
-    reserveWindowButtons,
-    standsAlone: navbarStandsAlone,
-  });
+  const limits = NAVBAR_LIMITS;
   const navbarResize = useNavbarResize({
     navbar,
     limits,
@@ -691,15 +698,9 @@ function ShellFrame({
     scale: theme.scale,
     onCommit: onModuleSidebarWidthCommit,
   });
+  // The form on screen, which a drag changes before its commit.
   const navbarIconsOnly = step !== "wide" || navbarResize.collapsed;
   const hasTopStrip = reserveWindowButtons || logo !== undefined;
-  const logoMarkOnly = navbarStandsAlone && navbarIconsOnly;
-  // The form on screen, which a drag changes before its commit. The buttons take the logo's place.
-  const navbarHoldsWindowButtons = reserveWindowButtons && logoMarkOnly;
-  // Keeps the entries in their column, so the wider icons-only Navbar only adds room on both sides.
-  const iconsOnlyNavbarPadding = rem((limits.iconsOnlyWidth - ICON_COLUMN_WIDTH) / 2);
-  const hasNavigationStrip = hasTopStrip && !navigationInDrawer;
-  const topStripHeight = hasNavigationStrip ? rem(SHELL_WINDOW_BUTTON_STRIP_HEIGHT) : 0;
 
   useEffect(() => {
     if (!navigationInDrawer) closeDrawer();
@@ -711,6 +712,7 @@ function ShellFrame({
       <AppShell
         data-layout-step={step}
         {...(isPhone && { footer: { height: BOTTOM_BAR_HEIGHT } })}
+        header={{ height: rem(SHELL_TOP_STRIP_HEIGHT) }}
         mode="static"
         // `collapsed.desktop` gives the narrow step's width to the content, since the Navbar is in the
         // drawer. `collapsed.mobile` does the same at the phone rule, which also matches at exactly
@@ -725,112 +727,81 @@ function ShellFrame({
         // Mantine prefers a resized width over the responsive ones, so only the wide step gets it.
         {...(step === "wide" && { resize: navbarResize.resize })}
         style={ROOT_STYLE}
-        // Starts below the strip with the divider, so nothing but the drag region is up there.
-        styles={{ resizeHandle: { ...NOT_WINDOW_DRAG_STYLE, top: topStripHeight } }}
+        styles={{ resizeHandle: NOT_WINDOW_DRAG_STYLE }}
       >
-        <Box aria-hidden style={TOP_EDGE_STYLE} />
+        <ShellHeader
+          channelBadge={channelBadge}
+          drawerOpened={drawerOpened}
+          indicatorForm={indicatorForm(step)}
+          indicatorModules={indicatorModules}
+          isPhone={isPhone}
+          logo={logo}
+          moduleSidebarCollapsed={moduleSidebarCollapsed}
+          navigationInDrawer={navigationInDrawer}
+          onModuleSidebarCollapsedCommit={onModuleSidebarCollapsedCommit}
+          onToggleDrawer={toggleDrawer}
+          pageTitle={pageTitle}
+          reserveWindowButtons={reserveWindowButtons}
+        />
         {!navigationInDrawer && (
           <AppShell.Navbar
             aria-label={t`Modules`}
-            px={navbarHoldsWindowButtons ? iconsOnlyNavbarPadding : "xs"}
-            py="xs"
-            style={navbarStandsAlone ? NAVBAR_ALONE_STYLE : NAVBAR_STYLE}
+            p="xs"
+            pt={0}
+            style={NAVBAR_STYLE}
             withBorder={false}
           >
-            {hasNavigationStrip && (
-              <TopStrip
-                style={
-                  // The buttons float over the column, so only the padding around it can drag the window.
-                  navbarHoldsWindowButtons
-                    ? {
-                        ...NAVBAR_TOP_STRIP_STYLE,
-                        marginInline: `calc(-1 * ${iconsOnlyNavbarPadding})`,
-                      }
-                    : NAVBAR_TOP_STRIP_STYLE
-                }
-              />
-            )}
-            {moduleSidebarShown && (
-              <Box aria-hidden style={{ ...NAVBAR_DIVIDER_STYLE, top: topStripHeight }} />
-            )}
             <NavbarColumn
               appearance={navbarIconsOnly ? "iconsOnly" : "labelled"}
               navigation={navigation}
             />
           </AppShell.Navbar>
         )}
-        {logo && !navigationInDrawer && !navbarHoldsWindowButtons && (
-          <Logo
-            logo={logo}
-            markOnly={logoMarkOnly}
-            style={{
-              ...NAVIGATION_LOGO_STYLE,
-              insetInlineStart: reserveWindowButtons
-                ? START_AFTER_WINDOW_BUTTONS
-                : rem(LOGO_START_ON_ICON_AXIS),
-            }}
-          />
-        )}
-        <AppShell.Main style={navbarStandsAlone ? MAIN_BESIDE_NAVBAR_ALONE_STYLE : MAIN_STYLE}>
-          <Splitter
-            {...moduleSidebarResize.splitterProps}
-            h="100%"
-            attributes={{
-              handle: {
-                "aria-label": t`Resize module sidebar`,
-                // A pointer drags by its own events, so only the keyboard needs the focus.
-                onMouseDown: (event: MouseEvent) => event.preventDefault(),
-              },
-            }}
-            handleIcon={null}
-            lineSize={GAP}
-            styles={{
-              // The gap is the handle. Its thumb stays invisible and only carries Mantine's focus ring.
-              handle: {
-                backgroundColor: "transparent",
-                display: moduleSidebarShown ? undefined : "none",
-              },
-              thumb: { backgroundColor: "transparent", border: "none", width: rem(GAP / 2) },
-            }}
-          >
-            <Splitter.Pane
-              {...moduleSidebarResize.paneProps}
-              data-color-set={activeColor}
-              style={MODULE_SIDEBAR_PANE_STYLE}
+        <AppShell.Main style={navigationInDrawer ? MAIN_WITHOUT_NAVBAR_STYLE : MAIN_STYLE}>
+          <Box style={SHEET_STYLE}>
+            <Splitter
+              {...moduleSidebarResize.splitterProps}
+              h="100%"
+              attributes={{
+                handle: {
+                  "aria-label": t`Resize module sidebar`,
+                  // A pointer drags by its own events, so only the keyboard needs the focus.
+                  onMouseDown: (event: MouseEvent) => event.preventDefault(),
+                },
+              }}
+              handleIcon={null}
+              lineSize={GAP}
+              styles={{
+                // The gap is the handle. Its thumb stays invisible and only carries Mantine's focus ring.
+                handle: {
+                  backgroundColor: "transparent",
+                  display: moduleSidebarShown ? undefined : "none",
+                },
+                thumb: { backgroundColor: "transparent", border: "none", width: rem(GAP / 2) },
+              }}
             >
-              {moduleSidebarShown && (
-                <>
-                  {hasTopStrip && <TopStrip />}
+              <Splitter.Pane
+                {...moduleSidebarResize.paneProps}
+                data-color-set={activeColor}
+                style={MODULE_SIDEBAR_PANE_STYLE}
+              >
+                {moduleSidebarShown && (
                   <ScrollArea flex={1} mih={0}>
                     <Box p="xs">{moduleSidebar}</Box>
                   </ScrollArea>
-                </>
-              )}
-            </Splitter.Pane>
-            <Splitter.Pane
-              defaultSize={100}
-              data-color-set={activeColor}
-              style={CONTENT_PANE_STYLE}
-            >
-              <ContentHeader
-                channelBadge={channelBadge}
-                drawerOpened={drawerOpened}
-                indicatorForm={indicatorForm(step)}
-                indicatorModules={indicatorModules}
-                isPhone={isPhone}
-                logo={navbarHoldsWindowButtons ? logo : undefined}
-                moduleSidebarCollapsed={moduleSidebarCollapsed}
-                navigationInDrawer={navigationInDrawer}
-                onModuleSidebarCollapsedCommit={onModuleSidebarCollapsedCommit}
-                onToggleDrawer={toggleDrawer}
-                pageTitle={pageTitle}
-                startsAfterWindowButtons={navigationInDrawer && reserveWindowButtons}
-              />
-              <ScrollArea flex={1} mih={0}>
-                <Box p="md">{children}</Box>
-              </ScrollArea>
-            </Splitter.Pane>
-          </Splitter>
+                )}
+              </Splitter.Pane>
+              <Splitter.Pane
+                defaultSize={100}
+                data-color-set={activeColor}
+                style={CONTENT_PANE_STYLE}
+              >
+                <ScrollArea flex={1} mih={0}>
+                  <Box p="md">{children}</Box>
+                </ScrollArea>
+              </Splitter.Pane>
+            </Splitter>
+          </Box>
         </AppShell.Main>
         {isPhone && (
           <AppShell.Footer style={BOTTOM_BAR_STYLE} withBorder={false}>

@@ -83,7 +83,7 @@ function SearchField({ value, onChange }: SearchFieldProps) {
 interface RowGroupProps {
   readonly rows: readonly SettingsRow[];
   readonly store: SettingsStore;
-  /** The View's title above its hits; the page of a View has it in the content header. */
+  /** The View's title above its hits; the page of a View has it in the Shell's header. */
   readonly title: string | undefined;
 }
 
@@ -148,7 +148,7 @@ function RowGroup({ rows, store, title }: RowGroupProps) {
           <Subgroup
             heading={i18n._(heading)}
             key={key}
-            // Below the View's title: the content header's on its page, the one above its hits.
+            // Below the View's title: the Shell's header's on its page, the one above its hits.
             order={title === undefined ? 2 : 3}
             rows={together}
             store={store}
