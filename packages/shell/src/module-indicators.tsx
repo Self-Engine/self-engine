@@ -15,7 +15,7 @@ import { useIndicatorPanels, useOpeningOf } from "./indicator-panels.tsx";
 import { LazyContribution, lazyComponents } from "./lazy-contribution.tsx";
 import type { IndicatorForm } from "./module-indicator-form.ts";
 
-/** The height of a place, below the content header's own, so no indicator can make it taller. */
+/** The height of a place, below the header's own, so no indicator can make it taller. */
 const PLACE_HEIGHT = 32;
 
 /**
@@ -179,7 +179,7 @@ const declaresAnIndicator = (module: ShellContribution): module is ModuleWithInd
   module.indicator !== undefined;
 
 /**
- * The Module Indicators at the end of the content header. Their code loads in the first idle
+ * The Module Indicators at the end of the Shell's header. Their code loads in the first idle
  * moment after the first paint, so it costs the start nothing; the Shell passes them no data.
  */
 export function ModuleIndicators({ modules, form, panelAsSheet }: ModuleIndicatorsProps) {

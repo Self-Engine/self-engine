@@ -57,7 +57,7 @@ export interface ModuleIndicatorWithPanelProps extends ModuleIndicatorProps {
 }
 
 /**
- * The small element of a module at the end of the content header, on every page. Its code lives
+ * The small element of a module at the end of the Shell's header, on every page. Its code lives
  * in the module's `src/indicator/` folder, which the startup check keeps out of the start: the
  * Shell loads it in an idle moment after the first paint and shows the module's icon until then.
  */

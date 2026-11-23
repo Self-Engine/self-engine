@@ -18,8 +18,8 @@ const LOGO_WITH_NAME_WIDTH = LOGO_MARK_WIDTH + NAVBAR_PADDING + 91;
 const LOGO_MARK_INSET = (ICON_COLUMN_WIDTH - LOGO_MARK_WIDTH) / 2;
 /** The gap around and between the Shell's containers. */
 export const GAP = 8;
-/** From the window edge to the mark on the icon axis, with or without its name. */
-export const LOGO_START_ON_ICON_AXIS = GAP + NAVBAR_PADDING + LOGO_MARK_INSET;
+/** From the window edge to the mark on the icon axis, with or without its name. The Navbar starts at the window edge. */
+export const LOGO_START_ON_ICON_AXIS = NAVBAR_PADDING + LOGO_MARK_INSET;
 /** What the user set for the Navbar. Only the wide Layout Step shows it. */
 export interface ShellNavbarState {
   readonly collapsed: boolean;
@@ -38,41 +38,33 @@ export interface NavbarLimits {
 }
 
 /**
- * Where anything beside the window buttons starts inside the frame, in Mantine's unscaled numbers.
- * The frame follows the scale and the buttons stay in real pixels, so it depends on the scale.
+ * Where anything beside the window buttons starts, from the window edge, in Mantine's unscaled
+ * numbers. The header follows the scale and the buttons stay in real pixels, so it depends on the
+ * scale.
  */
-const startAfterWindowButtons = (scale: number) =>
-  SHELL_START_AFTER_WINDOW_BUTTONS_PX / scale - GAP;
+export const startAfterWindowButtons = (scale: number) =>
+  SHELL_START_AFTER_WINDOW_BUTTONS_PX / scale;
 
-/** The narrowest wide Navbar: the logo with its name has to fit its strip. */
+/**
+ * The narrowest wide Navbar: the logo with its name has to fit the part of the header above it,
+ * after the window buttons if there are any.
+ */
 function navbarMinWideWidth(scale: number, reserveWindowButtons: boolean): number {
   const logoStart = reserveWindowButtons
     ? startAfterWindowButtons(scale)
     : NAVBAR_PADDING + LOGO_MARK_INSET;
-  return Math.max(
-    NAVBAR_SMALLEST_WIDE_WIDTH,
-    Math.ceil(logoStart + LOGO_WITH_NAME_WIDTH + NAVBAR_PADDING),
-  );
+  return Math.max(NAVBAR_SMALLEST_WIDE_WIDTH, Math.ceil(logoStart + LOGO_WITH_NAME_WIDTH));
 }
 
 interface NavbarLimitsInput {
   readonly scale: number;
   readonly reserveWindowButtons: boolean;
-  /** Without the Module Sidebar beside it, an icons-only Navbar has to hold the window buttons. */
-  readonly standsAlone: boolean;
 }
 
-export function navbarLimits({
-  scale,
-  reserveWindowButtons,
-  standsAlone,
-}: NavbarLimitsInput): NavbarLimits {
+export function navbarLimits({ scale, reserveWindowButtons }: NavbarLimitsInput): NavbarLimits {
   return {
     minWideWidth: navbarMinWideWidth(scale, reserveWindowButtons),
-    iconsOnlyWidth:
-      reserveWindowButtons && standsAlone
-        ? Math.ceil(startAfterWindowButtons(scale))
-        : NAVBAR_ICONS_ONLY_WIDTH,
+    iconsOnlyWidth: NAVBAR_ICONS_ONLY_WIDTH,
   };
 }
 

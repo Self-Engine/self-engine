@@ -93,7 +93,7 @@ function happyDOM(): { setViewport: (viewport: { width: number; height: number }
 const WIDTHS = { full: 1440, short: 390 } as const;
 
 /**
- * The Shell on the projects' page with the timer's indicator in the content header, over the test
+ * The Shell on the projects' page with the timer's indicator in the Shell's header, over the test
  * Data Process, after `setup`. The page's Clock stands at `pageNow` (the Data Process's "now"
  * unless a test says else).
  */

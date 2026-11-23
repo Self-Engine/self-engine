@@ -5,7 +5,7 @@ describe("titleBarOptions", () => {
   it("hides the macOS title bar and places the buttons in the Shell's strip", () => {
     expect(titleBarOptions("darwin")).toEqual({
       titleBarStyle: "hiddenInset",
-      trafficLightPosition: { x: 16, y: 25 },
+      trafficLightPosition: { x: 16, y: 17 },
     });
   });
 

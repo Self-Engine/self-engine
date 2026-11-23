@@ -1,11 +1,10 @@
-import { SHELL_TOP_STRIP_HEIGHT, SHELL_REFERENCE_WIDTHS } from "@self-engine/shell/geometry";
+import { SHELL_REFERENCE_WIDTHS } from "@self-engine/shell/geometry";
 import { MantineThemeProvider } from "@mantine/core";
 import type { Meta } from "@storybook/react-vite";
 import { expect, screen, userEvent, waitFor } from "storybook/test";
 import { defineContribution, Shell, type ShellProps } from "./index.ts";
 import {
   ENTRIES,
-  LOGO,
   LOGO_AND_WINDOW_BUTTONS,
   appRegionOf,
   atFrameWidth,
@@ -49,24 +48,6 @@ export const ModuleSidebarGrowsWithTheScale: Story = {
     await expect(
       widthOf(canvas.getByText("Sidebar content").closest(".mantine-Splitter-pane")!),
     ).toBe(270);
-  },
-};
-
-export const TheModuleSidebarGetsADragStripAboveIt: Story = {
-  ...atViewport("wide"),
-  args: { logo: LOGO },
-  play: async ({ canvas }) => {
-    const pane = paneOf(canvas, "Sidebar content");
-    const strip = pane.firstElementChild!;
-    await expect(appRegionOf(strip)).toBe("drag");
-    await expect(strip.getBoundingClientRect()).toMatchObject({
-      top: pane.getBoundingClientRect().top,
-      height: SHELL_TOP_STRIP_HEIGHT,
-      width: pane.getBoundingClientRect().width,
-    });
-    await expect(canvas.getByText("Sidebar content").getBoundingClientRect().top).toBeGreaterThan(
-      pane.getBoundingClientRect().top + SHELL_TOP_STRIP_HEIGHT,
-    );
   },
 };
 
@@ -235,14 +216,14 @@ export const TheCollapseToggleExistsOnlyAtTheWideAndMediumSteps: Story = {
   },
 };
 
-/** The place the Burger has at the narrow step: first in the header, level with the title. */
-export const TheCollapseToggleStartsTheContentHeader: Story = {
+/** The place the Burger has at the narrow step: in the header, after the part above the Navbar, level with the title. */
+export const TheCollapseToggleStartsWhatBelongsToThePage: Story = {
   ...atViewport("wide"),
   play: async ({ canvas }) => {
     const toggle = collapseToggle(canvas);
     const title = canvas.getByRole("heading", { name: "Time" });
     await expect(toggle.getBoundingClientRect().left).toBeCloseTo(
-      paneOf(canvas, "Page content").getBoundingClientRect().left + 16,
+      navbarOf(canvas).getBoundingClientRect().right + 12,
       0,
     );
     await expect(title.getBoundingClientRect().left).toBeGreaterThan(
