@@ -2,6 +2,7 @@ import { Button, Stack, Text, TextInput } from "@mantine/core";
 import type { Meta } from "@storybook/react-vite";
 import { type ComponentType, useState } from "react";
 import { SHELL_REFERENCE_WIDTHS } from "@self-engine/shell/geometry";
+import { closed, settled } from "@self-engine/ui/story-surfaces";
 import { expect, screen, spyOn, userEvent, waitFor, within } from "storybook/test";
 import { notifyChoice } from "@self-engine/ui";
 import { z } from "zod";
@@ -239,7 +240,7 @@ export const OpeningASecondPanelClosesTheFirst: Story = {
     await userEvent.click(first!);
     await panel();
     await userEvent.click(second!);
-    const other = await screen.findByRole("dialog", { name: "Third module" });
+    const other = await settled(screen.findByRole("dialog", { name: "Third module" }));
     await panelGone();
     await expect(other).toBeVisible();
     await expect(screen.getAllByRole("dialog")).toHaveLength(1);
@@ -676,7 +677,7 @@ export const ACommandPutsThePanelOverTheEditDrawer: Story = {
     routing: storyRouting({ edit: "entry" }),
   },
   play: async ({ canvas }) => {
-    const drawer = await screen.findByRole("dialog", { name: "Time" });
+    const drawer = await settled(screen.findByRole("dialog", { name: "Time" }));
     await within(drawer).findByRole("textbox", { name: "Entry name" });
     await startFromThePalette(canvas, "open the note");
     await expectFocusInPanel();
@@ -694,7 +695,7 @@ export const ACommandPutsThePanelOverTheEditDrawer: Story = {
     // which then takes the next Escape.
     await waitFor(() => expect(drawer.contains(document.activeElement)).toBe(true));
     await pressEscape();
-    await waitFor(() => expect(screen.queryByRole("dialog", { name: "Time" })).toBeNull());
+    await closed(() => screen.queryByRole("dialog", { name: "Time" }));
   },
 };
 
@@ -707,7 +708,7 @@ export const EscapeWithTheFocusNowhereClosesOnlyThePanelOverTheEditDrawer: Story
     routing: storyRouting({ edit: "entry" }),
   },
   play: async ({ canvas }) => {
-    await screen.findByRole("dialog", { name: "Time" });
+    await settled(screen.findByRole("dialog", { name: "Time" }));
     await startFromThePalette(canvas, "open the note");
     await expectFocusInPanel();
     // Nowhere, as after a press on a part of the page that takes no focus.
@@ -753,7 +754,7 @@ export const TallContentScrollsInThePanelOverTheEditDrawer: Story = {
     routing: storyRouting({ edit: "entry" }),
   },
   play: async ({ canvas }) => {
-    const drawer = await screen.findByRole("dialog", { name: "Time" });
+    const drawer = await settled(screen.findByRole("dialog", { name: "Time" }));
     await within(drawer).findByRole("textbox", { name: "Entry name" });
     await startFromThePalette(canvas, "open the note");
     await expectFocusInPanel();

@@ -2,6 +2,7 @@ import { ProjectsIcon } from "@self-engine/icons";
 import { confirm } from "@self-engine/ui";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useState } from "react";
+import { settled } from "@self-engine/ui/story-surfaces";
 import { expect, fn, screen, userEvent, waitFor, within } from "storybook/test";
 import { z } from "zod";
 import {
@@ -188,7 +189,7 @@ export const ShortcutsDoNothingWhileAConfirmationIsOpen: Story = {
   play: async () => {
     await bindingsArrived();
     const answer = confirm({ title: "Sure?", message: "Really?", confirmLabel: "Yes" });
-    const question = within(await screen.findByRole("dialog", { name: "Sure?" }));
+    const question = within(await settled(screen.findByRole("dialog", { name: "Sure?" })));
     await pressNew();
     await pressEverywhere();
     await expect(startedInFirst).not.toHaveBeenCalled();

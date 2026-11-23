@@ -9,6 +9,7 @@ import { calendarDaySchema, wallClockTimeSchema } from "@self-engine/time";
 import { commitWhere } from "@self-engine/ui/story-render-counts";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useDeferredValue, useState } from "react";
+import { closed, settled } from "@self-engine/ui/story-surfaces";
 import { expect, screen, userEvent, waitFor, within } from "storybook/test";
 import {
   CalendarDayField,
@@ -164,7 +165,7 @@ function textInput(element: HTMLElement): HTMLInputElement | HTMLTextAreaElement
 
 /** The open form, once it shows the stored entry. */
 async function openForm() {
-  const canvas = within(await screen.findByRole("dialog", { name: "Example" }));
+  const canvas = within(await settled(screen.findByRole("dialog", { name: "Example" })));
   const title = textInput(await canvas.findByRole("textbox", { name: "Title" }));
   const description = textInput(canvas.getByRole("textbox", { name: "Description" }));
   const save = canvas.getByRole("button", { name: /^(Save|Speichern)$/ });
@@ -256,7 +257,7 @@ export const AStoredValueEqualToTheTypedOneIsNoChange: Story = {
     await expect(title).toHaveValue("Kitchen and hall");
     // Nothing left to lose: Cancel closes without asking.
     await userEvent.click(canvas.getByRole("button", { name: "Cancel" }));
-    await waitFor(() => expect(screen.queryByRole("dialog", { name: "Example" })).toBeNull());
+    await closed(() => screen.queryByRole("dialog", { name: "Example" }));
     await expect(screen.queryByRole("dialog", { name: "Discard changes?" })).toBeNull();
   },
 };
@@ -401,7 +402,7 @@ export const DeletingFromTheDrawerShowsNoMessage: Story = {
     });
     watch.observe(document.body, { childList: true, subtree: true, characterData: true });
     await userEvent.click(canvas.getByRole("button", { name: "Delete" }));
-    await waitFor(() => expect(screen.queryByRole("dialog", { name: "Example" })).toBeNull());
+    await closed(() => screen.queryByRole("dialog", { name: "Example" }));
     watch.disconnect();
     await expect(shown).toBe(false);
   },
@@ -425,15 +426,13 @@ export const AStarWithoutAColorIsReportedAtTheColor: Story = {
     const { canvas, save } = await openForm();
     const color = canvas.getByRole("radiogroup", { name: "Color" });
     await userEvent.click(canvas.getByRole("button", { name: /^Icon/ }));
-    const dialog = await screen.findByRole("dialog", { name: "Choose an icon" });
+    const dialog = await settled(screen.findByRole("dialog", { name: "Choose an icon" }));
     await userEvent.click(
       within(within(dialog).getByRole("listbox", { name: "Icons" })).getByRole("option", {
         name: "Star",
       }),
     );
-    await waitFor(() =>
-      expect(screen.queryByRole("dialog", { name: "Choose an icon" })).toBeNull(),
-    );
+    await closed(() => screen.queryByRole("dialog", { name: "Choose an icon" }));
     // The rule ties the color to the icon: the stored "no color" is checked and sent with it.
     await userEvent.click(save);
     await expect(color).toHaveAccessibleDescription("Choose a color for the star.");

@@ -22,6 +22,7 @@ import {
   timeTrackingStoryPort,
 } from "@self-engine/time-tracking/testing";
 import type { Meta, StoryObj } from "@storybook/react-vite";
+import { settled } from "@self-engine/ui/story-surfaces";
 import { expect, screen, userEvent, waitFor, within } from "storybook/test";
 import { settingsStore } from "./settings-store.ts";
 import { AppAt, keepNoticesOpen, loadStoryApp, noDrawer } from "./story-app.tsx";
@@ -95,12 +96,11 @@ const day = (canvas: Canvas, name: string) => canvas.findByRole("region", { name
 
 /** The drawer named `name` and its parts, as a user finds them. */
 async function drawerNamed(name: string) {
-  const dialog = await screen.findByRole("dialog", { name });
+  const dialog = await settled(screen.findByRole("dialog", { name }));
   const drawer = within(dialog);
   const time = (label: string) => drawer.getByRole("spinbutton", { name: label });
-  // The drawer fades in and then takes the focus; keys typed before that would be lost.
+  // The drawer takes the focus once it is shown; keys typed before that would be lost.
   await waitFor(() => expect(dialog.contains(document.activeElement)).toBe(true));
-  await waitFor(() => expect(time("Beginn")).toBeVisible());
   return {
     drawer,
     date: () => drawer.getByRole("textbox", { name: "Datum" }),
@@ -227,8 +227,8 @@ export const AStoredEntryOpensWithItsValuesAndSendsOnlyTheChangedNote: Story = {
     await expect(form.date()).toHaveValue("18.11.2026");
     await expect(form.start()).toHaveValue("09");
     await expect(form.end()).toHaveValue("10");
-    // 44:10 that really passed, rounded up for display; the drawer fades in.
-    await waitFor(() => expect(form.drawer.getByText("Dauer: 0:45")).toBeVisible());
+    // 44:10 that really passed, rounded up for display.
+    await expect(form.drawer.getByText("Dauer: 0:45")).toBeVisible();
     await expect(form.project()).toHaveValue("Website");
     await expect(form.note()).toHaveValue("Review");
     await expect(form.save()).toBeDisabled();

@@ -8,6 +8,7 @@ import { oc } from "@orpc/contract";
 import { DataProvider, portHooks } from "@self-engine/data-client/react";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { memo, useState } from "react";
+import { closed, settled } from "@self-engine/ui/story-surfaces";
 import { expect, screen, userEvent, waitFor, within } from "storybook/test";
 import { z } from "zod";
 import {
@@ -191,11 +192,11 @@ const UNFINISHED = "Complete or clear this field.";
 
 async function chooseIcon(form: ReturnType<typeof formIn>, name: string) {
   await userEvent.click(form.icon());
-  const dialog = await screen.findByRole("dialog", { name: "Choose an icon" });
+  const dialog = await settled(screen.findByRole("dialog", { name: "Choose an icon" }));
   await userEvent.click(
     within(within(dialog).getByRole("listbox", { name: "Icons" })).getByRole("option", { name }),
   );
-  await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+  await closed(() => screen.queryAllByRole("dialog"));
 }
 
 export const AViolationAtAPickerShowsThereAndTakesTheFocus: Story = {

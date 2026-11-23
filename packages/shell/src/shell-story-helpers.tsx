@@ -5,6 +5,7 @@ import { SHELL_REFERENCE_WIDTHS, SHELL_TOP_STRIP_HEIGHT } from "@self-engine/she
 import { type DataAccess, NO_DATA_PROCESS } from "@self-engine/data-client/react";
 import { ProjectsIcon, SettingsIcon, TimeIcon } from "@self-engine/icons";
 import { BrandMark } from "@self-engine/icons/brand-mark";
+import { closed, settled } from "@self-engine/ui/story-surfaces";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { Button, Group, Text } from "@mantine/core";
 import { useEffect, useState } from "react";
@@ -142,9 +143,8 @@ export function PanelIndicator({ togglePanel }: ModuleIndicatorWithPanelProps) {
 }
 
 /** The panel of the first module, Projects: named after its module, as the Edit Drawer is. */
-export const panel = () => screen.findByRole("dialog", { name: "Projects" });
-export const panelGone = () =>
-  waitFor(() => expect(screen.queryByRole("dialog", { name: "Projects" })).toBeNull());
+export const panel = () => settled(screen.findByRole("dialog", { name: "Projects" }));
+export const panelGone = () => closed(() => screen.queryByRole("dialog", { name: "Projects" }));
 
 /** The indicator's code loads in an idle moment, which a busy test browser can put off. */
 export const INDICATOR_ARRIVES = { timeout: 4000 };
@@ -511,8 +511,8 @@ export const atSmallestFontScale = (viewport: keyof typeof VIEWPORTS) => ({
 
 export async function openDrawer(canvas: Canvas, burger = "Open navigation"): Promise<HTMLElement> {
   await userEvent.click(canvas.getByRole("button", { name: burger }));
-  const drawer = await screen.findByRole("dialog", { name: "Module Sidebar" });
-  await waitFor(() => expect(within(drawer).getByText("Sidebar content")).toBeVisible());
+  const drawer = await settled(screen.findByRole("dialog", { name: "Module Sidebar" }));
+  await expect(within(drawer).getByText("Sidebar content")).toBeVisible();
   return drawer;
 }
 

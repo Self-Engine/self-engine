@@ -1,5 +1,6 @@
 import { Component, type ReactNode, startTransition, useLayoutEffect, useState } from "react";
 import type { Meta } from "@storybook/react-vite";
+import { closed, settled } from "@self-engine/ui/story-surfaces";
 import { expect, screen, spyOn, userEvent, waitFor, within } from "storybook/test";
 import { z } from "zod";
 import {
@@ -60,13 +61,12 @@ function OpenEditor() {
 async function openDrawer(canvas: ReturnType<typeof within>) {
   const trigger = canvas.getByRole("button", { name: "Open editor" });
   await userEvent.click(trigger);
-  const drawer = await screen.findByRole("dialog", { name: "Time" });
+  const drawer = await settled(screen.findByRole("dialog", { name: "Time" }));
   const draft = await within(drawer).findByRole("textbox", { name: "Draft" });
   return { drawer: within(drawer), draft, trigger };
 }
 
-const drawerGone = () =>
-  waitFor(() => expect(screen.queryByRole("dialog", { name: "Time" })).toBeNull());
+const drawerGone = () => closed(() => screen.queryByRole("dialog", { name: "Time" }));
 
 type Routing = ReturnType<typeof storyRouting>;
 type Opened = Awaited<ReturnType<typeof openDrawer>>;
@@ -359,7 +359,7 @@ export const ASaveThatEndsAfterItsDrawerWasLeftClosesNothing = withDraft(
     await drawerGone();
 
     routing.address.writeSearch((search) => ({ ...search, edit: "another" }));
-    const drawer = within(await screen.findByRole("dialog", { name: "Time" }));
+    const drawer = within(await settled(screen.findByRole("dialog", { name: "Time" })));
     await userEvent.type(await drawer.findByRole("textbox", { name: "Draft" }), "y");
     endWaitingSave();
     await nextFrame();
@@ -392,7 +392,7 @@ export const ASaveThatEndsAfterItsEditorWasReplacedClosesNothing: Story = {
       await userEvent.click(replaced.drawer.getByRole("button", { name: "Save draft" }));
       replaceModule();
       // The same entry in a new editor, with a change of its own.
-      const drawer = within(await screen.findByRole("dialog", { name: "Time" }));
+      const drawer = within(await settled(screen.findByRole("dialog", { name: "Time" })));
       await waitFor(() => expect(drawer.getByRole("textbox", { name: "Draft" })).toHaveValue(""));
       await userEvent.type(drawer.getByRole("textbox", { name: "Draft" }), "y");
       endWaitingSave();

@@ -13,7 +13,8 @@ import {
 } from "@self-engine/shell";
 import { loadStoryShell } from "@self-engine/shell/story-interactions";
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { expect, screen, userEvent, waitFor, within } from "storybook/test";
+import { closed, settled } from "@self-engine/ui/story-surfaces";
+import { expect, screen, userEvent, within } from "storybook/test";
 import { ExampleForm } from "./example-form.tsx";
 import { recordingPort } from "./story-port.ts";
 
@@ -90,11 +91,9 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-const panel = () => screen.findByRole("dialog", { name: "Example" });
+const panel = () => settled(screen.findByRole("dialog", { name: "Example" }));
 const expectPanelOpen = async () => {
-  const dialog = await panel();
-  // A busy browser may still be fading the popover in.
-  await waitFor(() => expect(dialog).toBeVisible());
+  await panel();
   await expect(screen.queryByRole("dialog", { name: "Discard changes?" })).toBeNull();
 };
 
@@ -130,6 +129,6 @@ export const APickInAFieldsDropdownKeepsThePanelOpen: Story = {
 
     // A press on the page still leaves.
     await userEvent.click(page.getByText("Page content"));
-    await waitFor(() => expect(screen.queryByRole("dialog", { name: "Example" })).toBeNull());
+    await closed(() => screen.queryByRole("dialog", { name: "Example" }));
   },
 };

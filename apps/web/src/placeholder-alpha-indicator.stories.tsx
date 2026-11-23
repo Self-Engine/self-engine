@@ -6,6 +6,7 @@
 import { placeholderAlphaAnswers } from "@self-engine/placeholder-alpha/testing";
 import { SHELL_REFERENCE_WIDTHS } from "@self-engine/shell/geometry";
 import type { Meta, StoryObj } from "@storybook/react-vite";
+import { closed } from "@self-engine/ui/story-surfaces";
 import { expect, screen, userEvent, waitFor, within } from "storybook/test";
 import { answer, asked, noQuestion } from "@self-engine/shell/story-interactions";
 import { AppAt, loadStoryApp, openPalette, paletteGone } from "./story-app.tsx";
@@ -70,8 +71,7 @@ export const InItsOwnModule = atStep("wide", "/placeholder-alpha/overview");
 export const InTheSettings = atStep("wide", "/settings/appearance");
 
 const panelDialog = () => screen.findByRole("dialog", { name: "Placeholder Alpha" });
-const panelGone = () =>
-  waitFor(() => expect(screen.queryByRole("dialog", { name: "Placeholder Alpha" })).toBeNull());
+const panelGone = () => closed(() => screen.queryByRole("dialog", { name: "Placeholder Alpha" }));
 
 const panelAt = (step: keyof typeof VIEWPORTS, counter: string): Story => ({
   globals: { viewport: { value: step, isRotated: false } },

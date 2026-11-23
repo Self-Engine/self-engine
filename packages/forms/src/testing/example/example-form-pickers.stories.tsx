@@ -5,6 +5,7 @@
 import { Stack } from "@mantine/core";
 import { DataProvider } from "@self-engine/data-client/react";
 import type { Meta, StoryObj } from "@storybook/react-vite";
+import { closed, settled } from "@self-engine/ui/story-surfaces";
 import { expect, screen, userEvent, waitFor, within } from "storybook/test";
 import { ExampleForm } from "./example-form.tsx";
 import { fieldsDrawnDuring } from "./fields-drawn.ts";
@@ -55,11 +56,11 @@ async function typeTheTexts(form: ReturnType<typeof formIn>) {
 
 /** The icon field's open dialog. */
 async function iconDialog() {
-  const dialog = await screen.findByRole("dialog", { name: "Choose an icon" });
+  const dialog = await settled(screen.findByRole("dialog", { name: "Choose an icon" }));
   return { dialog, picker: within(dialog) };
 }
 
-const dialogClosed = () => waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+const dialogClosed = () => closed(() => screen.queryAllByRole("dialog"));
 
 async function chooseIcon(form: ReturnType<typeof formIn>, name: string) {
   await userEvent.click(form.icon());

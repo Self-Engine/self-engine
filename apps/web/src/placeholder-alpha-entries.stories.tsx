@@ -10,6 +10,7 @@ import {
 import { LOADER_DELAY_MS } from "@self-engine/ui";
 import { holdTimers } from "@self-engine/ui/story-timers";
 import type { Meta, StoryObj } from "@storybook/react-vite";
+import { settled } from "@self-engine/ui/story-surfaces";
 import { expect, screen, userEvent, waitFor, within } from "storybook/test";
 import {
   AppAt,
@@ -109,7 +110,9 @@ export const ADrawerWhoseLoadFailsOffersToTryAgain: Story = {
     access: placeholderAlphaAnswers({ list: "unexpected" }),
   },
   play: async () => {
-    const drawer = within(await screen.findByRole("dialog", { name: "Placeholder Alpha" }));
+    const drawer = within(
+      await settled(screen.findByRole("dialog", { name: "Placeholder Alpha" })),
+    );
     const failure = await drawer.findByRole("alert");
     await expect(failure).toHaveTextContent("This part could not be loaded.");
     await expect(within(failure).getByRole("button", { name: "Try again" })).toBeVisible();
@@ -120,7 +123,7 @@ export const ADrawerWhoseLoadFailsOffersToTryAgain: Story = {
 /** Types a new name for Studio work in its drawer and saves. */
 async function renameStudio(canvas: Canvas) {
   await userEvent.click(await canvas.findByRole("button", { name: "Studio work" }));
-  const drawer = within(await screen.findByRole("dialog", { name: "Studio work" }));
+  const drawer = within(await settled(screen.findByRole("dialog", { name: "Studio work" })));
   const name = await drawer.findByRole("textbox", { name: "Name" });
   await userEvent.clear(name);
   await userEvent.type(name, GARDEN_WORK.name);
@@ -149,7 +152,7 @@ export const ATakenNameInGerman: Story = {
   globals: { language: "de" },
   play: async ({ canvas }) => {
     await userEvent.click(await canvas.findByRole("button", { name: "Studio work" }));
-    const drawer = within(await screen.findByRole("dialog", { name: "Studio work" }));
+    const drawer = within(await settled(screen.findByRole("dialog", { name: "Studio work" })));
     await userEvent.type(await drawer.findByRole("textbox", { name: "Name" }), "!");
     await userEvent.click(drawer.getByRole("button", { name: "Speichern" }));
     const conflict = await drawer.findByText("Ein Eintrag mit diesem Namen existiert bereits.");
@@ -186,7 +189,7 @@ export const DeletingFromTheDrawerClosesWithoutAskingAndUndoDoesNotReopen: Story
   beforeEach: keepNoticesOpen,
   play: async ({ canvas }) => {
     await userEvent.click(await canvas.findByRole("button", { name: "Studio work" }));
-    const drawer = within(await screen.findByRole("dialog", { name: "Studio work" }));
+    const drawer = within(await settled(screen.findByRole("dialog", { name: "Studio work" })));
     await userEvent.type(await drawer.findByRole("textbox", { name: "Name" }), " changed");
     await userEvent.click(drawer.getByRole("button", { name: "Delete" }));
     // The form keeps its copy of the entry while the drawer slides out.
@@ -265,7 +268,7 @@ export const CommandZInAFieldLeavesTheNoticeAndTheTextAlone: Story = {
     await deleteFromTheList(canvas, "Garden work");
     await waitFor(() => expect(undoOffers()).toHaveLength(1));
     await userEvent.click(await canvas.findByRole("button", { name: "Studio work" }));
-    const drawer = within(await screen.findByRole("dialog", { name: "Studio work" }));
+    const drawer = within(await settled(screen.findByRole("dialog", { name: "Studio work" })));
     const name = await drawer.findByRole("textbox", { name: "Name" });
     await userEvent.click(name);
     await expect(name).toHaveFocus();
@@ -299,7 +302,9 @@ export const AnOldLinkToADeletedEntrySaysItWasNotFound: Story = {
     access: placeholderAlphaAnswers({ list: { data: [GARDEN_WORK] } }),
   },
   play: async () => {
-    const drawer = within(await screen.findByRole("dialog", { name: "Placeholder Alpha" }));
+    const drawer = within(
+      await settled(screen.findByRole("dialog", { name: "Placeholder Alpha" })),
+    );
     await expect(await drawer.findByRole("alert")).toHaveTextContent("Entry not found");
     await userEvent.click(drawer.getByRole("button", { name: "Close" }));
     await noDrawer();
@@ -310,7 +315,9 @@ export const AnOldLinkToADeletedEntrySaysItWasNotFound: Story = {
 export const AnUnknownEntrySaysSoAndOffersOnlyToClose: Story = {
   args: { address: `${OVERVIEW}?edit=no-such-entry` },
   play: async () => {
-    const drawer = within(await screen.findByRole("dialog", { name: "Placeholder Alpha" }));
+    const drawer = within(
+      await settled(screen.findByRole("dialog", { name: "Placeholder Alpha" })),
+    );
     const failure = await drawer.findByRole("alert");
     await expect(failure).toHaveTextContent("Entry not found");
     await expect(within(failure).getAllByRole("button")).toHaveLength(1);

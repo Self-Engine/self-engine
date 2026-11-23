@@ -1,6 +1,7 @@
 import { ProjectsIcon } from "@self-engine/icons";
 import { confirm } from "@self-engine/ui";
 import type { Meta, StoryObj } from "@storybook/react-vite";
+import { settled } from "@self-engine/ui/story-surfaces";
 import { expect, fn, screen, spyOn, userEvent, waitFor, within } from "storybook/test";
 import { z } from "zod";
 import {
@@ -352,7 +353,7 @@ export const TheKeyDoesNothingWhileAConfirmationIsOpen: Story = {
     await pressEscape();
     await paletteGone();
     const answer = confirm({ title: "Sure?", message: "Really?", confirmLabel: "Yes" });
-    const question = within(await screen.findByRole("dialog", { name: "Sure?" }));
+    const question = within(await settled(screen.findByRole("dialog", { name: "Sure?" })));
     await pressShortcut("{Control>}k{/Control}");
     await expect(paletteDialog()).toBeNull();
     await userEvent.click(question.getByRole("button", { name: "Cancel" }));

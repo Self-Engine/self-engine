@@ -11,6 +11,7 @@
     "./swatch-radio-group": "./src/swatch-radio-group.tsx",
     "./warning-alert": "./src/warning-alert.tsx",
     "./story-notices": "./src/story-notices.ts",
+    "./story-surfaces": "./src/story-surfaces.ts",
     "./story-timers": "./src/story-timers.ts",
     "./story-render-counts": "./src/story-render-counts.ts"
   },

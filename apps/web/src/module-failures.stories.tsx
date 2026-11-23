@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
+import { closed, settled } from "@self-engine/ui/story-surfaces";
 import { expect, spyOn, userEvent, waitFor, within } from "storybook/test";
 import { contribution as alpha } from "@self-engine/placeholder-alpha";
 import { contribution as beta } from "@self-engine/placeholder-beta";
@@ -58,7 +59,7 @@ const onceSettled = () => new Promise((resolve) => setTimeout(resolve, 50));
 const indicatorRetryLabel = "Placeholder Alpha indicator failed. Try again.";
 
 async function expectEditorShows(canvasElement: HTMLElement, id: string) {
-  const dialog = await page(canvasElement).findByRole("dialog");
+  const dialog = await settled(page(canvasElement).findByRole("dialog"));
   await within(dialog).findByText(id);
 }
 
@@ -121,7 +122,7 @@ export const DrawerLoadFailureStaysInItsFrame: Story = {
     expectingReportedErrors(spyOnModule.editDrawer().mockRejectedValueOnce(offline)),
   play: async ({ canvas, canvasElement }) => {
     const body = page(canvasElement);
-    const dialog = within(await body.findByRole("dialog", { name: "Placeholder Alpha" }));
+    const dialog = within(await settled(body.findByRole("dialog", { name: "Placeholder Alpha" })));
     await expect(await dialog.findByRole("alert")).toHaveTextContent("could not be loaded");
     await expectShellIntact(canvas);
     await userEvent.click(dialog.getByRole("button", { name: "Try again" }));
@@ -234,7 +235,7 @@ export const SlowDrawerCodeShowsTheLoadingState: Story = {
     return () => load.mockRestore();
   },
   play: async ({ canvasElement }) => {
-    const dialog = within(await page(canvasElement).findByRole("dialog"));
+    const dialog = within(await settled(page(canvasElement).findByRole("dialog")));
     await expect(await dialog.findByRole("status", { name: "Loading" })).toBeVisible();
     heldDrawer.finish({ default: DrawerStandIn });
     await expect(await dialog.findByText("Drawer stand-in")).toBeVisible();
@@ -382,9 +383,9 @@ export const ClosingTheEditorReturnsFocus: Story = {
     const body = page(canvasElement);
     const entry = await canvas.findByRole("button", { name: "Studio work" });
     await userEvent.click(entry);
-    await body.findByRole("dialog", { name: "Studio work" });
+    await settled(body.findByRole("dialog", { name: "Studio work" }));
     await userEvent.click(body.getByRole("button", { name: "Close editor" }));
-    await waitFor(() => expect(body.queryByRole("dialog")).toBeNull());
+    await closed(() => body.queryAllByRole("dialog"));
     await waitFor(() => expect(entry).toHaveFocus());
   },
 };

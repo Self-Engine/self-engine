@@ -7,6 +7,7 @@ import { DataProvider } from "@self-engine/data-client/react";
 import { activateLanguage, createI18n } from "@self-engine/i18n";
 import { LanguageProvider } from "@self-engine/i18n/react";
 import type { Meta, StoryObj } from "@storybook/react-vite";
+import { settled } from "@self-engine/ui/story-surfaces";
 import { expect, screen, userEvent, waitFor, within } from "storybook/test";
 import { ExampleForm } from "./example-form.tsx";
 import { type RecordingPort, recordingPort } from "./story-port.ts";
@@ -303,7 +304,7 @@ export const ThePickersSpeakGermanAndStartTheWeekOnMonday: Story = {
     await typeTheTexts(canvasElement);
     await userEvent.type(form.day(), "5.11.2026");
     const calendar = within(document.body);
-    await waitFor(() => expect(calendar.getByText("November 2026")).toBeVisible());
+    await settled(calendar.findByText("November 2026"));
     await expect(
       calendar.getByRole("button", { name: "Donnerstag, 5. November 2026" }),
     ).toBeVisible();
@@ -330,7 +331,7 @@ export const AnEmptyDayOpensOnTheTodayHandedIn: Story = {
     await userEvent.click(form.day());
     const calendar = within(document.body);
     // The example hands in 14 February 2031: far from the device's clock, which marks no day here.
-    await waitFor(() => expect(calendar.getByText("February 2031")).toBeVisible());
+    await settled(calendar.findByText("February 2031"));
     const today = calendar.getByRole("button", { name: "Friday, February 14, 2031" });
     await expect(today).toHaveAttribute("data-today", "true");
     await expect(document.body.querySelectorAll("[data-today]")).toHaveLength(1);

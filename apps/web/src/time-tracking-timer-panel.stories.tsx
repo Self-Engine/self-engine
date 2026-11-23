@@ -22,6 +22,7 @@ import {
   timeTrackingStoryPort,
 } from "@self-engine/time-tracking/testing";
 import { clearNotices } from "@self-engine/ui/story-notices";
+import { closed, settled } from "@self-engine/ui/story-surfaces";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { expect, screen, userEvent, waitFor, within } from "storybook/test";
 import { AppAt, keepNoticesOpen, loadStoryApp } from "./story-app.tsx";
@@ -104,21 +105,13 @@ async function opener(canvas: Canvas) {
   return canvas.findByRole("button", { name: /^Timer bearbeiten/ }, ARRIVES);
 }
 
-/**
- * The open panel, named after the module, and its parts, once it holds the focus and stands fully
- * shown. It takes the focus while it still fades in, and a busy browser starts the fade only with
- * its next frame: until then the panel is transparent, and every check of what it shows fails.
- */
+/** The open panel, named after the module, and its parts, once it holds the focus and has settled. */
 async function panelParts() {
   const dialog = await screen.findByRole("dialog", { name: "Zeit" }, ARRIVES);
   const panel = within(dialog);
   // Keys typed before the focus is inside would be lost.
   await waitFor(() => expect(dialog.contains(document.activeElement)).toBe(true));
-  // Transparent before the fade starts, then animating: settled once visible with no animation.
-  await waitFor(async () => {
-    await expect(dialog).toBeVisible();
-    await expect(dialog.getAnimations()).toEqual([]);
-  }, ARRIVES);
+  await settled(dialog, ARRIVES);
   return {
     dialog,
     panel,
@@ -135,8 +128,10 @@ async function openPanel(canvas: Canvas) {
   return panelParts();
 }
 
-const panelGone = () =>
-  waitFor(() => expect(screen.queryByRole("dialog", { name: "Zeit" })).toBeNull());
+const panelGone = () => closed(() => screen.queryByRole("dialog", { name: "Zeit" }));
+
+/** The question before unsaved changes are lost, in German. */
+const DISCARD = "Änderungen verwerfen?";
 
 /**
  * Types a time of four digits into the hours of a picker, over what it held. The list stays open
@@ -201,7 +196,7 @@ const theFormAt = (step: Step): Story => ({
     await userEvent.click(form.button("Speichern"));
     // A successful save closes the panel without a question.
     await panelGone();
-    await expect(screen.queryByRole("dialog", { name: "Änderungen verwerfen?" })).toBeNull();
+    await expect(screen.queryByRole("dialog", { name: DISCARD })).toBeNull();
     await expect(port.calls).toEqual([
       { entry: "editTimer", input: { id: RUNNING.id, note: "Hero section" } },
     ]);
@@ -332,15 +327,13 @@ export const ClosingWithUnsavedChangesAsksFirst: Story = {
     const form = await openPanel(canvas);
     await userEvent.type(form.note(), " v2");
     await userEvent.click(form.button("Abbrechen"));
-    const question = await screen.findByRole("dialog", { name: "Änderungen verwerfen?" });
+    const question = await settled(screen.findByRole("dialog", { name: DISCARD }));
     await userEvent.click(within(question).getByRole("button", { name: "Weiter bearbeiten" }));
-    await waitFor(() =>
-      expect(screen.queryByRole("dialog", { name: "Änderungen verwerfen?" })).toBeNull(),
-    );
+    await closed(() => screen.queryByRole("dialog", { name: DISCARD }));
     await expect(form.note()).toHaveValue("Landing page v2");
 
     await userEvent.click(form.button("Abbrechen"));
-    const again = await screen.findByRole("dialog", { name: "Änderungen verwerfen?" });
+    const again = await settled(screen.findByRole("dialog", { name: DISCARD }));
     await userEvent.click(within(again).getByRole("button", { name: "Verwerfen" }));
     await panelGone();
     await expect(port.calls).toEqual([]);

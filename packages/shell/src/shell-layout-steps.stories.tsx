@@ -1,6 +1,7 @@
 import { SHELL_REFERENCE_WIDTHS, SHELL_TOP_STRIP_HEIGHT } from "@self-engine/shell/geometry";
 import { ProjectsIcon } from "@self-engine/icons";
 import type { Meta } from "@storybook/react-vite";
+import { closed, settled } from "@self-engine/ui/story-surfaces";
 import { expect, screen, userEvent, waitFor, within } from "storybook/test";
 import { Shell, type ShellProps } from "./index.ts";
 import {
@@ -108,10 +109,10 @@ export const Narrow: Story = {
     await expectContentFillsTheFrame(canvas, SHELL_REFERENCE_WIDTHS.narrow);
     await expect(canvas.queryByText("Sidebar content")).toBeNull();
     await userEvent.click(canvas.getByRole("button", { name: "Open navigation" }));
-    const drawer = await screen.findByRole("dialog", { name: "Module Sidebar" });
-    await waitFor(() => expect(within(drawer).getByText("Sidebar content")).toBeVisible());
+    const drawer = await settled(screen.findByRole("dialog", { name: "Module Sidebar" }));
+    await expect(within(drawer).getByText("Sidebar content")).toBeVisible();
     await userEvent.click(within(drawer).getByRole("button", { name: "Close navigation" }));
-    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+    await closed(() => screen.queryAllByRole("dialog"));
   },
 };
 

@@ -1,6 +1,7 @@
 import { Button, Stack, Text, TextInput } from "@mantine/core";
 import type { Meta } from "@storybook/react-vite";
 import { useState } from "react";
+import { settled } from "@self-engine/ui/story-surfaces";
 import { expect, screen, userEvent, waitFor, within } from "storybook/test";
 import { type IndicatorPanelProps, Shell, type ShellProps, useUnsavedChanges } from "./index.ts";
 import {
@@ -61,10 +62,9 @@ const WITH_DRAFT = {
   ],
 };
 
-/** Still there behind the question; a busy browser may still be fading the popover in. */
+/** Still there behind the question, and shown. */
 const expectPanelVisible = async () => {
-  const dialog = await panel();
-  await waitFor(() => expect(dialog).toBeVisible());
+  await panel();
 };
 
 /** The first module's indicator: with two panels, both indicators carry the same name. */
@@ -227,7 +227,7 @@ const openingAnotherPanel = (choice: "Discard" | "Keep editing"): Story => ({
     await answer(choice);
     await noQuestion();
     if (choice === "Discard") {
-      await screen.findByRole("dialog", { name: "Third module" });
+      await settled(screen.findByRole("dialog", { name: "Third module" }));
       await panelGone();
     } else {
       await expectPanelVisible();
@@ -498,7 +498,7 @@ const theQuestionOverThePanelOverTheEditDrawer = (step: "wide" | "phone"): Story
     routing: storyRouting({ edit: "entry" }),
   },
   play: async ({ canvas }) => {
-    const drawer = await screen.findByRole("dialog", { name: "Time" });
+    const drawer = await settled(screen.findByRole("dialog", { name: "Time" }));
     await within(drawer).findByRole("textbox", { name: "Entry name" });
     // The drawer's overlay on the phone covers the header; the panel opens from its indicator.
     const button = await firstIndicator(canvas);

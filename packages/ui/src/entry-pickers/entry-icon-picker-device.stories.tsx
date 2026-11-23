@@ -5,6 +5,7 @@
 // whatever its fonts draw.
 
 import type { Meta, StoryObj } from "@storybook/react-vite";
+import { settled } from "../story-surfaces.ts";
 import { expect, fn, screen, spyOn, userEvent, within } from "storybook/test";
 import { EntryIconPicker } from "./index.ts";
 import { aPageWithoutTheEmojiPicker } from "./story-fresh-page.ts";
@@ -39,7 +40,7 @@ export const HidesTheEmojisTheDeviceCannotDraw: Story = {
   render: () => <EntryIconPicker onChange={answers} value={null} />,
   play: async ({ canvas }) => {
     await userEvent.click(canvas.getByRole("button", { name: /^Icon/ }));
-    const dialog = within(await screen.findByRole("dialog", { name: "Choose an icon" }));
+    const dialog = within(await settled(screen.findByRole("dialog", { name: "Choose an icon" })));
     await userEvent.click(dialog.getByRole("tab", { name: "Emoji" }));
     const grid = await dialog.findByRole("grid", { name: "Emojis" }, { timeout: 10_000 });
     await userEvent.type(dialog.getByRole("searchbox", { name: "Search emojis" }), "house");

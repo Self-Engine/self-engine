@@ -6,6 +6,7 @@
 import { DataProvider } from "@self-engine/data-client/react";
 import { type CalendarDay, calendarDaySchema } from "@self-engine/time";
 import type { Meta, StoryObj } from "@storybook/react-vite";
+import { settled } from "@self-engine/ui/story-surfaces";
 import { expect, screen, userEvent, waitFor, within } from "storybook/test";
 import { fieldsDrawnDuring } from "./fields-drawn.ts";
 import { type Stretch, StretchForm, stretchContract } from "./stretch.tsx";
@@ -382,7 +383,7 @@ export const TheCalendarsMarkTheTodayHandedIn: Story = {
     const range = rangeIn(canvasElement);
     await userEvent.click(range.date());
     const calendar = within(document.body);
-    await waitFor(() => expect(calendar.getByText("Februar 2031")).toBeVisible());
+    await settled(calendar.findByText("Februar 2031"));
     await expect(
       calendar.getByRole("button", { name: "Freitag, 14. Februar 2031" }),
     ).toHaveAttribute("data-today", "true");

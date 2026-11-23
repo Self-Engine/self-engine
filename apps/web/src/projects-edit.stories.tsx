@@ -18,6 +18,7 @@ import {
 } from "@self-engine/projects/testing";
 import { clearNotices } from "@self-engine/ui/story-notices";
 import type { Meta, StoryObj } from "@storybook/react-vite";
+import { settled } from "@self-engine/ui/story-surfaces";
 import { expect, screen, userEvent, waitFor, within } from "storybook/test";
 import {
   answer,
@@ -123,7 +124,7 @@ type Story = StoryObj<typeof meta>;
 /** Opens `title` from the list and finds its form as a user finds it. */
 async function openFromTheList(canvas: Canvas, title = WEBSITE.title) {
   await userEvent.click(await canvas.findByRole("button", { name: title }));
-  const dialog = await screen.findByRole("dialog", { name: title });
+  const dialog = await settled(screen.findByRole("dialog", { name: title }));
   const drawer = within(dialog);
   return {
     drawer,
@@ -151,8 +152,7 @@ export const AStoredProjectOpensWithItsValuesAndSaveDisabled: Story = {
   play: async ({ canvas }) => {
     const form = await openFromTheList(canvas);
     await expect(form.title).toHaveValue("Website");
-    // The drawer fades in.
-    await waitFor(() => expect(form.drawer.getByRole("button", { name: /^Icon/ })).toBeVisible());
+    await expect(form.drawer.getByRole("button", { name: /^Icon/ })).toBeVisible();
     await expect(
       within(form.drawer.getByRole("radiogroup", { name: "Color" })).getByRole("radio", {
         name: "Teal",
@@ -245,8 +245,7 @@ export const AnInvalidTitleIsReportedAtItsFieldBeforeAnyCall: Story = {
     await waitFor(() => expect(form.title).toHaveAccessibleDescription("At most 200 characters."));
     await userEvent.click(form.save());
     await expect(port.calls).toEqual([]);
-    // Under a loaded run the drawer's transition can lag; a drawer that closed would never return.
-    await waitFor(() => expect(screen.getByRole("dialog", { name: "Website" })).toBeVisible());
+    await expect(screen.getByRole("dialog", { name: "Website" })).toBeVisible();
   },
 };
 
@@ -322,7 +321,7 @@ export const AProjectDeletedElsewhereKeepsWhatWasTypedAndCannotBeSaved: Story = 
 export const AnUnknownProjectSaysSoAndOffersOnlyToClose: Story = {
   args: { address: `${ACTIVE}?edit=${sampleProjectId(99)}` },
   play: async () => {
-    const drawer = within(await screen.findByRole("dialog", { name: "Projects" }));
+    const drawer = within(await settled(screen.findByRole("dialog", { name: "Projects" })));
     const failure = await drawer.findByRole("alert");
     await expect(failure).toHaveTextContent("Project not found");
     await expect(within(failure).getAllByRole("button")).toHaveLength(1);
@@ -339,11 +338,10 @@ export const TheStoredProjectsDrawerInGerman: Story = {
   globals: { language: "de" },
   play: async ({ canvas }) => {
     await userEvent.click(await canvas.findByRole("button", { name: WEBSITE.title }));
-    const drawer = within(await screen.findByRole("dialog", { name: WEBSITE.title }));
+    const drawer = within(await settled(screen.findByRole("dialog", { name: WEBSITE.title })));
     await expect(await drawer.findByRole("textbox", { name: "Titel" })).toHaveValue("Website");
     await expect(drawer.getByRole("button", { name: "Speichern" })).toBeDisabled();
-    // The drawer can still be sliding in.
-    await waitFor(() => expect(drawer.getByRole("button", { name: "Löschen" })).toBeVisible());
+    await expect(drawer.getByRole("button", { name: "Löschen" })).toBeVisible();
     await expect(drawer.getByRole("button", { name: "Archivieren" })).toBeVisible();
   },
 };
@@ -444,9 +442,7 @@ export const AnArchivedProjectIsEditedAndSavedAndStaysArchived: Story = {
     const form = await openFromTheList(canvas, OLD_SHOP.title);
     await expect(form.title).toHaveValue("Old shop");
     await expect(form.save()).toBeDisabled();
-    await waitFor(() =>
-      expect(form.drawer.getByRole("button", { name: "Unarchive" })).toBeVisible(),
-    );
+    await expect(form.drawer.getByRole("button", { name: "Unarchive" })).toBeVisible();
     await expect(form.drawer.getByRole("button", { name: "Delete" })).toBeVisible();
     await userEvent.clear(form.title);
     await userEvent.type(form.title, "Shop");
@@ -500,9 +496,9 @@ export const TheArchivedProjectsDrawerInGerman: Story = {
   globals: { language: "de" },
   play: async ({ canvas }) => {
     await userEvent.click(await canvas.findByRole("button", { name: OLD_SHOP.title }));
-    const drawer = within(await screen.findByRole("dialog", { name: OLD_SHOP.title }));
+    const drawer = within(await settled(screen.findByRole("dialog", { name: OLD_SHOP.title })));
     await expect(await drawer.findByRole("textbox", { name: "Titel" })).toHaveValue("Old shop");
-    await waitFor(() => expect(drawer.getByRole("button", { name: "Reaktivieren" })).toBeVisible());
+    await expect(drawer.getByRole("button", { name: "Reaktivieren" })).toBeVisible();
     await expect(drawer.getByRole("button", { name: "Löschen" })).toBeVisible();
   },
 };

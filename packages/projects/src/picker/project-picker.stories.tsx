@@ -9,6 +9,7 @@ import { DataProvider, type PortAccess, portHooks } from "@self-engine/data-clie
 import { fixedAnswers } from "@self-engine/data-client/testing";
 import { OperationFormBody, TextField, useOperationForm } from "@self-engine/forms";
 import type { Meta, StoryObj } from "@storybook/react-vite";
+import { closed, settled } from "@self-engine/ui/story-surfaces";
 import { expect, screen, userEvent, waitFor, within } from "storybook/test";
 import { z } from "zod";
 import {
@@ -147,8 +148,7 @@ const pickerIn = (canvasElement: HTMLElement) =>
 /** Opens the picker and answers the options it offers, once the active projects arrived. */
 async function openOptions(canvasElement: HTMLElement) {
   await userEvent.click(pickerIn(canvasElement));
-  const listbox = await screen.findByRole("listbox");
-  return within(listbox);
+  return within(await settled(screen.findByRole("listbox")));
 }
 
 /** The names of the options offered, in order. */
@@ -162,7 +162,7 @@ async function offered(canvasElement: HTMLElement, count: number) {
 async function choose(canvasElement: HTMLElement, name: string) {
   const options = await openOptions(canvasElement);
   await userEvent.click(await options.findByRole("option", { name }));
-  await waitFor(() => expect(screen.queryByRole("listbox")).toBeNull());
+  await closed(() => screen.queryByRole("listbox"));
 }
 
 const SORTED = ["Arbeit", "Ärzte", "Auto", "Garden", "Tax", "Website"];
@@ -321,7 +321,7 @@ export const AnEmptyListSaysThereIsNoActiveProject: Story = {
   args: { projects: { active: { data: [] } } },
   play: async ({ canvasElement }) => {
     await userEvent.click(pickerIn(canvasElement));
-    await expect(await screen.findByText("No active projects")).toBeVisible();
+    await settled(screen.findByText("No active projects"));
     await expect(screen.queryAllByRole("option")).toEqual([]);
   },
 };

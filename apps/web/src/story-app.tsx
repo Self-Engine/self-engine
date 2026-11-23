@@ -5,11 +5,12 @@ import { LANGUAGE_TAGS, loadAppCatalog } from "@self-engine/i18n";
 import { type Clock, type Region, resolveTimeZone, type TimeZone } from "@self-engine/time";
 import { PageClockProvider, TimeSettingsProvider } from "@self-engine/time/react";
 import { alwaysVisible } from "@self-engine/time/testing";
+import { closed, settled } from "@self-engine/ui/story-surfaces";
 import { holdTimers } from "@self-engine/ui/story-timers";
 import { loadStoryShell, modKey } from "@self-engine/shell/story-interactions";
 import { createMemoryHistory, RouterProvider } from "@tanstack/react-router";
 import { type ReactNode, useMemo, useState } from "react";
-import { expect, screen, userEvent, waitFor, within } from "storybook/test";
+import { screen, userEvent, within } from "storybook/test";
 import { createAppRouter } from "./app-router.ts";
 import type { ModuleList } from "./module-list.ts";
 import { appReasonTexts } from "./reason-texts.ts";
@@ -201,9 +202,7 @@ export function held<T>() {
 
 /** The drawer named `name` is closed; without a name, every drawer is. */
 export const noDrawer = (name?: string) =>
-  waitFor(() =>
-    expect(screen.queryByRole("dialog", name === undefined ? {} : { name })).toBeNull(),
-  );
+  closed(() => screen.queryAllByRole("dialog", name === undefined ? {} : { name }));
 
 /** A notice stays until the story answers it. Returns what lets the timers run again. */
 export const keepNoticesOpen = () => holdTimers(8000).restore;
@@ -224,7 +223,7 @@ export async function titlesShown(canvas: ReturnType<typeof within>, name: strin
 /** Opens the entry from the list, so that there is a history entry to go back from. */
 export async function editStudio(canvas: ReturnType<typeof within>) {
   await userEvent.click(await canvas.findByRole("button", { name: "Studio work" }));
-  const drawer = await screen.findByRole("dialog", { name: "Studio work" });
+  const drawer = await settled(screen.findByRole("dialog", { name: "Studio work" }));
   const name = await within(drawer).findByRole("textbox", { name: "Name" });
   await userEvent.type(name, " changed");
   return { drawer: within(drawer), name };

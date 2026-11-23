@@ -13,6 +13,7 @@ import {
   rendersOutside,
 } from "@self-engine/ui/story-render-counts";
 import type { Meta, StoryObj } from "@storybook/react-vite";
+import { settled } from "@self-engine/ui/story-surfaces";
 import { expect, screen, userEvent, within } from "storybook/test";
 import { AppAt, loadStoryApp } from "./story-app.tsx";
 
@@ -101,7 +102,7 @@ export const AnIndicatorTickAndPanelTypingLeaveTheShellStill: Story = {
     await expect(outsideIndicator).toEqual({});
 
     await userEvent.click(canvas.getByRole("button", { name: "Counted 1" }));
-    const panel = await screen.findByRole("dialog", { name: "Placeholder Alpha" });
+    const panel = await settled(screen.findByRole("dialog", { name: "Placeholder Alpha" }));
     const field = await within(panel).findByRole("textbox", { name: "Note" });
     await userEvent.click(field);
     await expect(field).toHaveFocus();
