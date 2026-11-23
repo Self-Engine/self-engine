@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 92 92">
+  <defs>
+    <linearGradient id="star" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#f7a062"/>
+      <stop offset="1" stop-color="#d06d3d"/>
+    </linearGradient>
+    <clipPath id="star-clip">
+      <path d="M64 18Q69.5 64.5 92 70Q69.5 75.5 64 98Q58.5 75.5 36 70Q58.5 64.5 64 18Z"/>
+    </clipPath>
+  </defs>
+  <g transform="translate(46 46) scale(1) translate(-64 -62)">
+    <circle cx="64" cy="70" r="34" fill="none" stroke="#c58361" stroke-opacity="0.5" stroke-width="5"/>
+    <path d="M64 18Q69.5 64.5 92 70Q69.5 75.5 64 98Q58.5 75.5 36 70Q58.5 64.5 64 18Z" fill="url(#star)"/>
+    <path d="M64 70L64 10L124 10ZM64 70L124 70L124 130ZM64 70L64 130L4 130ZM64 70L4 70L4 10Z" fill="#3a1a0c" fill-opacity="0.22" clip-path="url(#star-clip)"/>
+  </g>
+</svg>

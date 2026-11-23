@@ -22,8 +22,9 @@ export interface ChannelIdentity {
    */
   readonly dataFolder: string;
   /**
-   * Relative to `apps/desktop`. Dev's is a PNG for the Dock. The release icons are `.icns`
-   * already, because electron-builder downloads a converter from GitHub for a PNG.
+   * Relative to `apps/desktop`, in the channel's bundle folder, where the build draws it
+   * (app-icon.ts). Dev's is a PNG for the Dock. The release icons are `.icns`, because
+   * electron-builder downloads a converter from GitHub for a PNG.
    */
   readonly icon: string;
 }
@@ -35,7 +36,7 @@ const IDENTITIES: Readonly<Record<Channel, ChannelIdentity>> = {
     appId: "app.selfengine.desktop.dev",
     scheme: "self-engine-dev",
     dataFolder: "Self-Engine Dev",
-    icon: "icons/dev.png",
+    icon: "dist-electron/icon.png",
   },
   nightly: {
     channel: "nightly",
@@ -43,7 +44,7 @@ const IDENTITIES: Readonly<Record<Channel, ChannelIdentity>> = {
     appId: "app.selfengine.desktop.nightly",
     scheme: "self-engine-nightly",
     dataFolder: "Self-Engine Nightly",
-    icon: "icons/nightly.icns",
+    icon: "dist-release/nightly/icon.icns",
   },
   stable: {
     channel: "stable",
@@ -51,7 +52,7 @@ const IDENTITIES: Readonly<Record<Channel, ChannelIdentity>> = {
     appId: "app.selfengine.desktop",
     scheme: "self-engine",
     dataFolder: "Self-Engine",
-    icon: "icons/stable.icns",
+    icon: "dist-release/stable/icon.icns",
   },
 };
 
