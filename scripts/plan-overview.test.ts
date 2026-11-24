@@ -259,6 +259,19 @@ describe("buildOverview", () => {
     expect(layers[0]?.rows.map((row) => row.number)).not.toContain(6);
   });
 
+  it("leaves out a map and its tickets", () => {
+    const map = issue(6, { labels: ["wayfinder:map"] });
+    const open = issue(7, { labels: ["wayfinder:grilling"] });
+    const resolved = issue(8, { labels: ["wayfinder:research"], state: "CLOSED" });
+    const withMap = buildOverview([...issues, map, open, resolved], new Map(), ROADMAP);
+    const without = buildOverview(issues, new Map(), ROADMAP);
+    expect(withMap.total).toBe(5);
+    expect(withMap.counts).toEqual(without.counts);
+    expect(withMap.layers.map((layer) => layer.rows.map((row) => row.number))).toEqual(
+      without.layers.map((layer) => layer.rows.map((row) => row.number)),
+    );
+  });
+
   it("names the next steps", () => {
     const { nextSteps } = buildOverview(issues, new Map([[4, 9]]), ROADMAP);
     expect(nextSteps[0]).toContain("PR #9");

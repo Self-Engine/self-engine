@@ -9,6 +9,8 @@ const REPO = "Self-Engine/self-engine";
 const OUTPUT = ".temp/plan-overview.html";
 const ROADMAP = "docs/plan/roadmap.json";
 const BUILD_LABELS = ["ready-for-agent", "ready-for-human", "needs-grilling"];
+/** `wayfinder:map` and `wayfinder:<type>`: the map of a large effort and its decision tickets. */
+const MAP_LABEL_PREFIX = "wayfinder:";
 
 export interface Issue {
   readonly number: number;
@@ -338,8 +340,10 @@ export function buildOverview(
   closedByOpenPullRequests: ReadonlyMap<number, number>,
   roadmap: Roadmap,
 ): Overview {
-  // A superseded or rejected issue was never built, so it counts nowhere.
+  // A superseded or rejected issue was never built, so it counts nowhere. Neither does a map or
+  // one of its tickets: they hold a decision and nothing to build (D374).
   const sorted = issues
+    .filter((issue) => !issue.labels.some((label) => label.startsWith(MAP_LABEL_PREFIX)))
     .filter(
       (issue) =>
         issue.state === "OPEN" ||
