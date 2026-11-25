@@ -261,6 +261,28 @@ export const AnEntryGoneBeforeTheDrawerClosesLeavesTheFocusOnTheFirstControl = f
   },
 );
 
+/**
+ * The control that opened the drawer was disabled while the drawer was open, and it is the
+ * entry's own control as well: neither can take the focus, so the View's first control does.
+ */
+export const ADisabledOpenerIsPassedOver = focusStory(async () => {
+  const { opener } = await opensFromItsRow();
+  opener.setAttribute("disabled", "");
+  await pressEscape();
+  await focusIsOn(fixedPlace());
+});
+
+/** A disabled control is not the fixed place, whatever its `tabindex`: the next control is. */
+export const ADisabledFirstControlIsPassedOver = focusStory(async () => {
+  const { drawer: opened } = await opensFromItsRow();
+  const first = fixedPlace();
+  first.setAttribute("disabled", "");
+  first.setAttribute("tabindex", "0");
+  list.remove("b");
+  await userEvent.click(opened.getByRole("button", { name: "Save" }));
+  await focusIsOn(screen.getByRole("button", { name: "New entry" }));
+});
+
 function PageWithoutControls() {
   return <p>Nothing to do here</p>;
 }

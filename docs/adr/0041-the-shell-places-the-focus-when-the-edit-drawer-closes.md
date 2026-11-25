@@ -29,7 +29,9 @@ created.
 - **Where the focus goes.** After a create, it goes to the new entry's control once the View
   shows it. Otherwise it goes to the control that opened the drawer while that control is still
   on the page, then to the entry's control (a link, a reload or a shortcut opened the drawer),
-  then to the fixed place. The rule is the same for every way out: Esc, Cancel, the close button,
+  then to the fixed place. A control that cannot take the focus is passed over at each step: one
+  that was disabled or hidden meanwhile. The rule is the same for every way out: Esc, Cancel, the
+  close button,
   the overlay, a save, a named Operation such as Delete or Archive, "Discard" in the
   unsaved-changes question, and a change of the address.
 - **The fixed place is the View's first control**, the first element Tab reaches in the page of

@@ -4,7 +4,7 @@
 
 import { useDidUpdate } from "@mantine/hooks";
 import { type RefObject, useCallback, useLayoutEffect, useRef } from "react";
-import { firstControlIn } from "./focusable.ts";
+import { firstControlIn, takesTheFocus } from "./focusable.ts";
 
 const ENTRY_ATTRIBUTE = "data-edit-entry";
 const VIEW_ATTRIBUTE = "data-shell-view";
@@ -85,15 +85,23 @@ function fixedPlaceIn(view: HTMLElement): HTMLElement {
  * Places the focus by the rule and keeps it placed for `FOCUS_HOLD_MS`: after a create on the
  * entry's control once the View shows it, and meanwhile on the fixed place; otherwise on the
  * control that opened the drawer while it is on the page, then on the entry's control, then on
- * the fixed place. It moves the focus only when it is nowhere, still in the leaving drawer, or
+ * the fixed place, each only if it can take the focus. It moves the focus only when it is nowhere, still in the leaving drawer, or
  * where this put it; a key or a press of the person ends it. Returns the function that ends it.
  */
 function holdFocus(closing: Closing): () => void {
   let placed: HTMLElement | null = null;
+  // A control that has left the page, is hidden or was disabled meanwhile is passed over. The one
+  // that has the focus can take it, which spares the look at the layout while nothing changes.
+  const usable = (control: HTMLElement | null) =>
+    control !== null && (control === document.activeElement || takesTheFocus(control))
+      ? control
+      : null;
   const wanted = (view: HTMLElement) => {
-    if (closing.created !== undefined) return entryControlIn(view, closing.created);
-    if (closing.opener?.isConnected) return closing.opener;
-    return closing.entry === undefined ? null : entryControlIn(view, closing.entry);
+    if (closing.created !== undefined) return usable(entryControlIn(view, closing.created));
+    return (
+      usable(closing.opener) ??
+      (closing.entry === undefined ? null : usable(entryControlIn(view, closing.entry)))
+    );
   };
   const mayMove = () => {
     const now = document.activeElement;
