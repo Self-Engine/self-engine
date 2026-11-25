@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
+import { closed, settled } from "@self-engine/ui/story-surfaces";
 import { fn, spyOn, expect, userEvent, waitFor, within } from "storybook/test";
 import {
   createMemoryHistory,
@@ -186,20 +187,20 @@ export const DrawerIsolation: Story = {
     await expect(loadDrawer).not.toHaveBeenCalled();
     viewRendered.mockClear();
     await userEvent.click(canvas.getByRole("button", { name: "Edit sample" }));
-    await page.findByRole("dialog", { name: "First name" });
+    await settled(page.findByRole("dialog", { name: "First name" }));
     await userEvent.click(await page.findByRole("button", { name: "Rename sample" }));
-    await page.findByRole("dialog", { name: "Second name" });
+    await settled(page.findByRole("dialog", { name: "Second name" }));
     await userEvent.click(page.getByRole("button", { name: "Change sample" }));
     await userEvent.click(page.getByRole("button", { name: "Cancel sample" }));
-    const asked = within(await page.findByRole("dialog", { name: "Discard changes?" }));
+    const asked = within(await settled(page.findByRole("dialog", { name: "Discard changes?" })));
     await userEvent.click(asked.getByRole("button", { name: "Keep editing" }));
-    await waitFor(() =>
-      expect(page.queryByRole("dialog", { name: "Discard changes?" })).toBeNull(),
-    );
+    await closed(() => page.queryByRole("dialog", { name: "Discard changes?" }));
     await userEvent.click(page.getByRole("button", { name: "Cancel sample" }));
-    const askedAgain = within(await page.findByRole("dialog", { name: "Discard changes?" }));
+    const askedAgain = within(
+      await settled(page.findByRole("dialog", { name: "Discard changes?" })),
+    );
     await userEvent.click(askedAgain.getByRole("button", { name: "Discard" }));
-    await waitFor(() => expect(page.queryByRole("dialog")).toBeNull());
+    await closed(() => page.queryAllByRole("dialog"));
     await expect(loadDrawer).toHaveBeenCalledTimes(1);
     await expect(viewRendered).not.toHaveBeenCalled();
   },

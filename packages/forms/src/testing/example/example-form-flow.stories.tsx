@@ -3,6 +3,7 @@ import { EntryIconPicker } from "@self-engine/ui/entry-pickers";
 import { DataProvider } from "@self-engine/data-client/react";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useState } from "react";
+import { settled } from "@self-engine/ui/story-surfaces";
 import { expect, fn, screen, userEvent, waitFor, within } from "storybook/test";
 import {
   EditDrawerForm,
@@ -213,12 +214,10 @@ export const MultilineAndPickerKeepEnter: Story = {
     await userEvent.type(description, "{Enter}Second line");
     await expect(description).toHaveValue("Paint the walls.\nSecond line");
     await userEvent.keyboard("{Escape}");
-    await waitFor(() =>
-      expect(screen.getByRole("dialog", { name: "Discard changes?" })).toBeVisible(),
-    );
+    await settled(screen.findByRole("dialog", { name: "Discard changes?" }));
     await userEvent.click(screen.getByRole("button", { name: "Keep editing" }));
     await userEvent.click(canvas.getByRole("button", { name: /^Icon/ }));
-    const dialog = within(await screen.findByRole("dialog", { name: "Choose an icon" }));
+    const dialog = within(await settled(screen.findByRole("dialog", { name: "Choose an icon" })));
     const search = dialog.getByRole("searchbox", { name: "Search icons" });
     await waitFor(() => expect(search).toHaveFocus());
     await userEvent.type(search, "circle{Enter}");
@@ -317,7 +316,7 @@ export const SavingFromAnOpenPickerLocksItToo: Story = {
     const canvas = within(document.body);
     await canvas.findByRole("textbox", { name: "Title" });
     await userEvent.click(canvas.getByRole("button", { name: /^Icon/ }));
-    const dialog = within(await screen.findByRole("dialog", { name: "Choose an icon" }));
+    const dialog = within(await settled(screen.findByRole("dialog", { name: "Choose an icon" })));
     const search = dialog.getByRole("searchbox", { name: "Search icons" });
     await waitFor(() => expect(search).toHaveFocus());
     await userEvent.type(search, "circle");

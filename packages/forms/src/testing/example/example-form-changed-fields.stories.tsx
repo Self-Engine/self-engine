@@ -2,7 +2,8 @@ import { useState } from "react";
 import { TextInput } from "@mantine/core";
 import { DataProvider } from "@self-engine/data-client/react";
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { expect, screen, spyOn, userEvent, waitFor, within } from "storybook/test";
+import { closed, settled } from "@self-engine/ui/story-surfaces";
+import { expect, screen, spyOn, userEvent, within } from "storybook/test";
 import {
   ColorField,
   EditDrawerForm,
@@ -94,21 +95,21 @@ export const EditSendsOnlyChangedTitle: Story = {
 
 export const UnchangedEditCannotSave: Story = {
   play: async ({ loaded }) => {
-    const canvas = within(await screen.findByRole("dialog", { name: "Example" }));
+    const canvas = within(await settled(screen.findByRole("dialog", { name: "Example" })));
     const title = await canvas.findByRole("textbox", { name: "Title" });
     await expect(title).toHaveValue("Kitchen");
     await expect(canvas.getByRole("button", { name: "Save" })).toBeDisabled();
     await userEvent.type(title, "{Enter}");
     await expect(loaded.port.calls).toEqual([]);
     await userEvent.click(canvas.getByRole("button", { name: "Cancel" }));
-    await waitFor(() => expect(screen.queryByRole("dialog", { name: "Example" })).toBeNull());
+    await closed(() => screen.queryByRole("dialog", { name: "Example" }));
     await expect(screen.queryByRole("dialog", { name: "Discard changes?" })).toBeNull();
   },
 };
 
 export const ClearingOptionalTextSendsEmpty: Story = {
   play: async ({ loaded }) => {
-    const canvas = within(await screen.findByRole("dialog", { name: "Example" }));
+    const canvas = within(await settled(screen.findByRole("dialog", { name: "Example" })));
     await userEvent.clear(await canvas.findByRole("textbox", { name: "Description" }));
     await userEvent.click(canvas.getByRole("button", { name: "Save" }));
     await expect(await canvas.findByText("Saved")).toBeVisible();
@@ -120,26 +121,24 @@ export const ClearingOptionalTextSendsEmpty: Story = {
 
 export const RestoringStoredValueRemovesTheQuestion: Story = {
   play: async () => {
-    const canvas = within(await screen.findByRole("dialog", { name: "Example" }));
+    const canvas = within(await settled(screen.findByRole("dialog", { name: "Example" })));
     const title = await canvas.findByRole("textbox", { name: "Title" });
     await userEvent.type(title, "x");
     await expect(canvas.getByRole("button", { name: "Save" })).toBeEnabled();
     await userEvent.click(canvas.getByRole("button", { name: "Cancel" }));
-    await waitFor(() =>
-      expect(screen.getByRole("dialog", { name: "Discard changes?" })).toBeVisible(),
-    );
+    await settled(screen.findByRole("dialog", { name: "Discard changes?" }));
     await userEvent.click(screen.getByRole("button", { name: "Keep editing" }));
     await userEvent.clear(title);
     await userEvent.type(title, "Kitchen");
     await expect(canvas.getByRole("button", { name: "Save" })).toBeDisabled();
     await userEvent.click(canvas.getByRole("button", { name: "Cancel" }));
-    await waitFor(() => expect(screen.queryByRole("dialog", { name: "Example" })).toBeNull());
+    await closed(() => screen.queryByRole("dialog", { name: "Example" }));
     await expect(screen.queryByRole("dialog", { name: "Discard changes?" })).toBeNull();
   },
 };
 export const SuccessClearsChanges: Story = {
   play: async ({ loaded }) => {
-    const canvas = within(await screen.findByRole("dialog", { name: "Example" }));
+    const canvas = within(await settled(screen.findByRole("dialog", { name: "Example" })));
     await userEvent.type(await canvas.findByRole("textbox", { name: "Title" }), " two");
     await userEvent.click(canvas.getByRole("button", { name: "Save" }));
     await expect(await canvas.findByText("Saved")).toBeVisible();
@@ -147,7 +146,7 @@ export const SuccessClearsChanges: Story = {
     await userEvent.type(canvas.getByRole("textbox", { name: "Title" }), "{Enter}");
     await expect(loaded.port.calls).toHaveLength(1);
     await userEvent.click(canvas.getByRole("button", { name: "Cancel" }));
-    await waitFor(() => expect(screen.queryByRole("dialog", { name: "Example" })).toBeNull());
+    await closed(() => screen.queryByRole("dialog", { name: "Example" }));
   },
 };
 export const UnknownStoredIconIsNotSent: Story = {
@@ -165,7 +164,7 @@ export const TiedFieldsTravelTogether: Story = {
     </DataProvider>
   ),
   play: async ({ loaded }) => {
-    const canvas = within(await screen.findByRole("dialog", { name: "Example" }));
+    const canvas = within(await settled(screen.findByRole("dialog", { name: "Example" })));
     await canvas.findByRole("textbox", { name: "Title" });
     await userEvent.click(
       within(canvas.getByRole("radiogroup", { name: "Color" })).getByRole("radio", {
@@ -191,17 +190,15 @@ export const AForgottenTieIsReportedAsAProgrammingError: Story = {
     </DataProvider>
   ),
   play: async ({ loaded }) => {
-    const canvas = within(await screen.findByRole("dialog", { name: "Example" }));
+    const canvas = within(await settled(screen.findByRole("dialog", { name: "Example" })));
     await userEvent.click(await canvas.findByRole("button", { name: /^Icon/ }));
-    const dialog = await screen.findByRole("dialog", { name: "Choose an icon" });
+    const dialog = await settled(screen.findByRole("dialog", { name: "Choose an icon" }));
     await userEvent.click(
       within(within(dialog).getByRole("listbox", { name: "Icons" })).getByRole("option", {
         name: "Star",
       }),
     );
-    await waitFor(() =>
-      expect(screen.queryByRole("dialog", { name: "Choose an icon" })).toBeNull(),
-    );
+    await closed(() => screen.queryByRole("dialog", { name: "Choose an icon" }));
     // Only this deliberate failure consumes the error; ordinary stories fail on console.error.
     const reported = spyOn(console, "error").mockImplementation(() => undefined);
     try {
@@ -227,7 +224,7 @@ export const UnfinishedTextAsksBeforeClosing: Story = {
     </DataProvider>
   ),
   play: async ({ loaded }) => {
-    const canvas = within(await screen.findByRole("dialog", { name: "Example" }));
+    const canvas = within(await settled(screen.findByRole("dialog", { name: "Example" })));
     await userEvent.type(await canvas.findByRole("textbox", { name: "Description" }), "+");
     await expect(canvas.getByRole("button", { name: "Save" })).toBeEnabled();
     await userEvent.click(canvas.getByRole("button", { name: "Save" }));
@@ -236,9 +233,7 @@ export const UnfinishedTextAsksBeforeClosing: Story = {
     );
     await expect(loaded.port.calls).toEqual([]);
     await userEvent.click(canvas.getByRole("button", { name: "Cancel" }));
-    await waitFor(() =>
-      expect(screen.getByRole("dialog", { name: "Discard changes?" })).toBeVisible(),
-    );
+    await settled(screen.findByRole("dialog", { name: "Discard changes?" }));
     await userEvent.click(screen.getByRole("button", { name: "Discard" }));
   },
 };
@@ -268,11 +263,11 @@ const createRender: Story["render"] = (_args, { loaded }) => (
 export const UntouchedCreateClosesWithoutQuestion: Story = {
   render: createRender,
   play: async () => {
-    const canvas = within(await screen.findByRole("dialog", { name: "Example" }));
+    const canvas = within(await settled(screen.findByRole("dialog", { name: "Example" })));
     await canvas.findByRole("textbox", { name: "Title" });
     await expect(canvas.getByRole("button", { name: "Save" })).toBeEnabled();
     await userEvent.click(canvas.getByRole("button", { name: "Cancel" }));
-    await waitFor(() => expect(screen.queryByRole("dialog", { name: "Example" })).toBeNull());
+    await closed(() => screen.queryByRole("dialog", { name: "Example" }));
     await expect(screen.queryByRole("dialog", { name: "Discard changes?" })).toBeNull();
   },
 };
@@ -280,12 +275,10 @@ export const CreateAsksAndSendsEveryField: Story = {
   render: createRender,
   loaders: [loadStoryShell, () => ({ port: recordingPort() })],
   play: async ({ loaded }) => {
-    const canvas = within(await screen.findByRole("dialog", { name: "Example" }));
+    const canvas = within(await settled(screen.findByRole("dialog", { name: "Example" })));
     await userEvent.type(await canvas.findByRole("textbox", { name: "Title" }), "Kitchen");
     await userEvent.click(canvas.getByRole("button", { name: "Cancel" }));
-    await waitFor(() =>
-      expect(screen.getByRole("dialog", { name: "Discard changes?" })).toBeVisible(),
-    );
+    await settled(screen.findByRole("dialog", { name: "Discard changes?" }));
     await userEvent.click(screen.getByRole("button", { name: "Keep editing" }));
     await userEvent.type(canvas.getByRole("textbox", { name: "Description" }), "Paint the walls.");
     await userEvent.click(canvas.getByRole("button", { name: "Save" }));
@@ -304,6 +297,6 @@ export const CreateAsksAndSendsEveryField: Story = {
       },
     ]);
     await userEvent.click(canvas.getByRole("button", { name: "Cancel" }));
-    await waitFor(() => expect(screen.queryByRole("dialog", { name: "Example" })).toBeNull());
+    await closed(() => screen.queryByRole("dialog", { name: "Example" }));
   },
 };

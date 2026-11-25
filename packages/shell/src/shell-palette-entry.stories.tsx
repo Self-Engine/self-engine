@@ -1,5 +1,6 @@
 import type { Meta } from "@storybook/react-vite";
-import { expect, screen, userEvent, waitFor, within } from "storybook/test";
+import { settled } from "@self-engine/ui/story-surfaces";
+import { expect, screen, userEvent, within } from "storybook/test";
 import { Shell, type ShellProps } from "./index.ts";
 import {
   atViewport,
@@ -9,7 +10,6 @@ import {
   onMac,
   onWindows,
   openDrawer,
-  paletteDialog,
   paletteGone,
   pressEscape,
   shellMeta,
@@ -30,7 +30,7 @@ const entryIn = (scope: Canvas) => scope.getByRole("button", { name: "Search" })
 
 /** The palette's code loads at the first opening, so it can take a moment. */
 const paletteOpens = () =>
-  waitFor(() => expect(paletteDialog()).toBeVisible(), { timeout: 10_000 });
+  settled(screen.findByRole("dialog", { name: "Command palette" }, { timeout: 10_000 }));
 
 async function expectOpensAndGivesFocusBack(entry: HTMLElement): Promise<void> {
   await userEvent.click(entry);

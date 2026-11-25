@@ -8,6 +8,7 @@ import {
   projectsStoryPort,
 } from "@self-engine/projects/testing";
 import type { Meta, StoryObj } from "@storybook/react-vite";
+import { settled } from "@self-engine/ui/story-surfaces";
 import { expect, screen, userEvent, within } from "storybook/test";
 import { AppAt, editInAddress, loadStoryApp, storyRouter, titlesShown } from "./story-app.tsx";
 
@@ -39,7 +40,7 @@ export const TheArchiveShowsTheArchivedProjectsSortedByTitle: Story = {
 export const AnArchivedProjectOpensInTheEditDrawer: Story = {
   play: async ({ canvas }) => {
     await userEvent.click(await canvas.findByRole("button", { name: "Old shop" }));
-    const drawer = within(await screen.findByRole("dialog", { name: "Old shop" }));
+    const drawer = within(await settled(screen.findByRole("dialog", { name: "Old shop" })));
     await expect(await drawer.findByRole("textbox", { name: "Title" })).toHaveValue("Old shop");
     await expect(editInAddress(storyRouter())).toBe(OLD_SHOP.id);
   },

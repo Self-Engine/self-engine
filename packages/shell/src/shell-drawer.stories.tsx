@@ -4,6 +4,7 @@ import {
   SHELL_START_AFTER_WINDOW_BUTTONS_PX,
 } from "@self-engine/shell/geometry";
 import type { Meta } from "@storybook/react-vite";
+import { closed, settled } from "@self-engine/ui/story-surfaces";
 import { expect, screen, userEvent, waitFor, within } from "storybook/test";
 import {
   Shell,
@@ -44,9 +45,9 @@ export const WidenedWindowClosesTheDrawer: Story = {
   ...atViewport("narrow"),
   play: async ({ canvas }) => {
     await userEvent.click(canvas.getByRole("button", { name: "Open navigation" }));
-    await screen.findByRole("dialog", { name: "Module Sidebar" });
+    await settled(screen.findByRole("dialog", { name: "Module Sidebar" }));
     await atFrameWidth(SHELL_REFERENCE_WIDTHS.medium, async () => {
-      await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+      await closed(() => screen.queryAllByRole("dialog"));
     });
     await waitFor(() =>
       expect(canvas.getByRole("button", { name: "Open navigation" })).toBeVisible(),
@@ -59,7 +60,7 @@ export const TheDrawerStaysClickableAboveTheDragRegion: Story = {
   ...atViewport("narrow"),
   play: async ({ canvas }) => {
     await userEvent.click(canvas.getByRole("button", { name: "Open navigation" }));
-    const drawer = await screen.findByRole("dialog", { name: "Module Sidebar" });
+    const drawer = await settled(screen.findByRole("dialog", { name: "Module Sidebar" }));
     await expect(appRegionOf(drawer)).toBe("no-drag");
     await expect(appRegionOf(drawerOverlay())).toBe("no-drag");
   },
@@ -184,7 +185,7 @@ export const PickingAViewClosesTheDrawer: Story = {
   play: async ({ canvas }) => {
     const drawer = await openDrawer(canvas);
     await userEvent.click(within(drawer).getByRole("link", { name: "Sidebar content" }));
-    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+    await closed(() => screen.queryAllByRole("dialog"));
   },
 };
 
@@ -194,7 +195,7 @@ export const PickingAGroupEntryClosesTheDrawer: Story = {
   play: async ({ canvas }) => {
     const drawer = await openDrawer(canvas);
     await userEvent.click(await within(drawer).findByRole("link", { name: "Studio" }));
-    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+    await closed(() => screen.queryAllByRole("dialog"));
   },
 };
 
@@ -203,7 +204,7 @@ export const PickingAViewClosesThePhoneDrawer: Story = {
   play: async ({ canvas }) => {
     const drawer = await openDrawer(canvas, "Open module sidebar");
     await userEvent.click(within(drawer).getByRole("link", { name: "Sidebar content" }));
-    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+    await closed(() => screen.queryAllByRole("dialog"));
   },
 };
 
@@ -402,10 +403,10 @@ export const LabelsAreTranslated: Story = {
   globals: { ...atViewport("narrow").globals, language: "de" },
   play: async ({ canvas }) => {
     await userEvent.click(canvas.getByRole("button", { name: "Navigation öffnen" }));
-    const drawer = await screen.findByRole("dialog", { name: "Modul-Sidebar" });
-    await waitFor(() =>
-      expect(within(drawer).getByRole("button", { name: "Navigation schließen" })).toBeVisible(),
-    );
+    const drawer = await settled(screen.findByRole("dialog", { name: "Modul-Sidebar" }));
+    await expect(
+      within(drawer).getByRole("button", { name: "Navigation schließen" }),
+    ).toBeVisible();
     await expect(within(drawer).getByRole("navigation", { name: "Module" })).toBeVisible();
   },
 };

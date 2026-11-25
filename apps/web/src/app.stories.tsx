@@ -11,6 +11,7 @@ import {
 } from "@tanstack/react-router";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useEffect, useState } from "react";
+import { closed, settled } from "@self-engine/ui/story-surfaces";
 import { expect, userEvent, waitFor, within } from "storybook/test";
 import { createAppRouter } from "./app-router.ts";
 import { AppLanguage } from "./app-language.tsx";
@@ -310,11 +311,11 @@ export const EditDrawer: Story = {
   play: async ({ canvas, canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     await userEvent.click(await canvas.findByRole("button", { name: "Studio work" }));
-    await expect(await page.findByRole("dialog", { name: "Studio work" })).toHaveTextContent(
-      STUDIO_WORK.id,
-    );
+    await expect(
+      await settled(page.findByRole("dialog", { name: "Studio work" })),
+    ).toHaveTextContent(STUDIO_WORK.id);
     await userEvent.click(page.getByRole("button", { name: "Close editor" }));
-    await waitFor(() => expect(page.queryByRole("dialog")).toBeNull());
+    await closed(() => page.queryAllByRole("dialog"));
     await userEvent.click(canvas.getByRole("button", { name: "Reload router" }));
     await expect(await canvas.findByRole("button", { name: "Studio work" })).toBeVisible();
     await expect(page.queryByRole("dialog")).toBeNull();
@@ -324,7 +325,7 @@ export const EditDrawer: Story = {
     await drawerShowsStudio(page);
     await userEvent.click(canvas.getByRole("link", { name: "Archive" }));
     await expect(await canvas.findByRole("heading", { name: "Archive", level: 1 })).toBeVisible();
-    await waitFor(() => expect(page.queryByRole("dialog")).toBeNull());
+    await closed(() => page.queryAllByRole("dialog"));
   },
 };
 export const HashEditDrawer: Story = { ...EditDrawer, args: { ...EditDrawer.args, hash: true } };
@@ -333,14 +334,14 @@ export const EditDeepLink: Story = {
   args: { address: `/placeholder-alpha/archive?edit=${STUDIO_WORK.id}` },
   play: async ({ canvas, canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
-    await expect(await page.findByRole("dialog", { name: "Studio work" })).toHaveTextContent(
-      STUDIO_WORK.id,
-    );
+    await expect(
+      await settled(page.findByRole("dialog", { name: "Studio work" })),
+    ).toHaveTextContent(STUDIO_WORK.id);
     await userEvent.click(canvas.getByRole("button", { name: "Reload router" }));
     await drawerShowsStudio(page);
     await userEvent.click(canvas.getByRole("link", { name: "Placeholder Beta" }));
     await expectBeta(canvas);
-    await waitFor(() => expect(page.queryByRole("dialog")).toBeNull());
+    await closed(() => page.queryAllByRole("dialog"));
     await userEvent.click(canvas.getByRole("button", { name: "Back in history" }));
     await drawerShowsStudio(page);
   },
@@ -369,9 +370,11 @@ export const PrimaryAction: Story = {
   play: async ({ canvas, canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     await userEvent.click(await canvas.findByRole("button", { name: "New entry" }));
-    await expect(await page.findByRole("dialog", { name: "New entry" })).toHaveTextContent("new");
+    await expect(await settled(page.findByRole("dialog", { name: "New entry" }))).toHaveTextContent(
+      "new",
+    );
     await userEvent.click(page.getByRole("button", { name: "Close editor" }));
-    await waitFor(() => expect(page.queryByRole("dialog")).toBeNull());
+    await closed(() => page.queryAllByRole("dialog"));
     await groupIsCurrent(canvas, "Studio");
     await userEvent.click(canvas.getByRole("link", { name: "Placeholder Beta" }));
     await expectBeta(canvas);

@@ -4,6 +4,7 @@ import { activateLanguage } from "@self-engine/i18n";
 import { entryIconSchema } from "@self-engine/icons/names";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useState } from "react";
+import { closed, settled } from "../story-surfaces.ts";
 import { expect, fireEvent, fn, screen, userEvent, waitFor, within } from "storybook/test";
 import { afterTheCommitsNowDue, difference, renderCounts } from "../story-render-counts.ts";
 import { EntryIconPicker } from "./index.ts";
@@ -51,7 +52,7 @@ const trigger = (canvas: ReturnType<typeof within>) =>
 
 /** The open field: its dialog, the tab shown, and the controls of the Icons tab if it is shown. */
 async function opened(name = "Choose an icon") {
-  const dialog = await screen.findByRole("dialog", { name });
+  const dialog = await settled(screen.findByRole("dialog", { name }));
   const picker = within(dialog);
   return {
     dialog,
@@ -74,7 +75,7 @@ const shownOptions = (grid: HTMLElement) =>
     .queryAllByRole("option")
     .map((option) => option.getAttribute("aria-label"));
 
-const closed = () => waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+const pickerGone = () => closed(() => screen.queryAllByRole("dialog"));
 
 export const ChoosesSearchesAndClears: Story = {
   render: () => <Form answer={answers} stored="house" />,
@@ -96,7 +97,7 @@ export const ChoosesSearchesAndClears: Story = {
 
     await userEvent.click(within(grid()).getByRole("option", { name: "Rocket" }));
     await expect(answers).toHaveBeenLastCalledWith("rocket-launch");
-    await waitFor(() => expect(dialog.isConnected).toBe(false));
+    await closed(() => (dialog.isConnected ? dialog : null));
     await expect(trigger(canvas)).toHaveAccessibleName("Icon Rocket");
 
     // A search by a label finds the picture, whatever the case and wherever it is in the label.
@@ -137,7 +138,7 @@ export const ChoosesAnEmojiFromTheGridAndClearsIt: Story = {
     // The grid shows the first category without a search.
     await userEvent.click(within(grid).getByRole("gridcell", { name: "grinning face" }));
     await expect(answers).toHaveBeenLastCalledWith("😀");
-    await closed();
+    await pickerGone();
     await expect(trigger(canvas)).toHaveAccessibleName("Icon 😀");
     await expect(canvas.getByTestId("stored")).toHaveTextContent("😀");
 
@@ -186,7 +187,7 @@ export const SearchesEmojisByNameAndFollowsTheLanguage: Story = {
     await userEvent.type(tab.search, "house");
     await expect(within(tab.grid).getByRole("gridcell", { name: "house" })).toHaveTextContent("🏠");
     await userEvent.keyboard("{Escape}");
-    await closed();
+    await pickerGone();
 
     // After a switch of the language, the labels, the categories and the names are German.
     await userEvent.click(canvas.getByRole("button", { name: "Deutsch" }));
@@ -243,7 +244,7 @@ export const KeepsTheSearchTermAcrossTheTabs: Story = {
 
     // The next opening starts with an empty search.
     await userEvent.keyboard("{Escape}");
-    await closed();
+    await pickerGone();
     await userEvent.click(trigger(canvas));
     const again = await opened();
     await expect(again.search()).toHaveValue("");
@@ -261,7 +262,7 @@ export const TakesAPastedEmojiInBothTabs: Story = {
     await userEvent.click(first.search());
     await userEvent.paste(" 👍🏽 ");
     await expect(answers).toHaveBeenLastCalledWith("👍🏽");
-    await closed();
+    await pickerGone();
     await expect(trigger(canvas)).toHaveAccessibleName("Icon 👍🏽");
 
     // Under "Emoji", which a stored emoji opens on: a joined emoji of several parts.
@@ -273,7 +274,7 @@ export const TakesAPastedEmojiInBothTabs: Story = {
     await userEvent.click(tab.search);
     await userEvent.paste("🧑🏿‍🚀");
     await expect(answers).toHaveBeenLastCalledWith("🧑🏿‍🚀");
-    await closed();
+    await pickerGone();
     await expect(canvas.getByTestId("stored")).toHaveTextContent("🧑🏿‍🚀");
 
     // The next opening shows an empty search in both tabs.
@@ -335,7 +336,7 @@ export const TakesAComposedEmojiOnlyOnceItIsComposed: Story = {
     // Some browsers send the composed text once more after the end: it is not a second answer.
     await fireEvent.input(search(), { target: { value: "🍣" } });
     await expect(answers).toHaveBeenCalledTimes(1);
-    await closed();
+    await pickerGone();
     await expectStrict();
   },
 };
@@ -450,7 +451,7 @@ export const ReachesEveryEmojiWithTheKeyboardAlone: Story = {
     await expect(second).not.toBeNull();
     await userEvent.keyboard("{Enter}");
     await expect(answers).toHaveBeenLastCalledWith(second!.textContent);
-    await closed();
+    await pickerGone();
     await waitFor(() => expect(trigger(canvas)).toHaveFocus());
 
     // Without a search term, the keyboard reaches the grid itself: the field opens on "Emoji",
@@ -545,7 +546,7 @@ export const AnUnknownStoredValueStaysUntilTheUserActs: Story = {
     await expect(within(first.grid()).queryAllByRole("option", { selected: true })).toHaveLength(0);
     // Looking is not a choice: the stored value stays until the user acts.
     await userEvent.keyboard("{Escape}");
-    await closed();
+    await pickerGone();
     await expect(unknownName.getByTestId("stored")).toHaveTextContent(
       "a-picture-from-a-newer-version",
     );
@@ -558,7 +559,7 @@ export const AnUnknownStoredValueStaysUntilTheUserActs: Story = {
     await expect(second.selectedTab()).toHaveAccessibleName("Emoji");
     await emojiTab(second.dialog);
     await userEvent.keyboard("{Escape}");
-    await closed();
+    await pickerGone();
     await expect(unknownEmoji.getByTestId("stored")).toHaveTextContent("🦊‍🔥");
     await expect(answers).not.toHaveBeenCalled();
 
@@ -569,7 +570,7 @@ export const AnUnknownStoredValueStaysUntilTheUserActs: Story = {
       await userEvent.click(picker.getByRole("button", { name: "No icon" }));
       await expect(answers).toHaveBeenLastCalledWith(null);
       await expect(form.getByTestId("stored")).toHaveTextContent("nothing");
-      await closed();
+      await pickerGone();
     }
   },
 };
@@ -582,7 +583,7 @@ export const NothingStoredHasNothingToClear: Story = {
     const { picker } = await opened();
     await expect(picker.getByRole("button", { name: "No icon" })).toBeDisabled();
     await userEvent.keyboard("{Escape}");
-    await closed();
+    await pickerGone();
     await expect(answers).not.toHaveBeenCalled();
   },
 };
@@ -616,7 +617,7 @@ export const SearchesInGerman: Story = {
   play: async ({ canvas }) => {
     await expect(canvas.getByRole("button", { name: /^Icon/ })).toHaveAccessibleName("Icon Hantel");
     await userEvent.click(canvas.getByRole("button", { name: /^Icon/ }));
-    const dialog = await screen.findByRole("dialog", { name: "Icon wählen" });
+    const dialog = await settled(screen.findByRole("dialog", { name: "Icon wählen" }));
     await expect(within(dialog).getByRole("tab", { name: "Icons" })).toBeInTheDocument();
     await expect(within(dialog).getByRole("tab", { name: "Emoji" })).toBeInTheDocument();
     await expect(within(dialog).getByRole("button", { name: "Kein Icon" })).toBeInTheDocument();

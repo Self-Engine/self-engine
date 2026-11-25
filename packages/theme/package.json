@@ -8,7 +8,8 @@
     ".": "./src/core/index.ts",
     "./mantine": "./src/mantine/index.tsx",
     "./names": "./src/names/index.ts",
-    "./fonts.css": "./src/fonts.css"
+    "./fonts.css": "./src/fonts.css",
+    "./story-surfaces": "./src/mantine/story-surfaces.ts"
   },
   "dependencies": {
     "@fontsource-variable/inter": "catalog:",

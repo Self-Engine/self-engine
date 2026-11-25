@@ -2,6 +2,7 @@ import { ActionIcon, Burger, Drawer, Group } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { expect, screen, userEvent, waitFor, within } from "storybook/test";
+import { closed, settled } from "./story-surfaces.ts";
 
 const meta = { title: "Appearance/Focus Ring" } satisfies Meta;
 
@@ -70,14 +71,13 @@ export const NoFocusRingAfterOpeningAndClosingTheDrawerWithThePointer: Story = {
     await expect(burger).toHaveFocus();
     await expect(ringOf(burger)).toBe("solid");
     await userEvent.click(burger);
-    const drawer = await screen.findByRole("dialog", { name: "Panel" });
-    await waitFor(() => expect(within(drawer).getByText("Panel content")).toBeVisible());
+    const drawer = await settled(screen.findByRole("dialog", { name: "Panel" }));
     await waitFor(() => expect(drawer.contains(document.activeElement)).toBe(true));
     await expect(ringOf(focused())).toBe("none");
     const close = within(drawer).getByRole("button", { name: "Close panel" });
     await userEvent.click(close);
     await expect(ringOf(close)).toBe("none");
-    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+    await closed(() => screen.queryByRole("dialog"));
     await waitFor(() => expect(burger).toHaveFocus());
     await expect(ringOf(burger)).toBe("none");
   },

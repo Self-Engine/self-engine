@@ -4,6 +4,7 @@
 // loads anew.
 
 import type { Meta, StoryObj } from "@storybook/react-vite";
+import { closed, settled } from "../story-surfaces.ts";
 import { expect, fn, screen, userEvent, waitFor, within } from "storybook/test";
 import { EntryIconPicker } from "./index.ts";
 import { aPageWithoutTheEmojiPicker, emojiPickerHasRun } from "./story-fresh-page.ts";
@@ -39,11 +40,11 @@ export const TakesAPastedEmojiWithoutTheEmojiData: Story = {
   play: async ({ canvas }) => {
     answers.mockClear();
     await userEvent.click(canvas.getByRole("button", { name: /^Icon/ }));
-    const dialog = await screen.findByRole("dialog", { name: "Choose an icon" });
+    const dialog = await settled(screen.findByRole("dialog", { name: "Choose an icon" }));
     await userEvent.click(within(dialog).getByRole("searchbox", { name: "Search icons" }));
     await userEvent.paste("👨‍👩‍👧‍👦");
     await expect(answers).toHaveBeenLastCalledWith("👨‍👩‍👧‍👦");
-    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+    await closed(() => screen.queryAllByRole("dialog"));
     await expect(emojiRequests()).toEqual([]);
     await expect(emojiPickerHasRun()).toBe(false);
   },
@@ -53,7 +54,7 @@ export const LoadsTheEmojisWhenTheEmojiTabOpens: Story = {
   render: () => <EntryIconPicker onChange={() => {}} value="house" />,
   play: async ({ canvas }) => {
     await userEvent.click(canvas.getByRole("button", { name: /^Icon/ }));
-    const dialog = await screen.findByRole("dialog", { name: "Choose an icon" });
+    const dialog = await settled(screen.findByRole("dialog", { name: "Choose an icon" }));
     // The Icons tab, searched and browsed, asks for nothing of the emoji picker.
     await userEvent.type(within(dialog).getByRole("searchbox", { name: "Search icons" }), "house");
     await expect(emojiRequests()).toEqual([]);

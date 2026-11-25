@@ -8,6 +8,7 @@ import { changingAnswers, fixedAnswers } from "@self-engine/data-client/testing"
 import { referenced } from "@self-engine/db/schema";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useSyncExternalStore } from "react";
+import { settled } from "@self-engine/ui/story-surfaces";
 import { expect, fn, screen, userEvent, waitFor, within } from "storybook/test";
 import { ClearanceAction, EditDrawerForm, TextField, useOperationForm } from "../../index.ts";
 import { exampleContract } from "./contract.ts";
@@ -208,7 +209,7 @@ function layoutOf(drawer: HTMLElement, elements: readonly HTMLElement[]) {
 
 /** The open drawer's form and its two actions, once they are drawn. */
 async function drawnForm() {
-  const drawer = await screen.findByRole("dialog", { name: "Example" });
+  const drawer = await settled(screen.findByRole("dialog", { name: "Example" }));
   const canvas = within(drawer);
   const title = await canvas.findByRole("textbox", { name: "Title" });
   return {
@@ -223,7 +224,7 @@ async function drawnForm() {
 export const ABlockedDeleteExplainsWhy: Story = {
   play: async ({ loaded, globals }) => {
     const { port, onArchive, onDelete } = loaded as Loaded;
-    const drawer = await screen.findByRole("dialog", { name: "Example" });
+    const drawer = await settled(screen.findByRole("dialog", { name: "Example" }));
     const canvas = within(drawer);
     const title = await canvas.findByRole("textbox", { name: "Title" });
     const remove = canvas.getByRole("button", { name: "Delete" });
@@ -239,6 +240,8 @@ export const ABlockedDeleteExplainsWhy: Story = {
 
     // Nothing is reserved while nothing is blocked: the live region is there, without height.
     await expect(live.getBoundingClientRect().height).toBe(0);
+    // A font that arrives later would widen the buttons between the two measurements.
+    await document.fonts.ready;
     const before = layoutOf(drawer, [title, archive, remove]);
     port.release();
     const reason =
@@ -271,6 +274,7 @@ export const NothingBlockedLooksAsWithoutClearance: Story = {
   play: async ({ loaded }) => {
     const { port, asks } = loaded as Loaded;
     const { drawer, title, archive, remove, live } = await drawnForm();
+    await document.fonts.ready;
     const before = layoutOf(drawer, [title, archive, remove, live]);
     port.release();
     await waitFor(() => expect(remove).not.toHaveAttribute("aria-disabled"));

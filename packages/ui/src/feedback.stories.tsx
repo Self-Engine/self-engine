@@ -1,5 +1,6 @@
 import { roleColor } from "@self-engine/theme";
 import type { Meta, StoryObj } from "@storybook/react-vite";
+import { closed, settled } from "./story-surfaces.ts";
 import { expect, fireEvent, fn, screen, spyOn, userEvent, waitFor, within } from "storybook/test";
 import {
   confirm,
@@ -33,16 +34,16 @@ const QUESTION = {
 
 async function ask(options: typeof QUESTION & Pick<ConfirmOptions, "danger"> = QUESTION) {
   const answer = confirm(options);
-  const dialog = await screen.findByRole("dialog", { name: options.title });
+  const dialog = await settled(screen.findByRole("dialog", { name: options.title }));
   return { answer, dialog: within(dialog) };
 }
 
-const gone = () => waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+const gone = () => closed(() => screen.queryAllByRole("dialog"));
 
 export const ConfirmingAnswersYesFromOutsideAComponent: Story = {
   play: async () => {
     const { answer, dialog } = await ask();
-    await waitFor(() => expect(dialog.getByText("This cannot be undone.")).toBeVisible());
+    await expect(dialog.getByText("This cannot be undone.")).toBeVisible();
     await userEvent.click(dialog.getByRole("button", { name: "Delete" }));
     await expect(await answer).toBe(true);
     await gone();
@@ -55,7 +56,7 @@ export const AConfirmationIsKnownToBeOpenFromTheMomentItIsRaised: Story = {
     const answer = confirm(QUESTION);
     // Before React has drawn it, because a key can be pressed at any moment.
     await expect(isConfirmationOpen()).toBe(true);
-    const dialog = within(await screen.findByRole("dialog", { name: QUESTION.title }));
+    const dialog = within(await settled(screen.findByRole("dialog", { name: QUESTION.title })));
     await userEvent.click(dialog.getByRole("button", { name: "Delete" }));
     await expect(await answer).toBe(true);
     await expect(isConfirmationOpen()).toBe(false);
@@ -116,7 +117,7 @@ export const FocusStartsOnCancelSoAReflexiveEnterDoesNotConfirm: Story = {
 export const TheCancelButtonCanSayWhatItKeeps: Story = {
   play: async () => {
     const answer = confirm({ ...QUESTION, cancelLabel: "Keep editing" });
-    const dialog = within(await screen.findByRole("dialog", { name: QUESTION.title }));
+    const dialog = within(await settled(screen.findByRole("dialog", { name: QUESTION.title })));
     await waitFor(() => expect(dialog.getByRole("button", { name: "Keep editing" })).toHaveFocus());
     await expect(dialog.queryByRole("button", { name: "Cancel" })).toBeNull();
     await userEvent.click(dialog.getByRole("button", { name: "Keep editing" }));
@@ -131,7 +132,7 @@ export const TheCallerCanTakeOverWhereTheFocusGoes: Story = {
     const before = canvas.getByRole("button", { name: "Before the question" });
     before.focus();
     const answer = confirm({ ...QUESTION, returnFocus: false });
-    await screen.findByRole("dialog", { name: QUESTION.title });
+    await settled(screen.findByRole("dialog", { name: QUESTION.title }));
     await waitFor(() => expect(before).not.toHaveFocus());
     await userEvent.keyboard("{Escape}");
     await expect(await answer).toBe(false);
@@ -393,7 +394,7 @@ export const TheirOwnTextIsTranslated: Story = {
     await expect(within(notice).getByRole("button", { name: "Hinweis schließen" })).toBeVisible();
 
     const answer = confirm(QUESTION);
-    const dialog = within(await screen.findByRole("dialog", { name: QUESTION.title }));
+    const dialog = within(await settled(screen.findByRole("dialog", { name: QUESTION.title })));
     await userEvent.click(dialog.getByRole("button", { name: "Abbrechen" }));
     await expect(await answer).toBe(false);
   },
@@ -422,7 +423,7 @@ export const ReducedMotionStillsTheDialogAndTheNotices: Story = {
     await expect(notice.style.transitionDuration).toBe("1ms, 1ms");
 
     const answer = confirm(QUESTION);
-    const dialog = await screen.findByRole("dialog", { name: QUESTION.title });
+    const dialog = await settled(screen.findByRole("dialog", { name: QUESTION.title }));
     await expect(getComputedStyle(dialog).transitionDuration).toBe("0s");
     await userEvent.keyboard("{Escape}");
     await answer;

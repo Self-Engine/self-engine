@@ -4,6 +4,7 @@ import { contribution as alpha } from "@self-engine/placeholder-alpha";
 import { DataProvider, type PortAccess } from "@self-engine/data-client/react";
 import type { PageCommand } from "@self-engine/shell";
 import { useEffect, useMemo, useState } from "react";
+import { settled } from "@self-engine/ui/story-surfaces";
 import { expect, screen, spyOn, userEvent, waitFor, within } from "storybook/test";
 import { createAppRouter } from "./app-router.ts";
 import {
@@ -98,11 +99,11 @@ export const BackAndKeepEditingLeavesTheAddressAndTheDraft: Story = {
 /** Leaves the entry again and comes back to it, so that one history entry lies ahead of it. */
 async function editStudioWithAnEntryAhead(canvas: Canvas) {
   await userEvent.click(await canvas.findByRole("button", { name: "Studio work" }));
-  const drawer = within(await screen.findByRole("dialog", { name: "Studio work" }));
+  const drawer = within(await settled(screen.findByRole("dialog", { name: "Studio work" })));
   await userEvent.click(await drawer.findByRole("button", { name: "Cancel" }));
   await noDrawer("Studio work");
   window.history.back();
-  const reopened = await screen.findByRole("dialog", { name: "Studio work" });
+  const reopened = await settled(screen.findByRole("dialog", { name: "Studio work" }));
   await userEvent.type(await within(reopened).findByRole("textbox", { name: "Name" }), "!");
 }
 
@@ -271,7 +272,7 @@ async function shortcutsArrived() {
     await pressNew();
     await expect(newEntry).toHaveBeenCalled();
   });
-  const drawer = within(await screen.findByRole("dialog", { name: "New entry" }));
+  const drawer = within(await settled(screen.findByRole("dialog", { name: "New entry" })));
   await userEvent.click(await drawer.findByRole("button", { name: "Cancel" }));
   await noDrawer("New entry");
 }
@@ -341,7 +342,7 @@ export const AFilterChangeThatKeepsTheEntryOpenDoesNotAsk: Story = {
 export const CancelWithoutChangesClosesAtOnce: Story = {
   play: async ({ canvas }) => {
     await userEvent.click(await canvas.findByRole("button", { name: "Garden work" }));
-    const drawer = within(await screen.findByRole("dialog", { name: "Garden work" }));
+    const drawer = within(await settled(screen.findByRole("dialog", { name: "Garden work" })));
     await userEvent.click(await drawer.findByRole("button", { name: "Cancel" }));
     await noDrawer("Garden work");
     await expect(address().edit).toBeUndefined();
@@ -362,7 +363,7 @@ export const CancelWithChangesAsks: Story = {
 export const SavingClosesWithoutAsking: Story = {
   args: { address: `${OVERVIEW}?edit=new` },
   play: async ({ canvas }) => {
-    const drawer = within(await screen.findByRole("dialog", { name: "New entry" }));
+    const drawer = within(await settled(screen.findByRole("dialog", { name: "New entry" })));
     await userEvent.type(
       await drawer.findByRole("textbox", { name: "Name" }),
       "Saved from a story",
@@ -396,7 +397,7 @@ function holdingCreate(access: PortAccess): PortAccess {
 export const TheNameIsLockedWhileItSaves: Story = {
   args: { address: `${OVERVIEW}?edit=new`, access: holdingCreate(placeholderAlphaAnswers()) },
   play: async () => {
-    const drawer = within(await screen.findByRole("dialog", { name: "New entry" }));
+    const drawer = within(await settled(screen.findByRole("dialog", { name: "New entry" })));
     const name = await drawer.findByRole("textbox", { name: "Name" });
     await userEvent.type(name, "Saved");
     await userEvent.click(drawer.getByRole("button", { name: "Save" }));
@@ -413,7 +414,7 @@ export const TheNameIsLockedWhileItSaves: Story = {
 export const SaveAndLeavingUseTheSameChangedValues: Story = {
   play: async ({ canvas }) => {
     await userEvent.click(await canvas.findByRole("button", { name: "Studio work" }));
-    const drawer = within(await screen.findByRole("dialog", { name: "Studio work" }));
+    const drawer = within(await settled(screen.findByRole("dialog", { name: "Studio work" })));
     const name = await drawer.findByRole("textbox", { name: "Name" });
     const save = drawer.getByRole("button", { name: "Save" });
     await expect(save).toBeDisabled();

@@ -12,6 +12,7 @@ import {
 import { LOADER_DELAY_MS } from "@self-engine/ui";
 import { holdTimers } from "@self-engine/ui/story-timers";
 import type { Meta, StoryObj } from "@storybook/react-vite";
+import { closed, settled } from "@self-engine/ui/story-surfaces";
 import { expect, screen, userEvent, waitFor, within } from "storybook/test";
 import {
   AppAt,
@@ -172,11 +173,13 @@ export const NewProjectOpensTheFormFromTheCommandPalette: Story = {
 export const NewProjectOpensTheFormWithModN: Story = {
   play: async ({ canvas }) => {
     await list(canvas);
-    // The bindings load after the first paint, so an early press is lost.
+    // The bindings load after the first paint, so an early press is lost. A second press goes
+    // only to a page where the drawer is not there yet, not to one where it is fading in.
     await waitFor(async () => {
-      await pressWithMod("n");
-      await expect(screen.getByRole("dialog", { name: "New project" })).toBeVisible();
+      if (screen.queryByRole("dialog", { name: "New project" }) === null) await pressWithMod("n");
+      await expect(screen.getByRole("dialog", { name: "New project" })).toBeInTheDocument();
     });
+    await settled(screen.findByRole("dialog", { name: "New project" }));
     await expect(editInAddress(storyRouter())).toBe("new");
   },
 };
@@ -220,7 +223,7 @@ export const TheNewProjectFormInGerman: Story = {
   args: { address: NEW },
   globals: { language: "de" },
   play: async () => {
-    const drawer = within(await screen.findByRole("dialog", { name: "Neues Projekt" }));
+    const drawer = within(await settled(screen.findByRole("dialog", { name: "Neues Projekt" })));
     const title = await drawer.findByRole("textbox", { name: "Titel" });
     await expect(drawer.getByRole("textbox", { name: "Beschreibung" })).toBeVisible();
     await userEvent.click(drawer.getByRole("button", { name: "Speichern" }));
@@ -236,15 +239,13 @@ export const ANewProjectIsCreatedWithEveryFieldAndTheDrawerCloses: Story = {
     await userEvent.type(form.title, " Website ");
     await userEvent.type(form.description(), "Relaunch");
     await userEvent.click(form.drawer.getByRole("button", { name: /^Icon/ }));
-    const picker = within(await screen.findByRole("dialog", { name: "Choose an icon" }));
+    const picker = within(await settled(screen.findByRole("dialog", { name: "Choose an icon" })));
     await userEvent.click(
       within(picker.getByRole("listbox", { name: "Icons" })).getByRole("option", {
         name: "House",
       }),
     );
-    await waitFor(() =>
-      expect(screen.queryByRole("dialog", { name: "Choose an icon" })).toBeNull(),
-    );
+    await closed(() => screen.queryByRole("dialog", { name: "Choose an icon" }));
     await userEvent.click(
       within(form.drawer.getByRole("radiogroup", { name: "Color" })).getByRole("radio", {
         name: "Teal",

@@ -3,6 +3,7 @@ import { notifyUndoable } from "@self-engine/ui";
 import { clearNotices } from "@self-engine/ui/story-notices";
 import type { Meta } from "@storybook/react-vite";
 import { useState } from "react";
+import { closed, settled } from "@self-engine/ui/story-surfaces";
 import { expect, fn, screen, userEvent, waitFor, within } from "storybook/test";
 import {
   type EditDrawerProps,
@@ -49,7 +50,7 @@ const routing = storyRouting();
 const openDialog = async (canvas: ReturnType<typeof within>) => {
   const trigger = canvas.getByRole("button", { name: "Open editor" });
   await userEvent.click(trigger);
-  const dialog = await screen.findByRole("dialog", { name: "Time" });
+  const dialog = await settled(screen.findByRole("dialog", { name: "Time" }));
   await within(dialog).findByText("Editing entry");
   return { dialog, trigger };
 };
@@ -62,7 +63,7 @@ export const ClosingKeepsTheFrameForItsExit: Story = {
     await nextFrame();
     await expect(dialog.isConnected).toBe(true);
     await expect(within(dialog).getByText("Editing entry")).toBeInTheDocument();
-    await waitFor(() => expect(dialog.isConnected).toBe(false));
+    await closed(() => (dialog.isConnected ? dialog : null));
     await waitFor(() => expect(trigger).toHaveFocus());
   },
 };
@@ -97,7 +98,7 @@ export const MovingToAModuleWithoutADrawerStillPlaysTheExit: Story = {
     movingRouting.address.writeSearch(() => ({}));
     await nextFrame();
     await expect(dialog.isConnected).toBe(true);
-    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+    await closed(() => screen.queryAllByRole("dialog"));
   },
 };
 
@@ -119,7 +120,7 @@ const frameAt = (viewport: keyof typeof VIEWPORTS, frame: typeof FLOATING): Stor
   ...atViewport(viewport),
   args: { activeModule: MODULE_WITH_DRAWER, routing: storyRouting({ edit: "entry" }) },
   play: async () => {
-    const dialog = await screen.findByRole("dialog");
+    const dialog = await settled(screen.findByRole("dialog"));
     await waitFor(() => expect(frameOf(dialog)).toEqual(frame));
   },
 });
@@ -155,7 +156,7 @@ const MODULE_NAMING_ITS_ENTRY: ShellContribution = {
 export const TitleIsTheModuleNameUntilTheModuleSetsOne: Story = {
   args: { activeModule: MODULE_NAMING_ITS_ENTRY, routing: storyRouting({ edit: "entry" }) },
   play: async () => {
-    const dialog = await screen.findByRole("dialog", { name: "Time" });
+    const dialog = await settled(screen.findByRole("dialog", { name: "Time" }));
     await expect(within(dialog).getByRole("heading", { name: "Time" })).toBeVisible();
     await userEvent.click(await within(dialog).findByRole("button", { name: "Name it" }));
     await screen.findByRole("dialog", { name: "Invoice 12" });
@@ -171,7 +172,7 @@ const swappingRouting = storyRouting({ edit: "entry" });
 export const AnotherEntryStartsFromTheModuleNameAgain: Story = {
   args: { activeModule: MODULE_NAMING_ITS_ENTRY, routing: swappingRouting },
   play: async () => {
-    const dialog = await screen.findByRole("dialog", { name: "Time" });
+    const dialog = await settled(screen.findByRole("dialog", { name: "Time" }));
     await userEvent.click(await within(dialog).findByRole("button", { name: "Name it" }));
     await screen.findByRole("dialog", { name: "Invoice 12" });
     swappingRouting.address.writeSearch((search) => ({ ...search, edit: "unnamed" }));
@@ -195,7 +196,7 @@ const MODULE_PINNING_ITS_BUTTONS: ShellContribution = {
 export const ContentCanPinItsButtonsToTheBottom: Story = {
   args: { activeModule: MODULE_PINNING_ITS_BUTTONS, routing: storyRouting({ edit: "entry" }) },
   play: async () => {
-    const dialog = await screen.findByRole("dialog", { name: "Time" });
+    const dialog = await settled(screen.findByRole("dialog", { name: "Time" }));
     const save = await within(dialog).findByRole("button", { name: "Save" });
     // The drawer's own padding is all that stays below them.
     await waitFor(() =>
@@ -214,7 +215,7 @@ const MODULE_WITH_TALL_CONTENT: ShellContribution = {
 export const TallContentScrollsBelowTheTitle: Story = {
   args: { activeModule: MODULE_WITH_TALL_CONTENT, routing: storyRouting({ edit: "entry" }) },
   play: async () => {
-    const dialog = await screen.findByRole("dialog", { name: "Time" });
+    const dialog = await settled(screen.findByRole("dialog", { name: "Time" }));
     await within(dialog).findByTestId("tall");
     const heading = within(dialog).getByRole("heading", { name: "Time" });
     const top = heading.getBoundingClientRect().top;
@@ -256,9 +257,9 @@ const noticeOf = async (message: string) =>
   (await screen.findByText(message)).closest<HTMLElement>("[role=alert]")!;
 
 /** Until the notice has finished sliding in and lies on top where it rests. */
-const settled = async (notice: HTMLElement) => {
+const noticeSettled = async (notice: HTMLElement) => {
+  await settled(notice);
   await waitFor(async () => {
-    await expect(getComputedStyle(notice).opacity).toBe("1");
     const { left, top, width, height } = notice.getBoundingClientRect();
     await expect(
       notice.contains(document.elementFromPoint(left + width / 2, top + height / 2)),
@@ -295,7 +296,7 @@ const noticesLeaveTheDrawerClickable = (
   beforeEach: clearNotices,
   args: { activeModule: MODULE_WITH_ACTIONS, routing: storyRouting({ edit: "entry" }) },
   play: async () => {
-    const dialog = within(await screen.findByRole("dialog", { name: "Time" }));
+    const dialog = within(await settled(screen.findByRole("dialog", { name: "Time" })));
     const save = await dialog.findByRole("button", { name: "Save" });
     const undoFirst = fn();
     const undoSecond = fn();
@@ -303,7 +304,7 @@ const noticesLeaveTheDrawerClickable = (
     notifyUndoable({ message: "Second entry deleted", undo: undoSecond });
     const latest = await noticeOf("Second entry deleted");
     const earlier = await noticeOf("First entry deleted");
-    await settled(latest);
+    await noticeSettled(latest);
     await expectClickable(dialog.getByRole("heading", { name: "Time" }), "The title");
     await expectClickable(dialog.getByRole("button", { name: "Close editor" }), "Close");
     await expectClickable(dialog.getByRole("button", { name: "Delete" }), "Delete");
@@ -313,7 +314,7 @@ const noticesLeaveTheDrawerClickable = (
     // The notices keep their own action.
     await userEvent.click(within(latest).getByRole("button", { name: "Undo" }));
     await expect(undoSecond).toHaveBeenCalledOnce();
-    await settled(earlier);
+    await noticeSettled(earlier);
     await userEvent.click(within(earlier).getByRole("button", { name: "Undo" }));
     await expect(undoFirst).toHaveBeenCalledOnce();
     await waitFor(() => expect(screen.queryByRole("alert")).toBeNull());
@@ -342,7 +343,7 @@ export const NoticesLieBesideTheDrawerInAWideWindow = noticesLeaveTheDrawerClick
     await expectApart(field, [latest, earlier]);
     await userEvent.hover(latest);
     await waitFor(() => expect(earlier).not.toHaveAttribute("inert"));
-    await settled(earlier);
+    await noticeSettled(earlier);
     await expectApart(field, [latest, earlier]);
   },
 );
@@ -365,7 +366,7 @@ const noticesLeaveTheHeaderClickable = (viewport: keyof typeof VIEWPORTS): Story
   play: async () => {
     notifyUndoable({ message: "First entry deleted", undo: fn() });
     notifyUndoable({ message: "Second entry deleted", undo: fn() });
-    await settled(await noticeOf("Second entry deleted"));
+    await noticeSettled(await noticeOf("Second entry deleted"));
     await expectClickable(screen.getByRole("heading", { level: 1, name: "Time" }), "The title");
     await expectClickable(
       screen.getByRole("button", { name: /^(Collapse module sidebar|Open module sidebar)$/ }),
@@ -410,11 +411,11 @@ export const EscapeInALayerOverTheDrawerClosesOnlyTheLayer: Story = {
   args: { activeModule: MODULE_WITH_LAYERS, children: <OpenEditor />, routing: layersRouting },
   play: async ({ canvas }) => {
     await userEvent.click(canvas.getByRole("button", { name: "Open editor" }));
-    const drawer = await screen.findByRole("dialog", { name: "Time" });
+    // A popover opened while the drawer still slides in does not take the focus.
+    const drawer = await settled(screen.findByRole("dialog", { name: "Time" }));
     const choose = await within(drawer).findByRole("button", { name: "Choose" });
     const stillOpen = () => expect(layersRouting.address.search()).toEqual({ edit: "entry" });
-    // A popover opened while the drawer still slides in does not take the focus.
-    await waitFor(() => expect(frameOf(drawer)).toEqual(FLOATING));
+    await expect(frameOf(drawer)).toEqual(FLOATING);
 
     // A popover: the focus is inside it, outside the drawer.
     await userEvent.click(choose);
@@ -422,7 +423,7 @@ export const EscapeInALayerOverTheDrawerClosesOnlyTheLayer: Story = {
       expect(await screen.findByRole("textbox", { name: "Search" })).toHaveFocus(),
     );
     await pressEscape();
-    await waitFor(() => expect(screen.queryByRole("textbox", { name: "Search" })).toBeNull());
+    await closed(() => screen.queryByRole("textbox", { name: "Search" }));
     await stillOpen();
     await waitFor(() => expect(choose).toHaveFocus());
 
@@ -430,13 +431,13 @@ export const EscapeInALayerOverTheDrawerClosesOnlyTheLayer: Story = {
     await userEvent.click(within(drawer).getByRole("combobox", { name: "Kind" }));
     await screen.findByRole("option", { name: "Client" });
     await pressEscape();
-    await waitFor(() => expect(screen.queryByRole("option", { name: "Client" })).toBeNull());
+    await closed(() => screen.queryByRole("option", { name: "Client" }));
     await stillOpen();
 
     // No layer is open any more: now the key is the drawer's.
     await pressEscape();
     await waitFor(() => expect(layersRouting.address.search()).toEqual({}));
-    await waitFor(() => expect(drawer.isConnected).toBe(false));
+    await closed(() => screen.queryByRole("dialog", { name: "Time" }));
   },
 };
 
@@ -471,7 +472,7 @@ export const ReopeningDuringTheExitIsANewOpening: Story = {
   play: async ({ canvas, loaded }) => {
     const { routing: reopenRouting } = loaded as Reopening;
     await userEvent.click(canvas.getByRole("button", { name: "Open editor" }));
-    const dialog = await screen.findByRole("dialog", { name: "Time" });
+    const dialog = await settled(screen.findByRole("dialog", { name: "Time" }));
     await within(dialog).findByText("Opening 1");
     reopenRouting.address.writeSearch(({ edit: _edit, ...search }) => search);
     await nextFrame();
