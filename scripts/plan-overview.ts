@@ -340,17 +340,22 @@ export function buildOverview(
   closedByOpenPullRequests: ReadonlyMap<number, number>,
   roadmap: Roadmap,
 ): Overview {
-  // A superseded or rejected issue was never built, so it counts nowhere. Neither does a map or
-  // one of its tickets: they hold a decision and nothing to build (D374).
-  const sorted = issues
-    .filter((issue) => !issue.labels.some((label) => label.startsWith(MAP_LABEL_PREFIX)))
+  // A superseded or rejected issue was never built, so it counts nowhere.
+  const live = issues
     .filter(
       (issue) =>
         issue.state === "OPEN" ||
         (issue.stateReason !== "NOT_PLANNED" && issue.stateReason !== "DUPLICATE"),
     )
     .sort((a, b) => a.number - b.number);
+  // A map and its tickets hold a decision and nothing to build, so they get no row and count
+  // nowhere (D374). They still block: a work package may wait on a decision.
+  const decisions = live.filter((issue) =>
+    issue.labels.some((label) => label.startsWith(MAP_LABEL_PREFIX)),
+  );
+  const sorted = live.filter((issue) => !decisions.includes(issue));
   const byNumber = new Map(sorted.map((issue) => [issue.number, issue]));
+  const blockerByNumber = new Map(live.map((issue) => [issue.number, issue]));
   const childrenOf = new Map<number, Issue[]>();
   for (const issue of sorted) {
     const parent = parentOf(issue.body);
@@ -377,7 +382,7 @@ export function buildOverview(
   const rowOf = (issue: Issue): Row => {
     const current = status(issue);
     const blockers = blockersOf(issue.body)
-      .map((n) => byNumber.get(n))
+      .map((n) => blockerByNumber.get(n))
       .filter((other) => other !== undefined)
       .map(refOf);
     const summary = summaryOf(issue.body);
@@ -391,7 +396,9 @@ export function buildOverview(
       ...(current === "built"
         ? {}
         : {
-            waitingOn: blockers.filter((blocker) => byNumber.get(blocker.number)?.state === "OPEN"),
+            waitingOn: blockers.filter(
+              (blocker) => blockerByNumber.get(blocker.number)?.state === "OPEN",
+            ),
           }),
       details: {
         ...(summary === undefined ? {} : { summary }),
@@ -446,7 +453,7 @@ export function buildOverview(
   for (const issue of sorted) counts[status(issue)] += 1;
 
   const openBlockers = (issue: Issue): boolean =>
-    blockersOf(issue.body).some((n) => byNumber.get(n)?.state === "OPEN");
+    blockersOf(issue.body).some((n) => blockerByNumber.get(n)?.state === "OPEN");
   const lowest = (wanted: Status, needsFree: boolean): Issue | undefined =>
     packages.find((issue) => status(issue) === wanted && !(needsFree && openBlockers(issue)));
   const pullRequests = [...new Set(closedByOpenPullRequests.values())].sort((a, b) => a - b);
@@ -469,17 +476,26 @@ export function buildOverview(
     total: sorted.length,
     nextSteps,
     history: historyOf(sorted),
-    graph: graphOf(packages, childrenOf, status, (issue) =>
-      known.has(layerIdOf(issue) ?? "") ? (layerIdOf(issue) ?? "none") : "none",
+    graph: graphOf(
+      packages,
+      childrenOf,
+      status,
+      (issue) => (known.has(layerIdOf(issue) ?? "") ? (layerIdOf(issue) ?? "none") : "none"),
+      decisions.filter((issue) => issue.state === "OPEN"),
     ),
   };
 }
 
+/**
+ * `openDecisions` are the open tickets of a map. They get no node, but an issue that waits on one
+ * starts a wave later.
+ */
 function graphOf(
   packages: readonly Issue[],
   childrenOf: ReadonlyMap<number, readonly Issue[]>,
   status: (issue: Issue) => Status,
   layerOf: (issue: Issue) => string,
+  openDecisions: readonly Issue[],
 ): GraphNode[] {
   const entries = packages.flatMap((pkg) => [
     { issue: pkg, layer: layerOf(pkg) },
@@ -490,13 +506,14 @@ function graphOf(
     })),
   ]);
   const open = entries.filter((entry) => entry.issue.state === "OPEN");
-  const graph = dependencyGraph(
-    open.map((entry) => ({
+  const graph = dependencyGraph([
+    ...open.map((entry) => ({
       number: entry.issue.number,
       blockers: blockersOf(entry.issue.body),
       ...("parent" in entry ? { parent: entry.parent } : {}),
     })),
-  );
+    ...openDecisions.map((issue) => ({ number: issue.number, blockers: [] })),
+  ]);
   return entries.map((entry) => {
     const current = status(entry.issue);
     const place = graph.get(entry.issue.number);
