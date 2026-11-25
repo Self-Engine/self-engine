@@ -9,59 +9,60 @@ function instance(granted: boolean) {
   };
 }
 
+function windowRecording(actions: string[], minimized: boolean) {
+  return {
+    isMinimized: () => minimized,
+    restore: () => actions.push("restore"),
+    show: () => actions.push("show"),
+    focus: () => actions.push("focus"),
+  };
+}
+
 describe("acquireSingleInstanceLock", () => {
   it("quits and refuses startup when another instance holds the lock", () => {
     const app = instance(false);
-    const getWindow = vi.fn();
+    const shownWindow = vi.fn();
 
-    expect(acquireSingleInstanceLock(app, false, getWindow)).toBe(false);
+    expect(acquireSingleInstanceLock(app, shownWindow)).toBe(false);
     expect(app.requestSingleInstanceLock).toHaveBeenCalledOnce();
     expect(app.quit).toHaveBeenCalledOnce();
     expect(app.on).not.toHaveBeenCalled();
-    expect(getWindow).not.toHaveBeenCalled();
+    expect(shownWindow).not.toHaveBeenCalled();
   });
 
   it.each([
     { minimized: true, expected: ["restore", "show", "focus"] },
     { minimized: false, expected: ["show", "focus"] },
   ])(
-    "shows and focuses the existing window with minimized=$minimized",
+    "brings the shown window to the front on a second start, minimized=$minimized",
     ({ minimized, expected }) => {
       const app = instance(true);
       const actions: string[] = [];
-      const window = {
-        isMinimized: () => minimized,
-        restore: () => actions.push("restore"),
-        show: () => actions.push("show"),
-        focus: () => actions.push("focus"),
-      };
-      const getWindow = vi.fn(() => window);
+      const shownWindow = vi.fn(() => windowRecording(actions, minimized));
 
-      expect(acquireSingleInstanceLock(app, false, getWindow)).toBe(true);
+      expect(acquireSingleInstanceLock(app, shownWindow)).toBe(true);
       expect(app.quit).not.toHaveBeenCalled();
-      expect(getWindow).not.toHaveBeenCalled();
+      expect(shownWindow).not.toHaveBeenCalled();
       expect(app.on).toHaveBeenCalledExactlyOnceWith("second-instance", expect.any(Function));
       app.on.mock.calls[0]?.[1]();
       expect(actions).toEqual(expected);
     },
   );
 
-  it("can receive a second launch before there is a window", () => {
+  it("asks for the shown window at each second start, not once", () => {
     const app = instance(true);
-    const getWindow = vi.fn(() => undefined);
+    const actions: string[] = [];
+    // No window is shown during the start and in a hidden run; later there is one.
+    const shownWindow = vi
+      .fn<() => ReturnType<typeof windowRecording> | undefined>()
+      .mockReturnValueOnce(undefined)
+      .mockReturnValue(windowRecording(actions, false));
 
-    acquireSingleInstanceLock(app, false, getWindow);
-    app.on.mock.calls[0]?.[1]();
-    expect(getWindow).toHaveBeenCalledOnce();
-  });
-
-  it("takes the lock for a hidden run without registering a window activation listener", () => {
-    const app = instance(true);
-    const getWindow = vi.fn();
-
-    expect(acquireSingleInstanceLock(app, true, getWindow)).toBe(true);
-    expect(app.requestSingleInstanceLock).toHaveBeenCalledOnce();
-    expect(app.on).not.toHaveBeenCalled();
-    expect(getWindow).not.toHaveBeenCalled();
+    acquireSingleInstanceLock(app, shownWindow);
+    const secondStart = app.on.mock.calls[0]?.[1];
+    secondStart?.();
+    expect(actions).toEqual([]);
+    secondStart?.();
+    expect(actions).toEqual(["show", "focus"]);
   });
 });

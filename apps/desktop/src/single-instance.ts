@@ -11,24 +11,29 @@ interface InstanceWindow {
   focus(): void;
 }
 
-/** Returns whether startup may continue with the data folder already set on the app. */
+/**
+ * Takes Electron's single-instance lock for the data folder already set on the app, and returns
+ * whether startup may continue. Without the lock the app quits: another instance runs on this
+ * data folder, and it brings its window to the front.
+ *
+ * `shownWindow` is the window this instance has shown. A second start during this one's own
+ * start finds none: the window shows itself after its first paint. A hidden run never has one,
+ * so a second start cannot bring it to the screen.
+ */
 export function acquireSingleInstanceLock(
   app: InstanceApp,
-  hidden: boolean,
-  getWindow: () => InstanceWindow | undefined,
+  shownWindow: () => InstanceWindow | undefined,
 ): boolean {
   if (!app.requestSingleInstanceLock()) {
     app.quit();
     return false;
   }
-  if (!hidden) {
-    app.on("second-instance", () => {
-      const window = getWindow();
-      if (!window) return;
-      if (window.isMinimized()) window.restore();
-      window.show();
-      window.focus();
-    });
-  }
+  app.on("second-instance", () => {
+    const window = shownWindow();
+    if (!window) return;
+    if (window.isMinimized()) window.restore();
+    window.show();
+    window.focus();
+  });
   return true;
 }

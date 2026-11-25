@@ -36,7 +36,7 @@ const { channel, productName, dataFolder, icon, scheme } = buildIdentity;
 
 // All of this must run before the app is ready. The name comes first: Electron derives the
 // Keychain item of `safeStorage` from it, and the packaged metadata does not cover `electron .`.
-function prepareBeforeReady(hidden: boolean): boolean {
+function prepareBeforeReady(): boolean {
   app.setName(productName);
   app.setPath(
     "userData",
@@ -48,9 +48,7 @@ function prepareBeforeReady(hidden: boolean): boolean {
   );
   // Electron's ProcessSingleton uses the current userData path. Set it first so each
   // channel and each --user-data-dir override locks only its own data folder.
-  if (!acquireSingleInstanceLock(app, hidden, () => BrowserWindow.getAllWindows()[0])) {
-    return false;
-  }
+  if (!acquireSingleInstanceLock(app, shownWindow)) return false;
   protocol.registerSchemesAsPrivileged([
     {
       scheme,
@@ -64,6 +62,14 @@ function prepareBeforeReady(hidden: boolean): boolean {
     },
   ]);
   return true;
+}
+
+// The windows this run has shown. A hidden run shows none, and a window that still waits for its
+// first paint is not in it yet.
+const shownWindows = new WeakSet<BrowserWindow>();
+
+function shownWindow(): BrowserWindow | undefined {
+  return BrowserWindow.getAllWindows().find((window) => shownWindows.has(window));
 }
 
 function registerProtocol(devServer: URL | undefined): void {
@@ -162,7 +168,9 @@ async function openWindow(hidden: boolean): Promise<void> {
     },
   });
   window.once("ready-to-show", () => {
-    if (!hidden) applyWindowOpening(window, opening, () => rememberWindowState(window));
+    if (hidden) return;
+    applyWindowOpening(window, opening, () => rememberWindowState(window));
+    shownWindows.add(window);
   });
   window.webContents.setWindowOpenHandler(() => ({ action: "deny" }));
   window.webContents.on("will-navigate", (event, url) => {
@@ -171,9 +179,10 @@ async function openWindow(hidden: boolean): Promise<void> {
   await window.loadURL(desktopUrl(scheme));
 }
 
-async function start(hidden: boolean): Promise<void> {
+async function start(): Promise<void> {
   // Set by the dev runner (scripts/desktop-dev.ts).
   const devServer = resolveDevServer(channel, process.env.VITE_DEV_SERVER_URL);
+  const hidden = shouldHideWindow(channel, process.env.SELF_ENGINE_HIDDEN);
   // Hide before readiness so automation never activates the app or shows its Dock icon.
   if (hidden) app.dock?.hide();
   await app.whenReady();
@@ -195,8 +204,7 @@ app.on("window-all-closed", () => app.quit());
 // Chromium reads `--user-data-dir` before this code runs and creates the folder if it is
 // missing, but opens nothing in it, so refusing here still comes before any write.
 try {
-  const hidden = shouldHideWindow(channel, process.env.SELF_ENGINE_HIDDEN);
-  if (prepareBeforeReady(hidden)) start(hidden).catch(failStart);
+  if (prepareBeforeReady()) start().catch(failStart);
 } catch (error) {
   failStart(error);
 }
