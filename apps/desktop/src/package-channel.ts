@@ -136,7 +136,8 @@ export function builderConfig(
     // Always `dist-electron` inside the package, because that is where `main` points.
     files: [
       "package.json",
-      { from: bundleDirectory(channel), to: "dist-electron" },
+      // The icon goes into the app's Resources (`mac.icon`), not a second time into app.asar.
+      { from: bundleDirectory(channel), to: "dist-electron", filter: ["**/*", "!*.icns"] },
       { from: "../web/dist", to: "dist-renderer" },
       // The SQLite driver needs only its JavaScript and the binary for this Mac; its C sources
       // and the binaries of other platforms would only grow the app.

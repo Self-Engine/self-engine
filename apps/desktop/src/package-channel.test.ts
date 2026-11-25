@@ -136,7 +136,7 @@ describe("builderConfig", () => {
   ] as const)("carries the identity of %s", (channel, productName, appId) => {
     const config = builderConfig(channel, ELECTRON_DIST);
     expect(config).toMatchObject({ productName, appId });
-    expect(config.mac.icon).toBe(`icons/${channel}.icns`);
+    expect(config.mac.icon).toBe(`dist-release/${channel}/icon.icns`);
   });
 
   it.each(["nightly", "stable"] as const)("puts the runtime name of %s in", (channel) => {
@@ -230,7 +230,16 @@ describe("builderConfig", () => {
       expect(builderConfig(channel, ELECTRON_DIST).files).toContainEqual({
         from: bundleDirectory(channel),
         to: "dist-electron",
+        filter: ["**/*", "!*.icns"],
       });
+    },
+  );
+
+  it.each(["nightly", "stable"] as const)(
+    "takes the icon of %s from the bundle it packages",
+    (channel) => {
+      const { mac } = builderConfig(channel, ELECTRON_DIST);
+      expect(mac.icon.startsWith(`${bundleDirectory(channel)}/`)).toBe(true);
     },
   );
 });

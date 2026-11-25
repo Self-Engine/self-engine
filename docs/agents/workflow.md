@@ -15,6 +15,17 @@ A work package takes one path: layer, work package, slice, pull request. A chang
 
 Build work packages in number order unless the owner picks another. A slice may have a higher number than a later package, because that package depends on the slice's parent.
 
+## Mapping a large effort
+
+An effort too large for one grilling, whose late questions nobody can phrase yet, replaces steps 1 and 2 with a **map** (`wayfinder`). The map is an issue labelled `wayfinder:map`. Its **tickets** are sub-issues that each hold one question, with a `wayfinder:<type>` label and no label from [Who may build](#who-may-build). [Wayfinding operations](issue-tracker.md#wayfinding-operations) names the commands.
+
+- **One session resolves one ticket.** Take the first open ticket that has no open blocker and no assignee, unless the owner names another. A ticket holds only questions that belong [with the owner](#sorting-the-questions), so a grilling ticket needs no sort; open it by telling the owner why the question matters, how the app works today and what is decided.
+- **The decision lives in the ticket.** Record it as the resolution comment, close the ticket, and add one line to the map. Write no round in the decision log and open no docs pull request for it. When the resolution changes a recorded decision, name that decision in the comment and add the note `_Geändert durch #<ticket>._` to its entry with the next docs pull request.
+- **Research that several tickets need** goes into [`docs/research/`](../research/), in English, with its date. It is a snapshot and is not kept current.
+- **The map ends** when its last ticket has cut the work packages, as step 2 describes. Each package then continues at step 3. ADRs and glossary entries still land with the build.
+
+Maps so far: [time tracking beyond layer 4](https://github.com/Self-Engine/self-engine/issues/396).
+
 ## Large pull requests
 
 A pull request is **large** when it closes a work package or carries `size:XXL`. The `PR size` workflow gives every pull request one `size:*` label from the lines it changes, without tests, lockfiles and translation catalogs (`scripts/pr-size.ts` counts); `size:XXL` starts CodeRabbit's review (`.coderabbit.yaml`). Before you report a large pull request as ready to merge:
@@ -49,6 +60,6 @@ If you find a design question while building that belongs [with the owner](#sort
 
 The [overview page](https://claude.ai/artifact/W1AwNvTBPy7Se9Bc2bNA4q) (artifact `eadf2537-2bc0-463a-8042-be244bd96fea`) shows the status of every ticket in the plan. The status is read from GitHub, never kept by hand: `statusOf` in `scripts/plan-overview.ts` holds the rules. Its work tree shows who acts next on each open issue (`actorOf`) and in which wave it can start, from the open blockers and slices (`dependencyGraph`).
 
-Refresh the page after merging a package's pull request, and when the owner asks: run `pnpm plan:overview`, then publish `.temp/plan-overview.html` to that artifact. Layers without issues come from `docs/plan/roadmap.json`; update it when a layer gets its name or decisions.
+Refresh the page after merging a package's pull request, and when the owner asks: run `pnpm plan:overview`, then publish `.temp/plan-overview.html` to that artifact. Layers without issues come from `docs/plan/roadmap.json`; update it when a layer gets its name or decisions. A map and its tickets are left out, because they hold decisions and nothing to build; the layer's entry in `roadmap.json` names the map.
 
 When you cannot publish, state in your report that the overview is behind.

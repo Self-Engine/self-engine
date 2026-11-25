@@ -214,7 +214,8 @@ Grundlage: der Stand auf `main` nach #263 und die alte App (nur gelesen, Pfad in
   damit #110 nicht an #105 hängt. `money` (#105) und `tags` (#111) folgen nach Schicht 4. Eine
   Ansicht „Gelöscht“ kommt mit dem Papierkorb-Paket; bis dahin bleibt nach dem Löschen der
   Hinweis mit „Rückgängig“. Der Import bleibt Schicht 5 und beginnt mit Projekten und
-  Zeiteinträgen. _Verworfen:_ eine frühe Ansicht „Gelöscht“; ein vorgezogener Import von
+  Zeiteinträgen. _Reihenfolge geändert durch #397: Der Import ist Schicht 6, davor kommt der Ausbau
+  von Projekten und Zeit._ _Verworfen:_ eine frühe Ansicht „Gelöscht“; ein vorgezogener Import von
   Projekten. _Schritt 4 geteilt durch D340: #274 baut den Datenprozess, #313 die Oberfläche, beide
   vor Schritt 7._
 

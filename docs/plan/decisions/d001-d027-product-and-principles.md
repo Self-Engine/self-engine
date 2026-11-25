@@ -54,7 +54,8 @@ Langfristig Plugins von Dritten. Ersetzt Self-Engine.
   früh einen wiederholbaren Import** (jederzeit den aktuellen Stand neu laden und mit
   echten Daten testen). Gewechselt wird an einem Stichtag, wenn alles passt.
   _Verworfen:_ Modul für Modul wechseln (reißt Brücken wie Zeit → Finanzen auseinander),
-  Dauerabgleich beider Apps (fast so aufwendig wie die App).
+  Dauerabgleich beider Apps (fast so aufwendig wie die App). _Reihenfolge geändert durch #397:
+  Der Import folgt auf den Ausbau von Projekten und Zeit; wiederholbar und Pflicht bleibt er._
 - **D13 Plan liegt ab sofort im neuen, privaten Repo `GwydionBr/self-engine-next`**
   (Arbeitstitel) unter `docs/plan/`. Öffentlich wird es später.
 
