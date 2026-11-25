@@ -46,7 +46,7 @@ the startup chunks merely because a View can open an Edit Drawer.
   comparing against the latest stored state. Deletion elsewhere preserves readable input,
   shows a warning in the form and disables saving; undo restores normal behavior.
   `projects` retains its last entry through closing after deletion, archiving or unarchiving
-  inside its own drawer, suppressing that warning until #132 settles Shell content retention.
+  inside its own drawer through the package's `useLeavingEntry`, suppressing that warning.
 - Text, long text, icon and color fields are shared. Pickers remain in ui; module-owned
   pickers use `useFieldBinding`. Date/time fields follow with time-tracking, not this package.
 

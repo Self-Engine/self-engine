@@ -198,7 +198,7 @@ For a named Operation that leaves the entry from inside the Edit Drawer (delete,
 unarchive), mark the entry as leaving, await the Operation, and close through `onDone` only when
 it succeeded or the entry was not found. A failed Operation takes the mark back: the drawer stays
 open with what was typed. Pass `deleted: found === undefined && !leaving`, and retain the entry
-until the drawer has closed (#132); this prevents the deleted-entry warning flashing. This state
+until the drawer has closed; this prevents the deleted-entry warning flashing. This state
 belongs to the drawer’s retained entry, not to the form’s Draft.
 
 An Operation that keeps the entry, such as archive, first awaits the Shell’s `confirmDiscard()`

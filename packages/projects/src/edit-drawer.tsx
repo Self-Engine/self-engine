@@ -88,7 +88,7 @@ function StoredProjectDrawer(props: EditDrawerProps) {
 /**
  * Keeps the last project it found, so that one deleted elsewhere stays readable with the warning
  * (D324). Once "Archive", "Unarchive" or "Delete" was chosen here, it keeps that project as it was
- * until the drawer has closed (#132): the project moves between the two lists, or leaves both,
+ * until the drawer has closed: the project moves between the two lists, or leaves both,
  * and the closing drawer shows neither "not found", the warning nor the other button.
  *
  * The drawer closes when the Operation has succeeded and offers undo in a Notice. A failed one

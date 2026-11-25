@@ -94,6 +94,9 @@ process would go on writing the file that was replaced.
 - When the Backup before a migration fails, the Data Process exits before it serves. The main
   process starts it three times and then stops it, and the page says that the data cannot be
   reached, without the reason; the database is untouched. Saying why belongs to the error log.
+- When a file named `backups` lies where the folder belongs, the list of Backups fails before it
+  can carry the failure of point 6. The View "Data" then says that the part could not be loaded
+  and shows no hint.
 - No write is lost around a restore, at the price that the app cannot write between the start of
   a restore and the restart: the Backup's check and copy, the Backup of the replaced data, the
   pruning, the answer and the restart, about 0.1 to 0.4 s for databases of 1 to 100 MB.

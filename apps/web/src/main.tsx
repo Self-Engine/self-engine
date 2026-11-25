@@ -33,6 +33,9 @@ const dataAccess = startPageData(window, dataConnection, (name, options) =>
 );
 
 // The first render needs the stored appearance and language; the Start Cache covers this wait.
+// Nothing catches a failure of this load or of the catalog below: the window then keeps the Start
+// Cache's background and shows no message. The desktop app ships both in its package, so only a
+// damaged package gets there. A web version loads them over the network and needs a message here.
 await settingsStore.load();
 
 // The text of every Reason a Protection Rule can refuse a change with (D334).

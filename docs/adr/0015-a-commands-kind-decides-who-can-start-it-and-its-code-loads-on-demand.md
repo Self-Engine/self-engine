@@ -38,6 +38,7 @@ Reads are not Commands. They stay declared queries in the oRPC contract (D93).
 - Whether a schema accepts an empty object can only partly be seen in its type: a refinement is invisible. A unit test over all real contributions therefore loads every Command and compares its kind with its schema's answer. It runs in the tests only, so the app never loads Commands to check them.
 - A second start stays ignored while a slow load is pending, also from another page, until that load ends.
 - The startup bundle audit needs no list of Commands: a Command's file is a dynamic import like a View's, and importing it eagerly fails the build.
+- The startup bundle still grows with the number of Commands, against the goal in the context: what decision 2 keeps in the contribution is in it, about 245 bytes for a `page` or `open` Command and about 210 for an `input` Command (measured for #134). Only a Command's code stays out. Loading a module's Command list after the first paint would end the growth; it is not built, and the size limit of the startup bundle is what reports when it is needed.
 
 ## Considered Options
 
