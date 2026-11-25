@@ -4,7 +4,7 @@ import { clearNotices } from "@self-engine/ui/story-notices";
 import type { Meta } from "@storybook/react-vite";
 import { useState } from "react";
 import { closed, settled } from "@self-engine/ui/story-surfaces";
-import { expect, fn, screen, userEvent, waitFor, within } from "storybook/test";
+import { expect, fn, screen, spyOn, userEvent, waitFor, within } from "storybook/test";
 import {
   type EditDrawerProps,
   Shell,
@@ -15,9 +15,12 @@ import {
 } from "./index.ts";
 import {
   atViewport,
+  codeOnItsWay,
   ENTRIES,
+  momentShown,
   nextFrame,
   pressEscape,
+  SHOWN_ON_ARRIVAL_MS,
   type Story,
   shellMeta,
   storyRouting,
@@ -483,5 +486,113 @@ export const ReopeningDuringTheExitIsANewOpening: Story = {
     reopenRouting.address.writeSearch((search) => ({ ...search, edit: "entry" }));
     await waitFor(() => expect(within(dialog).getByText("Opening 2")).toBeInTheDocument());
     await expect(mounts).toEqual(["entry", "entry"]);
+  },
+};
+
+function Editor({ id }: EditDrawerProps) {
+  return <p>Editing {id}</p>;
+}
+
+const withDrawer = (
+  editDrawer: NonNullable<ShellContribution["editDrawer"]>,
+): ShellContribution => ({
+  ...ENTRIES[1]!,
+  editDrawer,
+});
+
+/** The drawer's code and a routing of their own for each run, so that a replay loads anew. */
+const firstOpening = () => {
+  const code = codeOnItsWay(Editor);
+  return { routing: storyRouting(), module: withDrawer(code.load), code };
+};
+type FirstOpening = ReturnType<typeof firstOpening>;
+
+export const TheFirstOpeningShowsTheContentAsSoonAsItsCodeArrives: Story = {
+  args: { children: <OpenEditor /> },
+  loaders: [firstOpening],
+  render: (args, { loaded }) => {
+    const { module, routing: own } = loaded as FirstOpening;
+    return <Shell {...args} activeModule={module} routing={own} />;
+  },
+  play: async ({ canvas, loaded }) => {
+    const { code } = loaded as FirstOpening;
+    await userEvent.click(canvas.getByRole("button", { name: "Open editor" }));
+    const shownAt = await momentShown(() => screen.queryByText("Editing entry"));
+    await expect(shownAt - code.arrivedAt()).toBeLessThan(SHOWN_ON_ARRIVAL_MS);
+  },
+};
+
+/** The drawer's code, held back until the story lets it arrive. */
+const heldDrawer = () => {
+  let arrive!: () => void;
+  const arrived = new Promise<void>((resolve) => {
+    arrive = resolve;
+  });
+  const module = withDrawer(async () => {
+    await arrived;
+    return { default: Editor };
+  });
+  return { routing: storyRouting(), module, arrive };
+};
+type HeldDrawer = ReturnType<typeof heldDrawer>;
+
+export const ASlowLoadShowsTheLoadingStateUntilTheCodeArrives: Story = {
+  args: { children: <OpenEditor /> },
+  loaders: [heldDrawer],
+  render: (args, { loaded }) => {
+    const { module, routing: own } = loaded as HeldDrawer;
+    return <Shell {...args} activeModule={module} routing={own} />;
+  },
+  play: async ({ canvas, loaded }) => {
+    const { arrive } = loaded as HeldDrawer;
+    await userEvent.click(canvas.getByRole("button", { name: "Open editor" }));
+    const dialog = await settled(screen.findByRole("dialog", { name: "Time" }));
+    // After the loading state's own wait.
+    await expect(await within(dialog).findByRole("status", { name: "Loading" })).toBeVisible();
+    arrive();
+    await expect(await within(dialog).findByText("Editing entry")).toBeVisible();
+    await expect(within(dialog).queryByRole("status", { name: "Loading" })).toBeNull();
+  },
+};
+
+/** The drawer's code fails to load until the story lets it succeed, as a chunk while offline. */
+const failingDrawer = () => {
+  let fails = true;
+  const module = withDrawer(async () => {
+    if (fails) throw new Error("The drawer's code could not be loaded");
+    return { default: Editor };
+  });
+  return {
+    routing: storyRouting(),
+    module,
+    recover: () => {
+      fails = false;
+    },
+  };
+};
+type FailingDrawer = ReturnType<typeof failingDrawer>;
+
+export const AFailedLoadShowsTheErrorStateWithARetry: Story = {
+  args: { children: <OpenEditor /> },
+  loaders: [failingDrawer],
+  // React reports the failure that the boundary caught.
+  beforeEach: () => {
+    const reported = spyOn(console, "error").mockImplementation(() => undefined);
+    return () => reported.mockRestore();
+  },
+  render: (args, { loaded }) => {
+    const { module, routing: own } = loaded as FailingDrawer;
+    return <Shell {...args} activeModule={module} routing={own} />;
+  },
+  play: async ({ canvas, loaded }) => {
+    const { recover } = loaded as FailingDrawer;
+    await userEvent.click(canvas.getByRole("button", { name: "Open editor" }));
+    const dialog = await settled(screen.findByRole("dialog", { name: "Time" }));
+    const failure = await within(dialog).findByRole("alert");
+    await expect(failure).toHaveTextContent("This part could not be loaded.");
+    recover();
+    await userEvent.click(within(failure).getByRole("button", { name: "Try again" }));
+    await expect(await within(dialog).findByText("Editing entry")).toBeVisible();
+    await expect(within(dialog).queryByRole("alert")).toBeNull();
   },
 };
