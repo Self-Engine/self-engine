@@ -1,7 +1,7 @@
 # Gives every pull request exactly one `size:*` label (scripts/pr-size.ts counts and names the
-# labels). `size:XXL` opts the pull request into CodeRabbit's automatic review (.coderabbit.yaml)
-# and asks the agent that opens it for an app check before the merge (docs/agents/workflow.md,
-# "Large pull requests"). Not a required check.
+# labels). `size:XXL` asks the agent that opens the pull request for a CodeRabbit review and an
+# app check before the merge (docs/agents/workflow.md, "Large pull requests"). Not a required
+# check.
 name: PR size
 
 on:
