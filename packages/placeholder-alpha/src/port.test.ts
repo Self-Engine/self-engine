@@ -334,7 +334,7 @@ test("deletion elsewhere preserves typed text with a warning and undo restores s
   expect(saveButton().disabled).toBe(false);
 });
 
-test("deletion inside the drawer keeps its contents without a warning through close", async () => {
+test("two delete activations run once and keep the drawer contents without a warning through close", async () => {
   const rendered = await renderOverPort("edit", "Original");
   const field = await nameField(rendered);
   typeName(field, "My draft");
@@ -342,11 +342,15 @@ test("deletion inside the drawer keeps its contents without a warning through cl
   const observer = new MutationObserver(() => seen.push(document.body.textContent ?? ""));
   observer.observe(document.body, { subtree: true, childList: true, characterData: true });
   try {
-    [...document.querySelectorAll("button")]
-      .find((button) => button.textContent === "Delete")!
-      .click();
+    const remove = [...document.querySelectorAll("button")].find(
+      (button) => button.textContent === "Delete",
+    )!;
+    remove.click();
+    remove.click();
+    expect(rendered.done()).toBe(0);
     await rendered.until((hooks) => names(hooks)?.length === 0);
-    expect(rendered.done()).toBe(1);
+    await vi.waitFor(() => expect(rendered.done()).toBe(1));
+    expect(rendered.calls.filter((call) => call.entry === "delete")).toHaveLength(1);
     expect(field.value).toBe("My draft");
     expect(seen.join(" ")).not.toContain("This entry was deleted");
     expect(document.body.textContent).not.toContain("Entry not found");

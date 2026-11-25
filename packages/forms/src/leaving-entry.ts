@@ -8,19 +8,20 @@ export interface LeavingEntry<Entry> {
    * was when it began to leave.
    */
   readonly entry: Entry | undefined;
-  /** Whether an Operation that closes the drawer runs. */
-  readonly leaving: boolean;
+  /** Whether the form should warn that its entry was deleted elsewhere. */
+  readonly deleted: boolean;
   /**
    * Runs `operation`, an Operation that closes the drawer when it succeeds, such as a delete.
-   * Only one runs at a time: an activation while one runs, or while `confirm` asks, does nothing
-   * and resolves `false`. `confirm` runs first when given; when it declines, nothing else happens.
-   * Resolves `true` when the Operation succeeded; the lock then stays, as the drawer is closing.
+   * An activation while one runs, or while `confirm` asks, does nothing.
+   * `confirm` runs first when given; when it declines, nothing else happens.
+   * Calls the drawer's completion callback when the Operation answers true and keeps the lock
+   * through closing. The Operation answers true when it succeeded or the entry was already gone.
    * A failed Operation releases the lock and shows the entry found again.
    */
   readonly leave: (
     operation: () => Promise<boolean>,
     confirm?: () => Promise<boolean>,
-  ) => Promise<boolean>;
+  ) => Promise<void>;
 }
 
 /**
@@ -28,7 +29,10 @@ export interface LeavingEntry<Entry> {
  * keeps the last entry found, and once such an Operation began here, it keeps the entry as it was
  * until the drawer has closed, so the drawer does not flash "not found" while it slides out.
  */
-export function useLeavingEntry<Entry>(found: Entry | undefined): LeavingEntry<Entry> {
+export function useLeavingEntry<Entry>(
+  found: Entry | undefined,
+  onDone: () => void,
+): LeavingEntry<Entry> {
   const [last, setLast] = useState(found);
   const [leaving, setLeaving] = useState(false);
   // A ref beside the state: two activations in one tick both read the state before it changes.
@@ -37,15 +41,21 @@ export function useLeavingEntry<Entry>(found: Entry | undefined): LeavingEntry<E
   const leave = async (
     operation: () => Promise<boolean>,
     confirm?: () => Promise<boolean>,
-  ): Promise<boolean> => {
-    if (busy.current) return false;
+  ): Promise<void> => {
+    if (busy.current) return;
     busy.current = true;
     const goes = confirm === undefined || (await confirm());
     if (goes) setLeaving(true);
-    if (goes && (await operation())) return true;
+    if (goes && (await operation())) {
+      onDone();
+      return;
+    }
     busy.current = false;
     setLeaving(false);
-    return false;
   };
-  return { entry: leaving ? last : (found ?? last), leaving, leave };
+  return {
+    entry: leaving ? last : (found ?? last),
+    deleted: found === undefined && !leaving,
+    leave,
+  };
 }
