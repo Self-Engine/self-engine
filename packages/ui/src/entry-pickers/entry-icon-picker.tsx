@@ -21,6 +21,7 @@ import {
   Input,
   Loader,
   Popover,
+  type PopoverProps,
   rem,
   ScrollArea,
   Stack,
@@ -194,17 +195,37 @@ const POPOVER_WIDTH = `calc(${EMOJI_COLUMNS} * ${rem(EMOJI_SIZE)} + ${PADDING} *
 const PANEL_HEIGHT = rem(420);
 
 /**
- * How the popover finds its place. Under the field in an Edit Drawer a window of the app's first
- * height has less room than the popover needs, and above it too: there the popover moves over its
- * button rather than out of the window, which Mantine leaves off by default. A window lower than
- * the popover caps its height, and the dropdown scrolls as a whole. The room Mantine keeps to the
- * window's edge is the same for both.
+ * How the popover finds its place (#309). It opens beside its button, so the button and the form
+ * around it stay in view: beside the button a window has room for the popover far more often than
+ * under or above it. In an Edit Drawer of a window of the app's first size there are about 290 px
+ * above the button and 475 px under it, but some 830 px left of it, for a popover of 528 × 310 px.
+ *
+ * - `POPOVER_POSITION` is the first side tried, before the button: a form's fields reach to its
+ *   right, so a popover there would lie over the form, one on the left over what is beside it.
+ * - `flip` tries the side after the button next, then under and above it. It weighs a side only by
+ *   whether the popover fits across (`crossAxis: false`): its height is the work of `shift` and
+ *   `size`. Where no side fits, as in a window narrower than the popover and the button together,
+ *   it takes the side the popover overflows least (`bestFit`); Mantine would take the first.
+ * - `shift` keeps the popover inside the window along its side and, across, where no side fits:
+ *   then it may lie over its button rather than reach out of the window.
+ * - `size` caps the height in a window lower than the popover, and the dropdown scrolls as a whole.
+ *
+ * Once the popover shows, Mantine keeps the side it took and skips `flip`; a move of the button or
+ * of the window runs `shift` and `size` again and redraws nothing inside the dropdown. The room kept
+ * to the window's edge is Mantine's own, the same for all three.
  */
+const POPOVER_POSITION = "left-start";
 const WINDOW_EDGE = 5;
-const POPOVER_MIDDLEWARES = {
+const POPOVER_MIDDLEWARES: NonNullable<PopoverProps["middlewares"]> = {
+  flip: {
+    crossAxis: false,
+    fallbackPlacements: ["right-start", "bottom-start", "top-start"],
+    fallbackStrategy: "bestFit",
+    padding: WINDOW_EDGE,
+  },
   shift: { crossAxis: true, padding: WINDOW_EDGE },
   size: { padding: WINDOW_EDGE },
-} as const;
+};
 
 /** The line a tab shows in place of its content: no match, or emojis that could not load. */
 function EmptyNote({ children }: { readonly children: string }) {
@@ -485,7 +506,7 @@ export function EntryIconPicker({ value, onChange, label, error }: EntryIconPick
           else close();
         }}
         opened={opened}
-        position="bottom-start"
+        position={POPOVER_POSITION}
         returnFocus
         shadow="md"
         trapFocus
