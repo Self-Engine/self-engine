@@ -6,9 +6,9 @@ Named skills are the tools for a step; where a skill is missing, the step and it
 
 ## The path
 
-1. **Grill the layer** (`grill`), opening with [the sort](#sorting-the-questions). Done when every question on the owner's list has its answer in the layer spec, an issue (`/to-spec`).
+1. **Grill the layer** ([grilling](#grilling)), opening with [the sort](#sorting-the-questions). Done when every question on the owner's list has its answer in the layer spec, an issue (`/to-spec`).
 2. **Cut work packages** (`/to-tickets`). Done when each package is an issue with `layer:<n>`, a label from [Who may build](#who-may-build), and blockers with smaller numbers only. Plan to split a package that would exceed roughly 4,500 new lines.
-3. **Grill the package** (`grill`), when it has `needs-grilling`. Done when no question on the owner's list is open and every answer stands in a comment on the package issue.
+3. **Grill the package** ([grilling](#grilling)), when it has `needs-grilling`. Done when no question on the owner's list is open and every answer stands in a comment on the package issue.
 4. **Write the spec** (`/to-spec`) into the package issue. Done when the body holds the spec, with its `Problem Statement` and the questions left for later, each with its proposed answer.
 5. **Cut slices** (`/to-tickets`). Done when each slice is a sub-issue with `## Parent`, `layer:<n>` and `ready-for-agent`, and the package has swapped `needs-grilling` for `ready-for-agent`.
 6. **Build** (`/implement-spec`) on one integration branch for the package, with one branch per slice. Write the package's ADRs and glossary entries here, since they state what the code does. Done when every slice is merged into the integration branch and `pnpm verify` prints `VERIFY: PASS`.
@@ -26,7 +26,7 @@ The D-numbered log in [`docs/plan/`](../plan/00-decisions.md) is closed. Code co
 
 An effort too large for one grilling, whose late questions nobody can phrase yet, replaces steps 1 and 2 with a **map** (`/wayfinder`). The map is an issue labelled `wayfinder:map`. Its **tickets** are sub-issues that each hold one question, with a `wayfinder:<type>` label and no label from [Who may build](#who-may-build). [Wayfinding operations](issue-tracker.md#wayfinding-operations) names the commands.
 
-- **One session resolves one ticket.** Take the first open ticket that has no open blocker and no assignee, unless the owner names another. A grilling ticket uses `grill`. A ticket holds only questions that belong [with the owner](#sorting-the-questions), so it needs no sort.
+- **One session resolves one ticket.** Take the first open ticket that has no open blocker and no assignee, unless the owner names another. A grilling ticket follows [Grilling](#grilling). A ticket holds only questions that belong [with the owner](#sorting-the-questions), so it needs no sort.
 - **The decision lives in the ticket.** Record it as the resolution comment, close the ticket, and add one line to the map.
 - **Research that several tickets need** goes into [`docs/research/`](../research/), in English, with its date. It is a snapshot and is not kept current. Delete it when the map is closed.
 - **The map ends** when its last ticket has cut the work packages, as step 2 describes. Each package then continues at step 3.
@@ -42,6 +42,19 @@ A pull request is **large** when it closes a work package or carries `size:XXL`.
 3. **Findings.** Answer every CodeRabbit comment in its thread: fix it, or say why not. After a fix, run `pnpm verify` again and push; CodeRabbit reviews the new commits itself.
 
 Done when the review has no unanswered comment and the app check passed. Report both to the owner, with the screenshots.
+
+## Grilling
+
+Every grilling, of a layer, a work package or a map's ticket, runs on two skills: call the Skill tool for `grilling` and for `domain-modeling`, the pair `/grill-with-docs` loads. Load both again when a context compaction has dropped their text.
+
+- **Orient the owner** before the first question: why the question matters, how the app works today, what is decided, and which questions will come.
+- **German** with the owner; issues, ADRs and the glossary stay English. Say "Arbeitspaket": a bare "Paket" reads as a code package.
+- **Few questions:** one to three per round. Each comes with a scenario that shows what the answer changes later, the options, and your recommendation.
+- **Costs by name:** for each option, what it costs while the app runs and what the compiler still checks. Look for a typed variant before you recommend an option that loses a compile-time check.
+- **The old app is one option** among several. Start from what is scalable and stable, and say where the old app did it differently.
+- **Generated data** tests a stored form. The owner's own data arrives with the import at the cutover.
+- **A question inside an answer** ("yes, but I wonder…") gets its answer before the next question.
+- **Record** every answer on the issue, in English.
 
 ## Sorting the questions
 

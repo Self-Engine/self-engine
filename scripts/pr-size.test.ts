@@ -51,7 +51,7 @@ describe("isDocument", () => {
     },
   );
 
-  it.each(["AGENTS.md", ".agents/skills/grill/SKILL.md", "packages/docs/src/index.ts"])(
+  it.each(["AGENTS.md", ".agents/skills/pr-convention/SKILL.md", "packages/docs/src/index.ts"])(
     "counts %j as reviewed",
     (path) => {
       expect(isDocument(path)).toBe(false);
