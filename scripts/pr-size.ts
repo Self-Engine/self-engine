@@ -43,6 +43,14 @@ export function isGenerated(path: string): boolean {
   return /^packages\/i18n\/src\/locales\/[^/]+\.po$/u.test(path);
 }
 
+/**
+ * Documents: what CodeRabbit leaves out of its review (`path_filters` in .coderabbit.yaml), so a
+ * pull request of documents alone never asks for one.
+ */
+export function isDocument(path: string): boolean {
+  return path.startsWith("docs/") || path === "GLOSSARY.md";
+}
+
 /** Tests and what only tests use: test folders and `*.test.*` / `*.spec.*` files. */
 export function isTest(path: string): boolean {
   return (
@@ -67,11 +75,11 @@ function count(field: string): number {
 }
 
 /**
- * The lines that size a pull request: the changes outside generated files and tests, or, when
- * only tests changed, the changes to the tests.
+ * The lines that size a pull request: the changes outside generated files, documents and tests,
+ * or, when only tests changed, the changes to the tests.
  */
 export function effectiveLines(files: readonly ChangedFile[]): number {
-  const counted = files.filter((file) => !isGenerated(file.path));
+  const counted = files.filter((file) => !isGenerated(file.path) && !isDocument(file.path));
   const sum = (list: readonly ChangedFile[]) =>
     list.reduce((total, file) => total + file.additions + file.deletions, 0);
   const code = sum(counted.filter((file) => !isTest(file.path)));
@@ -84,7 +92,7 @@ export function sizeLabel(lines: number): SizeLabel {
   return label;
 }
 
-/** The label's description on GitHub, e.g. "100-499 changed lines, without tests …". */
+/** The label's description on GitHub, e.g. "100-499 changed lines, without tests, docs …". */
 export function describeLabel(label: SizeLabel): string {
   const next = SIZE_LABELS[SIZE_LABELS.indexOf(label) + 1];
   const range =
@@ -92,7 +100,7 @@ export function describeLabel(label: SizeLabel): string {
       ? `${label.from.toLocaleString("en")}+`
       : `${label.from.toLocaleString("en")}-${(next.from - 1).toLocaleString("en")}`;
   const review = label.name === REVIEW_LABEL ? " Needs a review and an app check." : "";
-  return `${range} changed lines, without tests, lockfiles and catalogs.${review}`;
+  return `${range} changed lines, without tests, docs, lockfiles and catalogs.${review}`;
 }
 
 function main(args: readonly string[]): void {
@@ -115,7 +123,7 @@ function main(args: readonly string[]): void {
   const lines = effectiveLines(parseNumstat(numstat));
   const label = sizeLabel(lines);
   console.log(
-    `pr-size: ${lines} changed lines without tests, lockfiles and catalogs: ${label.name}`,
+    `pr-size: ${lines} changed lines without tests, docs, lockfiles and catalogs: ${label.name}`,
   );
   const output = process.env.GITHUB_OUTPUT;
   if (output !== undefined) appendFileSync(output, `label=${label.name}\n`);

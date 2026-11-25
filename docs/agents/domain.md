@@ -9,7 +9,7 @@ How the engineering skills should consume this repo's domain documentation when 
 - **`GLOSSARY.md`** at the repo root: the glossary of domain terms.
 - **`docs/adr/`**: read ADRs that touch the area you're about to work in.
 
-`docs/plan/` holds the German decision log and one document per layer. The log is an index (`00-decisions.md`) over one file per round in `decisions/`, each named after its D numbers: read the index, then only the rounds that touch your work. Its entries are [working assumptions](../../AGENTS.md#decisions). Once a decision has an ADR, the ADR is the source of truth. A decision that replaces an older one gets its own number in a new round, and the older entry gets the note `_Überholt durch D<n>._` so that a reader of the old entry sees it.
+`docs/plan/` holds the closed German decision log: an index (`00-decisions.md`) over one file per round in `decisions/`, each named after its D numbers. Look a number up there when a code comment or an ADR names it and you need the reason. Its entries are [working assumptions](../../AGENTS.md#decisions); where an ADR says otherwise, the ADR holds. [Where a decision lives](workflow.md#where-a-decision-lives) says where a new decision goes.
 
 If the glossary has no entry yet, **proceed silently**. The `/domain-modeling` skill (reached via `/grill-with-docs` and `/improve-codebase-architecture`) adds terms when they actually get resolved, usually when the module that owns them is built.
 
@@ -22,7 +22,8 @@ If the glossary has no entry yet, **proceed silently**. The `/domain-modeling` s
 │   ├── adr/                       ← 0001-<decision-as-a-sentence>.md, …
 │   ├── agents/                    ← this file, workflow.md, issue-tracker.md, triage-labels.md
 │   ├── development/               ← guides for ports, renderer hooks and performance
-│   └── plan/                      ← decision log (index and decisions/) and layer documents (German)
+│   ├── plan/                      ← closed decision log (German), roadmap.json for the overview
+│   └── research/                  ← dated snapshots for an open map
 ├── apps/                          ← desktop (and later web, mobile)
 ├── packages/                      ← one package per module, plus shared packages
 └── scripts/                       ← repo tooling, each script with a test

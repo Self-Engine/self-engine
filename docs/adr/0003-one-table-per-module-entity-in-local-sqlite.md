@@ -11,8 +11,9 @@ decisions: D11, D20, D21, D22, D33
 The product is a focused app (projects, time, finance, calendar, habits), not a toolkit.
 Users may add their own fields to existing types, but custom types like Notion databases and
 third-party plugins are not goals. The data lives locally; sync comes later and its engine is
-chosen then. A throwaway prototype (`prototypes/data-model/`) compared three models with
-realistic data: tables per entity were as fast as a generic `objects` table with read tables.
+chosen then. A [throwaway prototype](https://github.com/Self-Engine/self-engine/tree/1f637f094224ee4014526dda62711244055e8fa7/prototypes/data-model)
+compared three models with realistic data: tables per entity were as fast as a generic `objects`
+table with read tables.
 
 ## Decision
 

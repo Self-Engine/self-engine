@@ -19,6 +19,6 @@ When a skill mentions a role (e.g. "apply the AFK-ready triage label"), use the 
 
 - `wayfinder:map` and `wayfinder:<type>` (`grilling`, `research`, `prototype`, `task`): the map of a large effort and its decision tickets ([Mapping a large effort](workflow.md#mapping-a-large-effort)). They carry no other label, because they hold a question and nothing to build.
 
-- `size:*`: the size of a pull request, set by the `PR size` workflow from the lines it changes, without tests, lockfiles and translation catalogs. Each pull request carries one: `size:XS` (0-9), `size:S` (10-29), `size:M` (30-99), `size:L` (100-499), `size:XL` (500-999), `size:XXL` (1,000+). `size:XXL` starts CodeRabbit's review and requires an app check before the merge ([Large pull requests](workflow.md#large-pull-requests)).
+- `size:*`: the size of a pull request, set by the `PR size` workflow from the lines it changes, without tests, documents, lockfiles and translation catalogs. Each pull request carries one: `size:XS` (0-9), `size:S` (10-29), `size:M` (30-99), `size:L` (100-499), `size:XL` (500-999), `size:XXL` (1,000+). `size:XXL` starts CodeRabbit's review and requires an app check before the merge ([Large pull requests](workflow.md#large-pull-requests)).
 
 There are no `agent:*`, `area:*` or `risk:*` labels yet. An agent marks work in progress with an issue comment instead of a label. Add such labels only when the issue volume calls for them, and record them here.

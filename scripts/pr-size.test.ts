@@ -10,6 +10,7 @@ import {
   SIZE_LABELS,
   describeLabel,
   effectiveLines,
+  isDocument,
   isGenerated,
   isTest,
   parseNumstat,
@@ -39,6 +40,28 @@ describe("isGenerated", () => {
       expect(isGenerated(path)).toBe(false);
     },
   );
+});
+
+describe("isDocument", () => {
+  it.each(["docs/adr/0001-a.md", "docs/plan/roadmap.json", "GLOSSARY.md"])(
+    "counts %j as a document",
+    (path) => {
+      expect(isDocument(path)).toBe(true);
+    },
+  );
+
+  it.each(["AGENTS.md", ".agents/skills/grill/SKILL.md", "packages/docs/src/index.ts"])(
+    "counts %j as reviewed",
+    (path) => {
+      expect(isDocument(path)).toBe(false);
+    },
+  );
+
+  it("leaves out what CodeRabbit's settings leave out", () => {
+    const settings = repoFile(".coderabbit.yaml");
+    expect(settings).toContain('- "!docs/**"');
+    expect(settings).toContain('- "!GLOSSARY.md"');
+  });
 });
 
 describe("isTest", () => {
@@ -80,6 +103,15 @@ describe("effectiveLines", () => {
   it("counts the tests when only tests changed", () => {
     expect(effectiveLines([file("a.test.ts", 40, 2), file("pnpm-lock.yaml", 9)])).toBe(42);
   });
+
+  it("counts no line of a pull request that changes documents alone", () => {
+    const files = [file("docs/research/prior-art.md", 1400), file("GLOSSARY.md", 30, 4)];
+    expect(effectiveLines(files)).toBe(0);
+  });
+
+  it("counts the code beside the documents", () => {
+    expect(effectiveLines([file("docs/adr/0041-a.md", 80), file("scripts/a.ts", 12)])).toBe(12);
+  });
 });
 
 describe("sizeLabel", () => {
@@ -101,9 +133,11 @@ describe("describeLabel", () => {
   it("names the range, and for the review label what it needs", () => {
     const [xs] = SIZE_LABELS;
     if (xs === undefined) throw new Error("no labels");
-    expect(describeLabel(xs)).toBe("0-9 changed lines, without tests, lockfiles and catalogs.");
+    expect(describeLabel(xs)).toBe(
+      "0-9 changed lines, without tests, docs, lockfiles and catalogs.",
+    );
     expect(describeLabel(sizeLabel(1000))).toBe(
-      "1,000+ changed lines, without tests, lockfiles and catalogs. Needs a review and an app check.",
+      "1,000+ changed lines, without tests, docs, lockfiles and catalogs. Needs a review and an app check.",
     );
   });
 
@@ -187,7 +221,7 @@ describe("the pr-size command", () => {
     const lines = result.stdout.trim().split("\n");
     expect(lines).toHaveLength(SIZE_LABELS.length);
     expect(lines[0]).toBe(
-      "size:XS\t0e8a16\t0-9 changed lines, without tests, lockfiles and catalogs.",
+      "size:XS\t0e8a16\t0-9 changed lines, without tests, docs, lockfiles and catalogs.",
     );
   });
 

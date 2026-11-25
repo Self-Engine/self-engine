@@ -3,7 +3,7 @@ import { linguiPlugin } from "@self-engine/i18n/vite";
 import { defineConfig } from "vite-plus";
 import { testTimeZone } from "./scripts/testing/process-timezone.ts";
 
-// Reference material, not part of the workspace (see prototypes/*/RESULTS.md).
+// Throwaway prototypes that answer a design question, not part of the workspace.
 const IGNORED = [
   "prototypes/**",
   "**/dist/**",

@@ -7,13 +7,16 @@ in `scripts/`.
 
 ## Decisions
 
-The project is young: most decisions were recorded before the code they describe existed, to
-give the build a direction. Read each by its kind:
+Read each decision by where it stands:
 
 - An **ADR** in [`docs/adr/`](docs/adr/) states what the code does today. Build to it, and
   replace it with a new ADR when the code should work differently.
-- A **D-numbered decision** in `docs/plan/` (German), including where an issue repeats it, is a
-  **working assumption**: the best answer when it was written.
+- An **issue** holds a decision that is not built yet: a spec, a grilling's answers, the
+  resolution of a map's ticket. It is a **working assumption**: the best answer when it was
+  written. It becomes an ADR when the code carries it.
+- A **D-numbered decision** in [`docs/plan/`](docs/plan/00-decisions.md) (German) is the closed
+  archive of the first weeks, also a working assumption. Look one up when a code comment or an
+  ADR names its number and you need the reason. It gets no new entries.
 
 Weigh every recorded decision you build on against what the code, the research and your own
 knowledge say now. When you see a better way, tell the owner before you build on the decision:
