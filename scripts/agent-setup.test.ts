@@ -6,15 +6,18 @@ import { describe, expect, it } from "vite-plus/test";
 // file for every agent, one skill source, and no dangling links in the docs agents read.
 
 const root = resolve(import.meta.dirname, "..");
+/** The skills of the repo: the folders in `.agents/skills`, without a stray file such as `.DS_Store`. */
+const SKILLS = readdirSync(resolve(root, ".agents/skills"), { withFileTypes: true })
+  .filter((entry) => entry.isDirectory())
+  .map((entry) => entry.name)
+  .sort();
 const AGENT_DOCS = [
   "AGENTS.md",
   "docs/agents/domain.md",
   "docs/agents/issue-tracker.md",
   "docs/agents/triage-labels.md",
   "docs/agents/workflow.md",
-  ...readdirSync(resolve(root, ".agents/skills"), { withFileTypes: true })
-    .filter((entry) => entry.isDirectory())
-    .map((entry) => `.agents/skills/${entry.name}/SKILL.md`),
+  ...SKILLS.map((name) => `.agents/skills/${name}/SKILL.md`),
 ];
 const MARKDOWN_LINK = /\]\(([^)\s]+)\)/g;
 
@@ -40,9 +43,10 @@ describe("agent setup", () => {
   });
 
   it("links every skill in .agents/skills from .claude/skills, and nothing else", () => {
-    const sources = readdirSync(resolve(root, ".agents/skills")).sort();
-    const links = readdirSync(resolve(root, ".claude/skills")).sort();
-    expect(links).toEqual(sources);
+    const links = readdirSync(resolve(root, ".claude/skills"))
+      .filter((name) => !name.startsWith("."))
+      .sort();
+    expect(links).toEqual(SKILLS);
     for (const name of links) {
       expect(readlinkSync(resolve(root, ".claude/skills", name))).toBe(
         `../../.agents/skills/${name}`,
