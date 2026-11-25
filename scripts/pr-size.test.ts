@@ -173,9 +173,8 @@ describe("the size labels in the docs", () => {
     for (const label of SIZE_LABELS) expect(doc).toContain(`\`${label.name}\``);
   });
 
-  it("name the review label in the workflow and CodeRabbit's settings", () => {
+  it("name the review label in the workflow", () => {
     expect(repoFile("docs/agents/workflow.md")).toContain(`\`${REVIEW_LABEL}\``);
-    expect(repoFile(".coderabbit.yaml")).toContain(`- "${REVIEW_LABEL}"`);
   });
 });
 

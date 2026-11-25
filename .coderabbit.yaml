@@ -3,13 +3,10 @@
 # Everything not set here comes from the settings in CodeRabbit's web interface.
 inheritance: true
 reviews:
-  # CodeRabbit reviews a pull request on its own only when it carries `size:XXL`, which
-  # .github/workflows/pr-size.yml sets (docs/agents/workflow.md, "Large pull requests"). Any
-  # other pull request gets a review on request: comment `@coderabbitai review`.
+  # A review runs on request only: comment `@coderabbitai review`. A large pull request needs
+  # one before the merge (docs/agents/workflow.md, "Large pull requests").
   auto_review:
     enabled: false
-    labels:
-      - "size:XXL"
   # CodeRabbit skips a pull request with more than 100 files, counted after these filters. Left
   # out is what `pnpm verify` checks by itself and a review adds little to: the lock file, the
   # extracted translation catalogs and the package manifests. Also left out: the documents, which

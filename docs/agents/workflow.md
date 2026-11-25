@@ -35,11 +35,11 @@ Maps so far: [time tracking beyond layer 4](https://github.com/Self-Engine/self-
 
 ## Large pull requests
 
-A pull request is **large** when it closes a work package or carries `size:XXL`. The `PR size` workflow gives every pull request one `size:*` label from the lines it changes, without tests, documents, lockfiles and translation catalogs (`scripts/pr-size.ts` counts); `size:XXL` starts CodeRabbit's review (`.coderabbit.yaml`). Before you report a large pull request as ready to merge:
+A pull request is **large** when it closes a work package or carries `size:XXL`. The `PR size` workflow gives every pull request one `size:*` label from the lines it changes, without tests, documents, lockfiles and translation catalogs (`scripts/pr-size.ts` counts). Before you report a large pull request as ready to merge:
 
-1. **Review.** Once CodeRabbit's walkthrough comment appears, the review runs. If none appears within five minutes of the push, or the pull request is a package below `size:XXL`, comment `@coderabbitai review`.
+1. **Review.** Comment `@coderabbitai review` on the pull request once it is complete. CodeRabbit reviews on request only, and the plan includes one review an hour.
 2. **App check.** While the review runs, a subagent checks the app with the [`verify-desktop`](../../.agents/skills/verify-desktop/SKILL.md) skill, with its window hidden. Put the screenshots that show the change into the body's Evidence. A pull request that changes no code the app runs skips this step and says so.
-3. **Findings.** Answer every CodeRabbit comment in its thread: fix it, or say why not. After a fix, run `pnpm verify` again and push; CodeRabbit reviews the new commits itself.
+3. **Findings.** Answer every CodeRabbit comment in its thread: fix it, or say why not. After a fix, run `pnpm verify` again, push, and name the commit in the thread.
 
 Done when the review has no unanswered comment and the app check passed. Report both to the owner, with the screenshots.
 

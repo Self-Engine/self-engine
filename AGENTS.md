@@ -26,17 +26,24 @@ weight from being written down or from being repeated in several places.
 ## Task Completion
 
 A task is done when `pnpm verify` prints `VERIFY: PASS` as its last line
-([ADR 0008](docs/adr/0008-one-verify-gate-and-a-push-guard.md)). It formats, lints
-(warnings fail), typechecks, checks the module boundaries, checks the ADRs, rejects changes to merged migrations, checks the theme CSS, extracts and checks the translations, builds the
-workspace, runs the tests, renders the stories in Chromium (stage `stories`) and starts the built desktop app with a temporary data folder (stage `smoke`); failures show their tail, the full log is `.cache/verify.log`.
-CI runs the same gate, except that its format and i18n stages only check (`CI` set), so commit formatted files and extracted catalogs.
+([ADR 0008](docs/adr/0008-one-verify-gate-and-a-push-guard.md)). It is the one gate: format,
+lint, types, module boundaries, ADRs, migrations, theme CSS, translations, build, tests, the
+stories in Chromium and a start of the built desktop app. A failure shows its tail; the full log
+is `.cache/verify.log`.
+
 `pnpm check` is the edit loop: it fixes format, then fails on lint warnings, type errors and
-missing translations, in seconds. Run it until clean before every `pnpm verify`. The flow: commit,
-`pnpm verify`, commit any formatter output and extracted catalogs, push. A hook blocks `git push` and `gh pr create` (also behind
-`sh -c`, shell keywords, or `git -C <other-checkout>`) unless the last pass covered exactly
-HEAD of the checkout being pushed, so any edit after a pass needs another run (unchanged
-stages replay from the cache). Run the app only when the user asks or a [large pull request](docs/agents/workflow.md#large-pull-requests) needs its app check, and keep its window hidden: an agent's start of the app through `scripts/desktop-app.ts` is hidden unless the user asks to watch it (`--visible`, `window: "visible"`); say so in the brief of every subagent that checks the app. If a change is visual
-and was not checked in the app, say so in the final report and offer the [`verify-desktop`](.agents/skills/verify-desktop/SKILL.md) skill.
+missing translations, in seconds. Run it until clean before every `pnpm verify`.
+
+The flow: commit, `pnpm verify`, commit any formatter output and extracted catalogs, push. CI runs
+the same gate but only checks format and catalogs, so both must be committed. A hook blocks
+`git push` and `gh pr create` unless the last pass covered exactly HEAD of the checkout being
+pushed, so any edit after a pass needs another run (unchanged stages replay from the cache).
+
+Run the app only when the user asks or a
+[large pull request](docs/agents/workflow.md#large-pull-requests) needs its app check, with its
+window hidden; the [`verify-desktop`](.agents/skills/verify-desktop/SKILL.md) skill says how.
+Repeat this in the brief of every subagent that checks the app. If a change is visual and was not
+checked in the app, say so in the final report and offer that skill.
 
 ## Pull Requests
 
@@ -75,37 +82,30 @@ or write down a secret value: refer to secrets by name only.
 ## Maintainability
 
 Long-term maintainability is a core priority, and sweeping changes that improve it are welcome.
-Before adding functionality, look for shared logic to extract; duplicated logic is a smell.
-Change existing code instead of adding local workarounds. Build bottom-up: finish and test the
-foundation before the feature that sits on it. Each module is its own package, reached only
-through its `exports` ([ADR 0006](docs/adr/0006-module-boundaries-are-enforced-three-ways.md));
-an import between two packages needs an entry in `ALLOWED_IMPORTS` in `.dependency-cruiser.ts`
-next to the dependency in `package.json`; an import only tests and stories use goes into
-`TEST_ONLY_IMPORTS` instead, next to a devDependency. No cycle between packages, devDependencies
-included.
+Before adding functionality, look for shared logic to extract. Change existing code instead of
+adding local workarounds. Build bottom-up: finish and test the foundation before the feature that
+sits on it. Each module is its own package, reached only through its `exports`;
+`.dependency-cruiser.ts` lists which package may import which
+([ADR 0006](docs/adr/0006-module-boundaries-are-enforced-three-ways.md)).
 
-## Adding Translated Text
+## Translated Text
 
-Write the English sentence in the code through Lingui's macros: that text is the message
+Write text the user sees as the English sentence, through Lingui's macros: that text is the
+message
 ([ADR 0011](docs/adr/0011-english-source-text-identifies-a-message-and-each-language-has-one-catalog.md)).
-A short word with several meanings ("Open" as a verb and as a status) carries a context.
-
-Text outside components, in data (a module's name, command labels, setting titles), is a `msg`
-descriptor from `@lingui/core/macro`, translated when it is displayed, so it follows a language
-switch. Never use the global `t` from that entry (`self-engine/no-global-t-macro`): it runs at
-import time, before a language is active.
-
-`pnpm verify` extracts the text into `packages/i18n/src/locales/` and names every translation
-that is missing or broken; fill those in and commit the catalogs.
+A short word with several meanings ("Open" as a verb and as a status) carries a context. Text in
+data, outside components (a module's name, a command's label, a setting's title), is a `msg`
+descriptor from `@lingui/core/macro`, translated where it is displayed. `pnpm verify` extracts the
+text into `packages/i18n/src/locales/` and names every missing or broken translation: fill those
+in and commit the catalogs.
 
 ## Agent skills
 
 Repo skills live in `.agents/skills/<name>/`, each linked from `.claude/skills/<name>`.
 
 - **Workflow:** read [`docs/agents/workflow.md`](docs/agents/workflow.md) before grilling, specifying, cutting or building an issue, and before opening or merging its pull request.
-- **Issue tracker:** GitHub issues in `Self-Engine/self-engine`, via `gh`. See
-  [`docs/agents/issue-tracker.md`](docs/agents/issue-tracker.md).
-- **Triage labels:** the five canonical labels, unchanged, plus `layer:<n>` and `needs-grilling`. See
-  [`docs/agents/triage-labels.md`](docs/agents/triage-labels.md).
-- **Domain docs:** single-context, one [`GLOSSARY.md`](GLOSSARY.md) plus `docs/adr/`. See
-  [`docs/agents/domain.md`](docs/agents/domain.md).
+- **Issues:** GitHub issues in `Self-Engine/self-engine`, via `gh`.
+  [`docs/agents/issue-tracker.md`](docs/agents/issue-tracker.md) has the commands,
+  [`docs/agents/triage-labels.md`](docs/agents/triage-labels.md) the labels.
+- **Domain:** name things as [`GLOSSARY.md`](GLOSSARY.md) does, and read the ADRs and guides of
+  the area you change: [`docs/agents/domain.md`](docs/agents/domain.md) lists them.

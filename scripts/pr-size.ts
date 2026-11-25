@@ -1,6 +1,6 @@
 // The size label of a pull request (.github/workflows/pr-size.yml). Every pull request carries
-// exactly one `size:*` label; `size:XXL` starts CodeRabbit's review (.coderabbit.yaml) and asks
-// for an app check before the merge (docs/agents/workflow.md, "Large pull requests").
+// exactly one `size:*` label; `size:XXL` asks for a CodeRabbit review and an app check before
+// the merge (docs/agents/workflow.md, "Large pull requests").
 //
 // `node scripts/pr-size.ts <base> <head>` counts the lines `<base>...<head>` changes and writes
 // `label=<name>` to `GITHUB_OUTPUT`. `node scripts/pr-size.ts labels` prints every label as
