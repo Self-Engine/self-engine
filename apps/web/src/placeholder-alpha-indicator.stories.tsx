@@ -6,7 +6,7 @@
 import { placeholderAlphaAnswers } from "@self-engine/placeholder-alpha/testing";
 import { SHELL_REFERENCE_WIDTHS } from "@self-engine/shell/geometry";
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { closed } from "@self-engine/ui/story-surfaces";
+import { closed, settled } from "@self-engine/ui/story-surfaces";
 import { expect, screen, userEvent, waitFor, within } from "storybook/test";
 import { answer, asked, noQuestion } from "@self-engine/shell/story-interactions";
 import { AppAt, loadStoryApp, openPalette, paletteGone } from "./story-app.tsx";
@@ -86,7 +86,7 @@ const panelAt = (step: keyof typeof VIEWPORTS, counter: string): Story => ({
     await expect(opener).toHaveAttribute("aria-haspopup", "dialog");
     await expect(opener).toHaveAttribute("aria-expanded", "false");
     await userEvent.click(opener);
-    const panel = await panelDialog();
+    const panel = await settled(panelDialog());
     await waitFor(() => expect(opener).toHaveAttribute("aria-expanded", "true"));
     const field = await within(panel).findByRole("textbox", { name: "Note" });
     await userEvent.type(field, "Called the client");

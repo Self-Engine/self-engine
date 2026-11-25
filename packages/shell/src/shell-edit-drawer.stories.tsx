@@ -423,7 +423,7 @@ export const EscapeInALayerOverTheDrawerClosesOnlyTheLayer: Story = {
       expect(await screen.findByRole("textbox", { name: "Search" })).toHaveFocus(),
     );
     await pressEscape();
-    await waitFor(() => expect(screen.queryByRole("textbox", { name: "Search" })).toBeNull());
+    await closed(() => screen.queryByRole("textbox", { name: "Search" }));
     await stillOpen();
     await waitFor(() => expect(choose).toHaveFocus());
 
@@ -437,7 +437,7 @@ export const EscapeInALayerOverTheDrawerClosesOnlyTheLayer: Story = {
     // No layer is open any more: now the key is the drawer's.
     await pressEscape();
     await waitFor(() => expect(layersRouting.address.search()).toEqual({}));
-    await waitFor(() => expect(drawer.isConnected).toBe(false));
+    await closed(() => screen.queryByRole("dialog", { name: "Time" }));
   },
 };
 
