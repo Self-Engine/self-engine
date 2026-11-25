@@ -13,6 +13,7 @@ import {
   isDocument,
   isGenerated,
   isTest,
+  newPath,
   parseNumstat,
   sizeLabel,
 } from "./pr-size.ts";
@@ -89,8 +90,21 @@ describe("parseNumstat", () => {
     expect(parseNumstat(text)).toEqual([
       file("src/a.ts", 3, 1),
       file("docs/shot.png", 0),
-      file("src/{old => new}.ts", 0, 2),
+      file("src/new.ts", 0, 2),
     ]);
+  });
+});
+
+describe("newPath", () => {
+  it.each([
+    ["src/a.ts", "src/a.ts"],
+    ["docs/research/prior-art.md => scripts/a.ts", "scripts/a.ts"],
+    ["{docs => scripts}/a.ts", "scripts/a.ts"],
+    ["packages/{time => time-tracking}/src/zone.ts", "packages/time-tracking/src/zone.ts"],
+    ["docs/{plan => }/roadmap.json", "docs/roadmap.json"],
+    ["src/{ => shell}/a.ts", "src/shell/a.ts"],
+  ])("reads %j as %j", (printed, path) => {
+    expect(newPath(printed)).toBe(path);
   });
 });
 
@@ -107,6 +121,13 @@ describe("effectiveLines", () => {
   it("counts no line of a pull request that changes documents alone", () => {
     const files = [file("docs/research/prior-art.md", 1400), file("GLOSSARY.md", 30, 4)];
     expect(effectiveLines(files)).toBe(0);
+  });
+
+  it("counts a file that moved out of the documents, and none that stays in them", () => {
+    const moved = parseNumstat("1000\t0\tdocs/research/prior-art.md => scripts/a.ts\n");
+    expect(effectiveLines(moved)).toBe(1000);
+    const kept = parseNumstat("40\t2\tdocs/{plan => research}/notes.md\n");
+    expect(effectiveLines(kept)).toBe(0);
   });
 
   it("counts the code beside the documents", () => {

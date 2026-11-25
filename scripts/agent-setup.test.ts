@@ -12,7 +12,9 @@ const AGENT_DOCS = [
   "docs/agents/issue-tracker.md",
   "docs/agents/triage-labels.md",
   "docs/agents/workflow.md",
-  ...readdirSync(resolve(root, ".agents/skills")).map((name) => `.agents/skills/${name}/SKILL.md`),
+  ...readdirSync(resolve(root, ".agents/skills"), { withFileTypes: true })
+    .filter((entry) => entry.isDirectory())
+    .map((entry) => `.agents/skills/${entry.name}/SKILL.md`),
 ];
 const MARKDOWN_LINK = /\]\(([^)\s]+)\)/g;
 

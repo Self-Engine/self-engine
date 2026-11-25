@@ -29,7 +29,7 @@ export const SIZE_LABELS: readonly SizeLabel[] = [
 /** The label from which a pull request needs a review and an app check. */
 export const REVIEW_LABEL = "size:XXL";
 
-/** One file of `git diff --numstat`; a binary file counts no lines. */
+/** One file of `git diff --numstat`, under the path it has after the change; a binary file counts no lines. */
 export interface ChangedFile {
   readonly path: string;
   readonly additions: number;
@@ -66,8 +66,26 @@ export function parseNumstat(text: string): ChangedFile[] {
     .filter((line) => line.trim() !== "")
     .map((line) => {
       const [additions = "", deletions = "", ...path] = line.split("\t");
-      return { path: path.join("\t"), additions: count(additions), deletions: count(deletions) };
+      return {
+        path: newPath(path.join("\t")),
+        additions: count(additions),
+        deletions: count(deletions),
+      };
     });
+}
+
+/**
+ * The path of a file after the change. Git prints a rename as `old => new` or, where the two
+ * share a part, as `a/{old => new}/b`; a file moved out of `docs/` is sized as what it now is.
+ */
+export function newPath(path: string): string {
+  const brace = /^(.*)\{(.*) => (.*)\}(.*)$/u.exec(path);
+  if (brace !== null) {
+    const [, prefix = "", , to = "", suffix = ""] = brace;
+    return `${prefix}${to}${suffix}`.replace(/\/\//gu, "/");
+  }
+  const arrow = path.indexOf(" => ");
+  return arrow === -1 ? path : path.slice(arrow + " => ".length);
 }
 
 function count(field: string): number {
