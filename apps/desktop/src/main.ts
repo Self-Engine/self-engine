@@ -22,6 +22,7 @@ import {
   serveAsset,
   withContentSecurityPolicy,
 } from "./protocol.ts";
+import { acquireSingleInstanceLock } from "./single-instance.ts";
 import { titleBarOptions } from "./title-bar.ts";
 import {
   MINIMUM_WIDTH,
@@ -35,7 +36,7 @@ const { channel, productName, dataFolder, icon, scheme } = buildIdentity;
 
 // All of this must run before the app is ready. The name comes first: Electron derives the
 // Keychain item of `safeStorage` from it, and the packaged metadata does not cover `electron .`.
-function prepareBeforeReady(): void {
+function prepareBeforeReady(hidden: boolean): boolean {
   app.setName(productName);
   app.setPath(
     "userData",
@@ -45,6 +46,11 @@ function prepareBeforeReady(): void {
       app.commandLine.getSwitchValue("user-data-dir"),
     ),
   );
+  // Electron's ProcessSingleton uses the current userData path. Set it first so each
+  // channel and each --user-data-dir override locks only its own data folder.
+  if (!acquireSingleInstanceLock(app, hidden, () => BrowserWindow.getAllWindows()[0])) {
+    return false;
+  }
   protocol.registerSchemesAsPrivileged([
     {
       scheme,
@@ -57,6 +63,7 @@ function prepareBeforeReady(): void {
       },
     },
   ]);
+  return true;
 }
 
 function registerProtocol(devServer: URL | undefined): void {
@@ -164,10 +171,9 @@ async function openWindow(hidden: boolean): Promise<void> {
   await window.loadURL(desktopUrl(scheme));
 }
 
-async function start(): Promise<void> {
+async function start(hidden: boolean): Promise<void> {
   // Set by the dev runner (scripts/desktop-dev.ts).
   const devServer = resolveDevServer(channel, process.env.VITE_DEV_SERVER_URL);
-  const hidden = shouldHideWindow(channel, process.env.SELF_ENGINE_HIDDEN);
   // Hide before readiness so automation never activates the app or shows its Dock icon.
   if (hidden) app.dock?.hide();
   await app.whenReady();
@@ -189,8 +195,8 @@ app.on("window-all-closed", () => app.quit());
 // Chromium reads `--user-data-dir` before this code runs and creates the folder if it is
 // missing, but opens nothing in it, so refusing here still comes before any write.
 try {
-  prepareBeforeReady();
-  start().catch(failStart);
+  const hidden = shouldHideWindow(channel, process.env.SELF_ENGINE_HIDDEN);
+  if (prepareBeforeReady(hidden)) start(hidden).catch(failStart);
 } catch (error) {
   failStart(error);
 }
