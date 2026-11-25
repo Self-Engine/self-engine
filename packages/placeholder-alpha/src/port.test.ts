@@ -105,6 +105,8 @@ async function renderOverPort(drawerId?: string, initialName?: string) {
     drawerId = result.data.id;
   }
   let done = 0;
+  // What a create reported to the Shell, which closes the drawer as `onDone` does.
+  const created: string[] = [];
   const module: ShellContribution = {
     id: "alpha",
     name: { id: "alpha", message: "Alpha" },
@@ -122,6 +124,10 @@ async function renderOverPort(drawerId?: string, initialName?: string) {
         createElement(EditDrawer, {
           ...props,
           onDone: () => {
+            done++;
+          },
+          onCreated: (id) => {
+            created.push(id);
             done++;
           },
         }),
@@ -169,6 +175,7 @@ async function renderOverPort(drawerId?: string, initialName?: string) {
     notices,
     container,
     done: () => done,
+    created: () => created,
     calls,
     until(matches: (hooks: Hooks) => boolean): Promise<Hooks> {
       return new Promise((resolve) => {
@@ -298,6 +305,10 @@ test("Enter creates an entry and a taken name remains at the field", async () =>
   await vi.waitFor(() => expect(rendered.done()).toBe(1));
   const saved = await rendered.until((hooks) => names(hooks)?.includes("Fresh") === true);
   expect(names(saved)).toEqual(["Taken", "Fresh"]);
+  // The create reports the new entry, whose row the Shell gives the focus.
+  if (saved.list.status !== "content") throw new Error("No list");
+  const fresh = saved.list.data.find((entry) => entry.name === "Fresh");
+  expect(rendered.created()).toEqual([fresh?.id]);
 });
 
 test("an edit enables Save only while its value differs and submits the changed name", async () => {
