@@ -61,7 +61,7 @@ function entryAddressOf(text: string): EntryAddress {
  * Contract, whose input schema the form checks with, and with the form helper and the project
  * picker; none of them is part of the start.
  */
-export default function EditDrawer(props: EditDrawerProps) {
+export default function EditDrawer(props: EditDrawerProps<TimeEntryId>) {
   const address = entryAddressOf(props.id);
   if (address.kind === "new") return <NewEntryForm {...props} day={address.day} />;
   if (address.kind === "stored") return <StoredEntryDrawer {...props} id={address.id} />;
@@ -104,8 +104,8 @@ function useEntryName(entry: TimeEntryWithProject | undefined): string | undefin
 function NewEntryForm({
   day,
   onCancel,
-  onDone,
-}: EditDrawerProps & { readonly day: CalendarDay | undefined }) {
+  onCreated,
+}: EditDrawerProps<TimeEntryId> & { readonly day: CalendarDay | undefined }) {
   const { t } = useLingui();
   useEditDrawerTitle(t`New time entry`);
   const form = useOperationForm({
@@ -114,7 +114,8 @@ function NewEntryForm({
     draft: { startedAt: null, endedAt: null, projectId: null, note: "" },
     emptyTextFields: ["note"],
     texts: TEXTS,
-    onDone,
+    // The new entry's row takes the focus once the week shows it.
+    onSuccess: (entry) => onCreated(entry.id),
   });
   return <EntryFields form={form} onCancel={onCancel} project={null} startDay={day} />;
 }

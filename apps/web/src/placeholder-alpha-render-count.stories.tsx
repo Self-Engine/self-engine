@@ -13,7 +13,7 @@ import {
   rendersOutside,
 } from "@self-engine/ui/story-render-counts";
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { settled } from "@self-engine/ui/story-surfaces";
+import { closed, settled } from "@self-engine/ui/story-surfaces";
 import { expect, screen, userEvent, within } from "storybook/test";
 import { AppAt, loadStoryApp } from "./story-app.tsx";
 
@@ -79,6 +79,38 @@ export const RenamingOneOf1000EntriesRedrawsOneRow: Story = {
       EntryList: 1,
       EntryRow: 1,
     });
+  },
+};
+
+const VIEW_LIST_AND_ROW = ["Entries", "EntryList", "EntryRow"] as const;
+
+/**
+ * Opening a row's Edit Drawer and closing it, with the focus back on the row, draws no row, not
+ * the list and not the View: the row's mark for the focus is a constant attribute, and the Shell
+ * looks it up only when the drawer closes (ADR 0041).
+ */
+export const OpeningAndClosingTheDrawerDrawsNoRow: Story = {
+  play: async ({ canvasElement }) => {
+    await commitWhere(() => shows(canvasElement, `Entry ${ROWS}`));
+    await afterTheCommitsNowDue();
+    const before = renderCounts();
+    // Each was drawn, so a count of 0 below is not a name that matches nothing.
+    for (const name of VIEW_LIST_AND_ROW) await expect(before.components[name]).toBeGreaterThan(0);
+
+    const row = [...canvasElement.querySelectorAll("button")].find(
+      (button) => button.textContent === `Entry ${RENAMED}`,
+    )!;
+    await userEvent.click(row);
+    await settled(screen.findByRole("dialog", { name: `Entry ${RENAMED}` }));
+    await userEvent.keyboard("{Escape}");
+    await closed(() => screen.queryByRole("dialog"));
+    await expect(row).toHaveFocus();
+    await afterTheCommitsNowDue();
+
+    const drawn = difference(renderCounts(), before).components;
+    await expect(
+      Object.fromEntries(VIEW_LIST_AND_ROW.map((name) => [name, drawn[name] ?? 0])),
+    ).toEqual({ Entries: 0, EntryList: 0, EntryRow: 0 });
   },
 };
 

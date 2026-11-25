@@ -419,7 +419,9 @@ export const AllClientsIsCurrentWithoutAFilter: Story = {
   },
 };
 
-const ShowsItsId: ComponentType<EditDrawerProps> = ({ id }) => <p>{id}</p>;
+function ShowsItsId({ id }: EditDrawerProps) {
+  return <p>{id}</p>;
+}
 /** These ids exist nowhere: what matters is that the drawer receives them as written. */
 function drawerShowsItsId() {
   const load = spyOnModule.editDrawer().mockResolvedValue({ default: ShowsItsId });

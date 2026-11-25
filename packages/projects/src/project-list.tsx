@@ -4,6 +4,7 @@ import { useWriteViewSearch } from "@self-engine/shell";
 import { EntryMark } from "@self-engine/ui/entry-mark";
 import { memo, type ReactNode, useMemo } from "react";
 import type { Project } from "./port.ts";
+import { projectEntries } from "./project-address.ts";
 import { useSortedByTitle } from "./sorted-by-title.ts";
 
 /** A list of projects sorted by title, as "Active" and "Archive" show it; `empty` when there is none. */
@@ -32,13 +33,14 @@ export function ProjectList({
 /**
  * A row is its own component behind `memo` and receives its project whole, so that one changed
  * project draws one row (docs/development/performance.md, "One changed row redraws one row").
- * It opens the project in the Edit Drawer.
+ * It opens the project in the Edit Drawer, and takes the focus when the drawer closes.
  */
 const ProjectRow = memo(function ProjectRow({ project }: { readonly project: Project }) {
   const write = useWriteViewSearch();
   return (
     <li style={{ listStyle: "none" }}>
       <UnstyledButton
+        {...projectEntries.control(project.id)}
         onClick={() => write((search) => ({ ...search, edit: project.id }))}
         style={ROW_STYLE}
       >

@@ -58,5 +58,10 @@ export { retainedViewSearch, type ViewSearch } from "./view-search.ts";
 export { useTypedViewSearch } from "./typed-view-search.ts";
 export { ShellGroup, ShellGroupEntry } from "./groups.tsx";
 export { useEditDrawerTitle } from "./edit-drawer-title.ts";
+export {
+  editDrawerEntries,
+  type EditDrawerEntries,
+  type EntryControlMark,
+} from "./edit-drawer-focus.ts";
 export { useUnsavedChanges } from "./frame-exits.tsx";
 export { useOpenIndicatorPanel } from "./indicator-panels.tsx";

@@ -14,6 +14,7 @@ import { whenIdle } from "./idle.ts";
 import { useIndicatorPanels, useOpeningOf } from "./indicator-panels.tsx";
 import { lazyComponents } from "./lazy-contribution.tsx";
 import { type LeaveGuard, useShellRouting } from "./routing.tsx";
+import { FOCUSABLE } from "./focusable.ts";
 import { FrameContent, openEditDrawer, useDiscardQuestion, useEscapeExit } from "./frame-exits.tsx";
 
 /** The popover's width on the wide, medium and narrow step, in unscaled pixels. */
@@ -62,9 +63,6 @@ function usePanelPreload(panel: IndicatorWithPanel["panel"], indicatorShown: boo
     [panel, indicatorShown],
   );
 }
-
-const FOCUSABLE =
-  'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
 /**
  * Puts the focus back on the indicator when the panel closes, however it opened: on the control

@@ -5,7 +5,7 @@ import { useWriteViewSearch } from "@self-engine/shell";
 import { EmptyState, QueryStateBlock } from "@self-engine/ui";
 import { memo } from "react";
 import { useDeleteWithUndo } from "./delete-with-undo.tsx";
-import { NEW_ENTRY_ID } from "./entry-address.ts";
+import { entryControls, NEW_ENTRY_ID } from "./entry-address.ts";
 import { ALL_ENTRIES, type Entry, useEntries } from "./port.ts";
 
 /**
@@ -65,6 +65,7 @@ const EntryRow = memo(function EntryRow({
   return (
     <Group wrap="nowrap">
       <Button
+        {...entryControls.control(entry.id)}
         flex={1}
         onClick={() => write((search) => ({ ...search, edit: entry.id }))}
         variant="subtle"

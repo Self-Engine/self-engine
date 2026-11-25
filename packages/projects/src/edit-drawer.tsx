@@ -52,7 +52,7 @@ const ARCHIVE_PROJECT = msg({ message: "Archive", context: "Archive a project" }
  * checks with (D317). A stored project is found in the two list Queries, "Active" and "Archive":
  * there is no Query for one id.
  */
-export default function EditDrawer(props: EditDrawerProps) {
+export default function EditDrawer(props: EditDrawerProps<ProjectId>) {
   if (props.id === NEW_PROJECT_ID) return <CreateForm {...props} />;
   return <StoredProjectDrawer {...props} />;
 }
@@ -181,7 +181,7 @@ function NotFound({ onDone }: EditDrawerProps) {
   );
 }
 
-function CreateForm({ onCancel, onDone }: EditDrawerProps) {
+function CreateForm({ onCancel, onCreated }: EditDrawerProps<ProjectId>) {
   const { t } = useLingui();
   useEditDrawerTitle(t`New project`);
   const form = useOperationForm({
@@ -189,7 +189,8 @@ function CreateForm({ onCancel, onDone }: EditDrawerProps) {
     operation: useCreateProject(),
     draft: { title: "", description: "", icon: null, color: null },
     emptyTextFields: ["description"],
-    onDone,
+    // The new project's row takes the focus once the list shows it.
+    onSuccess: (project) => onCreated(project.id),
   });
   return <ProjectFields form={form} onCancel={onCancel} />;
 }

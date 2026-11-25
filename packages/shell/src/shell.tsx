@@ -14,6 +14,7 @@ import {
 import { viewPath, type EditDrawerProps } from "./contributions.ts";
 import { EditDrawerTitleContext } from "./edit-drawer-title.ts";
 import { selectEditId, useEditDrawerExits } from "./edit-drawer-exits.tsx";
+import { useFocusWhenTheEditDrawerCloses, VIEW_MARK } from "./edit-drawer-focus.ts";
 import { FrameContent, useEscapeExit } from "./frame-exits.tsx";
 import { LazyContribution, lazyComponents } from "./lazy-contribution.tsx";
 import { indicatorForm, type IndicatorForm } from "./module-indicator-form.ts";
@@ -797,7 +798,10 @@ function ShellFrame({
                 style={CONTENT_PANE_STYLE}
               >
                 <ScrollArea flex={1} mih={0}>
-                  <Box p="md">{children}</Box>
+                  {/* Where the focus finds a View's entries when the Edit Drawer closes. */}
+                  <Box p="md" {...VIEW_MARK}>
+                    {children}
+                  </Box>
                 </ScrollArea>
               </Splitter.Pane>
             </Splitter>
@@ -907,7 +911,7 @@ export function Shell({
 }
 
 const loadedGroups = lazyComponents<Record<string, never>>();
-const loadedDrawer = lazyComponents<EditDrawerProps>();
+const loadedDrawer = lazyComponents<EditDrawerProps<string>>();
 const NO_PROPS = {};
 
 function ModuleViews({
@@ -963,7 +967,10 @@ const editTargetKey = ({ module, id }: EditTarget) => `${module.id}/${id}`;
 const openingKey = (target: EditTarget, opening: number) =>
   `${editTargetKey(target)}#${String(opening)}`;
 
-/** The frame stays mounted whatever is open, so that closing can animate and return the focus. */
+/**
+ * The frame stays mounted whatever is open, so that closing can animate and place the focus on a
+ * control of the View (ADR 0041).
+ */
 function ModuleEditDrawer({ module }: { readonly module: ShellContribution | undefined }) {
   const { t, i18n } = useLingui();
   const paletteOpen = useCommandPaletteOpen();
@@ -993,16 +1000,6 @@ function ModuleEditDrawer({ module }: { readonly module: ShellContribution | und
       const { edit: _edit, ...rest } = search;
       return rest;
     });
-  // Bound to the opening the content was mounted for, also while it slides out: a save that ends
-  // after the person left this entry closes nothing, so it cannot close another entry past its
-  // unsaved-changes guard.
-  const shownOpening = shown && openingKey(shown, shown.opening);
-  const openingProps = shownOpening !== undefined && {
-    onDone: () => {
-      if (exits.letNextExitPass(shownOpening)) close();
-    },
-    isOpen: () => exits.isOpen(shownOpening),
-  };
   // The question and the Command Palette are modals of Mantine, which listen on the window like
   // the drawer: while one is open, Esc is theirs.
   // An Indicator Panel lies over the drawer: an Esc with the focus nowhere closes the panel only.
@@ -1012,6 +1009,22 @@ function ModuleEditDrawer({ module }: { readonly module: ShellContribution | und
     close,
     () => panels.current() !== undefined,
   );
+  const reportCreated = useFocusWhenTheEditDrawerCloses(target !== undefined, shown?.id, frameRef);
+  // Bound to the opening the content was mounted for, also while it slides out: a save that ends
+  // after the person left this entry closes nothing, so it cannot close another entry past its
+  // unsaved-changes guard.
+  const shownOpening = shown && openingKey(shown, shown.opening);
+  const openingProps = shownOpening !== undefined && {
+    onDone: () => {
+      if (exits.letNextExitPass(shownOpening)) close();
+    },
+    onCreated: (created: string) => {
+      if (!exits.letNextExitPass(shownOpening)) return;
+      reportCreated(created);
+      close();
+    },
+    isOpen: () => exits.isOpen(shownOpening),
+  };
   return (
     <Drawer
       {...frame}
@@ -1022,6 +1035,9 @@ function ModuleEditDrawer({ module }: { readonly module: ShellContribution | und
       opened={target !== undefined}
       onClose={close}
       position="right"
+      // Mantine returns to what had the focus at the opening, which after a create is not the new
+      // entry and is often gone: `useFocusWhenTheEditDrawerCloses` places it instead.
+      returnFocus={false}
       title={entryTitle ?? (shown && i18n._(shown.module.name))}
       closeButtonProps={{ "aria-label": t`Close editor`, ref: exits.closeButton }}
       styles={EDIT_DRAWER_STYLES}
