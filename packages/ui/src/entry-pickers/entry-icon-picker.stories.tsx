@@ -97,7 +97,7 @@ export const ChoosesSearchesAndClears: Story = {
 
     await userEvent.click(within(grid()).getByRole("option", { name: "Rocket" }));
     await expect(answers).toHaveBeenLastCalledWith("rocket-launch");
-    await waitFor(() => expect(dialog.isConnected).toBe(false));
+    await closed(() => (dialog.isConnected ? dialog : null));
     await expect(trigger(canvas)).toHaveAccessibleName("Icon Rocket");
 
     // A search by a label finds the picture, whatever the case and wherever it is in the label.

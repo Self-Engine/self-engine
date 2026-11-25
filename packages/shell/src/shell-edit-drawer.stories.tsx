@@ -63,7 +63,7 @@ export const ClosingKeepsTheFrameForItsExit: Story = {
     await nextFrame();
     await expect(dialog.isConnected).toBe(true);
     await expect(within(dialog).getByText("Editing entry")).toBeInTheDocument();
-    await waitFor(() => expect(dialog.isConnected).toBe(false));
+    await closed(() => (dialog.isConnected ? dialog : null));
     await waitFor(() => expect(trigger).toHaveFocus());
   },
 };
