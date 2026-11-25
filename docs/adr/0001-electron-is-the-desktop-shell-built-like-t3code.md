@@ -20,8 +20,9 @@ updater features Self-Engine already has. Tauri's SQLite story for those SDKs is
   `electron-updater` updates it.
 - `electron` is never bundled into the preload (`deps.neverBundle`).
 
-The spike in `prototypes/layer-0-spikes/` (path A) proves this setup and lists the pitfalls it
-solved.
+A [spike](https://github.com/Self-Engine/self-engine/tree/1f637f094224ee4014526dda62711244055e8fa7/prototypes/layer-0-spikes)
+(path A) proved this setup and lists the pitfalls it solved. It left the repo once the app was
+built this way.
 
 ## Consequences
 

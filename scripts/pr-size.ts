@@ -29,7 +29,7 @@ export const SIZE_LABELS: readonly SizeLabel[] = [
 /** The label from which a pull request needs a review and an app check. */
 export const REVIEW_LABEL = "size:XXL";
 
-/** One file of `git diff --numstat`; a binary file counts no lines. */
+/** One file of `git diff --numstat`, under the path it has after the change; a binary file counts no lines. */
 export interface ChangedFile {
   readonly path: string;
   readonly additions: number;
@@ -41,6 +41,14 @@ export function isGenerated(path: string): boolean {
   const name = path.slice(path.lastIndexOf("/") + 1);
   if (name === "pnpm-lock.yaml" || name === "bun.lock") return true;
   return /^packages\/i18n\/src\/locales\/[^/]+\.po$/u.test(path);
+}
+
+/**
+ * Documents: what CodeRabbit leaves out of its review (`path_filters` in .coderabbit.yaml), so a
+ * pull request of documents alone never asks for one.
+ */
+export function isDocument(path: string): boolean {
+  return path.startsWith("docs/") || path === "GLOSSARY.md";
 }
 
 /** Tests and what only tests use: test folders and `*.test.*` / `*.spec.*` files. */
@@ -58,8 +66,26 @@ export function parseNumstat(text: string): ChangedFile[] {
     .filter((line) => line.trim() !== "")
     .map((line) => {
       const [additions = "", deletions = "", ...path] = line.split("\t");
-      return { path: path.join("\t"), additions: count(additions), deletions: count(deletions) };
+      return {
+        path: newPath(path.join("\t")),
+        additions: count(additions),
+        deletions: count(deletions),
+      };
     });
+}
+
+/**
+ * The path of a file after the change. Git prints a rename as `old => new` or, where the two
+ * share a part, as `a/{old => new}/b`; a file moved out of `docs/` is sized as what it now is.
+ */
+export function newPath(path: string): string {
+  const brace = /^(.*)\{(.*) => (.*)\}(.*)$/u.exec(path);
+  if (brace !== null) {
+    const [, prefix = "", , to = "", suffix = ""] = brace;
+    return `${prefix}${to}${suffix}`.replace(/\/\//gu, "/");
+  }
+  const arrow = path.indexOf(" => ");
+  return arrow === -1 ? path : path.slice(arrow + " => ".length);
 }
 
 function count(field: string): number {
@@ -67,11 +93,11 @@ function count(field: string): number {
 }
 
 /**
- * The lines that size a pull request: the changes outside generated files and tests, or, when
- * only tests changed, the changes to the tests.
+ * The lines that size a pull request: the changes outside generated files, documents and tests,
+ * or, when only tests changed, the changes to the tests.
  */
 export function effectiveLines(files: readonly ChangedFile[]): number {
-  const counted = files.filter((file) => !isGenerated(file.path));
+  const counted = files.filter((file) => !isGenerated(file.path) && !isDocument(file.path));
   const sum = (list: readonly ChangedFile[]) =>
     list.reduce((total, file) => total + file.additions + file.deletions, 0);
   const code = sum(counted.filter((file) => !isTest(file.path)));
@@ -84,7 +110,7 @@ export function sizeLabel(lines: number): SizeLabel {
   return label;
 }
 
-/** The label's description on GitHub, e.g. "100-499 changed lines, without tests …". */
+/** The label's description on GitHub, e.g. "100-499 changed lines, without tests, docs …". */
 export function describeLabel(label: SizeLabel): string {
   const next = SIZE_LABELS[SIZE_LABELS.indexOf(label) + 1];
   const range =
@@ -92,7 +118,7 @@ export function describeLabel(label: SizeLabel): string {
       ? `${label.from.toLocaleString("en")}+`
       : `${label.from.toLocaleString("en")}-${(next.from - 1).toLocaleString("en")}`;
   const review = label.name === REVIEW_LABEL ? " Needs a review and an app check." : "";
-  return `${range} changed lines, without tests, lockfiles and catalogs.${review}`;
+  return `${range} changed lines, without tests, docs, lockfiles and catalogs.${review}`;
 }
 
 function main(args: readonly string[]): void {
@@ -115,7 +141,7 @@ function main(args: readonly string[]): void {
   const lines = effectiveLines(parseNumstat(numstat));
   const label = sizeLabel(lines);
   console.log(
-    `pr-size: ${lines} changed lines without tests, lockfiles and catalogs: ${label.name}`,
+    `pr-size: ${lines} changed lines without tests, docs, lockfiles and catalogs: ${label.name}`,
   );
   const output = process.env.GITHUB_OUTPUT;
   if (output !== undefined) appendFileSync(output, `label=${label.name}\n`);

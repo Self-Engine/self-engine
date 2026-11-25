@@ -25,9 +25,7 @@ This project does not accept issues or pull requests from others yet, see
 [`CONTRIBUTING.md`](CONTRIBUTING.md). To report a security problem, see
 [`SECURITY.md`](SECURITY.md).
 
-The planning documents in [`docs/plan/`](docs/plan/) are in German for now.
-
-- [`docs/plan/00-decisions.md`](docs/plan/00-decisions.md) — index of the decision log
-- [`docs/plan/01-design-tree.md`](docs/plan/01-design-tree.md) — open and settled questions
+What the code does today is recorded in [`docs/adr/`](docs/adr/). The early decision log in
+[`docs/plan/`](docs/plan/00-decisions.md) is a closed archive, in German.
 
 For module authors: [add a module’s port](docs/development/port-pattern.md), then [use it in its Views](docs/development/port-hooks.md).

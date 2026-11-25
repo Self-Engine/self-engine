@@ -1,22 +1,19 @@
 # Entscheidungslog
 
-Jede Runde ist eine Datei in [`decisions/`](decisions/), benannt nach ihren D-Nummern. Lies diese
-Übersicht und dann nur die Runden zu deinem Arbeitspaket.
+> **Geschlossen am 2026-11-25.** Dieses Log ist ein Archiv und bekommt keine neuen Einträge. Was
+> der Code heute tut, steht als ADR in `docs/adr/`. Eine Entscheidung, die noch nicht gebaut ist,
+> steht in ihrem Issue (`docs/agents/workflow.md`, Abschnitt „Where a decision lives“).
 
-> **So sind die Einträge zu lesen (D278):** Jeder Eintrag ist eine Arbeitsannahme, die beste
-> Antwort zum Zeitpunkt des Eintrags, oft vor dem Code geschrieben. Wer einen besseren Weg sieht,
-> nennt ihn dem Owner (`AGENTS.md`, Abschnitt „Decisions“). Was der Code heute tut, steht als ADR
-> in `docs/adr/`. Ist das Issue einer Runde geschlossen, gelten Code und ADR, und die Runde
-> erklärt nur noch, warum.
+Jede Runde ist eine Datei in [`decisions/`](decisions/), benannt nach ihren D-Nummern. Schlag hier
+nach, wenn ein Kommentar im Code oder ein ADR eine D-Nummer nennt und du den Grund brauchst.
 
-## Eine Runde festhalten
+**So sind die Einträge zu lesen (D278):** Jeder Eintrag ist eine Arbeitsannahme, die beste Antwort
+zum Zeitpunkt des Eintrags, oft vor dem Code geschrieben. Wo Code und ADR etwas anderes sagen,
+gelten Code und ADR, und der Eintrag erklärt nur noch, warum.
 
-Eine neue Runde bekommt eine neue Datei `decisions/d<erste>-d<letzte>-<thema>.md` (Nummern
-dreistellig, Thema englisch) und eine Zeile am Ende der Tabelle. Die nächste freie Nummer folgt auf
-die letzte Zeile. Lies sie von `main`: Ein anderer Zweig kann sie schon belegt haben.
-
-Eine bestehende Runde bekommt keine neuen Einträge. Wird einer ihrer Einträge überholt, bekommt er
-den Vermerk `_Überholt durch D<n>._`
+Die Runden verweisen auf Schicht-Dokumente, Recherchen und Prototypen, die nicht mehr im Repo
+liegen. Ihr letzter Stand ist der Commit
+[`1f637f0`](https://github.com/Self-Engine/self-engine/tree/1f637f094224ee4014526dda62711244055e8fa7/docs/plan).
 
 ## Runden
 
@@ -77,9 +74,5 @@ den Vermerk `_Überholt durch D<n>._`
 D109 und D110 sind doppelt vergeben, in den Runden 18 und 19. Wer eine der beiden nennt, nennt die
 Runde dazu.
 
-Die Entscheidungen einer Wayfinder-Karte stehen in ihren Tickets, nicht in einer Runde (D375). Karten:
-
-- #396 Zeiterfassung nach Schicht 4: Zeitarten, Strecken, Rundung, mehrere Projekte, Timer.
-
-Befunde aus Recherche und Audits, die keine Entscheidungen sind, stehen in [`facts.md`](facts.md).
-Recherchen für eine Karte liegen in [`docs/research/`](../research/) (D376).
+Die Entscheidungen einer Wayfinder-Karte stehen in ihren Tickets (D375). Die erste Karte ist #396,
+Zeiterfassung nach Schicht 4.
