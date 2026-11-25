@@ -112,6 +112,9 @@ export function createSettingsCopyAdapter({
     }
     const held = new Set(rows.map(({ key }) => key));
     // Queued before anything else can run, so a later save of the same entry comes after it.
+    // `save` replaces a row, so a value that another window saved for the key after the read above
+    // is lost to the copy's older one. The app opens one window today; a second one needs a move
+    // that inserts only where the key is still absent, in one transaction of the Data Process.
     for (const entry of copied) {
       if (!held.has(entry.key)) void inOrder(() => database.save([entry])).catch(moveFailed);
     }

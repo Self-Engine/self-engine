@@ -50,7 +50,9 @@ export function createModuleList(
 ): ModuleList {
   const settings = createSettingsArea({
     store: settingsStore,
-    // The build inserts the web app's version; the desktop app's comes over the bridge.
+    // The build inserts the web app's version; the desktop app's comes over the bridge. No release
+    // stamps `apps/web/package.json`, so a web build shows the committed number: a web release has
+    // to give it the release's version first.
     version: () => versionInfo(window, navigator, version),
     // Every contribution, so that a new module's Shortcuts are listed by themselves.
     commandOwners: () => contributions,

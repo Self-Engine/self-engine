@@ -53,7 +53,8 @@ function StoredEntryDrawer({
       entry={entry}
       deleted={found === undefined && !deletedHere}
       onDelete={() => {
-        // Keep the entry through the closing transition (#132), without the deleted-entry warning.
+        // Keep the entry through the closing transition, without the deleted-entry warning. #310
+        // replaces this with `useLeavingEntry` of `forms`.
         setDeletedHere(true);
         void remove(entry.id);
         props.onDone();
