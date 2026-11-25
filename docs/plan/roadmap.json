@@ -1,9 +1,25 @@
 {
   "layers": [
-    { "id": "0", "name": "Repo-Fundament", "decisions": "D28–D49" },
-    { "id": "1", "name": "Design-System und App-Hülle", "decisions": "D54–D82" },
-    { "id": "2", "name": "Datenschicht", "decisions": "D86–D98" },
-    { "id": "3", "name": "Gemeinsamer Kern", "decisions": "D143–D154" },
+    {
+      "id": "0",
+      "name": "Repo-Fundament",
+      "decisions": "D28–D49"
+    },
+    {
+      "id": "1",
+      "name": "Design-System und App-Hülle",
+      "decisions": "D54–D82"
+    },
+    {
+      "id": "2",
+      "name": "Datenschicht",
+      "decisions": "D86–D98"
+    },
+    {
+      "id": "3",
+      "name": "Gemeinsamer Kern",
+      "decisions": "D143–D154"
+    },
     {
       "id": "4",
       "name": "Projekte und Zeit",
@@ -11,11 +27,25 @@
     },
     {
       "id": "5",
+      "name": "Ausbau von Projekten und Zeit",
+      "planned": [
+        {
+          "title": "Zeiterfassung: Zeitarten, Strecken, Sekunden und Rundung, mehrere Projekte, Timer mit Pause und Pomodoro",
+          "note": "Die gespeicherte Form entscheidet die Karte #396, Ticket für Ticket (D374). Ihr letztes Ticket schneidet die Arbeitspakete. Geld kommt mit dem Geld-Modul (#105)."
+        },
+        {
+          "title": "Projekte: Projektseite mit Andockpunkten, Ordner, Favoriten",
+          "note": "#201; Liste in 07-layer-4-projects-and-time.md."
+        }
+      ]
+    },
+    {
+      "id": "6",
       "name": "Import",
       "planned": [
         {
           "title": "Wiederholbarer Import aus der alten App",
-          "note": "Grundsatz steht (D12, D84), Format und Umfang sind offen."
+          "note": "Folgt auf den Ausbau von Projekten und Zeit (#397). Grundsatz steht (D12, D84), Format und Umfang sind offen."
         }
       ]
     },
@@ -28,14 +58,13 @@
           "note": "Erste Brücke kommt mit Finanzen oder Kalender (D152)."
         },
         {
-          "title": "Ausbau von Projekten und Zeit",
-          "note": "Rundung je Projekt, Pausen, Kategorien, Abrechnung, Projektseite mit Andockpunkten (#201); Liste in 07-layer-4-projects-and-time.md."
-        },
-        {
           "title": "Sync",
           "note": "Pflicht vor dem Stichtag (D14). Engine, Konflikte und Q21 sind offen."
         },
-        { "title": "Mobile", "note": "Pflicht vor dem Stichtag (D14)." },
+        {
+          "title": "Mobile",
+          "note": "Pflicht vor dem Stichtag (D14)."
+        },
         {
           "title": "Papierkorb und endgültiges Löschen",
           "note": "Fristen pro Datenart sind offen. Bis dahin löscht die App nie von selbst (D172). Hier entscheidet sich, ob verweisende Zeilen mitgelöscht werden (D338)."

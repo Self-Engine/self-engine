@@ -72,8 +72,14 @@ den Vermerk `_Überholt durch D<n>._`
 | [D371](decisions/d371-restore-writes-fields.md) | 2026-11-21 | Nachtrag aus dem Bau von #277: Das Zurückholen einer Zeile im Speicher-Rahmen kann zugleich Felder schreiben | #277 |
 | [D372](decisions/d372-clock-before-start-opens-the-timer-form.md) | 2026-11-21 | Nachtrag aus dem Bau von #277: Der Hinweis „Uhr vor dem Start“ öffnet das Formular des Timers statt „Stoppen um …“ | #277 |
 | [D373](decisions/d373-indicators-load-after-the-observed-first-paint.md) | 2026-11-22 | Nachtrag aus dem Bau von #277: Die Hülle wartet auf das erste Bild, das der Browser meldet, bevor sie die Modul-Indikatoren lädt | #277, #380 |
+| [D374–D376](decisions/d374-d376-wayfinder-for-large-efforts.md) | 2026-11-24 | Arbeitsablauf: Wayfinder-Karte für große Vorhaben; erste Karte ist die Zeiterfassung nach Schicht 4 | #396 |
 
 D109 und D110 sind doppelt vergeben, in den Runden 18 und 19. Wer eine der beiden nennt, nennt die
 Runde dazu.
 
+Die Entscheidungen einer Wayfinder-Karte stehen in ihren Tickets, nicht in einer Runde (D375). Karten:
+
+- #396 Zeiterfassung nach Schicht 4: Zeitarten, Strecken, Rundung, mehrere Projekte, Timer.
+
 Befunde aus Recherche und Audits, die keine Entscheidungen sind, stehen in [`facts.md`](facts.md).
+Recherchen für eine Karte liegen in [`docs/research/`](../research/) (D376).

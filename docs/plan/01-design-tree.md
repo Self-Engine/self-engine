@@ -55,8 +55,9 @@ Pro Runde werden nur 2–3 Fragen gestellt; die Nummern sind stabil.
       - ✅ `time-tracking` gegrillt: Zeitzone am Eintrag, Tagesanteile über Mitternacht, ganze Sekunden, Anzeige rundet auf, Zeitumstellung im Formular, Uhr der Oberfläche in `time`, Stoppen über zwei Tabellen, Uhr und Felder als eigenes Arbeitspaket (D342–D350, #275, #277, #332)
       - ✅ Einstellungen gegrillt: lokale Kopie für den ersten Render, Lesen im Datenprozess über den Kontext, Gerätezone beim Start, Abfrage über eine Spanne von Tagen, Wochenstart als Name des Tages, der Besitzer deklariert (D351–D356, #109, #110)
       - ✅ Ständiger Platz gegrillt: Modulanzeige rechts in der Kopfzeile des Inhalts, Fläche der Hülle, zwei später ladende Bausteine im Hüllen-Beitrag (D357–D360, #276)
-    - ⏳ Schicht 5 Import (beginnt mit Projekten und Zeiteinträgen, D316)
-  - ⏳ Reihenfolge nach Schicht 5 bis zum Stichtag (weitere Module, Sync, Mobile)
+    - ⏳ Schicht 5 Ausbau von Projekten und Zeit: Die gespeicherte Form der Zeiterfassung entscheidet die Karte #396 (D374)
+    - ⏳ Schicht 6 Import (beginnt mit Projekten und Zeiteinträgen, D316; folgt auf den Ausbau, #397)
+  - ⏳ Reihenfolge nach Schicht 6 bis zum Stichtag (weitere Module, Sync, Mobile)
   - ⏳ Zeitpunkt Organisations-Spaces & Policies
   - ⏳ Onboarding / Blueprints
 - ✅ Motivation OSS (D2)

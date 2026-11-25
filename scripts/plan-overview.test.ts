@@ -259,6 +259,33 @@ describe("buildOverview", () => {
     expect(layers[0]?.rows.map((row) => row.number)).not.toContain(6);
   });
 
+  it("leaves out a map and its tickets", () => {
+    const map = issue(6, { labels: ["wayfinder:map"] });
+    const open = issue(7, { labels: ["wayfinder:grilling"] });
+    const resolved = issue(8, { labels: ["wayfinder:research"], state: "CLOSED" });
+    const withMap = buildOverview([...issues, map, open, resolved], new Map(), ROADMAP);
+    const without = buildOverview(issues, new Map(), ROADMAP);
+    expect(withMap.total).toBe(5);
+    expect(withMap.counts).toEqual(without.counts);
+    expect(withMap.layers.map((layer) => layer.rows.map((row) => row.number))).toEqual(
+      without.layers.map((layer) => layer.rows.map((row) => row.number)),
+    );
+  });
+
+  it("keeps an issue that waits on an open ticket of a map out of the buildable ones", () => {
+    const waiting = issue(1, { labels: ["ready-for-agent", "layer:1"], body: "Blocked by: #7" });
+    const ticket = issue(7, { labels: ["wayfinder:grilling"] });
+    const overview = buildOverview([waiting, ticket], new Map(), ROADMAP);
+    expect(overview.nextSteps.some((step) => step.startsWith("Baubar"))).toBe(false);
+    expect(overview.layers[0]?.rows[0]?.waitingOn?.map((ref) => ref.number)).toEqual([7]);
+    expect(overview.graph.map((node) => [node.number, node.wave])).toEqual([[1, 1]]);
+
+    const resolved = buildOverview([waiting, { ...ticket, state: "CLOSED" }], new Map(), ROADMAP);
+    expect(resolved.nextSteps.some((step) => step.startsWith("Baubar"))).toBe(true);
+    expect(resolved.layers[0]?.rows[0]?.waitingOn).toEqual([]);
+    expect(resolved.graph.map((node) => [node.number, node.wave])).toEqual([[1, 0]]);
+  });
+
   it("names the next steps", () => {
     const { nextSteps } = buildOverview(issues, new Map([[4, 9]]), ROADMAP);
     expect(nextSteps[0]).toContain("PR #9");

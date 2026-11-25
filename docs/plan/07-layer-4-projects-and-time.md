@@ -97,6 +97,10 @@ mit erzeugten Daten von zwei Jahren, D193).
 
 ## Nach Schicht 4
 
+Die Zeiterfassung aus dieser Liste plant die Karte #396 (D374). Sie überdenkt jeden Punkt, statt
+ihn aus der alten App zu übernehmen; was sie anders entscheidet als hier vorgemerkt, steht in ihren
+Tickets. Geld bleibt dabei draußen und kommt mit `money` (#105).
+
 - **Zeiterfassung:** Rundung als Einstellung wie in der alten App, mit dem Standard „aufrunden auf
   1 Minute“, samt der Verteilung einer gerundeten Dauer auf die Tage (D309, D343, D345), die
   Einstellung, ob ein Eintrag über Mitternacht verteilt wird (D343), die Dauer von Hand mit den
@@ -116,7 +120,8 @@ mit erzeugten Daten von zwei Jahren, D193).
   viele Zeilen, je mit dem ersten echten Fall (D340); ein Verweis, der beim Löschen seines Ziels
   stehen bleibt, mit den Tags (#111, D338); die Freigabe einer Tabelle für Regeln von oben mit der
   ersten solchen Regel (D341).
-- **Import:** Schicht 5 beginnt mit Projekten und Zeiteinträgen (D316).
+- **Import:** Schicht 6, nach dem Ausbau von Projekten und Zeit (#397). Er beginnt mit Projekten und
+  Zeiteinträgen (D316).
 
 ## Offen
 
