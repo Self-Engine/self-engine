@@ -22,6 +22,7 @@ import {
   BUILT_IN_THEMES,
   COLOR_SETS,
   DEFAULT_APPEARANCE,
+  FONT_SCALES,
   resolveAppearance,
   roleVariable,
 } from "@self-engine/theme";
@@ -127,6 +128,47 @@ export const OpensOnAppearanceFromTheNavbar: Story = {
     await expect(canvas.getByRole("slider", { name: "Font scale" })).toBeVisible();
   },
 };
+
+async function expectFontScaleFits(canvas: ReturnType<typeof within>, name: string) {
+  const row = await canvas.findByRole("group", { name, exact: true });
+  const pane = row.closest(".mantine-ScrollArea-viewport");
+  if (pane === null) throw new Error("The Font scale row is outside the scrolling pane");
+  await document.fonts.ready;
+
+  const { left, right, top, bottom } = row.getBoundingClientRect();
+  const labels = [...row.querySelectorAll(".mantine-Slider-markLabel")].map((label) =>
+    label.getBoundingClientRect(),
+  );
+  await expect(labels).toHaveLength(FONT_SCALES.length);
+  await expect(Math.min(...labels.map((label) => label.left))).toBeGreaterThanOrEqual(left);
+  await expect(Math.max(...labels.map((label) => label.right))).toBeLessThanOrEqual(right);
+  await expect(Math.min(...labels.map((label) => label.top))).toBeGreaterThanOrEqual(top);
+  await expect(Math.max(...labels.map((label) => label.bottom))).toBeLessThanOrEqual(bottom);
+  await expect(pane.scrollWidth).toBe(pane.clientWidth);
+}
+
+const fontScaleFitsIn = (language: Language, name: string): Story => ({
+  globals: { viewport: { value: "desktop", isRotated: false } },
+  parameters: {
+    storedLanguage: language,
+    viewport: {
+      options: { desktop: { name: "Desktop", styles: { width: "1280px", height: "800px" } } },
+    },
+  },
+  play: async ({ canvas }) => {
+    const largest = FONT_SCALES.at(-1)!;
+    settingsStore.write(APPEARANCE_SETTINGS.fontScale, largest);
+    await waitFor(() => expect(rootVariable("--mantine-scale")).toBe(String(largest / 100)));
+    await expect(root()).toHaveAttribute("data-density", "comfortable");
+    await expectFontScaleFits(canvas, name);
+    settingsStore.write(APPEARANCE_DENSITY, "compact");
+    await waitFor(() => expect(root()).toHaveAttribute("data-density", "compact"));
+    await expectFontScaleFits(canvas, name);
+  },
+});
+
+export const TheFontScaleFitsInEnglish = fontScaleFitsIn("en", "Font scale");
+export const TheFontScaleFitsInGerman = fontScaleFitsIn("de", "Schriftgröße");
 
 export const ThePaletteJumpsToAppearance: Story = {
   args: { address: "/placeholder-beta/overview" },
