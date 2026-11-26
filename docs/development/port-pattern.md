@@ -680,7 +680,8 @@ module provides two things for that and writes no focus code of its own:
 The Shell then gives the focus to the new entry's control once the View shows it. After an edit
 it returns the focus to the control that opened the drawer, or gives it to the entry's control
 when a link or a shortcut opened it. When neither is on the page, such as after a delete, it goes
-to the View's first control, and in a View without any control to the View itself. A View that
+to the View's first control that opens nothing on the focus (a searchable Select is passed over),
+and in a View without any such control to the View itself. A View that
 marks nothing still gets that fixed place, so mark every entry a View shows. See
 [`projects`](../../packages/projects/src/project-list.tsx) and its
 [stories](../../apps/web/src/projects-focus.stories.tsx), which assert the focused element for

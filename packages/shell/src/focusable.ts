@@ -12,7 +12,19 @@ export const takesTheFocus = (element: HTMLElement) =>
   element.getClientRects().length > 0 &&
   element.closest("[inert]") === null;
 
-/** The first control in `root` that Tab would reach and that can take the focus now. */
+/**
+ * Whether `element` opens something over the page as soon as it takes the focus: a field that
+ * announces a popup, as a searchable Select does with its list. A button that announces one opens
+ * it on a press, not on the focus.
+ */
+const opensOnFocus = (element: HTMLElement) => element.matches("input[aria-haspopup]");
+
+/**
+ * The first control in `root` that Tab would reach, that can take the focus now and that opens
+ * nothing when it does: a focus set by code must not put a list over the page.
+ */
 export function firstControlIn(root: ParentNode): HTMLElement | undefined {
-  return [...root.querySelectorAll<HTMLElement>(FOCUSABLE)].find(takesTheFocus);
+  return [...root.querySelectorAll<HTMLElement>(FOCUSABLE)].find(
+    (control) => takesTheFocus(control) && !opensOnFocus(control),
+  );
 }

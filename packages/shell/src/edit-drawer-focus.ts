@@ -68,8 +68,9 @@ const entryControlIn = (view: HTMLElement, id: string) =>
   view.querySelector<HTMLElement>(`[${ENTRY_ATTRIBUTE}="${CSS.escape(id)}"]`);
 
 /**
- * The fixed place in the View: its first control, so that Tab goes on from the top of the page.
- * A View without any control takes the focus itself until the focus leaves it.
+ * The fixed place in the View: its first control, so that Tab goes on from the top of the page;
+ * a field that would open its list on the focus is passed over. A View without any such control
+ * takes the focus itself until the focus leaves it.
  */
 function fixedPlaceIn(view: HTMLElement): HTMLElement {
   const first = firstControlIn(view);

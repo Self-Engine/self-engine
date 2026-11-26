@@ -35,9 +35,16 @@ created.
   the overlay, a save, a named Operation such as Delete or Archive, "Discard" in the
   unsaved-changes question, and a change of the address.
 - **The fixed place is the View's first control**, the first element Tab reaches in the page of
-  the View. In most Views that is the top of the page or the first row. A View without any
-  control takes the focus itself, with `tabindex="-1"` until the focus leaves it. The focus is
-  then never on the page, and Tab goes on from the View.
+  the View. In most Views that is the top of the page or the first row. A field that opens
+  something over the page as soon as it takes the focus is passed over: a field that announces a
+  popup (`aria-haspopup`), as a searchable Select does with its list. A focus the Shell sets
+  opens nothing. In the week of `time-tracking` the fixed place is therefore the "Previous week"
+  button, the control after the project filter. A View without any control that can be the
+  fixed place takes the focus itself, with `tabindex="-1"` until the focus leaves it. The focus
+  is then never on the page, and Tab goes on from the View.
+- **The control that opened the drawer** is what had the focus when the drawer went from closed
+  to open. A create that Mod+N starts while the drawer shows an entry, and that is then
+  cancelled, returns to the control that opened that entry.
 - **A bounded wait.** The View's Query reloads after the Table Change of a save, which can come
   after the drawer closed. For `FOCUS_HOLD_MS` (2 seconds) after the closing, the Shell places the
   focus again whenever the page adds or removes elements. In that time the focus moves from the

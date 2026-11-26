@@ -335,7 +335,10 @@ export const ASaveToAProjectDeletedMeanwhileShowsTheRefusalAtTheProject: Story =
   },
 };
 
-/** The focus is on the week's first control once the row is gone (ADR 0041). */
+/**
+ * The focus is on the week's fixed place once the row is gone (ADR 0041): the first control after
+ * the project filter, whose list would open on the focus.
+ */
 export const DeleteShowsANoticeWhoseUndoBringsTheEntryBack: Story = {
   beforeEach: keepNoticesOpen,
   args: {
@@ -354,9 +357,14 @@ export const DeleteShowsANoticeWhoseUndoBringsTheEntryBack: Story = {
     await waitFor(async () =>
       expect((await day(canvas, WEDNESDAY)).textContent).not.toContain("Review"),
     );
-    // The row is gone: the focus is on the week's first control (ADR 0041).
-    const filter = canvas.getByRole("combobox", { name: "Nach Projekt filtern" });
-    await waitFor(() => expect(filter, `the focus is on ${focused()}`).toHaveFocus());
+    // The row is gone: the focus is on the week's fixed place, and the filter's list stays closed.
+    const previous = canvas.getByRole("button", { name: "Vorige Woche" });
+    await waitFor(() => expect(previous, `the focus is on ${focused()}`).toHaveFocus());
+    await expect(canvas.getByRole("combobox", { name: "Nach Projekt filtern" })).toHaveAttribute(
+      "aria-expanded",
+      "false",
+    );
+    await expect(screen.queryByRole("listbox")).toBeNull();
     await userEvent.click(await screen.findByRole("button", { name: "Rückgängig" }));
     await waitFor(async () =>
       expect((await day(canvas, WEDNESDAY)).textContent).toContain("Review"),

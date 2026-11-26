@@ -3,6 +3,7 @@
 // its rows in a list of the story's own, which the story changes as a reload after a save would,
 // at the moment it chooses: before or after the drawer has closed.
 
+import { Select } from "@mantine/core";
 import type { Meta } from "@storybook/react-vite";
 import { closed, settled } from "@self-engine/ui/story-surfaces";
 import { useState, useSyncExternalStore } from "react";
@@ -282,6 +283,34 @@ export const ADisabledFirstControlIsPassedOver = focusStory(async () => {
   await userEvent.click(opened.getByRole("button", { name: "Save" }));
   await focusIsOn(screen.getByRole("button", { name: "New entry" }));
 });
+
+function PageWithAFilterFirst() {
+  return (
+    <>
+      <Select aria-label="Filter by project" data={["All", "Website"]} searchable value="All" />
+      <button>Next week</button>
+    </>
+  );
+}
+
+/**
+ * A field that opens its list as soon as it takes the focus is not the fixed place: the next
+ * control is, and no list opens over the page.
+ */
+export const AFieldThatOpensItsListOnFocusIsPassedOver: Story = {
+  args: { activeModule: MODULE, children: <PageWithAFilterFirst /> },
+  loaders: [(): Run => ({ routing: storyRouting({ edit: "b" }) })],
+  render: (args, { loaded }) => <Shell {...args} routing={(loaded as Run).routing} />,
+  play: async () => {
+    await drawer();
+    await pressEscape();
+    await focusIsOn(screen.getByRole("button", { name: "Next week" }));
+    await expect(screen.queryByRole("listbox")).toBeNull();
+    // The field itself opens its list on the focus, which is what the Shell avoids.
+    screen.getByRole("combobox", { name: "Filter by project" }).focus();
+    await expect(await screen.findByRole("listbox")).toBeVisible();
+  },
+};
 
 function PageWithoutControls() {
   return <p>Nothing to do here</p>;
