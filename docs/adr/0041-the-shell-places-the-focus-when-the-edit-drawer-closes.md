@@ -45,6 +45,11 @@ created.
 - **The control that opened the drawer** is what had the focus when the drawer went from closed
   to open. A create that Mod+N starts while the drawer shows an entry, and that is then
   cancelled, returns to the control that opened that entry.
+- **The Module Sidebar's primary action closes the navigation overlay.** At the narrow step and
+  on the phone the Module Sidebar lies in an overlay above the page. Starting the primary action
+  there closes the overlay, as picking a View does. The overlay would otherwise stay open above
+  the page and cover the entry that takes the focus. The button leaves with the overlay, so a
+  cancelled create goes to the fixed place.
 - **A bounded wait.** The View's Query reloads after the Table Change of a save, which can come
   after the drawer closed. For `FOCUS_HOLD_MS` (2 seconds) after the closing, the Shell places the
   focus again whenever the page adds or removes elements. In that time the focus moves from the

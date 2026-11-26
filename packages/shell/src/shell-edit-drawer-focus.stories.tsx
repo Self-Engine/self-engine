@@ -8,8 +8,11 @@ import type { Meta } from "@storybook/react-vite";
 import { closed, settled } from "@self-engine/ui/story-surfaces";
 import { useState, useSyncExternalStore } from "react";
 import { expect, screen, userEvent, waitFor, within } from "storybook/test";
+import { z } from "zod";
 import { FOCUS_HOLD_MS } from "./edit-drawer-focus.ts";
 import {
+  defineContribution,
+  definePageCommand,
   editDrawerEntries,
   type EditDrawerProps,
   Shell,
@@ -19,6 +22,7 @@ import {
   useWriteViewSearch,
 } from "./index.ts";
 import {
+  atViewport,
   drawerOverlay,
   ENTRIES,
   pressEscape,
@@ -341,3 +345,44 @@ export const AControlOutsideTheDrawerKeepsTheFocus = focusStory(async ({ routing
   await drawerGone();
   await expect(outside).toHaveFocus();
 });
+
+const NEW_ENTRY = {
+  id: "new-entry",
+  kind: "page",
+  label: { id: "story-New entry from the sidebar", message: "New entry from the sidebar" },
+  load: async () => ({
+    default: definePageCommand({
+      description: "A stand-in.",
+      schema: z.object({}),
+      run: (_input, { writeSearch }) => writeSearch((search) => ({ ...search, edit: "new" })),
+    }),
+  }),
+} as const;
+const MODULE_WITH_A_PRIMARY_ACTION = defineContribution({
+  ...ENTRIES[1]!,
+  editDrawer: async () => ({ default: Editor }),
+  commands: [NEW_ENTRY],
+  primaryAction: NEW_ENTRY,
+});
+
+/**
+ * At the narrow step the Module Sidebar lies in an overlay above the page. Its main action closes
+ * the overlay, so the row of the entry it created is in sight when it takes the focus.
+ */
+export const TheMainActionInTheNavigationOverlayClosesItSoTheNewRowIsInSight: Story = {
+  ...focusStory(async () => {
+    await userEvent.click(screen.getByRole("button", { name: "Open navigation" }));
+    const navigation = await settled(screen.findByRole("dialog", { name: "Module Sidebar" }));
+    await userEvent.click(
+      within(navigation).getByRole("button", { name: "New entry from the sidebar" }),
+    );
+    const create = (await drawer()).getByRole("button", { name: "Create" });
+    await closed(() => screen.queryByRole("dialog", { name: "Module Sidebar" }));
+    list.add("created");
+    await userEvent.click(create);
+    await focusIsOn(await row("created"));
+    await expect(screen.queryByRole("dialog")).toBeNull();
+  }),
+  ...atViewport("narrow"),
+  args: { activeModule: MODULE_WITH_A_PRIMARY_ACTION, children: <Page /> },
+};
