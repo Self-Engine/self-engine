@@ -11,14 +11,17 @@ import {
   atViewport,
   type Canvas,
   collapseToggle,
+  codeOnItsWay,
   CountingIndicator,
   countingIndicator,
   ENTRIES,
   freshPerRun,
   INDICATOR_ARRIVES,
   indicatorPlaceOf,
+  momentShown,
   paneOf,
   SETTINGS,
+  SHOWN_ON_ARRIVAL_MS,
   type Story,
   shellMeta,
   VIEWPORTS,
@@ -145,6 +148,23 @@ export const TheIconHoldsThePlaceUntilTheCodeArrives: Story = {
     await expect(canvas.getByText("Page content").getBoundingClientRect().toJSON()).toEqual(
       content,
     );
+  },
+};
+
+const onItsWay = freshPerRun(
+  () => codeOnItsWay(CountingIndicator),
+  (code) => [{ ...projects, indicator: { load: code.load } }, time, third],
+);
+
+export const TheIndicatorShowsAsSoonAsItsCodeArrives: Story = {
+  ...atViewport("wide"),
+  ...onItsWay.story,
+  play: async ({ canvas }) => {
+    const shownAt = await momentShown(
+      () => canvas.queryByRole("button", { name: "Count up" }),
+      INDICATOR_ARRIVES.timeout,
+    );
+    await expect(shownAt - onItsWay.now.arrivedAt()).toBeLessThan(SHOWN_ON_ARRIVAL_MS);
   },
 };
 

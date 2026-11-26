@@ -474,7 +474,8 @@ Drawer’s content loads through `Suspense` (`LazyContribution` in `packages/she
 reveals content no sooner than 300 ms after a fallback was committed. Opening without that wait
 is a question for the Shell, not for this package. The first opening is above D326’s 100 ms
 threshold: the owner must decide before merging the package. No threshold or transition was
-changed to accept it.
+changed to accept it. Since #297 the Shell shows the content as soon as its code has arrived: see
+[Lazy parts without the 300 ms wait (#297)](#lazy-parts-without-the-300-ms-wait-297).
 
 Startup JavaScript against `main` at the merge base (`e5b4a0e`): **843,398 bytes** on `main`,
 **843,341 bytes** on this branch with `main` merged in (−57). The forms package marks
@@ -905,7 +906,8 @@ main-thread time of the panel's preload.
   (`FALLBACK_THROTTLE_MS` in `react-dom`), and the indicator's place shows its fallback from the
   moment the load begins. A log of the data port in one start of A showed the indicator's Query
   sent at 501.8 ms and answered at 508.0 ms, after its code had arrived at about 210 ms: the
-  indicator mounts when the throttle ends, not when its code or its data arrive.
+  indicator mounts when the throttle ends, not when its code or its data arrive. #297 removed the
+  wait: see [Lazy parts without the 300 ms wait (#297)](#lazy-parts-without-the-300-ms-wait-297).
 - **The panel's preload.** It begins once the indicator is on screen, about 500 ms after the
   start in A and 517 ms in B, and its requests end within 15 ms. It loads **210,785 bytes** of
   JavaScript in the idle state and **211,822** in the running state, plus **31,222 bytes** of
@@ -921,6 +923,108 @@ main-thread time of the panel's preload.
   background, reports no paint until it is shown; under B its indicators load only then.
 - **Startup JavaScript** (`apps/web/dist/startup-bundle.json`): **869,576 bytes** (30 chunks) for
   A and **869,907 bytes** (30 chunks) for B, +331 bytes. The limit of 889,856 stays.
+
+## Lazy parts without the 300 ms wait (#297)
+
+`LazyContribution` (`packages/shell/src/lazy-contribution.tsx`) loads the part of a module that the
+Shell shows on demand: the Edit Drawer's content, an Indicator Panel's content and frame, a Module
+Indicator and a module's Groups. Until #297 it loaded the code through `React.lazy` behind a
+`Suspense` fallback. React 19.3.1 holds a render of only Retry lanes, the lanes on which a
+resolved Suspense boundary is revealed, until 300 ms after a boundary last switched between its
+fallback and its content (`FALLBACK_THROTTLE_MS` and `globalMostRecentFallbackTime` in
+`react-dom/cjs/react-dom-client.development.js`). So the content waited for that, however soon its
+code arrived.
+
+Since #297 the building block loads the code first and shows the fallback as plain content until
+it has arrived; the arrival is an ordinary state update, which no throttle holds. A part of the
+module's own code that suspends still shows the fallback, and a failed load still shows the error
+state with its retry. Every part that `LazyContribution` loads gets this; no module changed.
+
+**The cause, in the stories.** `TheFirstOpeningShowsTheContentAsSoonAsItsCodeArrives`
+(`packages/shell/src/shell-edit-drawer.stories.tsx`) and `TheIndicatorShowsAsSoonAsItsCodeArrives`
+(`shell-module-indicator.stories.tsx`) give the Shell code that arrives 20 ms after it was asked
+for, and time its arrival against the moment its content is in the page. On the building block
+before #297 the content came **279.6 ms** (drawer) and **281.7 ms** (indicator) after the code:
+300 ms after the fallback. Both stories now require less than 150 ms. They run in Storybook,
+which does not apply the React Compiler; the times below are the built app's, which does.
+
+**Method.** The built desktop app (`vp pack`'s dev bundle with each build's renderer) on an Apple
+M3 Pro, macOS 27.2.1, Node 26.13.0, Electron 45.3.2, the window hidden. Each start was a fresh
+Electron process with a fresh temporary data folder, started through `launchElectron` in
+`scripts/desktop-app.ts`; the app opens on the empty Projects Active View. The renderer was served
+by a script of its own, which put a recording script first in `index.html` and appended a call to
+the end of each JavaScript chunk, so the page recorded when each chunk was evaluated: when its code
+had arrived. Times are milliseconds, from the click or from the navigation start. `main` is
+`a4f5087`.
+
+- **Edit Drawer**, as in [Forms: first opening](#forms-first-opening-290), with "New project" of
+  `projects` (the placeholder of #290 has left the app): two seconds after the Shell's first
+  frame, a click on "New project", the time to the frame after the first visible input of the
+  dialog; Escape, and the same once more for the second opening.
+- **Module Indicator**, as in [#380](#the-indicators-load-and-an-observed-paint-380): the timer of
+  `time-tracking` in the idle state, from the evaluation of its chunk to the next frame after its
+  control is in the DOM.
+
+**First opening of the Edit Drawer**, five fresh sessions per build (load average 1.71 before and
+1.72 after `main`, 1.88 and 1.78 around the branch):
+
+| Build  | First opening (ms)                | Median | Second opening (ms)          | Median |
+| ------ | --------------------------------- | -----: | ---------------------------- | -----: |
+| `main` | 327.8, 329.2, 327.5, 325.9, 328.6 |  327.8 | 50.3, 51.6, 48.8, 49.1, 49.8 |   49.8 |
+| Branch | 52.8, 52.4, 52.6, 51.1, 53.1      |   52.6 | 59.8, 49.3, 53.1, 60.8, 49.6 |   53.1 |
+
+On `main` the drawer's chunk was evaluated 17.2 ms after the click (15.9–18.3) and the input was
+in the DOM 304.5 ms later (304.0–305.6); on the branch, 17.8 ms (16.0–18.4) and 11.9 ms later
+(11.3–12.4). A second series alternated the builds, five sessions each (load average 2.06 before,
+1.76 after): first opening **327.4 ms** on `main` (327.2–327.7) and **52.2 ms** on the branch
+(50.7–52.8); second opening 50.8 ms (50.0–52.0) and 53.2 ms (48.1–54.6). The second openings
+scatter by a few milliseconds in both builds, so four further alternating sessions per build
+opened the drawer six times each (load average 1.87 before, 1.78 after): the 20 openings after
+the first took **51.6 ms** on `main` (48.3–56.2) and **50.0 ms** on the branch (47.2–56.1).
+
+Those two series of five left the second opening itself open: the branch's median lay 3.3 ms and
+2.4 ms above `main`'s, with ranges that overlap. A series for that question alone alternated the
+builds for 15 sessions each, after the review's fixes (load average 5.07 before, 1.98 after): the
+second opening took **51.9 ms** on `main` (45.4–55.3) and **51.5 ms** on the branch (47.4–55.8),
+the first **327.0 ms** (324.2–327.5) and **52.1 ms** (43.5–53.6). The second opening is no
+slower. The first opening is now as fast as a later one; what is left is the drawer's slide,
+which a later opening has as well.
+
+**The timer's Module Indicator**, ten cold starts per build (load average 1.86 before and 1.81
+after `main`, 1.64 and 2.17 around the branch):
+
+| Median (range), ms       | `main`              | Branch              |
+| ------------------------ | ------------------- | ------------------- |
+| First contentful paint   | 184.0 (180–192)     | 186.0 (180–196)     |
+| Shell's first frame      | 147.7 (144.0–154.4) | 147.3 (144.6–154.0) |
+| Indicator's code arrived | 191.2 (187.9–199.9) | 193.0 (188.3–203.7) |
+| Indicator shows (frame)  | 503.2 (495.0–510.1) | 197.8 (194.4–209.5) |
+| … after its code arrived | 312.4 (305.4–322.2) | 5.0 (4.4–12.7)      |
+
+The raw times from the code's arrival to the frame: `main` 313.5, 313.9, 305.5, 313.1, 305.4,
+322.2, 305.5, 312.6, 312.2, 311.7; the branch 4.7, 4.4, 4.6, 5.3, 6.7, 12.7, 4.9, 5.0, 4.4, 5.0.
+A further ten starts per build, alternating (load average 2.52 before, 2.11 after), gave 313.7 ms
+(303.9–321.5) against 4.7 ms (4.0–6.8), and a first contentful paint of 188 ms in both builds
+(184–196 and 184–192): Chromium reports it in whole multiples of 4 ms, and the medians lie within
+one step.
+
+**The panel's preload moves with the indicator.** The Shell preloads the Indicator Panel's content
+in an idle moment once the indicator is on screen (ADR 0037), so it now starts about 300 ms
+earlier, shortly after the first contentful paint, with the same chunks (about 211,000 bytes of
+JavaScript, see #380). Six traced starts per build, alternating, with a Chromium trace from the
+start: the idle callback that requests the panel's chunk ran at 505–519 ms on `main` and at
+207–215 ms on the branch. From that callback to the end of the last module evaluation after it,
+the renderer's main thread was busy **17.6 ms** on `main` (14.0–22.3), its longest task 7.4 ms
+(7.0–7.8), and **7.8 ms** on the branch (7.6–7.9), its longest task 4.2 ms (4.1–4.4). On `main`
+that window also holds the indicator's late mount. No task came near 50 ms.
+
+**Startup JavaScript** (`apps/web/dist/startup-bundle.json`): **869,982 bytes** (30 chunks) on
+`main` and **870,406 bytes** (30 chunks) on the branch, +424 bytes, all of them in the chunk that
+holds `LazyContribution`: the load and its failure as React state, in place of `React.lazy`, which
+React's own chunk holds either way (+318), and the two checks a review asked for, that a
+forgotten load writes nothing and that code is shown only for the `components` it arrived for
+(+106). The limit of 889,856 bytes stays, and the startup check still
+finds no Contract, no full Zod build and no form library in a startup chunk.
 
 ## The Time Entry window (#275)
 

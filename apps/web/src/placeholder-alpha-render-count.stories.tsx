@@ -82,6 +82,24 @@ export const RenamingOneOf1000EntriesRedrawsOneRow: Story = {
   },
 };
 
+/**
+ * Resolves once React has committed nothing for `quietMs`. Each Module Indicator shows as soon as
+ * its own code has arrived (#297), so another module's indicator and the panels' frames draw their
+ * places a moment after the first indicator is on screen.
+ */
+async function whenTheStartHasSettled(quietMs = 100, timeoutMs = 4000): Promise<void> {
+  const until = performance.now() + timeoutMs;
+  let commits = renderCounts().commits;
+  while (performance.now() < until) {
+    await new Promise((resolve) => setTimeout(resolve, quietMs));
+    await afterTheCommitsNowDue();
+    const now = renderCounts().commits;
+    if (now === commits) return;
+    commits = now;
+  }
+  throw new Error(`React was still committing ${timeoutMs} ms after the start`);
+}
+
 export const AnIndicatorTickAndPanelTypingLeaveTheShellStill: Story = {
   args: { address: "/placeholder-beta/overview" },
   globals: { viewport: { value: "wide", isRotated: false } },
@@ -89,7 +107,7 @@ export const AnIndicatorTickAndPanelTypingLeaveTheShellStill: Story = {
     await canvas.findByText("The minimal module View.");
     // The indicator's code arrives in an idle moment, which a busy browser takes a while to find.
     const tick = await canvas.findByRole("button", { name: "Count up" }, { timeout: 4000 });
-    await afterTheCommitsNowDue();
+    await whenTheStartHasSettled();
     const beforeTick = renderCounts();
 
     const outsideIndicator = await rendersOutside("Indicator", async () => {
