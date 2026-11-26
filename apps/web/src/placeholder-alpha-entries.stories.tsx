@@ -8,6 +8,7 @@ import {
   STUDIO_WORK,
 } from "@self-engine/placeholder-alpha/testing";
 import { LOADER_DELAY_MS } from "@self-engine/ui";
+import { clearNotices } from "@self-engine/ui/story-notices";
 import { holdTimers } from "@self-engine/ui/story-timers";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { settled } from "@self-engine/ui/story-surfaces";
@@ -52,6 +53,16 @@ const deleteFromTheList = async (canvas: Canvas, name: string) =>
 const undoOffers = () => screen.queryAllByRole("button", { name: "Undo" });
 
 const noUndoOffer = () => waitFor(() => expect(undoOffers()).toHaveLength(0));
+
+/** These stories leave a Notice on screen, and the store outlives the story. */
+function isolatedNotices() {
+  clearNotices();
+  const restoreTimers = keepNoticesOpen();
+  return () => {
+    clearNotices();
+    restoreTimers();
+  };
+}
 
 export const TheListShowsItsRows: Story = {
   play: async ({ canvas }) => {
@@ -192,7 +203,7 @@ export const DeletingFromTheDrawerClosesWithoutAskingAndUndoDoesNotReopen: Story
     const drawer = within(await settled(screen.findByRole("dialog", { name: "Studio work" })));
     await userEvent.type(await drawer.findByRole("textbox", { name: "Name" }), " changed");
     await userEvent.click(drawer.getByRole("button", { name: "Delete" }));
-    // The form keeps its copy of the entry while the drawer slides out.
+    // The drawer retains the entry while it slides out.
     await expect(screen.queryByText("Entry not found")).toBeNull();
     await noDrawer();
     await expect(openEntry()).toBeUndefined();
@@ -201,6 +212,52 @@ export const DeletingFromTheDrawerClosesWithoutAskingAndUndoDoesNotReopen: Story
     await noUndoOffer();
     await expect(screen.queryByRole("dialog")).toBeNull();
     await expect(openEntry()).toBeUndefined();
+  },
+};
+
+export const AFailedDeleteKeepsTheDrawerOpenWithWhatWasTyped: Story = {
+  beforeEach: isolatedNotices,
+  args: { access: placeholderAlphaAnswers({ delete: "unexpected" }) },
+  play: async ({ canvas }) => {
+    await userEvent.click(await canvas.findByRole("button", { name: "Studio work" }));
+    const dialog = await settled(screen.findByRole("dialog", { name: "Studio work" }));
+    const drawer = within(dialog);
+    const name = await drawer.findByRole("textbox", { name: "Name" });
+    await userEvent.type(name, " changed");
+    await userEvent.click(drawer.getByRole("button", { name: "Delete" }));
+    await waitFor(() =>
+      expect(screen.getByText("Something went wrong, and the change was not saved.")).toBeVisible(),
+    );
+    await expect(dialog).toBeVisible();
+    await expect(openEntry()).toBe(STUDIO_WORK.id);
+    await expect(name).toHaveValue("Studio work changed");
+    await expect(drawer.getByRole("button", { name: "Save" })).toBeEnabled();
+  },
+};
+
+export const DeletingAnEntryAlreadyGoneClosesWithoutWarning: Story = {
+  beforeEach: isolatedNotices,
+  args: { access: placeholderAlphaAnswers({ delete: "notFound" }) },
+  play: async ({ canvas }) => {
+    await userEvent.click(await canvas.findByRole("button", { name: "Studio work" }));
+    const dialog = await settled(screen.findByRole("dialog", { name: "Studio work" }));
+    // Watched until the drawer has gone: the warning must not show while it closes either.
+    let warned = false;
+    const watch = new MutationObserver(() => {
+      if (dialog.textContent.includes("This entry was deleted")) warned = true;
+    });
+    watch.observe(dialog, { childList: true, subtree: true, characterData: true });
+    try {
+      await userEvent.click(within(dialog).getByRole("button", { name: "Delete" }));
+      await expect(dialog).not.toHaveTextContent("This entry was deleted");
+      await noDrawer();
+    } finally {
+      watch.disconnect();
+    }
+    await expect(warned).toBe(false);
+    await expect(openEntry()).toBeUndefined();
+    await expect(await screen.findByText("This entry no longer exists.")).toBeVisible();
+    await expect(undoOffers()).toHaveLength(0);
   },
 };
 

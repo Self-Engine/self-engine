@@ -138,7 +138,7 @@ function FoundEntry({
   found,
   ...props
 }: EditDrawerProps & { readonly found: TimeEntryWithProject | undefined }) {
-  const { entry, leaving, leave } = useLeavingEntry(found);
+  const { entry, deleted, leave } = useLeavingEntry(found, props.onDone);
   const name = useEntryName(entry);
   const restore = useRestoreTimeEntry().run;
   // The frame refuses the undo when the project was deleted meanwhile (D337); its Notice names
@@ -149,17 +149,13 @@ function FoundEntry({
   );
   const remove = useWithUndo(useDeleteTimeEntry().run, undo, DELETED);
   if (entry === undefined) return <NotFound {...props} />;
-  const deleteHere = async () => {
-    if (await leave(() => remove(entry.id, name === undefined ? {} : { entry: name })))
-      props.onDone();
-  };
   return (
     <EditForm
       {...props}
-      deleted={found === undefined && !leaving}
+      deleted={deleted}
       entry={entry}
       name={name}
-      onDelete={() => void deleteHere()}
+      onDelete={() => void leave(() => remove(entry.id, name === undefined ? {} : { entry: name }))}
     />
   );
 }
