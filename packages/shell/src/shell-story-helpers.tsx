@@ -431,6 +431,56 @@ export async function expectReportedOnce(callback: unknown, value: unknown): Pro
 export const nextFrame = () => new Promise((resolve) => requestAnimationFrame(resolve));
 
 /**
+ * The longest a module's code may take from its arrival to the screen: a few frames, with room
+ * for a busy test browser. React would hold it 300 ms behind a Suspense fallback (#297).
+ */
+export const SHOWN_ON_ARRIVAL_MS = 150;
+
+/**
+ * Code that arrives a moment after it was asked for, as a chunk from the disk does, and the
+ * moment it arrived. A new identity each call: the Shell keeps loaded code per `load`.
+ */
+export function codeOnItsWay<Code>(code: Code) {
+  let arrivedAt: number | undefined;
+  return {
+    load: async () => {
+      await new Promise((resolve) => setTimeout(resolve, 20));
+      arrivedAt = performance.now();
+      return { default: code };
+    },
+    arrivedAt: () => {
+      if (arrivedAt === undefined) throw new Error("the code has not arrived");
+      return arrivedAt;
+    },
+  };
+}
+
+/** The moment `find` first sees its element in the page, read at each change of the page. */
+export function momentShown(find: () => Element | null, timeout = 4000): Promise<number> {
+  return new Promise((resolve, reject) => {
+    const observer = new MutationObserver(() => {
+      if (find() === null) return;
+      done();
+      resolve(performance.now());
+    });
+    const timer = setTimeout(() => {
+      done();
+      reject(new Error("the element never showed"));
+    }, timeout);
+    function done() {
+      observer.disconnect();
+      clearTimeout(timer);
+    }
+    if (find() === null) {
+      observer.observe(document.body, { childList: true, subtree: true, characterData: true });
+    } else {
+      done();
+      resolve(performance.now());
+    }
+  });
+}
+
+/**
  * What a pointer at the middle of `element` reaches, by the browser's own hit test: the layers
  * decide, which `userEvent.click` ignores.
  */
