@@ -923,41 +923,88 @@ export const FollowsTheCompactDensity: Story = {
   },
 };
 
-/** The field at the height an Edit Drawer shows it, in a window of the given height. */
-const inAWindowOfHeight = (height: number): Partial<Story> => ({
+/** The floating Edit Drawer's width, its gap to the window's edge and its padding, in pixels. */
+const DRAWER = { width: 460, gap: 8, padding: 16 } as const;
+
+/** How far below the window's top an Edit Drawer of `projects` shows the field's button. */
+const BUTTON_TOP = 289;
+
+/**
+ * A window of the given size, with the field where the floating Edit Drawer of `projects` shows
+ * it: on the drawer's left edge, at the right of the window, below the title and the description.
+ * With `at`, the field lies elsewhere in the window.
+ */
+const inAWindow = (
+  width: number,
+  height: number,
+  at: { readonly left: number; readonly top: number } = {
+    left: width - DRAWER.gap - DRAWER.width + DRAWER.padding,
+    top: BUTTON_TOP,
+  },
+): Partial<Story> => ({
   parameters: {
     viewport: {
-      options: { window: { name: "Window", styles: { width: "1280px", height: `${height}px` } } },
+      options: {
+        window: { name: "Window", styles: { width: `${width}px`, height: `${height}px` } },
+      },
     },
   },
   globals: { viewport: { value: "window", isRotated: false } },
   render: () => (
-    <div style={{ position: "fixed", top: 290, left: 16 }}>
+    <div data-testid="place" style={{ position: "fixed", ...at }}>
       <EntryIconPicker onChange={answers} value="star" />
     </div>
   ),
 });
 
 /** Where the open field lies in the window, once it has found its place. */
-async function expectInsideTheWindow(dialog: HTMLElement, height: number) {
-  await expect(window.innerHeight).toBe(height);
+async function expectInsideTheWindow(dialog: HTMLElement, width: number, height: number) {
+  await expect([window.innerWidth, window.innerHeight]).toEqual([width, height]);
   await waitFor(async () => {
-    const { top, bottom } = dialog.getBoundingClientRect();
+    const { top, right, bottom, left } = dialog.getBoundingClientRect();
     await expect(top).toBeGreaterThanOrEqual(0);
+    await expect(left).toBeGreaterThanOrEqual(0);
     await expect(bottom).toBeLessThanOrEqual(height);
+    await expect(right).toBeLessThanOrEqual(width);
   });
 }
 
+/** The open field lies on that side of its button, and covers none of it. */
+async function expectBesideTheButton(
+  dialog: HTMLElement,
+  button: HTMLElement,
+  side: "left" | "right",
+) {
+  await waitFor(async () => {
+    const field = dialog.getBoundingClientRect();
+    const target = button.getBoundingClientRect();
+    if (side === "left") await expect(field.right).toBeLessThanOrEqual(target.left);
+    else await expect(field.left).toBeGreaterThanOrEqual(target.right);
+  });
+}
+
+/** "No icon" is reached, scrolled into view if the field scrolls, and clears the mark. */
+async function clearsFromTheBottom(picker: ReturnType<typeof within>, height: number) {
+  const clear = picker.getByRole("button", { name: "No icon" });
+  clear.scrollIntoView({ block: "nearest" });
+  await waitFor(() => expect(clear.getBoundingClientRect().bottom).toBeLessThanOrEqual(height));
+  await userEvent.click(clear);
+  await expect(answers).toHaveBeenLastCalledWith(null);
+}
+
 /**
- * The app's first window is 800 px high. Under the field there is less room than the field needs,
- * and above it too, so it lies over its button rather than reaching out of the window.
+ * The app's first window, 1280 × 800. Under the button and above it there is less room than the
+ * field needs, left of it more: the field opens there and leaves its button in view, whole and
+ * without scrolling.
  */
-export const StaysInsideAWindowWithTooLittleRoomUnderTheField: Story = {
-  ...inAWindowOfHeight(800),
+export const OpensBesideItsButtonInTheAppsFirstWindow: Story = {
+  ...inAWindow(1280, 800),
   play: async ({ canvas }) => {
     await userEvent.click(trigger(canvas));
     const { dialog, picker } = await opened();
-    await expectInsideTheWindow(dialog, 800);
+    await expectInsideTheWindow(dialog, 1280, 800);
+    await expectBesideTheButton(dialog, trigger(canvas), "left");
+    await expect(dialog.scrollHeight).toBeLessThanOrEqual(dialog.clientHeight);
     const clear = picker.getByRole("button", { name: "No icon" });
     await expect(clear.getBoundingClientRect().bottom).toBeLessThanOrEqual(800);
     await userEvent.click(clear);
@@ -965,17 +1012,60 @@ export const StaysInsideAWindowWithTooLittleRoomUnderTheField: Story = {
   },
 };
 
-/** A window lower than the field: the field takes the window's height and scrolls as a whole. */
-export const ScrollsInAWindowLowerThanItself: Story = {
-  ...inAWindowOfHeight(400),
+/**
+ * The smallest window, 576 × 480, which is also lower than the field. Left of the button the
+ * window ends before the field would, right of it there is room: the field opens there, takes the
+ * window's height and scrolls as a whole.
+ */
+export const OpensOnTheOtherSideInTheSmallestWindow: Story = {
+  ...inAWindow(576, 480),
   play: async ({ canvas }) => {
     await userEvent.click(trigger(canvas));
     const { dialog, picker } = await opened();
-    await expectInsideTheWindow(dialog, 400);
-    const clear = picker.getByRole("button", { name: "No icon" });
-    clear.scrollIntoView({ block: "nearest" });
-    await waitFor(() => expect(clear.getBoundingClientRect().bottom).toBeLessThanOrEqual(400));
-    await userEvent.click(clear);
-    await expect(answers).toHaveBeenLastCalledWith(null);
+    await expectInsideTheWindow(dialog, 576, 480);
+    await expectBesideTheButton(dialog, trigger(canvas), "right");
+    await expect(dialog.scrollHeight).toBeGreaterThan(dialog.clientHeight);
+    await clearsFromTheBottom(picker, 480);
+  },
+};
+
+/**
+ * A window narrower than the field and its button together, and lower than the field, as a phone's:
+ * no side has the room. The field stays inside the window, lies over its button where it must, and
+ * scrolls.
+ */
+export const StaysInsideAWindowWithRoomOnNoSide: Story = {
+  ...inAWindow(360, 400, { left: 16, top: BUTTON_TOP }),
+  play: async ({ canvas }) => {
+    await userEvent.click(trigger(canvas));
+    const { dialog, picker } = await opened();
+    await expectInsideTheWindow(dialog, 360, 400);
+    await clearsFromTheBottom(picker, 400);
+  },
+};
+
+/**
+ * The field follows its button when the button moves while it is open, and the move draws neither
+ * the Icons tab nor a picture again: only the popover's place changes.
+ */
+export const FollowsItsButtonWithoutRedrawingTheGrid: Story = {
+  ...inAWindow(1280, 800),
+  play: async ({ canvas }) => {
+    await userEvent.click(trigger(canvas));
+    const { dialog } = await opened();
+    await expectBesideTheButton(dialog, trigger(canvas), "left");
+    const top = dialog.getBoundingClientRect().top;
+    await afterTheCommitsNowDue();
+    const before = renderCounts();
+
+    // Moved outside React, as a scroll or a change of the layout moves it: the popover finds it.
+    canvas.getByTestId("place").style.top = `${String(BUTTON_TOP - 100)}px`;
+    window.dispatchEvent(new Event("resize"));
+    await waitFor(() => expect(dialog.getBoundingClientRect().top).toBeLessThan(top));
+    await afterTheCommitsNowDue();
+    const drawn = difference(renderCounts(), before).components;
+    await expect(drawn["IconsTab"]).toBeUndefined();
+    await expect(drawn[PICTURE]).toBeUndefined();
+    await expectBesideTheButton(dialog, trigger(canvas), "left");
   },
 };
