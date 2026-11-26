@@ -980,9 +980,15 @@ in the DOM 304.5 ms later (304.0–305.6); on the branch, 17.8 ms (16.0–18.4) 
 (50.7–52.8); second opening 50.8 ms (50.0–52.0) and 53.2 ms (48.1–54.6). The second openings
 scatter by a few milliseconds in both builds, so four further alternating sessions per build
 opened the drawer six times each (load average 1.87 before, 1.78 after): the 20 openings after
-the first took **51.6 ms** on `main` (48.3–56.2) and **50.0 ms** on the branch (47.2–56.1). The
-first opening is now as fast as a later one; what is left is the drawer's slide, which a later
-opening has as well.
+the first took **51.6 ms** on `main` (48.3–56.2) and **50.0 ms** on the branch (47.2–56.1).
+
+Those two series of five left the second opening itself open: the branch's median lay 3.3 ms and
+2.4 ms above `main`'s, with ranges that overlap. A series for that question alone alternated the
+builds for 15 sessions each, after the review's fixes (load average 5.07 before, 1.98 after): the
+second opening took **51.9 ms** on `main` (45.4–55.3) and **51.5 ms** on the branch (47.4–55.8),
+the first **327.0 ms** (324.2–327.5) and **52.1 ms** (43.5–53.6). The second opening is no
+slower. The first opening is now as fast as a later one; what is left is the drawer's slide,
+which a later opening has as well.
 
 **The timer's Module Indicator**, ten cold starts per build (load average 1.86 before and 1.81
 after `main`, 1.64 and 2.17 around the branch):
@@ -1013,9 +1019,11 @@ the renderer's main thread was busy **17.6 ms** on `main` (14.0–22.3), its lon
 that window also holds the indicator's late mount. No task came near 50 ms.
 
 **Startup JavaScript** (`apps/web/dist/startup-bundle.json`): **869,982 bytes** (30 chunks) on
-`main` and **870,300 bytes** (30 chunks) on the branch, +318 bytes, all of them in the chunk that
+`main` and **870,406 bytes** (30 chunks) on the branch, +424 bytes, all of them in the chunk that
 holds `LazyContribution`: the load and its failure as React state, in place of `React.lazy`, which
-React's own chunk holds either way. The limit of 889,856 bytes stays, and the startup check still
+React's own chunk holds either way (+318), and the two checks a review asked for, that a
+forgotten load writes nothing and that code is shown only for the `components` it arrived for
+(+106). The limit of 889,856 bytes stays, and the startup check still
 finds no Contract, no full Zod build and no form library in a startup chunk.
 
 ## The Time Entry window (#275)
