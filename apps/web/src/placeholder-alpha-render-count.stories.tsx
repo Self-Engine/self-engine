@@ -14,7 +14,7 @@ import {
 } from "@self-engine/ui/story-render-counts";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { closed, settled } from "@self-engine/ui/story-surfaces";
-import { expect, screen, userEvent, within } from "storybook/test";
+import { expect, screen, userEvent, waitFor, within } from "storybook/test";
 import { AppAt, loadStoryApp } from "./story-app.tsx";
 
 const ROWS = 1000;
@@ -84,6 +84,9 @@ export const RenamingOneOf1000EntriesRedrawsOneRow: Story = {
 
 const VIEW_LIST_AND_ROW = ["Entries", "EntryList", "EntryRow"] as const;
 
+/** The Edit Drawer on screen. A selector lookup, for the reason `shows` gives. */
+const editDrawer = () => document.querySelector<HTMLElement>("[role=dialog]");
+
 /**
  * Opening a row's Edit Drawer and closing it, with the focus back on the row, draws no row, not
  * the list and not the View: the row's mark for the focus is a constant attribute, and the Shell
@@ -101,9 +104,12 @@ export const OpeningAndClosingTheDrawerDrawsNoRow: Story = {
       (button) => button.textContent === `Entry ${RENAMED}`,
     )!;
     await userEvent.click(row);
-    await settled(screen.findByRole("dialog", { name: `Entry ${RENAMED}` }));
+    await commitWhere(() => editDrawer() !== null);
+    const drawer = await settled(editDrawer()!);
+    // The drawer's code arrives after the click, which takes a busy browser a while over 1,000 rows.
+    await waitFor(() => expect(drawer).toHaveAccessibleName(`Entry ${RENAMED}`), { timeout: 4000 });
     await userEvent.keyboard("{Escape}");
-    await closed(() => screen.queryByRole("dialog"));
+    await closed(editDrawer);
     await expect(row).toHaveFocus();
     await afterTheCommitsNowDue();
 
