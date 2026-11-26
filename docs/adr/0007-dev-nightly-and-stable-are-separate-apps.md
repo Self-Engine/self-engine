@@ -36,6 +36,14 @@ the stable app.
   issue in layer 0). The channel is compiled into the bundle (`SELF_ENGINE_CHANNEL` when
   building, unset means dev); it is never read from the running app's environment, and
   `app.isPackaged` cannot tell nightly from stable.
+- On macOS, the main process sets Electron's `userData` to the channel's data folder or the
+  `--user-data-dir` override, then requests Electron's single-instance lock for that folder.
+  Only the instance with the lock registers the renderer protocol, starts the Data Process and
+  opens a window. A second start quits, and the first instance brings the window it has shown
+  to the front. A window that still waits for its first paint, and the window of a hidden
+  automation run, are not shown by it. Different data folders can run side by side. Electron
+  refuses the lock in the same way when it cannot create it, so a start on a data folder that
+  cannot be written fails with that reason instead of quitting like a second start.
 - The stable bundle `Self-Engine.app` has the same name as the old app, so installing it would
   replace an old app still installed under that name. Its app ID and data folder stay separate.
   Anyone with the old app therefore renames its installed bundle (for example to

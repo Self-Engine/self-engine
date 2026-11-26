@@ -1,4 +1,5 @@
 import "./observe-main-errors.ts";
+import { accessSync, constants } from "node:fs";
 import path from "node:path";
 import {
   BrowserWindow,
@@ -22,6 +23,7 @@ import {
   serveAsset,
   withContentSecurityPolicy,
 } from "./protocol.ts";
+import { acquireSingleInstanceLock } from "./single-instance.ts";
 import { titleBarOptions } from "./title-bar.ts";
 import {
   MINIMUM_WIDTH,
@@ -35,7 +37,7 @@ const { channel, productName, dataFolder, icon, scheme } = buildIdentity;
 
 // All of this must run before the app is ready. The name comes first: Electron derives the
 // Keychain item of `safeStorage` from it, and the packaged metadata does not cover `electron .`.
-function prepareBeforeReady(): void {
+function prepareBeforeReady(): boolean {
   app.setName(productName);
   app.setPath(
     "userData",
@@ -45,6 +47,9 @@ function prepareBeforeReady(): void {
       app.commandLine.getSwitchValue("user-data-dir"),
     ),
   );
+  // Electron's ProcessSingleton uses the current userData path. Set it first so each
+  // channel and each --user-data-dir override locks only its own data folder.
+  if (!acquireSingleInstanceLock(app, shownWindow, dataFolderIsWritable)) return false;
   protocol.registerSchemesAsPrivileged([
     {
       scheme,
@@ -57,6 +62,25 @@ function prepareBeforeReady(): void {
       },
     },
   ]);
+  return true;
+}
+
+function dataFolderIsWritable(): boolean {
+  try {
+    accessSync(app.getPath("userData"), constants.W_OK);
+    return true;
+  } catch {
+    // Safe to answer no: the caller fails the start and names the data folder as the reason.
+    return false;
+  }
+}
+
+// The windows this run has shown. A hidden run shows none, and a window that still waits for its
+// first paint is not in it yet.
+const shownWindows = new WeakSet<BrowserWindow>();
+
+function shownWindow(): BrowserWindow | undefined {
+  return BrowserWindow.getAllWindows().find((window) => shownWindows.has(window));
 }
 
 function registerProtocol(devServer: URL | undefined): void {
@@ -155,7 +179,9 @@ async function openWindow(hidden: boolean): Promise<void> {
     },
   });
   window.once("ready-to-show", () => {
-    if (!hidden) applyWindowOpening(window, opening, () => rememberWindowState(window));
+    if (hidden) return;
+    applyWindowOpening(window, opening, () => rememberWindowState(window));
+    shownWindows.add(window);
   });
   window.webContents.setWindowOpenHandler(() => ({ action: "deny" }));
   window.webContents.on("will-navigate", (event, url) => {
@@ -189,8 +215,7 @@ app.on("window-all-closed", () => app.quit());
 // Chromium reads `--user-data-dir` before this code runs and creates the folder if it is
 // missing, but opens nothing in it, so refusing here still comes before any write.
 try {
-  prepareBeforeReady();
-  start().catch(failStart);
+  if (prepareBeforeReady()) start().catch(failStart);
 } catch (error) {
   failStart(error);
 }
