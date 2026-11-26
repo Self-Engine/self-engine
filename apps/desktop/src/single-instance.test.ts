@@ -18,12 +18,31 @@ function windowRecording(actions: string[], minimized: boolean) {
   };
 }
 
+const writable = () => true;
+
 describe("acquireSingleInstanceLock", () => {
+  it("fails the start when the lock is refused and the data folder cannot be written", () => {
+    const app = instance(false);
+
+    expect(() => acquireSingleInstanceLock(app, vi.fn(), () => false)).toThrow(
+      "The data folder cannot be written",
+    );
+    expect(app.quit).not.toHaveBeenCalled();
+    expect(app.on).not.toHaveBeenCalled();
+  });
+
+  it("does not look at the data folder once it holds the lock", () => {
+    const dataFolderIsWritable = vi.fn(() => false);
+
+    expect(acquireSingleInstanceLock(instance(true), vi.fn(), dataFolderIsWritable)).toBe(true);
+    expect(dataFolderIsWritable).not.toHaveBeenCalled();
+  });
+
   it("quits and refuses startup when another instance holds the lock", () => {
     const app = instance(false);
     const shownWindow = vi.fn();
 
-    expect(acquireSingleInstanceLock(app, shownWindow)).toBe(false);
+    expect(acquireSingleInstanceLock(app, shownWindow, writable)).toBe(false);
     expect(app.requestSingleInstanceLock).toHaveBeenCalledOnce();
     expect(app.quit).toHaveBeenCalledOnce();
     expect(app.on).not.toHaveBeenCalled();
@@ -40,7 +59,7 @@ describe("acquireSingleInstanceLock", () => {
       const actions: string[] = [];
       const shownWindow = vi.fn(() => windowRecording(actions, minimized));
 
-      expect(acquireSingleInstanceLock(app, shownWindow)).toBe(true);
+      expect(acquireSingleInstanceLock(app, shownWindow, writable)).toBe(true);
       expect(app.quit).not.toHaveBeenCalled();
       expect(shownWindow).not.toHaveBeenCalled();
       expect(app.on).toHaveBeenCalledExactlyOnceWith("second-instance", expect.any(Function));
@@ -58,7 +77,7 @@ describe("acquireSingleInstanceLock", () => {
       .mockReturnValueOnce(undefined)
       .mockReturnValue(windowRecording(actions, false));
 
-    acquireSingleInstanceLock(app, shownWindow);
+    acquireSingleInstanceLock(app, shownWindow, writable);
     const secondStart = app.on.mock.calls[0]?.[1];
     secondStart?.();
     expect(actions).toEqual([]);

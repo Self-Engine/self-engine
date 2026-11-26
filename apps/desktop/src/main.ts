@@ -1,4 +1,5 @@
 import "./observe-main-errors.ts";
+import { accessSync, constants } from "node:fs";
 import path from "node:path";
 import {
   BrowserWindow,
@@ -48,7 +49,7 @@ function prepareBeforeReady(): boolean {
   );
   // Electron's ProcessSingleton uses the current userData path. Set it first so each
   // channel and each --user-data-dir override locks only its own data folder.
-  if (!acquireSingleInstanceLock(app, shownWindow)) return false;
+  if (!acquireSingleInstanceLock(app, shownWindow, dataFolderIsWritable)) return false;
   protocol.registerSchemesAsPrivileged([
     {
       scheme,
@@ -62,6 +63,16 @@ function prepareBeforeReady(): boolean {
     },
   ]);
   return true;
+}
+
+function dataFolderIsWritable(): boolean {
+  try {
+    accessSync(app.getPath("userData"), constants.W_OK);
+    return true;
+  } catch {
+    // Safe to answer no: the caller fails the start and names the data folder as the reason.
+    return false;
+  }
 }
 
 // The windows this run has shown. A hidden run shows none, and a window that still waits for its
