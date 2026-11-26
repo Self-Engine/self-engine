@@ -160,8 +160,19 @@ const CREATED = timeEntry(30, {
   note: "Call",
 });
 
+const { project: _createdProject, ...CREATED_ANSWER } = CREATED;
+
+/** What has the focus, as a person would name it, for a failure that says where it went. */
+function focused(): string {
+  const element = document.activeElement;
+  if (element === null || element === document.body) return "the page";
+  return `${element.tagName.toLowerCase()} "${element.textContent}"`;
+}
+
+/** Its row takes the focus once the week shows it (ADR 0041). */
 export const ANewEntryOpensOnTheClickedDayAndAppearsThere: Story = {
   args: {
+    answers: { create: { data: CREATED_ANSWER } },
     afterCall: (call, of) => {
       if (call.entry === "create") of.change({ entries: [...SAMPLE_WEEK_ENTRIES, CREATED] });
     },
@@ -193,6 +204,10 @@ export const ANewEntryOpensOnTheClickedDayAndAppearsThere: Story = {
       },
     ]);
     await waitFor(async () => expect((await day(canvas, WEDNESDAY)).textContent).toContain("Call"));
+    const row = within(await day(canvas, WEDNESDAY))
+      .getAllByRole("button")
+      .find((button) => button.textContent.includes("Call"));
+    await waitFor(() => expect(row, `the focus is on ${focused()}`).toHaveFocus());
   },
 };
 
@@ -320,6 +335,10 @@ export const ASaveToAProjectDeletedMeanwhileShowsTheRefusalAtTheProject: Story =
   },
 };
 
+/**
+ * The focus is on the week's fixed place once the row is gone (ADR 0041): the first control after
+ * the project filter, whose list would open on the focus.
+ */
 export const DeleteShowsANoticeWhoseUndoBringsTheEntryBack: Story = {
   beforeEach: keepNoticesOpen,
   args: {
@@ -338,6 +357,14 @@ export const DeleteShowsANoticeWhoseUndoBringsTheEntryBack: Story = {
     await waitFor(async () =>
       expect((await day(canvas, WEDNESDAY)).textContent).not.toContain("Review"),
     );
+    // The row is gone: the focus is on the week's fixed place, and the filter's list stays closed.
+    const previous = canvas.getByRole("button", { name: "Vorige Woche" });
+    await waitFor(() => expect(previous, `the focus is on ${focused()}`).toHaveFocus());
+    await expect(canvas.getByRole("combobox", { name: "Nach Projekt filtern" })).toHaveAttribute(
+      "aria-expanded",
+      "false",
+    );
+    await expect(screen.queryByRole("listbox")).toBeNull();
     await userEvent.click(await screen.findByRole("button", { name: "Rückgängig" }));
     await waitFor(async () =>
       expect((await day(canvas, WEDNESDAY)).textContent).toContain("Review"),

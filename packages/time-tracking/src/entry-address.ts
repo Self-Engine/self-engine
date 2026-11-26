@@ -1,7 +1,8 @@
 // No schema here: the week loads this file, and the schemas must not load with a View (D255).
 // The Edit Drawer, which loads with them, reads an address.
-import type { WriteViewSearch } from "@self-engine/shell";
+import { editDrawerEntries, type WriteViewSearch } from "@self-engine/shell";
 import type { CalendarDay } from "@self-engine/time";
+import type { DayEntry } from "./port.ts";
 
 /**
  * The address of a Time Entry that does not exist yet, in the Edit Drawer's `edit`: "new" for
@@ -15,6 +16,9 @@ export const NEW_ENTRY_ON = `${NEW_ENTRY}-`;
 export function newEntryAddress(day?: CalendarDay): string {
   return day === undefined ? NEW_ENTRY : `${NEW_ENTRY_ON}${day}`;
 }
+
+/** Marks an entry's row, which takes the focus when its Edit Drawer closes (ADR 0041). */
+export const timeEntries = editDrawerEntries<DayEntry["id"]>();
 
 /** Opens the Edit Drawer for a new entry on the current page, on `day` or on today. */
 export function openNewTimeEntry(writeSearch: WriteViewSearch, day?: CalendarDay) {

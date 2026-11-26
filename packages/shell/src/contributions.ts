@@ -23,9 +23,18 @@ export interface ShellView {
   readonly load: () => Promise<{ readonly default: ComponentType<ViewPageProps> }>;
 }
 
-/** What the content of an Edit Drawer is told: the ways out, and the entry it edits. */
-export interface EditDrawerProps extends FrameExitProps {
+/**
+ * What the content of an Edit Drawer is told: the ways out, and the entry it edits. `Id` is the
+ * type of the ids its entries have, as `editDrawerEntries` marks their controls; without it, the
+ * content creates nothing and cannot call `onCreated`.
+ */
+export interface EditDrawerProps<Id extends string = never> extends FrameExitProps {
   readonly id: string;
+  /**
+   * `onDone` after a successful create, with the new entry's id: the focus goes to the entry's
+   * control in the View once the View shows it (ADR 0041).
+   */
+  readonly onCreated: (id: Id) => void;
 }
 
 interface ContributionMetadata {
@@ -36,7 +45,9 @@ interface ContributionMetadata {
   /** The first View is the module's default. */
   readonly views: readonly [ShellView, ...ShellView[]];
   readonly groups?: () => Promise<{ readonly default: ComponentType }>;
-  readonly editDrawer?: () => Promise<{ readonly default: ComponentType<EditDrawerProps> }>;
+  readonly editDrawer?: () => Promise<{
+    readonly default: ComponentType<EditDrawerProps<string>>;
+  }>;
   /** Shown while any module is active, in the order of the module list. */
   readonly indicator?: ModuleIndicator;
   readonly sharedSearch?: readonly string[];

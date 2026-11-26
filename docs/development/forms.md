@@ -75,7 +75,7 @@ the others, so none is lost. A taken title is checked by the Operation, not whil
 
 ## Create: fields and the module’s own texts
 
-Inside a lazy drawer, with its `onCancel` and `onDone` props:
+Inside a lazy drawer, with its `onCancel` and `onCreated` props:
 
 ```tsx
 import { useLingui } from "@lingui/react/macro";
@@ -87,10 +87,11 @@ import {
   TextField,
   useOperationForm,
 } from "@self-engine/forms";
-import { projectsContract } from "./contracts/index.ts";
+import { type EditDrawerProps, useEditDrawerTitle } from "@self-engine/shell";
+import { type ProjectId, projectsContract } from "./contracts/index.ts";
 import { useCreateProject } from "./port.ts";
 
-function CreateProjectForm({ onCancel, onDone }: EditDrawerProps) {
+function CreateProjectForm({ onCancel, onCreated }: EditDrawerProps<ProjectId>) {
   const { t } = useLingui();
   useEditDrawerTitle(t`New project`);
   const form = useOperationForm({
@@ -98,7 +99,8 @@ function CreateProjectForm({ onCancel, onDone }: EditDrawerProps) {
     operation: useCreateProject(),
     draft: { title: "", description: "", icon: null, color: null },
     emptyTextFields: ["description"],
-    onDone,
+    // Closes the drawer, and the new project's row takes the focus once the list shows it.
+    onSuccess: (project) => onCreated(project.id),
   });
   return (
     <EditDrawerForm form={form} onCancel={onCancel}>
@@ -145,7 +147,10 @@ field changes, and the next answer replaces it. An issue at a field the form doe
 whose field changed while the save ran, goes to the general Notice. A violation of a Check
 outranks a Conflict, a Reason or an issue at the same field.
 Unexpected failure preserves input; Data Client owns its Notice. Success and not-found call `onDone`; `onSuccess(data)` optionally consumes
-the successful answer. Pass the Shell’s `onDone`, so a completed save bypasses the leave guard.
+the successful answer. Pass the Shell’s `onDone`, so a completed save bypasses the leave guard. A
+create passes the Shell's `onCreated` with the new entry's id as `onSuccess` instead, which closes
+the same way and puts the focus on the entry's row
+([port guide](port-pattern.md#mark-the-entries-of-the-edit-drawer)).
 
 ## Edit: changed fields and following the entry
 

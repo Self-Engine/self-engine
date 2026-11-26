@@ -2,6 +2,7 @@
 // Operation's Fixed Answer changes nothing and no Table Change follows, so these stories show
 // states, not flows: that the list follows an Operation is shown by the module's Port test.
 
+import { changingAnswers } from "@self-engine/data-client/testing";
 import {
   GARDEN_WORK,
   placeholderAlphaAnswers,
@@ -79,6 +80,43 @@ export const AnEmptyListSaysSoAndOffersTheNextStep: Story = {
     await userEvent.click(empty.getByRole("button", { name: "New entry" }));
     await screen.findByRole("dialog", { name: "New entry" });
     await expect(openEntry()).toBe("new");
+  },
+};
+
+/** What the Data Process's Query-to-tables list says about `placeholder-alpha` (D248). */
+const QUERIES = { placeholderAlpha: { list: ["placeholder_alpha_entries"] } };
+
+/** An empty list whose create answers "Studio work", and the Table Change the story delivers. */
+function aCreateIntoTheEmptyList() {
+  const port = changingAnswers(
+    placeholderAlphaAnswers({ list: { data: [] }, create: { data: STUDIO_WORK } }),
+    QUERIES,
+  );
+  const created = () =>
+    port.change(placeholderAlphaAnswers({ list: { data: [STUDIO_WORK] } }), [
+      "placeholder_alpha_entries",
+    ]);
+  return { access: port.access, created };
+}
+
+/**
+ * The button that opened the drawer leaves with the empty list, and the new row arrives with the
+ * reload after the drawer closed: the row takes the focus then (ADR 0041).
+ */
+export const AnEntryCreatedFromTheEmptyListTakesTheFocusOnceListed: Story = {
+  loaders: [async () => ({ port: aCreateIntoTheEmptyList() })],
+  render: (args, { loaded }) => <AppAt {...args} access={loaded["port"].access} />,
+  play: async ({ canvas, loaded }) => {
+    const port: ReturnType<typeof aCreateIntoTheEmptyList> = loaded["port"];
+    const empty = within((await canvas.findByText("No entries here")).parentElement!);
+    await userEvent.click(empty.getByRole("button", { name: "New entry" }));
+    const drawer = within(await settled(screen.findByRole("dialog", { name: "New entry" })));
+    await userEvent.type(await drawer.findByRole("textbox", { name: "Name" }), "Studio work");
+    await userEvent.click(drawer.getByRole("button", { name: "Save" }));
+    await noDrawer();
+    port.created();
+    const row = await canvas.findByRole("button", { name: "Studio work" });
+    await waitFor(() => expect(row).toHaveFocus());
   },
 };
 

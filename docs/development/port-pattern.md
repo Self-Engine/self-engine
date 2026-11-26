@@ -611,6 +611,7 @@ app's stories mount their own list, [`apps/web/src/story-modules.ts`](../../apps
 the placeholder modules beside every module of the app, so add a new module there too.
 
 The Shell Contribution can also [declare a Module Indicator](#declare-a-module-indicator-and-its-indicator-panel).
+A module with an Edit Drawer [marks the entries it opens](#mark-the-entries-of-the-edit-drawer).
 
 In the Shell Contribution's `dataTexts`, made by `dataTexts<typeof storageModule>()` with a
 type-only import of the module's storage module, give every synced table one Lingui plural
@@ -657,6 +658,34 @@ Process's list in `apps/desktop/src/data-modules.ts`).
 
 Done when the committed implementation passes `pnpm verify` with `VERIFY: PASS` as its final line.
 Then build the hooks, Views and stories with [the renderer guide](port-hooks.md).
+
+### Mark the entries of the Edit Drawer
+
+When the Edit Drawer closes, the Shell puts the focus on a control that continues the work, never
+on the page ([ADR 0041](../adr/0041-the-shell-places-the-focus-when-the-edit-drawer-closes.md)). A
+module provides two things for that and writes no focus code of its own:
+
+- **Mark the control that stands for each entry.** Make the marks once, in a file the View
+  already loads, such as the one with the drawer's address, typed by the id of the entries:
+  `export const projectEntries = editDrawerEntries<Project["id"]>();`. Spread
+  `projectEntries.control(project.id)` on the control of each entry in a View, such as its row's
+  button, with the id the drawer's address carries. The mark is a constant attribute: a row behind
+  `memo` stays undrawn when the drawer opens or closes.
+- **Report a create.** Type the drawer's content `EditDrawerProps<Id>` with the same `Id`, and
+  close a successful create with `onCreated(id)` instead of `onDone`. A form passes it as
+  `onSuccess: (project) => onCreated(project.id)`
+  ([forms guide](forms.md#create-fields-and-the-modules-own-texts)). Every other way out stays as
+  it is.
+
+The Shell then gives the focus to the new entry's control once the View shows it. After an edit
+it returns the focus to the control that opened the drawer, or gives it to the entry's control
+when a link or a shortcut opened it. When neither is on the page, such as after a delete, it goes
+to the View's first control that opens nothing on the focus (a searchable Select is passed over),
+and in a View without any such control to the View itself. A View that
+marks nothing still gets that fixed place, so mark every entry a View shows. See
+[`projects`](../../packages/projects/src/project-list.tsx) and its
+[stories](../../apps/web/src/projects-focus.stories.tsx), which assert the focused element for
+each way out.
 
 ### Declare a Module Indicator and its Indicator Panel
 

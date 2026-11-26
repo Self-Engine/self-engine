@@ -86,6 +86,11 @@ export function useDiscardQuestion(keepEditingFocus: KeepEditingFocus) {
     asking.current = false;
     setQuestionOpen(false);
     if (!discard) focusOnKeep.current(focused)?.focus();
+    // Back where it was, before the question's button leaves with it: the frame then places the
+    // focus as it does for every other way out, which needs it there or nowhere.
+    else if (focused instanceof HTMLElement && focused.isConnected) {
+      focused.focus({ preventScroll: true });
+    }
     return discard;
   }, []);
 

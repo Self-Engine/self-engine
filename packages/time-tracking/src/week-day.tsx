@@ -3,7 +3,7 @@ import { Badge, Button, Group, Paper, Stack, Text, Tooltip, UnstyledButton } fro
 import { CrossesMidnightIcon, OverlapsEntryIcon } from "@self-engine/icons/view";
 import { formatCalendarDay, formatDuration, formatInstant, type TimeZone } from "@self-engine/time";
 import { memo, type ReactElement } from "react";
-import { newEntryAddress } from "./entry-address.ts";
+import { newEntryAddress, timeEntries } from "./entry-address.ts";
 import type { DayEntry, SpanDay } from "./port.ts";
 import { ProjectMark } from "./project-mark.tsx";
 import { NUMBERS, ROW_STYLE } from "./week-styles.ts";
@@ -96,7 +96,11 @@ const DayEntryRow = memo(function DayEntryRow({
   const end = formatInstant(entry.endedAt, "time", locale, timeZone);
   return (
     <li style={ROW_STYLE}>
-      <UnstyledButton onClick={() => onOpen(entry.id)} style={ROW_BUTTON}>
+      <UnstyledButton
+        {...timeEntries.control(entry.id)}
+        onClick={() => onOpen(entry.id)}
+        style={ROW_BUTTON}
+      >
         <Text size="sm" style={TIMES}>
           {start} – {end}
         </Text>

@@ -14,7 +14,7 @@ import { useDeleteWithUndo } from "./delete-with-undo.tsx";
 import { NEW_ENTRY_ID } from "./entry-address.ts";
 import { ALL_ENTRIES, type Entry, useCreateEntry, useEntries, useRenameEntry } from "./port.ts";
 
-export default function EditDrawer(props: EditDrawerProps) {
+export default function EditDrawer(props: EditDrawerProps<Entry["id"]>) {
   const list = useEntries(ALL_ENTRIES);
   if (props.id === NEW_ENTRY_ID) return <CreateForm {...props} />;
   return (
@@ -54,14 +54,14 @@ function StoredEntryDrawer({
   );
 }
 
-function CreateForm(props: EditDrawerProps) {
+function CreateForm(props: EditDrawerProps<Entry["id"]>) {
   const { t } = useLingui();
   useEditDrawerTitle(t`New entry`);
   const form = useOperationForm({
     entry: placeholderAlphaContract.create,
     operation: useCreateEntry(),
     draft: { name: "" },
-    onDone: props.onDone,
+    onSuccess: (entry) => props.onCreated(entry.id),
   });
   return <Fields {...props} form={form} />;
 }
