@@ -241,9 +241,20 @@ export const DeletingAnEntryAlreadyGoneClosesWithoutWarning: Story = {
   play: async ({ canvas }) => {
     await userEvent.click(await canvas.findByRole("button", { name: "Studio work" }));
     const dialog = await settled(screen.findByRole("dialog", { name: "Studio work" }));
-    await userEvent.click(within(dialog).getByRole("button", { name: "Delete" }));
-    await expect(dialog).not.toHaveTextContent("This entry was deleted");
-    await noDrawer();
+    // Watched until the drawer has gone: the warning must not show while it closes either.
+    let warned = false;
+    const watch = new MutationObserver(() => {
+      if (dialog.textContent.includes("This entry was deleted")) warned = true;
+    });
+    watch.observe(dialog, { childList: true, subtree: true, characterData: true });
+    try {
+      await userEvent.click(within(dialog).getByRole("button", { name: "Delete" }));
+      await expect(dialog).not.toHaveTextContent("This entry was deleted");
+      await noDrawer();
+    } finally {
+      watch.disconnect();
+    }
+    await expect(warned).toBe(false);
     await expect(openEntry()).toBeUndefined();
     await expect(await screen.findByText("This entry no longer exists.")).toBeVisible();
     await expect(undoOffers()).toHaveLength(0);

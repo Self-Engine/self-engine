@@ -106,6 +106,9 @@ test("runs one Operation at a time and releases the lock when it fails", async (
   });
   expect(hook.onDone).not.toHaveBeenCalled();
   expect(hook.current()).toMatchObject({ entry: FIRST, deleted: true });
+  // After the failure it follows the entry found again.
+  hook.rerender(EDITED);
+  expect(hook.current()).toMatchObject({ entry: EDITED, deleted: false });
   await act(async () => hook.current().leave(async () => true));
   expect(hook.onDone).toHaveBeenCalledOnce();
 });
