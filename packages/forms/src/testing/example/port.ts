@@ -18,4 +18,6 @@ export const useCreateExample = examplePort.operation("create", {
 
 export const useUpdateExample = examplePort.operation("update", { columns });
 
+export const useDeleteExample = examplePort.operation("delete");
+
 export const useExampleEntries = examplePort.query("list");

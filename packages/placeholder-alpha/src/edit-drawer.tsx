@@ -3,12 +3,12 @@ import { Button, Text } from "@mantine/core";
 import {
   EditDrawerForm,
   TextField,
+  useLeavingEntry,
   useOperationForm,
   type OperationForm,
 } from "@self-engine/forms";
 import { type EditDrawerProps, useEditDrawerTitle } from "@self-engine/shell";
 import { ErrorState, QueryStateBlock } from "@self-engine/ui";
-import { useState } from "react";
 import { placeholderAlphaContract } from "./contracts/index.ts";
 import { useDeleteWithUndo } from "./delete-with-undo.tsx";
 import { NEW_ENTRY_ID } from "./entry-address.ts";
@@ -32,10 +32,7 @@ function StoredEntryDrawer({
 }: EditDrawerProps & { readonly found: Entry | undefined }) {
   const { t } = useLingui();
   const remove = useDeleteWithUndo();
-  const [last, setLast] = useState(found);
-  if (found !== undefined && found !== last) setLast(found);
-  const [deletedHere, setDeletedHere] = useState(false);
-  const entry = found ?? last;
+  const { entry, deleted, leave } = useLeavingEntry(found, props.onDone);
   if (entry === undefined)
     return (
       <ErrorState
@@ -51,14 +48,8 @@ function StoredEntryDrawer({
     <RenameForm
       {...props}
       entry={entry}
-      deleted={found === undefined && !deletedHere}
-      onDelete={() => {
-        // Keep the entry through the closing transition, without the deleted-entry warning. #310
-        // replaces this with `useLeavingEntry` of `forms`.
-        setDeletedHere(true);
-        void remove(entry.id);
-        props.onDone();
-      }}
+      deleted={deleted}
+      onDelete={() => void leave(() => remove(entry.id))}
     />
   );
 }

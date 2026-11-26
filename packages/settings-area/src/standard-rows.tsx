@@ -115,6 +115,19 @@ export function stopsRow<Stop extends number>({
           if (stop !== undefined) store.write(setting, stop);
         }}
         restrictToMarks
+        styles={{
+          // Center the labels in layout. The horizontal transform Mantine uses also leaves
+          // the original label box in the scrollable area, even when the text itself fits.
+          markWrapper: {
+            display: "grid",
+            gridTemplateColumns: "var(--slider-size)",
+            justifyItems: "center",
+          },
+          markLabel: {
+            marginBlockStart: "calc(var(--mantine-spacing-xs) / 2)",
+            transform: "none",
+          },
+        }}
         thumbProps={{ "aria-labelledby": labelledBy }}
         thumbValueText={(stop) => format(stop, i18n)}
         value={value}

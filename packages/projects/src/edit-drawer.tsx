@@ -103,7 +103,7 @@ function FoundProject({
   const archive = useArchiveWithUndo();
   const archiveWithoutUndo = useArchiveWithoutUndo();
   const unarchive = useUnarchiveWithUndo();
-  const { entry: project, leaving, leave: leaveWith } = useLeavingEntry(found);
+  const { entry: project, deleted, leave } = useLeavingEntry(found, props.onDone);
   const mounted = useRef(false);
   useLayoutEffect(() => {
     mounted.current = true;
@@ -117,16 +117,12 @@ function FoundProject({
     shownActive.current = found?.archivedAt === null;
   });
   if (project === undefined) return <NotFound {...props} />;
-  // One named Operation at a time; once the project is left, the lock stays: the drawer is closing.
-  const leave = (operation: () => Promise<boolean>, asks: boolean) => async () => {
-    if (await leaveWith(operation, asks ? props.confirmDiscard : undefined)) props.onDone();
-  };
   const active = project.archivedAt === null;
-  const archiveOrUnarchive = leave(
-    () => (active ? archive : unarchive)(project.id, { entry: project.title }),
-    true,
-  );
-  const archiveHere = () => void archiveOrUnarchive();
+  const archiveHere = () =>
+    void leave(
+      () => (active ? archive : unarchive)(project.id, { entry: project.title }),
+      props.confirmDiscard,
+    );
   // The Notice of a refused delete can outlive what the drawer knows. Only while the drawer is
   // open and still shows the project active does its Archive change what the person saw, and
   // offer the undo; otherwise the project may be archived already, by someone else, and an undo
@@ -145,24 +141,23 @@ function FoundProject({
         vouchesForArchive()
           ? archive(project.id, { entry: project.title })
           : archiveWithoutUndoHere(),
-      true,
-    )();
+      props.confirmDiscard,
+    );
   };
-  const deleteHere = leave(
-    () =>
+  const deleteHere = () =>
+    void leave(() =>
       remove(project.id, {
         entry: project.title,
         ...(active && { action: { label: ARCHIVE_PROJECT, run: archiveFromNotice } }),
       }),
-    false,
-  );
+    );
   return (
     <EditForm
       {...props}
       project={project}
-      deleted={found === undefined && !leaving}
+      deleted={deleted}
       onArchive={archiveHere}
-      onDelete={() => void deleteHere()}
+      onDelete={deleteHere}
     />
   );
 }

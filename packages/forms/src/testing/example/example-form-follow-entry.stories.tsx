@@ -1,12 +1,14 @@
 // An open edit form follows its entry (D324): Changing Answers change the stored entry under the
 // form, as another window, an assistant or the sync would, and delete it and bring it back.
-// The module-side part is what a module writes: it reads its entry with a Query, keeps the last one
-// it saw, and tells the form when the entry is gone.
+// The module reads its entry with a Query and uses the shared hook to follow it through deletion.
 
 import { Button } from "@mantine/core";
 import { DataProvider } from "@self-engine/data-client/react";
 import { calendarDaySchema, wallClockTimeSchema } from "@self-engine/time";
-import { commitWhere } from "@self-engine/ui/story-render-counts";
+import { ErrorState } from "@self-engine/ui";
+import { clearNotices } from "@self-engine/ui/story-notices";
+import { afterTheCommitsNowDue, commitWhere } from "@self-engine/ui/story-render-counts";
+import { holdTimers } from "@self-engine/ui/story-timers";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useDeferredValue, useState } from "react";
 import { closed, settled } from "@self-engine/ui/story-surfaces";
@@ -18,6 +20,7 @@ import {
   IconField,
   LongTextField,
   TextField,
+  useLeavingEntry,
   useOperationForm,
   WallClockTimeField,
 } from "../../index.ts";
@@ -25,7 +28,7 @@ import { exampleTiedFields, exampleContract } from "./contract.ts";
 import { loadStoryShell, StoryDrawer } from "./drawer-story.tsx";
 import { fieldsDrawnDuring } from "./fields-drawn.ts";
 import { EXAMPLE_TODAY, type ExampleEntry, exampleEditTexts } from "./example-form.tsx";
-import { useExampleEntries, useUpdateExample } from "./port.ts";
+import { useDeleteExample, useExampleEntries, useUpdateExample } from "./port.ts";
 import { CREATED, type ChangingPort, changingPort } from "./story-port.ts";
 
 const STORED: ExampleEntry = { ...CREATED };
@@ -86,22 +89,16 @@ function EntryForm({ entry, deleted: gone, onCancel, onDelete }: EntryFormProps)
   );
 }
 
-/**
- * The Edit Drawer's content: it shows the entry the Query answers, keeps the last one it saw, and
- * tells the form when the entry is gone. A delete from inside the drawer closes it: the form keeps
- * its copy and is not told, so the message for a deleted entry does not flash while it slides out.
- */
+/** The Edit Drawer's content follows the Query and waits for Delete before closing. */
 function EditDrawer({
   id,
   onCancel,
   onDone,
-  remove,
   deferred = false,
 }: {
   readonly id: string;
   readonly onCancel: () => void;
   readonly onDone: () => void;
-  readonly remove: () => void;
   /** Hands the form a new entry in a deferred draw, as React does with `useDeferredValue`. */
   readonly deferred?: boolean;
 }) {
@@ -110,23 +107,32 @@ function EditDrawer({
     list.status === "loading" || list.status === "loadFailed"
       ? undefined
       : list.data.find((candidate) => candidate.id === id);
-  const [last, setLast] = useState(found);
-  if (found !== undefined && found !== last) setLast(found);
-  const [deletedHere, setDeletedHere] = useState(false);
-  const latestEntry = found ?? last;
+  const remove = useDeleteExample();
+  const { entry: latestEntry, deleted, leave } = useLeavingEntry(found, onDone);
   const deferredEntry = useDeferredValue(latestEntry);
   const entry = deferred ? deferredEntry : latestEntry;
-  if (entry === undefined) return list.status === "loading" ? null : <p>Entry not found</p>;
+  if (entry === undefined)
+    return list.status === "loading" ? null : (
+      <ErrorState
+        title="Entry not found"
+        action={
+          <Button onClick={onDone} variant="default">
+            Close
+          </Button>
+        }
+      />
+    );
   return (
     <EntryForm
-      deleted={found === undefined && !deletedHere}
+      deleted={deleted}
       entry={entry}
       onCancel={onCancel}
-      onDelete={() => {
-        setDeletedHere(true);
-        remove();
-        onDone();
-      }}
+      onDelete={() =>
+        void leave(async () => {
+          const { status } = await remove.run({ id: entry.id });
+          return status === "success" || status === "notFound";
+        })
+      }
     />
   );
 }
@@ -138,13 +144,7 @@ const drawerOf =
     <DataProvider access={loaded.port.access}>
       <StoryDrawer>
         {({ id, onCancel, onDone }) => (
-          <EditDrawer
-            deferred={deferred}
-            id={id}
-            onCancel={onCancel}
-            onDone={onDone}
-            remove={() => loaded.port.change(deleted())}
-          />
+          <EditDrawer deferred={deferred} id={id} onCancel={onCancel} onDone={onDone} />
         )}
       </StoryDrawer>
     </DataProvider>
@@ -392,19 +392,106 @@ export const AnUndoneDeleteWithoutChangesLeavesSaveDisabled: Story = {
   },
 };
 
-export const DeletingFromTheDrawerShowsNoMessage: Story = {
-  play: async () => {
-    const { canvas } = await openForm();
+const DELETE_CALL = { entry: "delete", input: { id: STORED.id } };
+const openDialog = () => screen.queryByRole("dialog", { name: "Example" });
+
+/** Lets the Query lose the entry before the delete answers, as a Table Change can arrive first. */
+function portWithHeldDelete(answer: { readonly data: ExampleEntry } | "notFound") {
+  const port = changingPort({ ...storedAs({}), delete: answer });
+  const { promise, resolve } = Promise.withResolvers<void>();
+  return {
+    ...port,
+    access: {
+      ...port.access,
+      async call(...args: Parameters<ChangingPort["access"]["call"]>) {
+        if (args[1] === "delete") await promise;
+        return port.access.call(...args);
+      },
+    },
+    loseEntry: () => port.change({ ...deleted(), delete: answer }),
+    finishDelete: () => resolve(),
+  };
+}
+
+const aDeleteThatClosesWithoutWarning = (
+  answer: Parameters<typeof portWithHeldDelete>[0],
+  twice = false,
+): Story => ({
+  loaders: [() => ({ port: portWithHeldDelete(answer) })],
+  play: async ({ loaded }) => {
+    const port: ReturnType<typeof portWithHeldDelete> = loaded.port;
+    const { canvas, title } = await openForm();
     const dialog = screen.getByRole("dialog", { name: "Example" });
     let shown = false;
     const watch = new MutationObserver(() => {
-      if (dialog.textContent.includes(DELETED)) shown = true;
+      if (dialog.textContent.includes(DELETED) || dialog.textContent.includes("Entry not found"))
+        shown = true;
     });
-    watch.observe(document.body, { childList: true, subtree: true, characterData: true });
+    watch.observe(dialog, { childList: true, subtree: true, characterData: true });
+    try {
+      const remove = canvas.getByRole("button", { name: "Delete" });
+      if (twice) {
+        // Both activations reach the handler before React can draw again.
+        remove.click();
+        remove.click();
+      } else {
+        await userEvent.click(remove);
+      }
+      port.loseEntry();
+      await afterTheCommitsNowDue();
+      await expect(dialog).toBeVisible();
+      await expect(title).toHaveValue(STORED.title);
+      port.finishDelete();
+      await closed(openDialog);
+      await expect(shown).toBe(false);
+      await expect(port.calls).toEqual([DELETE_CALL]);
+    } finally {
+      port.finishDelete();
+      watch.disconnect();
+    }
+  },
+});
+
+export const DeletingFromTheDrawerShowsNoMessage = aDeleteThatClosesWithoutWarning({
+  data: STORED,
+});
+export const DeletingAnEntryAlreadyGoneClosesWithoutWarning =
+  aDeleteThatClosesWithoutWarning("notFound");
+export const TwoActivationsAtOnceDeleteOnce = aDeleteThatClosesWithoutWarning(
+  { data: STORED },
+  true,
+);
+
+export const AFailedDeleteKeepsTheDrawerOpenWithWhatWasTyped: Story = {
+  beforeEach: () => {
+    clearNotices();
+    return holdTimers(8000).restore;
+  },
+  loaders: [() => ({ port: changingPort({ ...storedAs({}), delete: "unexpected" }) })],
+  play: async ({ loaded }) => {
+    const { canvas, title, save } = await openForm();
+    await userEvent.type(title, " and hall");
     await userEvent.click(canvas.getByRole("button", { name: "Delete" }));
-    await closed(() => screen.queryByRole("dialog", { name: "Example" }));
-    watch.disconnect();
-    await expect(shown).toBe(false);
+    await waitFor(() =>
+      expect(screen.getByText("Something went wrong, and the change was not saved.")).toBeVisible(),
+    );
+    await expect(openDialog()).toBeVisible();
+    await expect(title).toHaveValue("Kitchen and hall");
+    await expect(save).toBeEnabled();
+    await expect(loaded.port.calls).toEqual([DELETE_CALL]);
+  },
+};
+
+export const AnUnknownEntryOffersOnlyToClose: Story = {
+  loaders: [() => ({ port: changingPort(deleted()) })],
+  play: async () => {
+    const canvas = within(await settled(screen.findByRole("dialog", { name: "Example" })));
+    const failure = within(await canvas.findByRole("alert"));
+    await expect(failure.getByText("Entry not found")).toBeVisible();
+    await expect(failure.getAllByRole("button")).toHaveLength(1);
+    await expect(canvas.queryByRole("textbox")).toBeNull();
+    await userEvent.click(failure.getByRole("button", { name: "Close" }));
+    await closed(openDialog);
   },
 };
 

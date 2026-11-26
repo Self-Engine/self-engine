@@ -42,6 +42,10 @@ export const exampleTiedFields = [["icon", "color"]] as const;
 export const exampleContract = {
   /** Every example entry: what an edit form shows and follows while it is open (D324). */
   list: oc.input(z.strictObject({})).output(z.array(exampleEntrySchema)),
+  delete: oc
+    .input(z.strictObject({ id: z.string() }))
+    .output(exampleEntrySchema)
+    .errors({ NOT_FOUND: {} }),
   // Written by hand rather than with `entryFields` of `@self-engine/db/schema` (ADR 0032): the
   // example's edit narrows the icon and its create requires the description, so the stories
   // reach cases one field list would not give. A module derives both from one list.
