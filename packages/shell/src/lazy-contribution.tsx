@@ -31,15 +31,17 @@ export function lazyComponents<Props extends object>(): LazyComponents<Props> {
   const load = (code: LoadComponent<Props>) => {
     let pending = loading.get(code);
     if (!pending) {
-      pending = code().then((module) => {
-        loaded.set(code, module.default);
+      // A load that was forgotten meanwhile writes nothing: a newer load owns the entry then.
+      const request: Promise<ComponentType<Props>> = code().then((module) => {
+        if (loading.get(code) === request) loaded.set(code, module.default);
         return module.default;
       });
-      loading.set(code, pending);
-      pending.catch(() => {
+      pending = request;
+      loading.set(code, request);
+      request.catch(() => {
         // Safe to drop here: the callers hear the failure. It is not kept, so the next showing
         // loads anew.
-        loading.delete(code);
+        if (loading.get(code) === request) loading.delete(code);
       });
     }
     return pending;
@@ -110,28 +112,31 @@ function LoadedContribution<Props extends object>({
   onShown,
   fallback,
 }: LazyContributionProps<Props> & { readonly fallback: ReactNode }) {
-  // The code that arrived, or its failure, for this load. Held as state, not read from
-  // `components` again: the React Compiler keeps a read per `components` and `load`.
+  // The code that arrived, or its failure, for this load from these `components`. Held as state,
+  // not read from `components` again: the React Compiler keeps a read per `components` and `load`.
   const [arrival, setArrival] = useState<{
+    readonly components: LazyComponents<Props>;
     readonly load: LoadComponent<Props>;
     readonly component?: ComponentType<Props>;
     readonly failure?: unknown;
   }>();
-  const Loaded = (components.loaded(load) ??
-    (arrival?.load === load ? arrival.component : undefined)) as ComponentType<object> | undefined;
+  const arrived = arrival?.components === components && arrival.load === load ? arrival : undefined;
+  const Loaded = (components.loaded(load) ?? arrived?.component) as
+    | ComponentType<object>
+    | undefined;
   useEffect(() => {
     // Runs once the code has arrived and drawn, so also after a successful retry.
     if (Loaded) return onShown?.();
     let wanted = true;
     components.load(load).then(
-      (component) => wanted && setArrival({ load, component }),
-      (failure: unknown) => wanted && setArrival({ load, failure }),
+      (component) => wanted && setArrival({ components, load, component }),
+      (failure: unknown) => wanted && setArrival({ components, load, failure }),
     );
     return () => {
       wanted = false;
     };
   }, [components, load, Loaded, onShown]);
-  if (arrival?.load === load && "failure" in arrival) throw arrival.failure;
+  if (arrived !== undefined && "failure" in arrived) throw arrived.failure;
   return Loaded ? <Loaded {...props} /> : fallback;
 }
 
