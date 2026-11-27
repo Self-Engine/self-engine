@@ -421,16 +421,17 @@ export function buildOverview(
   ].map((layer): LayerView => {
     const members =
       layer.id === "none" ? unassigned : packages.filter((issue) => layerIdOf(issue) === layer.id);
-    const rows: Row[] =
-      members.length > 0
-        ? members.map(rowOf)
-        : (layer.planned ?? []).map((item) => ({
-            title: item.title,
-            status: "planned" as const,
-            steps: stepsOf("planned", false),
-            slices: [],
-            ...(item.note === undefined ? {} : { note: item.note }),
-          }));
+    // A layer can be cut in part: its planned work follows its issues until it has issues too.
+    const rows: Row[] = [
+      ...members.map(rowOf),
+      ...(layer.planned ?? []).map((item) => ({
+        title: item.title,
+        status: "planned" as const,
+        steps: stepsOf("planned", false),
+        slices: [],
+        ...(item.note === undefined ? {} : { note: item.note }),
+      })),
+    ];
     const counted = members.flatMap((issue) => [issue, ...(childrenOf.get(issue.number) ?? [])]);
     const spec = sorted.find((issue) => isLayerSpec(issue) && layerIdOf(issue) === layer.id);
     const statusCounts = emptyCounts();

@@ -23,7 +23,7 @@ If the glossary has no entry yet, **proceed silently**. The `/domain-modeling` s
 │   ├── agents/                    ← this file, workflow.md, issue-tracker.md, triage-labels.md
 │   ├── development/               ← guides for ports, renderer hooks and performance
 │   ├── plan/                      ← closed decision log (German), roadmap.json for the overview
-│   └── research/                  ← dated snapshots for an open map
+│   └── research/                  ← dated snapshots for a map, kept until its work packages are built
 ├── apps/                          ← desktop (and later web, mobile)
 ├── packages/                      ← one package per module, plus shared packages
 └── scripts/                       ← repo tooling, each script with a test
