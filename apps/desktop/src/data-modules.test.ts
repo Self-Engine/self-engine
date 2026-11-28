@@ -48,8 +48,8 @@ test("the app mounts Projects, Settings and Time Tracking beside the protocol, w
         projects: { active: ["projects"], archived: ["projects"] },
         settings: { load: ["settings"] },
         timeTracking: {
-          entry: ["time_entries", "projects"],
-          days: ["time_entries", "projects", "settings"],
+          entry: ["time_entries", "project_shares", "projects"],
+          days: ["time_entries", "project_shares", "projects", "settings"],
           runningTimers: ["timers", "projects"],
         },
         backups: { list: [] },
