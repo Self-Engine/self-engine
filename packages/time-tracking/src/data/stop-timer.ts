@@ -15,8 +15,8 @@ import {
   type TimerId,
   type TimerStop,
 } from "../contracts/index.ts";
+import { roundedColumns, ruleThatHolds } from "./rounded-columns.ts";
 import {
-  storedTimes,
   TIMER_COLUMNS,
   type TimerValues,
   type timeTrackingRowMap,
@@ -65,16 +65,23 @@ async function saveEntry(
 ): Promise<TimerStop> {
   const writes = sharedWrites(tx, context);
   const id = timeEntryIdOfTimer(timer.id);
+  // The zone of the Setting at the moment of stopping, read in the transaction (D342).
+  const timeZone = await context.readTimeZone(tx);
   const values = {
-    ...storedTimes(timer.started_at, end),
+    ...roundedColumns({
+      startedAt: timer.started_at,
+      endedAt: end,
+      timeZone,
+      rule: ruleThatHolds(),
+      ruleChosenByHand: false,
+    }),
     project_id: timer.project_id,
     note: timer.note,
-    // The zone of the Setting at the moment of stopping, read in the transaction (D342).
-    time_zone: await context.readTimeZone(tx),
+    time_zone: timeZone,
   };
   const stored = await storedEntryOfTimer(tx, context, timer.id);
   // The first stop inserts the entry. After "undo stop", the entry of the earlier stop comes back
-  // with the timer's project and note and the new end, duration and Time Zone, in one write, so
+  // with the timer's project and note and the new end, Rounded Time, Booked Duration, rule and Time Zone, in one write, so
   // the timer keeps one entry (D349) and the reference check judges the project the timer has now
   // (D371).
   const row =

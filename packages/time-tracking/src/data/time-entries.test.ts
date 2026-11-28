@@ -80,6 +80,7 @@ test("time-tracking passes the storage contract kit with `projects` below it", a
           endedAt: "2026-11-16T12:00:00.750Z",
           projectId,
           note: "Build",
+          ruleByHand: { kind: "exact" },
         },
         edit: {
           id: entryId,
@@ -87,6 +88,7 @@ test("time-tracking passes the storage contract kit with `projects` below it", a
           endedAt: "2026-11-16T12:00:00.000Z",
           projectId,
           note: "Review",
+          ruleByHand: { kind: "ordinary", direction: "up", minutes: 15 },
         },
         delete: { id: entryId },
         restore: { id: deletedEntryId },

@@ -1,31 +1,61 @@
 // The Query of a Day Span (D343, D147, D193, D352, D354). SQL fetches the window: every Live Row
-// that touches the span, joined with the Read Piece of `projects`. TypeScript groups: the Day
-// Shares, the days and the sums. Day logic never runs in SQL.
+// that may touch the span, joined with the Read Piece of `projects`. TypeScript places and groups:
+// the Rounded Times, the Day Shares, the days and the sums. Day logic never runs in SQL.
 import type { TablesOf } from "@self-engine/db";
 import type { ReadTransaction, StorageContext } from "@self-engine/storage";
-import { dayRangesOf, type DaySpan, type DayRange } from "@self-engine/time";
-import type { DaysAnswer, TimeEntryFilter } from "../contracts/index.ts";
+import {
+  addDuration,
+  dayRangesOf,
+  type DayRange,
+  type DaySpan,
+  durationSchema,
+  type Instant,
+  subtractDuration,
+} from "@self-engine/time";
+import {
+  BLOCK_ROUNDING_MINUTES,
+  type DaysAnswer,
+  ORDINARY_ROUNDING_MINUTES,
+  type TimeEntryFilter,
+} from "../contracts/index.ts";
+import { listedEntriesWithProject, toListedTimeEntryWithProject } from "./entries-with-project.ts";
 import { groupDays } from "./group-days.ts";
-import { liveEntriesWithProject, toTimeEntryWithProject } from "./entries-with-project.ts";
 import type { timeTrackingRowMap } from "./rows.ts";
 
 type Tables = TablesOf<typeof timeTrackingRowMap>;
 type Reads = ReadTransaction<Tables>;
 
 /**
- * Every Live Row that touches the window, not only those that begin in it, with its Project
- * Reference, sorted by start. The end index skips rows that end before the window.
+ * How far a Rounded Time can lie from its Measured Time: the longest step or Block of any rule.
+ * Ordinary Rounding moves the end by less than one step; Block Rounding moves each edge by less
+ * than one Block.
+ */
+const ROUNDING_REACH = durationSchema.parse(
+  Math.max(...ORDINARY_ROUNDING_MINUTES, ...BLOCK_ROUNDING_MINUTES) * 60,
+);
+
+/**
+ * Every Live Row whose Measured Time touches the window, not only those that begin in it, with
+ * its Project Reference. The end index skips rows that end before the window.
  */
 export function windowRows(
   tx: Reads,
   context: StorageContext,
   window: { readonly start: DayRange["start"]; readonly end: DayRange["end"] },
 ) {
-  return liveEntriesWithProject(tx, context)
+  return listedEntriesWithProject(tx, context)
     .where("time_entries.started_at", "<", window.end)
     .where("time_entries.ended_at", ">", window.start)
     .orderBy("time_entries.started_at")
     .orderBy("time_entries.id");
+}
+
+/** The window widened by the reach of rounding, so it holds every Rounded Time that touches it. */
+function widened(start: Instant, end: Instant) {
+  return {
+    start: subtractDuration(start, ROUNDING_REACH),
+    end: addDuration(end, ROUNDING_REACH),
+  };
 }
 
 /** The answer of the Query for a span in the Time Zone of the call. */
@@ -39,7 +69,8 @@ export async function spanDays(
   const last = days.at(-1);
   // The input schema keeps the last day at or after the first.
   if (first === undefined || last === undefined) throw new Error("A Day Span has a day");
-  const rows = await windowRows(tx, context, { start: first.start, end: last.end }).execute();
-
-  return groupDays(days, rows.map(toTimeEntryWithProject), input.filter);
+  // A walk of the end index, a little wider than the span; `groupDays` cuts it exactly on the
+  // Rounded Times.
+  const rows = await windowRows(tx, context, widened(first.start, last.end)).execute();
+  return groupDays(days, rows.map(toListedTimeEntryWithProject), input.filter);
 }

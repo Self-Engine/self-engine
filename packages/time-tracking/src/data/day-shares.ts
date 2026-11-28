@@ -4,7 +4,7 @@ import {
   type DayRange,
   type Duration,
   durationBetween,
-  type Instant,
+  type InstantRange,
 } from "@self-engine/time";
 
 /** The seconds of a Time Entry that lie in one Calendar Day: its Day Share there (D343). */
@@ -14,18 +14,16 @@ export interface DayShare {
 }
 
 /**
- * The one place that splits a Time Entry over days (D343): its Day Share on each of `days` it
- * touches, in order, and whether it touches more than one day, inside the days or beyond them.
- * In layer 4 the Booked Duration is end minus start, so each Day Share is the length of the entry's
- * piece in that day. Its Day Shares add up to its Booked Duration. A later setting ("count for the
- * day it begins") and the rounding rule change this function (D343, D345). `days` are consecutive
- * whole days, as `dayRangesOf` gives them.
+ * The one place that splits a Time Entry over days (D343): its Day Share on each of `days` its
+ * Rounded Time touches, in order, and whether it touches more than one day, inside the days or
+ * beyond them. Without breaks the Booked Duration is the length of the Rounded Time, so each Day
+ * Share is the length of its piece in that day, and the shares add up to the Booked Duration.
+ * `days` are consecutive whole days, as `dayRangesOf` gives them.
  */
 export function dayShares(
-  entry: { readonly startedAt: Instant; readonly endedAt: Instant },
+  range: InstantRange,
   days: readonly DayRange[],
 ): { readonly shares: readonly DayShare[]; readonly crossesMidnight: boolean } {
-  const range = { start: entry.startedAt, end: entry.endedAt };
   const pieces = cutAtDays(range, days);
   const first = days[0];
   const last = days.at(-1);

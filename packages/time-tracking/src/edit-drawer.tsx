@@ -19,6 +19,7 @@ import { ErrorState, QueryStateBlock } from "@self-engine/ui";
 import { type ReactNode, useCallback, useMemo } from "react";
 import {
   END_BEFORE_START,
+  ROUNDING_RULE_UNKNOWN,
   type TimeEntryId,
   timeEntryIdSchema,
   timeEntryTiedFields,
@@ -34,8 +35,16 @@ import {
   useTimeEntry,
 } from "./port.ts";
 
-/** The module's texts for the rules of its Contract (D320): "end after start" shows at the end. */
-const TEXTS = { reasons: { [END_BEFORE_START]: msg`The end must lie after the start.` } };
+/**
+ * The module's texts for the rules of its Contract (D320): "end after start" shows at the end. The
+ * form has no field for the rule, so a rule this version cannot read shows in the Notice.
+ */
+const TEXTS = {
+  reasons: {
+    [END_BEFORE_START]: msg`The end must lie after the start.`,
+    [ROUNDING_RULE_UNKNOWN]: msg`This time entry was saved by a newer version of the app. Update the app to edit it.`,
+  },
+};
 
 // An element, not text: `Trans` translates when the Notice renders, in the language active then.
 const DELETED = <Trans>Time entry deleted</Trans>;
@@ -111,7 +120,8 @@ function NewEntryForm({
   const form = useOperationForm({
     entry: timeTrackingContract.create,
     operation: useCreateTimeEntry(),
-    draft: { startedAt: null, endedAt: null, projectId: null, note: "" },
+    // No field chooses a rule yet: the rule that holds rounds the entry.
+    draft: { startedAt: null, endedAt: null, projectId: null, note: "", ruleByHand: null },
     emptyTextFields: ["note"],
     texts: TEXTS,
     // The new entry's row takes the focus once the week shows it.
@@ -190,6 +200,8 @@ function EditForm({
       endedAt: entry.endedAt,
       projectId: entry.projectId,
       note: entry.note ?? "",
+      // No field changes the rule, so the edit never sends it and the entry keeps its own.
+      ruleByHand: null,
     },
     edit: { identity: { id: entry.id }, tiedFields: timeEntryTiedFields, deleted },
     emptyTextFields: ["note"],

@@ -14,12 +14,14 @@ import type { ProjectReference } from "@self-engine/projects/contracts";
 import { GARDEN, OLD_SITE, projectReference, WEBSITE } from "@self-engine/projects/testing";
 import {
   dayRangesOf,
-  durationBetween,
   instantSchema,
   resolveTimeZone,
   type TimeZone,
 } from "@self-engine/time";
 import {
+  computeTimeEntry,
+  DEFAULT_ROUNDING_RULE,
+  type RoundingRule,
   daysAnswerSchema,
   daysInputSchema,
   type TimeEntryId,
@@ -48,15 +50,19 @@ export type TimeTrackingAnswers = NonNullable<
 >;
 export type TimeTrackingAnswerOptions = Omit<FixedAnswerOptions<typeof targetDeleted>, "reasons">;
 
+const BERLIN = resolveTimeZone("Europe/Berlin").timeZone;
+
 /** A well-formed Time Entry id, numbered: what the Data Process would hand out. */
 export function sampleTimeEntryId(index: number): TimeEntryId {
   return timeEntryIdSchema.parse(`01a1cfa1-0e00-7000-8000-${index.toString(16).padStart(12, "0")}`);
 }
 
 /**
- * A stored Time Entry with its Project Reference, as the Data Process answers it: on whole
- * seconds, with its Booked Duration end minus start. Without a project unless `project` names one
- * (`projectReference` of `@self-engine/projects/testing`).
+ * A stored Time Entry with its Project Reference, as the Data Process answers it: its Measured
+ * Time on whole seconds, and its Rounded Time and Booked Duration as `computeTimeEntry` makes them
+ * with `rule` in Berlin (default: the built-in "round up to 1 minute", not chosen by hand).
+ * Without a project unless `project` names one (`projectReference` of
+ * `@self-engine/projects/testing`).
  */
 export function timeEntry(
   index: number,
@@ -65,16 +71,28 @@ export function timeEntry(
     readonly endedAt: string;
     readonly project?: ProjectReference | null;
     readonly note?: string | null;
+    /** A rule chosen by hand. */
+    readonly rule?: RoundingRule;
   },
 ): TimeEntryWithProject {
   const startedAt = instantSchema.parse(fields.startedAt);
   const endedAt = instantSchema.parse(fields.endedAt);
   const project = fields.project ?? null;
+  const rule = fields.rule ?? DEFAULT_ROUNDING_RULE;
+  const { roundedTime, bookedDuration } = computeTimeEntry({
+    measuredTime: { start: startedAt, end: endedAt },
+    timeZone: BERLIN,
+    rule,
+  });
   return {
     id: sampleTimeEntryId(index),
     startedAt,
     endedAt,
-    durationSeconds: durationBetween(startedAt, endedAt),
+    roundedTime,
+    bookedDuration,
+    roundingRule: rule,
+    ruleByHand: fields.rule ?? null,
+    findings: [],
     projectId: project?.id ?? null,
     note: fields.note ?? null,
     project,
@@ -117,8 +135,6 @@ export interface StoredTimeEntries {
   /** Berlin unless a story says else, as the app's stories' device zone. */
   readonly timeZone?: TimeZone;
 }
-
-const BERLIN = resolveTimeZone("Europe/Berlin").timeZone;
 
 /** A sample entry, as every Operation's Fixed Answer returns it. */
 const SAMPLE = timeEntry(100, {
@@ -195,14 +211,12 @@ export function timeTrackingAnswers(
         return fixed.call(module, entry, input, signal);
       }
       const { span, filter } = daysInputSchema.parse(input);
-      const days = dayRangesOf(span, timeZone);
-      const first = days[0];
-      const last = days.at(-1);
-      const windowEntries =
-        first === undefined || last === undefined
-          ? []
-          : entries.filter((stored) => stored.startedAt < last.end && stored.endedAt > first.start);
-      return daysAnswerSchema.parse(groupDays(days, windowEntries, filter));
+      // `groupDays` places the entries by their Rounded Times and cuts them exactly, as the Data
+      // Process does after its window.
+      const listed = entries.map(
+        ({ roundingRule: _rule, ruleByHand: _byHand, findings: _findings, ...entry }) => entry,
+      );
+      return daysAnswerSchema.parse(groupDays(dayRangesOf(span, timeZone), listed, filter));
     },
   };
 }

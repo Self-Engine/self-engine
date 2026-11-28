@@ -7,6 +7,7 @@ import { daysAnswerSchema, daysInputSchema } from "./days.ts";
 import { timeEntrySchema, timeEntryWithProjectSchema } from "./entries.ts";
 import { timeEntryIdSchema, timerIdSchema } from "./ids.ts";
 import { noteSchema } from "./note.ts";
+import { roundingRuleSchema } from "./rounding-rule.ts";
 import {
   END_IN_FUTURE,
   START_IN_FUTURE,
@@ -45,16 +46,28 @@ export {
 
 /**
  * A Time Entry's fields, once: the inputs of create and edit are derived from them (D329, ADR
- * 0032). Start and end are required on create; project and note are optional. The Operation
- * computes the Booked Duration when it writes the range (D346). The input rejects a duration
- * field.
+ * 0032). Start and end, the Measured Time, are required on create; project and note are optional.
+ * `ruleByHand` is a Rounding Rule chosen by hand: on create it is optional, and without one the
+ * rule that holds rounds the entry; on an edit a missing one keeps the entry's own rule, a rule
+ * marks it chosen by hand, and `null` clears the choice: the rule that holds is looked up again
+ * and the mark removed. The answer carries the rule as `roundingRule` beside the mark. The
+ * Operation computes the Rounded Time and the Booked Duration on every write (ADR 0044): no input
+ * names either.
  */
 export const timeEntryFields = entryFields(timeEntryIdSchema, {
   startedAt: instantSchema,
   endedAt: instantSchema,
   projectId: projectIdSchema.nullable(),
   note: noteSchema,
+  ruleByHand: roundingRuleSchema.nullable(),
 });
+
+/**
+ * The Reason of an edit of an entry whose stored rule this version cannot read, reported at the
+ * rule chosen by hand like an input error: every edit rounds again with the entry's own rule, so the entry is
+ * kept as it is until the app is current.
+ */
+export const ROUNDING_RULE_UNKNOWN = "rounding_rule_unknown";
 
 /** The Reason of the rule across start and end; the module's form gives its text (D320). */
 export const END_BEFORE_START = "end_before_start";
@@ -102,7 +115,13 @@ const timeEntryEditSchema = timeEntryFields.edit
   .refine(timesTravelTogether, { params: { reason: "start_and_end_together" } });
 
 export {
+  instantRangeSchema,
+  type ListedTimeEntry,
+  listedTimeEntrySchema,
+  TIME_ZONE_UNKNOWN,
   type TimeEntry,
+  type TimeEntryFinding,
+  timeEntryFindingSchema,
   type TimeEntryWithProject,
   timeEntrySchema,
   timeEntryWithProjectSchema,
@@ -148,19 +167,25 @@ const byTimerId = z.strictObject({ id: timerIdSchema });
 /** The module's Port (D252): mounted as `timeTracking` in the app contract. */
 export const timeTrackingContract = {
   /**
-   * Stores the entry on whole seconds, with its Booked Duration and the Time Zone of the call (D342,
-   * D344, D346). It does not check the project: the frame's reference check refuses a deleted or
-   * unknown one and accepts an archived one (D337).
+   * Stores the entry's Measured Time on whole seconds, its Rounded Time and Booked Duration as
+   * `computeTimeEntry` makes them, its Rounding Rule and the Time Zone of the call (D342, D344,
+   * ADR 0044). Without a rule chosen by hand the default "round up to 1 minute" holds. It does not
+   * check the project: the frame's reference check refuses a deleted or unknown one and accepts an
+   * archived one (D337).
    */
   create: oc
     .input(timeEntryCreateInput)
     .output(timeEntrySchema)
     .errors({ ...refusal }),
-  /** A missing field stays untouched, `null` clears it, and an edit without fields reads. */
+  /**
+   * A missing field stays untouched, `null` clears it, and an edit without fields reads. Every
+   * other edit rounds again with the entry's own rule, in its own Time Zone. An entry whose stored
+   * rule this version cannot read is not edited: `ROUNDING_RULE_UNKNOWN` at the rule.
+   */
   edit: oc
     .input(timeEntryEditSchema)
     .output(timeEntrySchema)
-    .errors({ NOT_FOUND: {}, ...refusal }),
+    .errors({ NOT_FOUND: {}, ...inputErrors(ROUNDING_RULE_UNKNOWN), ...refusal }),
   /** A soft delete, reversible through restore. */
   delete: oc
     .input(byId)

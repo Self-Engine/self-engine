@@ -489,7 +489,7 @@ export const AStartThatStoppedAnotherTimerSaysThatItsEntryWasSaved: Story = {
                 id: sampleTimeEntryId(2),
                 startedAt: EARLIER.startedAt,
                 endedAt: "2026-11-20T10:00:00.000Z",
-                durationSeconds: 10_800,
+                bookedDuration: 10_800,
                 projectId: null,
                 note: null,
               },

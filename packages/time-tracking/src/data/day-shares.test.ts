@@ -15,10 +15,7 @@ const BERLIN = resolveTimeZone("Europe/Berlin").timeZone;
 const instant = (text: string) => instantSchema.parse(text);
 const span = (first: string, last: string) => daySpanSchema.parse({ first, last });
 const hours = (count: number) => count * 3600;
-const entry = (startedAt: string, endedAt: string) => ({
-  startedAt: instant(startedAt),
-  endedAt: instant(endedAt),
-});
+const entry = (start: string, end: string) => ({ start: instant(start), end: instant(end) });
 
 test("an entry inside one day has its whole duration as that day's share and no mark", () => {
   const days = dayRangesOf(span("2026-11-16", "2026-11-22"), BERLIN);
@@ -81,7 +78,7 @@ test("the Day Shares of a Time Entry add up to its Booked Duration, also across 
         }),
         BERLIN,
       );
-      const { shares } = dayShares({ startedAt, endedAt }, days);
+      const { shares } = dayShares({ start: startedAt, end: endedAt }, days);
       expect(shares.reduce((sum, share) => sum + share.seconds, 0)).toBe(
         durationBetween(startedAt, endedAt),
       );
