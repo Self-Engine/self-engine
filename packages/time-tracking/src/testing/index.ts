@@ -40,7 +40,7 @@ import {
   timerWithProjectSchema,
   timeTrackingContract,
 } from "../contracts/index.ts";
-import { groupDays } from "../data/group-days.ts";
+import { type EntryStretches, groupDays } from "../data/group-days.ts";
 import { TIME_TRACKING_READS } from "../data/reads.ts";
 
 const contracts = { timeTracking: timeTrackingContract };
@@ -261,10 +261,32 @@ export function timeTrackingAnswers(
       // `groupDays` places the entries by their Rounded Times and cuts them exactly, as the Data
       // Process does after its window.
       return daysAnswerSchema.parse(
-        groupDays(dayRangesOf(span, timeZone), entries.map(listedTimeEntry), filter),
+        groupDays(
+          { days: dayRangesOf(span, timeZone), timeZone },
+          entries.map(listedTimeEntry),
+          stretchesOfStored(entries),
+          filter,
+        ),
       );
     },
   };
+}
+
+/**
+ * The stretches of the stored entries as the Data Process reads them for an entry across
+ * midnight: the sample entries compute in Berlin.
+ */
+function stretchesOfStored(
+  entries: readonly TimeEntryWithProject[],
+): ReadonlyMap<TimeEntryId, EntryStretches> {
+  return new Map(
+    entries.map((entry) => [
+      entry.id,
+      entry.timeKind === "work"
+        ? { rule: entry.roundingRule, breaks: entry.breaks, timeZone: BERLIN }
+        : { rule: DEFAULT_ROUNDING_RULE, breaks: [], timeZone: BERLIN },
+    ]),
+  );
 }
 
 /** The tables each Query reads, as the Data Process's Query-to-tables list names them. */

@@ -1,16 +1,27 @@
 // The grouping of the Query of a Day Span (D343): entries in, days with their Day Shares and the
 // sums out. Pure, so the Query and the Fixed Answers of the stories group alike.
 import type { ProjectReference } from "@self-engine/projects/contracts";
-import { type DayRange, durationSchema, type Instant, type InstantRange } from "@self-engine/time";
 import {
+  cutAtDays,
+  type DayRange,
+  durationSchema,
+  type Instant,
+  type InstantRange,
+  type TimeZone,
+} from "@self-engine/time";
+import {
+  type Break,
+  countedRanges,
   type DayEntry,
   type DaysAnswer,
   type ListedTimeEntry,
   projectsOfListed,
+  type RoundingRule,
   type TimeEntryFilter,
+  type TimeEntryId,
   timeKindCounts,
 } from "../contracts/index.ts";
-import { dayShares } from "./day-shares.ts";
+import { crossesMidnight, type DayShare, divideOverItsDays } from "./day-shares.ts";
 
 /** Sums in whole seconds, keyed by project id; `null` is "no project". */
 class ProjectSums {
@@ -51,50 +62,81 @@ function placeOf(entry: ListedTimeEntry): InstantRange {
 }
 
 /**
- * The Day Shares of an entry in `days`; one without a Rounded Time has 0:00 on its start's day.
- * An entry on one day has its Booked Duration there, which leaves out its Rest Breaks. A Rest
- * Break entry and Leisure count nothing on any day.
+ * What the division of an entry across midnight reads beyond the list, for that entry alone: its
+ * rule and its breaks (`null` where this version cannot read them) and its own Time Zone.
  */
-function sharesOf(entry: ListedTimeEntry, days: readonly DayRange[]) {
-  if (entry.roundedTime !== null) {
-    const cut = dayShares(entry.roundedTime, days);
-    if (cut.crossesMidnight && !timeKindCounts(entry.timeKind))
-      return {
-        shares: cut.shares.map((share) => ({ ...share, seconds: durationSchema.parse(0) })),
-        crossesMidnight: true,
-      };
-    if (cut.crossesMidnight) return cut;
+export interface EntryStretches {
+  readonly rule: RoundingRule | null;
+  readonly breaks: readonly Break[] | null;
+  readonly timeZone: TimeZone;
+}
+
+/** The entries whose Rounded Time crosses midnight in `days`: only they need their stretches. */
+export function entriesAcrossMidnight(
+  days: readonly DayRange[],
+  entries: readonly ListedTimeEntry[],
+): ListedTimeEntry[] {
+  return entries.filter(
+    (entry) => entry.roundedTime !== null && crossesMidnight(entry.roundedTime, days),
+  );
+}
+
+/**
+ * The Day Shares of an entry in `days`; one without a Rounded Time has 0:00 on its start's day.
+ * An entry on one day has its Booked Duration there and each project its Project Share. One
+ * across midnight is divided over all its days with its stretches, and only the days in `days`
+ * are kept. Without its stretches it counts its Rounded Time, on whole seconds.
+ */
+function sharesOf(
+  entry: ListedTimeEntry,
+  days: readonly DayRange[],
+  timeZone: TimeZone,
+  stretches: EntryStretches | undefined,
+): { readonly shares: readonly DayShare[]; readonly crossesMidnight: boolean } {
+  const projectShares = projectsOfListed(entry).map(({ projectShare }) => projectShare);
+  const { roundedTime } = entry;
+  if (roundedTime === null) {
+    const day = days.find((range) => range.start <= entry.startedAt && entry.startedAt < range.end);
+    const zero = durationSchema.parse(0);
     return {
-      shares: cut.shares.map((share) => ({ ...share, seconds: entry.bookedDuration })),
+      shares:
+        day === undefined ? [] : [{ day: day.day, seconds: zero, projectParts: projectShares }],
       crossesMidnight: false,
     };
   }
-  const day = days.find((range) => range.start <= entry.startedAt && entry.startedAt < range.end);
-  return {
-    shares: day === undefined ? [] : [{ day: day.day, seconds: durationSchema.parse(0) }],
-    crossesMidnight: false,
-  };
+  if (!crossesMidnight(roundedTime, days))
+    return {
+      shares: cutAtDays(roundedTime, days).map(({ day }) => ({
+        day,
+        seconds: entry.bookedDuration,
+        projectParts: projectShares,
+      })),
+      crossesMidnight: false,
+    };
+  const rule = stretches?.rule ?? null;
+  const counted = countedRanges(
+    {
+      timeKind: entry.timeKind,
+      measuredTime: { start: entry.startedAt, end: entry.endedAt },
+      timeZone: stretches?.timeZone ?? timeZone,
+      breaks: stretches?.breaks ?? [],
+      rule,
+    },
+    roundedTime,
+  );
+  const unit = rule === null || rule.kind === "exact" ? 1 : 60;
+  const inSpan = new Set(days.map(({ day }) => day));
+  const divided = divideOverItsDays(
+    { roundedTime, bookedDuration: entry.bookedDuration, projectShares, counted, unit },
+    timeZone,
+  );
+  return { shares: divided.filter(({ day }) => inSpan.has(day)), crossesMidnight: true };
 }
 
 /**
- * The part of each project in one Day Share of an entry, in the order of its projects. An entry
- * that lies in one day gives each project its Project Share. Across midnight each further
- * project gets its part of the Day Share by its share, cut down to the whole second, and the Lead
- * Project the rest, so the parts add up to the Day Share and none is below zero.
- */
-function projectPartsOf(entry: ListedTimeEntry, dayShare: number): number[] {
-  const projects = projectsOfListed(entry);
-  const { bookedDuration } = entry;
-  if (dayShare === bookedDuration) return projects.map(({ projectShare }) => projectShare);
-  const further = projects
-    .slice(1)
-    .map(({ projectShare }) => Math.floor((dayShare * projectShare) / bookedDuration));
-  return [Math.max(0, dayShare - further.reduce((sum, part) => sum + part, 0)), ...further];
-}
-
-/**
- * The answer for `days`, consecutive whole days as `dayRangesOf` gives them. Pass every entry
- * that may touch the window, in any order: it places them by their Rounded Times and cuts them
+ * The answer for `days`, consecutive whole days as `dayRangesOf` gives them in `timeZone`, the
+ * Time Zone of the call. Pass every entry that may touch the window, in any order, and the
+ * stretches of those of them `entriesAcrossMidnight` names: it places them by their Rounded Times and cuts them
  * exactly, and a filter hides an entry without hiding its overlaps. Overlaps are judged on the
  * Rounded Times; an entry without one overlaps nothing. Only the Day Shares of visible entries
  * inside the span contribute to the sums. The sums per project read the Project Shares; under a
@@ -103,8 +145,9 @@ function projectPartsOf(entry: ListedTimeEntry, dayShare: number): number[] {
  * and "no project", a Rest Break entry and Leisure toward no sum.
  */
 export function groupDays(
-  days: readonly DayRange[],
+  { days, timeZone }: { readonly days: readonly DayRange[]; readonly timeZone: TimeZone },
   candidates: readonly ListedTimeEntry[],
+  stretches: ReadonlyMap<TimeEntryId, EntryStretches>,
   filter?: TimeEntryFilter,
 ): DaysAnswer {
   const entries = candidates.toSorted(
@@ -126,7 +169,12 @@ export function groupDays(
     if (only === -1) continue;
     if (filter?.kind === "noProject" && shared.length > 0) continue;
 
-    const { shares, crossesMidnight } = sharesOf(entry, days);
+    const { shares, crossesMidnight: across } = sharesOf(
+      entry,
+      days,
+      timeZone,
+      stretches.get(entry.id),
+    );
     for (const share of shares) {
       const day = byDay.get(share.day);
       if (day === undefined) continue;
@@ -134,10 +182,10 @@ export function groupDays(
       day.entries.push({
         ...entry,
         dayShare: share.seconds,
-        crossesMidnight,
+        crossesMidnight: across,
         overlaps: overlaps.has(entry.id),
       });
-      const parts = projectPartsOf(entry, share.seconds);
+      const parts = share.projectParts;
       if (shared.length === 0 && timeKindCounts(entry.timeKind)) projects.add(null, share.seconds);
       for (const [index, { project }] of shared.entries())
         if (only === undefined || only === index) projects.add(project, parts[index] ?? 0);

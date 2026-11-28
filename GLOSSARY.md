@@ -306,7 +306,7 @@ The _Duration_ that counts toward the totals for a _Time Entry_: the work that c
 _Avoid_: elapsed time (for the amount counted), billed time
 
 **Day Share** (de: _Tagesanteil_):
-The part of a _Time Entry_'s _Booked Duration_ that counts toward one _Calendar Day_.
+The part of a _Time Entry_'s _Booked Duration_ that counts toward one _Calendar Day_. An entry on one day has its whole _Booked Duration_ there. One whose _Rounded Time_ crosses midnight gets on each day the part of its _Rounded Time_ that lies on it, without the _Rest Breaks_ that lie on it; every day but the last is cut down to the whole minute (the whole second under _Exact_) and the last gets the rest, so the Day Shares add up to the _Booked Duration_. Each _Project Share_ is divided over the days in the same way.
 _Avoid_: daily total, split entry
 
 **Project Share** (de: _Projektanteil_):

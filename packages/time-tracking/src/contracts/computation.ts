@@ -171,6 +171,32 @@ function round(
   }
 }
 
+/**
+ * Where an entry's Booked Duration lies in its Rounded Time, as ranges in time order: what the
+ * Day Shares cut at midnight (D343). A Work Entry counts its Rounded Time without the Rest Breaks
+ * in it; under Block Rounding, where a Rest Break inside a counted Block counts, the Blocks that
+ * count. A Short Break entry counts its Rounded Time, a Rest Break entry and Leisure nothing.
+ * Under Ordinary Rounding the ranges can differ from the Booked Duration by the seconds the rule
+ * rounded; the division of the Day Shares makes them add up. Reading is lenient, as in
+ * `computeTimeEntry`.
+ */
+export function countedRanges(
+  input: Pick<TimeEntryComputationInput, "timeKind" | "measuredTime" | "timeZone" | "breaks"> & {
+    readonly rule: RoundingRule | null;
+  },
+  roundedTime: InstantRange,
+): InstantRange[] {
+  if (input.timeKind === "short_break") return [roundedTime];
+  if (input.timeKind !== "work") return [];
+  if (input.rule?.kind === "block")
+    return countedBlocks(
+      countingRanges(input.measuredTime, restCover(input.measuredTime, input.breaks)),
+      input.rule.minutes,
+      input.timeZone,
+    );
+  return countingRanges(roundedTime, restCover(roundedTime, input.breaks));
+}
+
 /** The counting time in whole steps; exactly half a step rounds up under "to the nearest step". */
 function roundSeconds(seconds: Duration, step: number, direction: RoundingDirection): Duration {
   const steps =

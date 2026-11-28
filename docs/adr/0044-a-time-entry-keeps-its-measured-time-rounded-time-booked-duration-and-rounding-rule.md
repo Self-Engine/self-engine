@@ -225,18 +225,45 @@ mark, the breaks, the findings and `changedByLimit`, so it parses neither the ru
   Time overlaps nothing (D311).
 - The sums per project read the Project Shares and add up to the total of the entries that have a
   project. A filter by project holds the entries with a share in it, and every sum counts that
-  share; "no project" holds the entries without a share. Until
-  [Day Shares per day and per project](https://github.com/Self-Engine/self-engine/issues/444) is
-  built, an entry with several projects across midnight divides each Day Share by its shares, the
-  Lead Project getting the rest.
+  share, while each entry's `dayShare` stays the whole entry's; "no project" holds the entries
+  without a share.
 - An entry that is not work stands like any other, with its Rounded Time and its Booked Duration,
   and the week shows it without a project until
   [its surface](https://github.com/Self-Engine/self-engine/issues/421) is built. A day's total adds
   Booked Durations: a Short Break entry counts toward the day and toward "no project", a Rest Break
   entry and a Leisure Entry add nothing to any sum, across midnight too.
-- An entry on one Calendar Day has its Booked Duration as its Day Share. `dayShares` cuts the
-  Rounded Time of an entry across midnight at the Calendar Days of the Time Zone of the call;
-  without Rest Breaks its pieces add up to the Booked Duration.
+
+### The Day Shares
+
+A Day Share stays computed on read (D343), in `data/day-shares.ts`, the one place that divides an
+entry over its days.
+
+- **An entry on one Calendar Day** has its Booked Duration as its Day Share and each project its
+  Project Share. Nothing else is read or computed for it.
+- **An entry whose Rounded Time crosses midnight** in the Time Zone of the call gets a Day Share on
+  each day it touches: the part of its Rounded Time on that day without the Rest Breaks on that
+  day. `countedRanges` in `contracts/computation.ts` says where the Booked Duration lies, reusing
+  `restCover`: the Rounded Time without the Rest Breaks in it; under Block Rounding, where a Rest
+  Break inside a counted Block counts, the Blocks that count; for a Short Break entry its Rounded
+  Time; for a Rest Break entry and Leisure nothing. The Work Entry 22:00 – 02:00 with a Rest Break
+  of 23:30 – 00:30 counts 1:30 on each day.
+- **The Day Shares add up.** Every day but the last gets its part cut down to the unit of the
+  shares, a minute or a second under Exact, never more than is left, and the last day gets the
+  rest (`divideOverDays`). So they add up to the Booked Duration exactly under every rule, also
+  where Ordinary Rounding counts a few seconds more or less than lie in the Rounded Time, and none
+  is below zero.
+- **Each Project Share is divided over the days** (`divideProjectShares`): every day but the last
+  gives each project its part of the day by its share, cut down to the unit; what is left of the
+  day goes to the projects in their order, the Lead Project first, as far as their shares reach;
+  the last day gets what is left of each share. Per day the parts add up to the Day Share, per
+  project to the Project Share, and none is below zero.
+- **The division covers every day the entry touches,** inside the span or not, and the span keeps
+  its own days. So the sums per day, per project and of the span count only the parts inside it,
+  and two adjacent spans add up to the entry.
+- **The read.** Only the entries across midnight (`entriesAcrossMidnight`) need their rule, their
+  breaks and their own Time Zone; the Query reads and parses them in one more read for all of
+  them, and none when no entry crosses midnight. A rule or list this version cannot read counts
+  the Rounded Time on whole seconds.
 
 ### The display
 
@@ -260,9 +287,8 @@ beneath them is the measured one. Durations follow
   and cannot be edited until the app is current.
 - Every edit and every move costs one lookup of the row before its write. A sum of breaks over a
   period reads the entries and adds in code.
-- Until [Day Shares without the Rest Breaks of a day](https://github.com/Self-Engine/self-engine/issues/444)
-  is built, an entry across midnight with a Rest Break shares its Rounded Time, not its Booked
-  Duration, between its days.
+- A Day Share across midnight is computed on every read of a span, from the entry's breaks and
+  rule; it is never stored, so a change of the Time Zone divides past entries anew.
 
 ## Considered Options
 
@@ -275,6 +301,10 @@ beneath them is the measured one. Durations follow
   columns and, since SQLite cannot change a check, a rebuild of the table.
 - **Rewrite the merged migrations.** A database that ran them would never run the rewritten file
   and would fail at the first query on a new column.
+- **Under Block Rounding, the Rounded Time of a day less its Rest Breaks.** A Rest Break inside a
+  counted Block counts, so the days would add up to less than the Booked Duration and the last day
+  would get the difference: 22:10 – 00:10 with a Rest Break of 22:20 – 23:50 in Blocks of an hour
+  would count 0:30 on the first day and 2:30 on the second, instead of 2:00 and 1:00.
 - **"Look up again" as `null` on the answer's `roundingRule`.** `null` clears a field in every
   edit (ADR 0032), and the answer would carry the looked-up rule where `null` was sent; the rule
   chosen by hand is the field that `null` clears.
