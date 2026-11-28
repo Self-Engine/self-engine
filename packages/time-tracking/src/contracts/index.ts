@@ -54,6 +54,7 @@ export {
 export {
   type ComputationFinding,
   computeTimeEntry,
+  countedRanges,
   notWorkFindings,
   type TimeEntryComputation,
   type TimeEntryComputationInput,
