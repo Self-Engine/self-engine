@@ -72,7 +72,10 @@ async function saveEntry(
       startedAt: timer.started_at,
       endedAt: end,
       timeZone,
-      rule: ruleThatHolds(),
+      rule: await ruleThatHolds(tx, context, {
+        projectId: timer.project_id,
+        startedAt: timer.started_at,
+      }),
       ruleChosenByHand: false,
     }),
     project_id: timer.project_id,

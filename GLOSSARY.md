@@ -318,7 +318,7 @@ The start and end where a _Time Entry_ counts, made from its _Measured Time_ by 
 _Avoid_: display time, billed time
 
 **Rounding Rule** (de: _Rundungsregel_):
-What makes the _Rounded Time_ and the _Booked Duration_ of a _Time Entry_ from its _Measured Time_: _Exact_, _Ordinary Rounding_ or _Block Rounding_. The default rounds up to 1 minute.
+What makes the _Rounded Time_ and the _Booked Duration_ of a _Time Entry_ from its _Measured Time_: _Exact_, _Ordinary Rounding_ or _Block Rounding_. A project has its own rules and the app one of its own, each holding from an Instant; an entry gets the rule that held at its start. The default rounds up to 1 minute.
 _Avoid_: rounding mode, rounding setting, precision
 
 **Exact** (de: _sekundengenau_):

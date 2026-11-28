@@ -6,7 +6,7 @@ import { projects } from "@self-engine/projects/data";
 import { checkContract } from "@self-engine/storage/testing";
 import { instantSchema } from "@self-engine/time";
 import { expect, test } from "vite-plus/test";
-import { timeEntryIdSchema, timerIdSchema } from "../contracts/index.ts";
+import { roundingRuleIdSchema, timeEntryIdSchema, timerIdSchema } from "../contracts/index.ts";
 import { timeTracking } from "./index.ts";
 import { timeTrackingMigrations, timeTrackingRowMap } from "./rows.ts";
 
@@ -22,7 +22,7 @@ const stoppedTimerId = timerIdSchema.parse(seedId(4));
 const timerId = timerIdSchema.parse(seedId(5));
 const instant = (text: string) => instantSchema.parse(text);
 
-test("the time entries and timers tables follow the conventions and agrees with its row map", async () => {
+test("the time entries, timers and rounding rules tables follow the conventions and agrees with its row map", async () => {
   const database = openDatabase(":memory:");
   try {
     await createMigrationRunner(database, [
@@ -73,6 +73,22 @@ test("time-tracking passes the storage contract kit with `projects` below it", a
           id: timer.id,
           startedAt: instant("2026-11-12T09:00:00.000Z"),
         });
+        // A rule of the project, a Part Row of it, and the app-wide rule, which names none. No
+        // Operation writes a rule yet (#422); their ids come after the counted ones above.
+        const rule = (project_id: typeof website.id | null) => ({
+          id: context.newId(roundingRuleIdSchema),
+          created_at: context.now,
+          updated_at: context.now,
+          deleted_at: null,
+          space_id: context.spaceId,
+          project_id,
+          holds_from: null,
+          rounding_rule: '{"kind":"ordinary","direction":"up","minutes":15}',
+        });
+        await tx
+          .insertInto("rounding_rules")
+          .values([rule(website.id), rule(null)])
+          .execute();
       },
       {
         create: {

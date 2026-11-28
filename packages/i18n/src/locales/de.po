@@ -25,6 +25,10 @@ msgid "{count, plural, one {project} other {projects}}"
 msgstr "{count, plural, one {Projekt} other {Projekte}}"
 
 #: packages/time-tracking/src/table-names.ts
+msgid "{count, plural, one {rounding rule} other {rounding rules}}"
+msgstr "{count, plural, one {Rundungsregel} other {Rundungsregeln}}"
+
+#: packages/time-tracking/src/table-names.ts
 msgid "{count, plural, one {time entry} other {time entries}}"
 msgstr "{count, plural, one {Zeiteintrag} other {Zeiteinträge}}"
 
