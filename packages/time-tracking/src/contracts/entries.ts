@@ -1,8 +1,8 @@
-import { projectIdSchema, projectReferenceSchema } from "@self-engine/projects/contracts";
 import { durationSchema, instantSchema } from "@self-engine/time";
 import { z } from "zod";
 import { BREAK_REASONS, breakSchema } from "./breaks.ts";
 import { timeEntryIdSchema } from "./ids.ts";
+import { projectShareSchema, projectShareWithProjectSchema } from "./project-shares.ts";
 import { roundingRuleSchema } from "./rounding-rule.ts";
 
 /** A start and an end, as the Rounded Time of a Time Entry. */
@@ -49,17 +49,21 @@ export const timeEntrySchema = z.object({
   findings: z.array(timeEntryFindingSchema),
   /** The breaks inside the entry, as stored; `null` for a list this version cannot read. */
   breaks: z.array(breakSchema).nullable(),
-  projectId: projectIdSchema.nullable(),
+  /**
+   * The projects the entry counts for, the Lead Project first, each with its Weight and its
+   * Project Share; empty for an entry without a project. The shares add up to the Booked Duration.
+   */
+  projects: z.array(projectShareSchema),
   note: z.string().nullable(),
 });
 export type TimeEntry = z.output<typeof timeEntrySchema>;
 
 /**
- * A Time Entry with its project as a Project Reference (D330), as the Edit Drawer shows it: `null`
- * without a project. An archived or deleted project keeps its marks.
+ * A Time Entry with the Project Reference of each of its projects (D330), as a Query answers it.
+ * An archived or deleted project keeps its marks.
  */
 export const timeEntryWithProjectSchema = timeEntrySchema.extend({
-  project: projectReferenceSchema.nullable(),
+  projects: z.array(projectShareWithProjectSchema),
 });
 export type TimeEntryWithProject = z.output<typeof timeEntryWithProjectSchema>;
 

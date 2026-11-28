@@ -569,7 +569,9 @@ stands, write nothing, announce nothing and leave `updated_at`; after the exampl
 must equal the example's, though the clock has moved on. An id no seed produced must be not
 found. After the example, the kit
 sends each field alone, first as `null` where the input allows it, then as the example's value:
-that field must be cleared or set, and every other field must keep its value. The kit test of
+that field must be cleared or set, and every other field must keep its value. For a list field
+the answer may add computed parts to each item; what was sent stands in it unchanged, item by
+item and in order. The kit test of
 [`memos`](../../packages/storage/src/testing/edits.test.ts) shows a passing module and one for
 each failure. The kit finds an edit only by its flag: an edit Operation without `edit: true` is
 not checked against the pattern.

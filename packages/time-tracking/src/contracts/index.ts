@@ -1,6 +1,5 @@
 import { oc } from "@orpc/contract";
 import { entryFields, inputErrors, refusal } from "@self-engine/db/schema";
-import { projectIdSchema } from "@self-engine/projects/ids";
 import { type Instant, instantSchema, wholeSecondOf } from "@self-engine/time";
 import { z } from "zod";
 import { BREAK_REASONS, breakSchema } from "./breaks.ts";
@@ -8,6 +7,7 @@ import { daysAnswerSchema, daysInputSchema } from "./days.ts";
 import { timeEntrySchema, timeEntryWithProjectSchema } from "./entries.ts";
 import { timeEntryIdSchema, timerIdSchema } from "./ids.ts";
 import { noteSchema } from "./note.ts";
+import { projectsInputSchema } from "./project-shares.ts";
 import { roundingRuleSchema } from "./rounding-rule.ts";
 import {
   END_IN_FUTURE,
@@ -23,6 +23,7 @@ import {
 } from "./timers.ts";
 
 export {
+  projectShareIdSchema,
   roundingRuleIdSchema,
   type TimeEntryId,
   timeEntryIdOfTimer,
@@ -49,6 +50,18 @@ export {
   type TimeEntryComputationInput,
 } from "./computation.ts";
 export {
+  PROJECT_NAMED_TWICE,
+  type ProjectShare,
+  type ProjectShareWithProject,
+  projectShareSchema,
+  projectShareWithProjectSchema,
+  projectsInputSchema,
+  WEIGHT_MAX,
+  WEIGHT_MIN,
+  WEIGHT_OUT_OF_RANGE,
+  weightSchema,
+} from "./project-shares.ts";
+export {
   BLOCK_ROUNDING_MINUTES,
   DEFAULT_ROUNDING_RULE,
   ORDINARY_ROUNDING_MINUTES,
@@ -60,7 +73,11 @@ export {
 
 /**
  * A Time Entry's fields, once: the inputs of create and edit are derived from them (D329, ADR
- * 0032). Start and end, the Measured Time, are required on create; project and note are optional.
+ * 0032). Start and end, the Measured Time, are required on create; projects and note are optional.
+ * `projects` is the ordered list of the entry's projects, the Lead Project first, each with an
+ * optional Weight (1 without one, so equal parts), never `null`: the empty list is no project.
+ * Create makes it optional (none without), and an edit replaces it as a whole. The answer carries
+ * each project as it was sent, with its Weight and its computed Project Share beside it.
  * `ruleByHand` is a Rounding Rule chosen by hand: on create it is optional, and without one the
  * rule that holds rounds the entry; on an edit a missing one keeps the entry's own rule, a rule
  * marks it chosen by hand, and `null` clears the choice: the rule that holds is looked up again
@@ -73,7 +90,7 @@ export {
 export const timeEntryFields = entryFields(timeEntryIdSchema, {
   startedAt: instantSchema,
   endedAt: instantSchema,
-  projectId: projectIdSchema.nullable(),
+  projects: projectsInputSchema,
   note: noteSchema,
   ruleByHand: roundingRuleSchema.nullable(),
   breaks: z.array(breakSchema),
@@ -130,7 +147,10 @@ function timesTravelTogether(input: EditFields): input is EditFields & EditTimes
 // supplies the caller input type and lets the contract kit check the edit pattern.
 /** The input of create, which the input Command checks with too: the same checks for every caller. */
 export const timeEntryCreateInput = timeEntryFields.create
-  .extend({ breaks: timeEntryFields.fields.breaks.optional() })
+  .extend({
+    breaks: timeEntryFields.fields.breaks.optional(),
+    projects: timeEntryFields.fields.projects.optional(),
+  })
   .refine(endsAfterStart, endsAfterStartIssue);
 
 const timeEntryEditSchema = timeEntryFields.edit

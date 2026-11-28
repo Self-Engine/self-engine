@@ -298,7 +298,7 @@ _Avoid_: week number, start date, weekday index
 ### Time Tracking
 
 **Time Entry** (de: _Zeiteintrag_):
-A record of time spent: its _Measured Time_, its _Rounded Time_ and _Booked Duration_ as its _Rounding Rule_ makes them, and an optional project and note.
+A record of time spent: its _Measured Time_, its _Rounded Time_ and _Booked Duration_ as its _Rounding Rule_ makes them, the projects it counts for, and an optional note.
 _Avoid_: time log (for one entry), timer
 
 **Booked Duration** (de: _gebuchte Dauer_):
@@ -308,6 +308,18 @@ _Avoid_: elapsed time (for the amount counted), billed time
 **Day Share** (de: _Tagesanteil_):
 The part of a _Time Entry_'s _Booked Duration_ that counts toward one _Calendar Day_.
 _Avoid_: daily total, split entry
+
+**Project Share** (de: _Projektanteil_):
+The part of a _Time Entry_'s _Booked Duration_ that counts for one of its projects; the counterpart of _Day Share_. Every project after the _Lead Project_ gets its part by _Weight_, cut down to the whole minute (to the whole second under _Exact_), and the _Lead Project_ gets the rest, so the shares add up to the _Booked Duration_. It is computed, never entered, and can be 0:00.
+_Avoid_: allocation, split, Shared time
+
+**Weight** (de: _Gewicht_):
+What the user stated for a project of a _Time Entry_: a whole number from 1 to 10,000. Equal parts are 1 : 1, "50 %, 30 %, 20 %" are 50, 30 and 20.
+_Avoid_: percentage, ratio
+
+**Lead Project** (de: _Leitprojekt_):
+The first project of a _Time Entry_: its _Rounding Rule_ rounds the entry, and it gets the rest of the division into _Project Shares_.
+_Avoid_: main project, primary project
 
 **Time Kind** (de: _Zeitart_):
 What a piece of recorded time is for the count: _Work_, _Short Break_, _Rest Break_ or Leisure. A fixed list; there are no freely named categories.

@@ -67,6 +67,7 @@ describe("the rounding resolution's table: a timer from 10:07:30 to 10:29:50", (
       roundedTime: { start: berlinAt(roundedStart), end: berlinAt(roundedEnd) },
       bookedDuration,
       findings: [],
+      projectShares: [],
     });
   });
 });
@@ -78,6 +79,7 @@ describe("Ordinary Rounding", () => {
       roundedTime: { start: berlinAt("10:00"), end: berlinAt("10:15") },
       bookedDuration: minutes(15),
       findings: [],
+      projectShares: [],
     });
   });
 
@@ -93,6 +95,7 @@ describe("Ordinary Rounding", () => {
       roundedTime: { start: berlinAt("10:00"), end: berlinAt("10:45") },
       bookedDuration: minutes(45),
       findings: [],
+      projectShares: [],
     });
   });
 
@@ -102,6 +105,7 @@ describe("Ordinary Rounding", () => {
       roundedTime: null,
       bookedDuration: 0,
       findings: [],
+      projectShares: [],
     });
   });
 });
@@ -125,6 +129,7 @@ describe("Block Rounding", () => {
       roundedTime: { start: at("2026-03-02T04:15:00.000Z"), end: at("2026-03-02T05:15:00.000Z") },
       bookedDuration: minutes(60),
       findings: [],
+      projectShares: [],
     });
   });
 
@@ -133,6 +138,7 @@ describe("Block Rounding", () => {
       roundedTime: { start: berlinAt("10:00"), end: berlinAt("10:30") },
       bookedDuration: minutes(30),
       findings: [],
+      projectShares: [],
     });
   });
 });
@@ -172,6 +178,7 @@ describe("breaks", () => {
       roundedTime: { start: berlinAt("09:00"), end: berlinAt("12:40") },
       bookedDuration: minutes(200),
       findings: [],
+      projectShares: [],
     });
   });
 
@@ -195,6 +202,7 @@ describe("breaks", () => {
       roundedTime: { start: berlinAt("09:00"), end: berlinAt("12:00") },
       bookedDuration: minutes(150),
       findings: [],
+      projectShares: [],
     });
   });
 

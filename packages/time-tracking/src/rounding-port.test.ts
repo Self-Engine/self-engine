@@ -177,7 +177,7 @@ test("an entry whose stored rule this version cannot read is answered with its s
   await storeAsElsewhere(id, { rounding_rule: '{"kind":"minimum","minutes":30}' });
   const stored = { ...created, roundingRule: null, ruleByHand: null };
 
-  await expect(client.timeTracking.entry({ id })).resolves.toEqual({ ...stored, project: null });
+  await expect(client.timeTracking.entry({ id })).resolves.toEqual(stored);
   for (const edit of [
     { note: "Review" },
     { startedAt: at("11:00:00"), endedAt: at("11:30:00") },

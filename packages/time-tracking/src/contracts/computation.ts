@@ -16,10 +16,7 @@ import type { ROUNDING_DIRECTIONS, RoundingRule } from "./rounding-rule.ts";
 
 type RoundingDirection = (typeof ROUNDING_DIRECTIONS)[number];
 
-/**
- * What the computation of a Time Entry takes. Later inputs (the Time Kind, the ordered projects
- * with their Weights) join as further fields.
- */
+/** What the computation of a Time Entry takes. A later input (the Time Kind) joins as a field. */
 export interface TimeEntryComputationInput {
   /** The Measured Time: start and end on whole seconds, the end after the start. */
   readonly measuredTime: InstantRange;
@@ -34,6 +31,11 @@ export interface TimeEntryComputationInput {
    * built, only nothing can be handed in.
    */
   readonly occupiedTime?: readonly never[];
+  /**
+   * The entry's projects in their order, the Lead Project first, each with its Weight; none for an
+   * entry without a project.
+   */
+  readonly projects?: readonly { readonly weight: number }[];
 }
 
 /** What a Time Entry counts, as the computation answers it. */
@@ -47,10 +49,12 @@ export interface TimeEntryComputation {
    * stands all the same (reading is lenient), and the Operation refuses a write with any.
    */
   readonly findings: readonly BreakFinding[];
+  /** The part of the Booked Duration each project gets, in the order of the projects. */
+  readonly projectShares: readonly Duration[];
 }
 
-/** The Rounded Time and the Booked Duration, before the findings join them. */
-type Rounded = Omit<TimeEntryComputation, "findings">;
+/** The Rounded Time and the Booked Duration, before the findings and the shares join them. */
+type Rounded = Omit<TimeEntryComputation, "findings" | "projectShares">;
 
 const earlier = (a: Instant, b: Instant) => (a < b ? a : b);
 const later = (a: Instant, b: Instant) => (a > b ? a : b);
@@ -172,16 +176,38 @@ function withoutOccupiedTime(rounded: Rounded, _occupiedTime: readonly never[]):
 }
 
 /**
+ * The Project Shares (#404): every further project gets its part of the Booked Duration by Weight,
+ * cut down to the whole minute (to the whole second under Exact), and the Lead Project gets the
+ * rest. So the shares add up to the Booked Duration exactly, and none is below zero.
+ */
+function projectSharesOf(
+  bookedDuration: Duration,
+  rule: RoundingRule,
+  projects: readonly { readonly weight: number }[],
+): Duration[] {
+  if (projects.length === 0) return [];
+  const unit = rule.kind === "exact" ? 1 : 60;
+  const weights = projects.reduce((sum, { weight }) => sum + weight, 0);
+  const further = projects
+    .slice(1)
+    .map(({ weight }) => Math.floor((bookedDuration * weight) / (weights * unit)) * unit);
+  const lead = bookedDuration - further.reduce((sum, share) => sum + share, 0);
+  return [lead, ...further].map((share) => durationSchema.parse(share));
+}
+
+/**
  * The one computation of what a Time Entry counts, pure and without storage or clock, so the
  * Operation stores and the page shows the same numbers. The rule rounds the Measured Time first;
- * then the overlap rule takes away what is occupied. A result of 0:00 has no Rounded Time. The
- * findings name the rules the breaks break; the result stands for any list of breaks.
+ * then the overlap rule takes away what is occupied; then the Project Shares divide what counts.
+ * A result of 0:00 has no Rounded Time. The findings name the rules the breaks break; the result
+ * stands for any list of breaks.
  */
 export function computeTimeEntry(input: TimeEntryComputationInput): TimeEntryComputation {
   const findings = breakFindings(input.measuredTime, input.breaks);
   const rounded = round(input.measuredTime, input.timeZone, input.rule, input.breaks);
   const counted = withoutOccupiedTime(rounded, input.occupiedTime ?? []);
+  const projectShares = projectSharesOf(counted.bookedDuration, input.rule, input.projects ?? []);
   if (counted.bookedDuration === 0)
-    return { roundedTime: null, bookedDuration: counted.bookedDuration, findings };
-  return { ...counted, findings };
+    return { roundedTime: null, bookedDuration: counted.bookedDuration, findings, projectShares };
+  return { ...counted, findings, projectShares };
 }

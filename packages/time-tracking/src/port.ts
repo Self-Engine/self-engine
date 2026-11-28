@@ -28,8 +28,11 @@ const timeTrackingPort = portHooks<
   TablesOf<typeof timeTrackingRowMap>
 >(MOUNT);
 
-/** The frame refuses a deleted project at the column; the form shows it at the project (D334). */
-const AT_PROJECT = { columns: { time_entries: { project_id: "projectId" } } } as const;
+/**
+ * The frame refuses a deleted project at the column of its share; the form shows it at the
+ * projects (D334).
+ */
+const AT_PROJECT = { columns: { project_shares: { project_id: "projects" } } } as const;
 
 /** One stored entry with its Project Reference, for the Edit Drawer; `null` once it is gone. */
 export const useTimeEntry = timeTrackingPort.query("entry");

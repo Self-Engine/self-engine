@@ -12,17 +12,17 @@ import { timeTrackingMigrations, timeTrackingRowMap } from "./rows.ts";
 
 /** The `n`th deterministic id of the contract kit's seed. */
 const seedId = (n: number) => `01a1cfa1-0a00-7000-8000-${String(n).padStart(12, "0")}`;
-// The seed creates the project first, then its time entry.
+// The seed creates the project first, then two time entries, each followed by its Project Share.
 const projectId = projectIdSchema.parse(seedId(0));
 const entryId = timeEntryIdSchema.parse(seedId(1));
-const deletedEntryId = timeEntryIdSchema.parse(seedId(2));
+const deletedEntryId = timeEntryIdSchema.parse(seedId(3));
 // Then a discarded timer, a stopped one with its entry of the same id, and a running one.
-const discardedTimerId = timerIdSchema.parse(seedId(3));
-const stoppedTimerId = timerIdSchema.parse(seedId(4));
-const timerId = timerIdSchema.parse(seedId(5));
+const discardedTimerId = timerIdSchema.parse(seedId(5));
+const stoppedTimerId = timerIdSchema.parse(seedId(6));
+const timerId = timerIdSchema.parse(seedId(7));
 const instant = (text: string) => instantSchema.parse(text);
 
-test("the time entries, timers and rounding rules tables follow the conventions and agrees with its row map", async () => {
+test("the time entries, Project Shares, timers and rounding rules tables follow the conventions and agrees with its row map", async () => {
   const database = openDatabase(":memory:");
   try {
     await createMigrationRunner(database, [
@@ -47,7 +47,7 @@ test("time-tracking passes the storage contract kit with `projects` below it", a
         const range = {
           startedAt: instant("2026-11-16T09:00:00.000Z"),
           endedAt: instant("2026-11-16T10:30:00.000Z"),
-          projectId: website.id,
+          projects: [{ projectId: website.id }],
         };
         const { entries } = timeTracking;
         await entries.create.run(tx, context, { ...range, note: "Design" });
@@ -94,7 +94,7 @@ test("time-tracking passes the storage contract kit with `projects` below it", a
         create: {
           startedAt: "2026-11-16T11:00:00.250Z",
           endedAt: "2026-11-16T12:00:00.750Z",
-          projectId,
+          projects: [{ projectId }],
           note: "Build",
           ruleByHand: { kind: "exact" },
           breaks: [
@@ -110,7 +110,7 @@ test("time-tracking passes the storage contract kit with `projects` below it", a
           id: entryId,
           startedAt: "2026-11-16T11:00:00.000Z",
           endedAt: "2026-11-16T12:00:00.000Z",
-          projectId,
+          projects: [{ projectId, weight: 3 }],
           note: "Review",
           ruleByHand: { kind: "ordinary", direction: "up", minutes: 15 },
           breaks: [

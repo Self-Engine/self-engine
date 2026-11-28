@@ -8,6 +8,8 @@ import {
   breakFindings,
   breaksTextSchema,
   type ListedTimeEntry,
+  type ProjectShare,
+  projectShareIdSchema,
   roundingRuleIdSchema,
   roundingRuleTextSchema,
   type TimeEntry,
@@ -39,13 +41,25 @@ export const timeTrackingRowMap = {
     // one cannot read, so it is no `RoundingRule` here.
     rounding_rule: z.string(),
     rule_chosen_by_hand: sqliteBoolean,
-    project_id: projectIdSchema.nullable(),
     note: z.string().nullable(),
     // The stored text, read with `breaksTextSchema`: a later version may write a stretch this one
     // cannot read, so it is no list of breaks here.
     breaks: z.string(),
     // The stored name, as chosen; a later runtime may not know it, so it is no `TimeZone`.
     time_zone: z.string(),
+  }),
+  // The projects of an entry, each a Part Row of its entry (ADR 0042, ADR 0044).
+  project_shares: z.object({
+    id: projectShareIdSchema,
+    created_at: instantSchema,
+    updated_at: instantSchema,
+    deleted_at: instantSchema.nullable(),
+    space_id: spaceIdSchema,
+    time_entry_id: timeEntryIdSchema,
+    project_id: projectIdSchema,
+    place: z.number().int(),
+    weight: z.number().int(),
+    project_share: durationSchema,
   }),
   // A project's rules are Part Rows of their project; the app-wide rule names none (ADR 0044).
   rounding_rules: z.object({
@@ -85,7 +99,6 @@ export const LISTED_TIME_ENTRY_COLUMNS = [
   "time_entries.rounded_started_at",
   "time_entries.rounded_ended_at",
   "time_entries.booked_duration",
-  "time_entries.project_id",
   "time_entries.note",
 ] as const;
 
@@ -108,7 +121,7 @@ export type TimeEntryValues = ColumnsOf<typeof TIME_ENTRY_COLUMNS>;
 // Do not parse the row here: agreement is checked in tests, not on every query.
 export const toListedTimeEntry = (
   row: ListedTimeEntryValues,
-): Omit<ListedTimeEntry, "project"> => ({
+): Omit<ListedTimeEntry, "projects"> => ({
   id: row.id,
   startedAt: row.started_at,
   endedAt: row.ended_at,
@@ -118,16 +131,15 @@ export const toListedTimeEntry = (
       ? null
       : { start: row.rounded_started_at, end: row.rounded_ended_at },
   bookedDuration: row.booked_duration,
-  projectId: row.project_id,
   note: row.note,
 });
 
 /**
- * The entry with its rule and its breaks: a stored rule or list this version cannot read is
- * answered as `null`, beside the stored numbers, so the entry stays readable. The findings are
- * computed here, on read, and never stored.
+ * The entry with its rule, its breaks and its projects: a stored rule or list this version cannot
+ * read is answered as `null`, beside the stored numbers, so the entry stays readable. The findings
+ * are computed here, on read, and never stored.
  */
-export function toTimeEntry(row: TimeEntryValues): TimeEntry {
+export function toTimeEntry(row: TimeEntryValues, projects: readonly ProjectShare[]): TimeEntry {
   const rule = roundingRuleTextSchema.safeDecode(row.rounding_rule);
   const roundingRule = rule.success ? rule.data : null;
   const stored = breaksTextSchema.safeDecode(row.breaks);
@@ -142,6 +154,7 @@ export function toTimeEntry(row: TimeEntryValues): TimeEntry {
       ...breakFindings(measured, breaks ?? []),
     ],
     breaks,
+    projects: [...projects],
   };
 }
 

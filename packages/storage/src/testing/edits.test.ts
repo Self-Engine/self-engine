@@ -2,6 +2,7 @@ import { refusal } from "@self-engine/db/schema";
 import { oc } from "@orpc/contract";
 import { ORPCError } from "@orpc/server";
 import { expect, test } from "vite-plus/test";
+import { z } from "zod";
 import {
   bodyDiffers,
   bodyRule,
@@ -180,5 +181,72 @@ test("the kit fails an edit that answers a moved `updated_at` when it carries no
   });
   await expect(checkContract(stale, seed, examples)).resolves.toEqual([
     { entry: "edit", rule: "edit without fields does not answer the entry" },
+  ]);
+});
+
+// A list field: the memo's body as a list of lines, stored as JSON text. The answer adds a
+// computed part to each line, as a Time Entry adds the Project Share to each of its projects.
+const linesSchema = z.array(z.strictObject({ text: z.string().trim().min(1) }));
+type Line = z.output<typeof linesSchema>[number];
+// The kit types its examples by the memos Contract, whose body is text.
+const linesExamples = {
+  ...examples,
+  edit: { ...examples.edit, body: [{ text: "First " }, { text: "Second" }] },
+} as unknown as typeof examples;
+
+/** The stored lines; a seeded memo holds plain text, which reads as no lines. */
+function linesOf(body: string | null): Line[] {
+  if (body === null || !body.startsWith("[")) return [];
+  const read = linesSchema.safeParse(JSON.parse(body));
+  return read.success ? read.data : [];
+}
+
+/** The memos module whose edit takes the body as lines and answers each with `answer`. */
+function withLines(answer: (lines: readonly Line[]) => unknown[]) {
+  const edit = oc
+    .input(memoFields.edit.extend({ body: linesSchema.optional() }))
+    .output(memoSchema.extend({ body: z.array(z.unknown()) }))
+    .errors({ NOT_FOUND: {}, ...refusal });
+  const run = async (
+    ...[tx, context, input]: Parameters<EditRun>
+  ): Promise<z.output<typeof memoSchema>> => {
+    const { body } = input as unknown as { body?: readonly Line[] };
+    const row = await sharedWrites(tx, context).update("memos", input.id, {
+      title: input.title,
+      color: input.color,
+      body: body === undefined ? undefined : JSON.stringify(body),
+    });
+    return { ...toMemo(row), body: answer(linesOf(row.body)) } as never;
+  };
+  return {
+    ...memos,
+    contract: { ...memos.contract, edit },
+    entries: { ...memos.entries, edit: { ...memos.entries.edit, run } },
+  } as unknown as typeof memos;
+}
+
+const withLength = (line: Line) => ({ ...line, length: line.text.length });
+
+test("for a list field, the answer may add computed parts to each item sent", async () => {
+  await expect(
+    checkContract(
+      withLines((lines) => lines.map(withLength)),
+      seed,
+      linesExamples,
+    ),
+  ).resolves.toEqual([]);
+});
+
+test.each<[string, (lines: readonly Line[]) => unknown[]]>([
+  [
+    "a changed sent key",
+    (lines) => lines.map((line) => ({ ...withLength(line), text: line.text.toUpperCase() })),
+  ],
+  ["a missing item", (lines) => lines.slice(1).map(withLength)],
+  ["another order", (lines) => lines.toReversed().map(withLength)],
+  ["an item that is no object", (lines) => lines.map(({ text }) => text)],
+])("for a list field, the kit fails an answer with %s", async (_, answer) => {
+  await expect(checkContract(withLines(answer), seed, linesExamples)).resolves.toEqual([
+    { entry: "edit", rule: "edit does not set a field it carries: body" },
   ]);
 });

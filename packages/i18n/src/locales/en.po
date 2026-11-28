@@ -20,6 +20,10 @@ msgstr "{count, plural, one {note} other {notes}}"
 msgid "{count, plural, one {project entry} other {project entries}}"
 msgstr "{count, plural, one {project entry} other {project entries}}"
 
+#: packages/time-tracking/src/table-names.ts
+msgid "{count, plural, one {project share} other {project shares}}"
+msgstr "{count, plural, one {project share} other {project shares}}"
+
 #: packages/projects/src/index.ts
 msgid "{count, plural, one {project} other {projects}}"
 msgstr "{count, plural, one {project} other {projects}}"

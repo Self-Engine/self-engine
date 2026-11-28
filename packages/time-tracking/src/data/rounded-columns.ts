@@ -33,9 +33,11 @@ export interface EntryComputation {
   readonly timeZone: string;
   /** The breaks inside the entry: the list it keeps, or the one it gets. */
   readonly breaks: readonly Break[];
+  /** The entry's projects with their Weights, the Lead Project first. */
+  readonly projects: readonly { readonly weight: number }[];
 }
 
-/** The entry a rule is looked up for: its project, or none, and its measured start. */
+/** The entry a rule is looked up for: its Lead Project, or none, and its measured start. */
 export interface RuleLookup {
   readonly projectId: ProjectId | null;
   readonly startedAt: Instant;
@@ -103,22 +105,23 @@ export async function ruleThatHolds(
  * `computeTimeEntry` with the entry's rule in the entry's Time Zone. Every write of a Time Entry
  * takes all of them from here. The breaks are stored on whole seconds too, and a break that breaks
  * a rule refuses the write with its Reason at that break (ADR 0040): nothing changes a break on
- * its own.
+ * its own. The Project Shares of its projects come beside the columns, in their order.
  */
 export function roundedColumns(entry: EntryComputation) {
   const started_at = wholeSecondOf(entry.startedAt);
   const ended_at = wholeSecondOf(entry.endedAt);
   const { rule } = entry;
   const breaks = entry.breaks.map(onWholeSeconds);
-  const { roundedTime, bookedDuration, findings } = computeTimeEntry({
+  const { roundedTime, bookedDuration, findings, projectShares } = computeTimeEntry({
     measuredTime: { start: started_at, end: ended_at },
     timeZone: entryTimeZone(entry.timeZone).timeZone,
     rule,
     breaks,
+    projects: entry.projects,
   });
   const [first] = findings;
   if (first !== undefined) throw inputError(["breaks", first.breakIndex], first.reason);
-  return {
+  const columns = {
     started_at,
     ended_at,
     rounded_started_at: roundedTime?.start ?? null,
@@ -128,4 +131,5 @@ export function roundedColumns(entry: EntryComputation) {
     rule_chosen_by_hand: entry.ruleChosenByHand ? (1 as const) : (0 as const),
     breaks: breaksTextSchema.encode(breaks),
   };
+  return { columns, projectShares };
 }

@@ -161,6 +161,7 @@ test("Exact changes nothing", () => {
         roundedTime: measured,
         bookedDuration: durationBetween(measured.start, measured.end),
         findings: [],
+        projectShares: [],
       });
     }),
     parameters,

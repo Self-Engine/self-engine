@@ -183,7 +183,7 @@ export const AnEntryAcrossMidnightLiesOnBothDaysWithItsShareAndAMark: Story = {
         timeEntry(6, {
           startedAt: "2026-11-19T21:00:10.000Z",
           endedAt: "2026-11-20T00:30:10.000Z",
-          project: SAMPLE_WEEK.release.project,
+          project: SAMPLE_WEEK.release.projects[0]?.project ?? null,
           note: "Release",
         }),
         SAMPLE_WEEK.handover,

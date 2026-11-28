@@ -35,7 +35,7 @@ test("a sample entry carries a numbered id, and its Rounded Time and Booked Dura
     roundedTime: { start: "2026-11-20T08:00:00.000Z", end: "2026-11-20T08:45:00.000Z" },
     bookedDuration: 2700,
     ruleByHand: null,
-    project: null,
+    projects: [],
   });
   // A rule chosen by hand.
   expect(timeEntry(9, { ...MORNING, rule: { kind: "exact" } })).toMatchObject({

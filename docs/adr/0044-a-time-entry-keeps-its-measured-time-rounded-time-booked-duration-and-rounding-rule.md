@@ -1,7 +1,7 @@
 ---
 status: accepted
 date: 2026-11-28
-decisions: D308, D309, D342, D343, D344, D345, D346, D353, D354
+decisions: D306, D308, D309, D342, D343, D344, D345, D346, D353, D354
 ---
 
 # A Time Entry keeps its Measured Time, Rounded Time, Booked Duration and Rounding Rule
@@ -39,7 +39,7 @@ whose entry counted its end minus its start.
   Zone Setting or the Device Time Zone ([ADR 0036](0036-the-app-stores-its-time-zone-and-week-start-as-settings.md),
   D342, D353). An edit leaves it unchanged, and no answer exposes it.
 - **The breaks** as JSON text, `breaks`: a list in the entry's own row (see [The breaks](#the-breaks)).
-- **The note, and at most one project as a column.**
+- **The note.** Its projects are rows of their own, the Project Shares (below).
 - **One row per entry**, also across midnight.
 
 The format follows one sentence: what has variants or is a list is text in one field; what is a
@@ -62,10 +62,10 @@ startup takes a Backup before a pending migration runs.
   rule marks it chosen by hand; `null` clears the choice, so the rule that holds is taken and the
   mark removed. Every edit rounds again with the entry's rule, also an edit of start or end.
 - **The rule that holds** is looked up in one read per write (`ruleThatHolds`), on create, on the
-  Timer's stop and on "look up again": the rule of the entry's project with the latest "holds
+  Timer's stop and on "look up again": the rule of the entry's Lead Project with the latest "holds
   from" at or before the measured start, else the app-wide rule by the same reading, else the
   default built into the code, "round up to 1 minute" (`DEFAULT_ROUNDING_RULE`). An entry without
-  a project takes the app-wide rule. "Look up again" asks with the project and start the edit
+  a project takes the app-wide rule. "Look up again" asks with the Lead Project and start the edit
   leaves. Of two rules with the same "holds from", or two first rules of one project, the one
   changed last holds (`updated_at`), then the one with the larger id. A stored rule this version
   cannot read counts as absent there. So a forgotten entry entered weeks later gets the rule of
@@ -126,11 +126,49 @@ never each create a first app-wide rule. No Operation writes the table yet.
   `breaks: null`; an edit that keeps it, and every move, is refused with `breaks_unknown` at
   `breaks`.
 
+### The projects of an entry: Project Shares
+
+- **One row per project of an entry** in `project_shares`: the entry (`time_entry_id`, never
+  empty), the project, its `place` in the entry's list (the Lead Project at 0), its `weight`, a
+  whole number from 1 to 10,000, and its `project_share` in seconds. An entry with one project has
+  one row, an entry without a project none. The entry's column for a project is gone (D308).
+- **A share is a Part Row of its entry**
+  ([ADR 0042](0042-a-part-row-is-a-live-row-only-while-its-owner-is-one.md)): delete and restore
+  of an entry change only its row; a share of a deleted entry counts nothing and protects nothing.
+  A project cannot be deleted while a live entry has a share in it, and the refusal counts the
+  entries; it can be deleted once those entries are deleted, and restoring such an entry is
+  refused with `target_deleted` at the entry, field `project_shares`, while its project is deleted.
+  It can always be archived (D306).
+- **The Operation divides** on every write, create, edit, move and the Timer's stop, with
+  `computeTimeEntry`: every project after the Lead Project gets its part of the Booked Duration by
+  Weight, cut down to the whole minute (to the whole second under Exact), and the Lead Project the
+  rest, so the shares add up to the Booked Duration exactly; a share can be 0:00. A share is never
+  an input (D346), and shares never change the Rounded Time or the Booked Duration.
+- **The input** `projects` is the ordered list of `{ projectId, weight? }`, never `null`; a
+  project without a Weight has the Weight 1, so equal parts. Create may leave it out (no project),
+  and an edit replaces the list as a whole. A project named twice is refused with
+  `project_named_twice` at its second place, a Weight outside its range with
+  `weight_out_of_range`.
+- **An edit keeps the rows it can**: a project already in the list keeps its row, a new one gets
+  a new row, and a removed one is soft-deleted, so adding it again makes a new row. An edit of
+  other fields divides again with the stored Weights and order.
+- **The Timer's stop** writes one share that holds the whole Booked Duration, in the same
+  transaction. "Undo stop" removes the entry's shares while it lives, then deletes it, so the stop
+  that saves it again gives it the project the Timer has then (D371): a restore is judged with the
+  entry's live shares, and the earlier project may have been deleted meanwhile.
+- **Reads.** The shares of a span's entries come in one more read, not one per entry, through
+  `projectsOfEntries`, the one place a Query reads shares; it goes through the shared entry, so
+  only shares of Live Rows count. A Query that reads them names `project_shares` and
+  `time_entries`.
+
 ### What the Port answers
 
 Every answer that carries a Time Entry holds its Measured Time (`startedAt`, `endedAt`), its
 `roundedTime` or `null`, its `bookedDuration`, its `roundingRule`, the rule chosen by hand as
-`ruleByHand` (`null` without the mark), its `breaks` and its `findings`. A list (`DayEntry` of the
+`ruleByHand` (`null` without the mark), its `breaks`, its `findings` and its `projects`, the Lead
+Project first, each with its `weight` and its `projectShare`; a Query adds each project's Project
+Reference as `project`. The answer carries each project as it was sent, with the computed parts
+beside it (ADR 0032). A list (`DayEntry` of the
 Query of a Day Span) leaves out the rule, the mark, the breaks and the findings, so it parses
 neither the rule nor the breaks.
 
@@ -142,6 +180,12 @@ neither the rule nor the breaks.
   Time stands on the day of its measured start with 0:00.
 - Overlaps are judged on the Rounded Times; touching is no overlap, and an entry without a Rounded
   Time overlaps nothing (D311).
+- The sums per project read the Project Shares and add up to the total of the entries that have a
+  project. A filter by project holds the entries with a share in it, and every sum counts that
+  share; "no project" holds the entries without a share. Until
+  [Day Shares per day and per project](https://github.com/Self-Engine/self-engine/issues/444) is
+  built, an entry with several projects across midnight divides each Day Share by its shares, the
+  Lead Project getting the rest.
 - An entry on one Calendar Day has its Booked Duration as its Day Share. `dayShares` cuts the
   Rounded Time of an entry across midnight at the Calendar Days of the Time Zone of the call;
   without Rest Breaks its pieces add up to the Booked Duration.
@@ -149,7 +193,9 @@ neither the rule nor the breaks.
 ### The display
 
 The week shows the Rounded Time of an entry as its times of day, in minutes; an entry without one
-shows its Measured Time. The fields of the Edit Drawer hold the Measured Time, and the duration
+shows its Measured Time. It shows the mark of the Lead Project, and the Edit Drawer's project
+field shows and sends the list as one project; an edit of other fields leaves an entry's
+several projects as they are. The fields of the Edit Drawer hold the Measured Time, and the duration
 beneath them is the measured one. Durations follow
 [ADR 0043](0043-a-duration-shows-seconds-exactly-when-it-has-some.md).
 

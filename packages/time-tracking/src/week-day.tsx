@@ -116,7 +116,8 @@ const DayEntryRow = memo(function DayEntryRow({
             <OverlapsEntryIcon size="sm" aria-hidden />
           </EntryHint>
         )}
-        <ProjectMark project={entry.project} />
+        {/* The Lead Project; the list of several projects is the surface of #423. */}
+        <ProjectMark project={entry.projects[0]?.project ?? null} />
         <Text c="dimmed" flex={1} miw={0} size="sm" truncate>
           {entry.note}
         </Text>

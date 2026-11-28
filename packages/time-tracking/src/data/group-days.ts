@@ -64,11 +64,28 @@ function sharesOf(entry: ListedTimeEntry, days: readonly DayRange[]) {
 }
 
 /**
+ * The part of each project in one Day Share of an entry, in the order of its projects. An entry
+ * that lies in one day gives each project its Project Share. Across midnight each further
+ * project gets its part of the Day Share by its share, cut down to the whole second, and the Lead
+ * Project the rest, so the parts add up to the Day Share and none is below zero.
+ */
+function projectPartsOf(entry: ListedTimeEntry, dayShare: number): number[] {
+  const { projects, bookedDuration } = entry;
+  if (dayShare === bookedDuration) return projects.map(({ projectShare }) => projectShare);
+  const further = projects
+    .slice(1)
+    .map(({ projectShare }) => Math.floor((dayShare * projectShare) / bookedDuration));
+  return [Math.max(0, dayShare - further.reduce((sum, part) => sum + part, 0)), ...further];
+}
+
+/**
  * The answer for `days`, consecutive whole days as `dayRangesOf` gives them. Pass every entry
  * that may touch the window, in any order: it places them by their Rounded Times and cuts them
  * exactly, and a filter hides an entry without hiding its overlaps. Overlaps are judged on the
  * Rounded Times; an entry without one overlaps nothing. Only the Day Shares of visible entries
- * inside the span contribute to the sums.
+ * inside the span contribute to the sums. The sums per project read the Project Shares; under a
+ * project filter every sum counts that project's part, and "no project" holds the entries without
+ * a share.
  */
 export function groupDays(
   days: readonly DayRange[],
@@ -86,8 +103,12 @@ export function groupDays(
   const projects = new ProjectSums();
   let total = 0;
   for (const entry of entries) {
-    if (filter?.kind === "project" && entry.projectId !== filter.projectId) continue;
-    if (filter?.kind === "noProject" && entry.projectId !== null) continue;
+    const only =
+      filter?.kind === "project"
+        ? entry.projects.findIndex(({ projectId }) => projectId === filter.projectId)
+        : undefined;
+    if (only === -1) continue;
+    if (filter?.kind === "noProject" && entry.projects.length > 0) continue;
 
     const { shares, crossesMidnight } = sharesOf(entry, days);
     for (const share of shares) {
@@ -100,9 +121,13 @@ export function groupDays(
         crossesMidnight,
         overlaps: overlaps.has(entry.id),
       });
-      day.seconds += share.seconds;
-      projects.add(entry.project, share.seconds);
-      total += share.seconds;
+      const parts = projectPartsOf(entry, share.seconds);
+      if (entry.projects.length === 0) projects.add(null, share.seconds);
+      for (const [index, { project }] of entry.projects.entries())
+        if (only === undefined || only === index) projects.add(project, parts[index] ?? 0);
+      const counted = only === undefined ? share.seconds : (parts[only] ?? 0);
+      day.seconds += counted;
+      total += counted;
     }
   }
   return {

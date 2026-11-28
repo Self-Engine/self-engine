@@ -50,7 +50,9 @@ The parts:
   nothing, an unknown id is "not found", and after the example, which sets every field, each
   field sent alone (as `null` where it may be, then as its value) changes that field and no
   other. The input's required keys are the identity and its optional keys the fields; the answer
-  carries each field under its input name. For every entry with an object input the kit also
+  carries each field under its input name. For a list field the answer may add computed parts to
+  each item; what was sent stands in it unchanged, item by item and in order, as the Project
+  Shares of a Time Entry carry each project and its Weight beside the share (#441). For every entry with an object input the kit also
   fails an input that accepts an unknown field.
 
 **Limit:** the Operation does not compare with the stored state. A call that sends the value

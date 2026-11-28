@@ -106,7 +106,7 @@ test("a caller without a screen stops a timer by id and gets the saved entry", a
           id: timer.id,
           startedAt: NOW,
           endedAt: "2026-11-16T09:01:00.000Z",
-          projectId: project.id,
+          projects: [{ projectId: project.id, weight: 1, projectShare: 60 }],
           note: "Design",
         },
       },
@@ -141,7 +141,7 @@ test("starting from the palette saves the previous timer's entry and leaves only
             entry: {
               startedAt: NOW,
               endedAt: "2026-11-16T09:01:00.000Z",
-              projectId: project.id,
+              projects: [{ projectId: project.id, weight: 1, projectShare: 60 }],
               note: "Design",
             },
           },

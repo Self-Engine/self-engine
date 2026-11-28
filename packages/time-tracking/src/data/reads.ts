@@ -7,10 +7,11 @@ const SETTINGS: typeof SETTINGS_TABLE = "settings";
 /**
  * The tables each Query of `time-tracking` reads, once for its Storage and for the story Port, so a
  * story reloads a Query after the same Table Changes the app does. `days` reads the Time Zone,
- * so a change of it reloads the week (D352).
+ * so a change of it reloads the week (D352). The shares of an entry are Part Rows of it (ADR
+ * 0042), so a Query that reads them names `time_entries` too.
  */
 export const TIME_TRACKING_READS = {
-  entry: ["time_entries", "projects"],
-  days: ["time_entries", "projects", SETTINGS],
+  entry: ["time_entries", "project_shares", "projects"],
+  days: ["time_entries", "project_shares", "projects", SETTINGS],
   runningTimers: ["timers", "projects"],
 } as const;
