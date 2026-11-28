@@ -201,6 +201,7 @@ export const ANewEntryOpensOnTheClickedDayAndAppearsThere: Story = {
           projectId: null,
           note: "Call",
           ruleByHand: null,
+          breaks: [],
         },
       },
     ]);
@@ -232,6 +233,7 @@ export const AnEndTimeNotAfterTheStartLiesOnTheNextDay: Story = {
           projectId: null,
           note: null,
           ruleByHand: null,
+          breaks: [],
         },
       },
     ]);

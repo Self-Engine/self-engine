@@ -31,6 +31,7 @@ const countedByDefault = (start: string, end: string, bookedDuration: number) =>
   roundingRule: { kind: "ordinary", direction: "up", minutes: 1 },
   ruleByHand: null,
   findings: [],
+  breaks: [],
 });
 
 const started: TestDataProcess[] = [];

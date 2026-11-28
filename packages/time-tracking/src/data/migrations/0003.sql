@@ -23,6 +23,10 @@ CREATE TABLE time_entries (
   rule_chosen_by_hand INTEGER NOT NULL CHECK (rule_chosen_by_hand IN (0, 1)),
   project_id TEXT REFERENCES projects(id) DEFERRABLE INITIALLY DEFERRED,
   note TEXT,
+  -- The breaks inside the entry, a JSON array such as
+  -- [{"timeKind":"rest_break","startedAt":"…","endedAt":"…","changedByLimit":false}]. The
+  -- database checks that it is a readable array; the code checks its content, in one place.
+  breaks TEXT NOT NULL CHECK (json_valid(breaks) AND json_type(breaks) = 'array'),
   -- The name of the Time Zone the row was made in, as the Operation computed with it (D353).
   time_zone TEXT NOT NULL,
   -- Instants of the supported years compare as text in time order.

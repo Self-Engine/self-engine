@@ -1,8 +1,16 @@
 import type { TablesOf } from "@self-engine/db";
 import type { ProjectId } from "@self-engine/projects/ids";
-import { type ReadTransaction, sharedEntry, type StorageContext } from "@self-engine/storage";
+import {
+  inputError,
+  type ReadTransaction,
+  sharedEntry,
+  type StorageContext,
+} from "@self-engine/storage";
 import { type Instant, wholeSecondOf } from "@self-engine/time";
 import {
+  type Break,
+  breaksTextSchema,
+  onWholeSeconds,
   computeTimeEntry,
   DEFAULT_ROUNDING_RULE,
   type RoundingRule,
@@ -23,6 +31,8 @@ export interface EntryComputation {
   readonly ruleChosenByHand: boolean;
   /** The name of the entry's Time Zone, as its row stores it. */
   readonly timeZone: string;
+  /** The breaks inside the entry: the list it keeps, or the one it gets. */
+  readonly breaks: readonly Break[];
 }
 
 /** The entry a rule is looked up for: its project, or none, and its measured start. */
@@ -91,17 +101,23 @@ export async function ruleThatHolds(
  * The columns of the Measured Time, the Rounded Time, the Booked Duration and the rule, the one
  * place that computes them (ADR 0044): both measured Instants cut to the whole second, then
  * `computeTimeEntry` with the entry's rule in the entry's Time Zone. Every write of a Time Entry
- * takes all of them from here.
+ * takes all of them from here. The breaks are stored on whole seconds too, and a break that breaks
+ * a rule refuses the write with its Reason at that break (ADR 0040): nothing changes a break on
+ * its own.
  */
 export function roundedColumns(entry: EntryComputation) {
   const started_at = wholeSecondOf(entry.startedAt);
   const ended_at = wholeSecondOf(entry.endedAt);
   const { rule } = entry;
-  const { roundedTime, bookedDuration } = computeTimeEntry({
+  const breaks = entry.breaks.map(onWholeSeconds);
+  const { roundedTime, bookedDuration, findings } = computeTimeEntry({
     measuredTime: { start: started_at, end: ended_at },
     timeZone: entryTimeZone(entry.timeZone).timeZone,
     rule,
+    breaks,
   });
+  const [first] = findings;
+  if (first !== undefined) throw inputError(["breaks", first.breakIndex], first.reason);
   return {
     started_at,
     ended_at,
@@ -110,5 +126,6 @@ export function roundedColumns(entry: EntryComputation) {
     booked_duration: bookedDuration,
     rounding_rule: roundingRuleTextSchema.encode(rule),
     rule_chosen_by_hand: entry.ruleChosenByHand ? (1 as const) : (0 as const),
+    breaks: breaksTextSchema.encode(breaks),
   };
 }

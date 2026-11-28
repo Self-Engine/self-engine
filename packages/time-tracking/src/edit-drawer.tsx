@@ -18,6 +18,10 @@ import { useFirstDayOfWeek, useTimeZone, useToday } from "@self-engine/time/reac
 import { ErrorState, QueryStateBlock } from "@self-engine/ui";
 import { type ReactNode, useCallback, useMemo } from "react";
 import {
+  BREAK_NOT_BETWEEN_WORK,
+  BREAK_OVERLAPS,
+  BREAK_TOO_SHORT,
+  BREAKS_UNKNOWN,
   END_BEFORE_START,
   ROUNDING_RULE_UNKNOWN,
   type TimeEntryId,
@@ -37,12 +41,19 @@ import {
 
 /**
  * The module's texts for the rules of its Contract (D320): "end after start" shows at the end. The
- * form has no field for the rule, so a rule this version cannot read shows in the Notice.
+ * form has no field for the rule or the breaks yet, so a rule or breaks this version cannot read,
+ * and a break that breaks a rule (a new start or end that leaves a break outside), show in the
+ * Notice.
  */
+const NEWER_VERSION = msg`This time entry was saved by a newer version of the app. Update the app to edit it.`;
 const TEXTS = {
   reasons: {
     [END_BEFORE_START]: msg`The end must lie after the start.`,
-    [ROUNDING_RULE_UNKNOWN]: msg`This time entry was saved by a newer version of the app. Update the app to edit it.`,
+    [ROUNDING_RULE_UNKNOWN]: NEWER_VERSION,
+    [BREAKS_UNKNOWN]: NEWER_VERSION,
+    [BREAK_NOT_BETWEEN_WORK]: msg`A break must lie after the start of the time entry and before its end.`,
+    [BREAK_OVERLAPS]: msg`Breaks must not overlap.`,
+    [BREAK_TOO_SHORT]: msg`A break must be at least one second long.`,
   },
 };
 
@@ -121,7 +132,15 @@ function NewEntryForm({
     entry: timeTrackingContract.create,
     operation: useCreateTimeEntry(),
     // No field chooses a rule yet: the rule that holds rounds the entry.
-    draft: { startedAt: null, endedAt: null, projectId: null, note: "", ruleByHand: null },
+    // No field enters a break yet: a new entry has none.
+    draft: {
+      startedAt: null,
+      endedAt: null,
+      projectId: null,
+      note: "",
+      ruleByHand: null,
+      breaks: [],
+    },
     emptyTextFields: ["note"],
     texts: TEXTS,
     // The new entry's row takes the focus once the week shows it.
@@ -202,6 +221,8 @@ function EditForm({
       note: entry.note ?? "",
       // No field changes the rule, so the edit never sends it and the entry keeps its own.
       ruleByHand: null,
+      // No field changes the breaks either: the edit never sends them, and they stay as they are.
+      breaks: entry.breaks,
     },
     edit: { identity: { id: entry.id }, tiedFields: timeEntryTiedFields, deleted },
     emptyTextFields: ["note"],

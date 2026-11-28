@@ -309,6 +309,30 @@ _Avoid_: elapsed time (for the amount counted), billed time
 The part of a _Time Entry_'s _Booked Duration_ that counts toward one _Calendar Day_.
 _Avoid_: daily total, split entry
 
+**Time Kind** (de: _Zeitart_):
+What a piece of recorded time is for the count: _Work_, _Short Break_, _Rest Break_ or Leisure. A fixed list; there are no freely named categories.
+_Avoid_: time class, time category, activity type
+
+**Work** (de: _Arbeit_):
+The _Time Kind_ that counts toward the _Booked Duration_. Everything inside a _Time Entry_ that is not a _Break_ is _Work_, and an entry begins and ends with it.
+_Avoid_: active time, focus
+
+**Short Break** (de: _Kurzpause_):
+A _Break_ that counts toward the _Booked Duration_, like _Work_.
+_Avoid_: micro break, paid break
+
+**Rest Break** (de: _Ruhepause_):
+A _Break_ that does not count: a _Time Entry_ counts its measured length without the seconds its _Rest Breaks_ cover, never rounded on their own. It can carry the mark "changed by the limit".
+_Avoid_: unpaid break, pause (for this kind alone)
+
+**Break** (de: _Pause_):
+A _Short Break_ or a _Rest Break_. Inside a _Time Entry_ it is a _Stretch_ with its own start and end, between _Work_; breaks of one entry do not overlap, may touch, and last at least one second.
+_Avoid_: gap, interruption, pause (in code)
+
+**Stretch** (de: _Abschnitt_):
+A part of a _Time Entry_ with its own times and _Time Kind_, stored in the entry's own row. Today every _Stretch_ is a _Break_; "Break" says what kind of time it is, "Stretch" where it is stored.
+_Avoid_: phase, segment, Strecke
+
 **Measured Time** (de: _gemessene Zeit_):
 The start and end of a _Time Entry_ as measured or entered, on whole seconds and never rounded. It is kept so another _Rounding Rule_ can be applied later without loss; the app shows it in the form only.
 _Avoid_: raw time, actual time
@@ -326,7 +350,7 @@ The _Rounding Rule_ that changes nothing: the _Rounded Time_ is the _Measured Ti
 _Avoid_: no rounding, seconds mode
 
 **Ordinary Rounding** (de: _gewöhnliche Rundung_):
-The _Rounding Rule_ that rounds the counted time up, down or to the nearest step of 1, 5, 6, 10, 15, 30 or 60 minutes. The start is cut to the whole minute and the end follows from the _Booked Duration_.
+The _Rounding Rule_ that rounds the counted time up, down or to the nearest step of 1, 5, 6, 10, 15, 30 or 60 minutes. The start is cut to the whole minute and the end follows from the _Booked Duration_ and the _Rest Breaks_ inside, whose sum is cut down to the whole minute.
 _Avoid_: normal rounding, step rounding
 
 **Block Rounding** (de: _Zeitabschnitts-Rundung_):

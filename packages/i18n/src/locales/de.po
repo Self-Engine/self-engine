@@ -98,6 +98,14 @@ msgstr "{title} (gelöscht)"
 msgid "{total, plural, one {Cannot be deleted: {list} refers to it.} other {Cannot be deleted: {list} refer to it.}}"
 msgstr "{total, plural, one {Lässt sich nicht löschen: {list} verweist darauf.} other {Lässt sich nicht löschen: {list} verweisen darauf.}}"
 
+#: packages/time-tracking/src/edit-drawer.tsx
+msgid "A break must be at least one second long."
+msgstr "Eine Pause muss mindestens eine Sekunde lang sein."
+
+#: packages/time-tracking/src/edit-drawer.tsx
+msgid "A break must lie after the start of the time entry and before its end."
+msgstr "Eine Pause muss nach dem Beginn des Zeiteintrags und vor seinem Ende liegen."
+
 #: apps/web/src/data-connection-states.tsx
 msgid "A newer version already applied the update {migration}, which this version does not know. Open your data with the newer version."
 msgstr "Eine neuere Version hat bereits das Update {migration} angewendet, das diese Version nicht kennt. Öffne deine Daten mit der neueren Version."
@@ -267,6 +275,10 @@ msgstr "Buch"
 msgctxt "Icon"
 msgid "Brain"
 msgstr "Gehirn"
+
+#: packages/time-tracking/src/edit-drawer.tsx
+msgid "Breaks must not overlap."
+msgstr "Pausen dürfen sich nicht überschneiden."
 
 #: packages/icons/src/directory/labels.ts
 msgctxt "Icon"

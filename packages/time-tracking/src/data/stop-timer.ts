@@ -77,6 +77,8 @@ async function saveEntry(
         startedAt: timer.started_at,
       }),
       ruleChosenByHand: false,
+      // A Timer records no breaks yet.
+      breaks: [],
     }),
     project_id: timer.project_id,
     note: timer.note,
