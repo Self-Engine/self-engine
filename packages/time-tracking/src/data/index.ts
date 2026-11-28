@@ -104,10 +104,12 @@ export const timeTracking = defineStorageModule({
       const before = await storedProjects(tx, context, id);
       const projects =
         input.projects === undefined ? before.projects : weightedProjects(input.projects);
-      // "Look up again" asks for the rule of the entry as it stands after the edit; so does a
-      // change from or to Work, which changes the rule that holds.
+      // "Look up again" asks for the rule of the entry as it stands after the edit. An entry that
+      // stops being Work takes the app-wide rule that held at its start, without the mark "chosen
+      // by hand"; one that becomes Work keeps its rule unless the same edit looks up again.
       const start = startedAt ?? stored.started_at;
-      const lookUp = ruleByHand === null || isWork !== (stored.time_kind === "work");
+      const leavesWork = !isWork && stored.time_kind === "work";
+      const lookUp = ruleByHand === null || leavesWork;
       const rule =
         ruleByHand != null
           ? { rule: ruleByHand, ruleChosenByHand: true }

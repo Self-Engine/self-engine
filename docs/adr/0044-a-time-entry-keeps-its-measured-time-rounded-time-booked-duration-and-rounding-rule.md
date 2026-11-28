@@ -158,9 +158,12 @@ never each create a first app-wide rule. No Operation writes the table yet.
   Break and Leisure and from those to Work; from Work to one of those only once the entry keeps no
   projects and no breaks, else it is refused at `projects` or `breaks` with the Reason of create.
   An edit may clear both in the same call. A rule chosen by hand for an entry that is not work is
-  refused with `not_work_has_rule_by_hand` at `ruleByHand`. A change from or to Work takes the rule
-  that holds again (for a Work Entry, its Lead Project's), unless the edit chooses one by hand;
-  between kinds that are not work the entry keeps its rule. A change of kind removes the mark
+  refused with `not_work_has_rule_by_hand` at `ruleByHand`. Every edit rounds with the entry's own
+  rule, and only "look up again" (`ruleByHand: null`) takes another: an entry that stops being Work
+  takes the app-wide rule that held at its start and loses the mark "chosen by hand", since every
+  entry that is not work takes the app-wide rule; one that becomes Work keeps its rule, and the same
+  edit sends `ruleByHand: null` to take its Lead Project's. Between kinds that are not work the
+  entry keeps its rule. A change of kind removes the mark
   "changed by the limit"; an edit of other fields keeps it. Nothing sets the mark yet.
 - **The Timer's stop** writes a Work Entry. The Edit Drawer has no field for the Time Kind yet
   ([#421](https://github.com/Self-Engine/self-engine/issues/421)): it never sends it, so saving
