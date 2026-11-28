@@ -40,7 +40,7 @@ import {
   timerWithProjectSchema,
   timeTrackingContract,
 } from "../contracts/index.ts";
-import { type EntryStretches, groupDays } from "../data/group-days.ts";
+import { type DayShareInputs, groupDays } from "../data/group-days.ts";
 import { TIME_TRACKING_READS } from "../data/reads.ts";
 
 const contracts = { timeTracking: timeTrackingContract };
@@ -264,7 +264,7 @@ export function timeTrackingAnswers(
         groupDays(
           { days: dayRangesOf(span, timeZone), timeZone },
           entries.map(listedTimeEntry),
-          stretchesOfStored(entries),
+          dayShareInputsOfStored(entries),
           filter,
         ),
       );
@@ -273,12 +273,12 @@ export function timeTrackingAnswers(
 }
 
 /**
- * The stretches of the stored entries as the Data Process reads them for an entry across
+ * The Day Share inputs of the stored entries as the Data Process reads them for an entry across
  * midnight: the sample entries compute in Berlin.
  */
-function stretchesOfStored(
+function dayShareInputsOfStored(
   entries: readonly TimeEntryWithProject[],
-): ReadonlyMap<TimeEntryId, EntryStretches> {
+): ReadonlyMap<TimeEntryId, DayShareInputs> {
   return new Map(
     entries.map((entry) => [
       entry.id,

@@ -65,13 +65,13 @@ function placeOf(entry: ListedTimeEntry): InstantRange {
  * What the division of an entry across midnight reads beyond the list, for that entry alone: its
  * rule and its breaks (`null` where this version cannot read them) and its own Time Zone.
  */
-export interface EntryStretches {
+export interface DayShareInputs {
   readonly rule: RoundingRule | null;
   readonly breaks: readonly Break[] | null;
   readonly timeZone: TimeZone;
 }
 
-/** The entries whose Rounded Time crosses midnight in `days`: only they need their stretches. */
+/** The entries whose Rounded Time crosses midnight in `days`: only they need their rule, breaks and Time Zone. */
 export function entriesAcrossMidnight(
   days: readonly DayRange[],
   entries: readonly ListedTimeEntry[],
@@ -84,14 +84,14 @@ export function entriesAcrossMidnight(
 /**
  * The Day Shares of an entry in `days`; one without a Rounded Time has 0:00 on its start's day.
  * An entry on one day has its Booked Duration there and each project its Project Share. One
- * across midnight is divided over all its days with its stretches, and only the days in `days`
- * are kept. Without its stretches it counts its Rounded Time, on whole seconds.
+ * across midnight is divided over all its days with its rule, breaks and Time Zone, and only the days in `days`
+ * are kept. Without them it counts its Rounded Time, on whole seconds.
  */
 function sharesOf(
   entry: ListedTimeEntry,
   days: readonly DayRange[],
   timeZone: TimeZone,
-  stretches: EntryStretches | undefined,
+  inputs: DayShareInputs | undefined,
 ): { readonly shares: readonly DayShare[]; readonly crossesMidnight: boolean } {
   const projectShares = projectsOfListed(entry).map(({ projectShare }) => projectShare);
   const { roundedTime } = entry;
@@ -113,13 +113,13 @@ function sharesOf(
       })),
       crossesMidnight: false,
     };
-  const rule = stretches?.rule ?? null;
+  const rule = inputs?.rule ?? null;
   const counted = countedRanges(
     {
       timeKind: entry.timeKind,
       measuredTime: { start: entry.startedAt, end: entry.endedAt },
-      timeZone: stretches?.timeZone ?? timeZone,
-      breaks: stretches?.breaks ?? [],
+      timeZone: inputs?.timeZone ?? timeZone,
+      breaks: inputs?.breaks ?? [],
       rule,
     },
     roundedTime,
@@ -136,7 +136,7 @@ function sharesOf(
 /**
  * The answer for `days`, consecutive whole days as `dayRangesOf` gives them in `timeZone`, the
  * Time Zone of the call. Pass every entry that may touch the span, in any order, and the
- * stretches of those of them `entriesAcrossMidnight` names: it places them by their Rounded Times and cuts them
+ * Day Share inputs of those of them `entriesAcrossMidnight` names: it places them by their Rounded Times and cuts them
  * exactly, and a filter hides an entry without hiding its overlaps. Overlaps are judged on the
  * Rounded Times of the entries that touch the span; an entry without one overlaps nothing. Only the Day Shares of visible entries
  * inside the span contribute to the sums. The sums per project read the Project Shares; under a
@@ -147,7 +147,7 @@ function sharesOf(
 export function groupDays(
   { days, timeZone }: { readonly days: readonly DayRange[]; readonly timeZone: TimeZone },
   candidates: readonly ListedTimeEntry[],
-  stretches: ReadonlyMap<TimeEntryId, EntryStretches>,
+  inputs: ReadonlyMap<TimeEntryId, DayShareInputs>,
   filter?: TimeEntryFilter,
 ): DaysAnswer {
   const entries = candidates.toSorted(
@@ -181,7 +181,7 @@ export function groupDays(
       entry,
       days,
       timeZone,
-      stretches.get(entry.id),
+      inputs.get(entry.id),
     );
     for (const share of shares) {
       const day = byDay.get(share.day);

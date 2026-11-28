@@ -25,7 +25,7 @@ import {
 } from "../contracts/index.ts";
 import { entryTimeZone } from "./entry-time-zone.ts";
 import { listedEntries, listedWithProjects } from "./entries-with-project.ts";
-import { entriesAcrossMidnight, type EntryStretches, groupDays } from "./group-days.ts";
+import { entriesAcrossMidnight, type DayShareInputs, groupDays } from "./group-days.ts";
 import type { timeTrackingRowMap } from "./rows.ts";
 
 type Tables = TablesOf<typeof timeTrackingRowMap>;
@@ -69,11 +69,11 @@ function widened(start: Instant, end: Instant) {
  * the entries across midnight, which the division of their Day Shares computes with. A rule or
  * list this version cannot read is `null`, as reading is lenient. No read without an id.
  */
-async function stretchesOf(
+async function dayShareInputsOf(
   tx: Reads,
   context: StorageContext,
   ids: readonly TimeEntryId[],
-): Promise<ReadonlyMap<TimeEntryId, EntryStretches>> {
+): Promise<ReadonlyMap<TimeEntryId, DayShareInputs>> {
   if (ids.length === 0) return new Map();
   const rows = await sharedEntry<Tables>(tx, context)
     .live("time_entries")
@@ -118,6 +118,6 @@ export async function spanDays(
   const rows = await windowRows(tx, context, widened(first.start, last.end)).execute();
   const entries = await listedWithProjects(tx, context, rows);
   const across = entriesAcrossMidnight(days, entries).map(({ id }) => id);
-  const stretches = await stretchesOf(tx, context, across);
-  return groupDays({ days, timeZone }, entries, stretches, input.filter);
+  const inputs = await dayShareInputsOf(tx, context, across);
+  return groupDays({ days, timeZone }, entries, inputs, input.filter);
 }
