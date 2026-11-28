@@ -95,7 +95,7 @@ export const TheGroupFiltersByIdAndCanClearTheFilter: Story = {
     await expect(website?.querySelector('[data-color-set="teal"] svg')).toBeTruthy();
     await expect(twin?.querySelector('[data-color-set="orange"]')).toHaveTextContent("🌐");
 
-    await expectTotal(canvas, "13:50");
+    await expectTotal(canvas, "13:49:20");
     await waitFor(async () =>
       expect(calls.toSorted()).toEqual([
         "projects.active",
@@ -105,7 +105,7 @@ export const TheGroupFiltersByIdAndCanClearTheFilter: Story = {
     );
     const before = calls.length;
     await userEvent.click(website!);
-    await expectTotal(canvas, "8:05");
+    await expectTotal(canvas, "8:04:20");
     await expect(calls.slice(before)).toEqual(["timeTracking.days"]);
     await expect(website).toHaveAttribute("aria-current", "true");
     await expect(canvas.getByText("Landing page")).toBeVisible();
@@ -116,7 +116,7 @@ export const TheGroupFiltersByIdAndCanClearTheFilter: Story = {
     const totals = within(canvas.getByRole("region", { name: "Week totals" }));
     const [sum] = totals.getAllByRole("listitem");
     await expect(totals.getAllByRole("listitem")).toHaveLength(1);
-    await expect(sum).toHaveTextContent("Website8:05");
+    await expect(sum).toHaveTextContent("Website8:04:20");
 
     await userEvent.click(twin!);
     await expectTotal(canvas, "0:30");
@@ -124,13 +124,13 @@ export const TheGroupFiltersByIdAndCanClearTheFilter: Story = {
     await expect(canvas.queryByText("Landing page")).toBeNull();
 
     await userEvent.click(twin!);
-    await expectTotal(canvas, "13:50");
+    await expectTotal(canvas, "13:49:20");
     await userEvent.click(group.getByRole("link", { name: "No project" }));
     await expectTotal(canvas, "1:15");
     await expect(canvas.getByText("Emails")).toBeVisible();
     await expect(canvas.queryByText("Hosting")).toBeNull();
     await userEvent.click(group.getByRole("link", { name: /^All$/ }));
-    await expectTotal(canvas, "13:50");
+    await expectTotal(canvas, "13:49:20");
     await expect(storyRouter().state.location.search).toEqual({ week: "2026-11-16" });
   },
 };
@@ -155,7 +155,7 @@ export const AnArchivedProjectFilterSurvivesTheAddressAndWeekNavigation: Story =
     await expect(control).toHaveValue("Old site");
     await userEvent.click(control);
     await userEvent.click(await screen.findByRole("option", { name: /^All$/ }));
-    await expectTotal(canvas, "13:50");
+    await expectTotal(canvas, "13:49:20");
     await userEvent.click(control);
     await userEvent.click(await screen.findByRole("option", { name: "Old site" }));
     await expectTotal(canvas, "1:00");
@@ -254,7 +254,7 @@ export const ADeepLinkKeepsItsFilterWhileTheProjectsLoad: Story = {
   },
   play: async ({ canvas, loaded }) => {
     const port = loaded["port"] as ReturnType<typeof projectsArriveLater>;
-    await expectTotal(canvas, "8:05");
+    await expectTotal(canvas, "8:04:20");
     const control = await canvas.findByRole("combobox", { name: "Filter by project" });
     // Neither the raw id nor a choice that clears the filter while the list is on its way.
     await expect(control).toHaveValue("Loading");
@@ -270,6 +270,6 @@ export const ADeepLinkKeepsItsFilterWhileTheProjectsLoad: Story = {
 
     port.release();
     await waitFor(async () => expect(control).toHaveValue("Website"));
-    await expectTotal(canvas, "8:05");
+    await expectTotal(canvas, "8:04:20");
   },
 };
