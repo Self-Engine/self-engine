@@ -77,8 +77,8 @@ startup takes a Backup before a pending migration runs.
 ### Where a Rounding Rule stands
 
 The Rounding Rules are rows of `rounding_rules` in `time-tracking`, not of `projects` (D309): the
-project it belongs to in `project_id`, or none for the app-wide rule; `holds_from`, an Instant from
-which it holds for every entry that starts at or after it, or none for a rule that holds from the
+project it belongs to in `project_id`, or none for the app-wide rule; `holds_from`, an Instant on the
+whole second, which the table checks as it does the entry's start and end, from which it holds for every entry that starts at or after it, or none for a rule that holds from the
 beginning, as a project's first rule does; and the rule as JSON text in the entry's form. A
 project's rules are Part Rows of their project
 ([ADR 0042](0042-a-part-row-is-a-live-row-only-while-its-owner-is-one.md)): they never block

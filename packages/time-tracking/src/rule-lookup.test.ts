@@ -379,3 +379,16 @@ test("the lookup is one read per write: create, stop and 'look up again'", async
   await client.timeTracking.editTimer({ id: timer.id, startedAt: "2026-04-20T09:00:00.000Z" });
   await expect(reads(() => client.timeTracking.stopTimer({ id: timer.id }))).resolves.toBe(1);
 });
+
+test("the database refuses a 'holds from' that is not on the whole second, as the lookup compares it as text", async () => {
+  const { seedRules } = await start();
+  await expect(
+    seedRules({ project: null, holdsFrom: "2026-04-01T00:00:00.500Z", rule: EXACT }),
+  ).rejects.toThrow(/CHECK/);
+  await expect(
+    seedRules({ project: null, holdsFrom: "2026-04-01T00:00:00Z", rule: EXACT }),
+  ).rejects.toThrow(/CHECK/);
+  await expect(
+    seedRules({ project: null, holdsFrom: "2026-04-01T00:00:00.000Z", rule: EXACT }),
+  ).resolves.toBeUndefined();
+});
