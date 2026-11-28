@@ -28,14 +28,11 @@
     {
       "id": "5",
       "name": "Ausbau von Projekten und Zeit",
+      "decisions": "Karte #396",
       "planned": [
         {
-          "title": "Zeiterfassung: Zeitarten, Strecken, Sekunden und Rundung, mehrere Projekte, Timer mit Pause und Pomodoro",
-          "note": "Die gespeicherte Form entscheidet die Karte #396, Ticket für Ticket (D374). Ihr letztes Ticket schneidet die Arbeitspakete. Geld kommt mit dem Geld-Modul (#105)."
-        },
-        {
           "title": "Projekte: Projektseite mit Andockpunkten, Ordner, Favoriten",
-          "note": "Die Andockpunkte grillt #201. Dazu kommen die Reihenfolge von Hand, Tags (#111) und Kunden und Aufgaben als eigene Module."
+          "note": "Noch nicht als Ganzes gegrillt. Die Andockpunkte grillt #201 zuerst. Dazu kommen die Reihenfolge von Hand, Tags (#111) und Kunden und Aufgaben als eigene Module."
         }
       ]
     },

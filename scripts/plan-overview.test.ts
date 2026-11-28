@@ -236,6 +236,12 @@ describe("buildOverview", () => {
     expect(two?.rows).toMatchObject([{ title: "Later work", status: "planned", note: "Open." }]);
   });
 
+  it("shows planned work after the issues of a layer that is cut in part", () => {
+    const cut = [issue(20, { labels: ["layer:2", "needs-grilling"] })];
+    const [, two] = buildOverview(cut, new Map(), ROADMAP).layers;
+    expect(two?.rows).toMatchObject([{ number: 20 }, { title: "Later work", status: "planned" }]);
+  });
+
   it("collects issues without a known layer", () => {
     const last = buildOverview(issues, new Map(), ROADMAP).layers.at(-1);
     expect(last?.id).toBe("none");

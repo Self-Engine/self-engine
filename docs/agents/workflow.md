@@ -28,7 +28,7 @@ An effort too large for one grilling, whose late questions nobody can phrase yet
 
 - **One session resolves one ticket.** Take the first open ticket that has no open blocker and no assignee, unless the owner names another. A grilling ticket follows [Grilling](#grilling). A ticket holds only questions that belong [with the owner](#sorting-the-questions), so it needs no sort.
 - **The decision lives in the ticket.** Record it as the resolution comment, close the ticket, and add one line to the map.
-- **Research that several tickets need** goes into [`docs/research/`](../research/), in English, with its date. It is a snapshot and is not kept current. Delete it when the map is closed.
+- **Research that several tickets need** goes into [`docs/research/`](../research/), in English, with its date. It is a snapshot and is not kept current. Delete it when the work packages the map cut are built: their grillings still read it.
 - **The map ends** when its last ticket has cut the work packages, as step 2 describes. Each package then continues at step 3.
 
 Maps so far: [time tracking beyond layer 4](https://github.com/Self-Engine/self-engine/issues/396).
@@ -80,6 +80,6 @@ If you find a design question while building that belongs [with the owner](#sort
 
 The [overview page](https://claude.ai/artifact/W1AwNvTBPy7Se9Bc2bNA4q) (artifact `eadf2537-2bc0-463a-8042-be244bd96fea`) shows the status of every ticket in the plan. The status is read from GitHub, never kept by hand: `statusOf` in `scripts/plan-overview.ts` holds the rules. Its work tree shows who acts next on each open issue (`actorOf`) and in which wave it can start, from the open blockers and slices (`dependencyGraph`).
 
-Refresh the page after merging a package's pull request, and when the owner asks: run `pnpm plan:overview`, then publish `.temp/plan-overview.html` to that artifact. Layers without issues come from `docs/plan/roadmap.json`; update it when a layer gets its name. A map and its tickets are left out, because they hold decisions and nothing to build; the layer's entry in `roadmap.json` names the map.
+Refresh the page after merging a package's pull request, and when the owner asks: run `pnpm plan:overview`, then publish `.temp/plan-overview.html` to that artifact. Planned work that has no issues yet comes from `docs/plan/roadmap.json`; update it when a layer gets its name and when planned work becomes issues. A map and its tickets are left out, because they hold decisions and nothing to build; the layer's entry in `roadmap.json` names the map.
 
 When you cannot publish, state in your report that the overview is behind.
