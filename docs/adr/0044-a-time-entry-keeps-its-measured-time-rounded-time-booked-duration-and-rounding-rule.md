@@ -88,7 +88,6 @@ deleting it, do not hold while it is deleted, and hold again once it is restored
 rule names no project and is an ordinary row. No row exists until a rule is set, so two devices
 never each create a first app-wide rule. No Operation writes the table yet.
 
-
 ### The breaks
 
 - **What a break holds.** Its Time Kind, `short_break` or `rest_break`, its start and end as

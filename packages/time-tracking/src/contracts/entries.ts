@@ -122,7 +122,3 @@ export const listedTimeEntrySchema = z.discriminatedUnion("timeKind", [
   z.object({ timeKind: z.enum(NOT_WORK_KINDS), ...listedShape }),
 ]);
 export type ListedTimeEntry = z.output<typeof listedTimeEntrySchema>;
-
-/** The projects of an entry of a list: none for an entry that is not work. */
-export const projectsOfListed = (entry: ListedTimeEntry) =>
-  entry.timeKind === "work" ? entry.projects : [];

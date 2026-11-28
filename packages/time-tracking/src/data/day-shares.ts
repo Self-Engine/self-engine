@@ -46,7 +46,11 @@ const cutDown = (seconds: number, unit: ShareUnit) => Math.floor(seconds / unit)
  * under Exact), never more than is left of `total`, and the last day gets the rest. So the shares
  * add up to `total` exactly, and none is below zero.
  */
-export function divideOverDays(parts: readonly number[], total: number, unit: ShareUnit): Duration[] {
+export function divideOverDays(
+  parts: readonly number[],
+  total: number,
+  unit: ShareUnit,
+): Duration[] {
   let left = total;
   return parts.map((part, index) => {
     const share = index === parts.length - 1 ? left : Math.min(left, cutDown(part, unit));

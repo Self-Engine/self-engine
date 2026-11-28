@@ -206,13 +206,13 @@ const timeEntryEditSchema = timeEntryFields.edit
   .refine(endsAfterStart, endsAfterStartIssue)
   .refine(timesTravelTogether, { params: { reason: "start_and_end_together" } });
 
+export { leadProjectOfListed, projectsOfListed } from "./listed-projects.ts";
 export {
   instantRangeSchema,
   type ListedTimeEntry,
   listedTimeEntrySchema,
   type NotWorkEntry,
   notWorkEntrySchema,
-  projectsOfListed,
   TIME_ZONE_UNKNOWN,
   type TimeEntry,
   type TimeEntryFinding,

@@ -127,7 +127,13 @@ function sharesOf(
   );
   const inSpan = new Set(days.map(({ day }) => day));
   const divided = divideOverItsDays(
-    { roundedTime, bookedDuration: entry.bookedDuration, projectShares, counted, unit: shareUnitOf(rule) },
+    {
+      roundedTime,
+      bookedDuration: entry.bookedDuration,
+      projectShares,
+      counted,
+      unit: shareUnitOf(rule),
+    },
     timeZone,
   );
   return { shares: divided.filter(({ day }) => inSpan.has(day)), crossesMidnight: true };
