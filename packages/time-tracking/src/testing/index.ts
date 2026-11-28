@@ -156,6 +156,7 @@ const SAMPLE_TIMER: Timer = (({ project: _project, ...timer }) => timer)(
 export const SUCCEEDING = {
   create: { data: SAMPLE_ENTRY },
   edit: { data: SAMPLE_ENTRY },
+  move: { data: SAMPLE_ENTRY },
   delete: { data: SAMPLE_ENTRY },
   restore: { data: SAMPLE_ENTRY },
   entry: { data: SAMPLE },
