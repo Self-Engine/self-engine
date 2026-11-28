@@ -36,6 +36,7 @@ test("the app mounts Projects, Settings and Time Tracking beside the protocol, w
       "spaces/0001",
       "time-tracking/0001",
       "time-tracking/0002",
+      "time-tracking/0003",
     ],
   });
   const events = await client.tablesChanged();
