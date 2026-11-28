@@ -216,14 +216,15 @@ export const TheCollapseToggleExistsOnlyAtTheWideAndMediumSteps: Story = {
   },
 };
 
-/** The place the Burger has at the narrow step: in the header, after the part above the Navbar, level with the title. */
+/** The place the Burger has at the narrow step: in the header, after the mark's place, level with the title. */
 export const TheCollapseToggleStartsWhatBelongsToThePage: Story = {
   ...atViewport("wide"),
   play: async ({ canvas }) => {
     const toggle = collapseToggle(canvas);
     const title = canvas.getByRole("heading", { name: "Time" });
     await expect(toggle.getBoundingClientRect().left).toBeCloseTo(
-      navbarOf(canvas).getBoundingClientRect().right + 12,
+      // The icons-only Navbar's width, whatever the Navbar's own.
+      56 + 12,
       0,
     );
     await expect(title.getBoundingClientRect().left).toBeGreaterThan(

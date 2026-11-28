@@ -118,14 +118,14 @@ const MAIN_WITHOUT_NAVBAR_STYLE: CSSProperties = { ...MAIN_STYLE, paddingInlineS
 
 const LOGO_STYLE: CSSProperties = { ...WINDOW_DRAG_STYLE, pointerEvents: "none" };
 
-/**
- * The part of the header above the Navbar, which follows its width while it is dragged. The mark
- * sits on the icon axis.
- */
+/** The header keeps the icons-only Navbar's width for the mark, so it stays put at any Navbar width. */
+const LOGO_PLACE_WIDTH = rem(NAVBAR_ICONS_ONLY_WIDTH);
+
+/** The part of the header that holds the mark, on the icon axis. */
 const LOGO_PLACE_STYLE: CSSProperties = {
   flex: "none",
   paddingInlineStart: rem(LOGO_START_ON_ICON_AXIS),
-  width: "var(--app-shell-navbar-width)",
+  width: LOGO_PLACE_WIDTH,
 };
 
 /**
@@ -135,7 +135,7 @@ const LOGO_PLACE_STYLE: CSSProperties = {
 const LOGO_PLACE_AFTER_WINDOW_BUTTONS_STYLE: CSSProperties = {
   flex: "none",
   paddingInlineStart: START_AFTER_WINDOW_BUTTONS,
-  width: `max(var(--app-shell-navbar-width), calc(${START_AFTER_WINDOW_BUTTONS} + ${rem(LOGO_MARK_WIDTH)}))`,
+  width: `max(${LOGO_PLACE_WIDTH}, calc(${START_AFTER_WINDOW_BUTTONS} + ${rem(LOGO_MARK_WIDTH)}))`,
 };
 
 // It opens over the header, whose drag region would swallow the clicks.
@@ -457,15 +457,16 @@ interface ShellHeaderProps extends PassedOn<
   readonly onToggleDrawer: () => void;
 }
 
-/** Beside the Navbar the part above it starts the header; at the drawer steps the Burger does. */
+/** Beside the Navbar the mark's place starts the header; at the drawer steps the Burger does. */
 function headerStart(navigationInDrawer: boolean, reserveWindowButtons: boolean): string | number {
   if (!navigationInDrawer) return 0;
   return reserveWindowButtons ? START_AFTER_WINDOW_BUTTONS : "var(--mantine-spacing-md)";
 }
 
 /**
- * Spans the window: the logo above the Navbar, then what belongs to the page, then the Module
- * Indicators. It holds the window buttons and moves the window.
+ * Spans the window: the logo, then what belongs to the page, then the Module Indicators. Neither the
+ * Navbar's width nor the Module Sidebar moves any of it. It holds the window buttons and moves the
+ * window.
  */
 function ShellHeader({
   pageTitle,
