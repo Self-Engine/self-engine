@@ -1,16 +1,24 @@
 import { declaresError } from "../core/error-declared.ts";
 import { checkConflicts, type ConflictExamples } from "./conflicts.ts";
 import { acceptsUnknownField, checkEdits } from "./edits.ts";
-import { seedScoping, returnsSeededRow, checkEntryScoping, scopedRowsChanged } from "./scoping.ts";
+import {
+  seedScoping,
+  returnsSeededRow,
+  checkEntryScoping,
+  partsOfLiveOwners,
+  scopedRowsChanged,
+} from "./scoping.ts";
+import { ownerIsLive } from "../core/part-rows.ts";
 import { queryPlan } from "./statements.ts";
 import { isDeepStrictEqual } from "node:util";
 import type { InferContractRouterInputs } from "@orpc/contract";
 import { call, ORPCError } from "@orpc/server";
-import { isLocalTable, uniqueIndexes, type TablesOf } from "@self-engine/db";
+import { isLocalTable, referencesOf, uniqueIndexes, type TablesOf } from "@self-engine/db";
 import type { Transaction } from "kysely";
 import { z } from "zod";
 import {
   createContext,
+  partRows,
   type RowMap,
   type StorageContract,
   type StorageModule,
@@ -105,8 +113,34 @@ export async function checkContract<Contract extends StorageContract, Rows exten
       if (!module.conflicts?.[index.name])
         violations.push({ entry: index.name, rule: "unique index has no conflict reason" });
     }
+    // The Part Rows are checked as at the start of a Data Process (ADR 0042).
+    try {
+      partRows([module], await referencesOf(schemaDatabase));
+    } catch (error) {
+      violations.push({ entry: "belongsTo", rule: (error as Error).message });
+      return violations;
+    }
   } finally {
     await schemaDatabase.close();
+  }
+  const partTables = Object.keys(module.belongsTo ?? {});
+  if (partTables.length > 0) {
+    let seeded = 0;
+    const { database } = await createSeededDatabase(
+      module,
+      dependencies,
+      seed,
+      async (transaction, context) => {
+        const { parts } = await partsOfLiveOwners(transaction, context, partTables);
+        seeded = [...parts.values()].flat().length;
+      },
+    );
+    await database.close();
+    // Without such a row the kit could not tell that an entry hides it.
+    if (seeded === 0) {
+      violations.push({ entry: "belongsTo", rule: "seed has no Part Row of a live owner" });
+      return violations;
+    }
   }
   for (const [entry, procedure] of Object.entries(module.contract)) {
     violations.push(...checkRefusal(entry, procedure, module.entries[entry]?.kind));
@@ -127,7 +161,7 @@ export async function checkContract<Contract extends StorageContract, Rows exten
     if (invalid.length === 0) violations.push({ entry, rule: "accepts invalid input" });
     if (await acceptsUnknownField(inputSchema, example))
       violations.push({ entry, rule: "input accepts an unknown field" });
-    const { database, sources } = await createSeededDatabase(module, dependencies, seed);
+    const { database, sources, context } = await createSeededDatabase(module, dependencies, seed);
     try {
       const definition = module.entries[entry];
       if (definition?.kind === "query" && definition.list?.kind === "pages") {
@@ -185,8 +219,17 @@ export async function checkContract<Contract extends StorageContract, Rows exten
           module,
           dependencies,
           seed,
-          async (transaction) => {
+          async (transaction, context) => {
             const tx = transaction.withTables<Record<string, { deleted_at: string | null }>>();
+            // A Part Row of a deleted owner is no Live Row either (ADR 0042).
+            for (const table of partTables) {
+              const part = context.parts.ownerOf(table);
+              if (part !== undefined)
+                await tx
+                  .deleteFrom(table)
+                  .where((eb) => eb.not(ownerIsLive(table, part)(eb)))
+                  .execute();
+            }
             for (const [table, schema] of Object.entries(module.rowMap)) {
               if (!isLocalTable(table) && Object.hasOwn(schema.shape, "deleted_at"))
                 await tx.deleteFrom(table).where("deleted_at", "is not", null).execute();
@@ -212,7 +255,7 @@ export async function checkContract<Contract extends StorageContract, Rows exten
       violations.push(...(await checkEntryScoping(module, seed, entry, example, dependencies)));
       if (definition?.kind === "query" && definition.active === true)
         violations.push(...(await checkActiveQuery(module, seed, entry, example, dependencies)));
-      const scoped = await seedScoping(database, module.rowMap, seed, createContext(sources));
+      const scoped = await seedScoping(database, module.rowMap, seed, context);
       let calls = 0;
       const read = new Set<string>();
       const observed = {

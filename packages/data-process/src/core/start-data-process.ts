@@ -7,6 +7,8 @@ import type { TimeZone } from "@self-engine/time";
 import { reportEachNameOnce } from "@self-engine/time/settings";
 import {
   createFrame,
+  noPartRows,
+  partRows,
   protectionRules,
   referenceCheck,
   type ContextSources,
@@ -135,12 +137,15 @@ export async function startDataProcess<const Modules extends DataModules>({
     { startSettings, beforeMigrations },
   );
   const tablesChanged = createTablesChangedPublisher();
-  // One registry for every frame: a rule holds whoever writes its table (D332). The reference
-  // check reads the foreign keys once, from the schema the migrations left (D337).
+  // The reference check reads the foreign keys once, from the schema the migrations left (D337);
+  // each module's Part Rows are checked against them, and a broken declaration fails the start.
+  const references = space === undefined ? [] : await referencesOf(database);
+  const parts = space === undefined ? noPartRows : partRows(Object.values(modules), references);
+  // One registry for every frame: a rule holds whoever writes its table (D332).
   const rules = protectionRules([
     ...Object.values(modules),
     { rules: fromAbove },
-    ...(space === undefined ? [] : [referenceCheck(await referencesOf(database))]),
+    ...(space === undefined ? [] : [referenceCheck(references, parts)]),
   ]);
   const reportUnexpected = (entry: string, error: unknown) => {
     try {
@@ -168,6 +173,7 @@ export async function startDataProcess<const Modules extends DataModules>({
           ids: sources.ids,
           spaceId: space.id,
           rules,
+          parts,
           deviceZone: sources.deviceZone,
           unknownTimeZone,
         };

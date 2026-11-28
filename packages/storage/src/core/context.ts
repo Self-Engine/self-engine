@@ -5,6 +5,7 @@ import type { SpaceId } from "@self-engine/spaces";
 import type { Clock, Instant, TimeZone } from "@self-engine/time";
 import { resolveTimeZoneSetting, TIME_ZONE_SETTING } from "@self-engine/time/settings";
 import type { z } from "zod";
+import type { PartRows } from "./part-rows.ts";
 import type { ProtectionRules } from "./registry.ts";
 
 /** What a frame builds each call's context from, set once per Data Process. */
@@ -18,6 +19,11 @@ export interface ContextSources {
   readonly spaceId: SpaceId;
   /** Every Protection Rule of the Data Process; a write path asks them before it writes. */
   readonly rules: ProtectionRules;
+  /**
+   * Every table of Part Rows of the Data Process (ADR 0042): the shared reads and writes treat a
+   * Part Row of a deleted owner as absent. A test without Part Rows takes `noPartRows`.
+   */
+  readonly parts: PartRows;
   /**
    * The zone the device runs in, handed in like the clock (ADR 0027): the app's composition
    * passes the runtime's, a test a fixed one. It stands in for a Time Zone that is not set or
@@ -37,6 +43,8 @@ export interface StorageContext {
   readonly spaceId: SpaceId;
   /** The rules the write paths ask; a Bridge builds its context with the same ones (D332). */
   readonly rules: ProtectionRules;
+  /** The tables of Part Rows, so a lower function reads and writes only live ones (ADR 0042). */
+  readonly parts: PartRows;
   /** The schema supplies the entity brand; generation never needs a cast in module code. */
   newId<Schema extends z.ZodType<string>>(schema: Schema): z.output<Schema>;
   /**
@@ -67,6 +75,7 @@ export function createContext(sources: ContextSources): StorageContext {
     clock,
     spaceId: sources.spaceId,
     rules: sources.rules,
+    parts: sources.parts,
     newId: <Schema extends z.ZodType<string>>(_schema: Schema): z.output<Schema> =>
       newId<z.output<Schema>>(ids),
     readSetting: (tx, setting) => readSetting(tx, sources.spaceId, setting),
