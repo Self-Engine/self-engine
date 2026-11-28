@@ -159,35 +159,35 @@ export const TheLogoDragsTheWindowAndTakesNoPointer: Story = {
   },
 };
 
-/** The part of the header above the Navbar holds the mark; what belongs to the page follows it. */
-export const TheToggleStartsWhereTheNavbarEnds: Story = {
+/** The header does not follow the Navbar: what belongs to the page starts after the buttons and the mark. */
+export const TheToggleStartsAfterTheMarkBesideAWideNavbar: Story = {
   ...atViewport("wide"),
   args: LOGO_AND_WINDOW_BUTTONS,
   play: async ({ canvas }) => {
+    await expect(widthOf(navbarOf(canvas))).toBe(220);
     await expect(collapseToggle(canvas).getBoundingClientRect().left).toBeCloseTo(
-      navbarOf(canvas).getBoundingClientRect().right + HEADER_GAP,
+      SHELL_START_AFTER_WINDOW_BUTTONS_PX + 28 + HEADER_GAP,
       0,
     );
   },
 };
 
-export const TheToggleFollowsTheNavbarWhileDragging: Story = {
+export const TheHeaderStaysPutWhileTheNavbarIsDragged: Story = {
   ...atViewport("wide"),
   ...resizable,
   args: LOGO_AND_WINDOW_BUTTONS,
   play: async ({ args, canvas }) => {
     const navbar = navbarOf(canvas);
     const place = markPlace(canvas);
+    const toggleLeft = collapseToggle(canvas).getBoundingClientRect().left;
     const drag = await pressHandle(navbarHandle(canvas));
     await drag.moveBy(40);
     await expect(widthOf(navbar)).toBe(260);
-    await expect(collapseToggle(canvas).getBoundingClientRect().left).toBeCloseTo(
-      260 + HEADER_GAP,
-      0,
-    );
+    await expect(collapseToggle(canvas).getBoundingClientRect().left).toBeCloseTo(toggleLeft, 0);
     await drag.release(40);
     await expectReportedOnce(args.onNavbarCommit, { collapsed: false, expandedWidth: 260 });
     await expect(markPlace(canvas)).toEqual(place);
+    await expect(collapseToggle(canvas).getBoundingClientRect().left).toBeCloseTo(toggleLeft, 0);
   },
 };
 
