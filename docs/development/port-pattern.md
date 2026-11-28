@@ -319,6 +319,16 @@ target and stays a valid one. What a module owes it is the index on every referr
 (step 2). Test it as [`guarded.test.ts`](../../packages/projects/src/data/guarded.test.ts) does
 for `projects`.
 
+**Rows that belong to another row are Part Rows** (ADR 0042). Name the reference they belong to
+in the module's definition, `belongsTo: { project_shares: "time_entry_id" }`, and the frame does
+the rest: deleting the owner is not refused because of them, a Part Row of a deleted owner
+protects nothing and is not found by any read or write of `sharedEntry` and `sharedWrites`, and
+restoring the owner is refused while one of its live Part Rows refers to a deleted row. Write no
+delete or restore of Part Rows with their owner. A Query of the table names the owner's table
+among its reads, and the contract kit's seed holds a live Part Row of a live owner. The test
+module [`baskets`](../../packages/storage/test/baskets-module/data/index.ts) shows both, with an
+owner of its own and one of another module.
+
 ### Read a Setting
 
 An Operation or a Query that depends on a user's Setting, such as the Time Zone, reads it through

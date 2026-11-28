@@ -59,7 +59,8 @@ area above it. Soft deletion also means the database's own foreign keys never fi
   severity `blocking` and checks the details against the definition, so anything else is an
   unexpected error. `matchReason` gives a caller one Reason with typed details. The severity
   `warning` is reserved and produced by nothing yet.
-- **The reference check**: no Live Row refers to a deleted row. After the migrations the Data
+- **The reference check**: no Live Row refers to a deleted row. A Part Row is a Live Row only
+  while its owner is one; ADR 0042 extends the check for it. After the migrations the Data
   Process reads every single-column foreign key between synced tables that points at an `id`
   (`referencesOf`); `space_id` and Local Tables are not references. It adds these rules:
 
@@ -95,7 +96,7 @@ area above it. Soft deletion also means the database's own foreign keys never fi
 - Each referring column costs an index; the checks were measured with 50,000 rows
   ([performance](../development/performance.md#protection-rules-274)).
 - Not built: rules that warn, references whose rows go with their target or stay behind it
-  (D338), a write path for many rows, the data check after a sync, and rules from the desktop
+  (D338; the Part Row of ADR 0042 is built), a write path for many rows, the data check after a sync, and rules from the desktop
   app's composition. A device can still delete a row that another references offline (D306); a
   Read Piece keeps marking deleted targets.
 - The renderer handles the Refusal and Clearance as described in ADR 0034.

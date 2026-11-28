@@ -20,6 +20,13 @@ export { notFound } from "./not-found.ts";
 export type { SyncedTable } from "./convention.ts";
 export { protectionRule, type ProtectionRule, type RuleRow, type WrittenValues } from "./rules.ts";
 export { referenceCheck } from "./reference-check.ts";
+export {
+  partRows,
+  noPartRows,
+  type BelongsTo,
+  type PartReference,
+  type PartRows,
+} from "./part-rows.ts";
 export { clearance } from "./clearance.ts";
 export type { Clearance, ClearanceWrite, RowClearance, WriteKind } from "@self-engine/db/schema";
 export {
