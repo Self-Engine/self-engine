@@ -18,3 +18,8 @@ export function wholeSecondOf(instant: Instant): Instant {
     Temporal.Instant.from(instant).round({ smallestUnit: "second", roundingMode: "floor" }),
   );
 }
+
+/** The Instant a Duration after `instant`: where a range of that length ends. */
+export function addDuration(instant: Instant, duration: Duration): Instant {
+  return instantFrom(Temporal.Instant.from(instant).add({ seconds: duration }));
+}

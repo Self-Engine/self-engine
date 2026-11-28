@@ -1,7 +1,9 @@
 import { expect, expectTypeOf, test } from "vite-plus/test";
 import {
+  addDuration,
   durationBetween,
   type Duration,
+  durationSchema,
   type Instant,
   instantSchema,
   wholeSecondOf,
@@ -39,4 +41,12 @@ test.each([
   const result = wholeSecondOf(instant(text));
   expect(result).toBe(expected);
   expectTypeOf(result).toEqualTypeOf<Instant>();
+});
+
+test.each([
+  ["2026-11-14T07:30:00.000Z", 0, "2026-11-14T07:30:00.000Z"],
+  ["2026-11-14T07:30:00.000Z", 1380, "2026-11-14T07:53:00.000Z"],
+  ["2026-11-14T23:59:30.250Z", 45, "2026-11-15T00:00:15.250Z"],
+] as const)("%s plus %s seconds is %s", (from, seconds, expected) => {
+  expect(addDuration(instant(from), durationSchema.parse(seconds))).toBe(expected);
 });
