@@ -64,7 +64,6 @@ export {
   NOT_WORK_HAS_PROJECTS,
   NOT_WORK_HAS_RULE_BY_HAND,
   NOT_WORK_KINDS,
-  type NotWorkKind,
   TIME_KINDS,
   type TimeKind,
   timeKindCounts,

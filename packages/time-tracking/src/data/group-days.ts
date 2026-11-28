@@ -175,13 +175,9 @@ export function groupDays(
   const projects = new ProjectSums();
   let total = 0;
   for (const entry of entries) {
-    const shared = projectsOfListed(entry);
-    const only =
-      filter?.kind === "project"
-        ? shared.findIndex(({ projectId }) => projectId === filter.projectId)
-        : undefined;
-    if (only === -1) continue;
-    if (filter?.kind === "noProject" && shared.length > 0) continue;
+    const entryProjects = projectsOfListed(entry);
+    const counted = countedProjectsOf(entryProjects, filter);
+    if (counted.kind === "hidden") continue;
 
     const { shares, crossesMidnight: across } = sharesOf(
       entry,
@@ -200,12 +196,14 @@ export function groupDays(
         overlaps: overlaps.has(entry.id),
       });
       const parts = share.projectParts;
-      if (shared.length === 0 && timeKindCounts(entry.timeKind)) projects.add(null, share.seconds);
-      for (const [index, { project }] of shared.entries())
-        if (only === undefined || only === index) projects.add(project, parts[index] ?? 0);
-      const counted = only === undefined ? share.seconds : (parts[only] ?? 0);
-      day.seconds += counted;
-      total += counted;
+      if (entryProjects.length === 0 && timeKindCounts(entry.timeKind))
+        projects.add(null, share.seconds);
+      for (const [place, { project }] of entryProjects.entries())
+        if (counted.kind === "all" || counted.place === place)
+          projects.add(project, parts[place] ?? 0);
+      const seconds = counted.kind === "all" ? share.seconds : (parts[counted.place] ?? 0);
+      day.seconds += seconds;
+      total += seconds;
     }
   }
   return {
@@ -228,6 +226,27 @@ function spanOf(days: readonly DayRange[]): InstantRange {
   const last = days.at(-1);
   if (first === undefined || last === undefined) throw new Error("A Day Span has a day");
   return { start: first.start, end: last.end };
+}
+
+/**
+ * What a filter counts of an entry: every project and the whole Day Share, only the project at
+ * `place` in its list and that project's part, or nothing, for an entry the filter hides.
+ */
+type CountedProjects =
+  | { readonly kind: "all" }
+  | { readonly kind: "one"; readonly place: number }
+  | { readonly kind: "hidden" };
+
+function countedProjectsOf(
+  entryProjects: ReturnType<typeof projectsOfListed>,
+  filter: TimeEntryFilter | undefined,
+): CountedProjects {
+  if (filter?.kind === "project") {
+    const place = entryProjects.findIndex(({ projectId }) => projectId === filter.projectId);
+    return place === -1 ? { kind: "hidden" } : { kind: "one", place };
+  }
+  if (filter?.kind === "noProject" && entryProjects.length > 0) return { kind: "hidden" };
+  return { kind: "all" };
 }
 
 /** Whether each range, sorted by start, overlaps another one; touching is no overlap. */
