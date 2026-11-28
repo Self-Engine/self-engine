@@ -1,5 +1,6 @@
 ---
-status: accepted
+status: superseded
+superseded-by: 0044-a-time-entry-keeps-its-measured-time-rounded-time-booked-duration-and-rounding-rule.md
 date: 2026-11-21
 decisions: D308, D342, D343, D344, D345, D346, D353, D354
 ---

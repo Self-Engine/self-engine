@@ -4,6 +4,7 @@ import type { ReasonDefinition, refusal, RowMap } from "@self-engine/db/schema";
 import type { Transaction, CompiledQuery } from "kysely";
 import type { StorageContext } from "./context.ts";
 import type { SyncedTable } from "./convention.ts";
+import type { BelongsTo } from "./part-rows.ts";
 import type { RegisteredRule } from "./registry.ts";
 
 export type { RowMap };
@@ -108,6 +109,13 @@ export interface StorageModule<
    * Reasons stay in the type: the module's page side names a text for each (`dataTexts`).
    */
   readonly rules?: readonly RegisteredRule<SyncedTable<TablesOf<Rows>>, Reasons>[];
+  /**
+   * The tables of the module whose rows are Part Rows, each with the column that names its owner
+   * (ADR 0042): a Part Row is a Live Row only while its owner is one. The owner may be a row of
+   * another module, which learns nothing of it. A row whose column is empty names no owner and is
+   * an ordinary row. The start checks that each column is a reference.
+   */
+  readonly belongsTo?: BelongsTo<Rows>;
 }
 
 /** Everything a module declares before its entries: name, Contract, row map and migrations. */
@@ -167,6 +175,7 @@ export type ErasedStorageModule = Pick<
   StorageModule<StorageContract, RowMap>,
   "name" | "contract" | "migrations" | "rowMap" | "conflicts"
 > & {
+  readonly belongsTo?: Readonly<Record<string, string | undefined>>;
   readonly rules?: readonly RegisteredRule[];
   readonly entries: Readonly<
     Record<

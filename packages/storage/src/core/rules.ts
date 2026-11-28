@@ -12,6 +12,7 @@ import type { StorageContext } from "./context.ts";
 import type { RuleAnswer } from "./registry.ts";
 import type { Archivable, Convention, ConventionKey, RowId, SyncedTable } from "./convention.ts";
 import type { ReadTransaction, RowMap } from "./module.ts";
+import { partsOfLiveOwners } from "./part-rows.ts";
 import { recordTableWrites } from "./table-writes.ts";
 
 /** The fields a write sets, without the convention columns the frame writes itself. */
@@ -108,7 +109,8 @@ export function isArchiveWrite(write: WriteKind): write is "archive" | "unarchiv
 
 /**
  * Whether these rows of the Space exist, by id, whether each is deleted and, on an archivable
- * table when asked, whether it is archived: one lookup.
+ * table when asked, whether it is archived: one lookup. A Part Row of a deleted owner is not
+ * found for any write (ADR 0042).
  */
 export async function rowsFound<DB>(
   tx: Transaction<DB>,
@@ -124,6 +126,7 @@ export async function rowsFound<DB>(
     .select(archivable ? ["id", "deleted_at", "archived_at"] : ["id", "deleted_at"])
     .where("space_id", "=", context.spaceId)
     .where("id", "in", ids)
+    .$call(partsOfLiveOwners(context.parts, table))
     .execute();
   return new Map(
     found.map((row) => [

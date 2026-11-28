@@ -14,18 +14,25 @@ import type { ProjectReference } from "@self-engine/projects/contracts";
 import { GARDEN, OLD_SITE, projectReference, WEBSITE } from "@self-engine/projects/testing";
 import {
   dayRangesOf,
-  durationBetween,
+  durationSchema,
   instantSchema,
   resolveTimeZone,
   type TimeZone,
 } from "@self-engine/time";
 import {
+  type Break,
+  computeTimeEntry,
+  DEFAULT_ROUNDING_RULE,
+  type RoundingRule,
   daysAnswerSchema,
   daysInputSchema,
+  type ListedTimeEntry,
+  type TimeEntry,
   type TimeEntryId,
   timeEntryIdSchema,
   type TimeEntryWithProject,
   timeEntryWithProjectSchema,
+  type TimeKind,
   type Timer,
   type TimerId,
   timerIdSchema,
@@ -33,7 +40,7 @@ import {
   timerWithProjectSchema,
   timeTrackingContract,
 } from "../contracts/index.ts";
-import { groupDays } from "../data/group-days.ts";
+import { type DayShareInputs, groupDays } from "../data/group-days.ts";
 import { TIME_TRACKING_READS } from "../data/reads.ts";
 
 const contracts = { timeTracking: timeTrackingContract };
@@ -48,37 +55,94 @@ export type TimeTrackingAnswers = NonNullable<
 >;
 export type TimeTrackingAnswerOptions = Omit<FixedAnswerOptions<typeof targetDeleted>, "reasons">;
 
+const BERLIN = resolveTimeZone("Europe/Berlin").timeZone;
+
 /** A well-formed Time Entry id, numbered: what the Data Process would hand out. */
 export function sampleTimeEntryId(index: number): TimeEntryId {
   return timeEntryIdSchema.parse(`01a1cfa1-0e00-7000-8000-${index.toString(16).padStart(12, "0")}`);
 }
 
 /**
- * A stored Time Entry with its Project Reference, as the Data Process answers it: on whole
- * seconds, with its Booked Duration end minus start. Without a project unless `project` names one
- * (`projectReference` of `@self-engine/projects/testing`).
+ * A stored Time Entry with its Project Reference, as the Data Process answers it: its Measured
+ * Time on whole seconds, and its Rounded Time and Booked Duration as `computeTimeEntry` makes them
+ * with `rule` in Berlin (default: the built-in "round up to 1 minute", not chosen by hand).
+ * Without a project unless `project` names one (`projectReference` of
+ * `@self-engine/projects/testing`), or `projects` names several with their Weights, the Lead
+ * Project first; the Project Shares divide as the Operation divides. A Work Entry unless
+ * `timeKind` names another kind; an entry that is not work takes no project, breaks or rule.
  */
 export function timeEntry(
   index: number,
   fields: {
+    readonly timeKind?: TimeKind;
+    /** The mark "changed by the limit" of a Rest Break entry. */
+    readonly changedByLimit?: boolean;
     readonly startedAt: string;
     readonly endedAt: string;
     readonly project?: ProjectReference | null;
+    readonly projects?: readonly { readonly project: ProjectReference; readonly weight: number }[];
     readonly note?: string | null;
+    /** A rule chosen by hand. */
+    readonly rule?: RoundingRule;
+    /** The breaks inside the entry; none without. */
+    readonly breaks?: readonly Break[] | null;
   },
 ): TimeEntryWithProject {
   const startedAt = instantSchema.parse(fields.startedAt);
   const endedAt = instantSchema.parse(fields.endedAt);
-  const project = fields.project ?? null;
-  return {
+  const timeKind = fields.timeKind ?? "work";
+  const projects =
+    fields.projects ?? (fields.project == null ? [] : [{ project: fields.project, weight: 1 }]);
+  const rule = fields.rule ?? DEFAULT_ROUNDING_RULE;
+  const breaks = [...(fields.breaks ?? [])];
+  const { roundedTime, bookedDuration, findings, projectShares } = computeTimeEntry({
+    timeKind,
+    measuredTime: { start: startedAt, end: endedAt },
+    timeZone: BERLIN,
+    rule,
+    breaks,
+    projects,
+  });
+  const entry = {
     id: sampleTimeEntryId(index),
     startedAt,
     endedAt,
-    durationSeconds: durationBetween(startedAt, endedAt),
-    projectId: project?.id ?? null,
+    roundedTime,
+    bookedDuration,
+    findings: [...findings],
     note: fields.note ?? null,
-    project,
   };
+  if (timeKind === "rest_break")
+    return { timeKind, ...entry, changedByLimit: fields.changedByLimit ?? false };
+  if (timeKind !== "work") return { timeKind, ...entry };
+  return {
+    timeKind,
+    ...entry,
+    roundingRule: rule,
+    ruleByHand: fields.rule ?? null,
+    breaks,
+    projects: projects.map(({ project, weight }, index) => ({
+      projectId: project.id,
+      weight,
+      projectShare: projectShares[index] ?? durationSchema.parse(0),
+      project,
+    })),
+  };
+}
+
+/** An entry as an Operation answers it: its projects without their Project References. */
+export function timeEntryAnswer(entry: TimeEntryWithProject): TimeEntry {
+  if (entry.timeKind !== "work") return entry;
+  const { projects, ...work } = entry;
+  return { ...work, projects: projects.map(({ project: _project, ...share }) => share) };
+}
+
+/** An entry as a list holds it: without its rule, its findings, its breaks and a Rest Break's mark. */
+export function listedTimeEntry(entry: TimeEntryWithProject): ListedTimeEntry {
+  const { id, startedAt, endedAt, roundedTime, bookedDuration, note } = entry;
+  const listed = { id, startedAt, endedAt, roundedTime, bookedDuration, note };
+  if (entry.timeKind === "work") return { timeKind: "work", ...listed, projects: entry.projects };
+  return { timeKind: entry.timeKind, ...listed };
 }
 
 /** A well-formed Timer id, numbered: what the Data Process would hand out. */
@@ -118,14 +182,12 @@ export interface StoredTimeEntries {
   readonly timeZone?: TimeZone;
 }
 
-const BERLIN = resolveTimeZone("Europe/Berlin").timeZone;
-
 /** A sample entry, as every Operation's Fixed Answer returns it. */
 const SAMPLE = timeEntry(100, {
   startedAt: "2026-11-16T08:00:00.000Z",
   endedAt: "2026-11-16T09:30:00.000Z",
 });
-const { project: _sampleProject, ...SAMPLE_ENTRY } = SAMPLE;
+const SAMPLE_ENTRY = timeEntryAnswer(SAMPLE);
 
 /** A sample timer, as every timer Operation's Fixed Answer returns it. */
 const SAMPLE_TIMER: Timer = (({ project: _project, ...timer }) => timer)(
@@ -139,6 +201,7 @@ const SAMPLE_TIMER: Timer = (({ project: _project, ...timer }) => timer)(
 export const SUCCEEDING = {
   create: { data: SAMPLE_ENTRY },
   edit: { data: SAMPLE_ENTRY },
+  move: { data: SAMPLE_ENTRY },
   delete: { data: SAMPLE_ENTRY },
   restore: { data: SAMPLE_ENTRY },
   entry: { data: SAMPLE },
@@ -195,16 +258,35 @@ export function timeTrackingAnswers(
         return fixed.call(module, entry, input, signal);
       }
       const { span, filter } = daysInputSchema.parse(input);
-      const days = dayRangesOf(span, timeZone);
-      const first = days[0];
-      const last = days.at(-1);
-      const windowEntries =
-        first === undefined || last === undefined
-          ? []
-          : entries.filter((stored) => stored.startedAt < last.end && stored.endedAt > first.start);
-      return daysAnswerSchema.parse(groupDays(days, windowEntries, filter));
+      // `groupDays` places the entries by their Rounded Times and cuts them exactly, as the Data
+      // Process does after its window.
+      return daysAnswerSchema.parse(
+        groupDays(
+          { days: dayRangesOf(span, timeZone), timeZone },
+          entries.map(listedTimeEntry),
+          dayShareInputsOfStored(entries),
+          filter,
+        ),
+      );
     },
   };
+}
+
+/**
+ * The Day Share inputs of the stored entries as the Data Process reads them for an entry across
+ * midnight: the sample entries compute in Berlin.
+ */
+function dayShareInputsOfStored(
+  entries: readonly TimeEntryWithProject[],
+): ReadonlyMap<TimeEntryId, DayShareInputs> {
+  return new Map(
+    entries.map((entry) => [
+      entry.id,
+      entry.timeKind === "work"
+        ? { rule: entry.roundingRule, breaks: entry.breaks, timeZone: BERLIN }
+        : { rule: DEFAULT_ROUNDING_RULE, breaks: [], timeZone: BERLIN },
+    ]),
+  );
 }
 
 /** The tables each Query reads, as the Data Process's Query-to-tables list names them. */
@@ -295,19 +377,24 @@ export const SAMPLE_WEEK = {
     project: projectReference(GARDEN),
     note: "Raised beds",
   }),
-  /** Wednesday 09:30 to 10:14:10, as a timer leaves it: 44:10 shows "0:45" (D345). */
+  /**
+   * Wednesday 09:30 to 10:14:10, as a Timer leaves it, with the rule Exact chosen by hand: 44:10
+   * counts and shows "0:44:10".
+   */
   review: timeEntry(4, {
     startedAt: "2026-11-18T08:30:00.000Z",
     endedAt: "2026-11-18T09:14:10.000Z",
     project: projectReference(WEBSITE),
     note: "Review",
+    rule: { kind: "exact" },
   }),
-  /** Wednesday 10:30 to 10:50:10: 20:10 shows "0:21", and the day 64:20 shows "1:05". */
+  /** Wednesday 10:30 to 10:50:10, Exact: 20:10 shows "0:20:10", and the day totals "1:04:20". */
   fixes: timeEntry(5, {
     startedAt: "2026-11-18T09:30:00.000Z",
     endedAt: "2026-11-18T09:50:10.000Z",
     project: projectReference(WEBSITE),
     note: "Fixes",
+    rule: { kind: "exact" },
   }),
   /** Thursday 22:00 to Friday 01:30: across midnight. */
   release: timeEntry(6, {
@@ -327,3 +414,11 @@ export const SAMPLE_WEEK = {
 
 /** The entries of the sample week, as a story's Port stores them. */
 export const SAMPLE_WEEK_ENTRIES: readonly TimeEntryWithProject[] = Object.values(SAMPLE_WEEK);
+
+/** The entry as the Work Entry a test expects it to be; throws for an entry that is not work. */
+export function asWorkEntry<Entry extends { readonly timeKind: string }>(
+  entry: Entry,
+): Extract<Entry, { readonly timeKind: "work" }> {
+  if (entry.timeKind !== "work") throw new Error(`Expected a Work Entry, got ${entry.timeKind}`);
+  return entry as Extract<Entry, { readonly timeKind: "work" }>;
+}

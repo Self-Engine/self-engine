@@ -1,6 +1,7 @@
 import { expect, expectTypeOf, test } from "vite-plus/test";
 import * as time from "./index.ts";
 import type {
+  BlockMinutes,
   CalendarDay,
   CalendarDayFormat,
   Clock,
@@ -36,6 +37,17 @@ test("the public functions use only package values and require all arguments", (
   expectTypeOf(time.isoWeekNumber).toEqualTypeOf<(day: CalendarDay) => number>();
   expectTypeOf(time.durationBetween).toEqualTypeOf<(from: Instant, to: Instant) => Duration>();
   expectTypeOf(time.wholeSecondOf).toEqualTypeOf<(instant: Instant) => Instant>();
+  expectTypeOf(time.wholeMinuteOf).toEqualTypeOf<(instant: Instant) => Instant>();
+  expectTypeOf(time.addDuration).toEqualTypeOf<(instant: Instant, duration: Duration) => Instant>();
+  expectTypeOf(time.subtractDuration).toEqualTypeOf<
+    (instant: Instant, duration: Duration) => Instant
+  >();
+  expectTypeOf(time.startOfBlock).toEqualTypeOf<
+    (instant: Instant, minutes: BlockMinutes, timeZone: TimeZone) => Instant
+  >();
+  expectTypeOf(time.endOfBlock).toEqualTypeOf<
+    (instant: Instant, minutes: BlockMinutes, timeZone: TimeZone) => Instant
+  >();
   expectTypeOf(time.epochMsOf).toEqualTypeOf<(instant: Instant) => number>();
   expectTypeOf(time.instantFromDate).toEqualTypeOf<(date: Date) => Instant>();
   expectTypeOf(time.resolveTimeZone).toEqualTypeOf<(name: string) => ResolvedTimeZone>();
@@ -162,6 +174,11 @@ test("the public functions use only package values and require all arguments", (
       "wallClockTimeSchema",
       "weekOf",
       "wholeSecondOf",
+      "wholeMinuteOf",
+      "addDuration",
+      "subtractDuration",
+      "startOfBlock",
+      "endOfBlock",
     ].sort(),
   );
 });

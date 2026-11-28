@@ -16,6 +16,26 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
+/**
+ * Whether an answer carries a value as it was set: the same value, or, for a list, the same
+ * items in the same order, each carrying every key of the item sent unchanged. An item of the
+ * answer may add computed parts, such as the Project Share beside a project and its Weight.
+ */
+function carries(answer: unknown, asked: unknown): boolean {
+  if (!Array.isArray(asked)) return isDeepStrictEqual(answer, asked);
+  return (
+    Array.isArray(answer) &&
+    answer.length === asked.length &&
+    asked.every((sent: unknown, index) => {
+      const item: unknown = answer[index];
+      if (!isRecord(sent) || !isRecord(item)) return isDeepStrictEqual(item, sent);
+      return Object.keys(sent).every(
+        (key) => Object.hasOwn(item, key) && isDeepStrictEqual(item[key], sent[key]),
+      );
+    })
+  );
+}
+
 async function accepts(schema: AnySchema, value: unknown) {
   return !(await schema["~standard"].validate(value)).issues;
 }
@@ -35,7 +55,9 @@ export async function acceptsUnknownField(schema: AnySchema, example: unknown) {
  *    nothing and leaves `updated_at`; an id no seed produced is not found.
  * 2. With the example, which must set every field, then each field alone: a field the call does
  *    not carry keeps its value, `null` clears an optional field, a value sets it. The answer
- *    carries a set value as the input schema reads it, which may turn spaces into no value.
+ *    carries a set value as the input schema reads it, which may turn spaces into no value. For a
+ *    list field the answer may add computed parts to each item; what was sent stands in it
+ *    unchanged, item by item, in order.
  */
 export async function checkEdits<Contract extends StorageContract, Rows extends RowMap>(
   module: StorageModule<Contract, Rows>,
@@ -132,7 +154,7 @@ export async function checkEdits<Contract extends StorageContract, Rows extends 
         if (!Object.hasOwn(full, field)) violate(`edit answer lacks a field: ${field}`);
       const carried = set.filter((field) => Object.hasOwn(full, field));
       for (const field of carried)
-        if (!isDeepStrictEqual(full[field], await asked(example, field)))
+        if (!carries(full[field], await asked(example, field)))
           violate(`edit does not set a field it carries: ${field}`);
       const untouched = (answer: unknown, sent: string) => {
         if (!isRecord(answer)) return;
@@ -151,7 +173,7 @@ export async function checkEdits<Contract extends StorageContract, Rows extends 
         const value = { ...identity, [field]: example[field] };
         if (!(await accepts(inputSchema, value))) continue;
         const answer = await edit(value);
-        if (isRecord(answer) && !isDeepStrictEqual(answer[field], await asked(value, field)))
+        if (isRecord(answer) && !carries(answer[field], await asked(value, field)))
           violate(`edit does not set a field it carries: ${field}`);
         untouched(answer, field);
       }

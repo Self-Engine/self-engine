@@ -270,10 +270,13 @@ test("an entry created on a clicked day of the week is sent with that day and ap
     {
       entry: "create",
       input: {
+        timeKind: "work",
         startedAt: "2026-11-18T08:00:00.000Z",
         endedAt: "2026-11-18T09:30:00.000Z",
-        projectId: null,
+        projects: [],
         note: "Review",
+        ruleByHand: null,
+        breaks: [],
       },
     },
   ]);
@@ -309,10 +312,13 @@ test("the primary action opens a new entry on today, and the entry appears in th
     {
       entry: "create",
       input: {
+        timeKind: "work",
         startedAt: "2026-11-20T12:00:00.000Z",
         endedAt: "2026-11-20T13:00:00.000Z",
-        projectId: null,
+        projects: [],
         note: null,
+        ruleByHand: null,
+        breaks: [],
       },
     },
   ]);
@@ -350,7 +356,7 @@ test("a stored entry opens with its values, and saving a changed note sends only
   const week = await openStored();
   expect(week.search()).toEqual({ edit: week.id });
   expect(drawer().querySelector("input")?.value).toBe("18.11.2026");
-  expect(drawer().textContent).toContain("Duration: 1:30");
+  expect(drawer().textContent).toContain("Duration: 1:29:20");
 
   setValue(note(), "Code review");
   await shown(() => expect(button(drawer(), "Save").disabled).toBe(false));
@@ -365,11 +371,112 @@ test("a stored entry opens with its values, and saving a changed note sends only
   );
 });
 
+test("saving another field of an entry with breaks leaves its breaks as they are", async () => {
+  const breaks = [
+    {
+      timeKind: "rest_break",
+      startedAt: "2026-11-18T08:30:00.000Z",
+      endedAt: "2026-11-18T08:45:00.000Z",
+      changedByLimit: false,
+    },
+  ];
+  const week = await openStored({ breaks });
+  setValue(note(), "Code review");
+  await shown(() => expect(button(drawer(), "Save").disabled).toBe(false));
+  button(drawer(), "Save").click();
+
+  await shown(() => expect(document.querySelector('[role="dialog"]')).toBeNull());
+  expect(week.calls).toEqual([{ entry: "edit", input: { id: week.id, note: "Code review" } }]);
+  await expect(week.client.timeTracking.entry({ id: week.id as never })).resolves.toMatchObject({
+    note: "Code review",
+    breaks,
+    // 1:29:20 measured without the Rest Break of 0:15, rounded up to the minute.
+    bookedDuration: 75 * 60,
+  });
+});
+
+test("saving other fields of an entry that is not work leaves its Time Kind as it is", async () => {
+  // The rounding resolution's Leisure Entry, 14:00:10 to 16:44:20 in Berlin.
+  const week = await openStored({
+    timeKind: "leisure",
+    startedAt: "2026-11-18T13:00:10.000Z",
+    endedAt: "2026-11-18T15:44:20.000Z",
+  });
+  setValue(note(), "Afternoon off");
+  await shown(() => expect(button(drawer(), "Save").disabled).toBe(false));
+  button(drawer(), "Save").click();
+
+  await shown(() => expect(document.querySelector('[role="dialog"]')).toBeNull());
+  expect(week.calls).toEqual([{ entry: "edit", input: { id: week.id, note: "Afternoon off" } }]);
+  await expect(week.client.timeTracking.entry({ id: week.id as never })).resolves.toMatchObject({
+    timeKind: "leisure",
+    note: "Afternoon off",
+    bookedDuration: 0,
+  });
+});
+
+test("the week shows a Break Entry and a Leisure Entry like any other, with its Rounded Time and its Booked Duration", async () => {
+  await renderWeek(async (client) => {
+    await client.timeTracking.create({
+      ...TIMED,
+      note: "Review",
+    });
+    await client.timeTracking.create({
+      timeKind: "short_break",
+      startedAt: "2026-11-18T09:30:00.000Z",
+      endedAt: "2026-11-18T09:44:50.000Z",
+      note: "Coffee",
+    });
+    await client.timeTracking.create({
+      timeKind: "rest_break",
+      startedAt: "2026-11-18T11:00:00.000Z",
+      endedAt: "2026-11-18T11:30:00.000Z",
+      note: "Lunch",
+    });
+    await client.timeTracking.create({
+      timeKind: "leisure",
+      startedAt: "2026-11-18T13:00:10.000Z",
+      endedAt: "2026-11-18T15:44:20.000Z",
+      note: "Afternoon off",
+    });
+  });
+  await shown(() =>
+    expect(rowsOf("Mittwoch, 18. November 2026")).toEqual([
+      "09:00 – 10:30No projectReview1:30",
+      "10:30 – 10:45No projectCoffee0:15",
+      "12:00 – 12:30No projectLunch0:00",
+      "14:00 – 16:45No projectAfternoon off0:00",
+    ]),
+  );
+  // The day counts the work and the Short Break; the Rest Break and Leisure add nothing.
+  expect(
+    day("Mittwoch, 18. November 2026").querySelector('[aria-label="Day total"]')?.textContent,
+  ).toBe("1:45");
+});
+
+test("the week shows an entry at its Rounded Time, and the drawer's fields hold its Measured Time", async () => {
+  // The rounding resolution's timer, 10:07:30 to 10:29:50 in Berlin: it counts 10:07 to 10:30.
+  await openStored({
+    startedAt: "2026-11-18T09:07:30.000Z",
+    endedAt: "2026-11-18T09:29:50.000Z",
+    note: "Timer",
+  });
+  expect(rowsOf("Mittwoch, 18. November 2026")).toEqual(["10:07 – 10:30No projectTimer0:23"]);
+  const { startHours, startMinutes, endHours, endMinutes } = times();
+  expect([startHours.value, startMinutes.value, endHours.value, endMinutes.value]).toEqual([
+    "10",
+    "07",
+    "10",
+    "29",
+  ]);
+  expect(drawer().textContent).toContain("Duration: 0:22:20");
+});
+
 test("a changed start sends start and end, and the untouched end keeps its seconds", async () => {
   const week = await openStored();
   const { startHours, startMinutes } = times();
   await typeTime(startHours, startMinutes, "08:15");
-  await shown(() => expect(drawer().textContent).toContain("Duration: 2:16"));
+  await shown(() => expect(drawer().textContent).toContain("Duration: 2:15:10"));
   button(drawer(), "Save").click();
 
   await shown(() => expect(document.querySelector('[role="dialog"]')).toBeNull());
@@ -413,7 +520,11 @@ test("live Time Entries block project deletion and leave Archive available until
   const week = await renderWeek();
   const project = await week.client.projects.create({ title: "Website" });
   for (const note of ["Review", "Implementation"]) {
-    await week.client.timeTracking.create({ ...TIMED, projectId: project.id, note });
+    await week.client.timeTracking.create({
+      ...TIMED,
+      projects: [{ projectId: project.id }],
+      note,
+    });
   }
   const wednesday = "Mittwoch, 18. November 2026";
   await shown(() => expect(rowsOf(wednesday)).toHaveLength(2));
@@ -471,8 +582,17 @@ test("an undo refused because the project was deleted meanwhile names the projec
   // A second entry of a project that is deleted once this entry is gone.
   const project = await week.client.projects.create({ title: "Website" });
   projectId = project.id;
-  await week.client.timeTracking.edit({ id: week.id as never, projectId: projectId as never });
-  await shown(() => expect(drawer().textContent).toContain("Website"));
+  await week.client.timeTracking.edit({
+    id: week.id as never,
+    projects: [{ projectId: projectId as never }],
+  });
+  // The picker's value, not the drawer's text: the picker's list names the project before the
+  // entry does, and the Notice takes the entry's name as it stands at the click.
+  await shown(() =>
+    expect([...drawer().querySelectorAll("input")].some((item) => item.value === "Website")).toBe(
+      true,
+    ),
+  );
   button(drawer(), "Delete").click();
   await shown(() => expect(document.querySelector('[role="dialog"]')).toBeNull());
   await week.client.projects.delete({ id: projectId as never });
@@ -521,7 +641,9 @@ test("a save that points to a project deleted meanwhile shows the Refusal at the
     expect(drawer().textContent).toContain("The linked project is no longer available."),
   );
   expect(document.querySelector('[role="alert"]')).toBeNull();
-  expect(week.calls).toEqual([{ entry: "edit", input: { id: week.id, projectId } }]);
+  expect(week.calls).toEqual([
+    { entry: "edit", input: { id: week.id, projects: [{ projectId }] } },
+  ]);
 });
 
 test("an entry of an archived project shows it and saves", async () => {
@@ -530,7 +652,10 @@ test("an entry of an archived project shows it and saves", async () => {
     projectId = (await client.projects.create({ title: "Old site" })).id;
     await client.projects.archive({ id: projectId as never });
   });
-  await week.client.timeTracking.edit({ id: week.id as never, projectId: projectId as never });
+  await week.client.timeTracking.edit({
+    id: week.id as never,
+    projects: [{ projectId: projectId as never }],
+  });
   await shown(() =>
     expect(
       [...drawer().querySelectorAll("input")].some((item) => item.value === "Old site (archived)"),
@@ -541,6 +666,67 @@ test("an entry of an archived project shows it and saves", async () => {
 
   await shown(() => expect(document.querySelector('[role="dialog"]')).toBeNull());
   expect(week.calls).toEqual([{ entry: "edit", input: { id: week.id, note: "Handover" } }]);
+});
+
+/** A stored entry with three projects, Website (Weight 2), Shop (1) and Blog (3), in its drawer. */
+async function openWithThreeProjects() {
+  const ids: Record<string, string> = {};
+  const week = await openStored({}, async (client) => {
+    for (const title of ["Website", "Shop", "Blog", "Other"])
+      ids[title] = (await client.projects.create({ title })).id;
+  });
+  const projects = [
+    { projectId: ids["Website"]!, weight: 2 },
+    { projectId: ids["Shop"]!, weight: 1 },
+    { projectId: ids["Blog"]!, weight: 3 },
+  ];
+  await week.client.timeTracking.edit({ id: week.id as never, projects: projects as never });
+  await shown(() =>
+    expect([...drawer().querySelectorAll("input")].some((item) => item.value === "Website")).toBe(
+      true,
+    ),
+  );
+  return { ...week, ids, projects };
+}
+
+test("saving another field of an entry with several projects sends no projects and keeps them", async () => {
+  const week = await openWithThreeProjects();
+  setValue(note(), "Code review");
+  await shown(() => expect(button(drawer(), "Save").disabled).toBe(false));
+  button(drawer(), "Save").click();
+
+  await shown(() => expect(document.querySelector('[role="dialog"]')).toBeNull());
+  expect(week.calls).toEqual([{ entry: "edit", input: { id: week.id, note: "Code review" } }]);
+  await expect(week.client.timeTracking.entry({ id: week.id as never })).resolves.toMatchObject({
+    projects: week.projects,
+  });
+});
+
+test("choosing a further project in the picker moves it to the front and keeps the others in order", async () => {
+  const week = await openWithThreeProjects();
+  await pick("Shop");
+  button(drawer(), "Save").click();
+
+  await shown(() => expect(document.querySelector('[role="dialog"]')).toBeNull());
+  const [website, shop, blog] = week.projects;
+  expect(week.calls).toEqual([
+    { entry: "edit", input: { id: week.id, projects: [shop, website, blog] } },
+  ]);
+});
+
+test("choosing another project in the picker replaces the Lead Project and keeps its Weight and the rest", async () => {
+  const week = await openWithThreeProjects();
+  await pick("Other");
+  button(drawer(), "Save").click();
+
+  await shown(() => expect(document.querySelector('[role="dialog"]')).toBeNull());
+  const [, shop, blog] = week.projects;
+  expect(week.calls).toEqual([
+    {
+      entry: "edit",
+      input: { id: week.id, projects: [{ projectId: week.ids["Other"], weight: 2 }, shop, blog] },
+    },
+  ]);
 });
 
 const inputCommand = contribution.commands?.find((command) => command.kind === "input");
@@ -574,7 +760,7 @@ test("the input Command holds the same checks: an end not after the start is an 
   });
   const unknown = await runCommand(
     inputCommand,
-    { ...TIMED, durationSeconds: 60 },
+    { ...TIMED, bookedDuration: 60 },
     { data: week.data },
   );
   expect(unknown).toMatchObject({ ok: false, error: { issues: [{ code: "unrecognized_keys" }] } });

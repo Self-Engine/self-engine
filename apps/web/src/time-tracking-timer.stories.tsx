@@ -12,12 +12,13 @@ import type { Clock } from "@self-engine/time";
 import { advanceInstantByMilliseconds, requireInstant } from "@self-engine/time/testing";
 import {
   runningTimer,
-  sampleTimeEntryId,
   type StoredTimeEntries,
+  timeEntry,
   type TimeTrackingAnswers,
   type TimeTrackingCall,
   type TimeTrackingStoryPort,
   timeTrackingStoryPort,
+  timeEntryAnswer,
 } from "@self-engine/time-tracking/testing";
 import {
   afterTheCommitsNowDue,
@@ -485,14 +486,10 @@ export const AStartThatStoppedAnotherTimerSaysThatItsEntryWasSaved: Story = {
           others: [
             {
               kind: "saved",
-              entry: {
-                id: sampleTimeEntryId(2),
-                startedAt: EARLIER.startedAt,
-                endedAt: "2026-11-20T10:00:00.000Z",
-                durationSeconds: 10_800,
-                projectId: null,
-                note: null,
-              },
+              // As the Data Process answers it: the sample entry without its Project Reference.
+              entry: timeEntryAnswer(
+                timeEntry(2, { startedAt: EARLIER.startedAt, endedAt: "2026-11-20T10:00:00.000Z" }),
+              ),
             },
           ],
         },

@@ -1,14 +1,28 @@
 // The grouping of the Query of a Day Span (D343): entries in, days with their Day Shares and the
 // sums out. Pure, so the Query and the Fixed Answers of the stories group alike.
 import type { ProjectReference } from "@self-engine/projects/contracts";
-import { type DayRange, durationSchema, type Instant } from "@self-engine/time";
-import type {
-  DayEntry,
-  DaysAnswer,
-  TimeEntryFilter,
-  TimeEntryWithProject,
+import {
+  cutAtDays,
+  type DayRange,
+  durationSchema,
+  type Instant,
+  type InstantRange,
+  type TimeZone,
+} from "@self-engine/time";
+import {
+  type Break,
+  countedRanges,
+  type DayEntry,
+  type DaysAnswer,
+  type ListedTimeEntry,
+  projectsOfListed,
+  type RoundingRule,
+  shareUnitOf,
+  type TimeEntryFilter,
+  type TimeEntryId,
+  timeKindCounts,
 } from "../contracts/index.ts";
-import { dayShares } from "./day-shares.ts";
+import { crossesMidnight, type DayShare, divideOverItsDays } from "./day-shares.ts";
 
 /** Sums in whole seconds, keyed by project id; `null` is "no project". */
 class ProjectSums {
@@ -41,39 +55,155 @@ class ProjectSums {
 }
 
 /**
- * The answer for `days`, consecutive whole days as `dayRangesOf` gives them. Pass every entry
- * that touches the window, sorted by start, so a filter can hide an entry without hiding its
- * overlaps. Only the Day Shares of visible entries inside the span contribute to the sums.
+ * Where an entry stands in a list: its Rounded Time, or, without one, the moment of its measured
+ * start, where it stands with 0:00.
+ */
+function placeOf(entry: ListedTimeEntry): InstantRange {
+  return entry.roundedTime ?? { start: entry.startedAt, end: entry.startedAt };
+}
+
+/**
+ * What the division of an entry across midnight reads beyond the list, for that entry alone: its
+ * rule and its breaks (`null` where this version cannot read them) and its own Time Zone.
+ */
+export interface DayShareInputs {
+  readonly rule: RoundingRule | null;
+  readonly breaks: readonly Break[] | null;
+  readonly timeZone: TimeZone;
+}
+
+/** The entries whose Rounded Time crosses midnight in `days`: only they need their rule, breaks and Time Zone. */
+export function entriesAcrossMidnight(
+  days: readonly DayRange[],
+  entries: readonly ListedTimeEntry[],
+): ListedTimeEntry[] {
+  return entries.filter(
+    (entry) => entry.roundedTime !== null && crossesMidnight(entry.roundedTime, days),
+  );
+}
+
+/**
+ * The Day Shares of an entry in `days`; one without a Rounded Time has 0:00 on its start's day.
+ * An entry on one day has its Booked Duration there and each project its Project Share. One
+ * across midnight is divided over all its days with its rule, breaks and Time Zone, and only the days in `days`
+ * are kept. Without them it counts its Rounded Time, on whole seconds.
+ */
+function sharesOf(
+  entry: ListedTimeEntry,
+  days: readonly DayRange[],
+  timeZone: TimeZone,
+  inputs: DayShareInputs | undefined,
+): { readonly shares: readonly DayShare[]; readonly crossesMidnight: boolean } {
+  const projectShares = projectsOfListed(entry).map(({ projectShare }) => projectShare);
+  const { roundedTime } = entry;
+  if (roundedTime === null) {
+    const day = days.find((range) => range.start <= entry.startedAt && entry.startedAt < range.end);
+    const zero = durationSchema.parse(0);
+    return {
+      shares:
+        day === undefined ? [] : [{ day: day.day, seconds: zero, projectParts: projectShares }],
+      crossesMidnight: false,
+    };
+  }
+  if (!crossesMidnight(roundedTime, days))
+    return {
+      shares: cutAtDays(roundedTime, days).map(({ day }) => ({
+        day,
+        seconds: entry.bookedDuration,
+        projectParts: projectShares,
+      })),
+      crossesMidnight: false,
+    };
+  const rule = inputs?.rule ?? null;
+  const counted = countedRanges(
+    {
+      timeKind: entry.timeKind,
+      measuredTime: { start: entry.startedAt, end: entry.endedAt },
+      timeZone: inputs?.timeZone ?? timeZone,
+      breaks: inputs?.breaks ?? [],
+      rule,
+    },
+    roundedTime,
+  );
+  const inSpan = new Set(days.map(({ day }) => day));
+  const divided = divideOverItsDays(
+    {
+      roundedTime,
+      bookedDuration: entry.bookedDuration,
+      projectShares,
+      counted,
+      unit: shareUnitOf(rule),
+    },
+    timeZone,
+  );
+  return { shares: divided.filter(({ day }) => inSpan.has(day)), crossesMidnight: true };
+}
+
+/**
+ * The answer for `days`, consecutive whole days as `dayRangesOf` gives them in `timeZone`, the
+ * Time Zone of the call. Pass every entry that may touch the span, in any order, and the
+ * Day Share inputs of those of them `entriesAcrossMidnight` names: it places them by their Rounded Times and cuts them
+ * exactly, and a filter hides an entry without hiding its overlaps. Overlaps are judged on the
+ * Rounded Times of the entries that touch the span; an entry without one overlaps nothing. Only the Day Shares of visible entries
+ * inside the span contribute to the sums. The sums per project read the Project Shares; under a
+ * project filter every sum counts that project's part, and "no project" holds the entries without
+ * a share. An entry that is not work has no project: a Short Break entry counts toward the day
+ * and "no project", a Rest Break entry and Leisure toward no sum.
  */
 export function groupDays(
-  days: readonly DayRange[],
-  entries: readonly TimeEntryWithProject[],
+  { days, timeZone }: { readonly days: readonly DayRange[]; readonly timeZone: TimeZone },
+  candidates: readonly ListedTimeEntry[],
+  inputs: ReadonlyMap<TimeEntryId, DayShareInputs>,
   filter?: TimeEntryFilter,
 ): DaysAnswer {
+  const entries = candidates.toSorted(
+    (a, b) => placeOf(a).start.localeCompare(placeOf(b).start) || a.id.localeCompare(b.id),
+  );
+  // Cut to the span first, then judge: an entry whose Rounded Time does not touch the span takes
+  // no part, though the read reached it.
+  const span = spanOf(days);
+  const counting = entries.filter(
+    (entry) =>
+      entry.roundedTime !== null &&
+      entry.roundedTime.start < span.end &&
+      entry.roundedTime.end > span.start,
+  );
+  const overlapping = overlapsOf(counting.map((entry) => entry.roundedTime as InstantRange));
+  const overlaps = new Set(counting.filter((_, index) => overlapping[index]).map(({ id }) => id));
+
   const byDay = new Map(days.map(({ day }) => [day, { entries: [] as DayEntry[], seconds: 0 }]));
   const projects = new ProjectSums();
   let total = 0;
-  let latestEnd: Instant | undefined;
-  for (const [index, entry] of entries.entries()) {
-    // If any later entry overlaps, the next one has the earliest start and overlaps too.
-    const next = entries[index + 1];
-    const overlaps =
-      (latestEnd !== undefined && entry.startedAt < latestEnd) ||
-      (next !== undefined && next.startedAt < entry.endedAt);
-    if (latestEnd === undefined || entry.endedAt > latestEnd) latestEnd = entry.endedAt;
+  for (const entry of entries) {
+    const entryProjects = projectsOfListed(entry);
+    const counted = countedProjectsOf(entryProjects, filter);
+    if (counted.kind === "hidden") continue;
 
-    if (filter?.kind === "project" && entry.projectId !== filter.projectId) continue;
-    if (filter?.kind === "noProject" && entry.projectId !== null) continue;
-
-    const { shares, crossesMidnight } = dayShares(entry, days);
+    const { shares, crossesMidnight: across } = sharesOf(
+      entry,
+      days,
+      timeZone,
+      inputs.get(entry.id),
+    );
     for (const share of shares) {
       const day = byDay.get(share.day);
       if (day === undefined) continue;
-      // Entries come sorted by start, so each day's entries do too.
-      day.entries.push({ ...entry, dayShare: share.seconds, crossesMidnight, overlaps });
-      day.seconds += share.seconds;
-      projects.add(entry.project, share.seconds);
-      total += share.seconds;
+      // Entries come sorted by their place, so each day's entries do too.
+      day.entries.push({
+        ...entry,
+        dayShare: share.seconds,
+        crossesMidnight: across,
+        overlaps: overlaps.has(entry.id),
+      });
+      const parts = share.projectParts;
+      if (entryProjects.length === 0 && timeKindCounts(entry.timeKind))
+        projects.add(null, share.seconds);
+      for (const [place, { project }] of entryProjects.entries())
+        if (counted.kind === "all" || counted.place === place)
+          projects.add(project, parts[place] ?? 0);
+      const seconds = counted.kind === "all" ? share.seconds : (parts[counted.place] ?? 0);
+      day.seconds += seconds;
+      total += seconds;
     }
   }
   return {
@@ -88,4 +218,47 @@ export function groupDays(
     projects: projects.lines(),
     total: durationSchema.parse(total),
   };
+}
+
+/** The span `days` cover, from the start of the first to the end of the last. */
+function spanOf(days: readonly DayRange[]): InstantRange {
+  const first = days[0];
+  const last = days.at(-1);
+  if (first === undefined || last === undefined) throw new Error("A Day Span has a day");
+  return { start: first.start, end: last.end };
+}
+
+/**
+ * What a filter counts of an entry: every project and the whole Day Share, only the project at
+ * `place` in its list and that project's part, or nothing, for an entry the filter hides.
+ */
+type CountedProjects =
+  | { readonly kind: "all" }
+  | { readonly kind: "one"; readonly place: number }
+  | { readonly kind: "hidden" };
+
+function countedProjectsOf(
+  entryProjects: ReturnType<typeof projectsOfListed>,
+  filter: TimeEntryFilter | undefined,
+): CountedProjects {
+  if (filter?.kind === "project") {
+    const place = entryProjects.findIndex(({ projectId }) => projectId === filter.projectId);
+    return place === -1 ? { kind: "hidden" } : { kind: "one", place };
+  }
+  if (filter?.kind === "noProject" && entryProjects.length > 0) return { kind: "hidden" };
+  return { kind: "all" };
+}
+
+/** Whether each range, sorted by start, overlaps another one; touching is no overlap. */
+function overlapsOf(ranges: readonly InstantRange[]): boolean[] {
+  let latestEnd: Instant | undefined;
+  return ranges.map((range, index) => {
+    // If any later range overlaps, the next one has the earliest start and overlaps too.
+    const next = ranges[index + 1];
+    const overlaps =
+      (latestEnd !== undefined && range.start < latestEnd) ||
+      (next !== undefined && next.start < range.end);
+    if (latestEnd === undefined || range.end > latestEnd) latestEnd = range.end;
+    return overlaps;
+  });
 }

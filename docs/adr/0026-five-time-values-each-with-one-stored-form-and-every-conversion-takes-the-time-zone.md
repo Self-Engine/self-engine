@@ -99,9 +99,10 @@ the app supplies the Time Zone.
    | `year`        | a year                                            | `2026`                       |
    | `fullDate`    | a day read out in full, for a screen reader       | `Thursday, November 5, 2026` |
 
-   `formatDuration` knows two: `hoursMinutes` rounds up to a whole minute for display, after any
-   sum, and `hoursMinutesSeconds` shows the running timer with seconds. Both show the full hours
-   when a duration exceeds 24 hours.
+   `formatDuration` knows two: `hoursMinutes` shows a Duration unrounded, with a seconds part
+   exactly when it has seconds ([ADR 0043](0043-a-duration-shows-seconds-exactly-when-it-has-some.md)),
+   and `hoursMinutesSeconds` shows the running timer, always with seconds. Both show the full
+   hours when a duration exceeds 24 hours.
 
 10. **A date or time field reads what `time` gives it.** `calendarDayFromText` reads a typed
     day in the order of day, month and year that the language's `fieldDate` shows, or as

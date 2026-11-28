@@ -21,6 +21,20 @@ import {
 } from "./contracts/index.ts";
 import { timeTracking } from "./data/index.ts";
 
+/**
+ * What an entry the Timer's stop writes counts under the default rule, "round up to 1 minute":
+ * its Rounded Time and Booked Duration, with that rule, not chosen by hand.
+ */
+const countedByDefault = (start: string, end: string, bookedDuration: number) => ({
+  timeKind: "work",
+  roundedTime: { start, end },
+  bookedDuration,
+  roundingRule: { kind: "ordinary", direction: "up", minutes: 1 },
+  ruleByHand: null,
+  findings: [],
+  breaks: [],
+});
+
 const started: TestDataProcess[] = [];
 afterEach(async () => {
   for (const process of started.splice(0)) await process.close();
@@ -307,8 +321,8 @@ test("stop answers with the saved entry: the timer's id, start, project and note
     id: timer.id,
     startedAt: "2026-11-16T09:00:00.000Z",
     endedAt: "2026-11-16T10:30:00.000Z",
-    durationSeconds: 5400,
-    projectId: project.id,
+    ...countedByDefault("2026-11-16T09:00:00.000Z", "2026-11-16T10:30:00.000Z", 5400),
+    projects: [{ projectId: project.id, weight: 1, projectShare: 5400 }],
     note: "Design",
   };
   expect(answer).toEqual({ kind: "saved", entry });
@@ -320,6 +334,30 @@ test("stop answers with the saved entry: the timer's id, start, project and note
   await expect(storedEntries(process, timer.id)).resolves.toEqual([
     { id: timer.id, time_zone: "Asia/Bangkok", deleted_at: null },
   ]);
+});
+
+test("a Timer stopped after 44:10 counts 0:45 by the default rule, and the week shows its Rounded Time", async () => {
+  const { client, clock } = await start();
+  const { timer } = await client.timeTracking.startTimer({});
+  clock.advance((44 * 60 + 10) * 1000);
+
+  const entry = {
+    startedAt: "2026-11-16T09:00:00.000Z",
+    endedAt: "2026-11-16T09:44:10.000Z",
+    ...countedByDefault("2026-11-16T09:00:00.000Z", "2026-11-16T09:45:00.000Z", 2700),
+  };
+  await expect(client.timeTracking.stopTimer({ id: timer.id })).resolves.toMatchObject({
+    kind: "saved",
+    entry,
+  });
+  await expect(
+    client.timeTracking.entry({ id: timeEntryIdOfTimer(timer.id) }),
+  ).resolves.toMatchObject(entry);
+  const week = await client.timeTracking.days({
+    span: { first: "2026-11-16", last: "2026-11-16" },
+  });
+  expect(week.days[0]?.entries).toMatchObject([{ roundedTime: entry.roundedTime, dayShare: 2700 }]);
+  expect(week.total).toBe(2700);
 });
 
 /** The day of the tests, as `days` answers its entries. */
@@ -414,7 +452,9 @@ test("stop at an end between the start and now writes that end, cut to the secon
     entry: expect.objectContaining({
       startedAt: "2026-11-16T09:00:00.000Z",
       endedAt: "2026-11-16T09:00:01.000Z",
-      durationSeconds: 1,
+      // One second measured counts the whole minute.
+      roundedTime: { start: "2026-11-16T09:00:00.000Z", end: "2026-11-16T09:01:00.000Z" },
+      bookedDuration: 60,
     }),
   });
   await expect(client.timeTracking.runningTimers()).resolves.toEqual([]);
@@ -473,7 +513,7 @@ test("a caller tells the three answers of stop apart, and the compiler holds it 
   const notice = (stop: TimerStop) => {
     switch (stop.kind) {
       case "saved":
-        return `saved ${stop.entry.durationSeconds}s`;
+        return `saved ${stop.entry.bookedDuration}s`;
       case "discarded":
         return "nothing saved";
       case "clockBeforeStart":
@@ -482,7 +522,7 @@ test("a caller tells the three answers of stop apart, and the compiler holds it 
         return stop satisfies never;
     }
   };
-  expect(notice(await client.timeTracking.stopTimer({ id: timer.id }))).toBe("saved 1s");
+  expect(notice(await client.timeTracking.stopTimer({ id: timer.id }))).toBe("saved 60s");
 });
 
 test("start stops the running timer into its entry in the same transaction and names it; one timer runs", async () => {
@@ -495,7 +535,7 @@ test("start stops the running timer into its entry in the same transaction and n
   await expect(events.next()).resolves.toMatchObject({ value: { kind: "opened" } });
   const { timer: second, others } = await client.timeTracking.startTimer({ note: "Mail" });
   await expect(events.next()).resolves.toMatchObject({
-    value: { kind: "changed", tables: ["time_entries", "timers"] },
+    value: { kind: "changed", tables: ["time_entries", "project_shares", "timers"] },
   });
   await events.return?.();
 
@@ -506,8 +546,8 @@ test("start stops the running timer into its entry in the same transaction and n
         id: first.id,
         startedAt: "2026-11-16T09:00:00.000Z",
         endedAt: "2026-11-16T09:30:00.000Z",
-        durationSeconds: 1800,
-        projectId: project.id,
+        ...countedByDefault("2026-11-16T09:00:00.000Z", "2026-11-16T09:30:00.000Z", 1800),
+        projects: [{ projectId: project.id, weight: 1, projectShare: 1800 }],
         note: null,
       },
     },
@@ -545,7 +585,7 @@ test("start stops every running timer by the rules of stop: an entry, a discard,
     { kind: "discarded", timer: mine },
     {
       kind: "saved",
-      entry: expect.objectContaining({ id: ids.earlier, durationSeconds: 3600, note: "Earlier" }),
+      entry: expect.objectContaining({ id: ids.earlier, bookedDuration: 3600, note: "Earlier" }),
     },
   ]);
   // The one before its start runs on: no entry with a wrong end is saved (D349).
@@ -564,7 +604,7 @@ test("a timer whose project was archived meanwhile stops into an entry of the ar
 
   await expect(client.timeTracking.stopTimer({ id: timer.id })).resolves.toMatchObject({
     kind: "saved",
-    entry: { id: timer.id, projectId: project.id },
+    entry: { id: timer.id, projects: [expect.objectContaining({ projectId: project.id })] },
   });
 });
 
@@ -585,7 +625,7 @@ test("undo stop removes the entry from the week and the timer runs with its orig
   });
   await expect(events.next()).resolves.toEqual({
     done: false,
-    value: { kind: "changed", tables: ["time_entries", "timers"] },
+    value: { kind: "changed", tables: ["project_shares", "time_entries", "timers"] },
   });
   await events.return?.();
 
@@ -638,8 +678,8 @@ test("stop, undo, stop again gives one live entry with the timer's id, the new e
       id: timer.id,
       startedAt: "2026-11-16T09:00:00.000Z",
       endedAt: "2026-11-16T10:00:00.000Z",
-      durationSeconds: 3600,
-      projectId: null,
+      ...countedByDefault("2026-11-16T09:00:00.000Z", "2026-11-16T10:00:00.000Z", 3600),
+      projects: [],
       note: "Design",
     },
   });
@@ -650,9 +690,7 @@ test("stop, undo, stop again gives one live entry with the timer's id, the new e
   await expect(storedEntries(process, timer.id)).resolves.toEqual([
     { id: timer.id, time_zone: "Asia/Bangkok", deleted_at: null },
   ]);
-  await expect(dayEntries(client)).resolves.toMatchObject([
-    { id: timer.id, durationSeconds: 3600 },
-  ]);
+  await expect(dayEntries(client)).resolves.toMatchObject([{ id: timer.id, bookedDuration: 3600 }]);
 });
 
 test("stop again after undo saves the entry with the timer's new project, though the project of the first stop was deleted meanwhile", async () => {
@@ -676,20 +714,24 @@ test("stop again after undo saves the entry with the timer's new project, though
       id: timer.id,
       startedAt: "2026-11-16T09:00:00.000Z",
       endedAt: "2026-11-16T10:00:00.000Z",
-      durationSeconds: 3600,
-      projectId: garden.id,
+      ...countedByDefault("2026-11-16T09:00:00.000Z", "2026-11-16T10:00:00.000Z", 3600),
+      projects: [{ projectId: garden.id, weight: 1, projectShare: 3600 }],
       note: "Design",
     },
   });
   await expect(events.next()).resolves.toMatchObject({
-    value: { kind: "changed", tables: ["time_entries", "timers"] },
+    value: { kind: "changed", tables: ["time_entries", "project_shares", "timers"] },
   });
   await events.return?.();
   await expect(storedEntries(process, timer.id)).resolves.toMatchObject([
     { id: timer.id, deleted_at: null },
   ]);
   await expect(dayEntries(client)).resolves.toMatchObject([
-    { id: timer.id, projectId: garden.id, endedAt: "2026-11-16T10:00:00.000Z" },
+    {
+      id: timer.id,
+      projects: [expect.objectContaining({ projectId: garden.id })],
+      endedAt: "2026-11-16T10:00:00.000Z",
+    },
   ]);
   await expect(client.timeTracking.runningTimers()).resolves.toEqual([]);
 });
@@ -724,7 +766,7 @@ test("a refused undo writes nothing: the timer's project was deleted meanwhile",
   // The entry moves to another project, so the timer's project can be deleted.
   const entry = await client.timeTracking.edit({
     id: timeEntryIdOfTimer(stopped.id),
-    projectId: garden.id,
+    projects: [{ projectId: garden.id }],
   });
   const { timer: discarded } = await client.timeTracking.startTimer({ projectId: website.id });
   clock.advance(60_000);
@@ -759,7 +801,9 @@ test("a refused undo writes nothing: the timer's project was deleted meanwhile",
   await events.return?.();
 
   expect(saved.kind).toBe("saved");
-  await expect(dayEntries(client)).resolves.toMatchObject([{ id: entry.id, projectId: garden.id }]);
+  await expect(dayEntries(client)).resolves.toMatchObject([
+    { id: entry.id, projects: [expect.objectContaining({ projectId: garden.id })] },
+  ]);
   await expect(client.timeTracking.runningTimers()).resolves.toMatchObject([{ id: running.id }]);
 });
 
@@ -787,7 +831,7 @@ test("an undo while another timer runs stops that timer into its entry and names
     others: [
       {
         kind: "saved",
-        entry: expect.objectContaining({ id: other.id, durationSeconds: 300, note: "Mail" }),
+        entry: expect.objectContaining({ id: other.id, bookedDuration: 300, note: "Mail" }),
       },
     ],
   });
@@ -814,7 +858,7 @@ test("after an edit of the entry, undo stop removes the entry as it is and the t
     id: timeEntryIdOfTimer(timer.id),
     startedAt: "2026-11-16T08:00:00.000Z",
     endedAt: "2026-11-16T08:30:00.000Z",
-    projectId: null,
+    projects: [],
     note: "Review",
   });
 

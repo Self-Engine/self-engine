@@ -83,7 +83,9 @@ export async function withTimeTrackingFixture<Result>(
       await client.create({
         startedAt: new Date(start).toISOString(),
         endedAt: new Date(end).toISOString(),
-        projectId: projectIds[index % 4] ?? null,
+        projects: [projectIds[index % 4]].flatMap((projectId) =>
+          projectId === undefined ? [] : [{ projectId }],
+        ),
         note: "Generated Time Entry",
       });
     }
@@ -94,7 +96,10 @@ export async function withTimeTrackingFixture<Result>(
       const kysely = database.kysely.withPlugin({
         transformQuery({ node, queryId }) {
           const statement = database.kysely.getExecutor().compileQuery(node, queryId);
-          if (statement.sql.includes('from "time_entries"')) window = statement;
+          // The window is the first read of the entries; the stretches of entries across
+          // midnight come after it.
+          if (window === undefined && statement.sql.includes('from "time_entries"'))
+            window = statement;
           return node;
         },
         async transformResult({ result }) {

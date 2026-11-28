@@ -18,6 +18,7 @@ import type {
 import type { ReadTransaction } from "./module.ts";
 import { askRules } from "./rules.ts";
 import { notFound } from "./not-found.ts";
+import { partsOfLiveOwners } from "./part-rows.ts";
 import { isLocalTable } from "@self-engine/db";
 
 type Fields<Row> = Omit<Row, ConventionKey> & { [Key in ConventionKey]?: never };
@@ -51,7 +52,9 @@ type ReadAccess<DB> = ReadTransaction<DB> | Transaction<DB>;
 
 /**
  * One place for Space, live-row and archive scoping; compound queries remain ordinary Kysely.
- * `live` keeps archived rows: an archived row is a Live Row. `active` leaves them out too.
+ * `live` keeps archived rows: an archived row is a Live Row. `active` leaves them out too. A Part
+ * Row is a Live Row only while its owner is one (ADR 0042), so on its table each read also looks
+ * the owner up by primary key; a Query of such a table names the owner's table among its reads.
  */
 export function sharedEntry<DB>(tx: ReadAccess<DB>, context: StorageContext) {
   // Kysely cannot infer convention columns from the conditional table-name constraint.
@@ -60,7 +63,10 @@ export function sharedEntry<DB>(tx: ReadAccess<DB>, context: StorageContext) {
   const db = tx as unknown as Kysely<Record<string, Convention & Archivable>>;
   function scoped(table: string) {
     assertSynchronizedTable(table);
-    return db.selectFrom(String(table)).where(`${table}.space_id`, "=", context.spaceId);
+    return db
+      .selectFrom(String(table))
+      .where(`${table}.space_id`, "=", context.spaceId)
+      .$call(partsOfLiveOwners(context.parts, table));
   }
   function live<Table extends SyncedTable<DB>>(table: Table) {
     return scoped(table).where(`${table}.deleted_at`, "is", null) as unknown as SelectQueryBuilder<
@@ -104,6 +110,8 @@ export function sharedWrites<DB>(tx: Transaction<DB>, context: StorageContext) {
       .where("space_id", "=", context.spaceId)
       .where("id", "=", id)
       .where("deleted_at", restoring ? "is not" : "is", null)
+      // A write finds a Part Row only while its owner is a Live Row (ADR 0042).
+      .$call(partsOfLiveOwners(context.parts, table))
       .returningAll()
       .executeTakeFirst();
     if (result === undefined) throw notFound();
@@ -127,6 +135,7 @@ export function sharedWrites<DB>(tx: Transaction<DB>, context: StorageContext) {
       .where("id", "=", id)
       .where("deleted_at", "is", null)
       .where("archived_at", archived ? "is" : "is not", null)
+      .$call(partsOfLiveOwners(context.parts, table))
       .returningAll()
       .executeTakeFirst();
     return result === undefined

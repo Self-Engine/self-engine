@@ -319,6 +319,22 @@ target and stays a valid one. What a module owes it is the index on every referr
 (step 2). Test it as [`guarded.test.ts`](../../packages/projects/src/data/guarded.test.ts) does
 for `projects`.
 
+**Rows that belong to another row are Part Rows** (ADR 0042). Name the reference they belong to
+in the module's definition, `belongsTo: { project_shares: "time_entry_id" }`, and the frame does
+the rest: deleting the owner is not refused because of them, a Part Row of a deleted owner
+protects nothing and is not found by any read or write of `sharedEntry` and `sharedWrites`, and
+restoring the owner is refused while one of its live Part Rows refers to a deleted row. Write no
+delete or restore of Part Rows with their owner. The one exception is an Operation that takes
+back the creation of an owner, such as "undo stop" in
+[`undo-timer.ts`](../../packages/time-tracking/src/data/undo-timer.ts): it removes the Part Rows
+while the owner still lives, because the owner's row is kept only for the next stop to reuse its
+id and its old Part Rows would otherwise decide that stop's restore. An owner taken back this way
+and restored by another route comes back without them. A Query of the table names the owner's table
+among its reads, and the contract kit's seed holds a live Part Row of a live owner. The owner
+column may be empty: a row that names no owner is an ordinary row, live by itself. The test
+module [`baskets`](../../packages/storage/test/baskets-module/data/index.ts) shows all three, with
+an owner of its own, one of another module, and rows without an owner.
+
 ### Read a Setting
 
 An Operation or a Query that depends on a user's Setting, such as the Time Zone, reads it through
@@ -558,7 +574,9 @@ stands, write nothing, announce nothing and leave `updated_at`; after the exampl
 must equal the example's, though the clock has moved on. An id no seed produced must be not
 found. After the example, the kit
 sends each field alone, first as `null` where the input allows it, then as the example's value:
-that field must be cleared or set, and every other field must keep its value. The kit test of
+that field must be cleared or set, and every other field must keep its value. For a list field
+the answer may add computed parts to each item; what was sent stands in it unchanged, item by
+item and in order. The kit test of
 [`memos`](../../packages/storage/src/testing/edits.test.ts) shows a passing module and one for
 each failure. The kit finds an edit only by its flag: an edit Operation without `edit: true` is
 not checked against the pattern.

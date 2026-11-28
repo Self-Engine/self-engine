@@ -15,6 +15,7 @@ import { createElement, type ReactNode } from "react";
 import { createRoot } from "react-dom/client";
 import { afterEach, expect, test } from "vite-plus/test";
 import { timeTracking } from "./data/index.ts";
+import { asWorkEntry } from "./testing/index.ts";
 import { useSpanDays } from "./port.ts";
 
 declare global {
@@ -115,7 +116,7 @@ test("an entry created, edited, deleted and restored through the Port follows in
   const entry = (await week.call("timeTracking", "create", {
     startedAt: "2026-11-18T21:00:00.000Z",
     endedAt: "2026-11-19T00:30:00.000Z",
-    projectId: project.id,
+    projects: [{ projectId: project.id }],
     note: "Release",
   })) as { id: string };
 
@@ -125,7 +126,7 @@ test("an entry created, edited, deleted and restored through the Port follows in
   // 22:00 to 01:30 in Berlin: Wednesday and Thursday, each with its Day Share.
   expect(created?.days.map(({ total }) => total)).toEqual([0, 0, 7200, 5400, 0, 0, 0]);
   expect(created?.days[3]?.entries).toMatchObject([
-    { note: "Release", crossesMidnight: true, project: { title: "Website" } },
+    { note: "Release", crossesMidnight: true, projects: [{ project: { title: "Website" } }] },
   ]);
 
   await week.call("projects", "edit", { id: project.id, title: "Shop" });
@@ -134,7 +135,7 @@ test("an entry created, edited, deleted and restored through the Port follows in
       (days) => days.status === "content" && days.data.projects[0]?.project?.title === "Shop",
     ),
   );
-  expect(renamed?.days[2]?.entries[0]?.project?.title).toBe("Shop");
+  expect(asWorkEntry(renamed!.days[2]!.entries[0]!).projects[0]?.project.title).toBe("Shop");
 
   // 22:00 to 23:00 on Wednesday alone: the entry no longer crosses midnight.
   await week.call("timeTracking", "edit", {
@@ -159,6 +160,6 @@ test("an entry created, edited, deleted and restored through the Port follows in
     await week.until((days) => days.status === "content" && days.data.total === 3600),
   );
   expect(restored?.days[2]?.entries).toMatchObject([
-    { note: "Release", project: { title: "Shop" } },
+    { note: "Release", projects: [{ project: { title: "Shop" } }] },
   ]);
 });

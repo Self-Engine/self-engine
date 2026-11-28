@@ -10,6 +10,8 @@ import { type Clock, type Instant, resolveTimeZone } from "@self-engine/time";
 import { TIME_ZONE_SETTING, WEEK_START_SETTING } from "@self-engine/time/settings";
 import { fixedClock, requireInstant } from "@self-engine/time/testing";
 import {
+  asWorkEntry,
+  SAMPLE_WEEK,
   SAMPLE_WEEK_ENTRIES,
   type StoredTimeEntries,
   timeEntry,
@@ -135,7 +137,7 @@ export const WithSundayAsTheFirstDayTheSameDayLiesInAnotherWeek: Story = {
       "0:00",
       "4:45",
       "3:00",
-      "1:05",
+      "1:04:20",
       "2:00",
       "2:30",
       "0:00",
@@ -148,7 +150,7 @@ export const AFullWeekShowsEachDayWithItsEntriesAndTheSumsBeside: Story = {
     await expect(await dayTotals(canvas)).toEqual([
       "4:45",
       "3:00",
-      "1:05",
+      "1:04:20",
       "2:00",
       "2:30",
       "0:00",
@@ -159,24 +161,38 @@ export const AFullWeekShowsEachDayWithItsEntriesAndTheSumsBeside: Story = {
       "8:00 AM – 11:30 AMWebsiteLanding page3:30",
       "1:00 PM – 2:15 PMNo projectEmails1:15",
     ]);
-    // A timer's 44:10 and 20:10 show 0:45 and 0:21; the day adds the seconds first: 1:05.
+    // The two displayed durations add up to the displayed day total of 1:04:20.
     await expect(await rowsOf(canvas, "Wednesday, November 18, 2026")).toEqual([
-      "9:30 AM – 10:14 AMWebsiteReview0:45",
-      "10:30 AM – 10:50 AMWebsiteFixes0:21",
+      "9:30 AM – 10:14 AMWebsiteReview0:44:10",
+      "10:30 AM – 10:50 AMWebsiteFixes0:20:10",
     ]);
-    // Largest sum first, "No project" last; the total adds seconds too: 13:19:20 shows 13:20.
+    // The project sums add up to 13:19:20, with the largest first and "No project" last.
     await expect(await projectSums(canvas)).toEqual([
-      "Website8:05",
+      "Website8:04:20",
       "🌱Garden3:00",
       "Old site1:00",
       "No project1:15",
     ]);
-    await expect(canvas.getByLabelText("Week total")).toHaveTextContent("13:20");
+    await expect(canvas.getByLabelText("Week total")).toHaveTextContent("13:19:20");
   },
 };
 
 export const AnEntryAcrossMidnightLiesOnBothDaysWithItsShareAndAMark: Story = {
+  args: {
+    stored: {
+      entries: [
+        timeEntry(6, {
+          startedAt: "2026-11-19T21:00:10.000Z",
+          endedAt: "2026-11-20T00:30:10.000Z",
+          project: asWorkEntry(SAMPLE_WEEK.release).projects[0]?.project ?? null,
+          note: "Release",
+        }),
+        SAMPLE_WEEK.handover,
+      ],
+    },
+  },
   play: async ({ canvas }) => {
+    // Measured from 22:00:10 to 01:30:10, it counts from 22:00 to 01:30 under the default rule.
     await expect(await rowsOf(canvas, "Thursday, November 19, 2026")).toEqual([
       "10:00 PM – 1:30 AMWebsiteRelease2:00",
     ]);
@@ -184,6 +200,7 @@ export const AnEntryAcrossMidnightLiesOnBothDaysWithItsShareAndAMark: Story = {
       "10:00 PM – 1:30 AMWebsiteRelease1:30",
       "9:00 AM – 10:00 AMOld siteHandover1:00",
     ]);
+    await expect(await projectSums(canvas)).toEqual(["Website3:30", "Old site1:00"]);
     for (const name of ["Thursday, November 19, 2026", "Friday, November 20, 2026"]) {
       const [release, handover] = within(await day(canvas, name)).getAllByRole("listitem");
       await expect(within(release!).getByRole("img", { name: "Crosses midnight" })).toBeVisible();
@@ -191,6 +208,69 @@ export const AnEntryAcrossMidnightLiesOnBothDaysWithItsShareAndAMark: Story = {
         await expect(within(handover).queryByRole("img", { name: "Crosses midnight" })).toBeNull();
       }
     }
+  },
+};
+
+export const ABreakEntryAndALeisureEntryShowLikeAnyOtherAndCountByTheirKind: Story = {
+  args: {
+    stored: {
+      entries: [
+        SAMPLE_WEEK.handover,
+        // Friday 10:00:00 to 10:14:50: a Short Break counts, toward the day and no project.
+        timeEntry(10, {
+          timeKind: "short_break",
+          startedAt: "2026-11-20T09:00:00.000Z",
+          endedAt: "2026-11-20T09:14:50.000Z",
+          note: "Coffee",
+        }),
+        // Friday 12:00 to 12:30: a Rest Break counts nothing.
+        timeEntry(11, {
+          timeKind: "rest_break",
+          startedAt: "2026-11-20T11:00:00.000Z",
+          endedAt: "2026-11-20T11:30:00.000Z",
+          note: "Lunch",
+        }),
+        // The rounding resolution's Leisure Entry, 14:00:10 to 16:44:20: 14:00 to 16:45, nothing.
+        timeEntry(12, {
+          timeKind: "leisure",
+          startedAt: "2026-11-20T13:00:10.000Z",
+          endedAt: "2026-11-20T15:44:20.000Z",
+          note: "Afternoon off",
+        }),
+      ],
+    },
+  },
+  play: async ({ canvas }) => {
+    await expect(await rowsOf(canvas, "Friday, November 20, 2026")).toEqual([
+      "9:00 AM – 10:00 AMOld siteHandover1:00",
+      "10:00 AM – 10:15 AMNo projectCoffee0:15",
+      "12:00 PM – 12:30 PMNo projectLunch0:00",
+      "2:00 PM – 4:45 PMNo projectAfternoon off0:00",
+    ]);
+    await expect((await dayTotals(canvas))[4]).toBe("1:15");
+    await expect(await projectSums(canvas)).toEqual(["Old site1:00", "No project0:15"]);
+  },
+};
+
+export const AnEntryShowsItsRoundedTimeAndCountsItsBookedDuration: Story = {
+  args: {
+    stored: {
+      entries: [
+        // The rounding resolution's timer: 10:07:30 to 10:29:50 in Berlin.
+        timeEntry(8, {
+          startedAt: "2026-11-18T09:07:30.000Z",
+          endedAt: "2026-11-18T09:29:50.000Z",
+          note: "Timer",
+        }),
+      ],
+    },
+  },
+  play: async ({ canvas }) => {
+    // The default rule rounds 22:20 up to 0:23, from 10:07 to 10:30.
+    await expect(await rowsOf(canvas, "Wednesday, November 18, 2026")).toEqual([
+      "10:07 AM – 10:30 AMNo projectTimer0:23",
+    ]);
+    await expect(canvas.getByLabelText("Week total")).toHaveTextContent("0:23");
   },
 };
 
@@ -391,7 +471,7 @@ export const WestOfUtcTheSameEntriesFallOnOtherDays: Story = {
     );
     await expect(textOf(landingPage!)).toBe("11:00 PM – 2:30 AMWebsiteLanding page2:30");
     await expect(within(landingPage!).getByRole("img", { name: "Crosses midnight" })).toBeVisible();
-    await expect(canvas.getByLabelText("Week total")).toHaveTextContent("12:20");
+    await expect(canvas.getByLabelText("Week total")).toHaveTextContent("12:19:20");
   },
 };
 

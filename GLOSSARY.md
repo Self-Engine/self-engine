@@ -95,8 +95,12 @@ The fields of one kind of entry, each with the schema of its value, written once
 _Avoid_: patch schema, update DTO, partial entity
 
 **Live Row** (de: _nicht gelöschte Zeile_):
-A stored row that has not been soft-deleted. Ordinary reads and changes see only live rows in the current _Space_. An archived row is still a _Live Row_; one that is also not archived is _active_ (see _Archive_).
+A stored row that has not been soft-deleted and, if it is a _Part Row_, whose owner is a _Live Row_. Ordinary reads and changes see only live rows in the current _Space_. An archived row is still a _Live Row_; one that is also not archived is _active_ (see _Archive_).
 _Avoid_: active row, undeleted record
+
+**Part Row** (de: _Teilzeile_):
+A row that belongs to another row, its owner, and is a _Live Row_ only while that row is one, such as a Project Share of a Time Entry. Deleting the owner leaves it as it is and hides it, restoring the owner brings it back; deleting the _Part Row_ itself removes it from its owner. The owner may belong to another module, which knows nothing of it. A row of the same table that names no owner, such as the app-wide _Rounding Rule_, is an ordinary row.
+_Avoid_: child row, detail row, sub-record, cascade
 
 **Archive** (de: _Archivieren_):
 To set an entry aside that is finished but kept, such as a completed project: it leaves the lists of active entries and the pickers and appears in its module's archive View. It is an ordinary change that locks nothing, independent of deleting, and archiving an archived entry changes nothing. An entry that is live and not archived is _active_. Not a _Backup_, which copies the whole database.
@@ -294,16 +298,96 @@ _Avoid_: week number, start date, weekday index
 ### Time Tracking
 
 **Time Entry** (de: _Zeiteintrag_):
-A record of time spent between two _Instants_, with a _Booked Duration_ and an optional project and note.
+A record of time spent: its _Time Kind_, its _Measured Time_, its _Rounded Time_ and _Booked Duration_ as its _Rounding Rule_ makes them, the projects it counts for, and an optional note. It is a _Work Entry_, a _Break Entry_ or a _Leisure Entry_.
 _Avoid_: time log (for one entry), timer
 
 **Booked Duration** (de: _gebuchte Dauer_):
-The _Duration_ that counts toward the totals for a _Time Entry_.
+The _Duration_ that counts toward the totals for a _Time Entry_: the work that counts. A _Short Break_ entry books the length of its _Rounded Time_, a _Rest Break_ entry and a _Leisure Entry_ book 0.
 _Avoid_: elapsed time (for the amount counted), billed time
 
 **Day Share** (de: _Tagesanteil_):
-The part of a _Time Entry_'s _Booked Duration_ that counts toward one _Calendar Day_.
+The part of a _Time Entry_'s _Booked Duration_ that counts toward one _Calendar Day_. An entry on one day has its whole _Booked Duration_ there. One whose _Rounded Time_ crosses midnight gets on each day the part of its _Rounded Time_ that lies on it, without the _Rest Breaks_ that lie on it; every day but the last is cut down to the whole minute (the whole second under _Exact_) and the last gets the rest, so the Day Shares add up to the _Booked Duration_. Each _Project Share_ is divided over the days in the same way.
 _Avoid_: daily total, split entry
+
+**Project Share** (de: _Projektanteil_):
+The part of a _Time Entry_'s _Booked Duration_ that counts for one of its projects; the counterpart of _Day Share_. Every project after the _Lead Project_ gets its part by _Weight_, cut down to the whole minute (to the whole second under _Exact_), and the _Lead Project_ gets the rest, so the shares add up to the _Booked Duration_. It is computed, never entered, and can be 0:00.
+_Avoid_: allocation, split, Shared time
+
+**Weight** (de: _Gewicht_):
+What the user stated for a project of a _Time Entry_: a whole number from 1 to 10,000. Equal parts are 1 : 1, "50 %, 30 %, 20 %" are 50, 30 and 20.
+_Avoid_: percentage, ratio
+
+**Lead Project** (de: _Leitprojekt_):
+The first project of a _Time Entry_: its _Rounding Rule_ rounds the entry, and it gets the rest of the division into _Project Shares_.
+_Avoid_: main project, primary project
+
+**Time Kind** (de: _Zeitart_):
+What a piece of recorded time is for the count: _Work_, _Short Break_, _Rest Break_ or _Leisure_. A fixed list; there are no freely named categories. A _Time Entry_ has one, and so has each _Break_ inside it.
+_Avoid_: time class, time category, activity type
+
+**Work** (de: _Arbeit_):
+The _Time Kind_ that counts toward the _Booked Duration_. Everything inside a _Time Entry_ that is not a _Break_ is _Work_, and an entry begins and ends with it.
+_Avoid_: active time, focus
+
+**Leisure** (de: _Freizeit_):
+The _Time Kind_ of time outside work, such as an afternoon off. It never counts, like a _Rest Break_, and exists only as a whole _Time Entry_: time inside work that does not count is a _Rest Break_.
+_Avoid_: free time (in code), off time, private time
+
+**Work Entry** (de: _Arbeitseintrag_):
+A _Time Entry_ of the _Time Kind_ _Work_: the only kind that carries projects, _Breaks_ inside it and a _Rounding Rule_ of its own.
+_Avoid_: work session, job entry
+
+**Break Entry** (de: _Pauseneintrag_):
+A _Time Entry_ that is a _Short Break_ or a _Rest Break_ as a whole, without projects and without breaks inside it. The app-wide _Rounding Rule_ rounds its length; a _Short Break_ entry counts toward the day and toward no project, a _Rest Break_ entry counts nothing. It is a _Break_, but no _Stretch_.
+_Avoid_: pause entry, break stretch
+
+**Leisure Entry** (de: _Freizeiteintrag_):
+A _Time Entry_ of the _Time Kind_ _Leisure_, without projects and without breaks. The app-wide _Rounding Rule_ rounds its length, and its _Booked Duration_ is 0.
+_Avoid_: free-time entry, day off
+
+**Short Break** (de: _Kurzpause_):
+A _Break_ that counts toward the _Booked Duration_, like _Work_.
+_Avoid_: micro break, paid break
+
+**Rest Break** (de: _Ruhepause_):
+A _Break_ that does not count: a _Time Entry_ counts its measured length without the seconds its _Rest Breaks_ cover, never rounded on their own. It can carry the mark "changed by the limit".
+_Avoid_: unpaid break, pause (for this kind alone)
+
+**Break** (de: _Pause_):
+A _Short Break_ or a _Rest Break_, inside a _Work Entry_ or as a _Break Entry_. Inside a _Work Entry_ it is a _Stretch_ with its own start and end, between _Work_; breaks of one entry do not overlap, may touch, and last at least one second.
+_Avoid_: gap, interruption, pause (in code)
+
+**Stretch** (de: _Abschnitt_):
+A part of a _Time Entry_ with its own times and _Time Kind_, stored in the entry's own row. Today every _Stretch_ is a _Break_; "Break" says what kind of time it is, "Stretch" where it is stored.
+_Avoid_: phase, segment, Strecke
+
+**Measured Time** (de: _gemessene Zeit_):
+The start and end of a _Time Entry_ as measured or entered, on whole seconds and never rounded. It is kept so another _Rounding Rule_ can be applied later without loss; the app shows it in the form only.
+_Avoid_: raw time, actual time
+
+**Rounded Time** (de: _gerundete Zeit_):
+The start and end where a _Time Entry_ counts, made from its _Measured Time_ by its _Rounding Rule_, and what the app shows in lists and sums. An entry that counts 0:00 has none.
+_Avoid_: display time, billed time
+
+**Rounding Rule** (de: _Rundungsregel_):
+What makes the _Rounded Time_ and the _Booked Duration_ of a _Time Entry_ from its _Measured Time_: _Exact_, _Ordinary Rounding_ or _Block Rounding_. A project has its own rules and the app one of its own, each holding from an Instant; an entry gets the rule that held at its start. The default rounds up to 1 minute.
+_Avoid_: rounding mode, rounding setting, precision
+
+**Exact** (de: _sekundengenau_):
+The _Rounding Rule_ that changes nothing: the _Rounded Time_ is the _Measured Time_ and every second counts.
+_Avoid_: no rounding, seconds mode
+
+**Ordinary Rounding** (de: _gewöhnliche Rundung_):
+The _Rounding Rule_ that rounds the counted time up, down or to the nearest step of 1, 5, 6, 10, 15, 30 or 60 minutes. The start is cut to the whole minute and the end follows from the _Booked Duration_ and the _Rest Breaks_ inside, whose sum is cut down to the whole minute.
+_Avoid_: normal rounding, step rounding
+
+**Block Rounding** (de: _Zeitabschnitts-Rundung_):
+The _Rounding Rule_ that counts every _Block_ of 5, 10, 15, 30 or 60 minutes in which the entry has counted time in full: the start goes back to the start of its _Block_ and the end forward to the end of its _Block_.
+_Avoid_: interval rounding, slot rounding
+
+**Block** (de: _Block_):
+A fixed part of the clock in the entry's _Time Zone_, such as 10:00 – 10:15; the _Blocks_ of one length divide every hour evenly.
+_Avoid_: slot, interval, segment, Abschnitt
 
 **Timer** (de: _Timer_):
 A running measurement of time from a stored start _Instant_, with an optional project and note; its running time is "now" minus the start, and nothing is written while it runs. Stopping it turns it into a _Time Entry_; discarding it leaves none. It is not a _Time Entry_ without an end.

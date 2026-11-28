@@ -1,20 +1,25 @@
 import { defineMigrations, type TablesOf } from "@self-engine/db";
+import { sqliteBoolean } from "@self-engine/db/schema";
 import { projectIdSchema } from "@self-engine/projects/ids";
 import { spaceIdSchema } from "@self-engine/storage";
-import {
-  durationBetween,
-  durationSchema,
-  type Instant,
-  instantSchema,
-  wholeSecondOf,
-} from "@self-engine/time";
+import { durationSchema, instantSchema } from "@self-engine/time";
 import { z } from "zod";
 import {
+  breakFindings,
+  breaksTextSchema,
+  type ListedTimeEntry,
+  notWorkFindings,
+  type ProjectShare,
+  projectShareIdSchema,
+  roundingRuleIdSchema,
+  roundingRuleTextSchema,
   type TimeEntry,
   timeEntryIdSchema,
+  timeKindSchema,
   type Timer,
   timerIdSchema,
 } from "../contracts/index.ts";
+import { findingsOf } from "./entry-time-zone.ts";
 
 export const timeTrackingMigrations = defineMigrations(
   "time-tracking",
@@ -29,13 +34,48 @@ export const timeTrackingRowMap = {
     updated_at: instantSchema,
     deleted_at: instantSchema.nullable(),
     space_id: spaceIdSchema,
+    time_kind: timeKindSchema,
     started_at: instantSchema,
     ended_at: instantSchema,
-    duration_seconds: durationSchema,
-    project_id: projectIdSchema.nullable(),
+    rounded_started_at: instantSchema.nullable(),
+    rounded_ended_at: instantSchema.nullable(),
+    booked_duration: durationSchema,
+    // The stored text, read with `roundingRuleTextSchema`: a later version may write a rule this
+    // one cannot read, so it is no `RoundingRule` here.
+    rounding_rule: z.string(),
+    rule_chosen_by_hand: sqliteBoolean,
     note: z.string().nullable(),
+    // The stored text, read with `breaksTextSchema`: a later version may write a stretch this one
+    // cannot read, so it is no list of breaks here.
+    breaks: z.string(),
+    changed_by_limit: sqliteBoolean,
     // The stored name, as chosen; a later runtime may not know it, so it is no `TimeZone`.
     time_zone: z.string(),
+  }),
+  // The projects of an entry, each a Part Row of its entry (ADR 0042, ADR 0044).
+  project_shares: z.object({
+    id: projectShareIdSchema,
+    created_at: instantSchema,
+    updated_at: instantSchema,
+    deleted_at: instantSchema.nullable(),
+    space_id: spaceIdSchema,
+    time_entry_id: timeEntryIdSchema,
+    project_id: projectIdSchema,
+    place: z.number().int(),
+    weight: z.number().int(),
+    project_share: durationSchema,
+  }),
+  // A project's rules are Part Rows of their project; the app-wide rule names none (ADR 0044).
+  rounding_rules: z.object({
+    id: roundingRuleIdSchema,
+    created_at: instantSchema,
+    updated_at: instantSchema,
+    deleted_at: instantSchema.nullable(),
+    space_id: spaceIdSchema,
+    project_id: projectIdSchema.nullable(),
+    holds_from: instantSchema.nullable(),
+    // The stored text, read with `roundingRuleTextSchema`, as on the entry.
+    rounding_rule: z.string(),
   }),
   timers: z.object({
     id: timerIdSchema,
@@ -51,41 +91,97 @@ export const timeTrackingRowMap = {
 type TimeEntryRow = TablesOf<typeof timeTrackingRowMap>["time_entries"];
 type TimerRow = TablesOf<typeof timeTrackingRowMap>["timers"];
 
-/** Only the columns returned in a Query answer. The creation Time Zone stays in storage. */
-export const TIME_ENTRY_COLUMNS = [
+type ColumnOf<Qualified> =
+  Qualified extends `time_entries.${infer Column extends keyof TimeEntryRow}` ? Column : never;
+type ColumnsOf<Columns extends readonly string[]> = Pick<TimeEntryRow, ColumnOf<Columns[number]>>;
+
+/** The columns a list reads: never the rule, which a list does not show. */
+export const LISTED_TIME_ENTRY_COLUMNS = [
   "time_entries.id",
+  "time_entries.time_kind",
   "time_entries.started_at",
   "time_entries.ended_at",
-  "time_entries.duration_seconds",
-  "time_entries.project_id",
+  "time_entries.rounded_started_at",
+  "time_entries.rounded_ended_at",
+  "time_entries.booked_duration",
   "time_entries.note",
 ] as const;
 
-export type TimeEntryValues = Pick<
-  TimeEntryRow,
-  (typeof TIME_ENTRY_COLUMNS)[number] extends `time_entries.${infer Column}` ? Column : never
->;
+export type ListedTimeEntryValues = ColumnsOf<typeof LISTED_TIME_ENTRY_COLUMNS>;
 
 /**
- * The columns of start, end and Booked Duration, the one place that computes them (D344, D346):
- * both Instants cut to the whole second, and the duration end minus start. Every write of start
- * or end takes all three from here.
+ * The columns an answer of one entry reads: also its rule, its breaks, and its Time Zone for the
+ * findings. The Time Zone itself stays in storage.
  */
-export function storedTimes(startedAt: Instant, endedAt: Instant) {
-  const started_at = wholeSecondOf(startedAt);
-  const ended_at = wholeSecondOf(endedAt);
-  return { started_at, ended_at, duration_seconds: durationBetween(started_at, ended_at) };
-}
+export const TIME_ENTRY_COLUMNS = [
+  ...LISTED_TIME_ENTRY_COLUMNS,
+  "time_entries.rounding_rule",
+  "time_entries.rule_chosen_by_hand",
+  "time_entries.breaks",
+  "time_entries.changed_by_limit",
+  "time_entries.time_zone",
+] as const;
 
-// Do not parse the row here: agreement is checked in tests, not on every query.
-export const toTimeEntry = (row: TimeEntryValues): TimeEntry => ({
+export type TimeEntryValues = ColumnsOf<typeof TIME_ENTRY_COLUMNS>;
+
+/** What a list shows of every entry, whatever its Time Kind. */
+const listedValuesOf = (row: ListedTimeEntryValues) => ({
   id: row.id,
   startedAt: row.started_at,
   endedAt: row.ended_at,
-  durationSeconds: row.duration_seconds,
-  projectId: row.project_id,
+  // The table keeps both ends or neither.
+  roundedTime:
+    row.rounded_started_at === null || row.rounded_ended_at === null
+      ? null
+      : { start: row.rounded_started_at, end: row.rounded_ended_at },
+  bookedDuration: row.booked_duration,
   note: row.note,
 });
+
+// Do not parse the row here: agreement is checked in tests, not on every query.
+/** An entry of a list with the projects a Work Entry has; an entry that is not work has none. */
+export function toListedTimeEntry(
+  row: ListedTimeEntryValues,
+  projects: Extract<ListedTimeEntry, { timeKind: "work" }>["projects"],
+): ListedTimeEntry {
+  if (row.time_kind === "work") return { timeKind: "work", ...listedValuesOf(row), projects };
+  return { timeKind: row.time_kind, ...listedValuesOf(row) };
+}
+
+/**
+ * The entry with its rule, its breaks and its projects: a stored rule or list this version cannot
+ * read is answered as `null`, beside the stored numbers, so the entry stays readable. The findings
+ * are computed here, on read, and never stored. An entry that is not work is answered without
+ * breaks, projects and rule; breaks or projects it has all the same are findings.
+ */
+export function toTimeEntry(row: TimeEntryValues, projects: readonly ProjectShare[]): TimeEntry {
+  const rule = roundingRuleTextSchema.safeDecode(row.rounding_rule);
+  const roundingRule = rule.success ? rule.data : null;
+  const stored = breaksTextSchema.safeDecode(row.breaks);
+  const breaks = stored.success ? stored.data : null;
+  const measured = { start: row.started_at, end: row.ended_at };
+  const listed = listedValuesOf(row);
+  const ruleFindings = findingsOf(roundingRule, row.time_zone);
+  if (row.time_kind === "work")
+    return {
+      timeKind: "work",
+      ...listed,
+      roundingRule,
+      ruleByHand: row.rule_chosen_by_hand === 1 ? roundingRule : null,
+      findings: [...ruleFindings, ...breakFindings(measured, breaks ?? [])],
+      breaks,
+      projects: [...projects],
+    };
+  const findings = [...ruleFindings, ...notWorkFindings({ breaks: breaks ?? [], projects })];
+  if (row.time_kind === "rest_break")
+    return {
+      timeKind: "rest_break",
+      ...listed,
+      findings,
+      changedByLimit: row.changed_by_limit === 1,
+    };
+  return { timeKind: row.time_kind, ...listed, findings };
+}
 
 /** Only the columns returned in a Query answer. */
 export const TIMER_COLUMNS = [

@@ -20,6 +20,7 @@ import {
   type TimeTrackingCall,
   type TimeTrackingStoryPort,
   timeTrackingStoryPort,
+  timeEntryAnswer,
 } from "@self-engine/time-tracking/testing";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { settled } from "@self-engine/ui/story-surfaces";
@@ -160,7 +161,7 @@ const CREATED = timeEntry(30, {
   note: "Call",
 });
 
-const { project: _createdProject, ...CREATED_ANSWER } = CREATED;
+const CREATED_ANSWER = timeEntryAnswer(CREATED);
 
 /** What has the focus, as a person would name it, for a failure that says where it went. */
 function focused(): string {
@@ -196,10 +197,13 @@ export const ANewEntryOpensOnTheClickedDayAndAppearsThere: Story = {
       {
         entry: "create",
         input: {
+          timeKind: "work",
           startedAt: "2026-11-18T13:00:00.000Z",
           endedAt: "2026-11-18T14:30:00.000Z",
-          projectId: null,
+          projects: [],
           note: "Call",
+          ruleByHand: null,
+          breaks: [],
         },
       },
     ]);
@@ -226,10 +230,13 @@ export const AnEndTimeNotAfterTheStartLiesOnTheNextDay: Story = {
       {
         entry: "create",
         input: {
+          timeKind: "work",
           startedAt: "2026-11-18T21:00:00.000Z",
           endedAt: "2026-11-19T00:30:00.000Z",
-          projectId: null,
+          projects: [],
           note: null,
+          ruleByHand: null,
+          breaks: [],
         },
       },
     ]);
@@ -242,8 +249,7 @@ export const AStoredEntryOpensWithItsValuesAndSendsOnlyTheChangedNote: Story = {
     await expect(form.date()).toHaveValue("18.11.2026");
     await expect(form.start()).toHaveValue("09");
     await expect(form.end()).toHaveValue("10");
-    // 44:10 that really passed, rounded up for display.
-    await expect(form.drawer.getByText("Dauer: 0:45")).toBeVisible();
+    await expect(form.drawer.getByText("Dauer: 0:44:10")).toBeVisible();
     await expect(form.project()).toHaveValue("Website");
     await expect(form.note()).toHaveValue("Review");
     await expect(form.save()).toBeDisabled();
@@ -297,7 +303,7 @@ export const TheProjectCanBeCleared: Story = {
 
     await noDrawer();
     await expect(port.calls).toEqual([
-      { entry: "edit", input: { id: SAMPLE_WEEK.review.id, projectId: null } },
+      { entry: "edit", input: { id: SAMPLE_WEEK.review.id, projects: [] } },
     ]);
   },
 };
@@ -308,9 +314,10 @@ export const ASaveToAProjectDeletedMeanwhileShowsTheRefusalAtTheProject: Story =
       edit: {
         refused: [
           {
+            // The frame refuses the new share at its column.
             code: "target_deleted",
-            table: "time_entries",
-            row: SAMPLE_WEEK.emails.id,
+            table: "project_shares",
+            row: "01a1cfa1-0f00-7000-8000-000000000001",
             field: "project_id",
             details: { target: { table: "projects", id: WEBSITE.id } },
           },
@@ -330,7 +337,10 @@ export const ASaveToAProjectDeletedMeanwhileShowsTheRefusalAtTheProject: Story =
     // The field shows the Reason; no Notice repeats it.
     await expect(screen.queryByRole("alert")).toBeNull();
     await expect(port.calls).toEqual([
-      { entry: "edit", input: { id: SAMPLE_WEEK.emails.id, projectId: WEBSITE.id } },
+      {
+        entry: "edit",
+        input: { id: SAMPLE_WEEK.emails.id, projects: [{ projectId: WEBSITE.id }] },
+      },
     ]);
   },
 };

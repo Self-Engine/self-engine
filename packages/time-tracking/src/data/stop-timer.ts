@@ -15,8 +15,9 @@ import {
   type TimerId,
   type TimerStop,
 } from "../contracts/index.ts";
+import { storedProjects } from "./project-shares.ts";
+import { ruleThatHolds } from "./rounded-columns.ts";
 import {
-  storedTimes,
   TIMER_COLUMNS,
   type TimerValues,
   type timeTrackingRowMap,
@@ -24,6 +25,7 @@ import {
   toTimer,
 } from "./rows.ts";
 import { runningTimers } from "./timers.ts";
+import { writeEntry } from "./write-entry.ts";
 
 type Tables = TablesOf<typeof timeTrackingRowMap>;
 type Writes = WriteTransaction<Tables>;
@@ -65,26 +67,44 @@ async function saveEntry(
 ): Promise<TimerStop> {
   const writes = sharedWrites(tx, context);
   const id = timeEntryIdOfTimer(timer.id);
-  const values = {
-    ...storedTimes(timer.started_at, end),
-    project_id: timer.project_id,
-    note: timer.note,
-    // The zone of the Setting at the moment of stopping, read in the transaction (D342).
-    time_zone: await context.readTimeZone(tx),
-  };
+  // The zone of the Setting at the moment of stopping, read in the transaction (D342).
+  const timeZone = await context.readTimeZone(tx);
+  // The timer's project is the entry's only project, with the whole Booked Duration.
+  const projects = timer.project_id === null ? [] : [{ projectId: timer.project_id, weight: 1 }];
+  const rule = await ruleThatHolds(tx, context, {
+    projectId: timer.project_id,
+    startedAt: timer.started_at,
+  });
   const stored = await storedEntryOfTimer(tx, context, timer.id);
   // The first stop inserts the entry. After "undo stop", the entry of the earlier stop comes back
-  // with the timer's project and note and the new end, duration and Time Zone, in one write, so
-  // the timer keeps one entry (D349) and the reference check judges the project the timer has now
-  // (D371).
-  const row =
-    stored === "none"
-      ? await writes.insert("time_entries", id, values)
-      : stored === "deleted"
-        ? await writes.restore("time_entries", id, values)
-        : await writes.update("time_entries", id, values);
+  // with the timer's note and the new end, Rounded Time, Booked Duration, rule and Time Zone, in
+  // one write, so the timer keeps one entry (D349). "Undo stop" removed its projects, so it gets
+  // the one the timer has now, and the reference check judges that one (D371). Its shares are
+  // read after that write: a deleted entry's are absent.
+  const entry = await writeEntry(
+    tx,
+    context,
+    // A Timer writes a Work Entry and records no breaks yet.
+    {
+      timeKind: "work",
+      startedAt: timer.started_at,
+      endedAt: end,
+      timeZone,
+      rule,
+      ruleChosenByHand: false,
+      breaks: [],
+      projects,
+    },
+    (columns) => {
+      const values = { ...columns, note: timer.note, time_zone: timeZone };
+      if (stored === "none") return writes.insert("time_entries", id, values);
+      if (stored === "deleted") return writes.restore("time_entries", id, values);
+      return writes.update("time_entries", id, values);
+    },
+    stored === "none" ? [] : async () => (await storedProjects(tx, context, id)).rows,
+  );
   await writes.softDelete("timers", timer.id);
-  return { kind: "saved", entry: toTimeEntry(row) };
+  return { kind: "saved", entry };
 }
 
 /**
@@ -134,8 +154,12 @@ export async function stopTimer(
   const timer = await storedTimer(tx, context, input.id);
   if (timer.deleted_at === null) return stopRunningTimer(tx, context, timer, input.endedAt);
   // Not found without a live entry of the timer's id: the timer was discarded.
-  const entry = await sharedEntry(tx, context).lookup("time_entries", timeEntryIdOfTimer(input.id));
-  return { kind: "saved", entry: toTimeEntry(entry) };
+  const id = timeEntryIdOfTimer(input.id);
+  const entry = await sharedEntry(tx, context).lookup("time_entries", id);
+  return {
+    kind: "saved",
+    entry: toTimeEntry(entry, (await storedProjects(tx, context, id)).shares),
+  };
 }
 
 /**

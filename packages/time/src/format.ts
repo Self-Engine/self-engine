@@ -84,7 +84,7 @@ export function formatCalendarDay(
 
 /** The name of a display format for a Duration. */
 export type DurationFormat =
-  /** Hours and minutes, rounded up to the whole minute, such as `0:05`. */
+  /** Hours and minutes, with seconds when nonzero, such as `0:05` or `0:04:20`. */
   | "hoursMinutes"
   /** Running timer with whole seconds, such as `0:04:20`. */
   | "hoursMinutesSeconds";
@@ -108,12 +108,12 @@ export function formatDuration(duration: Duration, format: DurationFormat, local
     durationFormatters.set(locale, formatters);
   }
 
-  // Format the fields individually so rounding up still works at Duration's upper limit.
-  const showSeconds = format === "hoursMinutesSeconds";
-  const minutes = showSeconds ? Math.floor(duration / 60) : Math.ceil(duration / 60);
+  const seconds = duration % 60;
+  const showSeconds = format === "hoursMinutesSeconds" || seconds !== 0;
+  const minutes = Math.floor(duration / 60);
   const hoursText = formatters.hours.format(Math.floor(minutes / 60));
   const minutesText = formatters.minutesAndSeconds.format(minutes % 60);
   return showSeconds
-    ? `${hoursText}:${minutesText}:${formatters.minutesAndSeconds.format(duration % 60)}`
+    ? `${hoursText}:${minutesText}:${formatters.minutesAndSeconds.format(seconds)}`
     : `${hoursText}:${minutesText}`;
 }

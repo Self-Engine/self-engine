@@ -6,23 +6,23 @@ import { projects } from "@self-engine/projects/data";
 import { checkContract } from "@self-engine/storage/testing";
 import { instantSchema } from "@self-engine/time";
 import { expect, test } from "vite-plus/test";
-import { timeEntryIdSchema, timerIdSchema } from "../contracts/index.ts";
+import { roundingRuleIdSchema, timeEntryIdSchema, timerIdSchema } from "../contracts/index.ts";
 import { timeTracking } from "./index.ts";
 import { timeTrackingMigrations, timeTrackingRowMap } from "./rows.ts";
 
 /** The `n`th deterministic id of the contract kit's seed. */
 const seedId = (n: number) => `01a1cfa1-0a00-7000-8000-${String(n).padStart(12, "0")}`;
-// The seed creates the project first, then its time entry.
+// The seed creates the project first, then two time entries, each followed by its Project Share.
 const projectId = projectIdSchema.parse(seedId(0));
 const entryId = timeEntryIdSchema.parse(seedId(1));
-const deletedEntryId = timeEntryIdSchema.parse(seedId(2));
+const deletedEntryId = timeEntryIdSchema.parse(seedId(3));
 // Then a discarded timer, a stopped one with its entry of the same id, and a running one.
-const discardedTimerId = timerIdSchema.parse(seedId(3));
-const stoppedTimerId = timerIdSchema.parse(seedId(4));
-const timerId = timerIdSchema.parse(seedId(5));
+const discardedTimerId = timerIdSchema.parse(seedId(5));
+const stoppedTimerId = timerIdSchema.parse(seedId(6));
+const timerId = timerIdSchema.parse(seedId(7));
 const instant = (text: string) => instantSchema.parse(text);
 
-test("the time entries and timers tables follow the conventions and agrees with its row map", async () => {
+test("the time entries, Project Shares, timers and rounding rules tables follow the conventions and agrees with its row map", async () => {
   const database = openDatabase(":memory:");
   try {
     await createMigrationRunner(database, [
@@ -47,7 +47,7 @@ test("time-tracking passes the storage contract kit with `projects` below it", a
         const range = {
           startedAt: instant("2026-11-16T09:00:00.000Z"),
           endedAt: instant("2026-11-16T10:30:00.000Z"),
-          projectId: website.id,
+          projects: [{ projectId: website.id }],
         };
         const { entries } = timeTracking;
         await entries.create.run(tx, context, { ...range, note: "Design" });
@@ -73,21 +73,57 @@ test("time-tracking passes the storage contract kit with `projects` below it", a
           id: timer.id,
           startedAt: instant("2026-11-12T09:00:00.000Z"),
         });
+        // A rule of the project, a Part Row of it, and the app-wide rule, which names none. No
+        // Operation writes a rule yet (#422); their ids come after the counted ones above.
+        const rule = (project_id: typeof website.id | null) => ({
+          id: context.newId(roundingRuleIdSchema),
+          created_at: context.now,
+          updated_at: context.now,
+          deleted_at: null,
+          space_id: context.spaceId,
+          project_id,
+          holds_from: null,
+          rounding_rule: '{"kind":"ordinary","direction":"up","minutes":15}',
+        });
+        await tx
+          .insertInto("rounding_rules")
+          .values([rule(website.id), rule(null)])
+          .execute();
       },
       {
         create: {
           startedAt: "2026-11-16T11:00:00.250Z",
           endedAt: "2026-11-16T12:00:00.750Z",
-          projectId,
+          projects: [{ projectId }],
           note: "Build",
+          ruleByHand: { kind: "exact" },
+          breaks: [
+            {
+              timeKind: "rest_break",
+              startedAt: "2026-11-16T11:20:00.000Z",
+              endedAt: "2026-11-16T11:40:00.000Z",
+              changedByLimit: false,
+            },
+          ],
         },
         edit: {
           id: entryId,
+          timeKind: "work",
           startedAt: "2026-11-16T11:00:00.000Z",
           endedAt: "2026-11-16T12:00:00.000Z",
-          projectId,
+          projects: [{ projectId, weight: 3 }],
           note: "Review",
+          ruleByHand: { kind: "ordinary", direction: "up", minutes: 15 },
+          breaks: [
+            {
+              timeKind: "rest_break",
+              startedAt: "2026-11-16T11:20:00.000Z",
+              endedAt: "2026-11-16T11:40:00.000Z",
+              changedByLimit: false,
+            },
+          ],
         },
+        move: { id: entryId, startedAt: "2026-11-16T08:00:00.000Z" },
         delete: { id: entryId },
         restore: { id: deletedEntryId },
         entry: { id: entryId },

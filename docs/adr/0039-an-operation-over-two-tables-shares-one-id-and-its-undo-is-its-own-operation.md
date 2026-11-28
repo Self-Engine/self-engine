@@ -22,13 +22,16 @@ from two calls and the second call failed, the entry would be gone and no Timer 
 - **Stopping twice writes once.** `stopTimer` on a Timer that is already stopped finds the Live
   entry with the Timer's id, answers with it and writes nothing. When a stop finds a deleted
   entry with that id, left by an earlier "undo stop", it restores that row with the Timer's
-  project and note and the new end, Booked Duration and Time Zone in one write (D371), so the
-  reference check judges the project the Timer has now. Every stop of a Timer therefore leaves
+  note and the new end, Booked Duration and Time Zone in one write (D371), and writes the
+  Timer's project as the entry's one Project Share
+  ([ADR 0044](0044-a-time-entry-keeps-its-measured-time-rounded-time-booked-duration-and-rounding-rule.md)),
+  so the reference check judges the project the Timer has now. Every stop of a Timer therefore leaves
   at most one Live entry with the Timer's id.
 - **The Operation and its undo are each one Operation in one transaction, with one Table
   Change.** `stopTimer` writes the entry and soft-deletes the Timer. `undoStopTimer`
-  soft-deletes the entry as it currently is, including any edits, and restores the Timer with
-  its own start, project and note. `undoDiscardTimer` restores the Timer. The page never builds
+  removes the entry's Project Shares, then soft-deletes the entry as it currently is, including
+  any edits, and restores the Timer with its own start, project and note (the one exception of
+  [ADR 0042](0042-a-part-row-is-a-live-row-only-while-its-owner-is-one.md)). `undoDiscardTimer` restores the Timer. The page never builds
   an undo from two calls.
 - **A refused undo writes nothing.** The frame's reference check guards the restore. When it
   refuses, for example because the Timer's project was deleted after the entry moved to

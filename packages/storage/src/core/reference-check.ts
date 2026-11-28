@@ -2,6 +2,7 @@ import type { Reference } from "@self-engine/db";
 import { type FrameReasons, referenced, targetDeleted } from "@self-engine/db/schema";
 import type { Transaction } from "kysely";
 import type { StorageContext } from "./context.ts";
+import { ownerIsLive, type PartReference, type PartRows } from "./part-rows.ts";
 import type { RegisteredRule, RuleAnswer } from "./registry.ts";
 
 /** The read access of a rule over tables the frame knows only by name. */
@@ -14,18 +15,41 @@ type Untyped = Transaction<Record<string, Record<string, string | null>>>;
  * the three ways the sentence breaks: a delete of a target, and an insert, update or restore of
  * a referring row. Every reference protects its target; an archived row is a Live Row, and
  * archive and unarchive are not guarded.
+ *
+ * A Part Row is a Live Row only while its owner is one (ADR 0042): its reference to its owner
+ * protects nothing, its other references protect only while the owner is live and count the
+ * owner, and an owner is restored only while its live Part Rows refer to Live Rows. A row of such
+ * a table that names no owner is an ordinary row.
  */
-export function referenceCheck(references: readonly Reference[]): {
+export function referenceCheck(
+  references: readonly Reference[],
+  parts: PartRows,
+): {
   readonly rules: readonly RegisteredRule<string, FrameReasons>[];
 } {
-  const targets = [...new Set(references.map(({ target }) => target))];
+  const protecting = references.filter((reference) => !parts.isOwnerReference(reference));
+  const targets = [...new Set(protecting.map(({ target }) => target))];
   const referring = [...new Set(references.map(({ table }) => table))];
+  const owners = [...new Set(references.map(({ target }) => target))].filter(
+    (owner) => parts.partsOf(owner).length > 0,
+  );
   return {
     rules: [
       ...targets.map((target) =>
         deleteRule(
           target,
-          references.filter((reference) => reference.target === target),
+          protecting
+            .filter((reference) => reference.target === target)
+            .map((reference) => ({ ...reference, part: parts.ownerOf(reference.table) })),
+        ),
+      ),
+      ...owners.map((owner) =>
+        ownerRestoreRule(
+          parts.partsOf(owner).map((part) => ({
+            ...part,
+            references: protecting.filter(({ table }) => table === part.table),
+          })),
+          owner,
         ),
       ),
       ...referring.flatMap((table) => {
@@ -79,24 +103,108 @@ function targetRule(
         }),
       );
       if (asked.length === 0) return [];
-      const live = new Map<string, Set<string>>();
-      for (const target of new Set(asked.map((reference) => reference.target))) {
-        const ids = asked.filter((reference) => reference.target === target).map(({ id }) => id);
-        const found = await tx
-          .selectFrom(target)
-          .select("id")
-          .where("id", "in", [...new Set(ids)])
-          .where("space_id", "=", context.spaceId)
-          .where("deleted_at", "is", null)
-          .execute();
-        live.set(target, new Set(found.map(({ id }) => id as string)));
-      }
+      const live = await liveTargets(tx, context, asked);
       return asked
         .filter(({ target, id }) => !live.get(target)?.has(id))
         .map(({ row, column, target, id }) => ({
           code: targetDeleted.code,
           row,
           field: column,
+          details: { target: { table: target, id } },
+        }));
+    },
+  };
+}
+
+/**
+ * The ids of each target table that are Live Rows of this Space: one lookup by primary key per
+ * table, for every asked row.
+ */
+async function liveTargets(
+  tx: Untyped,
+  context: StorageContext,
+  asked: readonly { readonly target: string; readonly id: string }[],
+): Promise<ReadonlyMap<string, ReadonlySet<string>>> {
+  const live = new Map<string, Set<string>>();
+  for (const target of new Set(asked.map((reference) => reference.target))) {
+    const ids = asked.filter((reference) => reference.target === target).map(({ id }) => id);
+    const found = await tx
+      .selectFrom(target)
+      .select("id")
+      .where("id", "in", [...new Set(ids)])
+      .where("space_id", "=", context.spaceId)
+      .where("deleted_at", "is", null)
+      .execute();
+    live.set(target, new Set(found.map(({ id }) => id as string)));
+  }
+  return live;
+}
+
+/** A table of Part Rows with the references that protect their targets, its owner's excepted. */
+interface OwnedPart extends PartReference {
+  readonly references: readonly Reference[];
+}
+
+/**
+ * An owner is restored only while none of its live Part Rows refers to a deleted, unknown or
+ * foreign row (ADR 0042): its Part Rows become live with it, so the restore is judged with what
+ * they refer to. One lookup of the Part Rows per table and one of the targets per target table.
+ * The Reason stands at the owner, with the table of the Part Rows as its field and one Reason
+ * per target. A Part Row removed from its owner counts for nothing.
+ */
+function ownerRestoreRule(
+  parts: readonly OwnedPart[],
+  owner: string,
+): RegisteredRule<string, typeof targetDeleted> {
+  return {
+    table: owner,
+    write: "restore",
+    reasons: [targetDeleted],
+    async answer(
+      tx: Untyped,
+      context: StorageContext,
+      rows: readonly { readonly id: string }[],
+    ): Promise<readonly RuleAnswer<string, typeof targetDeleted>[]> {
+      if (rows.length === 0) return [];
+      const asked: { row: string; field: string; target: string; id: string }[] = [];
+      for (const part of parts) {
+        if (part.references.length === 0) continue;
+        const found = await tx
+          .selectFrom(part.table)
+          .select([part.column, ...part.references.map(({ column }) => column)])
+          .where(
+            part.column,
+            "in",
+            rows.map(({ id }) => id),
+          )
+          .where("space_id", "=", context.spaceId)
+          .where("deleted_at", "is", null)
+          .execute();
+        for (const row of found)
+          for (const { column, target } of part.references) {
+            const value = row[column];
+            const ownerId = row[part.column];
+            if (typeof value !== "string" || typeof ownerId !== "string") continue;
+            if (
+              !asked.some(
+                (known) =>
+                  known.row === ownerId &&
+                  known.field === part.table &&
+                  known.target === target &&
+                  known.id === value,
+              )
+            )
+              asked.push({ row: ownerId, field: part.table, target, id: value });
+          }
+      }
+      if (asked.length === 0) return [];
+      const live = await liveTargets(tx, context, asked);
+      return asked
+        .filter(({ target, id }) => !live.get(target)?.has(id))
+        .map(({ row, field, target, id }) => ({
+          code: targetDeleted.code,
+          row,
+          field,
           details: { target: { table: target, id } },
         }));
     },
@@ -141,7 +249,7 @@ async function deletedRows(
  */
 function deleteRule(
   target: string,
-  referring: readonly Reference[],
+  referring: readonly (Reference & { readonly part: PartReference | undefined })[],
 ): RegisteredRule<string, typeof referenced> {
   return {
     table: target,
@@ -166,7 +274,7 @@ function deleteRule(
         )
         .where((eb) =>
           eb.or(
-            referring.map(({ table, column }, index) => {
+            referring.map(({ table, column, part }, index) => {
               let lookup = eb
                 .selectFrom(`${table} as referring${index}`)
                 .select(eb.lit(1).as("one"))
@@ -174,6 +282,8 @@ function deleteRule(
                 .where(`referring${index}.deleted_at`, "is", null);
               if (table === target)
                 lookup = lookup.whereRef(`referring${index}.id`, "<>", "target.id");
+              // A Part Row protects only while its owner is a Live Row (ADR 0042).
+              if (part !== undefined) lookup = lookup.where(ownerIsLive(`referring${index}`, part));
               return eb.exists(lookup);
             }),
           ),
@@ -182,13 +292,34 @@ function deleteRule(
       if (blocked.length === 0) return [];
       const ids = blocked.map(({ id }) => id as string);
       const counts = new Map<string, Map<string, number>>(ids.map((id) => [id, new Map()]));
-      for (const { table, column } of referring) {
+      for (const { table, column, part } of referring) {
+        if (part !== undefined) {
+          // Part Rows count their live owners, under the owner's table (ADR 0042).
+          const owned = await tx
+            .selectFrom(`${table} as part`)
+            .innerJoin(`${part.owner} as part_owner`, "part_owner.id", `part.${part.column}`)
+            .select((eb) => [
+              eb.ref(`part.${column}`).as("target"),
+              eb.fn.count<number>(`part.${part.column}`).distinct().as("count"),
+            ])
+            .where(`part.${column}`, "in", ids)
+            .where("part.deleted_at", "is", null)
+            .where("part_owner.deleted_at", "is", null)
+            .groupBy(`part.${column}`)
+            .execute();
+          for (const { target: id, count: found } of owned) {
+            const byTable = counts.get(id as string);
+            byTable?.set(part.owner, (byTable.get(part.owner) ?? 0) + found);
+          }
+        }
         let count = tx
           .selectFrom(table)
           .select((eb) => [eb.ref(column).as("target"), eb.fn.countAll<number>().as("count")])
           .where(column, "in", ids)
           .where("deleted_at", "is", null)
           .groupBy(column);
+        // A row that names no owner is an ordinary row and counts under its own table.
+        if (part !== undefined) count = count.where(part.column, "is", null);
         if (table === target) count = count.whereRef("id", "<>", column);
         for (const { target: id, count: found } of await count.execute()) {
           const byTable = counts.get(id as string);

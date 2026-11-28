@@ -5,6 +5,12 @@ export const timeEntryIdSchema = idSchema("TimeEntry");
 /** A Time Entry's id, branded so no other entry's id takes its place. */
 export type TimeEntryId = z.output<typeof timeEntryIdSchema>;
 
+/** A Rounding Rule's row: a project's rule or the app-wide one. */
+export const roundingRuleIdSchema = idSchema("RoundingRule");
+
+/** A Project Share's row: one project of one Time Entry. */
+export const projectShareIdSchema = idSchema("ProjectShare");
+
 export const timerIdSchema = idSchema("Timer");
 /**
  * A Timer's id, branded apart from a Time Entry's: the entry a stop writes takes the timer's id
