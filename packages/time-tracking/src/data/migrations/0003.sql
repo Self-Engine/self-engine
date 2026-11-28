@@ -9,6 +9,8 @@ CREATE TABLE time_entries (
   updated_at TEXT NOT NULL,
   deleted_at TEXT,
   space_id TEXT NOT NULL REFERENCES spaces(id) DEFERRABLE INITIALLY DEFERRED,
+  -- The Time Kind: a Work Entry, or a Break Entry or Leisure Entry, which is not work.
+  time_kind TEXT NOT NULL CHECK (time_kind IN ('work', 'short_break', 'rest_break', 'leisure')),
   -- The Measured Time: as measured or entered, on whole seconds, never rounded (D308, D344).
   started_at TEXT NOT NULL CHECK (substr(started_at, 20) = '.000Z'),
   ended_at TEXT NOT NULL CHECK (substr(ended_at, 20) = '.000Z'),
@@ -26,13 +28,19 @@ CREATE TABLE time_entries (
   -- [{"timeKind":"rest_break","startedAt":"…","endedAt":"…","changedByLimit":false}]. The
   -- database checks that it is a readable array; the code checks its content, in one place.
   breaks TEXT NOT NULL CHECK (json_valid(breaks) AND json_type(breaks) = 'array'),
+  -- The mark "changed by the limit" of a Rest Break entry: the limit of a Short Break made it one.
+  changed_by_limit INTEGER NOT NULL CHECK (changed_by_limit IN (0, 1)),
   -- The name of the Time Zone the row was made in, as the Operation computed with it (D353).
   time_zone TEXT NOT NULL,
   -- Instants of the supported years compare as text in time order.
   CHECK (ended_at > started_at),
   CHECK ((rounded_started_at IS NULL) = (rounded_ended_at IS NULL)),
   CHECK (rounded_ended_at > rounded_started_at),
-  CHECK (rounded_started_at IS NOT NULL OR booked_duration = 0)
+  CHECK (rounded_started_at IS NOT NULL OR booked_duration = 0),
+  -- Only a Work Entry holds breaks and a rule chosen by hand; only a Rest Break entry the mark.
+  CHECK (time_kind = 'work' OR json_array_length(breaks) = 0),
+  CHECK (time_kind = 'work' OR rule_chosen_by_hand = 0),
+  CHECK (time_kind = 'rest_break' OR changed_by_limit = 0)
 ) STRICT;
 CREATE INDEX time_entries_space ON time_entries (space_id);
 -- The window of a Day Span (D343) is read on the measured columns, a little wider than the span,

@@ -22,6 +22,9 @@ import {
   BREAK_TOO_SHORT,
   BREAKS_UNKNOWN,
   END_BEFORE_START,
+  NOT_WORK_HAS_BREAKS,
+  NOT_WORK_HAS_PROJECTS,
+  NOT_WORK_HAS_RULE_BY_HAND,
   ROUNDING_RULE_UNKNOWN,
   type TimeEntryId,
   timeEntryIdSchema,
@@ -43,7 +46,7 @@ import {
  * The module's texts for the rules of its Contract (D320): "end after start" shows at the end. The
  * form has no field for the rule or the breaks yet, so a rule or breaks this version cannot read,
  * and a break that breaks a rule (a new start or end that leaves a break outside), show in the
- * Notice.
+ * Notice. A project chosen for an entry that is not work shows at the project field.
  */
 const NEWER_VERSION = msg`This time entry was saved by a newer version of the app. Update the app to edit it.`;
 const TEXTS = {
@@ -54,6 +57,9 @@ const TEXTS = {
     [BREAK_NOT_BETWEEN_WORK]: msg`A break must lie after the start of the time entry and before its end.`,
     [BREAK_OVERLAPS]: msg`Breaks must not overlap.`,
     [BREAK_TOO_SHORT]: msg`A break must be at least one second long.`,
+    [NOT_WORK_HAS_PROJECTS]: msg`A break or leisure has no project.`,
+    [NOT_WORK_HAS_BREAKS]: msg`A break or leisure has no breaks inside it.`,
+    [NOT_WORK_HAS_RULE_BY_HAND]: msg`A break or leisure is rounded by the rule for the whole app.`,
   },
 };
 
@@ -111,7 +117,7 @@ function useEntryName(entry: TimeEntryWithProject | undefined): string | undefin
   const timeZone = useTimeZone();
   if (entry === undefined) return undefined;
   const start = formatInstant(entry.startedAt, "dateTime", i18n.locale, timeZone);
-  const project = entry.projects[0]?.project.title;
+  const project = entry.timeKind === "work" ? entry.projects[0]?.project.title : undefined;
   return project === undefined
     ? t({
         message: `No project, ${start}`,
@@ -133,7 +139,9 @@ function NewEntryForm({
     operation: useCreateTimeEntry(),
     // No field chooses a rule yet: the rule that holds rounds the entry.
     // No field enters a break yet: a new entry has none.
+    // The form makes a Work Entry; no surface makes an entry that is not work yet (#421).
     draft: {
+      timeKind: "work",
       startedAt: null,
       endedAt: null,
       projects: [],
@@ -215,14 +223,19 @@ function EditForm({
     operation: useEditTimeEntry(),
     draft: {
       id: entry.id,
+      // No field changes the Time Kind yet (#421): the edit never sends it, so it stays as it is.
+      timeKind: entry.timeKind,
       startedAt: entry.startedAt,
       endedAt: entry.endedAt,
-      projects: entry.projects.map(({ projectId, weight }) => ({ projectId, weight })),
+      projects:
+        entry.timeKind === "work"
+          ? entry.projects.map(({ projectId, weight }) => ({ projectId, weight }))
+          : [],
       note: entry.note ?? "",
       // No field changes the rule, so the edit never sends it and the entry keeps its own.
       ruleByHand: null,
       // No field changes the breaks either: the edit never sends them, and they stay as they are.
-      breaks: entry.breaks,
+      breaks: entry.timeKind === "work" ? entry.breaks : [],
     },
     edit: { identity: { id: entry.id }, tiedFields: timeEntryTiedFields, deleted },
     emptyTextFields: ["note"],
@@ -240,13 +253,24 @@ function EditForm({
       }
       form={form}
       onCancel={onCancel}
-      project={entry.projects[0]?.project ?? null}
+      project={entry.timeKind === "work" ? (entry.projects[0]?.project ?? null) : null}
     />
   );
 }
 
-/** The fields create and edit share, from the one Field List (ADR 0032). */
-type EntryDraft = Omit<DraftOfEntry<typeof timeTrackingContract.edit>, "id">;
+/**
+ * The fields create and edit share, from the one Field List (ADR 0032). The input of create is
+ * either shape; the projects of an entry that is not work are only ever the empty list.
+ */
+type EntryDraft = Pick<
+  DraftOfEntry<typeof timeTrackingContract.edit>,
+  "startedAt" | "endedAt" | "note"
+> & {
+  readonly projects:
+    | readonly { readonly projectId: string; readonly weight?: number | undefined }[]
+    | null
+    | undefined;
+};
 
 /**
  * Date, start and end in the Time Zone of the Setting, with the duration that really passed below
@@ -262,7 +286,9 @@ function EntryFields({
 }: {
   readonly form: OperationForm<EntryDraft>;
   /** The Lead Project of the stored entry, so an archived or deleted one shows as such. */
-  readonly project: TimeEntryWithProject["projects"][number]["project"] | null;
+  readonly project:
+    | Extract<TimeEntryWithProject, { timeKind: "work" }>["projects"][number]["project"]
+    | null;
   /** The date a new entry shows before its start is typed; today without one. */
   readonly startDay?: CalendarDay | undefined;
   readonly onCancel: () => void;

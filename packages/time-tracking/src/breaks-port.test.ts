@@ -22,6 +22,7 @@ import {
   ROUNDING_RULE_UNKNOWN,
 } from "./contracts/index.ts";
 import { timeTracking } from "./data/index.ts";
+import { asWorkEntry } from "./testing/index.ts";
 
 const started: TestDataProcess[] = [];
 afterEach(async () => {
@@ -131,11 +132,11 @@ test("a break holds its Time Kind, its start and end on whole seconds, and the m
       marked,
     ],
   });
-  expect(created.breaks).toEqual([shortBreak("09:30:00", "09:40:00"), marked]);
+  expect(asWorkEntry(created).breaks).toEqual([shortBreak("09:30:00", "09:40:00"), marked]);
   // A Short Break counts; the Rest Break does not.
   expect(created.bookedDuration).toBe(minutes(150));
   await expect(client.timeTracking.entry({ id: created.id })).resolves.toMatchObject({
-    breaks: created.breaks,
+    breaks: asWorkEntry(created).breaks,
   });
 });
 

@@ -4,7 +4,9 @@ import type { ProjectId } from "@self-engine/projects/ids";
 import { ProjectPicker } from "@self-engine/projects/picker";
 
 /** The draft's list of projects, as create and edit take it. */
-type ProjectsDraft = { readonly projectId: string; readonly weight?: number | undefined }[] | null;
+type ProjectsDraft =
+  | readonly { readonly projectId: string; readonly weight?: number | undefined }[]
+  | null;
 
 /**
  * The project of an entry as one picker, bound to the draft's list of projects: it shows the Lead

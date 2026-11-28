@@ -116,8 +116,11 @@ const DayEntryRow = memo(function DayEntryRow({
             <OverlapsEntryIcon size="sm" aria-hidden />
           </EntryHint>
         )}
-        {/* The Lead Project; the list of several projects is the surface of #423. */}
-        <ProjectMark project={entry.projects[0]?.project ?? null} />
+        {/* The Lead Project; the list of several projects is the surface of #423. An entry that is
+            not work shows like any other, without a project, until its surface (#421). */}
+        <ProjectMark
+          project={entry.timeKind === "work" ? (entry.projects[0]?.project ?? null) : null}
+        />
         <Text c="dimmed" flex={1} miw={0} size="sm" truncate>
           {entry.note}
         </Text>

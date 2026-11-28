@@ -270,6 +270,7 @@ test("an entry created on a clicked day of the week is sent with that day and ap
     {
       entry: "create",
       input: {
+        timeKind: "work",
         startedAt: "2026-11-18T08:00:00.000Z",
         endedAt: "2026-11-18T09:30:00.000Z",
         projects: [],
@@ -311,6 +312,7 @@ test("the primary action opens a new entry on today, and the entry appears in th
     {
       entry: "create",
       input: {
+        timeKind: "work",
         startedAt: "2026-11-20T12:00:00.000Z",
         endedAt: "2026-11-20T13:00:00.000Z",
         projects: [],
@@ -391,6 +393,65 @@ test("saving another field of an entry with breaks leaves its breaks as they are
     // 1:29:20 measured without the Rest Break of 0:15, rounded up to the minute.
     bookedDuration: 75 * 60,
   });
+});
+
+test("saving other fields of an entry that is not work leaves its Time Kind as it is", async () => {
+  // The rounding resolution's Leisure Entry, 14:00:10 to 16:44:20 in Berlin.
+  const week = await openStored({
+    timeKind: "leisure",
+    startedAt: "2026-11-18T13:00:10.000Z",
+    endedAt: "2026-11-18T15:44:20.000Z",
+  });
+  setValue(note(), "Afternoon off");
+  await shown(() => expect(button(drawer(), "Save").disabled).toBe(false));
+  button(drawer(), "Save").click();
+
+  await shown(() => expect(document.querySelector('[role="dialog"]')).toBeNull());
+  expect(week.calls).toEqual([{ entry: "edit", input: { id: week.id, note: "Afternoon off" } }]);
+  await expect(week.client.timeTracking.entry({ id: week.id as never })).resolves.toMatchObject({
+    timeKind: "leisure",
+    note: "Afternoon off",
+    bookedDuration: 0,
+  });
+});
+
+test("the week shows a Break Entry and a Leisure Entry like any other, with its Rounded Time and its Booked Duration", async () => {
+  await renderWeek(async (client) => {
+    await client.timeTracking.create({
+      ...TIMED,
+      note: "Review",
+    });
+    await client.timeTracking.create({
+      timeKind: "short_break",
+      startedAt: "2026-11-18T09:30:00.000Z",
+      endedAt: "2026-11-18T09:44:50.000Z",
+      note: "Coffee",
+    });
+    await client.timeTracking.create({
+      timeKind: "rest_break",
+      startedAt: "2026-11-18T11:00:00.000Z",
+      endedAt: "2026-11-18T11:30:00.000Z",
+      note: "Lunch",
+    });
+    await client.timeTracking.create({
+      timeKind: "leisure",
+      startedAt: "2026-11-18T13:00:10.000Z",
+      endedAt: "2026-11-18T15:44:20.000Z",
+      note: "Afternoon off",
+    });
+  });
+  await shown(() =>
+    expect(rowsOf("Mittwoch, 18. November 2026")).toEqual([
+      "09:00 – 10:30No projectReview1:30",
+      "10:30 – 10:45No projectCoffee0:15",
+      "12:00 – 12:30No projectLunch0:00",
+      "14:00 – 16:45No projectAfternoon off0:00",
+    ]),
+  );
+  // The day counts the work and the Short Break; the Rest Break and Leisure add nothing.
+  expect(
+    day("Mittwoch, 18. November 2026").querySelector('[aria-label="Day total"]')?.textContent,
+  ).toBe("1:45");
 });
 
 test("the week shows an entry at its Rounded Time, and the drawer's fields hold its Measured Time", async () => {

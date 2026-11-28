@@ -25,6 +25,8 @@ whose entry counted its end minus its start.
 
 ### What a Time Entry keeps
 
+- **The Time Kind**, `time_kind`: `work`, `short_break`, `rest_break` or `leisure`, which the table
+  checks (see [The Time Kind](#the-time-kind-and-the-two-shapes)).
 - **The Measured Time**, `started_at` and `ended_at`: Instants on whole seconds, the end after the
   start, never rounded (D308, D344). The Operation discards the milliseconds; the Contract compares
   the truncated values and requires the end at least one second after the start.
@@ -39,6 +41,7 @@ whose entry counted its end minus its start.
   Zone Setting or the Device Time Zone ([ADR 0036](0036-the-app-stores-its-time-zone-and-week-start-as-settings.md),
   D342, D353). An edit leaves it unchanged, and no answer exposes it.
 - **The breaks** as JSON text, `breaks`: a list in the entry's own row (see [The breaks](#the-breaks)).
+- **The mark "changed by the limit"** of a Rest Break entry, `changed_by_limit`.
 - **The note.** Its projects are rows of their own, the Project Shares (below).
 - **One row per entry**, also across midnight.
 
@@ -126,6 +129,46 @@ never each create a first app-wide rule. No Operation writes the table yet.
   `breaks: null`; an edit that keeps it, and every move, is refused with `breaks_unknown` at
   `breaks`.
 
+### The Time Kind and the two shapes
+
+- **A Time Entry is a Work Entry, a Break Entry or a Leisure Entry.** Its `time_kind` is one of
+  `TIME_KINDS` in `contracts/time-kinds.ts`, the values a break uses for Short Break and Rest Break
+  and `work` and `leisure` beside them. The table checks the value, and that only a Work Entry
+  holds a non-empty list of breaks and the mark "rule chosen by hand", and only a Rest Break entry
+  the mark "changed by the limit". The projects stand in their own table, so the Operation alone
+  keeps an entry that is not work without them.
+- **The Port answers a union of two shapes**, told apart by `timeKind`: `workEntrySchema` carries
+  `roundingRule`, `ruleByHand`, `breaks` and `projects`; `notWorkEntrySchema` carries none of
+  them, and only its Rest Break carries `changedByLimit`. So the compiler stops a caller from
+  reading the projects or the breaks of an entry before it checked that it is work. A list
+  (`listedTimeEntrySchema`, `dayEntrySchema`) is the same union without the parts a list does not
+  show.
+- **Create takes either shape.** Without a `timeKind` it makes a Work Entry. An entry that is not
+  work takes `startedAt`, `endedAt` and `note`; `projects` and `breaks` on it are refused at their
+  field with `not_work_has_projects` and `not_work_has_breaks` (the empty list says "none"), and a
+  rule chosen by hand is no field of that shape.
+- **The computation.** `computeTimeEntry` takes the Time Kind. An entry that is not work is
+  rounded by its rule as a whole, without breaks: the Rounded Time is what the rule makes of its
+  length, the Booked Duration that length for a Short Break and 0 for a Rest Break and for Leisure,
+  and a length of 0:00 gives no Rounded Time. Breaks or projects on it are findings, which the
+  result ignores. The rule is the app-wide rule that held at its measured start: such an entry
+  never takes a project's rule and never a rule chosen by hand. The Leisure Entry 14:00:10 –
+  16:44:20 counts as 14:00 – 16:45.
+- **Changing the Time Kind** is the field `timeKind` of an edit: free between Short Break, Rest
+  Break and Leisure and from those to Work; from Work to one of those only once the entry keeps no
+  projects and no breaks, else it is refused at `projects` or `breaks` with the Reason of create.
+  An edit may clear both in the same call. A rule chosen by hand for an entry that is not work is
+  refused with `not_work_has_rule_by_hand` at `ruleByHand`. A change from or to Work takes the rule
+  that holds again (for a Work Entry, its Lead Project's), unless the edit chooses one by hand;
+  between kinds that are not work the entry keeps its rule. A change of kind removes the mark
+  "changed by the limit"; an edit of other fields keeps it. Nothing sets the mark yet.
+- **The Timer's stop** writes a Work Entry. The Edit Drawer has no field for the Time Kind yet
+  ([#421](https://github.com/Self-Engine/self-engine/issues/421)): it never sends it, so saving
+  other fields leaves it as it is, and its create form makes a Work Entry.
+- **Reading is lenient.** Project Shares on an entry that is not work, which a sync could bring,
+  are answered as the finding `not_work_has_projects` beside the shape without projects; the Day
+  Span counts the entry without them.
+
 ### The projects of an entry: Project Shares
 
 - **One row per project of an entry** in `project_shares`: the entry (`time_entry_id`, never
@@ -163,14 +206,14 @@ never each create a first app-wide rule. No Operation writes the table yet.
 
 ### What the Port answers
 
-Every answer that carries a Time Entry holds its Measured Time (`startedAt`, `endedAt`), its
-`roundedTime` or `null`, its `bookedDuration`, its `roundingRule`, the rule chosen by hand as
-`ruleByHand` (`null` without the mark), its `breaks`, its `findings` and its `projects`, the Lead
-Project first, each with its `weight` and its `projectShare`; a Query adds each project's Project
-Reference as `project`. The answer carries each project as it was sent, with the computed parts
-beside it (ADR 0032). A list (`DayEntry` of the
-Query of a Day Span) leaves out the rule, the mark, the breaks and the findings, so it parses
-neither the rule nor the breaks.
+Every answer that carries a Time Entry holds its `timeKind`, its Measured Time (`startedAt`,
+`endedAt`), its `roundedTime` or `null`, its `bookedDuration`, its `findings` and its `note`. A
+Work Entry also holds its `roundingRule`, the rule chosen by hand as `ruleByHand` (`null` without
+the mark), its `breaks` and its `projects`, the Lead Project first, each with its `weight` and its
+`projectShare`; a Query adds each project's Project Reference as `project`. A Rest Break entry
+holds `changedByLimit`. The answer carries each project as it was sent, with the computed parts
+beside it (ADR 0032). A list (`DayEntry` of the Query of a Day Span) leaves out the rule, the
+mark, the breaks, the findings and `changedByLimit`, so it parses neither the rule nor the breaks.
 
 ### The Day Span
 
@@ -186,6 +229,11 @@ neither the rule nor the breaks.
   [Day Shares per day and per project](https://github.com/Self-Engine/self-engine/issues/444) is
   built, an entry with several projects across midnight divides each Day Share by its shares, the
   Lead Project getting the rest.
+- An entry that is not work stands like any other, with its Rounded Time and its Booked Duration,
+  and the week shows it without a project until
+  [its surface](https://github.com/Self-Engine/self-engine/issues/421) is built. A day's total adds
+  Booked Durations: a Short Break entry counts toward the day and toward "no project", a Rest Break
+  entry and a Leisure Entry add nothing to any sum, across midnight too.
 - An entry on one Calendar Day has its Booked Duration as its Day Share. `dayShares` cuts the
   Rounded Time of an entry across midnight at the Calendar Days of the Time Zone of the call;
   without Rest Breaks its pieces add up to the Booked Duration.
@@ -202,6 +250,8 @@ beneath them is the measured one. Durations follow
 ## Consequences
 
 - A Timer stopped after 44:10 counts 0:45 and the week shows its Rounded Time.
+- Every function that handles entries says what it does with an entry that is not work: in code
+  it has to check the shape before it reads the projects, the breaks or the rule.
 - Under the default rule a minute counts twice at every switch of the Timer, and both entries are
   marked as overlapping, until the overlap rule takes away Occupied Time.
 - A change of Time Zone can move past work to different Calendar Days. A changed rule never

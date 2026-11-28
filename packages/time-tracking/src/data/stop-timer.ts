@@ -70,7 +70,9 @@ async function saveEntry(
   const timeZone = await context.readTimeZone(tx);
   // The timer's project is the entry's only project, with the whole Booked Duration.
   const projects = timer.project_id === null ? [] : [{ projectId: timer.project_id, weight: 1 }];
+  // A Timer writes a Work Entry.
   const { columns, projectShares } = roundedColumns({
+    timeKind: "work",
     startedAt: timer.started_at,
     endedAt: end,
     timeZone,

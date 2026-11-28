@@ -1,6 +1,7 @@
 import { defineStorageModule, inputError, sharedWrites, smallSetList } from "@self-engine/storage";
 import { wholeSecondOf } from "@self-engine/time";
 import {
+  NOT_WORK_HAS_RULE_BY_HAND,
   START_IN_FUTURE,
   timeEntryIdSchema,
   timerIdSchema,
@@ -44,7 +45,12 @@ export const timeTracking = defineStorageModule({
     async run(tx, context, input) {
       // The zone the call computes with, read in its transaction (D342, D353).
       const timeZone = await context.readTimeZone(tx);
-      const byHand = input.ruleByHand ?? undefined;
+      const timeKind = input.timeKind ?? "work";
+      // An entry that is not work takes the app-wide rule; its empty lists mean "none".
+      const byHand =
+        input.timeKind === undefined || input.timeKind === "work"
+          ? (input.ruleByHand ?? undefined)
+          : undefined;
       const projects = weightedProjects(input.projects ?? []);
       const rule =
         byHand ??
@@ -53,6 +59,7 @@ export const timeTracking = defineStorageModule({
           startedAt: input.startedAt,
         }));
       const { columns, projectShares } = roundedColumns({
+        timeKind,
         startedAt: input.startedAt,
         endedAt: input.endedAt,
         timeZone,
@@ -79,33 +86,44 @@ export const timeTracking = defineStorageModule({
     // Booked Duration again (ADR 0044): one lookup of the row and one of its shares before the
     // write. The list of projects is replaced as a whole.
     async run(tx, context, input) {
-      const { id, startedAt, endedAt, ruleByHand, note, breaks } = input;
+      const { id, timeKind, startedAt, endedAt, ruleByHand, note, breaks } = input;
       const writes = sharedWrites(tx, context);
-      const fields = [startedAt, ruleByHand, input.projects, note, breaks];
+      const fields = [timeKind, startedAt, ruleByHand, input.projects, note, breaks];
       if (fields.every((field) => field === undefined)) {
         const row = await writes.update("time_entries", id, {});
         return toTimeEntry(row, (await storedProjects(tx, context, id)).shares);
       }
       const stored = await writes.lookup("time_entries", id);
+      // An entry whose stored rule this version cannot read is kept as it is.
       const own = ownRule(stored);
+      const kind = timeKind ?? stored.time_kind;
+      const isWork = kind === "work";
+      // An entry that is not work takes the app-wide rule, never one chosen by hand.
+      if (!isWork && ruleByHand != null)
+        throw inputError(["ruleByHand"], NOT_WORK_HAS_RULE_BY_HAND);
       const before = await storedProjects(tx, context, id);
       const projects =
         input.projects === undefined ? before.projects : weightedProjects(input.projects);
-      // "Look up again" asks for the rule of the entry as it stands after the edit.
+      // "Look up again" asks for the rule of the entry as it stands after the edit; so does a
+      // change from or to Work, which changes the rule that holds.
       const start = startedAt ?? stored.started_at;
+      const lookUp = ruleByHand === null || isWork !== (stored.time_kind === "work");
       const rule =
-        ruleByHand === undefined
-          ? own
-          : ruleByHand === null
+        ruleByHand != null
+          ? { rule: ruleByHand, ruleChosenByHand: true }
+          : lookUp
             ? {
                 rule: await ruleThatHolds(tx, context, {
-                  projectId: leadProjectOf(projects),
+                  projectId: isWork ? leadProjectOf(projects) : null,
                   startedAt: start,
                 }),
                 ruleChosenByHand: false,
               }
-            : { rule: ruleByHand, ruleChosenByHand: true };
+            : own;
       const { columns, projectShares } = roundedColumns({
+        timeKind: kind,
+        // A change of kind removes the mark, as setting a break back by hand does.
+        changedByLimit: kind === stored.time_kind && stored.changed_by_limit === 1,
         startedAt: start,
         endedAt: endedAt ?? stored.ended_at,
         timeZone: stored.time_zone,
@@ -132,6 +150,8 @@ export const timeTracking = defineStorageModule({
       const before = await storedProjects(tx, context, input.id);
       const shift = shiftedBy(stored.started_at, wholeSecondOf(input.startedAt));
       const { columns, projectShares } = roundedColumns({
+        timeKind: stored.time_kind,
+        changedByLimit: stored.changed_by_limit === 1,
         startedAt: shift(stored.started_at),
         endedAt: shift(stored.ended_at),
         timeZone: stored.time_zone,

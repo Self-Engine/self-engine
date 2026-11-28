@@ -10,6 +10,13 @@ import { noteSchema } from "./note.ts";
 import { projectsInputSchema } from "./project-shares.ts";
 import { roundingRuleSchema } from "./rounding-rule.ts";
 import {
+  NOT_WORK_HAS_BREAKS,
+  NOT_WORK_HAS_PROJECTS,
+  NOT_WORK_HAS_RULE_BY_HAND,
+  NOT_WORK_KINDS,
+  timeKindSchema,
+} from "./time-kinds.ts";
+import {
   END_IN_FUTURE,
   START_IN_FUTURE,
   timerFields,
@@ -45,10 +52,23 @@ export {
   onWholeSeconds,
 } from "./breaks.ts";
 export {
+  type ComputationFinding,
   computeTimeEntry,
+  notWorkFindings,
   type TimeEntryComputation,
   type TimeEntryComputationInput,
 } from "./computation.ts";
+export {
+  NOT_WORK_HAS_BREAKS,
+  NOT_WORK_HAS_PROJECTS,
+  NOT_WORK_HAS_RULE_BY_HAND,
+  NOT_WORK_KINDS,
+  type NotWorkKind,
+  TIME_KINDS,
+  type TimeKind,
+  timeKindCounts,
+  timeKindSchema,
+} from "./time-kinds.ts";
 export {
   PROJECT_NAMED_TWICE,
   type ProjectShare,
@@ -84,10 +104,13 @@ export {
  * and the mark removed. The answer carries the rule as `roundingRule` beside the mark. `breaks`
  * is the list of breaks inside the entry, never `null`: an answer's `null` means a list this
  * version cannot read. Create makes it optional (none without), and an edit replaces it as a
- * whole; the empty list removes every break. The Operation computes the Rounded Time and the Booked Duration on every write
- * (ADR 0044): no input names either.
+ * whole; the empty list removes every break. `timeKind` is Work, Short Break, Rest Break or
+ * Leisure; only a Work Entry takes projects, breaks and a rule chosen by hand (see
+ * `timeEntryCreateInput` and the edit). The Operation computes the Rounded Time and the Booked
+ * Duration on every write (ADR 0044): no input names either.
  */
 export const timeEntryFields = entryFields(timeEntryIdSchema, {
+  timeKind: timeKindSchema,
   startedAt: instantSchema,
   endedAt: instantSchema,
   projects: projectsInputSchema,
@@ -143,14 +166,37 @@ function timesTravelTogether(input: EditFields): input is EditFields & EditTimes
   return (input.startedAt === undefined) === (input.endedAt === undefined);
 }
 
+/**
+ * A field an entry that is not work does not take: the empty list says "none", and any other value
+ * is refused with its Reason at the field, so a caller without types learns what to remove.
+ */
+const noneFor = (reason: string) =>
+  z
+    .custom<readonly never[]>((value) => Array.isArray(value) && value.length === 0, {
+      params: { reason },
+    })
+    .optional();
+
 // A predicate narrows what the Data Process receives. The strict Field List object still
 // supplies the caller input type and lets the contract kit check the edit pattern.
-/** The input of create, which the input Command checks with too: the same checks for every caller. */
-export const timeEntryCreateInput = timeEntryFields.create
-  .extend({
-    breaks: timeEntryFields.fields.breaks.optional(),
-    projects: timeEntryFields.fields.projects.optional(),
-  })
+/**
+ * The input of create, which the input Command checks with too: the same checks for every caller.
+ * Either shape: a Work Entry (the default without a Time Kind) with its optional breaks, projects
+ * and rule chosen by hand, or an entry that is not work, with neither.
+ */
+export const timeEntryCreateInput = z
+  .discriminatedUnion("timeKind", [
+    timeEntryFields.create.extend({
+      timeKind: z.literal("work").optional(),
+      breaks: timeEntryFields.fields.breaks.optional(),
+      projects: timeEntryFields.fields.projects.optional(),
+    }),
+    timeEntryFields.create.pick({ startedAt: true, endedAt: true, note: true }).extend({
+      timeKind: z.enum(NOT_WORK_KINDS),
+      projects: noneFor(NOT_WORK_HAS_PROJECTS),
+      breaks: noneFor(NOT_WORK_HAS_BREAKS),
+    }),
+  ])
   .refine(endsAfterStart, endsAfterStartIssue);
 
 const timeEntryEditSchema = timeEntryFields.edit
@@ -161,6 +207,9 @@ export {
   instantRangeSchema,
   type ListedTimeEntry,
   listedTimeEntrySchema,
+  type NotWorkEntry,
+  notWorkEntrySchema,
+  projectsOfListed,
   TIME_ZONE_UNKNOWN,
   type TimeEntry,
   type TimeEntryFinding,
@@ -168,6 +217,8 @@ export {
   type TimeEntryWithProject,
   timeEntrySchema,
   timeEntryWithProjectSchema,
+  type WorkEntry,
+  workEntrySchema,
 } from "./entries.ts";
 export {
   type DayEntry,
@@ -219,12 +270,16 @@ export const timeTrackingContract = {
    * breaks a rule is an input error at that break (`breaks.<index>`), with its Reason of
    * `BREAK_REASONS`; the Operation never cuts, moves or deletes a break on its own. It does not
    * check the project: the frame's reference check refuses a deleted or unknown one and accepts an
-   * archived one (D337).
+   * archived one (D337). An entry that is not work takes the app-wide rule that holds at its start
+   * and never projects or breaks (`NOT_WORK_HAS_PROJECTS`, `NOT_WORK_HAS_BREAKS`).
    */
   create: oc
     .input(timeEntryCreateInput)
     .output(timeEntrySchema)
-    .errors({ ...inputErrors(...BREAK_REASONS), ...refusal }),
+    .errors({
+      ...inputErrors(...BREAK_REASONS, NOT_WORK_HAS_PROJECTS, NOT_WORK_HAS_BREAKS),
+      ...refusal,
+    }),
   /**
    * A missing field stays untouched, `null` clears it, and an edit without fields reads. Every
    * other edit rounds again with the entry's own rule, in its own Time Zone. An entry whose stored
@@ -232,13 +287,25 @@ export const timeTrackingContract = {
    * are checked as on create, the stored ones too when the edit keeps them, so a start or end that
    * leaves a break no longer between Work is refused at that break. Stored breaks this version
    * cannot read are kept only by an edit that replaces them: `BREAKS_UNKNOWN` at the breaks.
+   * `timeKind` changes freely between Short Break, Rest Break and Leisure and from those to Work;
+   * an entry that is not work, the one it becomes too, keeps no projects, breaks or rule chosen by
+   * hand: each is refused at its field (`NOT_WORK_HAS_PROJECTS`, `NOT_WORK_HAS_BREAKS`,
+   * `NOT_WORK_HAS_RULE_BY_HAND`). A change from or to Work takes the rule that holds again, unless
+   * the edit chooses one by hand; an entry that is not work takes the app-wide rule.
    */
   edit: oc
     .input(timeEntryEditSchema)
     .output(timeEntrySchema)
     .errors({
       NOT_FOUND: {},
-      ...inputErrors(ROUNDING_RULE_UNKNOWN, BREAKS_UNKNOWN, ...BREAK_REASONS),
+      ...inputErrors(
+        ROUNDING_RULE_UNKNOWN,
+        BREAKS_UNKNOWN,
+        ...BREAK_REASONS,
+        NOT_WORK_HAS_PROJECTS,
+        NOT_WORK_HAS_BREAKS,
+        NOT_WORK_HAS_RULE_BY_HAND,
+      ),
       ...refusal,
     }),
   /**

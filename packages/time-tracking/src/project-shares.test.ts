@@ -32,6 +32,7 @@ function sharesOf(
   weights: readonly number[],
 ) {
   return computeTimeEntry({
+    timeKind: "work",
     measuredTime: { start: berlinAt(start), end: berlinAt(end) },
     timeZone: berlin,
     rule,
@@ -96,6 +97,7 @@ test("the Project Shares add up to the Booked Duration exactly, none below zero,
       fc.array(fc.integer({ min: 1, max: WEIGHT_MAX }), { maxLength: 12 }),
       (start, length, chosen, weights) => {
         const { bookedDuration, projectShares } = computeTimeEntry({
+          timeKind: "work",
           measuredTime: {
             start: addDuration(epoch, durationSchema.parse(start)),
             end: addDuration(epoch, durationSchema.parse(start + length)),

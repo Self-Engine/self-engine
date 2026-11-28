@@ -14,6 +14,7 @@ import {
   type Break,
   computeTimeEntry,
   ORDINARY_ROUNDING_MINUTES,
+  NOT_WORK_KINDS,
   ROUNDING_DIRECTIONS,
 } from "./contracts/index.ts";
 
@@ -152,6 +153,7 @@ test("Exact changes nothing", () => {
     fc.property(measuredTime, timeZone, (measured, zone) => {
       expect(
         computeTimeEntry({
+          timeKind: "work",
           measuredTime: measured,
           timeZone: zone,
           rule: { kind: "exact" },
@@ -173,6 +175,7 @@ test("under every other rule a Rounded Time lies on whole minutes and holds the 
   fc.assert(
     fc.property(measuredTime, timeZone, rule, (measured, zone, chosen) => {
       const { roundedTime, bookedDuration } = computeTimeEntry({
+        timeKind: "work",
         measuredTime: measured,
         timeZone: zone,
         rule: chosen,
@@ -195,6 +198,7 @@ test("rounding up never counts less than was measured, rounding down never more"
   fc.assert(
     fc.property(measuredTime, timeZone, ordinaryRule, (measured, zone, rule) => {
       const { bookedDuration } = computeTimeEntry({
+        timeKind: "work",
         measuredTime: measured,
         timeZone: zone,
         rule,
@@ -212,6 +216,7 @@ test("under Block Rounding the Booked Duration is a whole number of Blocks aroun
   fc.assert(
     fc.property(measuredTime, timeZone, blockRule, (measured, zone, rule) => {
       const { roundedTime, bookedDuration } = computeTimeEntry({
+        timeKind: "work",
         measuredTime: measured,
         timeZone: zone,
         rule,
@@ -232,7 +237,13 @@ test("a Rest Break never takes more work time than its own length", () => {
       const rests = breaks.filter((stretch) => stretch.timeKind === "rest_break");
       fc.pre(rests.length > 0);
       const compute = (list: readonly Break[], chosen = rule) =>
-        computeTimeEntry({ measuredTime: measured, timeZone: zone, rule: chosen, breaks: list });
+        computeTimeEntry({
+          timeKind: "work",
+          measuredTime: measured,
+          timeZone: zone,
+          rule: chosen,
+          breaks: list,
+        });
       expect(compute(breaks).findings).toEqual([]);
       // Each Rest Break in turn as a Short Break, the others as they are.
       for (const rest of rests) {
@@ -245,6 +256,7 @@ test("a Rest Break never takes more work time than its own length", () => {
           // The rule rounds the work time; no break is rounded on its own first.
           const work = compute(breaks, { kind: "exact" }).bookedDuration;
           const alone = computeTimeEntry({
+            timeKind: "work",
             measuredTime: {
               start: measured.start,
               end: instantOfSeconds(epochMsOf(measured.start) / 1000 + work),
@@ -268,6 +280,7 @@ test("every list of breaks has a result", () => {
   fc.assert(
     fc.property(entryWithBreaks, timeZone, anyRule, ({ measured, breaks }, zone, rule) => {
       const { roundedTime, bookedDuration } = computeTimeEntry({
+        timeKind: "work",
         measuredTime: measured,
         timeZone: zone,
         rule,
@@ -279,6 +292,40 @@ test("every list of breaks has a result", () => {
       if (rule.kind === "exact")
         expect(bookedDuration).toBeLessThanOrEqual(durationBetween(measured.start, measured.end));
     }),
+    parameters,
+  );
+});
+
+test("an entry that is not work is the same entry without breaks, rounded whole: a Short Break books its Rounded Time, a Rest Break and Leisure nothing", () => {
+  fc.assert(
+    fc.property(
+      entryWithBreaks,
+      timeZone,
+      anyRule,
+      fc.constantFrom(...NOT_WORK_KINDS),
+      ({ measured, breaks }, zone, chosen, timeKind) => {
+        const { roundedTime, bookedDuration, projectShares } = computeTimeEntry({
+          timeKind,
+          measuredTime: measured,
+          timeZone: zone,
+          rule: chosen,
+          breaks,
+          projects: [{ weight: 1 }],
+        });
+        const asWork = computeTimeEntry({
+          timeKind: "work",
+          measuredTime: measured,
+          timeZone: zone,
+          rule: chosen,
+          breaks: [],
+        });
+        expect(roundedTime).toEqual(asWork.roundedTime);
+        const length =
+          roundedTime === null ? 0 : durationBetween(roundedTime.start, roundedTime.end);
+        expect(bookedDuration).toBe(timeKind === "short_break" ? length : 0);
+        expect(projectShares).toEqual([]);
+      },
+    ),
     parameters,
   );
 });

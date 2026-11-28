@@ -20,6 +20,7 @@ import {
   WEIGHT_OUT_OF_RANGE,
 } from "./contracts/index.ts";
 import { timeTracking } from "./data/index.ts";
+import { asWorkEntry } from "./testing/index.ts";
 
 const started: TestDataProcess[] = [];
 afterEach(async () => {
@@ -152,7 +153,7 @@ test("the projects of an entry are an ordered list with the Lead Project first, 
   // The Query of one entry answers the Project Reference of each project.
   await expect(client.timeTracking.entry({ id: created.id })).resolves.toEqual({
     ...created,
-    projects: created.projects.map((share, index) => ({
+    projects: asWorkEntry(created).projects.map((share, index) => ({
       ...share,
       project: expect.objectContaining({ id: share.projectId, title: ["A", "B", "C"][index] }),
     })),
@@ -277,7 +278,7 @@ describe("the resolution's table of edits: 10:00 – 11:00 with A 50 %, B 30 %, 
         { projectId: c, weight: 20 },
       ],
     });
-    expect(entry.projects.map(({ projectShare }) => projectShare)).toEqual([
+    expect(asWorkEntry(entry).projects.map(({ projectShare }) => projectShare)).toEqual([
       minutes(30),
       minutes(18),
       minutes(12),
@@ -358,7 +359,7 @@ describe("the resolution's table of edits: 10:00 – 11:00 with A 50 %, B 30 %, 
       }),
     ).resolves.toMatchObject({
       ...counted,
-      roundingRule: entry.roundingRule,
+      roundingRule: asWorkEntry(entry).roundingRule,
       projects: [
         { projectId: b, projectShare: minutes(36) },
         { projectId: c, projectShare: minutes(24) },
@@ -468,7 +469,7 @@ test("stopping a Timer with a project writes one share that holds the whole Book
   expect(stopped).toMatchObject({ kind: "saved" });
   const id = timeEntryIdOfTimer(timer.id);
   const entry = await client.timeTracking.entry({ id });
-  expect(entry?.projects).toEqual([
+  expect(entry === null ? null : asWorkEntry(entry).projects).toEqual([
     expect.objectContaining({ projectId: a, weight: 1, projectShare: entry?.bookedDuration }),
   ]);
 
@@ -516,7 +517,9 @@ describe("the Day Span reads the Project Shares", () => {
       [null, minutes(10)],
     ]);
     expect(answer.total).toBe(minutes(100));
-    expect(answer.days[0]?.entries.map(({ projects }) => projects.length)).toEqual([1, 2, 0]);
+    expect(answer.days[0]?.entries.map((entry) => asWorkEntry(entry).projects.length)).toEqual([
+      1, 2, 0,
+    ]);
   });
 
   test("the filter by project holds the entries with a share in it and counts that share; 'no project' holds those without one", async () => {
