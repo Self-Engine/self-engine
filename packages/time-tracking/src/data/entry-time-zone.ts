@@ -7,7 +7,10 @@ const UTC = resolveTimeZone("UTC").timeZone;
  * The Time Zone an entry computes with: the name it stores, or UTC when this runtime does not know
  * the name, since its Blocks need a clock and no device's zone is the entry's. `known` says which.
  */
-export function entryTimeZone(name: string): { readonly timeZone: TimeZone; readonly known: boolean } {
+export function entryTimeZone(name: string): {
+  readonly timeZone: TimeZone;
+  readonly known: boolean;
+} {
   // A stored name always has the shape of a zone name: it was resolved when it was written.
   const resolved = resolveTimeZone(name);
   return resolved.deviceFallback

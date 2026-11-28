@@ -351,10 +351,10 @@ test("a Timer stopped after 44:10 counts 0:45 by the default rule, and the week 
   await expect(
     client.timeTracking.entry({ id: timeEntryIdOfTimer(timer.id) }),
   ).resolves.toMatchObject(entry);
-  const week = await client.timeTracking.days({ span: { first: "2026-11-16", last: "2026-11-16" } });
-  expect(week.days[0]?.entries).toMatchObject([
-    { roundedTime: entry.roundedTime, dayShare: 2700 },
-  ]);
+  const week = await client.timeTracking.days({
+    span: { first: "2026-11-16", last: "2026-11-16" },
+  });
+  expect(week.days[0]?.entries).toMatchObject([{ roundedTime: entry.roundedTime, dayShare: 2700 }]);
   expect(week.total).toBe(2700);
 });
 
@@ -688,9 +688,7 @@ test("stop, undo, stop again gives one live entry with the timer's id, the new e
   await expect(storedEntries(process, timer.id)).resolves.toEqual([
     { id: timer.id, time_zone: "Asia/Bangkok", deleted_at: null },
   ]);
-  await expect(dayEntries(client)).resolves.toMatchObject([
-    { id: timer.id, bookedDuration: 3600 },
-  ]);
+  await expect(dayEntries(client)).resolves.toMatchObject([{ id: timer.id, bookedDuration: 3600 }]);
 });
 
 test("stop again after undo saves the entry with the timer's new project, though the project of the first stop was deleted meanwhile", async () => {

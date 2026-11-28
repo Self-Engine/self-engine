@@ -12,12 +12,7 @@ import {
 } from "@self-engine/data-client/testing";
 import type { ProjectReference } from "@self-engine/projects/contracts";
 import { GARDEN, OLD_SITE, projectReference, WEBSITE } from "@self-engine/projects/testing";
-import {
-  dayRangesOf,
-  instantSchema,
-  resolveTimeZone,
-  type TimeZone,
-} from "@self-engine/time";
+import { dayRangesOf, instantSchema, resolveTimeZone, type TimeZone } from "@self-engine/time";
 import {
   computeTimeEntry,
   DEFAULT_ROUNDING_RULE,
@@ -309,19 +304,24 @@ export const SAMPLE_WEEK = {
     project: projectReference(GARDEN),
     note: "Raised beds",
   }),
-  /** Wednesday 09:30 to 10:14:10, as a Timer leaves it: 44:10 shows "0:44:10". */
+  /**
+   * Wednesday 09:30 to 10:14:10, as a Timer leaves it, with the rule Exact chosen by hand: 44:10
+   * counts and shows "0:44:10".
+   */
   review: timeEntry(4, {
     startedAt: "2026-11-18T08:30:00.000Z",
     endedAt: "2026-11-18T09:14:10.000Z",
     project: projectReference(WEBSITE),
     note: "Review",
+    rule: { kind: "exact" },
   }),
-  /** Wednesday 10:30 to 10:50:10: 20:10 shows "0:20:10", and the day totals "1:04:20". */
+  /** Wednesday 10:30 to 10:50:10, Exact: 20:10 shows "0:20:10", and the day totals "1:04:20". */
   fixes: timeEntry(5, {
     startedAt: "2026-11-18T09:30:00.000Z",
     endedAt: "2026-11-18T09:50:10.000Z",
     project: projectReference(WEBSITE),
     note: "Fixes",
+    rule: { kind: "exact" },
   }),
   /** Thursday 22:00 to Friday 01:30: across midnight. */
   release: timeEntry(6, {

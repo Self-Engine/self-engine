@@ -47,7 +47,10 @@ async function start() {
    * Writes a column of a stored row as another device or a later version would: no Operation of
    * this version writes such a value.
    */
-  async function storeAsElsewhere(id: string, values: { rounding_rule?: string; time_zone?: string }) {
+  async function storeAsElsewhere(
+    id: string,
+    values: { rounding_rule?: string; time_zone?: string },
+  ) {
     await process.database.kysely
       .withTables<{ time_entries: { id: string; rounding_rule: string; time_zone: string } }>()
       .updateTable("time_entries")
@@ -98,7 +101,9 @@ describe("the rounding resolution's table, each rule chosen by hand, from create
     };
     expect(created).toMatchObject(expected);
     await expect(client.timeTracking.entry({ id: created.id })).resolves.toMatchObject(expected);
-    const week = await client.timeTracking.days({ span: { first: "2026-11-16", last: "2026-11-22" } });
+    const week = await client.timeTracking.days({
+      span: { first: "2026-11-16", last: "2026-11-22" },
+    });
     expect(week.days[0]?.entries).toMatchObject([
       { id: created.id, roundedTime: { start: at(from), end: at(to) }, dayShare: bookedDuration },
     ]);
@@ -187,7 +192,9 @@ test("an entry whose stored rule this version cannot read is answered with its s
   await expect(client.timeTracking.edit({ id })).resolves.toEqual(stored);
   await expect(client.timeTracking.delete({ id })).resolves.toEqual(stored);
   await expect(client.timeTracking.restore({ id })).resolves.toEqual(stored);
-  const week = await client.timeTracking.days({ span: { first: "2026-11-16", last: "2026-11-22" } });
+  const week = await client.timeTracking.days({
+    span: { first: "2026-11-16", last: "2026-11-22" },
+  });
   expect(week.total).toBe(minutes(30));
 });
 
@@ -204,9 +211,11 @@ test("Block Rounding counts the Blocks in the entry's Time Zone, and in UTC with
 
   // A zone another device knows and this runtime does not.
   await storeAsElsewhere(created.id, { time_zone: "Mars/Olympus_Mons" });
-  await expect(client.timeTracking.edit({ id: created.id, note: "Review" })).resolves.toMatchObject({
-    roundedTime: { start: at("10:00:00"), end: at("11:00:00") },
-    bookedDuration: minutes(60),
-    findings: [{ reason: TIME_ZONE_UNKNOWN }],
-  });
+  await expect(client.timeTracking.edit({ id: created.id, note: "Review" })).resolves.toMatchObject(
+    {
+      roundedTime: { start: at("10:00:00"), end: at("11:00:00") },
+      bookedDuration: minutes(60),
+      findings: [{ reason: TIME_ZONE_UNKNOWN }],
+    },
+  );
 });

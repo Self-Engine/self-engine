@@ -294,7 +294,7 @@ _Avoid_: week number, start date, weekday index
 ### Time Tracking
 
 **Time Entry** (de: _Zeiteintrag_):
-A record of time spent between two _Instants_, with a _Booked Duration_ and an optional project and note.
+A record of time spent: its _Measured Time_, its _Rounded Time_ and _Booked Duration_ as its _Rounding Rule_ makes them, and an optional project and note.
 _Avoid_: time log (for one entry), timer
 
 **Booked Duration** (de: _gebuchte Dauer_):

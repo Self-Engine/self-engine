@@ -98,14 +98,26 @@ test("an entry from Sunday 22:00 to Monday 02:00 appears on both days with 2:00,
       day: "2026-11-15",
       total: hours(2),
       entries: [
-        { ...listed(night), project: null, dayShare: hours(2), crossesMidnight: true, overlaps: false },
+        {
+          ...listed(night),
+          project: null,
+          dayShare: hours(2),
+          crossesMidnight: true,
+          overlaps: false,
+        },
       ],
     },
     {
       day: "2026-11-16",
       total: hours(2),
       entries: [
-        { ...listed(night), project: null, dayShare: hours(2), crossesMidnight: true, overlaps: false },
+        {
+          ...listed(night),
+          project: null,
+          dayShare: hours(2),
+          crossesMidnight: true,
+          overlaps: false,
+        },
       ],
     },
   ]);

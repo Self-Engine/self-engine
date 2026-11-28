@@ -38,9 +38,10 @@ test("a sample entry carries a numbered id, and its Rounded Time and Booked Dura
     project: null,
   });
   // A rule chosen by hand.
-  expect(
-    timeEntry(9, { ...MORNING, rule: { kind: "exact" } }),
-  ).toMatchObject({ bookedDuration: 2650, ruleByHand: { kind: "exact" } });
+  expect(timeEntry(9, { ...MORNING, rule: { kind: "exact" } })).toMatchObject({
+    bookedDuration: 2650,
+    ruleByHand: { kind: "exact" },
+  });
 });
 
 test("the days answer the asked span in the Time Zone: an entry across midnight lies on both days", async () => {

@@ -1769,6 +1769,10 @@ msgstr "This part could not be loaded."
 msgid "This time does not exist on this day: the clocks skip it. Choose another."
 msgstr "This time does not exist on this day: the clocks skip it. Choose another."
 
+#: packages/time-tracking/src/edit-drawer.tsx
+msgid "This time entry was saved by a newer version of the app. Update the app to edit it."
+msgstr "This time entry was saved by a newer version of the app. Update the app to edit it."
+
 #: packages/time-tracking/src/indicator/panel.tsx
 msgid "This timer is no longer running."
 msgstr "This timer is no longer running."

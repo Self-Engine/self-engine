@@ -12,12 +12,7 @@ import { spanDays } from "./days.ts";
 import { liveEntriesWithProject, toTimeEntryWithProject } from "./entries-with-project.ts";
 import { TIME_TRACKING_READS } from "./reads.ts";
 import { roundedColumns, ruleThatHolds } from "./rounded-columns.ts";
-import {
-  timeTrackingMigrations,
-  timeTrackingRowMap,
-  toTimeEntry,
-  toTimer,
-} from "./rows.ts";
+import { timeTrackingMigrations, timeTrackingRowMap, toTimeEntry, toTimer } from "./rows.ts";
 import { stopRunningTimers, stopTimer } from "./stop-timer.ts";
 import { runningTimers, toTimerWithProject } from "./timers.ts";
 import { undoDiscardTimer, undoStopTimer } from "./undo-timer.ts";

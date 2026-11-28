@@ -2,12 +2,7 @@
 // sums out. Pure, so the Query and the Fixed Answers of the stories group alike.
 import type { ProjectReference } from "@self-engine/projects/contracts";
 import { type DayRange, durationSchema, type Instant, type InstantRange } from "@self-engine/time";
-import type {
-  DayEntry,
-  DaysAnswer,
-  ListedTimeEntry,
-  TimeEntryFilter,
-} from "../contracts/index.ts";
+import type { DayEntry, DaysAnswer, ListedTimeEntry, TimeEntryFilter } from "../contracts/index.ts";
 import { dayShares } from "./day-shares.ts";
 
 /** Sums in whole seconds, keyed by project id; `null` is "no project". */

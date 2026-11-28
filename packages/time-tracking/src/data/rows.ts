@@ -55,9 +55,8 @@ export const timeTrackingRowMap = {
 type TimeEntryRow = TablesOf<typeof timeTrackingRowMap>["time_entries"];
 type TimerRow = TablesOf<typeof timeTrackingRowMap>["timers"];
 
-type ColumnOf<Qualified> = Qualified extends `time_entries.${infer Column extends keyof TimeEntryRow}`
-  ? Column
-  : never;
+type ColumnOf<Qualified> =
+  Qualified extends `time_entries.${infer Column extends keyof TimeEntryRow}` ? Column : never;
 type ColumnsOf<Columns extends readonly string[]> = Pick<TimeEntryRow, ColumnOf<Columns[number]>>;
 
 /** The columns a list reads: never the rule, which a list does not show. */
