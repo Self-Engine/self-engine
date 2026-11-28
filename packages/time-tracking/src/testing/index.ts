@@ -295,14 +295,14 @@ export const SAMPLE_WEEK = {
     project: projectReference(GARDEN),
     note: "Raised beds",
   }),
-  /** Wednesday 09:30 to 10:14:10, as a timer leaves it: 44:10 shows "0:45" (D345). */
+  /** Wednesday 09:30 to 10:14:10, as a Timer leaves it: 44:10 shows "0:44:10". */
   review: timeEntry(4, {
     startedAt: "2026-11-18T08:30:00.000Z",
     endedAt: "2026-11-18T09:14:10.000Z",
     project: projectReference(WEBSITE),
     note: "Review",
   }),
-  /** Wednesday 10:30 to 10:50:10: 20:10 shows "0:21", and the day 64:20 shows "1:05". */
+  /** Wednesday 10:30 to 10:50:10: 20:10 shows "0:20:10", and the day totals "1:04:20". */
   fixes: timeEntry(5, {
     startedAt: "2026-11-18T09:30:00.000Z",
     endedAt: "2026-11-18T09:50:10.000Z",

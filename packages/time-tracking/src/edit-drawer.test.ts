@@ -350,7 +350,7 @@ test("a stored entry opens with its values, and saving a changed note sends only
   const week = await openStored();
   expect(week.search()).toEqual({ edit: week.id });
   expect(drawer().querySelector("input")?.value).toBe("18.11.2026");
-  expect(drawer().textContent).toContain("Duration: 1:30");
+  expect(drawer().textContent).toContain("Duration: 1:29:20");
 
   setValue(note(), "Code review");
   await shown(() => expect(button(drawer(), "Save").disabled).toBe(false));
@@ -360,7 +360,7 @@ test("a stored entry opens with its values, and saving a changed note sends only
   expect(week.calls).toEqual([{ entry: "edit", input: { id: week.id, note: "Code review" } }]);
   await shown(() =>
     expect(rowsOf("Mittwoch, 18. November 2026")).toEqual([
-      "09:00 – 10:30No projectCode review1:30",
+      "09:00 – 10:30No projectCode review1:29:20",
     ]),
   );
 });
@@ -369,7 +369,7 @@ test("a changed start sends start and end, and the untouched end keeps its secon
   const week = await openStored();
   const { startHours, startMinutes } = times();
   await typeTime(startHours, startMinutes, "08:15");
-  await shown(() => expect(drawer().textContent).toContain("Duration: 2:16"));
+  await shown(() => expect(drawer().textContent).toContain("Duration: 2:15:10"));
   button(drawer(), "Save").click();
 
   await shown(() => expect(document.querySelector('[role="dialog"]')).toBeNull());
@@ -401,7 +401,7 @@ test("delete closes the drawer with a Notice whose Undo brings the entry back", 
   button(notice, "Undo").click();
 
   await shown(() =>
-    expect(rowsOf("Mittwoch, 18. November 2026")).toEqual(["09:00 – 10:30No projectReview1:30"]),
+    expect(rowsOf("Mittwoch, 18. November 2026")).toEqual(["09:00 – 10:30No projectReview1:29:20"]),
   );
   expect(week.calls).toEqual([
     { entry: "delete", input: { id: week.id } },
