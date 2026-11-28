@@ -78,7 +78,7 @@ CREATE TABLE rounding_rules (
   deleted_at TEXT,
   space_id TEXT NOT NULL REFERENCES spaces(id) DEFERRABLE INITIALLY DEFERRED,
   project_id TEXT REFERENCES projects(id) DEFERRABLE INITIALLY DEFERRED,
-  holds_from TEXT,
+  holds_from TEXT CHECK (substr(holds_from, 20) = '.000Z'),
   rounding_rule TEXT NOT NULL CHECK (json_valid(rounding_rule))
 ) STRICT;
 -- The lookup of a write walks the rules of one project, or the app-wide ones, by "holds from".

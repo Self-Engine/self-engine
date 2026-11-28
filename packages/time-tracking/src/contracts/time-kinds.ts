@@ -11,7 +11,6 @@ export const TIME_KINDS = ["work", ...NOT_WORK_KINDS] as const;
 
 export const timeKindSchema = z.enum(TIME_KINDS);
 export type TimeKind = z.output<typeof timeKindSchema>;
-export type NotWorkKind = (typeof NOT_WORK_KINDS)[number];
 
 /** The Reason of a list of breaks on an entry that is not work, at the breaks. */
 export const NOT_WORK_HAS_BREAKS = "not_work_has_breaks";

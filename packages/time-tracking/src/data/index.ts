@@ -9,25 +9,21 @@ import {
 } from "../contracts/index.ts";
 import { spanDays } from "./days.ts";
 import { liveEntries, withProjects } from "./entries-with-project.ts";
-import {
-  leadProjectOf,
-  storedProjects,
-  weightedProjects,
-  writeProjectShares,
-} from "./project-shares.ts";
+import { leadProjectOf, storedProjects, weightedProjects } from "./project-shares.ts";
 import { TIME_TRACKING_READS } from "./reads.ts";
 import { ownBreaks, ownRule, shiftedBy } from "./own-columns.ts";
-import { roundedColumns, ruleThatHolds } from "./rounded-columns.ts";
+import { ruleThatHolds } from "./rounded-columns.ts";
 import { timeTrackingMigrations, timeTrackingRowMap, toTimeEntry, toTimer } from "./rows.ts";
 import { stopRunningTimers, stopTimer } from "./stop-timer.ts";
 import { runningTimers, toTimerWithProject } from "./timers.ts";
 import { undoDiscardTimer, undoStopTimer } from "./undo-timer.ts";
+import { writeEntry } from "./write-entry.ts";
 
 /**
  * The Storage of `time-tracking` (D252). It registers no Protection Rule: "end after start" is a
  * check of the input, and overlapping entries are valid data (D311). It refers to `projects`
- * through the Project Shares and reads it through its Read Piece; `projects` knows nothing of it
- * (D308).
+ * from the Project Shares, the Rounding Rules and the Timers, and reads it through its Read Piece;
+ * `projects` knows nothing of it (D308).
  */
 export const timeTracking = defineStorageModule({
   name: "timeTracking",
@@ -58,24 +54,26 @@ export const timeTracking = defineStorageModule({
           projectId: leadProjectOf(projects),
           startedAt: input.startedAt,
         }));
-      const { columns, projectShares } = roundedColumns({
-        timeKind,
-        startedAt: input.startedAt,
-        endedAt: input.endedAt,
-        timeZone,
-        rule,
-        ruleChosenByHand: byHand !== undefined,
-        breaks: input.breaks ?? [],
-        projects,
-      });
-      const row = await sharedWrites(tx, context).insert(
-        "time_entries",
-        context.newId(timeEntryIdSchema),
-        { ...columns, note: input.note ?? null, time_zone: timeZone },
-      );
-      return toTimeEntry(
-        row,
-        await writeProjectShares(tx, context, row.id, projects, projectShares, []),
+      return writeEntry(
+        tx,
+        context,
+        {
+          timeKind,
+          startedAt: input.startedAt,
+          endedAt: input.endedAt,
+          timeZone,
+          rule,
+          ruleChosenByHand: byHand !== undefined,
+          breaks: input.breaks ?? [],
+          projects,
+        },
+        (columns) =>
+          sharedWrites(tx, context).insert("time_entries", context.newId(timeEntryIdSchema), {
+            ...columns,
+            note: input.note ?? null,
+            time_zone: timeZone,
+          }),
+        [],
       );
     },
   },
@@ -104,10 +102,12 @@ export const timeTracking = defineStorageModule({
       const before = await storedProjects(tx, context, id);
       const projects =
         input.projects === undefined ? before.projects : weightedProjects(input.projects);
-      // "Look up again" asks for the rule of the entry as it stands after the edit; so does a
-      // change from or to Work, which changes the rule that holds.
+      // "Look up again" asks for the rule of the entry as it stands after the edit. An entry that
+      // stops being Work takes the app-wide rule that held at its start, without the mark "chosen
+      // by hand"; one that becomes Work keeps its rule unless the same edit looks up again.
       const start = startedAt ?? stored.started_at;
-      const lookUp = ruleByHand === null || isWork !== (stored.time_kind === "work");
+      const leavesWork = !isWork && stored.time_kind === "work";
+      const lookUp = ruleByHand === null || leavesWork;
       const rule =
         ruleByHand != null
           ? { rule: ruleByHand, ruleChosenByHand: true }
@@ -120,22 +120,23 @@ export const timeTracking = defineStorageModule({
                 ruleChosenByHand: false,
               }
             : own;
-      const { columns, projectShares } = roundedColumns({
-        timeKind: kind,
-        // A change of kind removes the mark, as setting a break back by hand does.
-        changedByLimit: kind === stored.time_kind && stored.changed_by_limit === 1,
-        startedAt: start,
-        endedAt: endedAt ?? stored.ended_at,
-        timeZone: stored.time_zone,
-        ...rule,
-        // The list is replaced as a whole; without one the stored list is kept and checked.
-        breaks: breaks ?? ownBreaks(stored),
-        projects,
-      });
-      const row = await writes.update("time_entries", id, { ...columns, note });
-      return toTimeEntry(
-        row,
-        await writeProjectShares(tx, context, id, projects, projectShares, before.rows),
+      return writeEntry(
+        tx,
+        context,
+        {
+          timeKind: kind,
+          // A change of kind removes the mark, as setting a break back by hand does.
+          changedByLimit: kind === stored.time_kind && stored.changed_by_limit === 1,
+          startedAt: start,
+          endedAt: endedAt ?? stored.ended_at,
+          timeZone: stored.time_zone,
+          ...rule,
+          // The list is replaced as a whole; without one the stored list is kept and checked.
+          breaks: breaks ?? ownBreaks(stored),
+          projects,
+        },
+        (columns) => writes.update("time_entries", id, { ...columns, note }),
+        before.rows,
       );
     },
   },
@@ -149,31 +150,25 @@ export const timeTracking = defineStorageModule({
       const rule = ownRule(stored);
       const before = await storedProjects(tx, context, input.id);
       const shift = shiftedBy(stored.started_at, wholeSecondOf(input.startedAt));
-      const { columns, projectShares } = roundedColumns({
-        timeKind: stored.time_kind,
-        changedByLimit: stored.changed_by_limit === 1,
-        startedAt: shift(stored.started_at),
-        endedAt: shift(stored.ended_at),
-        timeZone: stored.time_zone,
-        ...rule,
-        breaks: ownBreaks(stored).map((stretch) => ({
-          ...stretch,
-          startedAt: shift(stretch.startedAt),
-          endedAt: shift(stretch.endedAt),
-        })),
-        projects: before.projects,
-      });
-      const row = await writes.update("time_entries", input.id, columns);
-      return toTimeEntry(
-        row,
-        await writeProjectShares(
-          tx,
-          context,
-          input.id,
-          before.projects,
-          projectShares,
-          before.rows,
-        ),
+      return writeEntry(
+        tx,
+        context,
+        {
+          timeKind: stored.time_kind,
+          changedByLimit: stored.changed_by_limit === 1,
+          startedAt: shift(stored.started_at),
+          endedAt: shift(stored.ended_at),
+          timeZone: stored.time_zone,
+          ...rule,
+          breaks: ownBreaks(stored).map((stretch) => ({
+            ...stretch,
+            startedAt: shift(stretch.startedAt),
+            endedAt: shift(stretch.endedAt),
+          })),
+          projects: before.projects,
+        },
+        (columns) => writes.update("time_entries", input.id, columns),
+        before.rows,
       );
     },
   },

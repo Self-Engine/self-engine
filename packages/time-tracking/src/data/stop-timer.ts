@@ -15,8 +15,8 @@ import {
   type TimerId,
   type TimerStop,
 } from "../contracts/index.ts";
-import { storedProjects, writeProjectShares } from "./project-shares.ts";
-import { roundedColumns, ruleThatHolds } from "./rounded-columns.ts";
+import { storedProjects } from "./project-shares.ts";
+import { ruleThatHolds } from "./rounded-columns.ts";
 import {
   TIMER_COLUMNS,
   type TimerValues,
@@ -25,6 +25,7 @@ import {
   toTimer,
 } from "./rows.ts";
 import { runningTimers } from "./timers.ts";
+import { writeEntry } from "./write-entry.ts";
 
 type Tables = TablesOf<typeof timeTrackingRowMap>;
 type Writes = WriteTransaction<Tables>;
@@ -70,37 +71,40 @@ async function saveEntry(
   const timeZone = await context.readTimeZone(tx);
   // The timer's project is the entry's only project, with the whole Booked Duration.
   const projects = timer.project_id === null ? [] : [{ projectId: timer.project_id, weight: 1 }];
-  // A Timer writes a Work Entry.
-  const { columns, projectShares } = roundedColumns({
-    timeKind: "work",
+  const rule = await ruleThatHolds(tx, context, {
+    projectId: timer.project_id,
     startedAt: timer.started_at,
-    endedAt: end,
-    timeZone,
-    rule: await ruleThatHolds(tx, context, {
-      projectId: timer.project_id,
-      startedAt: timer.started_at,
-    }),
-    ruleChosenByHand: false,
-    // A Timer records no breaks yet.
-    breaks: [],
-    projects,
   });
-  const values = { ...columns, note: timer.note, time_zone: timeZone };
   const stored = await storedEntryOfTimer(tx, context, timer.id);
   // The first stop inserts the entry. After "undo stop", the entry of the earlier stop comes back
   // with the timer's note and the new end, Rounded Time, Booked Duration, rule and Time Zone, in
   // one write, so the timer keeps one entry (D349). "Undo stop" removed its projects, so it gets
-  // the one the timer has now, and the reference check judges that one (D371).
-  const row =
-    stored === "none"
-      ? await writes.insert("time_entries", id, values)
-      : stored === "deleted"
-        ? await writes.restore("time_entries", id, values)
-        : await writes.update("time_entries", id, values);
-  const before = stored === "none" ? [] : (await storedProjects(tx, context, id)).rows;
-  const shares = await writeProjectShares(tx, context, id, projects, projectShares, before);
+  // the one the timer has now, and the reference check judges that one (D371). Its shares are
+  // read after that write: a deleted entry's are absent.
+  const entry = await writeEntry(
+    tx,
+    context,
+    // A Timer writes a Work Entry and records no breaks yet.
+    {
+      timeKind: "work",
+      startedAt: timer.started_at,
+      endedAt: end,
+      timeZone,
+      rule,
+      ruleChosenByHand: false,
+      breaks: [],
+      projects,
+    },
+    (columns) => {
+      const values = { ...columns, note: timer.note, time_zone: timeZone };
+      if (stored === "none") return writes.insert("time_entries", id, values);
+      if (stored === "deleted") return writes.restore("time_entries", id, values);
+      return writes.update("time_entries", id, values);
+    },
+    stored === "none" ? [] : async () => (await storedProjects(tx, context, id)).rows,
+  );
   await writes.softDelete("timers", timer.id);
-  return { kind: "saved", entry: toTimeEntry(row, shares) };
+  return { kind: "saved", entry };
 }
 
 /**

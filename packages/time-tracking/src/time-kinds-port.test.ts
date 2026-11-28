@@ -234,13 +234,32 @@ describe("the Time Kind of an edit", () => {
     });
   });
 
-  test("from Work to Work with projects, the rule of its Lead Project rounds it", async () => {
+  test("to Work with projects it keeps its rule; 'look up again' in the same edit takes the Lead Project's", async () => {
     const { client, seedRule } = await start();
     const website = await client.projects.create({ title: "Website" });
     await seedRule(ruleId(1), website.id, UP_15);
-    const { id } = await client.timeTracking.create(entryOf("leisure"));
+    const kept = await client.timeTracking.create(entryOf("leisure"));
     await expect(
-      client.timeTracking.edit({ id, timeKind: "work", projects: [{ projectId: website.id }] }),
+      client.timeTracking.edit({
+        id: kept.id,
+        timeKind: "work",
+        projects: [{ projectId: website.id }],
+      }),
+    ).resolves.toMatchObject({
+      timeKind: "work",
+      roundingRule: { kind: "ordinary", direction: "up", minutes: 1 },
+      ruleByHand: null,
+      projects: [{ projectId: website.id, weight: 1 }],
+    });
+
+    const lookedUp = await client.timeTracking.create(entryOf("leisure"));
+    await expect(
+      client.timeTracking.edit({
+        id: lookedUp.id,
+        timeKind: "work",
+        projects: [{ projectId: website.id }],
+        ruleByHand: null,
+      }),
     ).resolves.toMatchObject({
       timeKind: "work",
       roundingRule: UP_15,
@@ -270,8 +289,11 @@ describe("the Time Kind of an edit", () => {
     expect(
       await errorOf(client.timeTracking.edit({ id: withBreak.id, timeKind: "rest_break" })),
     ).toMatchObject(refusedAt("breaks", NOT_WORK_HAS_BREAKS));
+  });
 
-    // A rule chosen by hand gives way to the app-wide rule.
+  test("from Work to one that is not work it takes the app-wide rule that held at its start and loses the mark 'chosen by hand'; back to Work it keeps that rule", async () => {
+    const { client, seedRule } = await start();
+    await seedRule(ruleId(1), null, UP_15);
     const byHand = await client.timeTracking.create({ ...entryOf("work"), ruleByHand: EXACT });
     await expect(
       client.timeTracking.edit({ id: byHand.id, timeKind: "short_break" }),
@@ -279,9 +301,10 @@ describe("the Time Kind of an edit", () => {
       roundedTime: { start: at("14:00"), end: at("16:45") },
       bookedDuration: minutes(165),
     });
+    // An answer that is not work carries no rule: back to Work shows the one it took.
     await expect(
       client.timeTracking.edit({ id: byHand.id, timeKind: "work" }),
-    ).resolves.toMatchObject({ ruleByHand: null });
+    ).resolves.toMatchObject({ roundingRule: UP_15, ruleByHand: null });
   });
 
   test("an edit of an entry that is not work refuses projects, breaks and a rule chosen by hand", async () => {

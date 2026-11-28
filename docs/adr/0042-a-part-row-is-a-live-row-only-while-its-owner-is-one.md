@@ -62,6 +62,13 @@ behind it; this is a third kind, built first.
 
 - A module with Part Rows writes no delete or restore for them, and the owner's module learns
   nothing of them: the Project Shares and the Rounding Rules declare one line each.
+- **One named exception:** an Operation that takes back the creation of an owner removes its Part
+  Rows while the owner still lives. The one such Operation is the undo of a Timer's stop
+  (`undoStopTimer`): the entry's row is kept only so the next stop can reuse its id
+  ([ADR 0039](0039-an-operation-over-two-tables-shares-one-id-and-its-undo-is-its-own-operation.md)),
+  and its old shares would otherwise decide whether that stop can restore it. An entry taken back
+  this way and restored by another route, such as the entry's own restore, comes back without
+  projects.
 - A read of a table of Part Rows costs one lookup of the owner by primary key per row. A read that
   joins the owner anyway pays it twice; that is the price of one place that decides.
 - Not built: a Part Row of a Part Row, a reference to a Part Row, and the kinds "goes with" and

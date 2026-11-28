@@ -3,7 +3,6 @@ import { Trans, useLingui } from "@lingui/react/macro";
 import { Button } from "@mantine/core";
 import { useWithUndo } from "@self-engine/data-client/react";
 import {
-  type DraftOfEntry,
   EditDrawerForm,
   LongTextField,
   type OperationForm,
@@ -11,6 +10,7 @@ import {
   useLeavingEntry,
   useOperationForm,
 } from "@self-engine/forms";
+import type { ProjectReference } from "@self-engine/projects/contracts";
 import { type EditDrawerProps, useEditDrawerTitle } from "@self-engine/shell";
 import { type CalendarDay, calendarDaySchema, formatInstant } from "@self-engine/time";
 import { useFirstDayOfWeek, useTimeZone, useToday } from "@self-engine/time/react";
@@ -22,6 +22,7 @@ import {
   BREAK_TOO_SHORT,
   BREAKS_UNKNOWN,
   END_BEFORE_START,
+  leadProjectOfListed,
   NOT_WORK_HAS_BREAKS,
   NOT_WORK_HAS_PROJECTS,
   NOT_WORK_HAS_RULE_BY_HAND,
@@ -32,6 +33,7 @@ import {
   timeTrackingContract,
 } from "./contracts/index.ts";
 import { NEW_ENTRY, NEW_ENTRY_ON } from "./entry-address.ts";
+import type { EntryDraft } from "./entry-draft.ts";
 import { LeadProjectField } from "./lead-project-field.tsx";
 import {
   type TimeEntryWithProject,
@@ -117,7 +119,7 @@ function useEntryName(entry: TimeEntryWithProject | undefined): string | undefin
   const timeZone = useTimeZone();
   if (entry === undefined) return undefined;
   const start = formatInstant(entry.startedAt, "dateTime", i18n.locale, timeZone);
-  const project = entry.timeKind === "work" ? entry.projects[0]?.project.title : undefined;
+  const project = leadProjectOfListed(entry)?.title;
   return project === undefined
     ? t({
         message: `No project, ${start}`,
@@ -253,24 +255,10 @@ function EditForm({
       }
       form={form}
       onCancel={onCancel}
-      project={entry.timeKind === "work" ? (entry.projects[0]?.project ?? null) : null}
+      project={leadProjectOfListed(entry)}
     />
   );
 }
-
-/**
- * The fields create and edit share, from the one Field List (ADR 0032). The input of create is
- * either shape; the projects of an entry that is not work are only ever the empty list.
- */
-type EntryDraft = Pick<
-  DraftOfEntry<typeof timeTrackingContract.edit>,
-  "startedAt" | "endedAt" | "note"
-> & {
-  readonly projects:
-    | readonly { readonly projectId: string; readonly weight?: number | undefined }[]
-    | null
-    | undefined;
-};
 
 /**
  * Date, start and end in the Time Zone of the Setting, with the duration that really passed below
@@ -286,9 +274,7 @@ function EntryFields({
 }: {
   readonly form: OperationForm<EntryDraft>;
   /** The Lead Project of the stored entry, so an archived or deleted one shows as such. */
-  readonly project:
-    | Extract<TimeEntryWithProject, { timeKind: "work" }>["projects"][number]["project"]
-    | null;
+  readonly project: ProjectReference | null;
   /** The date a new entry shows before its start is typed; today without one. */
   readonly startDay?: CalendarDay | undefined;
   readonly onCancel: () => void;

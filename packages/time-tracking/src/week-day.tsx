@@ -3,6 +3,7 @@ import { Badge, Button, Group, Paper, Stack, Text, Tooltip, UnstyledButton } fro
 import { CrossesMidnightIcon, OverlapsEntryIcon } from "@self-engine/icons/view";
 import { formatCalendarDay, formatDuration, formatInstant, type TimeZone } from "@self-engine/time";
 import { memo, type ReactElement } from "react";
+import { leadProjectOfListed } from "./contracts/listed-projects.ts";
 import { newEntryAddress, timeEntries } from "./entry-address.ts";
 import type { DayEntry, SpanDay } from "./port.ts";
 import { ProjectMark } from "./project-mark.tsx";
@@ -118,9 +119,7 @@ const DayEntryRow = memo(function DayEntryRow({
         )}
         {/* The Lead Project; the list of several projects is the surface of #423. An entry that is
             not work shows like any other, without a project, until its surface (#421). */}
-        <ProjectMark
-          project={entry.timeKind === "work" ? (entry.projects[0]?.project ?? null) : null}
-        />
+        <ProjectMark project={leadProjectOfListed(entry)} />
         <Text c="dimmed" flex={1} miw={0} size="sm" truncate>
           {entry.note}
         </Text>

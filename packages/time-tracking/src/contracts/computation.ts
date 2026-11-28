@@ -12,7 +12,8 @@ import {
   wholeMinuteOf,
 } from "@self-engine/time";
 import { type Break, type BreakFinding, breakFindings, onWholeSeconds } from "./breaks.ts";
-import type { ROUNDING_DIRECTIONS, RoundingRule } from "./rounding-rule.ts";
+import { compareInstants } from "./instant-order.ts";
+import { type ROUNDING_DIRECTIONS, type RoundingRule, shareUnitOf } from "./rounding-rule.ts";
 import { NOT_WORK_HAS_BREAKS, NOT_WORK_HAS_PROJECTS, type TimeKind } from "./time-kinds.ts";
 
 type RoundingDirection = (typeof ROUNDING_DIRECTIONS)[number];
@@ -82,13 +83,12 @@ function restCover(measured: InstantRange, breaks: readonly Break[]): InstantRan
   const inside = breaks
     .filter((stretch) => stretch.timeKind === "rest_break")
     .map(onWholeSeconds)
-    // Instants of the supported years compare as text in time order.
     .map((stretch) => ({
       start: later(stretch.startedAt, measured.start),
       end: earlier(stretch.endedAt, measured.end),
     }))
     .filter((range) => range.end > range.start)
-    .sort((a, b) => (a.start < b.start ? -1 : a.start > b.start ? 1 : 0));
+    .sort((a, b) => compareInstants(a.start, b.start));
   const cover: InstantRange[] = [];
   for (const range of inside) {
     const last = cover.at(-1);
@@ -224,7 +224,7 @@ function projectSharesOf(
   projects: readonly { readonly weight: number }[],
 ): Duration[] {
   if (projects.length === 0) return [];
-  const unit = rule.kind === "exact" ? 1 : 60;
+  const unit = shareUnitOf(rule);
   const weights = projects.reduce((sum, { weight }) => sum + weight, 0);
   const further = projects
     .slice(1)

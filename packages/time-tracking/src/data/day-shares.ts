@@ -15,6 +15,7 @@ import {
   type InstantRange,
   type TimeZone,
 } from "@self-engine/time";
+import type { ShareUnit } from "../contracts/index.ts";
 
 /** The part of a Time Entry that counts toward one Calendar Day, and each project's part of it. */
 export interface DayShare {
@@ -38,14 +39,18 @@ export function crossesMidnight(range: InstantRange, days: readonly DayRange[]):
   return range.start < first.start || range.end > last.end;
 }
 
-const cutDown = (seconds: number, unit: number) => Math.floor(seconds / unit) * unit;
+const cutDown = (seconds: number, unit: ShareUnit) => Math.floor(seconds / unit) * unit;
 
 /**
  * Proposal 7 of #420: every day but the last gets its part cut down to `unit` (a minute, a second
  * under Exact), never more than is left of `total`, and the last day gets the rest. So the shares
  * add up to `total` exactly, and none is below zero.
  */
-export function divideOverDays(parts: readonly number[], total: number, unit: number): Duration[] {
+export function divideOverDays(
+  parts: readonly number[],
+  total: number,
+  unit: ShareUnit,
+): Duration[] {
   let left = total;
   return parts.map((part, index) => {
     const share = index === parts.length - 1 ? left : Math.min(left, cutDown(part, unit));
@@ -65,7 +70,7 @@ export function divideOverDays(parts: readonly number[], total: number, unit: nu
 export function divideProjectShares(
   dayShares: readonly number[],
   projectShares: readonly number[],
-  unit: number,
+  unit: ShareUnit,
 ): Duration[][] {
   const total = projectShares.reduce((sum, share) => sum + share, 0);
   const before = dayShares.slice(0, -1);
@@ -97,8 +102,8 @@ export interface DividedEntry {
   readonly projectShares: readonly Duration[];
   /** Where its Booked Duration lies, as `countedRanges` gives it. */
   readonly counted: readonly InstantRange[];
-  /** The unit of its shares: 60, or 1 under Exact. */
-  readonly unit: number;
+  /** The unit of its shares, `shareUnitOf` its rule. */
+  readonly unit: ShareUnit;
 }
 
 /**

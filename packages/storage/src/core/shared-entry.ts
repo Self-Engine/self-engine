@@ -18,7 +18,7 @@ import type {
 import type { ReadTransaction } from "./module.ts";
 import { askRules } from "./rules.ts";
 import { notFound } from "./not-found.ts";
-import { ownerIsLive } from "./part-rows.ts";
+import { partsOfLiveOwners } from "./part-rows.ts";
 import { isLocalTable } from "@self-engine/db";
 
 type Fields<Row> = Omit<Row, ConventionKey> & { [Key in ConventionKey]?: never };
@@ -63,9 +63,10 @@ export function sharedEntry<DB>(tx: ReadAccess<DB>, context: StorageContext) {
   const db = tx as unknown as Kysely<Record<string, Convention & Archivable>>;
   function scoped(table: string) {
     assertSynchronizedTable(table);
-    const part = context.parts.ownerOf(table);
-    const query = db.selectFrom(String(table)).where(`${table}.space_id`, "=", context.spaceId);
-    return part === undefined ? query : query.where(ownerIsLive(table, part));
+    return db
+      .selectFrom(String(table))
+      .where(`${table}.space_id`, "=", context.spaceId)
+      .$call(partsOfLiveOwners(context.parts, table));
   }
   function live<Table extends SyncedTable<DB>>(table: Table) {
     return scoped(table).where(`${table}.deleted_at`, "is", null) as unknown as SelectQueryBuilder<
@@ -103,7 +104,6 @@ export function sharedWrites<DB>(tx: Transaction<DB>, context: StorageContext) {
   ) {
     assertSynchronizedTable(table);
     // RETURNING makes an absent row explicit without another query or an exception class.
-    const part = context.parts.ownerOf(table);
     const result = await db
       .updateTable(String(table))
       .set({ ...values, updated_at: context.now })
@@ -111,7 +111,7 @@ export function sharedWrites<DB>(tx: Transaction<DB>, context: StorageContext) {
       .where("id", "=", id)
       .where("deleted_at", restoring ? "is not" : "is", null)
       // A write finds a Part Row only while its owner is a Live Row (ADR 0042).
-      .$call((query) => (part === undefined ? query : query.where(ownerIsLive(table, part))))
+      .$call(partsOfLiveOwners(context.parts, table))
       .returningAll()
       .executeTakeFirst();
     if (result === undefined) throw notFound();
@@ -128,7 +128,6 @@ export function sharedWrites<DB>(tx: Transaction<DB>, context: StorageContext) {
   ) {
     assertSynchronizedTable(table);
     await askRules(tx, context, table, archived ? "archive" : "unarchive", [{ id }]);
-    const part = context.parts.ownerOf(table);
     const result = await db
       .updateTable(String(table))
       .set({ archived_at: archived ? context.now : null, updated_at: context.now })
@@ -136,7 +135,7 @@ export function sharedWrites<DB>(tx: Transaction<DB>, context: StorageContext) {
       .where("id", "=", id)
       .where("deleted_at", "is", null)
       .where("archived_at", archived ? "is" : "is not", null)
-      .$call((query) => (part === undefined ? query : query.where(ownerIsLive(table, part))))
+      .$call(partsOfLiveOwners(context.parts, table))
       .returningAll()
       .executeTakeFirst();
     return result === undefined

@@ -12,7 +12,7 @@ import type { StorageContext } from "./context.ts";
 import type { RuleAnswer } from "./registry.ts";
 import type { Archivable, Convention, ConventionKey, RowId, SyncedTable } from "./convention.ts";
 import type { ReadTransaction, RowMap } from "./module.ts";
-import { ownerIsLive } from "./part-rows.ts";
+import { partsOfLiveOwners } from "./part-rows.ts";
 import { recordTableWrites } from "./table-writes.ts";
 
 /** The fields a write sets, without the convention columns the frame writes itself. */
@@ -121,13 +121,12 @@ export async function rowsFound<DB>(
 ): Promise<ReadonlyMap<string, FoundRow>> {
   // The caller checked that the table is synced; its convention columns are the frame's own, and
   // it asks for `archived_at` only on a table that has it.
-  const part = context.parts.ownerOf(table);
   const found = await (tx as unknown as Kysely<Record<string, Convention & Archivable>>)
     .selectFrom(table)
     .select(archivable ? ["id", "deleted_at", "archived_at"] : ["id", "deleted_at"])
     .where("space_id", "=", context.spaceId)
     .where("id", "in", ids)
-    .$call((query) => (part === undefined ? query : query.where(ownerIsLive(table, part))))
+    .$call(partsOfLiveOwners(context.parts, table))
     .execute();
   return new Map(
     found.map((row) => [

@@ -64,7 +64,6 @@ export {
   NOT_WORK_HAS_PROJECTS,
   NOT_WORK_HAS_RULE_BY_HAND,
   NOT_WORK_KINDS,
-  type NotWorkKind,
   TIME_KINDS,
   type TimeKind,
   timeKindCounts,
@@ -90,6 +89,8 @@ export {
   type RoundingRule,
   roundingRuleSchema,
   roundingRuleTextSchema,
+  shareUnitOf,
+  type ShareUnit,
 } from "./rounding-rule.ts";
 
 /**
@@ -204,13 +205,13 @@ const timeEntryEditSchema = timeEntryFields.edit
   .refine(endsAfterStart, endsAfterStartIssue)
   .refine(timesTravelTogether, { params: { reason: "start_and_end_together" } });
 
+export { leadProjectOfListed, projectsOfListed } from "./listed-projects.ts";
 export {
   instantRangeSchema,
   type ListedTimeEntry,
   listedTimeEntrySchema,
   type NotWorkEntry,
   notWorkEntrySchema,
-  projectsOfListed,
   TIME_ZONE_UNKNOWN,
   type TimeEntry,
   type TimeEntryFinding,
@@ -267,7 +268,8 @@ export const timeTrackingContract = {
   /**
    * Stores the entry's Measured Time on whole seconds, its Rounded Time and Booked Duration as
    * `computeTimeEntry` makes them, its Rounding Rule and the Time Zone of the call (D342, D344,
-   * ADR 0044). Without a rule chosen by hand the default "round up to 1 minute" holds. A break that
+   * ADR 0044). Without a rule chosen by hand the rule that holds at its start rounds it: the Lead
+   * Project's, else the app-wide rule, else the default "round up to 1 minute". A break that
    * breaks a rule is an input error at that break (`breaks.<index>`), with its Reason of
    * `BREAK_REASONS`; the Operation never cuts, moves or deletes a break on its own. It does not
    * check the project: the frame's reference check refuses a deleted or unknown one and accepts an
@@ -291,8 +293,9 @@ export const timeTrackingContract = {
    * `timeKind` changes freely between Short Break, Rest Break and Leisure and from those to Work;
    * an entry that is not work, the one it becomes too, keeps no projects, breaks or rule chosen by
    * hand: each is refused at its field (`NOT_WORK_HAS_PROJECTS`, `NOT_WORK_HAS_BREAKS`,
-   * `NOT_WORK_HAS_RULE_BY_HAND`). A change from or to Work takes the rule that holds again, unless
-   * the edit chooses one by hand; an entry that is not work takes the app-wide rule.
+   * `NOT_WORK_HAS_RULE_BY_HAND`). An entry that stops being Work takes the app-wide rule that held
+   * at its start and loses the mark "chosen by hand". One that becomes Work keeps its rule; to
+   * take its Lead Project's rule the same edit sends `ruleByHand: null`.
    */
   edit: oc
     .input(timeEntryEditSchema)

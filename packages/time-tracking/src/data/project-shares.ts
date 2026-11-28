@@ -63,7 +63,7 @@ function sharesOfEntry(tx: ReadTransaction<Tables>, context: StorageContext, id:
     .execute();
 }
 
-type StoredShare = Awaited<ReturnType<typeof sharesOfEntry>>[number];
+export type StoredShare = Awaited<ReturnType<typeof sharesOfEntry>>[number];
 
 const toProjectShare = (row: Omit<StoredShare, "id" | "place">): ProjectShare => ({
   projectId: row.project_id,

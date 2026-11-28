@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { jsonTextSchema } from "./json-text.ts";
 
 /** The steps of Ordinary Rounding, in minutes: a fixed list keeps them aligned to the hour. */
 export const ORDINARY_ROUNDING_MINUTES = [1, 5, 6, 10, 15, 30, 60] as const;
@@ -36,6 +37,18 @@ export const roundingRuleSchema = z.discriminatedUnion("kind", [
 ]);
 export type RoundingRule = z.output<typeof roundingRuleSchema>;
 
+/** The seconds the shares of an entry are cut down to: a minute, or a second under Exact. */
+export type ShareUnit = 1 | 60;
+
+/**
+ * The unit the Project Shares and the Day Shares of an entry under `rule` are cut down to: a
+ * second under Exact, otherwise a minute. Without a rule this version can read, the shares count
+ * whole seconds.
+ */
+export function shareUnitOf(rule: RoundingRule | null): ShareUnit {
+  return rule === null || rule.kind === "exact" ? 1 : 60;
+}
+
 /** The rule that holds where no other one does: round up to 1 minute. */
 export const DEFAULT_ROUNDING_RULE: RoundingRule = {
   kind: "ordinary",
@@ -49,16 +62,4 @@ export const DEFAULT_ROUNDING_RULE: RoundingRule = {
  * with the keys in a fixed order. Text that is no JSON, or no rule this version knows, fails to
  * decode, so a reader tells it apart from a rule (`safeDecode`).
  */
-export const roundingRuleTextSchema = z.codec(z.string(), roundingRuleSchema, {
-  decode: (text, context) => {
-    try {
-      // Read as a rule on trust; the rule's schema checks it right after.
-      return JSON.parse(text) as z.input<typeof roundingRuleSchema>;
-    } catch {
-      // Text that is no JSON is reported as an issue of the decode, not thrown.
-      context.issues.push({ code: "invalid_format", format: "json", input: text });
-      return z.NEVER;
-    }
-  },
-  encode: (rule) => JSON.stringify(rule),
-});
+export const roundingRuleTextSchema = jsonTextSchema(roundingRuleSchema);

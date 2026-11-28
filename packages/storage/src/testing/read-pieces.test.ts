@@ -5,6 +5,7 @@ import { referencesOf, type TablesOf } from "@self-engine/db";
 import {
   createContext,
   createFrame,
+  noPartRows,
   protectionRules,
   referenceCheck,
   sharedEntry,
@@ -117,7 +118,7 @@ test("the frame refuses a link to a missing, deleted or foreign-Space note; the 
     await createSpaceRows(database.kysely, [{ id: SECOND_SPACE_ID }]);
     const sources = {
       ...createTestContext(),
-      rules: protectionRules([referenceCheck(await referencesOf(database))]),
+      rules: protectionRules([referenceCheck(await referencesOf(database), noPartRows)]),
     };
     const noteClient = createRouterClient(
       createFrame(notes, { database, sources, checkOutputs: true }),

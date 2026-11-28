@@ -57,15 +57,16 @@ startup takes a Backup before a pending migration runs.
 
 - **The Operation computes on every write**, with `computeTimeEntry` of
   `@self-engine/time-tracking/contracts`, the one pure function the page can load too. Every write
-  of an entry takes its columns from `roundedColumns` in `data/rounded-columns.ts`: create, edit,
-  and the Timer's stop in the same transaction as the stop. Nothing computed is an input: the
+  of an entry takes its columns from `roundedColumns` in `data/rounded-columns.ts` and writes its
+  Project Shares from the same computation, through `writeEntry` in `data/write-entry.ts`: create,
+  edit, move, and the Timer's stop in the same transaction as the stop. Nothing computed is an input: the
   inputs reject a Rounded Time and a Booked Duration (D346).
 - **The rule.** Create takes an optional `ruleByHand`; without one the rule that holds rounds the
   entry and the mark stays off. An edit without `ruleByHand` keeps the entry's own rule and mark; a
   rule marks it chosen by hand; `null` clears the choice, so the rule that holds is taken and the
   mark removed. Every edit rounds again with the entry's rule, also an edit of start or end.
 - **The rule that holds** is looked up in one read per write (`ruleThatHolds`), on create, on the
-  Timer's stop and on "look up again": the rule of the entry's Lead Project with the latest "holds
+  Timer's stop, on "look up again" and when an entry stops being Work: the rule of the entry's Lead Project with the latest "holds
   from" at or before the measured start, else the app-wide rule by the same reading, else the
   default built into the code, "round up to 1 minute" (`DEFAULT_ROUNDING_RULE`). An entry without
   a project takes the app-wide rule. "Look up again" asks with the Lead Project and start the edit
@@ -73,25 +74,20 @@ startup takes a Backup before a pending migration runs.
   changed last holds (`updated_at`), then the one with the larger id. A stored rule this version
   cannot read counts as absent there. So a forgotten entry entered weeks later gets the rule of
   its time, and an edit of start or end never looks up.
+- **The Time Zone of the computation** is the entry's own. A name this runtime does not know counts
+  the Blocks of Block Rounding in UTC; the answer then carries the finding `time_zone_unknown`.
 
 ### Where a Rounding Rule stands
 
 The Rounding Rules are rows of `rounding_rules` in `time-tracking`, not of `projects` (D309): the
-project it belongs to in `project_id`, or none for the app-wide rule; `holds_from`, an Instant from
-which it holds for every entry that starts at or after it, or none for a rule that holds from the
+project it belongs to in `project_id`, or none for the app-wide rule; `holds_from`, an Instant on the
+whole second, which the table checks as it does the entry's start and end, from which it holds for every entry that starts at or after it, or none for a rule that holds from the
 beginning, as a project's first rule does; and the rule as JSON text in the entry's form. A
 project's rules are Part Rows of their project
 ([ADR 0042](0042-a-part-row-is-a-live-row-only-while-its-owner-is-one.md)): they never block
 deleting it, do not hold while it is deleted, and hold again once it is restored. The app-wide
 rule names no project and is an ordinary row. No row exists until a rule is set, so two devices
 never each create a first app-wide rule. No Operation writes the table yet.
-
-- **The Time Zone of the computation** is the entry's own. A name this runtime does not know counts
-  the Blocks of Block Rounding in UTC; the answer then carries the finding `time_zone_unknown`.
-- **Reading is lenient.** An entry whose stored rule this version cannot read is answered with its
-  stored numbers and `roundingRule: null`. An edit of it is refused with `rounding_rule_unknown` at
-  `ruleByHand`; delete and restore change the row only. Findings are computed on read and never
-  stored.
 
 ### The breaks
 
@@ -158,9 +154,12 @@ never each create a first app-wide rule. No Operation writes the table yet.
   Break and Leisure and from those to Work; from Work to one of those only once the entry keeps no
   projects and no breaks, else it is refused at `projects` or `breaks` with the Reason of create.
   An edit may clear both in the same call. A rule chosen by hand for an entry that is not work is
-  refused with `not_work_has_rule_by_hand` at `ruleByHand`. A change from or to Work takes the rule
-  that holds again (for a Work Entry, its Lead Project's), unless the edit chooses one by hand;
-  between kinds that are not work the entry keeps its rule. A change of kind removes the mark
+  refused with `not_work_has_rule_by_hand` at `ruleByHand`. Every edit rounds with the entry's own
+  rule, and only "look up again" (`ruleByHand: null`) takes another: an entry that stops being Work
+  takes the app-wide rule that held at its start and loses the mark "chosen by hand", since every
+  entry that is not work takes the app-wide rule; one that becomes Work keeps its rule, and the same
+  edit sends `ruleByHand: null` to take its Lead Project's. Between kinds that are not work the
+  entry keeps its rule. A change of kind removes the mark
   "changed by the limit"; an edit of other fields keeps it. Nothing sets the mark yet.
 - **The Timer's stop** writes a Work Entry. The Edit Drawer has no field for the Time Kind yet
   ([#421](https://github.com/Self-Engine/self-engine/issues/421)): it never sends it, so saving
@@ -198,7 +197,9 @@ never each create a first app-wide rule. No Operation writes the table yet.
 - **The Timer's stop** writes one share that holds the whole Booked Duration, in the same
   transaction. "Undo stop" removes the entry's shares while it lives, then deletes it, so the stop
   that saves it again gives it the project the Timer has then (D371): a restore is judged with the
-  entry's live shares, and the earlier project may have been deleted meanwhile.
+  entry's live shares, and the earlier project may have been deleted meanwhile. This is the one
+  exception ADR 0042 names; an entry taken back this way and restored by another route comes back
+  without projects.
 - **Reads.** The shares of a span's entries come in one more read, not one per entry, through
   `projectsOfEntries`, the one place a Query reads shares; it goes through the shared entry, so
   only shares of Live Rows count. A Query that reads them names `project_shares` and
@@ -215,14 +216,20 @@ holds `changedByLimit`. The answer carries each project as it was sent, with the
 beside it (ADR 0032). A list (`DayEntry` of the Query of a Day Span) leaves out the rule, the
 mark, the breaks, the findings and `changedByLimit`, so it parses neither the rule nor the breaks.
 
+**Reading is lenient.** An entry whose stored rule this version cannot read is answered with its
+stored numbers and `roundingRule: null`. An edit of it is refused with `rounding_rule_unknown` at
+`ruleByHand`; delete and restore change the row only. Findings are computed on read and never
+stored.
+
 ### The Day Span
 
 - The Query reads the window on the measured columns, widened by the reach of any rule (the longest
   step or Block, an hour), so it stays a walk of the end index; `groupDays` then cuts it exactly.
 - An entry stands where its Rounded Time lies, sorted by its rounded start. One without a Rounded
   Time stands on the day of its measured start with 0:00.
-- Overlaps are judged on the Rounded Times; touching is no overlap, and an entry without a Rounded
-  Time overlaps nothing (D311).
+- Overlaps are judged on the Rounded Times of the entries whose Rounded Time touches the span: the
+  wider read is cut to the span first, so an entry just outside it marks nothing. Touching is no
+  overlap, and an entry without a Rounded Time overlaps nothing (D311).
 - The sums per project read the Project Shares and add up to the total of the entries that have a
   project. A filter by project holds the entries with a share in it, and every sum counts that
   share, while each entry's `dayShare` stays the whole entry's; "no project" holds the entries
@@ -268,9 +275,10 @@ entry over its days.
 ### The display
 
 The week shows the Rounded Time of an entry as its times of day, in minutes; an entry without one
-shows its Measured Time. It shows the mark of the Lead Project, and the Edit Drawer's project
-field shows and sends the list as one project; an edit of other fields leaves an entry's
-several projects as they are. The fields of the Edit Drawer hold the Measured Time, and the duration
+shows its Measured Time. It shows the mark of the Lead Project. The Edit Drawer's project field
+changes the Lead Project and leaves the other projects alone: a new project takes the place and
+the Weight of the first, a further project moves to the front, and clearing removes the first
+only. An edit of other fields sends no projects. The fields of the Edit Drawer hold the Measured Time, and the duration
 beneath them is the measured one. Durations follow
 [ADR 0043](0043-a-duration-shows-seconds-exactly-when-it-has-some.md).
 
@@ -285,7 +293,7 @@ beneath them is the measured one. Durations follow
   changes a stored entry on its own.
 - An entry written by a later version with a kind of rule this one does not know stays readable
   and cannot be edited until the app is current.
-- Every edit and every move costs one lookup of the row before its write. A sum of breaks over a
+- Every edit and every move costs one lookup of the row and one of its shares before its write. A sum of breaks over a
   period reads the entries and adds in code.
 - A Day Share across midnight is computed on every read of a span, from the entry's breaks and
   rule; it is never stored, so a change of the Time Zone divides past entries anew.
