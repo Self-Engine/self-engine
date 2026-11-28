@@ -242,8 +242,7 @@ export const AStoredEntryOpensWithItsValuesAndSendsOnlyTheChangedNote: Story = {
     await expect(form.date()).toHaveValue("18.11.2026");
     await expect(form.start()).toHaveValue("09");
     await expect(form.end()).toHaveValue("10");
-    // 44:10 that really passed, rounded up for display.
-    await expect(form.drawer.getByText("Dauer: 0:45")).toBeVisible();
+    await expect(form.drawer.getByText("Dauer: 0:44:10")).toBeVisible();
     await expect(form.project()).toHaveValue("Website");
     await expect(form.note()).toHaveValue("Review");
     await expect(form.save()).toBeDisabled();

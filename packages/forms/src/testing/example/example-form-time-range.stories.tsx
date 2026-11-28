@@ -279,7 +279,7 @@ export const ACorrectionInsideTheRepeatedHourStaysInIt: Story = {
     const range = rangeIn(canvasElement);
     await expect(range.canvas.getByText("02:10 (UTC+2)")).toBeVisible();
     await expect(range.canvas.getByText("02:40 (UTC+1)")).toBeVisible();
-    await expect(range.canvas.getByText("Dauer: 1:31")).toBeVisible();
+    await expect(range.canvas.getByText("Dauer: 1:30:30")).toBeVisible();
     await typeTime(range.end(), "0245");
     await expect(range.canvas.getByText("02:45 (UTC+1)")).toBeVisible();
     await range.save();

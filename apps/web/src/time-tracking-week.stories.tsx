@@ -10,6 +10,7 @@ import { type Clock, type Instant, resolveTimeZone } from "@self-engine/time";
 import { TIME_ZONE_SETTING, WEEK_START_SETTING } from "@self-engine/time/settings";
 import { fixedClock, requireInstant } from "@self-engine/time/testing";
 import {
+  SAMPLE_WEEK,
   SAMPLE_WEEK_ENTRIES,
   type StoredTimeEntries,
   timeEntry,
@@ -135,7 +136,7 @@ export const WithSundayAsTheFirstDayTheSameDayLiesInAnotherWeek: Story = {
       "0:00",
       "4:45",
       "3:00",
-      "1:05",
+      "1:04:20",
       "2:00",
       "2:30",
       "0:00",
@@ -148,7 +149,7 @@ export const AFullWeekShowsEachDayWithItsEntriesAndTheSumsBeside: Story = {
     await expect(await dayTotals(canvas)).toEqual([
       "4:45",
       "3:00",
-      "1:05",
+      "1:04:20",
       "2:00",
       "2:30",
       "0:00",
@@ -159,31 +160,45 @@ export const AFullWeekShowsEachDayWithItsEntriesAndTheSumsBeside: Story = {
       "8:00 AM – 11:30 AMWebsiteLanding page3:30",
       "1:00 PM – 2:15 PMNo projectEmails1:15",
     ]);
-    // A timer's 44:10 and 20:10 show 0:45 and 0:21; the day adds the seconds first: 1:05.
+    // The two displayed durations add up to the displayed day total of 1:04:20.
     await expect(await rowsOf(canvas, "Wednesday, November 18, 2026")).toEqual([
-      "9:30 AM – 10:14 AMWebsiteReview0:45",
-      "10:30 AM – 10:50 AMWebsiteFixes0:21",
+      "9:30 AM – 10:14 AMWebsiteReview0:44:10",
+      "10:30 AM – 10:50 AMWebsiteFixes0:20:10",
     ]);
-    // Largest sum first, "No project" last; the total adds seconds too: 13:19:20 shows 13:20.
+    // The project sums add up to 13:19:20, with the largest first and "No project" last.
     await expect(await projectSums(canvas)).toEqual([
-      "Website8:05",
+      "Website8:04:20",
       "🌱Garden3:00",
       "Old site1:00",
       "No project1:15",
     ]);
-    await expect(canvas.getByLabelText("Week total")).toHaveTextContent("13:20");
+    await expect(canvas.getByLabelText("Week total")).toHaveTextContent("13:19:20");
   },
 };
 
 export const AnEntryAcrossMidnightLiesOnBothDaysWithItsShareAndAMark: Story = {
+  args: {
+    stored: {
+      entries: [
+        timeEntry(6, {
+          startedAt: "2026-11-19T21:00:10.000Z",
+          endedAt: "2026-11-20T00:30:10.000Z",
+          project: SAMPLE_WEEK.release.project,
+          note: "Release",
+        }),
+        SAMPLE_WEEK.handover,
+      ],
+    },
+  },
   play: async ({ canvas }) => {
     await expect(await rowsOf(canvas, "Thursday, November 19, 2026")).toEqual([
-      "10:00 PM – 1:30 AMWebsiteRelease2:00",
+      "10:00 PM – 1:30 AMWebsiteRelease1:59:50",
     ]);
     await expect(await rowsOf(canvas, "Friday, November 20, 2026")).toEqual([
-      "10:00 PM – 1:30 AMWebsiteRelease1:30",
+      "10:00 PM – 1:30 AMWebsiteRelease1:30:10",
       "9:00 AM – 10:00 AMOld siteHandover1:00",
     ]);
+    await expect(await projectSums(canvas)).toEqual(["Website3:30", "Old site1:00"]);
     for (const name of ["Thursday, November 19, 2026", "Friday, November 20, 2026"]) {
       const [release, handover] = within(await day(canvas, name)).getAllByRole("listitem");
       await expect(within(release!).getByRole("img", { name: "Crosses midnight" })).toBeVisible();
@@ -391,7 +406,7 @@ export const WestOfUtcTheSameEntriesFallOnOtherDays: Story = {
     );
     await expect(textOf(landingPage!)).toBe("11:00 PM – 2:30 AMWebsiteLanding page2:30");
     await expect(within(landingPage!).getByRole("img", { name: "Crosses midnight" })).toBeVisible();
-    await expect(canvas.getByLabelText("Week total")).toHaveTextContent("12:20");
+    await expect(canvas.getByLabelText("Week total")).toHaveTextContent("12:19:20");
   },
 };
 
