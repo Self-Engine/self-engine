@@ -26,8 +26,8 @@ import { undoDiscardTimer, undoStopTimer } from "./undo-timer.ts";
 /**
  * The Storage of `time-tracking` (D252). It registers no Protection Rule: "end after start" is a
  * check of the input, and overlapping entries are valid data (D311). It refers to `projects`
- * through the Project Shares and reads it through its Read Piece; `projects` knows nothing of it
- * (D308).
+ * from the Project Shares, the Rounding Rules and the Timers, and reads it through its Read Piece;
+ * `projects` knows nothing of it (D308).
  */
 export const timeTracking = defineStorageModule({
   name: "timeTracking",
