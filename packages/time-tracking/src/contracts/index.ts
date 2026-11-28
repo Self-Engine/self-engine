@@ -1,12 +1,12 @@
 import { oc } from "@orpc/contract";
 import { entryFields, inputErrors, refusal } from "@self-engine/db/schema";
-import { projectIdSchema } from "@self-engine/projects/ids";
 import { type Instant, instantSchema, wholeSecondOf } from "@self-engine/time";
 import { z } from "zod";
 import { daysAnswerSchema, daysInputSchema } from "./days.ts";
 import { timeEntrySchema, timeEntryWithProjectSchema } from "./entries.ts";
 import { timeEntryIdSchema, timerIdSchema } from "./ids.ts";
 import { noteSchema } from "./note.ts";
+import { projectsInputSchema } from "./project-shares.ts";
 import { roundingRuleSchema } from "./rounding-rule.ts";
 import {
   END_IN_FUTURE,
@@ -22,6 +22,7 @@ import {
 } from "./timers.ts";
 
 export {
+  projectShareIdSchema,
   roundingRuleIdSchema,
   type TimeEntryId,
   timeEntryIdOfTimer,
@@ -59,7 +60,10 @@ export {
 
 /**
  * A Time Entry's fields, once: the inputs of create and edit are derived from them (D329, ADR
- * 0032). Start and end, the Measured Time, are required on create; project and note are optional.
+ * 0032). Start and end, the Measured Time, are required on create; projects and note are optional.
+ * `projects` is the ordered list of the entry's projects, the Lead Project first, each with an
+ * optional Weight (1 without one, so equal parts); missing or `null` on create, and `null` or the
+ * empty list on an edit, mean no project. An edit replaces the list as a whole.
  * `ruleByHand` is a Rounding Rule chosen by hand: on create it is optional, and without one the
  * rule that holds rounds the entry; on an edit a missing one keeps the entry's own rule, a rule
  * marks it chosen by hand, and `null` clears the choice: the rule that holds is looked up again
@@ -70,7 +74,7 @@ export {
 export const timeEntryFields = entryFields(timeEntryIdSchema, {
   startedAt: instantSchema,
   endedAt: instantSchema,
-  projectId: projectIdSchema.nullable(),
+  projects: projectsInputSchema.nullable(),
   note: noteSchema,
   ruleByHand: roundingRuleSchema.nullable(),
 });

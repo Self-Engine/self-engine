@@ -23,9 +23,11 @@ export interface EntryComputation {
   readonly ruleChosenByHand: boolean;
   /** The name of the entry's Time Zone, as its row stores it. */
   readonly timeZone: string;
+  /** The entry's projects with their Weights, the Lead Project first. */
+  readonly projects: readonly { readonly weight: number }[];
 }
 
-/** The entry a rule is looked up for: its project, or none, and its measured start. */
+/** The entry a rule is looked up for: its Lead Project, or none, and its measured start. */
 export interface RuleLookup {
   readonly projectId: ProjectId | null;
   readonly startedAt: Instant;
@@ -91,18 +93,19 @@ export async function ruleThatHolds(
  * The columns of the Measured Time, the Rounded Time, the Booked Duration and the rule, the one
  * place that computes them (ADR 0044): both measured Instants cut to the whole second, then
  * `computeTimeEntry` with the entry's rule in the entry's Time Zone. Every write of a Time Entry
- * takes all of them from here.
+ * takes all of them from here, and the Project Shares of its projects beside them, in their order.
  */
 export function roundedColumns(entry: EntryComputation) {
   const started_at = wholeSecondOf(entry.startedAt);
   const ended_at = wholeSecondOf(entry.endedAt);
   const { rule } = entry;
-  const { roundedTime, bookedDuration } = computeTimeEntry({
+  const { roundedTime, bookedDuration, projectShares } = computeTimeEntry({
     measuredTime: { start: started_at, end: ended_at },
     timeZone: entryTimeZone(entry.timeZone).timeZone,
     rule,
+    projects: entry.projects,
   });
-  return {
+  const columns = {
     started_at,
     ended_at,
     rounded_started_at: roundedTime?.start ?? null,
@@ -111,4 +114,5 @@ export function roundedColumns(entry: EntryComputation) {
     rounding_rule: roundingRuleTextSchema.encode(rule),
     rule_chosen_by_hand: entry.ruleChosenByHand ? (1 as const) : (0 as const),
   };
+  return { columns, projectShares };
 }

@@ -124,7 +124,7 @@ describe("on create, the entry's project", () => {
       { project: null, holdsFrom: null, rule: BLOCK_30 },
     );
     const create = (start: string, end: string) =>
-      client.timeTracking.create({ ...entryAt(start, end), projectId: website.id });
+      client.timeTracking.create({ ...entryAt(start, end), projects: [{ projectId: website.id }] });
 
     // A rule without "holds from" holds from the beginning.
     await expect(create("2026-03-02T09:00:00", "2026-03-02T09:10:00")).resolves.toMatchObject({
@@ -156,7 +156,7 @@ describe("on create, the entry's project", () => {
     const create = (projectId: string, start: string) =>
       client.timeTracking.create({
         ...entryAt(start, "2026-04-15T12:00:00"),
-        projectId: projectId as typeof website.id,
+        projects: [{ projectId: projectId as typeof website.id }],
       });
 
     await expect(create(website.id, "2026-04-05T09:00:00")).resolves.toMatchObject({
@@ -209,7 +209,7 @@ test("a forgotten entry of 28 March, entered on 20 April, gets the rule that hel
     client.timeTracking.create({
       startedAt: "2026-03-28T09:07:30.000Z",
       endedAt: "2026-03-28T09:29:50.000Z",
-      projectId: website.id,
+      projects: [{ projectId: website.id }],
     }),
   ).resolves.toMatchObject({
     roundingRule: UP_15,
@@ -231,7 +231,7 @@ describe("of two rules with the same 'holds from'", () => {
     await expect(
       client.timeTracking.create({
         ...entryAt("2026-04-15T09:00:00", "2026-04-15T10:00:00"),
-        projectId: website.id,
+        projects: [{ projectId: website.id }],
       }),
     ).resolves.toMatchObject({ roundingRule: UP_15 });
   });
@@ -248,7 +248,7 @@ describe("of two rules with the same 'holds from'", () => {
     await expect(
       client.timeTracking.create({
         ...entryAt("2026-04-15T09:00:00", "2026-04-15T10:00:00"),
-        projectId: website.id,
+        projects: [{ projectId: website.id }],
       }),
     ).resolves.toMatchObject({ roundingRule: EXACT });
   });
@@ -264,7 +264,7 @@ describe("an edit", () => {
     );
     const created = await client.timeTracking.create({
       ...entryAt("2026-04-05T09:00:00", "2026-04-05T09:20:00"),
-      projectId: website.id,
+      projects: [{ projectId: website.id }],
     });
     expect(created).toMatchObject({ roundingRule: UP_15 });
 
@@ -288,7 +288,7 @@ describe("an edit", () => {
     );
     const created = await client.timeTracking.create({
       ...entryAt("2026-04-05T09:00:00", "2026-04-05T09:20:00"),
-      projectId: website.id,
+      projects: [{ projectId: website.id }],
       ruleByHand: DOWN_5,
     });
 
@@ -296,7 +296,7 @@ describe("an edit", () => {
       client.timeTracking.edit({
         id: created.id,
         ...entryAt("2026-04-15T09:00:00", "2026-04-15T09:20:00"),
-        projectId: shop.id,
+        projects: [{ projectId: shop.id }],
         ruleByHand: null,
       }),
     ).resolves.toMatchObject({ roundingRule: EXACT, ruleByHand: null });
@@ -328,7 +328,7 @@ test("a project's rules belong to it: it is deleted without live entries, and it
   );
   const entry = await client.timeTracking.create({
     ...entryAt("2026-04-15T09:00:00", "2026-04-15T10:00:00"),
-    projectId: website.id,
+    projects: [{ projectId: website.id }],
   });
   await client.timeTracking.delete({ id: entry.id });
 
@@ -340,7 +340,7 @@ test("a project's rules belong to it: it is deleted without live entries, and it
   await expect(
     client.timeTracking.create({
       ...entryAt("2026-04-16T09:00:00", "2026-04-16T10:00:00"),
-      projectId: website.id,
+      projects: [{ projectId: website.id }],
     }),
   ).resolves.toMatchObject({ roundingRule: EXACT });
 });
@@ -357,14 +357,14 @@ test("the lookup is one read per write: create, stop and 'look up again'", async
 
   const created = await client.timeTracking.create({
     ...entryAt("2026-04-15T09:00:00", "2026-04-15T10:00:00"),
-    projectId: website.id,
+    projects: [{ projectId: website.id }],
   });
   ruleReads.length = 0;
   await expect(
     reads(() =>
       client.timeTracking.create({
         ...entryAt("2026-04-15T11:00:00", "2026-04-15T12:00:00"),
-        projectId: website.id,
+        projects: [{ projectId: website.id }],
       }),
     ),
   ).resolves.toBe(1);

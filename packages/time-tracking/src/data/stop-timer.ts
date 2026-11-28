@@ -15,6 +15,7 @@ import {
   type TimerId,
   type TimerStop,
 } from "../contracts/index.ts";
+import { storedProjects, writeProjectShares } from "./project-shares.ts";
 import { roundedColumns, ruleThatHolds } from "./rounded-columns.ts";
 import {
   TIMER_COLUMNS,
@@ -67,34 +68,56 @@ async function saveEntry(
   const id = timeEntryIdOfTimer(timer.id);
   // The zone of the Setting at the moment of stopping, read in the transaction (D342).
   const timeZone = await context.readTimeZone(tx);
-  const values = {
-    ...roundedColumns({
+  // The timer's project is the entry's only project, with the whole Booked Duration.
+  const projects = timer.project_id === null ? [] : [{ projectId: timer.project_id, weight: 1 }];
+  const { columns, projectShares } = roundedColumns({
+    startedAt: timer.started_at,
+    endedAt: end,
+    timeZone,
+    rule: await ruleThatHolds(tx, context, {
+      projectId: timer.project_id,
       startedAt: timer.started_at,
-      endedAt: end,
-      timeZone,
-      rule: await ruleThatHolds(tx, context, {
-        projectId: timer.project_id,
-        startedAt: timer.started_at,
-      }),
-      ruleChosenByHand: false,
     }),
-    project_id: timer.project_id,
-    note: timer.note,
-    time_zone: timeZone,
-  };
+    ruleChosenByHand: false,
+    projects,
+  });
+  const values = { ...columns, note: timer.note, time_zone: timeZone };
   const stored = await storedEntryOfTimer(tx, context, timer.id);
   // The first stop inserts the entry. After "undo stop", the entry of the earlier stop comes back
-  // with the timer's project and note and the new end, Rounded Time, Booked Duration, rule and Time Zone, in one write, so
-  // the timer keeps one entry (D349) and the reference check judges the project the timer has now
-  // (D371).
+  // with the timer's note and the new end, Rounded Time, Booked Duration, rule and Time Zone, in
+  // one write, so the timer keeps one entry (D349); its project is the one the timer has now, and
+  // the reference check judges that one (D371).
+  if (stored === "deleted") await removeOtherProjects(tx, context, timer);
   const row =
     stored === "none"
       ? await writes.insert("time_entries", id, values)
       : stored === "deleted"
         ? await writes.restore("time_entries", id, values)
         : await writes.update("time_entries", id, values);
+  const before = stored === "none" ? [] : (await storedProjects(tx, context, id)).rows;
+  const shares = await writeProjectShares(tx, context, id, projects, projectShares, before);
   await writes.softDelete("timers", timer.id);
-  return { kind: "saved", entry: toTimeEntry(row) };
+  return { kind: "saved", entry: toTimeEntry(row, shares) };
+}
+
+/**
+ * Before the entry of an earlier stop comes back, its shares of a project other than the timer's
+ * are removed, so the restore is judged with the project the timer has now (D371). The entry is
+ * deleted, so its shares are no Live Rows and the shared writes do not find them (ADR 0042): this
+ * is the one write of shares outside them, a soft delete with the frame's columns, which the
+ * frame announces as any write.
+ */
+async function removeOtherProjects(tx: Writes, context: StorageContext, timer: TimerValues) {
+  await tx
+    .updateTable("project_shares")
+    .set({ deleted_at: context.now, updated_at: context.now })
+    .where("time_entry_id", "=", timeEntryIdOfTimer(timer.id))
+    .where("space_id", "=", context.spaceId)
+    .where("deleted_at", "is", null)
+    .$call((query) =>
+      timer.project_id === null ? query : query.where("project_id", "!=", timer.project_id),
+    )
+    .execute();
 }
 
 /**
@@ -144,8 +167,9 @@ export async function stopTimer(
   const timer = await storedTimer(tx, context, input.id);
   if (timer.deleted_at === null) return stopRunningTimer(tx, context, timer, input.endedAt);
   // Not found without a live entry of the timer's id: the timer was discarded.
-  const entry = await sharedEntry(tx, context).lookup("time_entries", timeEntryIdOfTimer(input.id));
-  return { kind: "saved", entry: toTimeEntry(entry) };
+  const id = timeEntryIdOfTimer(input.id);
+  const entry = await sharedEntry(tx, context).lookup("time_entries", id);
+  return { kind: "saved", entry: toTimeEntry(entry, (await storedProjects(tx, context, id)).shares) };
 }
 
 /**

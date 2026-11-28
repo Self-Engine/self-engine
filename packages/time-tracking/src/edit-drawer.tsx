@@ -11,7 +11,6 @@ import {
   useLeavingEntry,
   useOperationForm,
 } from "@self-engine/forms";
-import { ProjectField } from "@self-engine/projects/picker";
 import { type EditDrawerProps, useEditDrawerTitle } from "@self-engine/shell";
 import { type CalendarDay, calendarDaySchema, formatInstant } from "@self-engine/time";
 import { useFirstDayOfWeek, useTimeZone, useToday } from "@self-engine/time/react";
@@ -26,6 +25,7 @@ import {
   timeTrackingContract,
 } from "./contracts/index.ts";
 import { NEW_ENTRY, NEW_ENTRY_ON } from "./entry-address.ts";
+import { LeadProjectField } from "./lead-project-field.tsx";
 import {
   type TimeEntryWithProject,
   useCreateTimeEntry,
@@ -92,7 +92,7 @@ function NotFound({ onDone }: EditDrawerProps) {
 }
 
 /**
- * The name a person knows a Time Entry by, in a Notice of a Refusal: its project and its start.
+ * The name a person knows a Time Entry by, in a Notice of a Refusal: its Lead Project and its start.
  * A refused undo names the project that has to come back first this way.
  */
 function useEntryName(entry: TimeEntryWithProject | undefined): string | undefined {
@@ -100,7 +100,7 @@ function useEntryName(entry: TimeEntryWithProject | undefined): string | undefin
   const timeZone = useTimeZone();
   if (entry === undefined) return undefined;
   const start = formatInstant(entry.startedAt, "dateTime", i18n.locale, timeZone);
-  const project = entry.project?.title;
+  const project = entry.projectShares[0]?.project.title;
   return project === undefined
     ? t({
         message: `No project, ${start}`,
@@ -121,7 +121,7 @@ function NewEntryForm({
     entry: timeTrackingContract.create,
     operation: useCreateTimeEntry(),
     // No field chooses a rule yet: the rule that holds rounds the entry.
-    draft: { startedAt: null, endedAt: null, projectId: null, note: "", ruleByHand: null },
+    draft: { startedAt: null, endedAt: null, projects: [], note: "", ruleByHand: null },
     emptyTextFields: ["note"],
     texts: TEXTS,
     // The new entry's row takes the focus once the week shows it.
@@ -198,7 +198,7 @@ function EditForm({
       id: entry.id,
       startedAt: entry.startedAt,
       endedAt: entry.endedAt,
-      projectId: entry.projectId,
+      projects: entry.projectShares.map(({ projectId, weight }) => ({ projectId, weight })),
       note: entry.note ?? "",
       // No field changes the rule, so the edit never sends it and the entry keeps its own.
       ruleByHand: null,
@@ -219,7 +219,7 @@ function EditForm({
       }
       form={form}
       onCancel={onCancel}
-      project={entry.project}
+      project={entry.projectShares[0]?.project ?? null}
     />
   );
 }
@@ -240,8 +240,8 @@ function EntryFields({
   actions,
 }: {
   readonly form: OperationForm<EntryDraft>;
-  /** The project the stored entry refers to, so an archived or deleted one shows as such. */
-  readonly project: TimeEntryWithProject["project"];
+  /** The Lead Project of the stored entry, so an archived or deleted one shows as such. */
+  readonly project: TimeEntryWithProject["projectShares"][number]["project"] | null;
   /** The date a new entry shows before its start is typed; today without one. */
   readonly startDay?: CalendarDay | undefined;
   readonly onCancel: () => void;
@@ -263,7 +263,7 @@ function EntryFields({
         timeZone={timeZone}
         today={today}
       />
-      <ProjectField clearable current={project} form={form} label={t`Project`} name="projectId" />
+      <LeadProjectField current={project} form={form} label={t`Project`} />
       <LongTextField form={form} label={t`Note`} name="note" />
     </EditDrawerForm>
   );

@@ -1,5 +1,6 @@
 // The Query of a Day Span (D343, D147, D193, D352, D354). SQL fetches the window: every Live Row
-// that may touch the span, joined with the Read Piece of `projects`. TypeScript places and groups:
+// that may touch the span, then the Project Shares of those entries with the Read Piece of
+// `projects`, in one more read. TypeScript places and groups:
 // the Rounded Times, the Day Shares, the days and the sums. Day logic never runs in SQL.
 import type { TablesOf } from "@self-engine/db";
 import type { ReadTransaction, StorageContext } from "@self-engine/storage";
@@ -18,7 +19,7 @@ import {
   ORDINARY_ROUNDING_MINUTES,
   type TimeEntryFilter,
 } from "../contracts/index.ts";
-import { listedEntriesWithProject, toListedTimeEntryWithProject } from "./entries-with-project.ts";
+import { listedEntries, listedWithProjects } from "./entries-with-project.ts";
 import { groupDays } from "./group-days.ts";
 import type { timeTrackingRowMap } from "./rows.ts";
 
@@ -35,15 +36,15 @@ const ROUNDING_REACH = durationSchema.parse(
 );
 
 /**
- * Every Live Row whose Measured Time touches the window, not only those that begin in it, with
- * its Project Reference. The end index skips rows that end before the window.
+ * Every Live Row whose Measured Time touches the window, not only those that begin in it. The end
+ * index skips rows that end before the window.
  */
 export function windowRows(
   tx: Reads,
   context: StorageContext,
   window: { readonly start: DayRange["start"]; readonly end: DayRange["end"] },
 ) {
-  return listedEntriesWithProject(tx, context)
+  return listedEntries(tx, context)
     .where("time_entries.started_at", "<", window.end)
     .where("time_entries.ended_at", ">", window.start)
     .orderBy("time_entries.started_at")
@@ -72,5 +73,5 @@ export async function spanDays(
   // A walk of the end index, a little wider than the span; `groupDays` cuts it exactly on the
   // Rounded Times.
   const rows = await windowRows(tx, context, widened(first.start, last.end)).execute();
-  return groupDays(days, rows.map(toListedTimeEntryWithProject), input.filter);
+  return groupDays(days, await listedWithProjects(tx, context, rows), input.filter);
 }

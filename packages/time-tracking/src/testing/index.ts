@@ -12,7 +12,7 @@ import {
 } from "@self-engine/data-client/testing";
 import type { ProjectReference } from "@self-engine/projects/contracts";
 import { GARDEN, OLD_SITE, projectReference, WEBSITE } from "@self-engine/projects/testing";
-import { dayRangesOf, instantSchema, resolveTimeZone, type TimeZone } from "@self-engine/time";
+import { dayRangesOf, durationSchema, instantSchema, resolveTimeZone, type TimeZone } from "@self-engine/time";
 import {
   computeTimeEntry,
   DEFAULT_ROUNDING_RULE,
@@ -57,7 +57,8 @@ export function sampleTimeEntryId(index: number): TimeEntryId {
  * Time on whole seconds, and its Rounded Time and Booked Duration as `computeTimeEntry` makes them
  * with `rule` in Berlin (default: the built-in "round up to 1 minute", not chosen by hand).
  * Without a project unless `project` names one (`projectReference` of
- * `@self-engine/projects/testing`).
+ * `@self-engine/projects/testing`), or `projects` names several with their Weights, the Lead
+ * Project first; the Project Shares divide as the Operation divides.
  */
 export function timeEntry(
   index: number,
@@ -65,6 +66,7 @@ export function timeEntry(
     readonly startedAt: string;
     readonly endedAt: string;
     readonly project?: ProjectReference | null;
+    readonly projects?: readonly { readonly project: ProjectReference; readonly weight: number }[];
     readonly note?: string | null;
     /** A rule chosen by hand. */
     readonly rule?: RoundingRule;
@@ -72,12 +74,14 @@ export function timeEntry(
 ): TimeEntryWithProject {
   const startedAt = instantSchema.parse(fields.startedAt);
   const endedAt = instantSchema.parse(fields.endedAt);
-  const project = fields.project ?? null;
+  const projects =
+    fields.projects ?? (fields.project == null ? [] : [{ project: fields.project, weight: 1 }]);
   const rule = fields.rule ?? DEFAULT_ROUNDING_RULE;
-  const { roundedTime, bookedDuration } = computeTimeEntry({
+  const { roundedTime, bookedDuration, projectShares } = computeTimeEntry({
     measuredTime: { start: startedAt, end: endedAt },
     timeZone: BERLIN,
     rule,
+    projects,
   });
   return {
     id: sampleTimeEntryId(index),
@@ -88,9 +92,13 @@ export function timeEntry(
     roundingRule: rule,
     ruleByHand: fields.rule ?? null,
     findings: [],
-    projectId: project?.id ?? null,
+    projectShares: projects.map(({ project, weight }, index) => ({
+      projectId: project.id,
+      weight,
+      projectShare: projectShares[index] ?? durationSchema.parse(0),
+      project,
+    })),
     note: fields.note ?? null,
-    project,
   };
 }
 
@@ -136,7 +144,7 @@ const SAMPLE = timeEntry(100, {
   startedAt: "2026-11-16T08:00:00.000Z",
   endedAt: "2026-11-16T09:30:00.000Z",
 });
-const { project: _sampleProject, ...SAMPLE_ENTRY } = SAMPLE;
+const SAMPLE_ENTRY = { ...SAMPLE, projectShares: [] };
 
 /** A sample timer, as every timer Operation's Fixed Answer returns it. */
 const SAMPLE_TIMER: Timer = (({ project: _project, ...timer }) => timer)(
