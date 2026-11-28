@@ -58,6 +58,7 @@ describe("the rounding resolution's table: a timer from 10:07:30 to 10:29:50", (
     expect(compute("10:07:30", "10:29:50", rule)).toEqual({
       roundedTime: { start: berlinAt(roundedStart), end: berlinAt(roundedEnd) },
       bookedDuration,
+      projectShares: [],
     });
   });
 });
@@ -68,6 +69,7 @@ describe("Ordinary Rounding", () => {
     expect(compute("10:00:00", "10:07:30", rule)).toEqual({
       roundedTime: { start: berlinAt("10:00"), end: berlinAt("10:15") },
       bookedDuration: minutes(15),
+      projectShares: [],
     });
   });
 
@@ -82,6 +84,7 @@ describe("Ordinary Rounding", () => {
     expect(compute("10:00:50", "10:45:00", rule)).toEqual({
       roundedTime: { start: berlinAt("10:00"), end: berlinAt("10:45") },
       bookedDuration: minutes(45),
+      projectShares: [],
     });
   });
 
@@ -90,6 +93,7 @@ describe("Ordinary Rounding", () => {
     expect(compute("10:07:00", "10:07:40", rule)).toEqual({
       roundedTime: null,
       bookedDuration: 0,
+      projectShares: [],
     });
   });
 });
@@ -111,6 +115,7 @@ describe("Block Rounding", () => {
     ).toEqual({
       roundedTime: { start: at("2026-03-02T04:15:00.000Z"), end: at("2026-03-02T05:15:00.000Z") },
       bookedDuration: minutes(60),
+      projectShares: [],
     });
   });
 
@@ -118,6 +123,7 @@ describe("Block Rounding", () => {
     expect(compute("10:07:30", "10:30:00", { kind: "block", minutes: 15 })).toEqual({
       roundedTime: { start: berlinAt("10:00"), end: berlinAt("10:30") },
       bookedDuration: minutes(30),
+      projectShares: [],
     });
   });
 });

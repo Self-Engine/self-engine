@@ -67,6 +67,7 @@ test("Exact changes nothing", () => {
       ).toEqual({
         roundedTime: measured,
         bookedDuration: durationBetween(measured.start, measured.end),
+        projectShares: [],
       });
     }),
     parameters,

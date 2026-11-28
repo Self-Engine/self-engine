@@ -36,6 +36,18 @@ export {
   type TimeEntryComputationInput,
 } from "./computation.ts";
 export {
+  PROJECT_NAMED_TWICE,
+  type ProjectShare,
+  type ProjectShareWithProject,
+  projectShareSchema,
+  projectShareWithProjectSchema,
+  projectsInputSchema,
+  WEIGHT_MAX,
+  WEIGHT_MIN,
+  WEIGHT_OUT_OF_RANGE,
+  weightSchema,
+} from "./project-shares.ts";
+export {
   BLOCK_ROUNDING_MINUTES,
   DEFAULT_ROUNDING_RULE,
   ORDINARY_ROUNDING_MINUTES,
