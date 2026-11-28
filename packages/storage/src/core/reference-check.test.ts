@@ -11,6 +11,7 @@ import { recordStatements } from "../testing/statements.ts";
 import {
   createContext,
   createFrame,
+  noPartRows,
   protectionRules,
   referenceCheck,
   sharedWrites,
@@ -79,7 +80,7 @@ beforeEach(async () => {
   recorded = recordStatements(database);
   ran = recorded.statements;
   await createSpaceRows(database.kysely, [{ id: SECOND_SPACE_ID }]);
-  rules = protectionRules([referenceCheck(await referencesOf(database))]);
+  rules = protectionRules([referenceCheck(await referencesOf(database), noPartRows)]);
   calls = frameClient();
   ran.length = 0;
 });

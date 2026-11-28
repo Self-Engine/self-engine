@@ -2,7 +2,7 @@ import type { Reference } from "@self-engine/db";
 import { type FrameReasons, referenced, targetDeleted } from "@self-engine/db/schema";
 import type { Transaction } from "kysely";
 import type { StorageContext } from "./context.ts";
-import { noPartRows, ownerIsLive, type PartReference, type PartRows } from "./part-rows.ts";
+import { ownerIsLive, type PartReference, type PartRows } from "./part-rows.ts";
 import type { RegisteredRule, RuleAnswer } from "./registry.ts";
 
 /** The read access of a rule over tables the frame knows only by name. */
@@ -23,7 +23,7 @@ type Untyped = Transaction<Record<string, Record<string, string | null>>>;
  */
 export function referenceCheck(
   references: readonly Reference[],
-  parts: PartRows = noPartRows,
+  parts: PartRows,
 ): {
   readonly rules: readonly RegisteredRule<string, FrameReasons>[];
 } {
