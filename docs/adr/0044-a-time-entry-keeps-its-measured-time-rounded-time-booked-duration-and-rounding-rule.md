@@ -1,7 +1,7 @@
 ---
 status: accepted
 date: 2026-11-28
-decisions: D308, D342, D343, D344, D345, D346, D353, D354
+decisions: D308, D309, D342, D343, D344, D345, D346, D353, D354
 ---
 
 # A Time Entry keeps its Measured Time, Rounded Time, Booked Duration and Rounding Rule
@@ -60,8 +60,28 @@ startup takes a Backup before a pending migration runs.
   entry and the mark stays off. An edit without `ruleByHand` keeps the entry's own rule and mark; a
   rule marks it chosen by hand; `null` clears the choice, so the rule that holds is taken and the
   mark removed. Every edit rounds again with the entry's rule, also an edit of start or end.
-- **The rule that holds** is the default built into the code, "round up to 1 minute"
-  (`DEFAULT_ROUNDING_RULE`).
+- **The rule that holds** is looked up in one read per write (`ruleThatHolds`), on create, on the
+  Timer's stop and on "look up again": the rule of the entry's project with the latest "holds
+  from" at or before the measured start, else the app-wide rule by the same reading, else the
+  default built into the code, "round up to 1 minute" (`DEFAULT_ROUNDING_RULE`). An entry without
+  a project takes the app-wide rule. "Look up again" asks with the project and start the edit
+  leaves. Of two rules with the same "holds from", or two first rules of one project, the one
+  changed last holds (`updated_at`), then the one with the larger id. A stored rule this version
+  cannot read counts as absent there. So a forgotten entry entered weeks later gets the rule of
+  its time, and an edit of start or end never looks up.
+
+### Where a Rounding Rule stands
+
+The Rounding Rules are rows of `rounding_rules` in `time-tracking`, not of `projects` (D309): the
+project it belongs to in `project_id`, or none for the app-wide rule; `holds_from`, an Instant from
+which it holds for every entry that starts at or after it, or none for a rule that holds from the
+beginning, as a project's first rule does; and the rule as JSON text in the entry's form. A
+project's rules are Part Rows of their project
+([ADR 0042](0042-a-part-row-is-a-live-row-only-while-its-owner-is-one.md)): they never block
+deleting it, do not hold while it is deleted, and hold again once it is restored. The app-wide
+rule names no project and is an ordinary row. No row exists until a rule is set, so two devices
+never each create a first app-wide rule. No Operation writes the table yet.
+
 - **The Time Zone of the computation** is the entry's own. A name this runtime does not know counts
   the Blocks of Block Rounding in UTC; the answer then carries the finding `time_zone_unknown`.
 - **Reading is lenient.** An entry whose stored rule this version cannot read is answered with its

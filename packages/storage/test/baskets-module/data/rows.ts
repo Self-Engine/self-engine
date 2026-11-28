@@ -20,13 +20,13 @@ export const basketsRowMap = {
   basket_items: z.object({
     id: basketItemIdSchema,
     ...convention,
-    basket_id: basketIdSchema,
+    basket_id: basketIdSchema.nullable(),
     note_id: noteIdSchema,
   }),
   note_marks: z.object({
     id: noteMarkIdSchema,
     ...convention,
-    note_id: noteIdSchema,
+    note_id: noteIdSchema.nullable(),
     label: z.string(),
   }),
 };

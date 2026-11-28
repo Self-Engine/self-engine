@@ -22,6 +22,7 @@ import {
 } from "./timers.ts";
 
 export {
+  roundingRuleIdSchema,
   type TimeEntryId,
   timeEntryIdOfTimer,
   timeEntryIdSchema,

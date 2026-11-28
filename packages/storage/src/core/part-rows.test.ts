@@ -199,6 +199,57 @@ describe("a Part Row", () => {
   });
 });
 
+describe("a row that names no owner", () => {
+  test("is an ordinary row, live by itself: read, written and removed as any row", async () => {
+    const [target, other] = [await note(), await note("Other")];
+    const loose = await basketsCalls.addItem({ basketId: null, noteId: target.id });
+    const mark = await basketsCalls.mark({ noteId: null, label: "Loose" });
+
+    await expect(basketsCalls.marks({})).resolves.toEqual([mark]);
+    await expect(basketsCalls.moveItem({ id: loose.id, noteId: other.id })).resolves.toEqual({
+      ...loose,
+      noteId: other.id,
+    });
+    await basketsCalls.removeItem({ id: loose.id });
+    await expect(basketsCalls.restoreItem({ id: loose.id })).resolves.toMatchObject({
+      id: loose.id,
+    });
+  });
+
+  test("protects what it refers to, counted under its own table beside the owners", async () => {
+    const target = await note();
+    await basketWith(target.id);
+    await basketsCalls.addItem({ basketId: null, noteId: target.id });
+    await basketsCalls.addItem({ basketId: null, noteId: target.id });
+
+    await expect(refusalOf(notesCalls.delete({ id: target.id }))).resolves.toEqual([
+      {
+        code: "referenced",
+        severity: "blocking",
+        table: "notes",
+        row: target.id,
+        details: {
+          tables: [
+            { table: "baskets", count: 1 },
+            { table: "basket_items", count: 2 },
+          ],
+        },
+      },
+    ]);
+  });
+
+  test("is not restored while it refers to a deleted row", async () => {
+    const target = await note();
+    const loose = await basketsCalls.addItem({ basketId: null, noteId: target.id });
+    await basketsCalls.removeItem({ id: loose.id });
+    await notesCalls.delete({ id: target.id });
+
+    await expect(refusalOf(basketsCalls.restoreItem({ id: loose.id }))).resolves.toMatchObject([
+      { code: "target_deleted", row: loose.id, field: "note_id" },
+    ]);
+  });
+});
+
 test("the Clearance gives the same answers without writing", async () => {
   const [protectedNote, freeNote] = [await note("Protected"), await note("Free")];
   const { basket: live } = await basketWith(protectedNote.id);

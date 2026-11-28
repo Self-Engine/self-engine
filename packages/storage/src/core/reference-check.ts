@@ -18,7 +18,8 @@ type Untyped = Transaction<Record<string, Record<string, string | null>>>;
  *
  * A Part Row is a Live Row only while its owner is one (ADR 0042): its reference to its owner
  * protects nothing, its other references protect only while the owner is live and count the
- * owner, and an owner is restored only while its live Part Rows refer to Live Rows.
+ * owner, and an owner is restored only while its live Part Rows refer to Live Rows. A row of such
+ * a table that names no owner is an ordinary row.
  */
 export function referenceCheck(
   references: readonly Reference[],
@@ -310,7 +311,6 @@ function deleteRule(
             const byTable = counts.get(id as string);
             byTable?.set(part.owner, (byTable.get(part.owner) ?? 0) + found);
           }
-          continue;
         }
         let count = tx
           .selectFrom(table)
@@ -318,6 +318,8 @@ function deleteRule(
           .where(column, "in", ids)
           .where("deleted_at", "is", null)
           .groupBy(column);
+        // A row that names no owner is an ordinary row and counts under its own table.
+        if (part !== undefined) count = count.where(part.column, "is", null);
         if (table === target) count = count.whereRef("id", "<>", column);
         for (const { target: id, count: found } of await count.execute()) {
           const byTable = counts.get(id as string);

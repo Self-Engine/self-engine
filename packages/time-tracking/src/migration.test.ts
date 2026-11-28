@@ -38,6 +38,8 @@ afterEach(async () => {
 const merged = {
   ...timeTracking,
   migrations: timeTrackingMigrations.filter(({ name }) => name !== "time-tracking/0003"),
+  // The table of Rounding Rules arrives with that migration.
+  belongsTo: {},
 };
 
 /** Counts the rows of `time_entries`, whatever shape the table has. */

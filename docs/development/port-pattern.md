@@ -325,9 +325,10 @@ the rest: deleting the owner is not refused because of them, a Part Row of a del
 protects nothing and is not found by any read or write of `sharedEntry` and `sharedWrites`, and
 restoring the owner is refused while one of its live Part Rows refers to a deleted row. Write no
 delete or restore of Part Rows with their owner. A Query of the table names the owner's table
-among its reads, and the contract kit's seed holds a live Part Row of a live owner. The test
-module [`baskets`](../../packages/storage/test/baskets-module/data/index.ts) shows both, with an
-owner of its own and one of another module.
+among its reads, and the contract kit's seed holds a live Part Row of a live owner. The owner
+column may be empty: a row that names no owner is an ordinary row, live by itself. The test
+module [`baskets`](../../packages/storage/test/baskets-module/data/index.ts) shows all three, with
+an owner of its own, one of another module, and rows without an owner.
 
 ### Read a Setting
 

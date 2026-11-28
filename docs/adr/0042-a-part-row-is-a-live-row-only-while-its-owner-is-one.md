@@ -22,9 +22,13 @@ behind it; this is a third kind, built first.
 
 - **A table can name one of its references as "belongs to"**: in `defineStorageModule`,
   `belongsTo: { project_shares: "time_entry_id" }`. The declaration is typed against the row map:
-  the table is a synced one of the module, the column one whose row type is a string that is never
-  empty. Its rows are then **Part Rows** of the row they refer to, the **owner**. The owner can be
-  a row of another module, which learns nothing of it.
+  the table is a synced one of the module, the column one whose row type is a string, which may be
+  empty. Its rows that name an owner are then **Part Rows** of the row they refer to, the
+  **owner**. The owner can be a row of another module, which learns nothing of it.
+- **A row of such a table that names no owner is an ordinary row, live by itself**: its other
+  references protect and are counted under its own table, and every read and write treats it as
+  any row. The app-wide Rounding Rule is such a row in the table of a project's Rounding Rules
+  (#440), so one table and one lookup hold both.
 - **A Part Row is a Live Row only while its owner is one.** The reference check keeps its sentence
   with that reading (`referenceCheck(references, parts)`):
 
@@ -52,7 +56,7 @@ behind it; this is a third kind, built first.
   reference check and the module's Part Rows (the seed runs without rules), checks the declaration
   the same way, requires a seed with a live Part Row of a live owner, and checks that every entry
   treats the Part Rows of a deleted owner as absent: it deletes their owners and compares the
-  answer with and without those rows.
+  answer with and without those rows. A row that names no owner stays in both runs.
 
 ## Consequences
 
@@ -70,6 +74,8 @@ behind it; this is a third kind, built first.
 - **Deleting and restoring the Part Rows with their owner** (each module itself): "is it live"
   would stand on every row, the rows drift apart after a sync, and a restore would have to tell
   the rows deleted with the owner from those removed before, by their time stamp.
+- **A table of its own for the rows without an owner**, such as the app-wide Rounding Rule beside
+  a project's rules: the same row in two tables, and a lookup that reads both.
 - **Declaring the owner in SQL** (a comment or a naming rule): not typed against the row map, and
   the schema check could not tell an intended owner from a typo.
 - **The owner reference as a Reason field on the part's column** for an owner's restore: the

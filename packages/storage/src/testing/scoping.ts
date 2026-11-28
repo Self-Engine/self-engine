@@ -75,7 +75,8 @@ export function returnsSeededRow(output: unknown, ids: ReadonlySet<string>): boo
 
 /**
  * The live Part Rows of a live owner the seed holds, by table, and those owners by table: the
- * rows the kit hides by deleting their owners (ADR 0042).
+ * rows the kit hides by deleting their owners (ADR 0042). A row that names no owner is an
+ * ordinary row and stays out.
  */
 export async function partsOfLiveOwners(
   transaction: Transaction<unknown>,
@@ -92,6 +93,7 @@ export async function partsOfLiveOwners(
       .selectFrom(table)
       .select(["id", part.column])
       .where("deleted_at", "is", null)
+      .where(part.column, "is not", null)
       .where(ownerIsLive(table, part))
       .execute();
     parts.set(
