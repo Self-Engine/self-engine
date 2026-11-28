@@ -95,8 +95,12 @@ The fields of one kind of entry, each with the schema of its value, written once
 _Avoid_: patch schema, update DTO, partial entity
 
 **Live Row** (de: _nicht gelöschte Zeile_):
-A stored row that has not been soft-deleted. Ordinary reads and changes see only live rows in the current _Space_. An archived row is still a _Live Row_; one that is also not archived is _active_ (see _Archive_).
+A stored row that has not been soft-deleted and, if it is a _Part Row_, whose owner is a _Live Row_. Ordinary reads and changes see only live rows in the current _Space_. An archived row is still a _Live Row_; one that is also not archived is _active_ (see _Archive_).
 _Avoid_: active row, undeleted record
+
+**Part Row** (de: _Teilzeile_):
+A row that belongs to another row, its owner, and is a _Live Row_ only while that row is one, such as a Project Share of a Time Entry. Deleting the owner leaves it as it is and hides it, restoring the owner brings it back; deleting the _Part Row_ itself removes it from its owner. The owner may belong to another module, which knows nothing of it.
+_Avoid_: child row, detail row, sub-record, cascade
 
 **Archive** (de: _Archivieren_):
 To set an entry aside that is finished but kept, such as a completed project: it leaves the lists of active entries and the pickers and appears in its module's archive View. It is an ordinary change that locks nothing, independent of deleting, and archiving an archived entry changes nothing. An entry that is live and not archived is _active_. Not a _Backup_, which copies the whole database.

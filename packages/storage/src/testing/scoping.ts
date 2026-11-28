@@ -12,6 +12,8 @@ import { tableContents } from "./table-contents.ts";
 import type { ContractViolation } from "./violation.ts";
 import { isLocalTable, type Database, type TablesOf } from "@self-engine/db";
 import type { Seed } from "./seed.ts";
+import type { Transaction } from "kysely";
+import { ownerIsLive } from "../core/part-rows.ts";
 
 function scopedTables(rowMap: RowMap) {
   return Object.entries(rowMap)
@@ -71,6 +73,38 @@ export function returnsSeededRow(output: unknown, ids: ReadonlySet<string>): boo
   return Object.values(output).some((value: unknown) => returnsSeededRow(value, ids));
 }
 
+/**
+ * The live Part Rows of a live owner the seed holds, by table, and those owners by table: the
+ * rows the kit hides by deleting their owners (ADR 0042).
+ */
+export async function partsOfLiveOwners(
+  transaction: Transaction<unknown>,
+  context: StorageContext,
+  tables: readonly string[],
+) {
+  const tx = transaction.withTables<Record<string, Record<string, string | null>>>();
+  const parts = new Map<string, string[]>();
+  const owners = new Map<string, Set<string>>();
+  for (const table of tables) {
+    const part = context.parts.ownerOf(table);
+    if (part === undefined) continue;
+    const rows = await tx
+      .selectFrom(table)
+      .select(["id", part.column])
+      .where("deleted_at", "is", null)
+      .where(ownerIsLive(table, part))
+      .execute();
+    parts.set(
+      table,
+      rows.map((row) => String(row.id)),
+    );
+    const ids = owners.get(part.owner) ?? new Set();
+    for (const row of rows) ids.add(String(row[part.column]));
+    owners.set(part.owner, ids);
+  }
+  return { parts, owners };
+}
+
 /** Compare hidden seed rows with their absence, keeping explicit restore examples valid. */
 export async function checkEntryScoping<Contract extends StorageContract, Rows extends RowMap>(
   module: StorageModule<Contract, Rows>,
@@ -80,7 +114,12 @@ export async function checkEntryScoping<Contract extends StorageContract, Rows e
   dependencies: readonly { readonly migrations: StorageModule<Contract, Rows>["migrations"] }[],
 ): Promise<ContractViolation[]> {
   const violations: ContractViolation[] = [];
-  for (const mode of ["deleted", "space"] as const) {
+  const partTables = Object.keys(module.belongsTo ?? {});
+  for (const mode of [
+    "deleted",
+    "space",
+    ...(partTables.length === 0 ? [] : (["owner"] as const)),
+  ] as const) {
     const results = [];
     let changedHidden = false;
     for (const absent of [true, false]) {
@@ -90,6 +129,25 @@ export async function checkEntryScoping<Contract extends StorageContract, Rows e
         dependencies,
         seed,
         async (transaction, context) => {
+          if (mode === "owner") {
+            // Both runs delete the owners; one keeps their Part Rows, the other has none.
+            const { parts, owners } = await partsOfLiveOwners(transaction, context, partTables);
+            const tx =
+              transaction.withTables<Record<string, { id: string; deleted_at: string | null }>>();
+            for (const [table, ids] of owners)
+              if (ids.size > 0)
+                await tx
+                  .updateTable(table)
+                  .set({ deleted_at: context.now })
+                  .where("id", "in", [...ids])
+                  .execute();
+            for (const [table, ids] of parts) {
+              hidden.set(table, ids);
+              if (absent && ids.length > 0)
+                await tx.deleteFrom(table).where("id", "in", ids).execute();
+            }
+            return;
+          }
           // Rows moved to another Space refer to it. Both runs hold it, so only the rows differ.
           await createSpaceRows(transaction, [{ id: SECOND_SPACE_ID }]);
           const tx =
@@ -106,8 +164,16 @@ export async function checkEntryScoping<Contract extends StorageContract, Rows e
             const ids = rows.map((row) => row.id);
             hidden.set(table, ids);
             if (ids.length === 0) continue;
-            if (absent) await tx.deleteFrom(table).where("id", "in", ids).execute();
-            else
+            if (absent) {
+              await tx.deleteFrom(table).where("id", "in", ids).execute();
+              // A Part Row removed from an owner that is gone would refer to nothing (ADR 0042).
+              for (const part of context.parts.partsOf(table))
+                await transaction
+                  .withTables<Record<string, Record<string, string>>>()
+                  .deleteFrom(part.table)
+                  .where(part.column, "in", ids)
+                  .execute();
+            } else
               await tx
                 .updateTable(table)
                 .set(
@@ -141,7 +207,9 @@ export async function checkEntryScoping<Contract extends StorageContract, Rows e
         rule:
           mode === "deleted"
             ? "entry does not treat deleted rows as absent"
-            : "entry does not treat another Space's rows as absent",
+            : mode === "owner"
+              ? "entry does not treat Part Rows of a deleted owner as absent"
+              : "entry does not treat another Space's rows as absent",
       });
   }
   return violations;
