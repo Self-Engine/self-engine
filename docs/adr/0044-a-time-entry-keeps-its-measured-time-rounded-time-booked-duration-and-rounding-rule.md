@@ -57,8 +57,9 @@ startup takes a Backup before a pending migration runs.
 
 - **The Operation computes on every write**, with `computeTimeEntry` of
   `@self-engine/time-tracking/contracts`, the one pure function the page can load too. Every write
-  of an entry takes its columns from `roundedColumns` in `data/rounded-columns.ts`: create, edit,
-  move, and the Timer's stop in the same transaction as the stop. Nothing computed is an input: the
+  of an entry takes its columns from `roundedColumns` in `data/rounded-columns.ts` and writes its
+  Project Shares from the same computation, through `writeEntry` in `data/write-entry.ts`: create,
+  edit, move, and the Timer's stop in the same transaction as the stop. Nothing computed is an input: the
   inputs reject a Rounded Time and a Booked Duration (D346).
 - **The rule.** Create takes an optional `ruleByHand`; without one the rule that holds rounds the
   entry and the mark stays off. An edit without `ruleByHand` keeps the entry's own rule and mark; a
