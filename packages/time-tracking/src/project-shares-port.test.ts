@@ -143,7 +143,7 @@ test("the projects of an entry are an ordered list with the Lead Project first, 
   // The third division of 0:23 in the resolution.
   expect(created).toMatchObject({
     bookedDuration: minutes(23),
-    projectShares: [
+    projects: [
       { projectId: a, weight: 50, projectShare: minutes(13) },
       { projectId: b, weight: 30, projectShare: minutes(6) },
       { projectId: c, weight: 20, projectShare: minutes(4) },
@@ -152,7 +152,7 @@ test("the projects of an entry are an ordered list with the Lead Project first, 
   // The Query of one entry answers the Project Reference of each project.
   await expect(client.timeTracking.entry({ id: created.id })).resolves.toEqual({
     ...created,
-    projectShares: created.projectShares.map((share, index) => ({
+    projects: created.projects.map((share, index) => ({
       ...share,
       project: expect.objectContaining({ id: share.projectId, title: ["A", "B", "C"][index] }),
     })),
@@ -166,7 +166,7 @@ test("without Weights the projects divide in equal parts, and without projects t
   await expect(
     client.timeTracking.create({ ...TIMER, projects: [{ projectId: a }, { projectId: b }] }),
   ).resolves.toMatchObject({
-    projectShares: [
+    projects: [
       { projectId: a, weight: 1, projectShare: minutes(12) },
       { projectId: b, weight: 1, projectShare: minutes(11) },
     ],
@@ -177,7 +177,7 @@ test("without Weights the projects divide in equal parts, and without projects t
       projects: [{ projectId: a }, { projectId: b }, { projectId: c }],
     }),
   ).resolves.toMatchObject({
-    projectShares: [
+    projects: [
       { projectShare: minutes(9) },
       { projectShare: minutes(7) },
       { projectShare: minutes(7) },
@@ -185,7 +185,7 @@ test("without Weights the projects divide in equal parts, and without projects t
   });
   await expect(client.timeTracking.create(TIMER)).resolves.toMatchObject({
     bookedDuration: minutes(23),
-    projectShares: [],
+    projects: [],
   });
 });
 
@@ -221,7 +221,7 @@ test("a project named twice and a Weight outside its range are refused with name
   }
   await expect(
     client.timeTracking.create({ ...HOUR, projects: [{ projectId: a, weight: 10_000 }] }),
-  ).resolves.toMatchObject({ projectShares: [{ weight: 10_000, projectShare: minutes(60) }] });
+  ).resolves.toMatchObject({ projects: [{ weight: 10_000, projectShare: minutes(60) }] });
 });
 
 test("the Lead Project gives the rule: A rounds up to 15 minutes, B is Exact", async () => {
@@ -235,14 +235,14 @@ test("the Lead Project gives the rule: A rounds up to 15 minutes, B is Exact", a
   ).resolves.toMatchObject({
     roundedTime: { start: "2026-04-14T08:07:00.000Z", end: "2026-04-14T08:37:00.000Z" },
     bookedDuration: minutes(30),
-    projectShares: [{ projectShare: minutes(15) }, { projectShare: minutes(15) }],
+    projects: [{ projectShare: minutes(15) }, { projectShare: minutes(15) }],
   });
   await expect(
     client.timeTracking.create({ ...TIMER, projects: [{ projectId: b }, { projectId: a }] }),
   ).resolves.toMatchObject({
     roundedTime: { start: TIMER.startedAt, end: TIMER.endedAt },
     bookedDuration: minutes(22) + 20,
-    projectShares: [{ projectShare: minutes(11) + 10 }, { projectShare: minutes(11) + 10 }],
+    projects: [{ projectShare: minutes(11) + 10 }, { projectShare: minutes(11) + 10 }],
   });
 
   // "Look up again" asks the Lead Project the edit leaves.
@@ -263,7 +263,12 @@ describe("the resolution's table of edits: 10:00 – 11:00 with A 50 %, B 30 %, 
   async function entryOfThree() {
     const started = await start();
     const { client, project } = started;
-    const [a, b, c, d] = [await project("A"), await project("B"), await project("C"), await project("D")];
+    const [a, b, c, d] = [
+      await project("A"),
+      await project("B"),
+      await project("C"),
+      await project("D"),
+    ];
     const entry = await client.timeTracking.create({
       ...HOUR,
       projects: [
@@ -272,7 +277,7 @@ describe("the resolution's table of edits: 10:00 – 11:00 with A 50 %, B 30 %, 
         { projectId: c, weight: 20 },
       ],
     });
-    expect(entry.projectShares.map(({ projectShare }) => projectShare)).toEqual([
+    expect(entry.projects.map(({ projectShare }) => projectShare)).toEqual([
       minutes(30),
       minutes(18),
       minutes(12),
@@ -293,7 +298,7 @@ describe("the resolution's table of edits: 10:00 – 11:00 with A 50 %, B 30 %, 
       }),
     ).resolves.toMatchObject({
       ...counted,
-      projectShares: [
+      projects: [
         { projectId: a, projectShare: minutes(38) },
         { projectId: b, projectShare: minutes(22) },
       ],
@@ -314,7 +319,7 @@ describe("the resolution's table of edits: 10:00 – 11:00 with A 50 %, B 30 %, 
       }),
     ).resolves.toMatchObject({
       ...counted,
-      projectShares: [
+      projects: [
         { projectId: a, projectShare: minutes(15) },
         { projectId: b, projectShare: minutes(9) },
         { projectId: c, projectShare: minutes(6) },
@@ -332,7 +337,7 @@ describe("the resolution's table of edits: 10:00 – 11:00 with A 50 %, B 30 %, 
       }),
     ).resolves.toMatchObject({
       ...counted,
-      projectShares: [
+      projects: [
         { projectShare: minutes(20) },
         { projectShare: minutes(20) },
         { projectShare: minutes(20) },
@@ -354,7 +359,7 @@ describe("the resolution's table of edits: 10:00 – 11:00 with A 50 %, B 30 %, 
     ).resolves.toMatchObject({
       ...counted,
       roundingRule: entry.roundingRule,
-      projectShares: [
+      projects: [
         { projectId: b, projectShare: minutes(36) },
         { projectId: c, projectShare: minutes(24) },
       ],
@@ -365,11 +370,11 @@ describe("the resolution's table of edits: 10:00 – 11:00 with A 50 %, B 30 %, 
     const { client, entry, counted } = await entryOfThree();
     await expect(client.timeTracking.edit({ id: entry.id, projects: [] })).resolves.toMatchObject({
       ...counted,
-      projectShares: [],
+      projects: [],
     });
     await expect(client.timeTracking.entry({ id: entry.id })).resolves.toMatchObject({
       ...counted,
-      projectShares: [],
+      projects: [],
     });
   });
 
@@ -387,7 +392,7 @@ describe("the resolution's table of edits: 10:00 – 11:00 with A 50 %, B 30 %, 
       }),
     ).resolves.toMatchObject({
       bookedDuration: minutes(30),
-      projectShares: [
+      projects: [
         { weight: 50, projectShare: minutes(15) },
         { weight: 30, projectShare: minutes(9) },
         { weight: 20, projectShare: minutes(6) },
@@ -463,7 +468,7 @@ test("stopping a Timer with a project writes one share that holds the whole Book
   expect(stopped).toMatchObject({ kind: "saved" });
   const id = timeEntryIdOfTimer(timer.id);
   const entry = await client.timeTracking.entry({ id });
-  expect(entry?.projectShares).toEqual([
+  expect(entry?.projects).toEqual([
     expect.objectContaining({ projectId: a, weight: 1, projectShare: entry?.bookedDuration }),
   ]);
 
@@ -498,8 +503,9 @@ describe("the Day Span reads the Project Shares", () => {
     return { ...started, a, b, shared, none };
   }
 
-  const sums = (answer: { projects: readonly { project: { id: string } | null; total: number }[] }) =>
-    answer.projects.map(({ project, total }) => [project?.id ?? null, total]);
+  const sums = (answer: {
+    projects: readonly { project: { id: string } | null; total: number }[];
+  }) => answer.projects.map(({ project, total }) => [project?.id ?? null, total]);
 
   test("the sums per project add up to the total of the entries that have a project", async () => {
     const { client, a, b } = await day();
@@ -510,14 +516,15 @@ describe("the Day Span reads the Project Shares", () => {
       [null, minutes(10)],
     ]);
     expect(answer.total).toBe(minutes(100));
-    expect(answer.days[0]?.entries.map(({ projectShares }) => projectShares.length)).toEqual([
-      1, 2, 0,
-    ]);
+    expect(answer.days[0]?.entries.map(({ projects }) => projects.length)).toEqual([1, 2, 0]);
   });
 
   test("the filter by project holds the entries with a share in it and counts that share; 'no project' holds those without one", async () => {
     const { client, b, shared, none } = await day();
-    const onB = await client.timeTracking.days({ span: SPAN, filter: { kind: "project", projectId: b } });
+    const onB = await client.timeTracking.days({
+      span: SPAN,
+      filter: { kind: "project", projectId: b },
+    });
     expect(onB.days[0]?.entries.map(({ id }) => id)).toEqual([shared.id]);
     expect(sums(onB)).toEqual([[b, minutes(15)]]);
     expect(onB.days[0]?.total).toBe(minutes(15));
@@ -542,5 +549,25 @@ describe("the Day Span reads the Project Shares", () => {
     shareReads.splice(0);
     await client.timeTracking.days({ span: SPAN });
     expect(shareReads).toHaveLength(1);
+  });
+});
+
+test("moving an entry keeps its projects and divides its Booked Duration again", async () => {
+  const { client, project } = await start();
+  const [a, b] = [await project("A"), await project("B")];
+  const entry = await client.timeTracking.create({
+    ...TIMER,
+    projects: [{ projectId: a }, { projectId: b, weight: 3 }],
+  });
+
+  // 08:07:30 to 08:29:50 moved by 30 seconds: 22:20 from 08:08:00 still counts 0:23.
+  await expect(
+    client.timeTracking.move({ id: entry.id, startedAt: "2026-04-14T08:08:00.000Z" }),
+  ).resolves.toMatchObject({
+    bookedDuration: minutes(23),
+    projects: [
+      { projectId: a, weight: 1, projectShare: minutes(6) },
+      { projectId: b, weight: 3, projectShare: minutes(17) },
+    ],
   });
 });

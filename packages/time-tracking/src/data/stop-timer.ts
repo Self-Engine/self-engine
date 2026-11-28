@@ -79,15 +79,16 @@ async function saveEntry(
       startedAt: timer.started_at,
     }),
     ruleChosenByHand: false,
+    // A Timer records no breaks yet.
+    breaks: [],
     projects,
   });
   const values = { ...columns, note: timer.note, time_zone: timeZone };
   const stored = await storedEntryOfTimer(tx, context, timer.id);
   // The first stop inserts the entry. After "undo stop", the entry of the earlier stop comes back
   // with the timer's note and the new end, Rounded Time, Booked Duration, rule and Time Zone, in
-  // one write, so the timer keeps one entry (D349); its project is the one the timer has now, and
-  // the reference check judges that one (D371).
-  if (stored === "deleted") await removeOtherProjects(tx, context, timer);
+  // one write, so the timer keeps one entry (D349). "Undo stop" removed its projects, so it gets
+  // the one the timer has now, and the reference check judges that one (D371).
   const row =
     stored === "none"
       ? await writes.insert("time_entries", id, values)
@@ -98,26 +99,6 @@ async function saveEntry(
   const shares = await writeProjectShares(tx, context, id, projects, projectShares, before);
   await writes.softDelete("timers", timer.id);
   return { kind: "saved", entry: toTimeEntry(row, shares) };
-}
-
-/**
- * Before the entry of an earlier stop comes back, its shares of a project other than the timer's
- * are removed, so the restore is judged with the project the timer has now (D371). The entry is
- * deleted, so its shares are no Live Rows and the shared writes do not find them (ADR 0042): this
- * is the one write of shares outside them, a soft delete with the frame's columns, which the
- * frame announces as any write.
- */
-async function removeOtherProjects(tx: Writes, context: StorageContext, timer: TimerValues) {
-  await tx
-    .updateTable("project_shares")
-    .set({ deleted_at: context.now, updated_at: context.now })
-    .where("time_entry_id", "=", timeEntryIdOfTimer(timer.id))
-    .where("space_id", "=", context.spaceId)
-    .where("deleted_at", "is", null)
-    .$call((query) =>
-      timer.project_id === null ? query : query.where("project_id", "!=", timer.project_id),
-    )
-    .execute();
 }
 
 /**
@@ -169,7 +150,10 @@ export async function stopTimer(
   // Not found without a live entry of the timer's id: the timer was discarded.
   const id = timeEntryIdOfTimer(input.id);
   const entry = await sharedEntry(tx, context).lookup("time_entries", id);
-  return { kind: "saved", entry: toTimeEntry(entry, (await storedProjects(tx, context, id)).shares) };
+  return {
+    kind: "saved",
+    entry: toTimeEntry(entry, (await storedProjects(tx, context, id)).shares),
+  };
 }
 
 /**

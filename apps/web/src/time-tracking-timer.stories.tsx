@@ -18,6 +18,7 @@ import {
   type TimeTrackingCall,
   type TimeTrackingStoryPort,
   timeTrackingStoryPort,
+  timeEntryAnswer,
 } from "@self-engine/time-tracking/testing";
 import {
   afterTheCommitsNowDue,
@@ -486,7 +487,7 @@ export const AStartThatStoppedAnotherTimerSaysThatItsEntryWasSaved: Story = {
             {
               kind: "saved",
               // As the Data Process answers it: the sample entry without its Project Reference.
-              entry: (({ project: _project, ...entry }) => entry)(
+              entry: timeEntryAnswer(
                 timeEntry(2, { startedAt: EARLIER.startedAt, endedAt: "2026-11-20T10:00:00.000Z" }),
               ),
             },

@@ -38,7 +38,7 @@ afterEach(async () => {
 const merged = {
   ...timeTracking,
   migrations: timeTrackingMigrations.filter(({ name }) => name !== "time-tracking/0003"),
-  // The table of Rounding Rules arrives with that migration.
+  // The tables of Rounding Rules and Project Shares arrive with that migration.
   belongsTo: {},
 };
 

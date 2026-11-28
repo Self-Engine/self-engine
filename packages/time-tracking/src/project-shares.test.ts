@@ -1,12 +1,7 @@
 // The Project Shares of the computation: the examples of the resolution "Several projects on one
 // Time Entry" (#404) as single cases, and the division as a property with generated data.
 
-import {
-  addDuration,
-  durationSchema,
-  type Instant,
-  resolveTimeZone,
-} from "@self-engine/time";
+import { addDuration, durationSchema, type Instant, resolveTimeZone } from "@self-engine/time";
 import { requireInstant } from "@self-engine/time/testing";
 import fc from "fast-check";
 import { describe, expect, test } from "vite-plus/test";
@@ -40,6 +35,7 @@ function sharesOf(
     measuredTime: { start: berlinAt(start), end: berlinAt(end) },
     timeZone: berlin,
     rule,
+    breaks: [],
     projects: weights.map((weight) => ({ weight })),
   }).projectShares;
 }
@@ -55,9 +51,7 @@ describe("the three divisions of 0:23", () => {
     ["A, B, C equal", [1, 1, 1], ["0:09", "0:07", "0:07"]],
     ["A 50 %, B 30 %, C 20 %", [50, 30, 20], ["0:13", "0:06", "0:04"]],
   ])("%s", (_, weights, shares) => {
-    expect(sharesOf(["10:07:30", "10:29:50"], UP_TO_A_MINUTE, weights)).toEqual(
-      shares.map(clock),
-    );
+    expect(sharesOf(["10:07:30", "10:29:50"], UP_TO_A_MINUTE, weights)).toEqual(shares.map(clock));
   });
 });
 
@@ -71,10 +65,7 @@ test("the Lead Project table: A rounds up to 15 minutes, B is Exact", () => {
     clock("0:15"),
     clock("0:15"),
   ]);
-  expect(sharesOf(timer, { kind: "exact" }, [1, 1])).toEqual([
-    clock("0:11:10"),
-    clock("0:11:10"),
-  ]);
+  expect(sharesOf(timer, { kind: "exact" }, [1, 1])).toEqual([clock("0:11:10"), clock("0:11:10")]);
 });
 
 test("an entry without a project has no shares, and one project holds the whole Booked Duration", () => {
@@ -111,6 +102,7 @@ test("the Project Shares add up to the Booked Duration exactly, none below zero,
           },
           timeZone: berlin,
           rule: chosen,
+          breaks: [],
           projects: weights.map((weight) => ({ weight })),
         });
         expect(projectShares).toHaveLength(weights.length);

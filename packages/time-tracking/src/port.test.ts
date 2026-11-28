@@ -88,7 +88,7 @@ test("validated edits carry both Instants or neither, and Operation answers keep
     endedAt: Instant;
   }>();
   expectTypeOf<
-    Outputs["edit" | "delete" | "restore"]["projectShares"][number]["projectId"]
+    Outputs["edit" | "delete" | "restore"]["projects"][number]["projectId"]
   >().toEqualTypeOf<ProjectId>();
 });
 
@@ -246,7 +246,7 @@ test("restore is refused when the project was deleted and succeeds after the pro
   await expect(client.timeTracking.restore({ id })).resolves.toEqual(created);
 });
 
-test("null clears the project and note, and an edit without fields sends no Table Change", async () => {
+test("the empty list removes the projects, null clears the note, and an edit without fields sends no Table Change", async () => {
   const { client } = await start();
   const project = await client.projects.create({ title: "Website" });
   const created = await client.timeTracking.create({
@@ -256,9 +256,9 @@ test("null clears the project and note, and an edit without fields sends no Tabl
     note: "Design",
   });
   const { id } = created;
-  const cleared = { ...created, projectShares: [], note: null };
+  const cleared = { ...created, projects: [], note: null };
 
-  await expect(client.timeTracking.edit({ id, projects: null, note: null })).resolves.toEqual(
+  await expect(client.timeTracking.edit({ id, projects: [], note: null })).resolves.toEqual(
     cleared,
   );
   await expect(client.timeTracking.entry({ id })).resolves.toEqual(cleared);
@@ -286,10 +286,10 @@ test("editing an entry on an archived project succeeds, while assigning a delete
   const onArchived = [{ projectId: archived.id, weight: 1, projectShare: 5400 }];
   await expect(
     client.timeTracking.edit({ id, projects: [{ projectId: archived.id }] }),
-  ).resolves.toEqual({ ...created, projectShares: onArchived });
+  ).resolves.toEqual({ ...created, projects: onArchived });
   await expect(client.timeTracking.edit({ id, note: "Review" })).resolves.toEqual({
     ...created,
-    projectShares: onArchived,
+    projects: onArchived,
     note: "Review",
   });
   await expect(
@@ -312,7 +312,7 @@ test("editing an entry on an archived project succeeds, while assigning a delete
   });
   await expect(client.timeTracking.entry({ id })).resolves.toMatchObject({
     note: "Review",
-    projectShares: [
+    projects: [
       {
         projectId: archived.id,
         project: { id: archived.id, archivedAt: expect.any(String), deletedAt: null },
@@ -341,12 +341,13 @@ test("create answers with the entry, and the Query returns it with its Project R
     roundingRule: { kind: "ordinary", direction: "up", minutes: 1 },
     ruleByHand: null,
     findings: [],
-    projectShares: [{ projectId: project.id, weight: 1, projectShare: 5400 }],
+    breaks: [],
+    projects: [{ projectId: project.id, weight: 1, projectShare: 5400 }],
     note: "Design review",
   });
   await expect(client.timeTracking.entry({ id: created.id })).resolves.toEqual({
     ...created,
-    projectShares: [
+    projects: [
       {
         projectId: project.id,
         weight: 1,
@@ -367,12 +368,12 @@ test("create answers with the entry, and the Query returns it with its Project R
 test("an entry without a project or a note is created, and the Query gives no Project Reference", async () => {
   const { client } = await start();
   const created = await client.timeTracking.create({ startedAt: START, endedAt: END });
-  expect(created).toMatchObject({ projectShares: [], note: null });
+  expect(created).toMatchObject({ projects: [], note: null });
   await expect(client.timeTracking.entry({ id: created.id })).resolves.toEqual(created);
   // A note of spaces is no note.
   await expect(
-    client.timeTracking.create({ startedAt: START, endedAt: END, projects: null, note: "  " }),
-  ).resolves.toMatchObject({ projectShares: [], note: null });
+    client.timeTracking.create({ startedAt: START, endedAt: END, projects: [], note: "  " }),
+  ).resolves.toMatchObject({ projects: [], note: null });
 });
 
 test("the Query answers an unknown id with no entry", async () => {
@@ -491,7 +492,7 @@ test("an archived project is accepted, a deleted or unknown one is refused at th
     projects: [{ projectId: archived.id }],
   });
   await expect(client.timeTracking.entry({ id: late.id })).resolves.toMatchObject({
-    projectShares: [
+    projects: [
       {
         projectId: archived.id,
         project: { id: archived.id, archivedAt: expect.any(String), deletedAt: null },

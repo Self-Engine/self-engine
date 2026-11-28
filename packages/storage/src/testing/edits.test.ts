@@ -188,13 +188,16 @@ test("the kit fails an edit that answers a moved `updated_at` when it carries no
 // computed part to each line, as a Time Entry adds the Project Share to each of its projects.
 const linesSchema = z.array(z.strictObject({ text: z.string().trim().min(1) }));
 type Line = z.output<typeof linesSchema>[number];
+// The kit types its examples by the memos Contract, whose body is text.
 const linesExamples = {
   ...examples,
   edit: { ...examples.edit, body: [{ text: "First " }, { text: "Second" }] },
-};
+} as unknown as typeof examples;
 
+/** The stored lines; a seeded memo holds plain text, which reads as no lines. */
 function linesOf(body: string | null): Line[] {
-  const read = linesSchema.safeParse(body === null ? [] : JSON.parse(body));
+  if (body === null || !body.startsWith("[")) return [];
+  const read = linesSchema.safeParse(JSON.parse(body));
   return read.success ? read.data : [];
 }
 
@@ -207,21 +210,13 @@ function withLines(answer: (lines: readonly Line[]) => unknown[]) {
   const run = async (
     ...[tx, context, input]: Parameters<EditRun>
   ): Promise<z.output<typeof memoSchema>> => {
-    const { body } = input as { body?: readonly Line[] };
+    const { body } = input as unknown as { body?: readonly Line[] };
     const row = await sharedWrites(tx, context).update("memos", input.id, {
       title: input.title,
       color: input.color,
       body: body === undefined ? undefined : JSON.stringify(body),
     });
-    // Seeded memos hold plain text, which reads as no lines.
-    const stored = (() => {
-      try {
-        return linesOf(row.body);
-      } catch {
-        return [];
-      }
-    })();
-    return { ...toMemo(row), body: answer(stored) } as never;
+    return { ...toMemo(row), body: answer(linesOf(row.body)) } as never;
   };
   return {
     ...memos,

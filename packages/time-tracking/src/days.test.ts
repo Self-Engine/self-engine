@@ -7,6 +7,7 @@ import { RPCLink } from "@orpc/client/message-port";
 import type { ContractRouterClient } from "@orpc/contract";
 import type { ProtocolContract } from "@self-engine/data-protocol";
 import { startTestDataProcess, type TestDataProcess } from "@self-engine/data-process/testing";
+import type { ProjectId } from "@self-engine/projects/contracts";
 import { projects } from "@self-engine/projects/data";
 import { settings } from "@self-engine/settings-data/data";
 import { resolveTimeZone } from "@self-engine/time";
@@ -52,11 +53,12 @@ async function errorOf(call: Promise<unknown>) {
   return error as { code: string; data?: { issues?: unknown[]; reasons?: unknown[] } } | undefined;
 }
 
-/** An entry as a list answers it: without its rule and its findings. */
+/** An entry as a list answers it: without its rule, its findings and its breaks. */
 const listed = ({
   roundingRule: _rule,
   ruleByHand: _byHand,
   findings: _findings,
+  breaks: _breaks,
   ...entry
 }: Awaited<ReturnType<TimeTrackingClient["timeTracking"]["create"]>>) => entry;
 const hours = (count: number) => count * 3600;
@@ -77,11 +79,15 @@ const create = (
   client: TimeTrackingClient,
   startedAt: string,
   endedAt: string,
-  rest: {
-    note?: string;
-    projectId?: Parameters<TimeTrackingClient["timeTracking"]["create"]>[0]["projectId"];
-  } = {},
-) => client.timeTracking.create({ startedAt, endedAt, ...rest });
+  { note, projectId }: { note?: string; projectId?: ProjectId } = {},
+) =>
+  client.timeTracking.create({
+    startedAt,
+    endedAt,
+    ...(note === undefined ? {} : { note }),
+    // One project, as the Edit Drawer sends it.
+    ...(projectId === undefined ? {} : { projects: [{ projectId }] }),
+  });
 
 test("an entry from Sunday 22:00 to Monday 02:00 appears on both days with 2:00, marked, and each week counts 2:00", async () => {
   const { client } = await startTimeTracking();
@@ -100,7 +106,6 @@ test("an entry from Sunday 22:00 to Monday 02:00 appears on both days with 2:00,
       entries: [
         {
           ...listed(night),
-          project: null,
           dayShare: hours(2),
           crossesMidnight: true,
           overlaps: false,
@@ -113,7 +118,6 @@ test("an entry from Sunday 22:00 to Monday 02:00 appears on both days with 2:00,
       entries: [
         {
           ...listed(night),
-          project: null,
           dayShare: hours(2),
           crossesMidnight: true,
           overlaps: false,
@@ -246,7 +250,9 @@ test("the Query names the Settings table among its reads, so a change of the Tim
   expect(opened.value).toMatchObject({ kind: "opened" });
   const reads = (opened.value as { queries: { timeTracking: { days: string[] } } }).queries
     .timeTracking.days;
-  expect([...reads].sort()).toEqual([SETTINGS_TABLE, "projects", "time_entries"].sort());
+  expect([...reads].sort()).toEqual(
+    [SETTINGS_TABLE, "project_shares", "projects", "time_entries"].sort(),
+  );
 
   await saveTimeZone("America/New_York");
 
@@ -304,7 +310,7 @@ test("the sums per day, per project and in total match the entries; no project h
     { project: null, total: hours(0.5) },
   ]);
   expect(answer.total).toBe(hours(7.5));
-  expect(answer.days[1]?.entries.map((entry) => entry.project?.title ?? null)).toEqual([
+  expect(answer.days[1]?.entries.map((entry) => entry.projects[0]?.project.title ?? null)).toEqual([
     "Website",
     "Shop",
   ]);
@@ -453,7 +459,10 @@ test("a deleted entry appears nowhere, and an entry of an archived project keeps
   const answer = await client.timeTracking.days({ span: THIS_WEEK });
 
   expect(answer.days[0]?.entries).toMatchObject([
-    { id: kept.id, project: { id: archived.id, archivedAt: expect.any(String) } },
+    {
+      id: kept.id,
+      projects: [{ project: { id: archived.id, archivedAt: expect.any(String) } }],
+    },
   ]);
   expect(answer.projects).toMatchObject([
     { project: { id: archived.id, archivedAt: expect.any(String) }, total: hours(1) },

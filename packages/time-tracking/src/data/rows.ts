@@ -5,6 +5,8 @@ import { spaceIdSchema } from "@self-engine/storage";
 import { durationSchema, instantSchema } from "@self-engine/time";
 import { z } from "zod";
 import {
+  breakFindings,
+  breaksTextSchema,
   type ListedTimeEntry,
   type ProjectShare,
   projectShareIdSchema,
@@ -40,6 +42,9 @@ export const timeTrackingRowMap = {
     rounding_rule: z.string(),
     rule_chosen_by_hand: sqliteBoolean,
     note: z.string().nullable(),
+    // The stored text, read with `breaksTextSchema`: a later version may write a stretch this one
+    // cannot read, so it is no list of breaks here.
+    breaks: z.string(),
     // The stored name, as chosen; a later runtime may not know it, so it is no `TimeZone`.
     time_zone: z.string(),
   }),
@@ -100,13 +105,14 @@ export const LISTED_TIME_ENTRY_COLUMNS = [
 export type ListedTimeEntryValues = ColumnsOf<typeof LISTED_TIME_ENTRY_COLUMNS>;
 
 /**
- * The columns an answer of one entry reads: also its rule, and its Time Zone for the findings.
- * The Time Zone itself stays in storage.
+ * The columns an answer of one entry reads: also its rule, its breaks, and its Time Zone for the
+ * findings. The Time Zone itself stays in storage.
  */
 export const TIME_ENTRY_COLUMNS = [
   ...LISTED_TIME_ENTRY_COLUMNS,
   "time_entries.rounding_rule",
   "time_entries.rule_chosen_by_hand",
+  "time_entries.breaks",
   "time_entries.time_zone",
 ] as const;
 
@@ -115,7 +121,7 @@ export type TimeEntryValues = ColumnsOf<typeof TIME_ENTRY_COLUMNS>;
 // Do not parse the row here: agreement is checked in tests, not on every query.
 export const toListedTimeEntry = (
   row: ListedTimeEntryValues,
-): Omit<ListedTimeEntry, "projectShares"> => ({
+): Omit<ListedTimeEntry, "projects"> => ({
   id: row.id,
   startedAt: row.started_at,
   endedAt: row.ended_at,
@@ -129,21 +135,26 @@ export const toListedTimeEntry = (
 });
 
 /**
- * The entry with its rule and its projects: a stored rule this version cannot read is answered as
- * `null`, beside the stored numbers, so the entry stays readable.
+ * The entry with its rule, its breaks and its projects: a stored rule or list this version cannot
+ * read is answered as `null`, beside the stored numbers, so the entry stays readable. The findings
+ * are computed here, on read, and never stored.
  */
-export function toTimeEntry(
-  row: TimeEntryValues,
-  projectShares: readonly ProjectShare[],
-): TimeEntry {
+export function toTimeEntry(row: TimeEntryValues, projects: readonly ProjectShare[]): TimeEntry {
   const rule = roundingRuleTextSchema.safeDecode(row.rounding_rule);
   const roundingRule = rule.success ? rule.data : null;
+  const stored = breaksTextSchema.safeDecode(row.breaks);
+  const breaks = stored.success ? stored.data : null;
+  const measured = { start: row.started_at, end: row.ended_at };
   return {
     ...toListedTimeEntry(row),
     roundingRule,
     ruleByHand: row.rule_chosen_by_hand === 1 ? roundingRule : null,
-    findings: findingsOf(roundingRule, row.time_zone),
-    projectShares: [...projectShares],
+    findings: [
+      ...findingsOf(roundingRule, row.time_zone),
+      ...breakFindings(measured, breaks ?? []),
+    ],
+    breaks,
+    projects: [...projects],
   };
 }
 

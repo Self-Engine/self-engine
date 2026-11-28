@@ -8,7 +8,14 @@ import {
 } from "@self-engine/time";
 import { requireInstant } from "@self-engine/time/testing";
 import { describe, expect, test } from "vite-plus/test";
-import { computeTimeEntry, type RoundingRule } from "./contracts/index.ts";
+import {
+  type Break,
+  BREAK_NOT_BETWEEN_WORK,
+  BREAK_OVERLAPS,
+  BREAK_TOO_SHORT,
+  computeTimeEntry,
+  type RoundingRule,
+} from "./contracts/index.ts";
 
 const zone = (name: string) => resolveTimeZone(name).timeZone;
 const berlin = zone("Europe/Berlin");
@@ -27,6 +34,7 @@ function compute(start: string, end: string, rule: RoundingRule, timeZone: TimeZ
     measuredTime: { start: berlinAt(start), end: berlinAt(end) },
     timeZone,
     rule,
+    breaks: [],
   });
 }
 
@@ -58,6 +66,7 @@ describe("the rounding resolution's table: a timer from 10:07:30 to 10:29:50", (
     expect(compute("10:07:30", "10:29:50", rule)).toEqual({
       roundedTime: { start: berlinAt(roundedStart), end: berlinAt(roundedEnd) },
       bookedDuration,
+      findings: [],
       projectShares: [],
     });
   });
@@ -69,6 +78,7 @@ describe("Ordinary Rounding", () => {
     expect(compute("10:00:00", "10:07:30", rule)).toEqual({
       roundedTime: { start: berlinAt("10:00"), end: berlinAt("10:15") },
       bookedDuration: minutes(15),
+      findings: [],
       projectShares: [],
     });
   });
@@ -84,6 +94,7 @@ describe("Ordinary Rounding", () => {
     expect(compute("10:00:50", "10:45:00", rule)).toEqual({
       roundedTime: { start: berlinAt("10:00"), end: berlinAt("10:45") },
       bookedDuration: minutes(45),
+      findings: [],
       projectShares: [],
     });
   });
@@ -93,6 +104,7 @@ describe("Ordinary Rounding", () => {
     expect(compute("10:07:00", "10:07:40", rule)).toEqual({
       roundedTime: null,
       bookedDuration: 0,
+      findings: [],
       projectShares: [],
     });
   });
@@ -111,10 +123,12 @@ describe("Block Rounding", () => {
         },
         timeZone: kathmandu,
         rule: { kind: "block", minutes: 60 },
+        breaks: [],
       }),
     ).toEqual({
       roundedTime: { start: at("2026-03-02T04:15:00.000Z"), end: at("2026-03-02T05:15:00.000Z") },
       bookedDuration: minutes(60),
+      findings: [],
       projectShares: [],
     });
   });
@@ -123,6 +137,7 @@ describe("Block Rounding", () => {
     expect(compute("10:07:30", "10:30:00", { kind: "block", minutes: 15 })).toEqual({
       roundedTime: { start: berlinAt("10:00"), end: berlinAt("10:30") },
       bookedDuration: minutes(30),
+      findings: [],
       projectShares: [],
     });
   });
@@ -132,8 +147,96 @@ describe("Occupied Time", () => {
   test("handing in no Occupied Time changes nothing", () => {
     const measuredTime = { start: berlinAt("10:07:30"), end: berlinAt("10:29:50") };
     const rule: RoundingRule = { kind: "ordinary", direction: "up", minutes: 15 };
-    expect(computeTimeEntry({ measuredTime, timeZone: berlin, rule, occupiedTime: [] })).toEqual(
-      computeTimeEntry({ measuredTime, timeZone: berlin, rule }),
-    );
+    expect(
+      computeTimeEntry({ measuredTime, timeZone: berlin, rule, breaks: [], occupiedTime: [] }),
+    ).toEqual(computeTimeEntry({ measuredTime, timeZone: berlin, rule, breaks: [] }));
+  });
+});
+
+const restBreak = (start: string, end: string) =>
+  ({
+    timeKind: "rest_break",
+    startedAt: berlinAt(start),
+    endedAt: berlinAt(end),
+    changedByLimit: false,
+  }) as const;
+const shortBreak = (start: string, end: string) =>
+  ({ timeKind: "short_break", startedAt: berlinAt(start), endedAt: berlinAt(end) }) as const;
+
+describe("breaks", () => {
+  const upTo1: RoundingRule = { kind: "ordinary", direction: "up", minutes: 1 };
+
+  test("the rounding resolution's example: 9:00:10 – 12:40:20 with a Rest Break of 20:25 is 9:00 – 12:40 and counts 3:20", () => {
+    expect(
+      computeTimeEntry({
+        measuredTime: { start: berlinAt("09:00:10"), end: berlinAt("12:40:20") },
+        timeZone: berlin,
+        rule: upTo1,
+        breaks: [restBreak("10:30:00", "10:50:25")],
+      }),
+    ).toEqual({
+      roundedTime: { start: berlinAt("09:00"), end: berlinAt("12:40") },
+      bookedDuration: minutes(200),
+      findings: [],
+      projectShares: [],
+    });
+  });
+
+  const entry = (breaks: readonly Break[], rule: RoundingRule = { kind: "exact" }) =>
+    computeTimeEntry({
+      measuredTime: { start: berlinAt("09:00"), end: berlinAt("12:00") },
+      timeZone: berlin,
+      rule,
+      breaks,
+    });
+
+  test("a Short Break counts, and a Rest Break of 20:25 is subtracted with its measured length", () => {
+    expect(entry([shortBreak("10:00", "10:20")]).bookedDuration).toBe(minutes(180));
+    expect(entry([restBreak("10:00:00", "10:20:25")]).bookedDuration).toBe(minutes(160) - 25);
+  });
+
+  test("Block Rounding does not count a Block that holds only a Rest Break", () => {
+    // Blocks of 15 minutes: 10:00 – 10:30 holds only the Rest Break; 10:30 – 10:45 holds work.
+    const rule: RoundingRule = { kind: "block", minutes: 15 };
+    expect(entry([restBreak("09:59:30", "10:40:00")], rule)).toEqual({
+      roundedTime: { start: berlinAt("09:00"), end: berlinAt("12:00") },
+      bookedDuration: minutes(150),
+      findings: [],
+      projectShares: [],
+    });
+  });
+
+  test("each broken rule names its break; a result stands all the same", () => {
+    expect(
+      entry([
+        restBreak("09:00", "09:10"),
+        restBreak("10:00", "10:30"),
+        shortBreak("10:20", "10:40"),
+        restBreak("11:00", "11:00"),
+        shortBreak("11:50", "12:00"),
+        restBreak("10:30", "10:35"),
+      ]).findings,
+    ).toEqual([
+      { reason: BREAK_NOT_BETWEEN_WORK, breakIndex: 0 },
+      { reason: BREAK_OVERLAPS, breakIndex: 2 },
+      { reason: BREAK_TOO_SHORT, breakIndex: 3 },
+      { reason: BREAK_NOT_BETWEEN_WORK, breakIndex: 4 },
+      { reason: BREAK_OVERLAPS, breakIndex: 5 },
+    ]);
+  });
+
+  test("breaks that touch keep the rules", () => {
+    expect(entry([restBreak("10:00", "10:30"), shortBreak("10:30", "10:40")]).findings).toEqual([]);
+  });
+
+  test("reading is lenient: a break outside the entry is ignored, and overlapping breaks subtract each second once", () => {
+    expect(
+      entry([
+        restBreak("07:00", "08:00"),
+        restBreak("08:30", "09:10"),
+        restBreak("10:00", "10:30"),
+        restBreak("10:15", "10:45"),
+      ]).bookedDuration,
+    ).toBe(minutes(180 - 10 - 45));
   });
 });

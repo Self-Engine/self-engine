@@ -34,12 +34,12 @@ export interface WeightedProject {
 
 /**
  * The list create and edit take, with every Weight stated: a project without one has the Weight
- * 1, so a list without Weights divides in equal parts. `null` is no project.
+ * 1, so a list without Weights divides in equal parts.
  */
 export function weightedProjects(
-  projects: readonly { readonly projectId: ProjectId; readonly weight?: number | undefined }[] | null,
+  projects: readonly { readonly projectId: ProjectId; readonly weight?: number | undefined }[],
 ): WeightedProject[] {
-  return (projects ?? []).map(({ projectId, weight }) => ({ projectId, weight: weight ?? 1 }));
+  return projects.map(({ projectId, weight }) => ({ projectId, weight: weight ?? 1 }));
 }
 
 /** The Lead Project: the first of the list, whose rule rounds the entry; `null` without one. */
@@ -136,11 +136,7 @@ export async function projectsOfEntries(
   if (ids.length === 0) return byEntry;
   const rows = await sharedEntry(tx, context)
     .live("project_shares")
-    .innerJoin(
-      projectReferences(tx, context, "project"),
-      "project.id",
-      "project_shares.project_id",
-    )
+    .innerJoin(projectReferences(tx, context, "project"), "project.id", "project_shares.project_id")
     .select(projectReferenceColumns("project"))
     .select([
       "project_shares.time_entry_id",

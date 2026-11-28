@@ -20,6 +20,10 @@ msgstr "{count, plural, one {Notiz} other {Notizen}}"
 msgid "{count, plural, one {project entry} other {project entries}}"
 msgstr "{count, plural, one {Projekteintrag} other {Projekteinträge}}"
 
+#: packages/time-tracking/src/table-names.ts
+msgid "{count, plural, one {project share} other {project shares}}"
+msgstr "{count, plural, one {Projektanteil} other {Projektanteile}}"
+
 #: packages/projects/src/index.ts
 msgid "{count, plural, one {project} other {projects}}"
 msgstr "{count, plural, one {Projekt} other {Projekte}}"
@@ -97,6 +101,14 @@ msgstr "{title} (gelöscht)"
 #: packages/data-client/src/react/reason-texts.ts
 msgid "{total, plural, one {Cannot be deleted: {list} refers to it.} other {Cannot be deleted: {list} refer to it.}}"
 msgstr "{total, plural, one {Lässt sich nicht löschen: {list} verweist darauf.} other {Lässt sich nicht löschen: {list} verweisen darauf.}}"
+
+#: packages/time-tracking/src/edit-drawer.tsx
+msgid "A break must be at least one second long."
+msgstr "Eine Pause muss mindestens eine Sekunde lang sein."
+
+#: packages/time-tracking/src/edit-drawer.tsx
+msgid "A break must lie after the start of the time entry and before its end."
+msgstr "Eine Pause muss nach dem Beginn des Zeiteintrags und vor seinem Ende liegen."
 
 #: apps/web/src/data-connection-states.tsx
 msgid "A newer version already applied the update {migration}, which this version does not know. Open your data with the newer version."
@@ -267,6 +279,10 @@ msgstr "Buch"
 msgctxt "Icon"
 msgid "Brain"
 msgstr "Gehirn"
+
+#: packages/time-tracking/src/edit-drawer.tsx
+msgid "Breaks must not overlap."
+msgstr "Pausen dürfen sich nicht überschneiden."
 
 #: packages/icons/src/directory/labels.ts
 msgctxt "Icon"

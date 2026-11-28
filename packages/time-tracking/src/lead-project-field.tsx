@@ -36,7 +36,9 @@ export const LeadProjectField = typedMemo(function LeadProjectField<
         label={label}
         onBlur={field.onBlur}
         onChange={(id) =>
-          field.onChange((id === null ? [] : [{ projectId: id }]) as FormDraft[FieldName<FormDraft>])
+          field.onChange(
+            (id === null ? [] : [{ projectId: id }]) as FormDraft[FieldName<FormDraft>],
+          )
         }
         // A draft holds a stored id as plain text (`Draft` of `forms`); the field takes it back as
         // the project id it came from, as the project field of `projects` does.

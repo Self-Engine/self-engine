@@ -272,9 +272,10 @@ test("an entry created on a clicked day of the week is sent with that day and ap
       input: {
         startedAt: "2026-11-18T08:00:00.000Z",
         endedAt: "2026-11-18T09:30:00.000Z",
-        projectId: null,
+        projects: [],
         note: "Review",
         ruleByHand: null,
+        breaks: [],
       },
     },
   ]);
@@ -312,9 +313,10 @@ test("the primary action opens a new entry on today, and the entry appears in th
       input: {
         startedAt: "2026-11-20T12:00:00.000Z",
         endedAt: "2026-11-20T13:00:00.000Z",
-        projectId: null,
+        projects: [],
         note: null,
         ruleByHand: null,
+        breaks: [],
       },
     },
   ]);
@@ -365,6 +367,30 @@ test("a stored entry opens with its values, and saving a changed note sends only
       "09:00 – 10:30No projectCode review1:30",
     ]),
   );
+});
+
+test("saving another field of an entry with breaks leaves its breaks as they are", async () => {
+  const breaks = [
+    {
+      timeKind: "rest_break",
+      startedAt: "2026-11-18T08:30:00.000Z",
+      endedAt: "2026-11-18T08:45:00.000Z",
+      changedByLimit: false,
+    },
+  ];
+  const week = await openStored({ breaks });
+  setValue(note(), "Code review");
+  await shown(() => expect(button(drawer(), "Save").disabled).toBe(false));
+  button(drawer(), "Save").click();
+
+  await shown(() => expect(document.querySelector('[role="dialog"]')).toBeNull());
+  expect(week.calls).toEqual([{ entry: "edit", input: { id: week.id, note: "Code review" } }]);
+  await expect(week.client.timeTracking.entry({ id: week.id as never })).resolves.toMatchObject({
+    note: "Code review",
+    breaks,
+    // 1:29:20 measured without the Rest Break of 0:15, rounded up to the minute.
+    bookedDuration: 75 * 60,
+  });
 });
 
 test("the week shows an entry at its Rounded Time, and the drawer's fields hold its Measured Time", async () => {
@@ -433,7 +459,11 @@ test("live Time Entries block project deletion and leave Archive available until
   const week = await renderWeek();
   const project = await week.client.projects.create({ title: "Website" });
   for (const note of ["Review", "Implementation"]) {
-    await week.client.timeTracking.create({ ...TIMED, projectId: project.id, note });
+    await week.client.timeTracking.create({
+      ...TIMED,
+      projects: [{ projectId: project.id }],
+      note,
+    });
   }
   const wednesday = "Mittwoch, 18. November 2026";
   await shown(() => expect(rowsOf(wednesday)).toHaveLength(2));
@@ -491,7 +521,10 @@ test("an undo refused because the project was deleted meanwhile names the projec
   // A second entry of a project that is deleted once this entry is gone.
   const project = await week.client.projects.create({ title: "Website" });
   projectId = project.id;
-  await week.client.timeTracking.edit({ id: week.id as never, projectId: projectId as never });
+  await week.client.timeTracking.edit({
+    id: week.id as never,
+    projects: [{ projectId: projectId as never }],
+  });
   await shown(() => expect(drawer().textContent).toContain("Website"));
   button(drawer(), "Delete").click();
   await shown(() => expect(document.querySelector('[role="dialog"]')).toBeNull());
@@ -541,7 +574,9 @@ test("a save that points to a project deleted meanwhile shows the Refusal at the
     expect(drawer().textContent).toContain("The linked project is no longer available."),
   );
   expect(document.querySelector('[role="alert"]')).toBeNull();
-  expect(week.calls).toEqual([{ entry: "edit", input: { id: week.id, projectId } }]);
+  expect(week.calls).toEqual([
+    { entry: "edit", input: { id: week.id, projects: [{ projectId }] } },
+  ]);
 });
 
 test("an entry of an archived project shows it and saves", async () => {
@@ -550,7 +585,10 @@ test("an entry of an archived project shows it and saves", async () => {
     projectId = (await client.projects.create({ title: "Old site" })).id;
     await client.projects.archive({ id: projectId as never });
   });
-  await week.client.timeTracking.edit({ id: week.id as never, projectId: projectId as never });
+  await week.client.timeTracking.edit({
+    id: week.id as never,
+    projects: [{ projectId: projectId as never }],
+  });
   await shown(() =>
     expect(
       [...drawer().querySelectorAll("input")].some((item) => item.value === "Old site (archived)"),

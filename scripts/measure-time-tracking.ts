@@ -83,7 +83,9 @@ export async function withTimeTrackingFixture<Result>(
       await client.create({
         startedAt: new Date(start).toISOString(),
         endedAt: new Date(end).toISOString(),
-        projectId: projectIds[index % 4] ?? null,
+        projects: [projectIds[index % 4]].flatMap((projectId) =>
+          projectId === undefined ? [] : [{ projectId }],
+        ),
         note: "Generated Time Entry",
       });
     }

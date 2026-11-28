@@ -12,13 +12,21 @@ import {
 } from "@self-engine/data-client/testing";
 import type { ProjectReference } from "@self-engine/projects/contracts";
 import { GARDEN, OLD_SITE, projectReference, WEBSITE } from "@self-engine/projects/testing";
-import { dayRangesOf, durationSchema, instantSchema, resolveTimeZone, type TimeZone } from "@self-engine/time";
 import {
+  dayRangesOf,
+  durationSchema,
+  instantSchema,
+  resolveTimeZone,
+  type TimeZone,
+} from "@self-engine/time";
+import {
+  type Break,
   computeTimeEntry,
   DEFAULT_ROUNDING_RULE,
   type RoundingRule,
   daysAnswerSchema,
   daysInputSchema,
+  type TimeEntry,
   type TimeEntryId,
   timeEntryIdSchema,
   type TimeEntryWithProject,
@@ -70,6 +78,8 @@ export function timeEntry(
     readonly note?: string | null;
     /** A rule chosen by hand. */
     readonly rule?: RoundingRule;
+    /** The breaks inside the entry; none without. */
+    readonly breaks?: readonly Break[] | null;
   },
 ): TimeEntryWithProject {
   const startedAt = instantSchema.parse(fields.startedAt);
@@ -77,10 +87,12 @@ export function timeEntry(
   const projects =
     fields.projects ?? (fields.project == null ? [] : [{ project: fields.project, weight: 1 }]);
   const rule = fields.rule ?? DEFAULT_ROUNDING_RULE;
-  const { roundedTime, bookedDuration, projectShares } = computeTimeEntry({
+  const breaks = [...(fields.breaks ?? [])];
+  const { roundedTime, bookedDuration, findings, projectShares } = computeTimeEntry({
     measuredTime: { start: startedAt, end: endedAt },
     timeZone: BERLIN,
     rule,
+    breaks,
     projects,
   });
   return {
@@ -91,8 +103,9 @@ export function timeEntry(
     bookedDuration,
     roundingRule: rule,
     ruleByHand: fields.rule ?? null,
-    findings: [],
-    projectShares: projects.map(({ project, weight }, index) => ({
+    findings: [...findings],
+    breaks,
+    projects: projects.map(({ project, weight }, index) => ({
       projectId: project.id,
       weight,
       projectShare: projectShares[index] ?? durationSchema.parse(0),
@@ -100,6 +113,11 @@ export function timeEntry(
     })),
     note: fields.note ?? null,
   };
+}
+
+/** An entry as an Operation answers it: its projects without their Project References. */
+export function timeEntryAnswer({ projects, ...entry }: TimeEntryWithProject): TimeEntry {
+  return { ...entry, projects: projects.map(({ project: _project, ...share }) => share) };
 }
 
 /** A well-formed Timer id, numbered: what the Data Process would hand out. */
@@ -144,7 +162,7 @@ const SAMPLE = timeEntry(100, {
   startedAt: "2026-11-16T08:00:00.000Z",
   endedAt: "2026-11-16T09:30:00.000Z",
 });
-const SAMPLE_ENTRY = { ...SAMPLE, projectShares: [] };
+const SAMPLE_ENTRY = timeEntryAnswer(SAMPLE);
 
 /** A sample timer, as every timer Operation's Fixed Answer returns it. */
 const SAMPLE_TIMER: Timer = (({ project: _project, ...timer }) => timer)(
@@ -158,6 +176,7 @@ const SAMPLE_TIMER: Timer = (({ project: _project, ...timer }) => timer)(
 export const SUCCEEDING = {
   create: { data: SAMPLE_ENTRY },
   edit: { data: SAMPLE_ENTRY },
+  move: { data: SAMPLE_ENTRY },
   delete: { data: SAMPLE_ENTRY },
   restore: { data: SAMPLE_ENTRY },
   entry: { data: SAMPLE },

@@ -31,8 +31,8 @@ export async function withProjects(
   context: StorageContext,
   row: EntryRow,
 ): Promise<TimeEntryWithProject> {
-  const projectShares = (await projectsOfEntries(tx, context, [row.id])).get(row.id) ?? [];
-  return { ...toTimeEntry(row, projectShares), projectShares };
+  const projects = (await projectsOfEntries(tx, context, [row.id])).get(row.id) ?? [];
+  return { ...toTimeEntry(row, projects), projects };
 }
 
 /**
@@ -51,6 +51,6 @@ export async function listedWithProjects(
   );
   return rows.map((row) => ({
     ...toListedTimeEntry(row),
-    projectShares: shares.get(row.id) ?? [],
+    projects: shares.get(row.id) ?? [],
   }));
 }

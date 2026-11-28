@@ -1,5 +1,6 @@
 import { durationSchema, instantSchema } from "@self-engine/time";
 import { z } from "zod";
+import { BREAK_REASONS, breakSchema } from "./breaks.ts";
 import { timeEntryIdSchema } from "./ids.ts";
 import { projectShareSchema, projectShareWithProjectSchema } from "./project-shares.ts";
 import { roundingRuleSchema } from "./rounding-rule.ts";
@@ -19,6 +20,8 @@ export const TIME_ZONE_UNKNOWN = "time_zone_unknown";
  */
 export const timeEntryFindingSchema = z.discriminatedUnion("reason", [
   z.object({ reason: z.literal(TIME_ZONE_UNKNOWN) }),
+  /** A break that breaks a rule of the breaks, named by its place in the entry's list. */
+  z.object({ reason: z.enum(BREAK_REASONS), breakIndex: z.number().int().nonnegative() }),
 ]);
 export type TimeEntryFinding = z.output<typeof timeEntryFindingSchema>;
 
@@ -44,13 +47,13 @@ export const timeEntrySchema = z.object({
   ruleByHand: roundingRuleSchema.nullable(),
   /** The rules the entry breaks, found on read; empty for an entry that breaks none. */
   findings: z.array(timeEntryFindingSchema),
+  /** The breaks inside the entry, as stored; `null` for a list this version cannot read. */
+  breaks: z.array(breakSchema).nullable(),
   /**
    * The projects the entry counts for, the Lead Project first, each with its Weight and its
    * Project Share; empty for an entry without a project. The shares add up to the Booked Duration.
-   * Its own name beside the input's `projects`: the Operation computes the shares, so the answer
-   * never echoes what an edit sent (ADR 0032).
    */
-  projectShares: z.array(projectShareSchema),
+  projects: z.array(projectShareSchema),
   note: z.string().nullable(),
 });
 export type TimeEntry = z.output<typeof timeEntrySchema>;
@@ -60,17 +63,18 @@ export type TimeEntry = z.output<typeof timeEntrySchema>;
  * An archived or deleted project keeps its marks.
  */
 export const timeEntryWithProjectSchema = timeEntrySchema.extend({
-  projectShares: z.array(projectShareWithProjectSchema),
+  projects: z.array(projectShareWithProjectSchema),
 });
 export type TimeEntryWithProject = z.output<typeof timeEntryWithProjectSchema>;
 
 /**
- * A Time Entry as a list places it: without its rule and its findings, which a list does not
- * show, so a read of many entries parses no rule.
+ * A Time Entry as a list places it: without its rule, its findings and its breaks, which a list
+ * does not show, so a read of many entries parses neither the rule nor the breaks.
  */
 export const listedTimeEntrySchema = timeEntryWithProjectSchema.omit({
   roundingRule: true,
   ruleByHand: true,
   findings: true,
+  breaks: true,
 });
 export type ListedTimeEntry = z.output<typeof listedTimeEntrySchema>;
