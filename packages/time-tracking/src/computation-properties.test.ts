@@ -14,7 +14,7 @@ import {
   computeTimeEntry,
   ORDINARY_ROUNDING_MINUTES,
   ROUNDING_DIRECTIONS,
-} from "./index.ts";
+} from "./contracts/index.ts";
 
 const parameters = { seed: 381128, numRuns: 5000 };
 

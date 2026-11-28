@@ -1,5 +1,9 @@
 import { describe, expect, test } from "vite-plus/test";
-import { DEFAULT_ROUNDING_RULE, type RoundingRule, roundingRuleTextSchema } from "./index.ts";
+import {
+  DEFAULT_ROUNDING_RULE,
+  type RoundingRule,
+  roundingRuleTextSchema,
+} from "./contracts/index.ts";
 
 describe("the stored form of a Rounding Rule", () => {
   test.each<[string, RoundingRule]>([

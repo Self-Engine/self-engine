@@ -8,7 +8,7 @@ import {
 } from "@self-engine/time";
 import { requireInstant } from "@self-engine/time/testing";
 import { describe, expect, test } from "vite-plus/test";
-import { computeTimeEntry, type RoundingRule } from "./index.ts";
+import { computeTimeEntry, type RoundingRule } from "./contracts/index.ts";
 
 const zone = (name: string) => resolveTimeZone(name).timeZone;
 const berlin = zone("Europe/Berlin");
