@@ -22,11 +22,11 @@ D345 rounded each displayed Duration up to a whole minute. Two Time Entries of 4
 - The running Timer uses `hoursMinutesSeconds`, which always includes the seconds part. The
   week continues to display times of day in minutes.
 
-This replaces the duration display rule in point 9 of
-[ADR 0026](0026-five-time-values-each-with-one-stored-form-and-every-conversion-takes-the-time-zone.md)
-and the display rounding described in
+This replaces D345 and the display rounding described in
 [ADR 0038](0038-a-time-entry-keeps-its-instants-booked-duration-and-creation-time-zone.md).
-The other time value, conversion and display decisions in ADR 0026 still apply.
+Point 9 of
+[ADR 0026](0026-five-time-values-each-with-one-stored-form-and-every-conversion-takes-the-time-zone.md)
+names the two formats and now states this rule; that ADR stays in force as a whole.
 
 ## Consequences
 
