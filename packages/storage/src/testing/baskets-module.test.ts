@@ -15,8 +15,8 @@ const [liveNote, deletedNote, liveBasket, item, removedItem, mark, deletedBasket
 ].map((index) => `01a1cfa1-0a00-7000-8000-${String(index).padStart(12, "0")}`);
 
 /**
- * A live basket with an item and one removed from it, a marked note, and a deleted basket with an
- * item.
+ * A live basket with an item and one removed from it, a marked note, a deleted basket with an
+ * item, and a loose item and a mark that name no owner: ordinary rows, live by themselves.
  */
 const seed: Seed<typeof basketsRowMap> = async (tx, context) => {
   const withNotes = tx as never;
@@ -40,6 +40,8 @@ const seed: Seed<typeof basketsRowMap> = async (tx, context) => {
   const gone = await baskets.entries.create.run(tx, context, { title: "Deleted" });
   await baskets.entries.addItem.run(tx, context, { basketId: gone.id, noteId: note.id });
   await baskets.entries.delete.run(tx, context, { id: gone.id });
+  await baskets.entries.addItem.run(tx, context, { basketId: null, noteId: note.id });
+  await baskets.entries.mark.run(tx, context, { noteId: null, label: "Loose" });
 };
 
 const examples = {
@@ -96,7 +98,7 @@ test("the kit fails a Query that reads Part Rows of a deleted owner", async () =
   ]);
 });
 
-test("the kit fails an owner reference the schema does not hold, and a seed without a Part Row", async () => {
+test("the kit fails an owner reference the schema does not hold, and a seed without a Part Row of an owner", async () => {
   const broken = { ...baskets, belongsTo: { note_marks: "label" } } as unknown as typeof baskets;
   await expect(checkContract(broken, seed, examples, {}, [notes])).resolves.toEqual([
     {
@@ -106,8 +108,13 @@ test("the kit fails an owner reference the schema does not hold, and a seed with
   ]);
 
   const empty: Seed<typeof basketsRowMap> = async () => {};
-  await expect(checkContract(baskets, empty, examples, {}, [notes])).resolves.toContainEqual({
-    entry: "belongsTo",
-    rule: "seed has no Part Row of a live owner",
-  });
+  // A row that names no owner is no Part Row.
+  const loose: Seed<typeof basketsRowMap> = async (tx, context) => {
+    await baskets.entries.mark.run(tx, context, { noteId: null, label: "Loose" });
+  };
+  for (const without of [empty, loose])
+    await expect(checkContract(baskets, without, examples, {}, [notes])).resolves.toContainEqual({
+      entry: "belongsTo",
+      rule: "seed has no Part Row of a live owner",
+    });
 });

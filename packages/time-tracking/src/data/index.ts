@@ -26,6 +26,8 @@ export const timeTracking = defineStorageModule({
   contract: timeTrackingContract,
   migrations: timeTrackingMigrations,
   rowMap: timeTrackingRowMap,
+  // A project's Rounding Rules are live only while their project is (ADR 0042, ADR 0044).
+  belongsTo: { rounding_rules: "project_id" },
 }).entries({
   create: {
     kind: "operation",
@@ -35,17 +37,20 @@ export const timeTracking = defineStorageModule({
       // The zone the call computes with, read in its transaction (D342, D353).
       const timeZone = await context.readTimeZone(tx);
       const byHand = input.ruleByHand ?? undefined;
+      const projectId = input.projectId ?? null;
+      const rule =
+        byHand ?? (await ruleThatHolds(tx, context, { projectId, startedAt: input.startedAt }));
       return toTimeEntry(
         await sharedWrites(tx, context).insert("time_entries", context.newId(timeEntryIdSchema), {
           ...roundedColumns({
             startedAt: input.startedAt,
             endedAt: input.endedAt,
             timeZone,
-            rule: byHand ?? ruleThatHolds(),
+            rule,
             ruleChosenByHand: byHand !== undefined,
             breaks: input.breaks ?? [],
           }),
-          project_id: input.projectId ?? null,
+          project_id: projectId,
           note: input.note ?? null,
           time_zone: timeZone,
         }),
@@ -66,16 +71,24 @@ export const timeTracking = defineStorageModule({
       }
       const stored = await writes.lookup("time_entries", id);
       const own = ownRule(stored);
+      // "Look up again" asks for the rule of the entry as it stands after the edit.
+      const start = startedAt ?? stored.started_at;
       const rule =
         ruleByHand === undefined
           ? own
           : ruleByHand === null
-            ? { rule: ruleThatHolds(), ruleChosenByHand: false }
+            ? {
+                rule: await ruleThatHolds(tx, context, {
+                  projectId: projectId === undefined ? stored.project_id : projectId,
+                  startedAt: start,
+                }),
+                ruleChosenByHand: false,
+              }
             : { rule: ruleByHand, ruleChosenByHand: true };
       return toTimeEntry(
         await writes.update("time_entries", id, {
           ...roundedColumns({
-            startedAt: startedAt ?? stored.started_at,
+            startedAt: start,
             endedAt: endedAt ?? stored.ended_at,
             timeZone: stored.time_zone,
             ...rule,

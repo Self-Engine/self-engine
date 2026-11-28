@@ -42,3 +42,21 @@ CREATE INDEX time_entries_project ON time_entries (project_id) WHERE deleted_at 
 -- and cut on the Rounded Time afterwards. The end index keeps recent windows from walking the
 -- older entries that end before them.
 CREATE INDEX time_entries_ended ON time_entries (space_id, ended_at) WHERE deleted_at IS NULL;
+-- The Rounding Rules (ADR 0044, D309): a project's rules are Part Rows of their project, and the
+-- app-wide rule names no project. A rule holds for every entry that starts at or after "holds
+-- from"; a rule without one holds from the beginning. The rule is JSON text in the entry's form.
+CREATE TABLE rounding_rules (
+  id TEXT PRIMARY KEY NOT NULL,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  deleted_at TEXT,
+  space_id TEXT NOT NULL REFERENCES spaces(id) DEFERRABLE INITIALLY DEFERRED,
+  project_id TEXT REFERENCES projects(id) DEFERRABLE INITIALLY DEFERRED,
+  holds_from TEXT,
+  rounding_rule TEXT NOT NULL CHECK (json_valid(rounding_rule))
+) STRICT;
+-- The lookup of a write walks the rules of one project, or the app-wide ones, by "holds from".
+CREATE INDEX rounding_rules_space ON rounding_rules (space_id, project_id, holds_from)
+  WHERE deleted_at IS NULL;
+-- The frame looks the rules up by their project, in every Space (D337, ADR 0042).
+CREATE INDEX rounding_rules_project ON rounding_rules (project_id) WHERE deleted_at IS NULL;

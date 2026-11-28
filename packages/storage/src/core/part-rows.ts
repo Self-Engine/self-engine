@@ -3,11 +3,11 @@ import type { ConventionKey, RowMap, SyncedTable } from "@self-engine/db/schema"
 import type { Expression, ExpressionBuilder, SqlBool } from "kysely";
 
 /**
- * The columns of a row that can name its owner: a reference that always holds a value, so a Part
- * Row never stands without one.
+ * The columns of a row that can name its owner: a reference to one row, which may be empty. A row
+ * that names no owner is an ordinary row, live by itself.
  */
 type OwnerColumn<Row> = {
-  [Column in Exclude<keyof Row, ConventionKey> & string]: Row[Column] extends string
+  [Column in Exclude<keyof Row, ConventionKey> & string]: Row[Column] extends string | null
     ? Column
     : never;
 }[Exclude<keyof Row, ConventionKey> & string];
@@ -98,8 +98,9 @@ export function partRows(
 type Untyped = ExpressionBuilder<Record<string, Record<string, unknown>>, string>;
 
 /**
- * The condition that a Part Row's owner is a Live Row (ADR 0042), for a query over `alias`: one
- * lookup of the owner by primary key. For any other table the caller adds nothing.
+ * The condition that a row of a table of Part Rows counts as live by its owner (ADR 0042), for a
+ * query over `alias`: it names no owner, or its owner is a Live Row, found by one lookup by
+ * primary key. For any other table the caller adds nothing.
  */
 export function ownerIsLive(
   alias: string,
@@ -108,12 +109,15 @@ export function ownerIsLive(
   return (builder) => {
     // The frame names the tables; their convention columns are its own.
     const eb = builder as unknown as Untyped;
-    return eb.exists(
-      eb
-        .selectFrom(`${part.owner} as part_owner`)
-        .select(eb.lit(1).as("one"))
-        .whereRef("part_owner.id", "=", `${alias}.${part.column}`)
-        .where("part_owner.deleted_at", "is", null),
-    );
+    return eb.or([
+      eb(`${alias}.${part.column}`, "is", null),
+      eb.exists(
+        eb
+          .selectFrom(`${part.owner} as part_owner`)
+          .select(eb.lit(1).as("one"))
+          .whereRef("part_owner.id", "=", `${alias}.${part.column}`)
+          .where("part_owner.deleted_at", "is", null),
+      ),
+    ]);
   };
 }

@@ -99,7 +99,7 @@ A stored row that has not been soft-deleted and, if it is a _Part Row_, whose ow
 _Avoid_: active row, undeleted record
 
 **Part Row** (de: _Teilzeile_):
-A row that belongs to another row, its owner, and is a _Live Row_ only while that row is one, such as a Project Share of a Time Entry. Deleting the owner leaves it as it is and hides it, restoring the owner brings it back; deleting the _Part Row_ itself removes it from its owner. The owner may belong to another module, which knows nothing of it.
+A row that belongs to another row, its owner, and is a _Live Row_ only while that row is one, such as a Project Share of a Time Entry. Deleting the owner leaves it as it is and hides it, restoring the owner brings it back; deleting the _Part Row_ itself removes it from its owner. The owner may belong to another module, which knows nothing of it. A row of the same table that names no owner, such as the app-wide _Rounding Rule_, is an ordinary row.
 _Avoid_: child row, detail row, sub-record, cascade
 
 **Archive** (de: _Archivieren_):
@@ -342,7 +342,7 @@ The start and end where a _Time Entry_ counts, made from its _Measured Time_ by 
 _Avoid_: display time, billed time
 
 **Rounding Rule** (de: _Rundungsregel_):
-What makes the _Rounded Time_ and the _Booked Duration_ of a _Time Entry_ from its _Measured Time_: _Exact_, _Ordinary Rounding_ or _Block Rounding_. The default rounds up to 1 minute.
+What makes the _Rounded Time_ and the _Booked Duration_ of a _Time Entry_ from its _Measured Time_: _Exact_, _Ordinary Rounding_ or _Block Rounding_. A project has its own rules and the app one of its own, each holding from an Instant; an entry gets the rule that held at its start. The default rounds up to 1 minute.
 _Avoid_: rounding mode, rounding setting, precision
 
 **Exact** (de: _sekundengenau_):

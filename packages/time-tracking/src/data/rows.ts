@@ -8,6 +8,7 @@ import {
   breakFindings,
   breaksTextSchema,
   type ListedTimeEntry,
+  roundingRuleIdSchema,
   roundingRuleTextSchema,
   type TimeEntry,
   timeEntryIdSchema,
@@ -45,6 +46,18 @@ export const timeTrackingRowMap = {
     breaks: z.string(),
     // The stored name, as chosen; a later runtime may not know it, so it is no `TimeZone`.
     time_zone: z.string(),
+  }),
+  // A project's rules are Part Rows of their project; the app-wide rule names none (ADR 0044).
+  rounding_rules: z.object({
+    id: roundingRuleIdSchema,
+    created_at: instantSchema,
+    updated_at: instantSchema,
+    deleted_at: instantSchema.nullable(),
+    space_id: spaceIdSchema,
+    project_id: projectIdSchema.nullable(),
+    holds_from: instantSchema.nullable(),
+    // The stored text, read with `roundingRuleTextSchema`, as on the entry.
+    rounding_rule: z.string(),
   }),
   timers: z.object({
     id: timerIdSchema,
