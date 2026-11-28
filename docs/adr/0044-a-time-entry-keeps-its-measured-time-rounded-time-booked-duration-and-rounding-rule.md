@@ -271,9 +271,10 @@ entry over its days.
 ### The display
 
 The week shows the Rounded Time of an entry as its times of day, in minutes; an entry without one
-shows its Measured Time. It shows the mark of the Lead Project, and the Edit Drawer's project
-field shows and sends the list as one project; an edit of other fields leaves an entry's
-several projects as they are. The fields of the Edit Drawer hold the Measured Time, and the duration
+shows its Measured Time. It shows the mark of the Lead Project. The Edit Drawer's project field
+changes the Lead Project and leaves the other projects alone: a new project takes the place and
+the Weight of the first, a further project moves to the front, and clearing removes the first
+only. An edit of other fields sends no projects. The fields of the Edit Drawer hold the Measured Time, and the duration
 beneath them is the measured one. Durations follow
 [ADR 0043](0043-a-duration-shows-seconds-exactly-when-it-has-some.md).
 

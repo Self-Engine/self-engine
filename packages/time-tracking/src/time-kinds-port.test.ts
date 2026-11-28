@@ -289,7 +289,6 @@ describe("the Time Kind of an edit", () => {
     expect(
       await errorOf(client.timeTracking.edit({ id: withBreak.id, timeKind: "rest_break" })),
     ).toMatchObject(refusedAt("breaks", NOT_WORK_HAS_BREAKS));
-
   });
 
   test("from Work to one that is not work it takes the app-wide rule that held at its start and loses the mark 'chosen by hand'; back to Work it keeps that rule", async () => {

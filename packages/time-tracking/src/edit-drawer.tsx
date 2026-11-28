@@ -3,7 +3,6 @@ import { Trans, useLingui } from "@lingui/react/macro";
 import { Button } from "@mantine/core";
 import { useWithUndo } from "@self-engine/data-client/react";
 import {
-  type DraftOfEntry,
   EditDrawerForm,
   LongTextField,
   type OperationForm,
@@ -32,6 +31,7 @@ import {
   timeTrackingContract,
 } from "./contracts/index.ts";
 import { NEW_ENTRY, NEW_ENTRY_ON } from "./entry-address.ts";
+import type { EntryDraft } from "./entry-draft.ts";
 import { LeadProjectField } from "./lead-project-field.tsx";
 import {
   type TimeEntryWithProject,
@@ -257,20 +257,6 @@ function EditForm({
     />
   );
 }
-
-/**
- * The fields create and edit share, from the one Field List (ADR 0032). The input of create is
- * either shape; the projects of an entry that is not work are only ever the empty list.
- */
-type EntryDraft = Pick<
-  DraftOfEntry<typeof timeTrackingContract.edit>,
-  "startedAt" | "endedAt" | "note"
-> & {
-  readonly projects:
-    | readonly { readonly projectId: string; readonly weight?: number | undefined }[]
-    | null
-    | undefined;
-};
 
 /**
  * Date, start and end in the Time Zone of the Setting, with the duration that really passed below

@@ -662,6 +662,67 @@ test("an entry of an archived project shows it and saves", async () => {
   expect(week.calls).toEqual([{ entry: "edit", input: { id: week.id, note: "Handover" } }]);
 });
 
+/** A stored entry with three projects, Website (Weight 2), Shop (1) and Blog (3), in its drawer. */
+async function openWithThreeProjects() {
+  const ids: Record<string, string> = {};
+  const week = await openStored({}, async (client) => {
+    for (const title of ["Website", "Shop", "Blog", "Other"])
+      ids[title] = (await client.projects.create({ title })).id;
+  });
+  const projects = [
+    { projectId: ids["Website"]!, weight: 2 },
+    { projectId: ids["Shop"]!, weight: 1 },
+    { projectId: ids["Blog"]!, weight: 3 },
+  ];
+  await week.client.timeTracking.edit({ id: week.id as never, projects: projects as never });
+  await shown(() =>
+    expect([...drawer().querySelectorAll("input")].some((item) => item.value === "Website")).toBe(
+      true,
+    ),
+  );
+  return { ...week, ids, projects };
+}
+
+test("saving another field of an entry with several projects sends no projects and keeps them", async () => {
+  const week = await openWithThreeProjects();
+  setValue(note(), "Code review");
+  await shown(() => expect(button(drawer(), "Save").disabled).toBe(false));
+  button(drawer(), "Save").click();
+
+  await shown(() => expect(document.querySelector('[role="dialog"]')).toBeNull());
+  expect(week.calls).toEqual([{ entry: "edit", input: { id: week.id, note: "Code review" } }]);
+  await expect(week.client.timeTracking.entry({ id: week.id as never })).resolves.toMatchObject({
+    projects: week.projects,
+  });
+});
+
+test("choosing a further project in the picker moves it to the front and keeps the others in order", async () => {
+  const week = await openWithThreeProjects();
+  await pick("Shop");
+  button(drawer(), "Save").click();
+
+  await shown(() => expect(document.querySelector('[role="dialog"]')).toBeNull());
+  const [website, shop, blog] = week.projects;
+  expect(week.calls).toEqual([
+    { entry: "edit", input: { id: week.id, projects: [shop, website, blog] } },
+  ]);
+});
+
+test("choosing another project in the picker replaces the Lead Project and keeps its Weight and the rest", async () => {
+  const week = await openWithThreeProjects();
+  await pick("Other");
+  button(drawer(), "Save").click();
+
+  await shown(() => expect(document.querySelector('[role="dialog"]')).toBeNull());
+  const [, shop, blog] = week.projects;
+  expect(week.calls).toEqual([
+    {
+      entry: "edit",
+      input: { id: week.id, projects: [{ projectId: week.ids["Other"], weight: 2 }, shop, blog] },
+    },
+  ]);
+});
+
 const inputCommand = contribution.commands?.find((command) => command.kind === "input");
 
 test("the input Command creates an entry without the form, and it appears in the week", async () => {
