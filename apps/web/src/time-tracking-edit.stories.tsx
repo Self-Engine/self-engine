@@ -197,6 +197,7 @@ export const ANewEntryOpensOnTheClickedDayAndAppearsThere: Story = {
       {
         entry: "create",
         input: {
+          timeKind: "work",
           startedAt: "2026-11-18T13:00:00.000Z",
           endedAt: "2026-11-18T14:30:00.000Z",
           projects: [],
@@ -229,6 +230,7 @@ export const AnEndTimeNotAfterTheStartLiesOnTheNextDay: Story = {
       {
         entry: "create",
         input: {
+          timeKind: "work",
           startedAt: "2026-11-18T21:00:00.000Z",
           endedAt: "2026-11-19T00:30:00.000Z",
           projects: [],
