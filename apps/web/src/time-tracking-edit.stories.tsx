@@ -312,9 +312,10 @@ export const ASaveToAProjectDeletedMeanwhileShowsTheRefusalAtTheProject: Story =
       edit: {
         refused: [
           {
+            // The frame refuses the new share at its column.
             code: "target_deleted",
-            table: "time_entries",
-            row: SAMPLE_WEEK.emails.id,
+            table: "project_shares",
+            row: "01a1cfa1-0f00-7000-8000-000000000001",
             field: "project_id",
             details: { target: { table: "projects", id: WEBSITE.id } },
           },
