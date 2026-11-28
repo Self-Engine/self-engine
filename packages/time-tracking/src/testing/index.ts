@@ -26,11 +26,13 @@ import {
   type RoundingRule,
   daysAnswerSchema,
   daysInputSchema,
+  type ListedTimeEntry,
   type TimeEntry,
   type TimeEntryId,
   timeEntryIdSchema,
   type TimeEntryWithProject,
   timeEntryWithProjectSchema,
+  type TimeKind,
   type Timer,
   type TimerId,
   timerIdSchema,
@@ -66,11 +68,15 @@ export function sampleTimeEntryId(index: number): TimeEntryId {
  * with `rule` in Berlin (default: the built-in "round up to 1 minute", not chosen by hand).
  * Without a project unless `project` names one (`projectReference` of
  * `@self-engine/projects/testing`), or `projects` names several with their Weights, the Lead
- * Project first; the Project Shares divide as the Operation divides.
+ * Project first; the Project Shares divide as the Operation divides. A Work Entry unless
+ * `timeKind` names another kind; an entry that is not work takes no project, breaks or rule.
  */
 export function timeEntry(
   index: number,
   fields: {
+    readonly timeKind?: TimeKind;
+    /** The mark "changed by the limit" of a Rest Break entry. */
+    readonly changedByLimit?: boolean;
     readonly startedAt: string;
     readonly endedAt: string;
     readonly project?: ProjectReference | null;
@@ -84,27 +90,36 @@ export function timeEntry(
 ): TimeEntryWithProject {
   const startedAt = instantSchema.parse(fields.startedAt);
   const endedAt = instantSchema.parse(fields.endedAt);
+  const timeKind = fields.timeKind ?? "work";
   const projects =
     fields.projects ?? (fields.project == null ? [] : [{ project: fields.project, weight: 1 }]);
   const rule = fields.rule ?? DEFAULT_ROUNDING_RULE;
   const breaks = [...(fields.breaks ?? [])];
   const { roundedTime, bookedDuration, findings, projectShares } = computeTimeEntry({
-    timeKind: "work",
+    timeKind,
     measuredTime: { start: startedAt, end: endedAt },
     timeZone: BERLIN,
     rule,
     breaks,
     projects,
   });
-  return {
+  const entry = {
     id: sampleTimeEntryId(index),
     startedAt,
     endedAt,
     roundedTime,
     bookedDuration,
+    findings: [...findings],
+    note: fields.note ?? null,
+  };
+  if (timeKind === "rest_break")
+    return { timeKind, ...entry, changedByLimit: fields.changedByLimit ?? false };
+  if (timeKind !== "work") return { timeKind, ...entry };
+  return {
+    timeKind,
+    ...entry,
     roundingRule: rule,
     ruleByHand: fields.rule ?? null,
-    findings: [...findings],
     breaks,
     projects: projects.map(({ project, weight }, index) => ({
       projectId: project.id,
@@ -112,13 +127,22 @@ export function timeEntry(
       projectShare: projectShares[index] ?? durationSchema.parse(0),
       project,
     })),
-    note: fields.note ?? null,
   };
 }
 
 /** An entry as an Operation answers it: its projects without their Project References. */
-export function timeEntryAnswer({ projects, ...entry }: TimeEntryWithProject): TimeEntry {
-  return { ...entry, projects: projects.map(({ project: _project, ...share }) => share) };
+export function timeEntryAnswer(entry: TimeEntryWithProject): TimeEntry {
+  if (entry.timeKind !== "work") return entry;
+  const { projects, ...work } = entry;
+  return { ...work, projects: projects.map(({ project: _project, ...share }) => share) };
+}
+
+/** An entry as a list holds it: without its rule, its findings, its breaks and a Rest Break's mark. */
+export function listedTimeEntry(entry: TimeEntryWithProject): ListedTimeEntry {
+  const { id, startedAt, endedAt, roundedTime, bookedDuration, note } = entry;
+  const listed = { id, startedAt, endedAt, roundedTime, bookedDuration, note };
+  if (entry.timeKind === "work") return { timeKind: "work", ...listed, projects: entry.projects };
+  return { timeKind: entry.timeKind, ...listed };
 }
 
 /** A well-formed Timer id, numbered: what the Data Process would hand out. */
@@ -236,10 +260,9 @@ export function timeTrackingAnswers(
       const { span, filter } = daysInputSchema.parse(input);
       // `groupDays` places the entries by their Rounded Times and cuts them exactly, as the Data
       // Process does after its window.
-      const listed = entries.map(
-        ({ roundingRule: _rule, ruleByHand: _byHand, findings: _findings, ...entry }) => entry,
+      return daysAnswerSchema.parse(
+        groupDays(dayRangesOf(span, timeZone), entries.map(listedTimeEntry), filter),
       );
-      return daysAnswerSchema.parse(groupDays(dayRangesOf(span, timeZone), listed, filter));
     },
   };
 }
@@ -369,3 +392,11 @@ export const SAMPLE_WEEK = {
 
 /** The entries of the sample week, as a story's Port stores them. */
 export const SAMPLE_WEEK_ENTRIES: readonly TimeEntryWithProject[] = Object.values(SAMPLE_WEEK);
+
+/** The entry as the Work Entry a test expects it to be; throws for an entry that is not work. */
+export function asWorkEntry<Entry extends { readonly timeKind: string }>(
+  entry: Entry,
+): Extract<Entry, { readonly timeKind: "work" }> {
+  if (entry.timeKind !== "work") throw new Error(`Expected a Work Entry, got ${entry.timeKind}`);
+  return entry as Extract<Entry, { readonly timeKind: "work" }>;
+}

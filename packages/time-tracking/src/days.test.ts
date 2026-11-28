@@ -16,6 +16,7 @@ import { TIME_ZONE_SETTING, WEEK_START_SETTING } from "@self-engine/time/setting
 import { afterEach, expect, test } from "vite-plus/test";
 import type { DaysInput } from "./contracts/index.ts";
 import { timeTracking } from "./data/index.ts";
+import { asWorkEntry } from "./testing/index.ts";
 
 const started: TestDataProcess[] = [];
 afterEach(async () => {
@@ -54,13 +55,16 @@ async function errorOf(call: Promise<unknown>) {
 }
 
 /** An entry as a list answers it: without its rule, its findings and its breaks. */
-const listed = ({
-  roundingRule: _rule,
-  ruleByHand: _byHand,
-  findings: _findings,
-  breaks: _breaks,
-  ...entry
-}: Awaited<ReturnType<TimeTrackingClient["timeTracking"]["create"]>>) => entry;
+const listed = (created: Awaited<ReturnType<TimeTrackingClient["timeTracking"]["create"]>>) => {
+  const {
+    roundingRule: _rule,
+    ruleByHand: _byHand,
+    findings: _findings,
+    breaks: _breaks,
+    ...entry
+  } = asWorkEntry(created);
+  return entry;
+};
 const hours = (count: number) => count * 3600;
 const LAST_WEEK = { first: "2026-11-09", last: "2026-11-15" };
 const THIS_WEEK = { first: "2026-11-16", last: "2026-11-22" };
@@ -310,10 +314,9 @@ test("the sums per day, per project and in total match the entries; no project h
     { project: null, total: hours(0.5) },
   ]);
   expect(answer.total).toBe(hours(7.5));
-  expect(answer.days[1]?.entries.map((entry) => entry.projects[0]?.project.title ?? null)).toEqual([
-    "Website",
-    "Shop",
-  ]);
+  expect(
+    answer.days[1]?.entries.map((entry) => asWorkEntry(entry).projects[0]?.project.title ?? null),
+  ).toEqual(["Website", "Shop"]);
 });
 
 test("intersecting entries are both marked and count in full in the day and week", async () => {

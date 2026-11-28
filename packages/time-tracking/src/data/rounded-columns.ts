@@ -10,11 +10,14 @@ import { type Instant, wholeSecondOf } from "@self-engine/time";
 import {
   type Break,
   breaksTextSchema,
+  type ComputationFinding,
   onWholeSeconds,
   computeTimeEntry,
   DEFAULT_ROUNDING_RULE,
+  NOT_WORK_HAS_BREAKS,
   type RoundingRule,
   roundingRuleTextSchema,
+  type TimeKind,
 } from "../contracts/index.ts";
 import { entryTimeZone } from "./entry-time-zone.ts";
 import type { timeTrackingRowMap } from "./rows.ts";
@@ -23,6 +26,10 @@ type Tables = TablesOf<typeof timeTrackingRowMap>;
 
 /** What a write of a Time Entry computes with: never a Rounded Time or a Booked Duration. */
 export interface EntryComputation {
+  /** The entry's Time Kind: a Work Entry, or an entry that is not work, without breaks and projects. */
+  readonly timeKind: TimeKind;
+  /** The mark "changed by the limit" of a Rest Break entry; off without one. */
+  readonly changedByLimit?: boolean;
   readonly startedAt: Instant;
   readonly endedAt: Instant;
   /** The entry's rule: chosen by hand, its own one on an edit, or the rule that holds. */
@@ -102,8 +109,9 @@ export async function ruleThatHolds(
 /**
  * The columns of the Measured Time, the Rounded Time, the Booked Duration and the rule, the one
  * place that computes them (ADR 0044): both measured Instants cut to the whole second, then
- * `computeTimeEntry` with the entry's rule in the entry's Time Zone. Every write of a Time Entry
- * takes all of them from here. The breaks are stored on whole seconds too, and a break that breaks
+ * `computeTimeEntry` with the entry's Time Kind and rule in the entry's Time Zone. Every write of a
+ * Time Entry takes all of them from here. Breaks or projects on an entry that is not work refuse
+ * the write at that field. The breaks are stored on whole seconds too, and a break that breaks
  * a rule refuses the write with its Reason at that break (ADR 0040): nothing changes a break on
  * its own. The Project Shares of its projects come beside the columns, in their order.
  */
@@ -113,7 +121,7 @@ export function roundedColumns(entry: EntryComputation) {
   const { rule } = entry;
   const breaks = entry.breaks.map(onWholeSeconds);
   const { roundedTime, bookedDuration, findings, projectShares } = computeTimeEntry({
-    timeKind: "work",
+    timeKind: entry.timeKind,
     measuredTime: { start: started_at, end: ended_at },
     timeZone: entryTimeZone(entry.timeZone).timeZone,
     rule,
@@ -121,8 +129,9 @@ export function roundedColumns(entry: EntryComputation) {
     projects: entry.projects,
   });
   const [first] = findings;
-  if (first !== undefined) throw inputError(["breaks", first.breakIndex], first.reason);
+  if (first !== undefined) throw inputError(pathOf(first), first.reason);
   const columns = {
+    time_kind: entry.timeKind,
     started_at,
     ended_at,
     rounded_started_at: roundedTime?.start ?? null,
@@ -131,6 +140,13 @@ export function roundedColumns(entry: EntryComputation) {
     rounding_rule: roundingRuleTextSchema.encode(rule),
     rule_chosen_by_hand: entry.ruleChosenByHand ? (1 as const) : (0 as const),
     breaks: breaksTextSchema.encode(breaks),
+    changed_by_limit: entry.changedByLimit === true ? (1 as const) : (0 as const),
   };
   return { columns, projectShares };
+}
+
+/** Where a finding refuses a write: at its break, or at the breaks or projects it names. */
+function pathOf(finding: ComputationFinding): (string | number)[] {
+  if ("breakIndex" in finding) return ["breaks", finding.breakIndex];
+  return [finding.reason === NOT_WORK_HAS_BREAKS ? "breaks" : "projects"];
 }

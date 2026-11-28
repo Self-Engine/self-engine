@@ -110,6 +110,18 @@ msgstr "Eine Pause muss mindestens eine Sekunde lang sein."
 msgid "A break must lie after the start of the time entry and before its end."
 msgstr "Eine Pause muss nach dem Beginn des Zeiteintrags und vor seinem Ende liegen."
 
+#: packages/time-tracking/src/edit-drawer.tsx
+msgid "A break or leisure has no breaks inside it."
+msgstr "Eine Pause oder Freizeit enthält keine Pausen."
+
+#: packages/time-tracking/src/edit-drawer.tsx
+msgid "A break or leisure has no project."
+msgstr "Eine Pause oder Freizeit hat kein Projekt."
+
+#: packages/time-tracking/src/edit-drawer.tsx
+msgid "A break or leisure is rounded by the rule for the whole app."
+msgstr "Eine Pause oder Freizeit wird nach der Regel für die ganze App gerundet."
+
 #: apps/web/src/data-connection-states.tsx
 msgid "A newer version already applied the update {migration}, which this version does not know. Open your data with the newer version."
 msgstr "Eine neuere Version hat bereits das Update {migration} angewendet, das diese Version nicht kennt. Öffne deine Daten mit der neueren Version."

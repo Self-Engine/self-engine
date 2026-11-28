@@ -237,7 +237,13 @@ test("a Rest Break never takes more work time than its own length", () => {
       const rests = breaks.filter((stretch) => stretch.timeKind === "rest_break");
       fc.pre(rests.length > 0);
       const compute = (list: readonly Break[], chosen = rule) =>
-        computeTimeEntry({ timeKind: "work", measuredTime: measured, timeZone: zone, rule: chosen, breaks: list });
+        computeTimeEntry({
+          timeKind: "work",
+          measuredTime: measured,
+          timeZone: zone,
+          rule: chosen,
+          breaks: list,
+        });
       expect(compute(breaks).findings).toEqual([]);
       // Each Rest Break in turn as a Short Break, the others as they are.
       for (const rest of rests) {

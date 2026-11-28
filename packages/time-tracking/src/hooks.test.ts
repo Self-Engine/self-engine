@@ -15,6 +15,7 @@ import { createElement, type ReactNode } from "react";
 import { createRoot } from "react-dom/client";
 import { afterEach, expect, test } from "vite-plus/test";
 import { timeTracking } from "./data/index.ts";
+import { asWorkEntry } from "./testing/index.ts";
 import { useSpanDays } from "./port.ts";
 
 declare global {
@@ -134,7 +135,7 @@ test("an entry created, edited, deleted and restored through the Port follows in
       (days) => days.status === "content" && days.data.projects[0]?.project?.title === "Shop",
     ),
   );
-  expect(renamed?.days[2]?.entries[0]?.projects[0]?.project.title).toBe("Shop");
+  expect(asWorkEntry(renamed!.days[2]!.entries[0]!).projects[0]?.project.title).toBe("Shop");
 
   // 22:00 to 23:00 on Wednesday alone: the entry no longer crosses midnight.
   await week.call("timeTracking", "edit", {

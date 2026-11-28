@@ -108,6 +108,7 @@ test("time-tracking passes the storage contract kit with `projects` below it", a
         },
         edit: {
           id: entryId,
+          timeKind: "work",
           startedAt: "2026-11-16T11:00:00.000Z",
           endedAt: "2026-11-16T12:00:00.000Z",
           projects: [{ projectId, weight: 3 }],

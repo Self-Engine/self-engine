@@ -26,6 +26,7 @@ import { timeTracking } from "./data/index.ts";
  * its Rounded Time and Booked Duration, with that rule, not chosen by hand.
  */
 const countedByDefault = (start: string, end: string, bookedDuration: number) => ({
+  timeKind: "work",
   roundedTime: { start, end },
   bookedDuration,
   roundingRule: { kind: "ordinary", direction: "up", minutes: 1 },

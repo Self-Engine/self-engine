@@ -32,7 +32,8 @@ export async function withProjects(
   row: EntryRow,
 ): Promise<TimeEntryWithProject> {
   const projects = (await projectsOfEntries(tx, context, [row.id])).get(row.id) ?? [];
-  return { ...toTimeEntry(row, projects), projects };
+  const entry = toTimeEntry(row, projects);
+  return entry.timeKind === "work" ? { ...entry, projects } : entry;
 }
 
 /**
@@ -49,8 +50,5 @@ export async function listedWithProjects(
     context,
     rows.map(({ id }) => id),
   );
-  return rows.map((row) => ({
-    ...toListedTimeEntry(row),
-    projects: shares.get(row.id) ?? [],
-  }));
+  return rows.map((row) => toListedTimeEntry(row, shares.get(row.id) ?? []));
 }

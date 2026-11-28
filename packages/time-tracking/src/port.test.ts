@@ -87,9 +87,29 @@ test("validated edits carry both Instants or neither, and Operation answers keep
     startedAt: Instant;
     endedAt: Instant;
   }>();
-  expectTypeOf<
-    Outputs["edit" | "delete" | "restore"]["projects"][number]["projectId"]
-  >().toEqualTypeOf<ProjectId>();
+  type Work = Extract<Outputs["edit" | "delete" | "restore"], { timeKind: "work" }>;
+  expectTypeOf<Work["projects"][number]["projectId"]>().toEqualTypeOf<ProjectId>();
+});
+
+test("a Time Entry is a union of two shapes: the projects and breaks of an entry that is not work do not compile", () => {
+  type Outputs = InferContractRouterOutputs<typeof timeTrackingContract>;
+  const read = (entry: Outputs["create"]) => {
+    // @ts-expect-error Only a Work Entry has projects.
+    const projects: unknown = entry.projects;
+    // @ts-expect-error Only a Work Entry has breaks.
+    const breaks: unknown = entry.breaks;
+    if (entry.timeKind !== "work") {
+      // @ts-expect-error An entry that is not work has no projects.
+      const none: unknown = entry.projects;
+      return [projects, breaks, none];
+    }
+    // Once it is known to be work, both read.
+    return [entry.projects.length, entry.breaks?.length];
+  };
+  expectTypeOf(read).toBeFunction();
+  expectTypeOf<Exclude<Outputs["entry"], null>["timeKind"]>().toEqualTypeOf<
+    "work" | "short_break" | "rest_break" | "leisure"
+  >();
 });
 
 test("editing only the note preserves both Instants, the Booked Duration and the creation Time Zone", async () => {
@@ -334,6 +354,7 @@ test("create answers with the entry, and the Query returns it with its Project R
 
   expect(created).toEqual({
     id: expect.any(String),
+    timeKind: "work",
     startedAt: START,
     endedAt: END,
     roundedTime: { start: START, end: END },

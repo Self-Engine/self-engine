@@ -189,7 +189,7 @@ export const ProjectTableChangesUpdateTheGroupAndKeepTheArchivedFilter: Story = 
     const archived = { ...renamed, archivedAt: "2026-11-27T10:00:00.000Z" };
     const entriesWith = (project: typeof GARDEN) =>
       ENTRIES.map((entry) =>
-        entry.projects[0]?.projectId === project.id
+        entry.timeKind === "work" && entry.projects[0]?.projectId === project.id
           ? {
               ...entry,
               projects: entry.projects.map((share) => ({

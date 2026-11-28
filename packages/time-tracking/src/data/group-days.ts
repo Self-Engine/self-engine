@@ -2,7 +2,14 @@
 // sums out. Pure, so the Query and the Fixed Answers of the stories group alike.
 import type { ProjectReference } from "@self-engine/projects/contracts";
 import { type DayRange, durationSchema, type Instant, type InstantRange } from "@self-engine/time";
-import type { DayEntry, DaysAnswer, ListedTimeEntry, TimeEntryFilter } from "../contracts/index.ts";
+import {
+  type DayEntry,
+  type DaysAnswer,
+  type ListedTimeEntry,
+  projectsOfListed,
+  type TimeEntryFilter,
+  timeKindCounts,
+} from "../contracts/index.ts";
 import { dayShares } from "./day-shares.ts";
 
 /** Sums in whole seconds, keyed by project id; `null` is "no project". */
@@ -45,11 +52,17 @@ function placeOf(entry: ListedTimeEntry): InstantRange {
 
 /**
  * The Day Shares of an entry in `days`; one without a Rounded Time has 0:00 on its start's day.
- * An entry on one day has its Booked Duration there, which leaves out its Rest Breaks.
+ * An entry on one day has its Booked Duration there, which leaves out its Rest Breaks. A Rest
+ * Break entry and Leisure count nothing on any day.
  */
 function sharesOf(entry: ListedTimeEntry, days: readonly DayRange[]) {
   if (entry.roundedTime !== null) {
     const cut = dayShares(entry.roundedTime, days);
+    if (cut.crossesMidnight && !timeKindCounts(entry.timeKind))
+      return {
+        shares: cut.shares.map((share) => ({ ...share, seconds: durationSchema.parse(0) })),
+        crossesMidnight: true,
+      };
     if (cut.crossesMidnight) return cut;
     return {
       shares: cut.shares.map((share) => ({ ...share, seconds: entry.bookedDuration })),
@@ -70,7 +83,8 @@ function sharesOf(entry: ListedTimeEntry, days: readonly DayRange[]) {
  * Project the rest, so the parts add up to the Day Share and none is below zero.
  */
 function projectPartsOf(entry: ListedTimeEntry, dayShare: number): number[] {
-  const { projects, bookedDuration } = entry;
+  const projects = projectsOfListed(entry);
+  const { bookedDuration } = entry;
   if (dayShare === bookedDuration) return projects.map(({ projectShare }) => projectShare);
   const further = projects
     .slice(1)
@@ -85,7 +99,8 @@ function projectPartsOf(entry: ListedTimeEntry, dayShare: number): number[] {
  * Rounded Times; an entry without one overlaps nothing. Only the Day Shares of visible entries
  * inside the span contribute to the sums. The sums per project read the Project Shares; under a
  * project filter every sum counts that project's part, and "no project" holds the entries without
- * a share.
+ * a share. An entry that is not work has no project: a Short Break entry counts toward the day
+ * and "no project", a Rest Break entry and Leisure toward no sum.
  */
 export function groupDays(
   days: readonly DayRange[],
@@ -103,12 +118,13 @@ export function groupDays(
   const projects = new ProjectSums();
   let total = 0;
   for (const entry of entries) {
+    const shared = projectsOfListed(entry);
     const only =
       filter?.kind === "project"
-        ? entry.projects.findIndex(({ projectId }) => projectId === filter.projectId)
+        ? shared.findIndex(({ projectId }) => projectId === filter.projectId)
         : undefined;
     if (only === -1) continue;
-    if (filter?.kind === "noProject" && entry.projects.length > 0) continue;
+    if (filter?.kind === "noProject" && shared.length > 0) continue;
 
     const { shares, crossesMidnight } = sharesOf(entry, days);
     for (const share of shares) {
@@ -122,8 +138,8 @@ export function groupDays(
         overlaps: overlaps.has(entry.id),
       });
       const parts = projectPartsOf(entry, share.seconds);
-      if (entry.projects.length === 0) projects.add(null, share.seconds);
-      for (const [index, { project }] of entry.projects.entries())
+      if (shared.length === 0 && timeKindCounts(entry.timeKind)) projects.add(null, share.seconds);
+      for (const [index, { project }] of shared.entries())
         if (only === undefined || only === index) projects.add(project, parts[index] ?? 0);
       const counted = only === undefined ? share.seconds : (parts[only] ?? 0);
       day.seconds += counted;

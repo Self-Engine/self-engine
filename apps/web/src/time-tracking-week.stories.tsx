@@ -10,6 +10,7 @@ import { type Clock, type Instant, resolveTimeZone } from "@self-engine/time";
 import { TIME_ZONE_SETTING, WEEK_START_SETTING } from "@self-engine/time/settings";
 import { fixedClock, requireInstant } from "@self-engine/time/testing";
 import {
+  asWorkEntry,
   SAMPLE_WEEK,
   SAMPLE_WEEK_ENTRIES,
   type StoredTimeEntries,
@@ -183,7 +184,7 @@ export const AnEntryAcrossMidnightLiesOnBothDaysWithItsShareAndAMark: Story = {
         timeEntry(6, {
           startedAt: "2026-11-19T21:00:10.000Z",
           endedAt: "2026-11-20T00:30:10.000Z",
-          project: SAMPLE_WEEK.release.projects[0]?.project ?? null,
+          project: asWorkEntry(SAMPLE_WEEK.release).projects[0]?.project ?? null,
           note: "Release",
         }),
         SAMPLE_WEEK.handover,
@@ -207,6 +208,47 @@ export const AnEntryAcrossMidnightLiesOnBothDaysWithItsShareAndAMark: Story = {
         await expect(within(handover).queryByRole("img", { name: "Crosses midnight" })).toBeNull();
       }
     }
+  },
+};
+
+export const ABreakEntryAndALeisureEntryShowLikeAnyOtherAndCountByTheirKind: Story = {
+  args: {
+    stored: {
+      entries: [
+        SAMPLE_WEEK.handover,
+        // Friday 10:00:00 to 10:14:50: a Short Break counts, toward the day and no project.
+        timeEntry(10, {
+          timeKind: "short_break",
+          startedAt: "2026-11-20T09:00:00.000Z",
+          endedAt: "2026-11-20T09:14:50.000Z",
+          note: "Coffee",
+        }),
+        // Friday 12:00 to 12:30: a Rest Break counts nothing.
+        timeEntry(11, {
+          timeKind: "rest_break",
+          startedAt: "2026-11-20T11:00:00.000Z",
+          endedAt: "2026-11-20T11:30:00.000Z",
+          note: "Lunch",
+        }),
+        // The rounding resolution's Leisure Entry, 14:00:10 to 16:44:20: 14:00 to 16:45, nothing.
+        timeEntry(12, {
+          timeKind: "leisure",
+          startedAt: "2026-11-20T13:00:10.000Z",
+          endedAt: "2026-11-20T15:44:20.000Z",
+          note: "Afternoon off",
+        }),
+      ],
+    },
+  },
+  play: async ({ canvas }) => {
+    await expect(await rowsOf(canvas, "Friday, November 20, 2026")).toEqual([
+      "9:00 AM – 10:00 AMOld siteHandover1:00",
+      "10:00 AM – 10:15 AMNo projectCoffee0:15",
+      "12:00 PM – 12:30 PMNo projectLunch0:00",
+      "2:00 PM – 4:45 PMNo projectAfternoon off0:00",
+    ]);
+    await expect((await dayTotals(canvas))[4]).toBe("1:15");
+    await expect(await projectSums(canvas)).toEqual(["Old site1:00", "No project0:15"]);
   },
 };
 

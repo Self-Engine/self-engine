@@ -8,12 +8,14 @@ import {
   breakFindings,
   breaksTextSchema,
   type ListedTimeEntry,
+  notWorkFindings,
   type ProjectShare,
   projectShareIdSchema,
   roundingRuleIdSchema,
   roundingRuleTextSchema,
   type TimeEntry,
   timeEntryIdSchema,
+  timeKindSchema,
   type Timer,
   timerIdSchema,
 } from "../contracts/index.ts";
@@ -32,6 +34,7 @@ export const timeTrackingRowMap = {
     updated_at: instantSchema,
     deleted_at: instantSchema.nullable(),
     space_id: spaceIdSchema,
+    time_kind: timeKindSchema,
     started_at: instantSchema,
     ended_at: instantSchema,
     rounded_started_at: instantSchema.nullable(),
@@ -45,6 +48,7 @@ export const timeTrackingRowMap = {
     // The stored text, read with `breaksTextSchema`: a later version may write a stretch this one
     // cannot read, so it is no list of breaks here.
     breaks: z.string(),
+    changed_by_limit: sqliteBoolean,
     // The stored name, as chosen; a later runtime may not know it, so it is no `TimeZone`.
     time_zone: z.string(),
   }),
@@ -94,6 +98,7 @@ type ColumnsOf<Columns extends readonly string[]> = Pick<TimeEntryRow, ColumnOf<
 /** The columns a list reads: never the rule, which a list does not show. */
 export const LISTED_TIME_ENTRY_COLUMNS = [
   "time_entries.id",
+  "time_entries.time_kind",
   "time_entries.started_at",
   "time_entries.ended_at",
   "time_entries.rounded_started_at",
@@ -113,15 +118,14 @@ export const TIME_ENTRY_COLUMNS = [
   "time_entries.rounding_rule",
   "time_entries.rule_chosen_by_hand",
   "time_entries.breaks",
+  "time_entries.changed_by_limit",
   "time_entries.time_zone",
 ] as const;
 
 export type TimeEntryValues = ColumnsOf<typeof TIME_ENTRY_COLUMNS>;
 
-// Do not parse the row here: agreement is checked in tests, not on every query.
-export const toListedTimeEntry = (
-  row: ListedTimeEntryValues,
-): Omit<ListedTimeEntry, "projects"> => ({
+/** What a list shows of every entry, whatever its Time Kind. */
+const listedValuesOf = (row: ListedTimeEntryValues) => ({
   id: row.id,
   startedAt: row.started_at,
   endedAt: row.ended_at,
@@ -134,10 +138,21 @@ export const toListedTimeEntry = (
   note: row.note,
 });
 
+// Do not parse the row here: agreement is checked in tests, not on every query.
+/** An entry of a list with the projects a Work Entry has; an entry that is not work has none. */
+export function toListedTimeEntry(
+  row: ListedTimeEntryValues,
+  projects: Extract<ListedTimeEntry, { timeKind: "work" }>["projects"],
+): ListedTimeEntry {
+  if (row.time_kind === "work") return { timeKind: "work", ...listedValuesOf(row), projects };
+  return { timeKind: row.time_kind, ...listedValuesOf(row) };
+}
+
 /**
  * The entry with its rule, its breaks and its projects: a stored rule or list this version cannot
  * read is answered as `null`, beside the stored numbers, so the entry stays readable. The findings
- * are computed here, on read, and never stored.
+ * are computed here, on read, and never stored. An entry that is not work is answered without
+ * breaks, projects and rule; breaks or projects it has all the same are findings.
  */
 export function toTimeEntry(row: TimeEntryValues, projects: readonly ProjectShare[]): TimeEntry {
   const rule = roundingRuleTextSchema.safeDecode(row.rounding_rule);
@@ -145,17 +160,27 @@ export function toTimeEntry(row: TimeEntryValues, projects: readonly ProjectShar
   const stored = breaksTextSchema.safeDecode(row.breaks);
   const breaks = stored.success ? stored.data : null;
   const measured = { start: row.started_at, end: row.ended_at };
-  return {
-    ...toListedTimeEntry(row),
-    roundingRule,
-    ruleByHand: row.rule_chosen_by_hand === 1 ? roundingRule : null,
-    findings: [
-      ...findingsOf(roundingRule, row.time_zone),
-      ...breakFindings(measured, breaks ?? []),
-    ],
-    breaks,
-    projects: [...projects],
-  };
+  const listed = listedValuesOf(row);
+  const ruleFindings = findingsOf(roundingRule, row.time_zone);
+  if (row.time_kind === "work")
+    return {
+      timeKind: "work",
+      ...listed,
+      roundingRule,
+      ruleByHand: row.rule_chosen_by_hand === 1 ? roundingRule : null,
+      findings: [...ruleFindings, ...breakFindings(measured, breaks ?? [])],
+      breaks,
+      projects: [...projects],
+    };
+  const findings = [...ruleFindings, ...notWorkFindings({ breaks: breaks ?? [], projects })];
+  if (row.time_kind === "rest_break")
+    return {
+      timeKind: "rest_break",
+      ...listed,
+      findings,
+      changedByLimit: row.changed_by_limit === 1,
+    };
+  return { timeKind: row.time_kind, ...listed, findings };
 }
 
 /** Only the columns returned in a Query answer. */

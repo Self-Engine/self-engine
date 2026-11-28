@@ -153,8 +153,17 @@ describe("Occupied Time", () => {
     const measuredTime = { start: berlinAt("10:07:30"), end: berlinAt("10:29:50") };
     const rule: RoundingRule = { kind: "ordinary", direction: "up", minutes: 15 };
     expect(
-      computeTimeEntry({ timeKind: "work", measuredTime, timeZone: berlin, rule, breaks: [], occupiedTime: [] }),
-    ).toEqual(computeTimeEntry({ timeKind: "work", measuredTime, timeZone: berlin, rule, breaks: [] }));
+      computeTimeEntry({
+        timeKind: "work",
+        measuredTime,
+        timeZone: berlin,
+        rule,
+        breaks: [],
+        occupiedTime: [],
+      }),
+    ).toEqual(
+      computeTimeEntry({ timeKind: "work", measuredTime, timeZone: berlin, rule, breaks: [] }),
+    );
   });
 });
 
@@ -255,7 +264,10 @@ describe("an entry that is not work", () => {
     start: string,
     end: string,
     rule: RoundingRule = upTo1,
-    parts: { readonly breaks?: readonly Break[]; readonly projects?: readonly { weight: number }[] } = {},
+    parts: {
+      readonly breaks?: readonly Break[];
+      readonly projects?: readonly { weight: number }[];
+    } = {},
   ) =>
     computeTimeEntry({
       timeKind,
@@ -291,9 +303,12 @@ describe("an entry that is not work", () => {
       roundedTime: { start: berlinAt("10:07:30"), end: berlinAt("10:29:50") },
       bookedDuration: minutes(22) + 20,
     });
-    expect(notWork("leisure", "10:07:30", "10:29:50", { kind: "block", minutes: 15 })).toMatchObject(
-      { roundedTime: { start: berlinAt("10:00"), end: berlinAt("10:30") }, bookedDuration: 0 },
-    );
+    expect(
+      notWork("leisure", "10:07:30", "10:29:50", { kind: "block", minutes: 15 }),
+    ).toMatchObject({
+      roundedTime: { start: berlinAt("10:00"), end: berlinAt("10:30") },
+      bookedDuration: 0,
+    });
   });
 
   test("a length rounded to 0:00 gives no Rounded Time", () => {

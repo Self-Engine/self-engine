@@ -234,7 +234,12 @@ function roundNotWork(input: TimeEntryComputationInput): TimeEntryComputation {
   );
   const length = roundedTime === null ? 0 : durationBetween(roundedTime.start, roundedTime.end);
   if (length === 0)
-    return { roundedTime: null, bookedDuration: durationSchema.parse(0), findings, projectShares: [] };
+    return {
+      roundedTime: null,
+      bookedDuration: durationSchema.parse(0),
+      findings,
+      projectShares: [],
+    };
   const bookedDuration = durationSchema.parse(input.timeKind === "short_break" ? length : 0);
   return { roundedTime, bookedDuration, findings, projectShares: [] };
 }
