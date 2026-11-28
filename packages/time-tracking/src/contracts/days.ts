@@ -3,7 +3,7 @@
 import { projectIdSchema, projectReferenceSchema } from "@self-engine/projects/contracts";
 import { calendarDaySchema, daySpanSchema, daysBetween, durationSchema } from "@self-engine/time";
 import { z } from "zod";
-import { timeEntryWithProjectSchema } from "./entries.ts";
+import { listedTimeEntrySchema } from "./entries.ts";
 
 /** The most days one span may hold: six weeks, enough for a month grid later. */
 export const SPAN_MAX_DAYS = 42;
@@ -32,10 +32,11 @@ export type DaysInput = z.input<typeof daysInputSchema>;
 
 /**
  * An entry on one day: the entry with its Project Reference, its Day Share there, whether it
- * touches more than one day and whether it overlaps another entry in the window. An entry that
- * crosses midnight appears on each day of the span it touches, with the same id and marks.
+ * touches more than one day and whether its Rounded Time overlaps another entry's in the window.
+ * An entry that crosses midnight appears on each day of the span it touches, with the same id and
+ * marks. An entry without a Rounded Time stands on the day of its measured start with 0:00.
  */
-export const dayEntrySchema = timeEntryWithProjectSchema.extend({
+export const dayEntrySchema = listedTimeEntrySchema.extend({
   dayShare: durationSchema,
   crossesMidnight: z.boolean(),
   overlaps: z.boolean(),

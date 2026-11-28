@@ -111,7 +111,7 @@ test("editing only the note preserves both Instants, the Booked Duration and the
   await expect(storedTimeZone(created.id)).resolves.toEqual(["Asia/Bangkok"]);
 });
 
-test("editing the time range stores whole seconds and recomputes the Booked Duration", async () => {
+test("editing the time range stores whole seconds and rounds again with the entry's rule", async () => {
   const { client, saveTimeZone, storedTimeZone } = await start();
   const created = await client.timeTracking.create({
     startedAt: START,
@@ -123,7 +123,9 @@ test("editing the time range stores whole seconds and recomputes the Booked Dura
     ...created,
     startedAt: "2026-11-16T11:00:23.000Z",
     endedAt: "2026-11-16T11:05:03.000Z",
-    durationSeconds: 280,
+    // 4:40 measured, rounded up to the minute.
+    roundedTime: { start: "2026-11-16T11:00:00.000Z", end: "2026-11-16T11:05:00.000Z" },
+    bookedDuration: 300,
   };
 
   await expect(
@@ -159,7 +161,7 @@ test("an edit with only one Instant, an invalid range or an unknown field change
     code: "BAD_REQUEST",
     data: { issues: [{ path: ["endedAt"], params: { reason: "end_before_start" } }] },
   });
-  for (const field of ["notes", "durationSeconds", "timeZone"]) {
+  for (const field of ["notes", "bookedDuration", "timeZone"]) {
     const input = { id, [field]: "unexpected" };
     await expect(errorOf(client.timeTracking.edit(input))).resolves.toMatchObject({
       code: "BAD_REQUEST",
@@ -330,7 +332,11 @@ test("create answers with the entry, and the Query returns it with its Project R
     id: expect.any(String),
     startedAt: START,
     endedAt: END,
-    durationSeconds: 5400,
+    roundedTime: { start: START, end: END },
+    bookedDuration: 5400,
+    roundingRule: { kind: "ordinary", direction: "up", minutes: 1 },
+    ruleByHand: null,
+    findings: [],
     projectId: project.id,
     note: "Design review",
   });
@@ -367,23 +373,21 @@ test("the Query answers an unknown id with no entry", async () => {
   await expect(client.timeTracking.entry({ id: unknown })).resolves.toBeNull();
 });
 
-test("start and end with milliseconds are stored cut to the whole second", async () => {
+test("start and end with milliseconds are stored cut to the whole second, and the default rule rounds up to the minute", async () => {
   const { client } = await start();
-  // D344's example: 10:00:50.297 to 10:05:10.812 counts 4:20.
+  // D344's example: 10:00:50.297 to 10:05:10.812 measures 4:20, which counts 0:05.
   const created = await client.timeTracking.create({
     startedAt: "2026-11-16T10:00:50.297Z",
     endedAt: "2026-11-16T10:05:10.812Z",
   });
-  expect(created).toMatchObject({
+  const stored = {
     startedAt: "2026-11-16T10:00:50.000Z",
     endedAt: "2026-11-16T10:05:10.000Z",
-    durationSeconds: 260,
-  });
-  await expect(client.timeTracking.entry({ id: created.id })).resolves.toMatchObject({
-    startedAt: "2026-11-16T10:00:50.000Z",
-    endedAt: "2026-11-16T10:05:10.000Z",
-    durationSeconds: 260,
-  });
+    roundedTime: { start: "2026-11-16T10:00:00.000Z", end: "2026-11-16T10:05:00.000Z" },
+    bookedDuration: 300,
+  };
+  expect(created).toMatchObject(stored);
+  await expect(client.timeTracking.entry({ id: created.id })).resolves.toMatchObject(stored);
 });
 
 test("an end less than one second after the start, cut to the second, is an input error at the end", async () => {
@@ -406,20 +410,26 @@ test("an end less than one second after the start, cut to the second, is an inpu
       startedAt: "2026-11-16T10:00:00.900Z",
       endedAt: "2026-11-16T10:00:01.100Z",
     }),
-  ).resolves.toMatchObject({ durationSeconds: 1 });
+  ).resolves.toMatchObject({ bookedDuration: 60 });
   await expect(client.health()).resolves.toMatchObject({ state: "ready" });
 });
 
-test("the duration is end minus start, and an input that names a duration is an input error", async () => {
+test("the Booked Duration is the time that really passed, rounded, and an input that names a computed value is an input error", async () => {
   const { client } = await start();
-  // Across midnight and a whole day: the time that really passed.
+  // Across midnight and a whole day: 28:00:15 passed, which counts 28:01.
   await expect(
     client.timeTracking.create({
       startedAt: "2026-11-15T21:00:00.000Z",
       endedAt: "2026-11-17T01:00:15.000Z",
     }),
-  ).resolves.toMatchObject({ durationSeconds: 100_815 });
-  for (const named of [{ durationSeconds: 60 }, { duration: 60 }, { duration_seconds: 60 }]) {
+  ).resolves.toMatchObject({ bookedDuration: 100_860 });
+  for (const named of [
+    { bookedDuration: 60 },
+    { duration: 60 },
+    { duration_seconds: 60 },
+    { roundedTime: { start: START, end: END } },
+    { roundingRule: { kind: "exact" } },
+  ]) {
     // The Operation's types refuse these inputs; a caller without types can still send them.
     const input = { startedAt: START, endedAt: END, ...named } as {
       startedAt: string;

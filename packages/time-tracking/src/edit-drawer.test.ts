@@ -274,6 +274,7 @@ test("an entry created on a clicked day of the week is sent with that day and ap
         endedAt: "2026-11-18T09:30:00.000Z",
         projectId: null,
         note: "Review",
+        ruleByHand: null,
       },
     },
   ]);
@@ -313,6 +314,7 @@ test("the primary action opens a new entry on today, and the entry appears in th
         endedAt: "2026-11-20T13:00:00.000Z",
         projectId: null,
         note: null,
+        ruleByHand: null,
       },
     },
   ]);
@@ -360,9 +362,27 @@ test("a stored entry opens with its values, and saving a changed note sends only
   expect(week.calls).toEqual([{ entry: "edit", input: { id: week.id, note: "Code review" } }]);
   await shown(() =>
     expect(rowsOf("Mittwoch, 18. November 2026")).toEqual([
-      "09:00 – 10:30No projectCode review1:29:20",
+      "09:00 – 10:30No projectCode review1:30",
     ]),
   );
+});
+
+test("the week shows an entry at its Rounded Time, and the drawer's fields hold its Measured Time", async () => {
+  // The rounding resolution's timer, 10:07:30 to 10:29:50 in Berlin: it counts 10:07 to 10:30.
+  await openStored({
+    startedAt: "2026-11-18T09:07:30.000Z",
+    endedAt: "2026-11-18T09:29:50.000Z",
+    note: "Timer",
+  });
+  expect(rowsOf("Mittwoch, 18. November 2026")).toEqual(["10:07 – 10:30No projectTimer0:23"]);
+  const { startHours, startMinutes, endHours, endMinutes } = times();
+  expect([startHours.value, startMinutes.value, endHours.value, endMinutes.value]).toEqual([
+    "10",
+    "07",
+    "10",
+    "29",
+  ]);
+  expect(drawer().textContent).toContain("Duration: 0:22:20");
 });
 
 test("a changed start sends start and end, and the untouched end keeps its seconds", async () => {
@@ -401,7 +421,7 @@ test("delete closes the drawer with a Notice whose Undo brings the entry back", 
   button(notice, "Undo").click();
 
   await shown(() =>
-    expect(rowsOf("Mittwoch, 18. November 2026")).toEqual(["09:00 – 10:30No projectReview1:29:20"]),
+    expect(rowsOf("Mittwoch, 18. November 2026")).toEqual(["09:00 – 10:30No projectReview1:30"]),
   );
   expect(week.calls).toEqual([
     { entry: "delete", input: { id: week.id } },
@@ -574,7 +594,7 @@ test("the input Command holds the same checks: an end not after the start is an 
   });
   const unknown = await runCommand(
     inputCommand,
-    { ...TIMED, durationSeconds: 60 },
+    { ...TIMED, bookedDuration: 60 },
     { data: week.data },
   );
   expect(unknown).toMatchObject({ ok: false, error: { issues: [{ code: "unrecognized_keys" }] } });

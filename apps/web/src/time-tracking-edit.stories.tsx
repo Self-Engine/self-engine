@@ -200,6 +200,7 @@ export const ANewEntryOpensOnTheClickedDayAndAppearsThere: Story = {
           endedAt: "2026-11-18T14:30:00.000Z",
           projectId: null,
           note: "Call",
+          ruleByHand: null,
         },
       },
     ]);
@@ -230,6 +231,7 @@ export const AnEndTimeNotAfterTheStartLiesOnTheNextDay: Story = {
           endedAt: "2026-11-19T00:30:00.000Z",
           projectId: null,
           note: null,
+          ruleByHand: null,
         },
       },
     ]);

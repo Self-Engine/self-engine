@@ -1769,6 +1769,10 @@ msgstr "Dieser Bereich konnte nicht geladen werden."
 msgid "This time does not exist on this day: the clocks skip it. Choose another."
 msgstr "Diese Uhrzeit gibt es an diesem Tag nicht: Die Uhren überspringen sie. Wähle eine andere."
 
+#: packages/time-tracking/src/edit-drawer.tsx
+msgid "This time entry was saved by a newer version of the app. Update the app to edit it."
+msgstr "Dieser Zeiteintrag wurde mit einer neueren Version der App gespeichert. Aktualisiere die App, um ihn zu bearbeiten."
+
 #: packages/time-tracking/src/indicator/panel.tsx
 msgid "This timer is no longer running."
 msgstr "Dieser Timer läuft nicht mehr."

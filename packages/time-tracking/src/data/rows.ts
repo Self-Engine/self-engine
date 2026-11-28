@@ -1,20 +1,18 @@
 import { defineMigrations, type TablesOf } from "@self-engine/db";
+import { sqliteBoolean } from "@self-engine/db/schema";
 import { projectIdSchema } from "@self-engine/projects/ids";
 import { spaceIdSchema } from "@self-engine/storage";
-import {
-  durationBetween,
-  durationSchema,
-  type Instant,
-  instantSchema,
-  wholeSecondOf,
-} from "@self-engine/time";
+import { durationSchema, instantSchema } from "@self-engine/time";
 import { z } from "zod";
 import {
+  type ListedTimeEntry,
+  roundingRuleTextSchema,
   type TimeEntry,
   timeEntryIdSchema,
   type Timer,
   timerIdSchema,
 } from "../contracts/index.ts";
+import { findingsOf } from "./entry-time-zone.ts";
 
 export const timeTrackingMigrations = defineMigrations(
   "time-tracking",
@@ -31,7 +29,13 @@ export const timeTrackingRowMap = {
     space_id: spaceIdSchema,
     started_at: instantSchema,
     ended_at: instantSchema,
-    duration_seconds: durationSchema,
+    rounded_started_at: instantSchema.nullable(),
+    rounded_ended_at: instantSchema.nullable(),
+    booked_duration: durationSchema,
+    // The stored text, read with `roundingRuleTextSchema`: a later version may write a rule this
+    // one cannot read, so it is no `RoundingRule` here.
+    rounding_rule: z.string(),
+    rule_chosen_by_hand: sqliteBoolean,
     project_id: projectIdSchema.nullable(),
     note: z.string().nullable(),
     // The stored name, as chosen; a later runtime may not know it, so it is no `TimeZone`.
@@ -51,41 +55,68 @@ export const timeTrackingRowMap = {
 type TimeEntryRow = TablesOf<typeof timeTrackingRowMap>["time_entries"];
 type TimerRow = TablesOf<typeof timeTrackingRowMap>["timers"];
 
-/** Only the columns returned in a Query answer. The creation Time Zone stays in storage. */
-export const TIME_ENTRY_COLUMNS = [
+type ColumnOf<Qualified> =
+  Qualified extends `time_entries.${infer Column extends keyof TimeEntryRow}` ? Column : never;
+type ColumnsOf<Columns extends readonly string[]> = Pick<TimeEntryRow, ColumnOf<Columns[number]>>;
+
+/** The columns a list reads: never the rule, which a list does not show. */
+export const LISTED_TIME_ENTRY_COLUMNS = [
   "time_entries.id",
   "time_entries.started_at",
   "time_entries.ended_at",
-  "time_entries.duration_seconds",
+  "time_entries.rounded_started_at",
+  "time_entries.rounded_ended_at",
+  "time_entries.booked_duration",
   "time_entries.project_id",
   "time_entries.note",
 ] as const;
 
-export type TimeEntryValues = Pick<
-  TimeEntryRow,
-  (typeof TIME_ENTRY_COLUMNS)[number] extends `time_entries.${infer Column}` ? Column : never
->;
+export type ListedTimeEntryValues = ColumnsOf<typeof LISTED_TIME_ENTRY_COLUMNS>;
 
 /**
- * The columns of start, end and Booked Duration, the one place that computes them (D344, D346):
- * both Instants cut to the whole second, and the duration end minus start. Every write of start
- * or end takes all three from here.
+ * The columns an answer of one entry reads: also its rule, and its Time Zone for the findings.
+ * The Time Zone itself stays in storage.
  */
-export function storedTimes(startedAt: Instant, endedAt: Instant) {
-  const started_at = wholeSecondOf(startedAt);
-  const ended_at = wholeSecondOf(endedAt);
-  return { started_at, ended_at, duration_seconds: durationBetween(started_at, ended_at) };
-}
+export const TIME_ENTRY_COLUMNS = [
+  ...LISTED_TIME_ENTRY_COLUMNS,
+  "time_entries.rounding_rule",
+  "time_entries.rule_chosen_by_hand",
+  "time_entries.time_zone",
+] as const;
+
+export type TimeEntryValues = ColumnsOf<typeof TIME_ENTRY_COLUMNS>;
 
 // Do not parse the row here: agreement is checked in tests, not on every query.
-export const toTimeEntry = (row: TimeEntryValues): TimeEntry => ({
+export const toListedTimeEntry = (
+  row: ListedTimeEntryValues,
+): Omit<ListedTimeEntry, "project"> => ({
   id: row.id,
   startedAt: row.started_at,
   endedAt: row.ended_at,
-  durationSeconds: row.duration_seconds,
+  // The table keeps both ends or neither.
+  roundedTime:
+    row.rounded_started_at === null || row.rounded_ended_at === null
+      ? null
+      : { start: row.rounded_started_at, end: row.rounded_ended_at },
+  bookedDuration: row.booked_duration,
   projectId: row.project_id,
   note: row.note,
 });
+
+/**
+ * The entry with its rule: a stored rule this version cannot read is answered as `null`, beside
+ * the stored numbers, so the entry stays readable.
+ */
+export function toTimeEntry(row: TimeEntryValues): TimeEntry {
+  const rule = roundingRuleTextSchema.safeDecode(row.rounding_rule);
+  const roundingRule = rule.success ? rule.data : null;
+  return {
+    ...toListedTimeEntry(row),
+    roundingRule,
+    ruleByHand: row.rule_chosen_by_hand === 1 ? roundingRule : null,
+    findings: findingsOf(roundingRule, row.time_zone),
+  };
+}
 
 /** Only the columns returned in a Query answer. */
 export const TIMER_COLUMNS = [

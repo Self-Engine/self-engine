@@ -82,8 +82,9 @@ export const WeekDay = memo(function WeekDay({
 });
 
 /**
- * An entry on one day: start and end, its marks, project, note and Day Share. A click opens it
- * in the Edit Drawer.
+ * An entry on one day: its Rounded Time as times of day, its marks, project, note and Day Share.
+ * An entry that counts nothing has no Rounded Time and shows its Measured Time. A click opens it
+ * in the Edit Drawer, whose fields hold the Measured Time.
  */
 const DayEntryRow = memo(function DayEntryRow({
   entry,
@@ -92,8 +93,9 @@ const DayEntryRow = memo(function DayEntryRow({
   onOpen,
 }: Shown & { readonly entry: DayEntry }) {
   const { t } = useLingui();
-  const start = formatInstant(entry.startedAt, "time", locale, timeZone);
-  const end = formatInstant(entry.endedAt, "time", locale, timeZone);
+  const shown = entry.roundedTime ?? { start: entry.startedAt, end: entry.endedAt };
+  const start = formatInstant(shown.start, "time", locale, timeZone);
+  const end = formatInstant(shown.end, "time", locale, timeZone);
   return (
     <li style={ROW_STYLE}>
       <UnstyledButton

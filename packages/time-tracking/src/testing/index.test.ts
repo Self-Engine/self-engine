@@ -28,9 +28,20 @@ const MORNING = timeEntry(2, {
 const daysOf = (answer: unknown) =>
   (answer as { days: { day: string; total: number; entries: { id: string }[] }[] }).days;
 
-test("a sample entry carries its Booked Duration, end minus start, and a numbered id", () => {
-  expect(NIGHT).toMatchObject({ id: sampleTimeEntryId(1), durationSeconds: 12_600 });
-  expect(MORNING.project).toBeNull();
+test("a sample entry carries a numbered id, and its Rounded Time and Booked Duration as the default rule makes them", () => {
+  expect(NIGHT).toMatchObject({ id: sampleTimeEntryId(1), bookedDuration: 12_600 });
+  // 44:10 measured, rounded up to the minute.
+  expect(MORNING).toMatchObject({
+    roundedTime: { start: "2026-11-20T08:00:00.000Z", end: "2026-11-20T08:45:00.000Z" },
+    bookedDuration: 2700,
+    ruleByHand: null,
+    project: null,
+  });
+  // A rule chosen by hand.
+  expect(timeEntry(9, { ...MORNING, rule: { kind: "exact" } })).toMatchObject({
+    bookedDuration: 2650,
+    ruleByHand: { kind: "exact" },
+  });
 });
 
 test("the days answer the asked span in the Time Zone: an entry across midnight lies on both days", async () => {
@@ -47,24 +58,24 @@ test("the days answer the asked span in the Time Zone: an entry across midnight 
     "2026-11-21",
     "2026-11-22",
   ]);
-  // Berlin is UTC+1: 22:00 to 01:30, then 09:00 to 09:44:10.
+  // Berlin is UTC+1: 22:00 to 01:30, then 09:00 to 09:44:10, which counts 0:45.
   expect(days[3]).toMatchObject({
     total: 7200,
     entries: [{ id: NIGHT.id, dayShare: 7200, crossesMidnight: true }],
   });
   expect(days[4]).toMatchObject({
-    total: 5400 + 2650,
+    total: 5400 + 2700,
     entries: [
       { id: NIGHT.id, dayShare: 5400, crossesMidnight: true },
-      { id: MORNING.id, dayShare: 2650, crossesMidnight: false },
+      { id: MORNING.id, dayShare: 2700, crossesMidnight: false },
     ],
   });
   expect(answer).toMatchObject({
     projects: [
       { project: { id: WEBSITE.id }, total: 12_600 },
-      { project: null, total: 2650 },
+      { project: null, total: 2700 },
     ],
-    total: 15_250,
+    total: 15_300,
   });
 });
 
@@ -87,7 +98,7 @@ test("a filter acts on the entries and the sums, as the Data Process's does", as
   const access = timeTrackingAnswers({ entries: [MORNING, NIGHT, archived] });
   await expect(
     access.call("timeTracking", "days", { span: WEEK, filter: { kind: "noProject" } }),
-  ).resolves.toMatchObject({ projects: [{ project: null, total: 2650 }], total: 2650 });
+  ).resolves.toMatchObject({ projects: [{ project: null, total: 2700 }], total: 2700 });
   await expect(
     access.call("timeTracking", "days", {
       span: WEEK,
@@ -111,7 +122,7 @@ test("the story Port changes the stored entries and delivers the Table Change of
 
   expect(changed).toEqual([["time_entries", "timers"]]);
   const days = daysOf(await port.access.call("timeTracking", "days", { span: WEEK }));
-  expect(days[4]?.total).toBe(2650);
+  expect(days[4]?.total).toBe(2700);
 });
 
 test("the Query of one entry answers the stored entry of that id, or no entry", async () => {

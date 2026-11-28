@@ -191,11 +191,12 @@ export const AnEntryAcrossMidnightLiesOnBothDaysWithItsShareAndAMark: Story = {
     },
   },
   play: async ({ canvas }) => {
+    // Measured from 22:00:10 to 01:30:10, it counts from 22:00 to 01:30 under the default rule.
     await expect(await rowsOf(canvas, "Thursday, November 19, 2026")).toEqual([
-      "10:00 PM – 1:30 AMWebsiteRelease1:59:50",
+      "10:00 PM – 1:30 AMWebsiteRelease2:00",
     ]);
     await expect(await rowsOf(canvas, "Friday, November 20, 2026")).toEqual([
-      "10:00 PM – 1:30 AMWebsiteRelease1:30:10",
+      "10:00 PM – 1:30 AMWebsiteRelease1:30",
       "9:00 AM – 10:00 AMOld siteHandover1:00",
     ]);
     await expect(await projectSums(canvas)).toEqual(["Website3:30", "Old site1:00"]);
@@ -206,6 +207,28 @@ export const AnEntryAcrossMidnightLiesOnBothDaysWithItsShareAndAMark: Story = {
         await expect(within(handover).queryByRole("img", { name: "Crosses midnight" })).toBeNull();
       }
     }
+  },
+};
+
+export const AnEntryShowsItsRoundedTimeAndCountsItsBookedDuration: Story = {
+  args: {
+    stored: {
+      entries: [
+        // The rounding resolution's timer: 10:07:30 to 10:29:50 in Berlin.
+        timeEntry(8, {
+          startedAt: "2026-11-18T09:07:30.000Z",
+          endedAt: "2026-11-18T09:29:50.000Z",
+          note: "Timer",
+        }),
+      ],
+    },
+  },
+  play: async ({ canvas }) => {
+    // The default rule rounds 22:20 up to 0:23, from 10:07 to 10:30.
+    await expect(await rowsOf(canvas, "Wednesday, November 18, 2026")).toEqual([
+      "10:07 AM – 10:30 AMNo projectTimer0:23",
+    ]);
+    await expect(canvas.getByLabelText("Week total")).toHaveTextContent("0:23");
   },
 };
 

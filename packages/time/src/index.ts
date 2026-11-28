@@ -10,7 +10,7 @@ export type { FirstDayOfWeek, Region } from "./first-day-of-week.ts";
 export { isoWeekNumber } from "./calendar.ts";
 export { epochMsOf, instantFromDate } from "./borders.ts";
 export { endOfBlock, startOfBlock, wholeMinuteOf, type BlockMinutes } from "./blocks.ts";
-export { addDuration, durationBetween, wholeSecondOf } from "./duration.ts";
+export { addDuration, durationBetween, subtractDuration, wholeSecondOf } from "./duration.ts";
 export type { Clock } from "./clock.ts";
 export { deviceTimeZone, resolveTimeZone, sameTimeZone } from "./zone.ts";
 export type { ResolvedTimeZone, TimeZone } from "./zone.ts";

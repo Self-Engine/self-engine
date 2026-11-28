@@ -52,6 +52,13 @@ async function errorOf(call: Promise<unknown>) {
   return error as { code: string; data?: { issues?: unknown[]; reasons?: unknown[] } } | undefined;
 }
 
+/** An entry as a list answers it: without its rule and its findings. */
+const listed = ({
+  roundingRule: _rule,
+  ruleByHand: _byHand,
+  findings: _findings,
+  ...entry
+}: Awaited<ReturnType<TimeTrackingClient["timeTracking"]["create"]>>) => entry;
 const hours = (count: number) => count * 3600;
 const LAST_WEEK = { first: "2026-11-09", last: "2026-11-15" };
 const THIS_WEEK = { first: "2026-11-16", last: "2026-11-22" };
@@ -91,14 +98,26 @@ test("an entry from Sunday 22:00 to Monday 02:00 appears on both days with 2:00,
       day: "2026-11-15",
       total: hours(2),
       entries: [
-        { ...night, project: null, dayShare: hours(2), crossesMidnight: true, overlaps: false },
+        {
+          ...listed(night),
+          project: null,
+          dayShare: hours(2),
+          crossesMidnight: true,
+          overlaps: false,
+        },
       ],
     },
     {
       day: "2026-11-16",
       total: hours(2),
       entries: [
-        { ...night, project: null, dayShare: hours(2), crossesMidnight: true, overlaps: false },
+        {
+          ...listed(night),
+          project: null,
+          dayShare: hours(2),
+          crossesMidnight: true,
+          overlaps: false,
+        },
       ],
     },
   ]);
@@ -158,7 +177,7 @@ test("an entry over three days counts a share on each, and a span counts only th
     { day: "2026-11-18", total: hours(4), entries: [["Long", hours(4), true]] },
   ]);
   const shares = week.flatMap((day) => day.entries.map((entry) => entry[1]));
-  expect(shares.reduce<number>((sum, share) => sum + Number(share), 0)).toBe(long.durationSeconds);
+  expect(shares.reduce<number>((sum, share) => sum + Number(share), 0)).toBe(long.bookedDuration);
 
   // A span inside the entry: the entry begins before it and ends after it.
   const tuesday = await client.timeTracking.days({
@@ -178,7 +197,7 @@ test("a night of a clock change in Berlin counts the time that passed, and a 25-
   const back = await create(client, "2026-10-24T22:00:00.000Z", "2026-10-25T23:00:00.000Z", {
     note: "Back",
   });
-  expect([forward.durationSeconds, back.durationSeconds]).toEqual([hours(7), hours(25)]);
+  expect([forward.bookedDuration, back.bookedDuration]).toEqual([hours(7), hours(25)]);
 
   await expect(
     daysOf(client, { span: { first: "2026-03-28", last: "2026-03-29" } }),
@@ -327,8 +346,9 @@ test("among three entries, only the two that intersect are marked", async () => 
 test("an entry across midnight is marked only in spans its overlapping entry also touches", async () => {
   const { client } = await startTimeTracking();
   const night = await create(client, "2026-11-15T21:00:00.000Z", "2026-11-16T01:00:00.000Z");
-  // Ends at midnight in Berlin, where the next week starts.
-  const evening = await create(client, "2026-11-15T22:00:00.000Z", "2026-11-15T23:00:00.000Z");
+  // Ends more than an hour, the reach of any rule, before midnight in Berlin, where the next week
+  // starts: the read of the next week does not see it.
+  const evening = await create(client, "2026-11-15T21:00:00.000Z", "2026-11-15T21:30:00.000Z");
 
   const lastWeek = await client.timeTracking.days({ span: LAST_WEEK });
   expect(lastWeek.days.at(-1)?.entries).toMatchObject([
@@ -479,4 +499,71 @@ test("the week start never changes the answer: the span the page names decides t
   await client.settings.save({ entries: [{ key: WEEK_START_SETTING.key, value: "sunday" }] });
 
   await expect(client.timeTracking.days({ span: THIS_WEEK })).resolves.toEqual(before);
+});
+
+test("an entry stands where its Rounded Time lies: one measured before midnight that counts past it appears on the next day too", async () => {
+  const { client } = await startTimeTracking();
+  // Sunday 23:50 to 23:58 in Berlin, rounded up to 15 minutes: 23:50 to 00:05.
+  const late = await client.timeTracking.create({
+    startedAt: "2026-11-15T22:50:00.000Z",
+    endedAt: "2026-11-15T22:58:00.000Z",
+    ruleByHand: { kind: "ordinary", direction: "up", minutes: 15 },
+    note: "Late",
+  });
+
+  const next = await client.timeTracking.days({ span: THIS_WEEK });
+  expect(next.days[0]?.entries).toMatchObject([
+    { id: late.id, dayShare: 5 * 60, crossesMidnight: true },
+  ]);
+  expect(next.total).toBe(5 * 60);
+  const last = await client.timeTracking.days({ span: LAST_WEEK });
+  expect(last.days.at(-1)?.entries).toMatchObject([{ id: late.id, dayShare: 10 * 60 }]);
+});
+
+test("an entry without a Rounded Time stands on the day of its measured start with 0:00 and overlaps nothing", async () => {
+  const { client } = await startTimeTracking();
+  const work = await create(client, "2026-11-17T09:00:00.000Z", "2026-11-17T10:00:00.000Z");
+  // 40 seconds inside it, rounded down to 15 minutes: nothing counts.
+  const nothing = await client.timeTracking.create({
+    startedAt: "2026-11-17T09:10:00.000Z",
+    endedAt: "2026-11-17T09:10:40.000Z",
+    ruleByHand: { kind: "ordinary", direction: "down", minutes: 15 },
+  });
+
+  const answer = await client.timeTracking.days({ span: THIS_WEEK });
+  expect(answer.days[1]).toMatchObject({
+    total: hours(1),
+    entries: [
+      { id: work.id, overlaps: false, dayShare: hours(1) },
+      { id: nothing.id, roundedTime: null, overlaps: false, dayShare: 0 },
+    ],
+  });
+});
+
+test("overlaps are judged on the Rounded Times, and touching ones do not overlap", async () => {
+  const { client } = await startTimeTracking();
+  const down = { kind: "ordinary", direction: "down", minutes: 15 } as const;
+  // Measured, the two overlap by 20 seconds; rounded, 10:00 to 10:30 and 10:30 to 10:45 touch.
+  const first = await client.timeTracking.create({
+    startedAt: "2026-11-16T09:00:00.000Z",
+    endedAt: "2026-11-16T09:30:30.000Z",
+    ruleByHand: down,
+  });
+  const second = await client.timeTracking.create({
+    startedAt: "2026-11-16T09:30:10.000Z",
+    endedAt: "2026-11-16T09:45:20.000Z",
+    ruleByHand: down,
+  });
+  // Under the default rule a switch at 10:05:30 counts the minute twice: 10:00 to 10:06 and 10:05
+  // to 10:10 overlap, though their measured times only touch.
+  const third = await create(client, "2026-11-16T10:00:00.000Z", "2026-11-16T10:05:30.000Z");
+  const fourth = await create(client, "2026-11-16T10:05:30.000Z", "2026-11-16T10:10:00.000Z");
+
+  const answer = await client.timeTracking.days({ span: THIS_WEEK });
+  expect(answer.days[0]?.entries).toMatchObject([
+    { id: first.id, overlaps: false },
+    { id: second.id, overlaps: false },
+    { id: third.id, overlaps: true },
+    { id: fourth.id, overlaps: true },
+  ]);
 });

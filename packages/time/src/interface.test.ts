@@ -39,6 +39,9 @@ test("the public functions use only package values and require all arguments", (
   expectTypeOf(time.wholeSecondOf).toEqualTypeOf<(instant: Instant) => Instant>();
   expectTypeOf(time.wholeMinuteOf).toEqualTypeOf<(instant: Instant) => Instant>();
   expectTypeOf(time.addDuration).toEqualTypeOf<(instant: Instant, duration: Duration) => Instant>();
+  expectTypeOf(time.subtractDuration).toEqualTypeOf<
+    (instant: Instant, duration: Duration) => Instant
+  >();
   expectTypeOf(time.startOfBlock).toEqualTypeOf<
     (instant: Instant, minutes: BlockMinutes, timeZone: TimeZone) => Instant
   >();
@@ -173,6 +176,7 @@ test("the public functions use only package values and require all arguments", (
       "wholeSecondOf",
       "wholeMinuteOf",
       "addDuration",
+      "subtractDuration",
       "startOfBlock",
       "endOfBlock",
     ].sort(),

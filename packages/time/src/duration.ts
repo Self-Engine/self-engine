@@ -23,3 +23,8 @@ export function wholeSecondOf(instant: Instant): Instant {
 export function addDuration(instant: Instant, duration: Duration): Instant {
   return instantFrom(Temporal.Instant.from(instant).add({ seconds: duration }));
 }
+
+/** The Instant a Duration before `instant`: where a range of that length that ends there starts. */
+export function subtractDuration(instant: Instant, duration: Duration): Instant {
+  return instantFrom(Temporal.Instant.from(instant).subtract({ seconds: duration }));
+}
