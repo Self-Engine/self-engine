@@ -48,15 +48,15 @@ test("a formatter is kept per locale, zone and format: a second call gives the s
   expect(shown(instant, "dateTime", "de", berlin)).toBe("13.11.2026, 13:30");
 });
 
-test.each(["en", "de"])("hoursMinutes in %s", (locale) => {
+test.each(["en", "de"])("hoursMinutes includes seconds only when needed in %s", (locale) => {
   expect(formatDuration(durationSchema.parse(0), "hoursMinutes", locale)).toBe("0:00");
-  expect(formatDuration(durationSchema.parse(260), "hoursMinutes", locale)).toBe("0:05");
+  expect(formatDuration(durationSchema.parse(2_650), "hoursMinutes", locale)).toBe("0:44:10");
   expect(formatDuration(durationSchema.parse(300), "hoursMinutes", locale)).toBe("0:05");
-  expect(formatDuration(durationSchema.parse(3_599), "hoursMinutes", locale)).toBe("1:00");
+  expect(formatDuration(durationSchema.parse(3_599), "hoursMinutes", locale)).toBe("0:59:59");
   expect(formatDuration(durationSchema.parse(95_400), "hoursMinutes", locale)).toBe("26:30");
   expect(
     formatDuration(durationSchema.parse(Number.MAX_SAFE_INTEGER), "hoursMinutes", locale),
-  ).toBe("2501999792983:37");
+  ).toBe("2501999792983:36:31");
 });
 
 test.each(["en", "de"])("hoursMinutesSeconds shows the running timer in %s", (locale) => {
@@ -73,7 +73,7 @@ test.each(["en", "de"])("hoursMinutesSeconds shows the running timer in %s", (lo
 });
 
 test("the duration digits follow the supplied locale", () => {
-  expect(formatDuration(durationSchema.parse(260), "hoursMinutes", "de-u-nu-arab")).toBe("٠:٠٥");
+  expect(formatDuration(durationSchema.parse(260), "hoursMinutes", "de-u-nu-arab")).toBe("٠:٠٤:٢٠");
 });
 
 test.each([

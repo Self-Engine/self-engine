@@ -1,5 +1,6 @@
 ---
-status: accepted
+status: superseded
+superseded-by: 0043
 date: 2026-11-14
 decisions: D281, D282, D283, D347, D361
 ---

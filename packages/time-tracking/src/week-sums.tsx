@@ -8,8 +8,7 @@ import { NUMBERS, ROW_STYLE } from "./week-styles.ts";
 
 /**
  * The sums of the week per project, in the Query's order (largest first, "no project" last), and
- * the week's total. Each is rounded up to the full minute only here, after the Query added the
- * seconds (D345).
+ * the week's total. Each shows the exact Duration returned by the Query (ADR 0043).
  */
 export const WeekSums = memo(function WeekSums({
   projects,
