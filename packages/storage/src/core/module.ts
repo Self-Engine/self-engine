@@ -112,7 +112,8 @@ export interface StorageModule<
   /**
    * The tables of the module whose rows are Part Rows, each with the column that names its owner
    * (ADR 0042): a Part Row is a Live Row only while its owner is one. The owner may be a row of
-   * another module, which learns nothing of it. The start checks that each column is a reference.
+   * another module, which learns nothing of it. A row whose column is empty names no owner and is
+   * an ordinary row. The start checks that each column is a reference.
    */
   readonly belongsTo?: BelongsTo<Rows>;
 }

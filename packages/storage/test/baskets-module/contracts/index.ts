@@ -8,20 +8,25 @@ export const basketIdSchema = idSchema("Basket");
 export const basketItemIdSchema = idSchema("BasketItem");
 export const noteMarkIdSchema = idSchema("NoteMark");
 
-const item = z.object({ id: basketItemIdSchema, basketId: basketIdSchema, noteId: noteIdSchema });
+const item = z.object({
+  id: basketItemIdSchema,
+  basketId: basketIdSchema.nullable(),
+  noteId: noteIdSchema,
+});
 const basket = z.object({
   id: basketIdSchema,
   createdAt: instantSchema,
   updatedAt: instantSchema,
   title: z.string(),
 });
-const mark = z.object({ id: noteMarkIdSchema, noteId: noteIdSchema, label: z.string() });
+const mark = z.object({ id: noteMarkIdSchema, noteId: noteIdSchema.nullable(), label: z.string() });
 const basketById = z.strictObject({ id: basketIdSchema });
 const itemById = z.strictObject({ id: basketItemIdSchema });
 
 /**
  * A test module with an owner and its Part Rows (ADR 0042): a basket holds items, each of which
- * refers to a note, and a note, a row of another module, holds marks.
+ * refers to a note, and a note, a row of another module, holds marks. A loose item or a mark that
+ * names no owner is an ordinary row.
  */
 export const basketsContract = {
   create: oc
@@ -41,7 +46,7 @@ export const basketsContract = {
     .output(basket)
     .errors({ NOT_FOUND: {}, ...refusal }),
   addItem: oc
-    .input(z.strictObject({ basketId: basketIdSchema, noteId: noteIdSchema }))
+    .input(z.strictObject({ basketId: basketIdSchema.nullable(), noteId: noteIdSchema }))
     .output(item)
     .errors({ ...refusal }),
   moveItem: oc
@@ -57,7 +62,7 @@ export const basketsContract = {
     .output(item)
     .errors({ NOT_FOUND: {}, ...refusal }),
   mark: oc
-    .input(z.strictObject({ noteId: noteIdSchema, label: z.string().min(1) }))
+    .input(z.strictObject({ noteId: noteIdSchema.nullable(), label: z.string().min(1) }))
     .output(mark)
     .errors({ ...refusal }),
   marks: oc.input(z.strictObject({})).output(z.array(mark)),
