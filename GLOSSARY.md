@@ -298,11 +298,11 @@ _Avoid_: week number, start date, weekday index
 ### Time Tracking
 
 **Time Entry** (de: _Zeiteintrag_):
-A record of time spent: its _Measured Time_, its _Rounded Time_ and _Booked Duration_ as its _Rounding Rule_ makes them, the projects it counts for, and an optional note.
+A record of time spent: its _Time Kind_, its _Measured Time_, its _Rounded Time_ and _Booked Duration_ as its _Rounding Rule_ makes them, the projects it counts for, and an optional note. It is a _Work Entry_, a _Break Entry_ or a _Leisure Entry_.
 _Avoid_: time log (for one entry), timer
 
 **Booked Duration** (de: _gebuchte Dauer_):
-The _Duration_ that counts toward the totals for a _Time Entry_.
+The _Duration_ that counts toward the totals for a _Time Entry_: the work that counts. A _Short Break_ entry books the length of its _Rounded Time_, a _Rest Break_ entry and a _Leisure Entry_ book 0.
 _Avoid_: elapsed time (for the amount counted), billed time
 
 **Day Share** (de: _Tagesanteil_):
@@ -322,12 +322,28 @@ The first project of a _Time Entry_: its _Rounding Rule_ rounds the entry, and i
 _Avoid_: main project, primary project
 
 **Time Kind** (de: _Zeitart_):
-What a piece of recorded time is for the count: _Work_, _Short Break_, _Rest Break_ or Leisure. A fixed list; there are no freely named categories.
+What a piece of recorded time is for the count: _Work_, _Short Break_, _Rest Break_ or _Leisure_. A fixed list; there are no freely named categories. A _Time Entry_ has one, and so has each _Break_ inside it.
 _Avoid_: time class, time category, activity type
 
 **Work** (de: _Arbeit_):
 The _Time Kind_ that counts toward the _Booked Duration_. Everything inside a _Time Entry_ that is not a _Break_ is _Work_, and an entry begins and ends with it.
 _Avoid_: active time, focus
+
+**Leisure** (de: _Freizeit_):
+The _Time Kind_ of time outside work, such as an afternoon off. It never counts, like a _Rest Break_, and exists only as a whole _Time Entry_: time inside work that does not count is a _Rest Break_.
+_Avoid_: free time (in code), off time, private time
+
+**Work Entry** (de: _Arbeitseintrag_):
+A _Time Entry_ of the _Time Kind_ _Work_: the only kind that carries projects, _Breaks_ inside it and a _Rounding Rule_ of its own.
+_Avoid_: work session, job entry
+
+**Break Entry** (de: _Pauseneintrag_):
+A _Time Entry_ that is a _Short Break_ or a _Rest Break_ as a whole, without projects and without breaks inside it. The app-wide _Rounding Rule_ rounds its length; a _Short Break_ entry counts toward the day and toward no project, a _Rest Break_ entry counts nothing. It is a _Break_, but no _Stretch_.
+_Avoid_: pause entry, break stretch
+
+**Leisure Entry** (de: _Freizeiteintrag_):
+A _Time Entry_ of the _Time Kind_ _Leisure_, without projects and without breaks. The app-wide _Rounding Rule_ rounds its length, and its _Booked Duration_ is 0.
+_Avoid_: free-time entry, day off
 
 **Short Break** (de: _Kurzpause_):
 A _Break_ that counts toward the _Booked Duration_, like _Work_.
@@ -338,7 +354,7 @@ A _Break_ that does not count: a _Time Entry_ counts its measured length without
 _Avoid_: unpaid break, pause (for this kind alone)
 
 **Break** (de: _Pause_):
-A _Short Break_ or a _Rest Break_. Inside a _Time Entry_ it is a _Stretch_ with its own start and end, between _Work_; breaks of one entry do not overlap, may touch, and last at least one second.
+A _Short Break_ or a _Rest Break_, inside a _Work Entry_ or as a _Break Entry_. Inside a _Work Entry_ it is a _Stretch_ with its own start and end, between _Work_; breaks of one entry do not overlap, may touch, and last at least one second.
 _Avoid_: gap, interruption, pause (in code)
 
 **Stretch** (de: _Abschnitt_):
