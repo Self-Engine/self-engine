@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { jsonTextSchema } from "./json-text.ts";
 
 /** The steps of Ordinary Rounding, in minutes: a fixed list keeps them aligned to the hour. */
 export const ORDINARY_ROUNDING_MINUTES = [1, 5, 6, 10, 15, 30, 60] as const;
@@ -61,16 +62,4 @@ export const DEFAULT_ROUNDING_RULE: RoundingRule = {
  * with the keys in a fixed order. Text that is no JSON, or no rule this version knows, fails to
  * decode, so a reader tells it apart from a rule (`safeDecode`).
  */
-export const roundingRuleTextSchema = z.codec(z.string(), roundingRuleSchema, {
-  decode: (text, context) => {
-    try {
-      // Read as a rule on trust; the rule's schema checks it right after.
-      return JSON.parse(text) as z.input<typeof roundingRuleSchema>;
-    } catch {
-      // Text that is no JSON is reported as an issue of the decode, not thrown.
-      context.issues.push({ code: "invalid_format", format: "json", input: text });
-      return z.NEVER;
-    }
-  },
-  encode: (rule) => JSON.stringify(rule),
-});
+export const roundingRuleTextSchema = jsonTextSchema(roundingRuleSchema);

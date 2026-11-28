@@ -1,4 +1,4 @@
-import type { Reference, TablesOf } from "@self-engine/db";
+import { foldIdentifier, type Reference, type TablesOf } from "@self-engine/db";
 import type { ConventionKey, RowMap, SyncedTable } from "@self-engine/db/schema";
 import type { Expression, ExpressionBuilder, SqlBool } from "kysely";
 
@@ -45,11 +45,6 @@ export const noPartRows: PartRows = {
   isOwnerReference: () => false,
 };
 
-/** An identifier as SQLite compares it: only the ASCII letters fold. */
-function fold(name: string) {
-  return name.replace(/[A-Z]/g, (letter) => letter.toLowerCase());
-}
-
 /**
  * The Part Rows the modules declare, checked against the references the schema holds (ADR 0042):
  * each declared column is a reference of its table, a table does not belong to itself, and no
@@ -66,7 +61,8 @@ export function partRows(
   )) {
     if (column === undefined) continue;
     const reference = references.find(
-      (candidate) => candidate.table === table && fold(candidate.column) === fold(column),
+      (candidate) =>
+        candidate.table === table && foldIdentifier(candidate.column) === foldIdentifier(column),
     );
     if (reference === undefined)
       throw new Error(
@@ -89,7 +85,7 @@ export function partRows(
     partsOf: (owner) => parts.filter((part) => part.owner === owner),
     isOwnerReference: ({ table, column }) => {
       const part = byTable.get(table);
-      return part !== undefined && fold(part.column) === fold(column);
+      return part !== undefined && foldIdentifier(part.column) === foldIdentifier(column);
     },
   };
 }
@@ -120,4 +116,17 @@ export function ownerIsLive(
       ),
     ]);
   };
+}
+
+/** A condition a query takes in `where`, as `ownerIsLive` gives one. */
+type OwnerCondition = ReturnType<typeof ownerIsLive>;
+
+/**
+ * For `$call` on a query over `table`: on a table of Part Rows it keeps only the rows that count
+ * as live by their owner (`ownerIsLive`), on any other table it adds nothing.
+ */
+export function partsOfLiveOwners(parts: PartRows, table: string) {
+  const part = parts.ownerOf(table);
+  return <Query extends { where(condition: OwnerCondition): Query }>(query: Query): Query =>
+    part === undefined ? query : query.where(ownerIsLive(table, part));
 }

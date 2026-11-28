@@ -1,5 +1,7 @@
 import { type InstantRange, instantSchema, wholeSecondOf } from "@self-engine/time";
 import { z } from "zod";
+import { compareInstants } from "./instant-order.ts";
+import { jsonTextSchema } from "./json-text.ts";
 
 /**
  * A Short Break inside a Work Entry: it counts as work. Start and end are Instants on whole
@@ -32,19 +34,7 @@ export type Break = z.output<typeof breakSchema>;
  * in the entry's own row. The table checks that it is a readable array; `decode` checks its
  * content, so text that holds a break this version does not know fails to decode (`safeDecode`).
  */
-export const breaksTextSchema = z.codec(z.string(), z.array(breakSchema), {
-  decode: (text, context) => {
-    try {
-      // Read as breaks on trust; the schema of the list checks it right after.
-      return JSON.parse(text) as z.input<typeof breakSchema>[];
-    } catch {
-      // Text that is no JSON is reported as an issue of the decode, not thrown.
-      context.issues.push({ code: "invalid_format", format: "json", input: text });
-      return z.NEVER;
-    }
-  },
-  encode: (breaks) => JSON.stringify(breaks),
-});
+export const breaksTextSchema = jsonTextSchema(z.array(breakSchema));
 
 /** The Reason of a break that touches an edge of its entry or lies outside it: none is between Work. */
 export const BREAK_NOT_BETWEEN_WORK = "break_not_between_work";
@@ -89,7 +79,7 @@ export function breakFindings(measured: InstantRange, breaks: readonly Break[]):
   }
   // In start order, a break overlaps when it starts before the latest end of those before it.
   const long = stored.filter((stretch) => stretch.endedAt > stretch.startedAt);
-  long.sort((a, b) => (a.startedAt < b.startedAt ? -1 : a.startedAt > b.startedAt ? 1 : 0));
+  long.sort((a, b) => compareInstants(a.startedAt, b.startedAt));
   let latestEnd: string | undefined;
   for (const { startedAt, endedAt, breakIndex } of long) {
     if (latestEnd !== undefined && startedAt < latestEnd)
