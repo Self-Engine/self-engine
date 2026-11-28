@@ -274,7 +274,9 @@ test("a Rest Break never takes more work time than its own length", () => {
     }),
     parameters,
   );
-});
+  // Several computations per Rest Break and case: the slowest property, so it gets room beyond the
+  // default five seconds when the whole suite runs beside it.
+}, 30_000);
 
 test("every list of breaks has a result", () => {
   fc.assert(

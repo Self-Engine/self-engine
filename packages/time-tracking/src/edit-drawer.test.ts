@@ -586,7 +586,13 @@ test("an undo refused because the project was deleted meanwhile names the projec
     id: week.id as never,
     projects: [{ projectId: projectId as never }],
   });
-  await shown(() => expect(drawer().textContent).toContain("Website"));
+  // The picker's value, not the drawer's text: the picker's list names the project before the
+  // entry does, and the Notice takes the entry's name as it stands at the click.
+  await shown(() =>
+    expect([...drawer().querySelectorAll("input")].some((item) => item.value === "Website")).toBe(
+      true,
+    ),
+  );
   button(drawer(), "Delete").click();
   await shown(() => expect(document.querySelector('[role="dialog"]')).toBeNull());
   await week.client.projects.delete({ id: projectId as never });
