@@ -355,9 +355,9 @@ test("among three entries, only the two that intersect are marked", async () => 
 test("an entry across midnight is marked only in spans its overlapping entry also touches", async () => {
   const { client } = await startTimeTracking();
   const night = await create(client, "2026-11-15T21:00:00.000Z", "2026-11-16T01:00:00.000Z");
-  // Ends more than an hour, the reach of any rule, before midnight in Berlin, where the next week
-  // starts: the read of the next week does not see it.
-  const evening = await create(client, "2026-11-15T21:00:00.000Z", "2026-11-15T21:30:00.000Z");
+  // Ends 20 minutes before midnight in Berlin, where the next week starts: inside the wider window
+  // the read of that week takes, but its Rounded Time does not touch the week.
+  const evening = await create(client, "2026-11-15T22:10:00.000Z", "2026-11-15T22:40:00.000Z");
 
   const lastWeek = await client.timeTracking.days({ span: LAST_WEEK });
   expect(lastWeek.days.at(-1)?.entries).toMatchObject([

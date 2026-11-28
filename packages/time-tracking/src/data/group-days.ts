@@ -135,10 +135,10 @@ function sharesOf(
 
 /**
  * The answer for `days`, consecutive whole days as `dayRangesOf` gives them in `timeZone`, the
- * Time Zone of the call. Pass every entry that may touch the window, in any order, and the
+ * Time Zone of the call. Pass every entry that may touch the span, in any order, and the
  * stretches of those of them `entriesAcrossMidnight` names: it places them by their Rounded Times and cuts them
  * exactly, and a filter hides an entry without hiding its overlaps. Overlaps are judged on the
- * Rounded Times; an entry without one overlaps nothing. Only the Day Shares of visible entries
+ * Rounded Times of the entries that touch the span; an entry without one overlaps nothing. Only the Day Shares of visible entries
  * inside the span contribute to the sums. The sums per project read the Project Shares; under a
  * project filter every sum counts that project's part, and "no project" holds the entries without
  * a share. An entry that is not work has no project: a Short Break entry counts toward the day
@@ -153,7 +153,15 @@ export function groupDays(
   const entries = candidates.toSorted(
     (a, b) => placeOf(a).start.localeCompare(placeOf(b).start) || a.id.localeCompare(b.id),
   );
-  const counting = entries.filter((entry) => entry.roundedTime !== null);
+  // Cut to the span first, then judge: an entry whose Rounded Time does not touch the span takes
+  // no part, though the read reached it.
+  const span = spanOf(days);
+  const counting = entries.filter(
+    (entry) =>
+      entry.roundedTime !== null &&
+      entry.roundedTime.start < span.end &&
+      entry.roundedTime.end > span.start,
+  );
   const overlapping = overlapsOf(counting.map((entry) => entry.roundedTime as InstantRange));
   const overlaps = new Set(counting.filter((_, index) => overlapping[index]).map(({ id }) => id));
 
@@ -206,6 +214,14 @@ export function groupDays(
     projects: projects.lines(),
     total: durationSchema.parse(total),
   };
+}
+
+/** The span `days` cover, from the start of the first to the end of the last. */
+function spanOf(days: readonly DayRange[]): InstantRange {
+  const first = days[0];
+  const last = days.at(-1);
+  if (first === undefined || last === undefined) throw new Error("A Day Span has a day");
+  return { start: first.start, end: last.end };
 }
 
 /** Whether each range, sorted by start, overlaps another one; touching is no overlap. */
