@@ -201,7 +201,9 @@ never each create a first app-wide rule. No Operation writes the table yet.
 - **The Timer's stop** writes one share that holds the whole Booked Duration, in the same
   transaction. "Undo stop" removes the entry's shares while it lives, then deletes it, so the stop
   that saves it again gives it the project the Timer has then (D371): a restore is judged with the
-  entry's live shares, and the earlier project may have been deleted meanwhile.
+  entry's live shares, and the earlier project may have been deleted meanwhile. This is the one
+  exception ADR 0042 names; an entry taken back this way and restored by another route comes back
+  without projects.
 - **Reads.** The shares of a span's entries come in one more read, not one per entry, through
   `projectsOfEntries`, the one place a Query reads shares; it goes through the shared entry, so
   only shares of Live Rows count. A Query that reads them names `project_shares` and

@@ -324,7 +324,12 @@ in the module's definition, `belongsTo: { project_shares: "time_entry_id" }`, an
 the rest: deleting the owner is not refused because of them, a Part Row of a deleted owner
 protects nothing and is not found by any read or write of `sharedEntry` and `sharedWrites`, and
 restoring the owner is refused while one of its live Part Rows refers to a deleted row. Write no
-delete or restore of Part Rows with their owner. A Query of the table names the owner's table
+delete or restore of Part Rows with their owner. The one exception is an Operation that takes
+back the creation of an owner, such as "undo stop" in
+[`undo-timer.ts`](../../packages/time-tracking/src/data/undo-timer.ts): it removes the Part Rows
+while the owner still lives, because the owner's row is kept only for the next stop to reuse its
+id and its old Part Rows would otherwise decide that stop's restore. An owner taken back this way
+and restored by another route comes back without them. A Query of the table names the owner's table
 among its reads, and the contract kit's seed holds a live Part Row of a live owner. The owner
 column may be empty: a row that names no owner is an ordinary row, live by itself. The test
 module [`baskets`](../../packages/storage/test/baskets-module/data/index.ts) shows all three, with
