@@ -305,6 +305,34 @@ _Avoid_: elapsed time (for the amount counted), billed time
 The part of a _Time Entry_'s _Booked Duration_ that counts toward one _Calendar Day_.
 _Avoid_: daily total, split entry
 
+**Measured Time** (de: _gemessene Zeit_):
+The start and end of a _Time Entry_ as measured or entered, on whole seconds and never rounded. It is kept so another _Rounding Rule_ can be applied later without loss; the app shows it in the form only.
+_Avoid_: raw time, actual time
+
+**Rounded Time** (de: _gerundete Zeit_):
+The start and end where a _Time Entry_ counts, made from its _Measured Time_ by its _Rounding Rule_, and what the app shows in lists and sums. An entry that counts 0:00 has none.
+_Avoid_: display time, billed time
+
+**Rounding Rule** (de: _Rundungsregel_):
+What makes the _Rounded Time_ and the _Booked Duration_ of a _Time Entry_ from its _Measured Time_: _Exact_, _Ordinary Rounding_ or _Block Rounding_. The default rounds up to 1 minute.
+_Avoid_: rounding mode, rounding setting, precision
+
+**Exact** (de: _sekundengenau_):
+The _Rounding Rule_ that changes nothing: the _Rounded Time_ is the _Measured Time_ and every second counts.
+_Avoid_: no rounding, seconds mode
+
+**Ordinary Rounding** (de: _gewöhnliche Rundung_):
+The _Rounding Rule_ that rounds the counted time up, down or to the nearest step of 1, 5, 6, 10, 15, 30 or 60 minutes. The start is cut to the whole minute and the end follows from the _Booked Duration_.
+_Avoid_: normal rounding, step rounding
+
+**Block Rounding** (de: _Zeitabschnitts-Rundung_):
+The _Rounding Rule_ that counts every _Block_ of 5, 10, 15, 30 or 60 minutes in which the entry has counted time in full: the start goes back to the start of its _Block_ and the end forward to the end of its _Block_.
+_Avoid_: interval rounding, slot rounding
+
+**Block** (de: _Block_):
+A fixed part of the clock in the entry's _Time Zone_, such as 10:00 – 10:15; the _Blocks_ of one length divide every hour evenly.
+_Avoid_: slot, interval, segment, Abschnitt
+
 **Timer** (de: _Timer_):
 A running measurement of time from a stored start _Instant_, with an optional project and note; its running time is "now" minus the start, and nothing is written while it runs. Stopping it turns it into a _Time Entry_; discarding it leaves none. It is not a _Time Entry_ without an end.
 _Avoid_: stopwatch, open entry, running entry, tracker

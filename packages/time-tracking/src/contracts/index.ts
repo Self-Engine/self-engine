@@ -28,6 +28,20 @@ export {
   timerIdSchema,
 } from "./ids.ts";
 export { NOTE_MAX } from "./note.ts";
+export {
+  computeTimeEntry,
+  type TimeEntryComputation,
+  type TimeEntryComputationInput,
+} from "./computation.ts";
+export {
+  BLOCK_ROUNDING_MINUTES,
+  DEFAULT_ROUNDING_RULE,
+  ORDINARY_ROUNDING_MINUTES,
+  ROUNDING_DIRECTIONS,
+  type RoundingRule,
+  roundingRuleSchema,
+  roundingRuleTextSchema,
+} from "./rounding-rule.ts";
 
 /**
  * A Time Entry's fields, once: the inputs of create and edit are derived from them (D329, ADR
