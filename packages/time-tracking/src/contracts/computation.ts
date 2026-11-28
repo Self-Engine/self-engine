@@ -13,18 +13,21 @@ import {
 } from "@self-engine/time";
 import { type Break, type BreakFinding, breakFindings, onWholeSeconds } from "./breaks.ts";
 import type { ROUNDING_DIRECTIONS, RoundingRule } from "./rounding-rule.ts";
+import { NOT_WORK_HAS_BREAKS, NOT_WORK_HAS_PROJECTS, type TimeKind } from "./time-kinds.ts";
 
 type RoundingDirection = (typeof ROUNDING_DIRECTIONS)[number];
 
-/** What the computation of a Time Entry takes. A later input (the Time Kind) joins as a field. */
+/** What the computation of a Time Entry takes. */
 export interface TimeEntryComputationInput {
+  /** The entry's Time Kind: a Work Entry, or an entry that is not work, which the rule rounds whole. */
+  readonly timeKind: TimeKind;
   /** The Measured Time: start and end on whole seconds, the end after the start. */
   readonly measuredTime: InstantRange;
   /** The entry's Time Zone, whose clock divides the Blocks of Block Rounding. */
   readonly timeZone: TimeZone;
   /** The entry's Rounding Rule: chosen by hand or looked up by the caller. */
   readonly rule: RoundingRule;
-  /** The breaks inside the entry, in the order of its list; empty without any. */
+  /** The breaks inside a Work Entry, in the order of its list; empty without any. */
   readonly breaks: readonly Break[];
   /**
    * The Occupied Time the overlap rule will take away after the rounding. Until that rule is
@@ -38,6 +41,14 @@ export interface TimeEntryComputationInput {
   readonly projects?: readonly { readonly weight: number }[];
 }
 
+/**
+ * A rule an entry breaks: a break that breaks a rule of the breaks, named by its place, or breaks
+ * or projects on an entry that is not work.
+ */
+export type ComputationFinding =
+  | BreakFinding
+  | { readonly reason: typeof NOT_WORK_HAS_BREAKS | typeof NOT_WORK_HAS_PROJECTS };
+
 /** What a Time Entry counts, as the computation answers it. */
 export interface TimeEntryComputation {
   /** Where the entry counts; `null` when it counts 0:00. */
@@ -45,10 +56,11 @@ export interface TimeEntryComputation {
   /** The work that counts, in seconds. */
   readonly bookedDuration: Duration;
   /**
-   * The rules the breaks break, each named by its break; empty when they keep them all. The result
-   * stands all the same (reading is lenient), and the Operation refuses a write with any.
+   * The rules the entry breaks, a broken rule of the breaks named by its break; empty when it keeps
+   * them all. The result stands all the same (reading is lenient), and the Operation refuses a
+   * write with any.
    */
-  readonly findings: readonly BreakFinding[];
+  readonly findings: readonly ComputationFinding[];
   /** The part of the Booked Duration each project gets, in the order of the projects. */
   readonly projectShares: readonly Duration[];
 }
@@ -196,13 +208,46 @@ function projectSharesOf(
 }
 
 /**
+ * The breaks and projects an entry that is not work has, as findings: such an entry has neither.
+ * Its result ignores them, as reading is lenient.
+ */
+export function notWorkFindings(parts: {
+  readonly breaks: readonly unknown[];
+  readonly projects: readonly unknown[];
+}): ComputationFinding[] {
+  return [
+    ...(parts.breaks.length > 0 ? [{ reason: NOT_WORK_HAS_BREAKS } as const] : []),
+    ...(parts.projects.length > 0 ? [{ reason: NOT_WORK_HAS_PROJECTS } as const] : []),
+  ];
+}
+
+/**
+ * An entry that is not work: the rule rounds its length, which gives the Rounded Time. A Short
+ * Break books the length of its Rounded Time, a Rest Break and Leisure nothing. A length of 0:00
+ * gives no Rounded Time.
+ */
+function roundNotWork(input: TimeEntryComputationInput): TimeEntryComputation {
+  const findings = notWorkFindings({ breaks: input.breaks, projects: input.projects ?? [] });
+  const { roundedTime } = withoutOccupiedTime(
+    round(input.measuredTime, input.timeZone, input.rule, []),
+    input.occupiedTime ?? [],
+  );
+  const length = roundedTime === null ? 0 : durationBetween(roundedTime.start, roundedTime.end);
+  if (length === 0)
+    return { roundedTime: null, bookedDuration: durationSchema.parse(0), findings, projectShares: [] };
+  const bookedDuration = durationSchema.parse(input.timeKind === "short_break" ? length : 0);
+  return { roundedTime, bookedDuration, findings, projectShares: [] };
+}
+
+/**
  * The one computation of what a Time Entry counts, pure and without storage or clock, so the
  * Operation stores and the page shows the same numbers. The rule rounds the Measured Time first;
  * then the overlap rule takes away what is occupied; then the Project Shares divide what counts.
- * A result of 0:00 has no Rounded Time. The findings name the rules the breaks break; the result
- * stands for any list of breaks.
+ * A result of 0:00 has no Rounded Time. The findings name the rules the entry breaks; the result
+ * stands for any list of breaks. An entry that is not work is rounded whole, by its length.
  */
 export function computeTimeEntry(input: TimeEntryComputationInput): TimeEntryComputation {
+  if (input.timeKind !== "work") return roundNotWork(input);
   const findings = breakFindings(input.measuredTime, input.breaks);
   const rounded = round(input.measuredTime, input.timeZone, input.rule, input.breaks);
   const counted = withoutOccupiedTime(rounded, input.occupiedTime ?? []);

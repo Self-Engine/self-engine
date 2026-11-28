@@ -89,6 +89,7 @@ export function timeEntry(
   const rule = fields.rule ?? DEFAULT_ROUNDING_RULE;
   const breaks = [...(fields.breaks ?? [])];
   const { roundedTime, bookedDuration, findings, projectShares } = computeTimeEntry({
+    timeKind: "work",
     measuredTime: { start: startedAt, end: endedAt },
     timeZone: BERLIN,
     rule,

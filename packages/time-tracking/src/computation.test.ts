@@ -14,7 +14,10 @@ import {
   BREAK_OVERLAPS,
   BREAK_TOO_SHORT,
   computeTimeEntry,
+  NOT_WORK_HAS_BREAKS,
+  NOT_WORK_HAS_PROJECTS,
   type RoundingRule,
+  type TimeKind,
 } from "./contracts/index.ts";
 
 const zone = (name: string) => resolveTimeZone(name).timeZone;
@@ -31,6 +34,7 @@ function berlinAt(clock: string): Instant {
 
 function compute(start: string, end: string, rule: RoundingRule, timeZone: TimeZone = berlin) {
   return computeTimeEntry({
+    timeKind: "work",
     measuredTime: { start: berlinAt(start), end: berlinAt(end) },
     timeZone,
     rule,
@@ -117,6 +121,7 @@ describe("Block Rounding", () => {
     const at = (text: string) => instantSchema.parse(text);
     expect(
       computeTimeEntry({
+        timeKind: "work",
         measuredTime: {
           start: at("2026-03-02T04:22:30.000Z"),
           end: at("2026-03-02T04:44:50.000Z"),
@@ -148,8 +153,8 @@ describe("Occupied Time", () => {
     const measuredTime = { start: berlinAt("10:07:30"), end: berlinAt("10:29:50") };
     const rule: RoundingRule = { kind: "ordinary", direction: "up", minutes: 15 };
     expect(
-      computeTimeEntry({ measuredTime, timeZone: berlin, rule, breaks: [], occupiedTime: [] }),
-    ).toEqual(computeTimeEntry({ measuredTime, timeZone: berlin, rule, breaks: [] }));
+      computeTimeEntry({ timeKind: "work", measuredTime, timeZone: berlin, rule, breaks: [], occupiedTime: [] }),
+    ).toEqual(computeTimeEntry({ timeKind: "work", measuredTime, timeZone: berlin, rule, breaks: [] }));
   });
 });
 
@@ -169,6 +174,7 @@ describe("breaks", () => {
   test("the rounding resolution's example: 9:00:10 – 12:40:20 with a Rest Break of 20:25 is 9:00 – 12:40 and counts 3:20", () => {
     expect(
       computeTimeEntry({
+        timeKind: "work",
         measuredTime: { start: berlinAt("09:00:10"), end: berlinAt("12:40:20") },
         timeZone: berlin,
         rule: upTo1,
@@ -184,6 +190,7 @@ describe("breaks", () => {
 
   const entry = (breaks: readonly Break[], rule: RoundingRule = { kind: "exact" }) =>
     computeTimeEntry({
+      timeKind: "work",
       measuredTime: { start: berlinAt("09:00"), end: berlinAt("12:00") },
       timeZone: berlin,
       rule,
@@ -238,5 +245,77 @@ describe("breaks", () => {
         restBreak("10:15", "10:45"),
       ]).bookedDuration,
     ).toBe(minutes(180 - 10 - 45));
+  });
+});
+
+describe("an entry that is not work", () => {
+  const upTo1: RoundingRule = { kind: "ordinary", direction: "up", minutes: 1 };
+  const notWork = (
+    timeKind: TimeKind,
+    start: string,
+    end: string,
+    rule: RoundingRule = upTo1,
+    parts: { readonly breaks?: readonly Break[]; readonly projects?: readonly { weight: number }[] } = {},
+  ) =>
+    computeTimeEntry({
+      timeKind,
+      measuredTime: { start: berlinAt(start), end: berlinAt(end) },
+      timeZone: berlin,
+      rule,
+      breaks: parts.breaks ?? [],
+      ...(parts.projects !== undefined && { projects: parts.projects }),
+    });
+
+  test("the rounding resolution's Leisure Entry from a timer, 14:00:10 – 16:44:20, counts as 14:00 – 16:45 and books nothing", () => {
+    expect(notWork("leisure", "14:00:10", "16:44:20")).toEqual({
+      roundedTime: { start: berlinAt("14:00"), end: berlinAt("16:45") },
+      bookedDuration: 0,
+      findings: [],
+      projectShares: [],
+    });
+  });
+
+  test("a Short Break books the length of its Rounded Time, a Rest Break nothing", () => {
+    expect(notWork("short_break", "10:00:10", "10:12:20")).toMatchObject({
+      roundedTime: { start: berlinAt("10:00"), end: berlinAt("10:13") },
+      bookedDuration: minutes(13),
+    });
+    expect(notWork("rest_break", "12:00:10", "12:44:20")).toMatchObject({
+      roundedTime: { start: berlinAt("12:00"), end: berlinAt("12:45") },
+      bookedDuration: 0,
+    });
+  });
+
+  test("the rule rounds its length under every kind of rule", () => {
+    expect(notWork("short_break", "10:07:30", "10:29:50", { kind: "exact" })).toMatchObject({
+      roundedTime: { start: berlinAt("10:07:30"), end: berlinAt("10:29:50") },
+      bookedDuration: minutes(22) + 20,
+    });
+    expect(notWork("leisure", "10:07:30", "10:29:50", { kind: "block", minutes: 15 })).toMatchObject(
+      { roundedTime: { start: berlinAt("10:00"), end: berlinAt("10:30") }, bookedDuration: 0 },
+    );
+  });
+
+  test("a length rounded to 0:00 gives no Rounded Time", () => {
+    const down: RoundingRule = { kind: "ordinary", direction: "down", minutes: 15 };
+    expect(notWork("leisure", "10:00:00", "10:00:40", down).roundedTime).toBeNull();
+    expect(notWork("short_break", "10:00:00", "10:00:40", down)).toMatchObject({
+      roundedTime: null,
+      bookedDuration: 0,
+    });
+  });
+
+  test("breaks and projects are findings, ignored by the result", () => {
+    expect(
+      notWork("leisure", "14:00", "16:00", upTo1, {
+        breaks: [restBreak("14:30", "15:00")],
+        projects: [{ weight: 1 }],
+      }),
+    ).toEqual({
+      roundedTime: { start: berlinAt("14:00"), end: berlinAt("16:00") },
+      bookedDuration: 0,
+      findings: [{ reason: NOT_WORK_HAS_BREAKS }, { reason: NOT_WORK_HAS_PROJECTS }],
+      projectShares: [],
+    });
   });
 });

@@ -113,6 +113,7 @@ export function roundedColumns(entry: EntryComputation) {
   const { rule } = entry;
   const breaks = entry.breaks.map(onWholeSeconds);
   const { roundedTime, bookedDuration, findings, projectShares } = computeTimeEntry({
+    timeKind: "work",
     measuredTime: { start: started_at, end: ended_at },
     timeZone: entryTimeZone(entry.timeZone).timeZone,
     rule,

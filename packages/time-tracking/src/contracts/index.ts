@@ -45,10 +45,23 @@ export {
   onWholeSeconds,
 } from "./breaks.ts";
 export {
+  type ComputationFinding,
   computeTimeEntry,
+  notWorkFindings,
   type TimeEntryComputation,
   type TimeEntryComputationInput,
 } from "./computation.ts";
+export {
+  NOT_WORK_HAS_BREAKS,
+  NOT_WORK_HAS_PROJECTS,
+  NOT_WORK_HAS_RULE_BY_HAND,
+  NOT_WORK_KINDS,
+  type NotWorkKind,
+  TIME_KINDS,
+  type TimeKind,
+  timeKindCounts,
+  timeKindSchema,
+} from "./time-kinds.ts";
 export {
   PROJECT_NAMED_TWICE,
   type ProjectShare,
