@@ -90,6 +90,8 @@ export {
   type RoundingRule,
   roundingRuleSchema,
   roundingRuleTextSchema,
+  shareUnitOf,
+  type ShareUnit,
 } from "./rounding-rule.ts";
 
 /**

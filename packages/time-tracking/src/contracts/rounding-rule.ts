@@ -36,6 +36,18 @@ export const roundingRuleSchema = z.discriminatedUnion("kind", [
 ]);
 export type RoundingRule = z.output<typeof roundingRuleSchema>;
 
+/** The seconds the shares of an entry are cut down to: a minute, or a second under Exact. */
+export type ShareUnit = 1 | 60;
+
+/**
+ * The unit the Project Shares and the Day Shares of an entry under `rule` are cut down to: a
+ * second under Exact, otherwise a minute. Without a rule this version can read, the shares count
+ * whole seconds.
+ */
+export function shareUnitOf(rule: RoundingRule | null): ShareUnit {
+  return rule === null || rule.kind === "exact" ? 1 : 60;
+}
+
 /** The rule that holds where no other one does: round up to 1 minute. */
 export const DEFAULT_ROUNDING_RULE: RoundingRule = {
   kind: "ordinary",

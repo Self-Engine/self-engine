@@ -17,6 +17,7 @@ import {
   type ListedTimeEntry,
   projectsOfListed,
   type RoundingRule,
+  shareUnitOf,
   type TimeEntryFilter,
   type TimeEntryId,
   timeKindCounts,
@@ -124,10 +125,9 @@ function sharesOf(
     },
     roundedTime,
   );
-  const unit = rule === null || rule.kind === "exact" ? 1 : 60;
   const inSpan = new Set(days.map(({ day }) => day));
   const divided = divideOverItsDays(
-    { roundedTime, bookedDuration: entry.bookedDuration, projectShares, counted, unit },
+    { roundedTime, bookedDuration: entry.bookedDuration, projectShares, counted, unit: shareUnitOf(rule) },
     timeZone,
   );
   return { shares: divided.filter(({ day }) => inSpan.has(day)), crossesMidnight: true };

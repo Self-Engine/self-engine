@@ -12,7 +12,7 @@ import {
   wholeMinuteOf,
 } from "@self-engine/time";
 import { type Break, type BreakFinding, breakFindings, onWholeSeconds } from "./breaks.ts";
-import type { ROUNDING_DIRECTIONS, RoundingRule } from "./rounding-rule.ts";
+import { type ROUNDING_DIRECTIONS, type RoundingRule, shareUnitOf } from "./rounding-rule.ts";
 import { NOT_WORK_HAS_BREAKS, NOT_WORK_HAS_PROJECTS, type TimeKind } from "./time-kinds.ts";
 
 type RoundingDirection = (typeof ROUNDING_DIRECTIONS)[number];
@@ -224,7 +224,7 @@ function projectSharesOf(
   projects: readonly { readonly weight: number }[],
 ): Duration[] {
   if (projects.length === 0) return [];
-  const unit = rule.kind === "exact" ? 1 : 60;
+  const unit = shareUnitOf(rule);
   const weights = projects.reduce((sum, { weight }) => sum + weight, 0);
   const further = projects
     .slice(1)
