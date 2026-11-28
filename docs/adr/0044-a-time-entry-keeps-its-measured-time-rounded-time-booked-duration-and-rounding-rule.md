@@ -58,14 +58,14 @@ startup takes a Backup before a pending migration runs.
 - **The Operation computes on every write**, with `computeTimeEntry` of
   `@self-engine/time-tracking/contracts`, the one pure function the page can load too. Every write
   of an entry takes its columns from `roundedColumns` in `data/rounded-columns.ts`: create, edit,
-  and the Timer's stop in the same transaction as the stop. Nothing computed is an input: the
+  move, and the Timer's stop in the same transaction as the stop. Nothing computed is an input: the
   inputs reject a Rounded Time and a Booked Duration (D346).
 - **The rule.** Create takes an optional `ruleByHand`; without one the rule that holds rounds the
   entry and the mark stays off. An edit without `ruleByHand` keeps the entry's own rule and mark; a
   rule marks it chosen by hand; `null` clears the choice, so the rule that holds is taken and the
   mark removed. Every edit rounds again with the entry's rule, also an edit of start or end.
 - **The rule that holds** is looked up in one read per write (`ruleThatHolds`), on create, on the
-  Timer's stop and on "look up again": the rule of the entry's Lead Project with the latest "holds
+  Timer's stop, on "look up again" and when an entry stops being Work: the rule of the entry's Lead Project with the latest "holds
   from" at or before the measured start, else the app-wide rule by the same reading, else the
   default built into the code, "round up to 1 minute" (`DEFAULT_ROUNDING_RULE`). An entry without
   a project takes the app-wide rule. "Look up again" asks with the Lead Project and start the edit
@@ -73,6 +73,8 @@ startup takes a Backup before a pending migration runs.
   changed last holds (`updated_at`), then the one with the larger id. A stored rule this version
   cannot read counts as absent there. So a forgotten entry entered weeks later gets the rule of
   its time, and an edit of start or end never looks up.
+- **The Time Zone of the computation** is the entry's own. A name this runtime does not know counts
+  the Blocks of Block Rounding in UTC; the answer then carries the finding `time_zone_unknown`.
 
 ### Where a Rounding Rule stands
 
@@ -86,12 +88,6 @@ deleting it, do not hold while it is deleted, and hold again once it is restored
 rule names no project and is an ordinary row. No row exists until a rule is set, so two devices
 never each create a first app-wide rule. No Operation writes the table yet.
 
-- **The Time Zone of the computation** is the entry's own. A name this runtime does not know counts
-  the Blocks of Block Rounding in UTC; the answer then carries the finding `time_zone_unknown`.
-- **Reading is lenient.** An entry whose stored rule this version cannot read is answered with its
-  stored numbers and `roundingRule: null`. An edit of it is refused with `rounding_rule_unknown` at
-  `ruleByHand`; delete and restore change the row only. Findings are computed on read and never
-  stored.
 
 ### The breaks
 
@@ -220,14 +216,20 @@ holds `changedByLimit`. The answer carries each project as it was sent, with the
 beside it (ADR 0032). A list (`DayEntry` of the Query of a Day Span) leaves out the rule, the
 mark, the breaks, the findings and `changedByLimit`, so it parses neither the rule nor the breaks.
 
+**Reading is lenient.** An entry whose stored rule this version cannot read is answered with its
+stored numbers and `roundingRule: null`. An edit of it is refused with `rounding_rule_unknown` at
+`ruleByHand`; delete and restore change the row only. Findings are computed on read and never
+stored.
+
 ### The Day Span
 
 - The Query reads the window on the measured columns, widened by the reach of any rule (the longest
   step or Block, an hour), so it stays a walk of the end index; `groupDays` then cuts it exactly.
 - An entry stands where its Rounded Time lies, sorted by its rounded start. One without a Rounded
   Time stands on the day of its measured start with 0:00.
-- Overlaps are judged on the Rounded Times; touching is no overlap, and an entry without a Rounded
-  Time overlaps nothing (D311).
+- Overlaps are judged on the Rounded Times of the entries whose Rounded Time touches the span: the
+  wider read is cut to the span first, so an entry just outside it marks nothing. Touching is no
+  overlap, and an entry without a Rounded Time overlaps nothing (D311).
 - The sums per project read the Project Shares and add up to the total of the entries that have a
   project. A filter by project holds the entries with a share in it, and every sum counts that
   share, while each entry's `dayShare` stays the whole entry's; "no project" holds the entries
@@ -291,7 +293,7 @@ beneath them is the measured one. Durations follow
   changes a stored entry on its own.
 - An entry written by a later version with a kind of rule this one does not know stays readable
   and cannot be edited until the app is current.
-- Every edit and every move costs one lookup of the row before its write. A sum of breaks over a
+- Every edit and every move costs one lookup of the row and one of its shares before its write. A sum of breaks over a
   period reads the entries and adds in code.
 - A Day Share across midnight is computed on every read of a span, from the entry's breaks and
   rule; it is never stored, so a change of the Time Zone divides past entries anew.
