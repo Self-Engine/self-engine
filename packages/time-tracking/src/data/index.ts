@@ -1,8 +1,6 @@
 import { defineStorageModule, inputError, sharedWrites, smallSetList } from "@self-engine/storage";
 import { wholeSecondOf } from "@self-engine/time";
 import {
-  ROUNDING_RULE_UNKNOWN,
-  roundingRuleTextSchema,
   START_IN_FUTURE,
   timeEntryIdSchema,
   timerIdSchema,
@@ -11,6 +9,7 @@ import {
 import { spanDays } from "./days.ts";
 import { liveEntriesWithProject, toTimeEntryWithProject } from "./entries-with-project.ts";
 import { TIME_TRACKING_READS } from "./reads.ts";
+import { ownBreaks, ownRule, shiftedBy } from "./own-columns.ts";
 import { roundedColumns, ruleThatHolds } from "./rounded-columns.ts";
 import { timeTrackingMigrations, timeTrackingRowMap, toTimeEntry, toTimer } from "./rows.ts";
 import { stopRunningTimers, stopTimer } from "./stop-timer.ts";
@@ -44,6 +43,7 @@ export const timeTracking = defineStorageModule({
             timeZone,
             rule: byHand ?? ruleThatHolds(),
             ruleChosenByHand: byHand !== undefined,
+            breaks: input.breaks ?? [],
           }),
           project_id: input.projectId ?? null,
           note: input.note ?? null,
@@ -58,18 +58,17 @@ export const timeTracking = defineStorageModule({
     // Every edit rounds again with the entry's own rule in its own Time Zone (ADR 0044): one
     // lookup of the row before the write.
     async run(tx, context, input) {
-      const { id, startedAt, endedAt, ruleByHand, projectId, note } = input;
+      const { id, startedAt, endedAt, ruleByHand, projectId, note, breaks } = input;
       const writes = sharedWrites(tx, context);
-      const fields = [startedAt, ruleByHand, projectId, note];
+      const fields = [startedAt, ruleByHand, projectId, note, breaks];
       if (fields.every((field) => field === undefined)) {
         return toTimeEntry(await writes.update("time_entries", id, {}));
       }
       const stored = await writes.lookup("time_entries", id);
-      const own = roundingRuleTextSchema.safeDecode(stored.rounding_rule);
-      if (!own.success) throw inputError(["ruleByHand"], ROUNDING_RULE_UNKNOWN);
+      const own = ownRule(stored);
       const rule =
         ruleByHand === undefined
-          ? { rule: own.data, ruleChosenByHand: stored.rule_chosen_by_hand === 1 }
+          ? own
           : ruleByHand === null
             ? { rule: ruleThatHolds(), ruleChosenByHand: false }
             : { rule: ruleByHand, ruleChosenByHand: true };
@@ -80,9 +79,36 @@ export const timeTracking = defineStorageModule({
             endedAt: endedAt ?? stored.ended_at,
             timeZone: stored.time_zone,
             ...rule,
+            // The list is replaced as a whole; without one the stored list is kept and checked.
+            breaks: breaks ?? ownBreaks(stored),
           }),
           project_id: projectId,
           note,
+        }),
+      );
+    },
+  },
+  move: {
+    kind: "operation",
+    // One lookup of the row before the write, as an edit: the entry rounds with its own rule.
+    async run(tx, context, input) {
+      const writes = sharedWrites(tx, context);
+      const stored = await writes.lookup("time_entries", input.id);
+      const rule = ownRule(stored);
+      const shift = shiftedBy(stored.started_at, wholeSecondOf(input.startedAt));
+      return toTimeEntry(
+        await writes.update("time_entries", input.id, {
+          ...roundedColumns({
+            startedAt: shift(stored.started_at),
+            endedAt: shift(stored.ended_at),
+            timeZone: stored.time_zone,
+            ...rule,
+            breaks: ownBreaks(stored).map((stretch) => ({
+              ...stretch,
+              startedAt: shift(stretch.startedAt),
+              endedAt: shift(stretch.endedAt),
+            })),
+          }),
         }),
       );
     },

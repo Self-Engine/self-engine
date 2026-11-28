@@ -81,6 +81,14 @@ test("time-tracking passes the storage contract kit with `projects` below it", a
           projectId,
           note: "Build",
           ruleByHand: { kind: "exact" },
+          breaks: [
+            {
+              timeKind: "rest_break",
+              startedAt: "2026-11-16T11:20:00.000Z",
+              endedAt: "2026-11-16T11:40:00.000Z",
+              changedByLimit: false,
+            },
+          ],
         },
         edit: {
           id: entryId,
@@ -89,7 +97,16 @@ test("time-tracking passes the storage contract kit with `projects` below it", a
           projectId,
           note: "Review",
           ruleByHand: { kind: "ordinary", direction: "up", minutes: 15 },
+          breaks: [
+            {
+              timeKind: "rest_break",
+              startedAt: "2026-11-16T11:20:00.000Z",
+              endedAt: "2026-11-16T11:40:00.000Z",
+              changedByLimit: false,
+            },
+          ],
         },
+        move: { id: entryId, startedAt: "2026-11-16T08:00:00.000Z" },
         delete: { id: entryId },
         restore: { id: deletedEntryId },
         entry: { id: entryId },

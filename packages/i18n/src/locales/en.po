@@ -94,6 +94,14 @@ msgstr "{title} (deleted)"
 msgid "{total, plural, one {Cannot be deleted: {list} refers to it.} other {Cannot be deleted: {list} refer to it.}}"
 msgstr "{total, plural, one {Cannot be deleted: {list} refers to it.} other {Cannot be deleted: {list} refer to it.}}"
 
+#: packages/time-tracking/src/edit-drawer.tsx
+msgid "A break must be at least one second long."
+msgstr "A break must be at least one second long."
+
+#: packages/time-tracking/src/edit-drawer.tsx
+msgid "A break must lie after the start of the time entry and before its end."
+msgstr "A break must lie after the start of the time entry and before its end."
+
 #: apps/web/src/data-connection-states.tsx
 msgid "A newer version already applied the update {migration}, which this version does not know. Open your data with the newer version."
 msgstr "A newer version already applied the update {migration}, which this version does not know. Open your data with the newer version."
@@ -263,6 +271,10 @@ msgstr "Book"
 msgctxt "Icon"
 msgid "Brain"
 msgstr "Brain"
+
+#: packages/time-tracking/src/edit-drawer.tsx
+msgid "Breaks must not overlap."
+msgstr "Breaks must not overlap."
 
 #: packages/icons/src/directory/labels.ts
 msgctxt "Icon"

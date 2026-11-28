@@ -43,9 +43,19 @@ function placeOf(entry: ListedTimeEntry): InstantRange {
   return entry.roundedTime ?? { start: entry.startedAt, end: entry.startedAt };
 }
 
-/** The Day Shares of an entry in `days`; one without a Rounded Time has 0:00 on its start's day. */
+/**
+ * The Day Shares of an entry in `days`; one without a Rounded Time has 0:00 on its start's day.
+ * An entry on one day has its Booked Duration there, which leaves out its Rest Breaks.
+ */
 function sharesOf(entry: ListedTimeEntry, days: readonly DayRange[]) {
-  if (entry.roundedTime !== null) return dayShares(entry.roundedTime, days);
+  if (entry.roundedTime !== null) {
+    const cut = dayShares(entry.roundedTime, days);
+    if (cut.crossesMidnight) return cut;
+    return {
+      shares: cut.shares.map((share) => ({ ...share, seconds: entry.bookedDuration })),
+      crossesMidnight: false,
+    };
+  }
   const day = days.find((range) => range.start <= entry.startedAt && entry.startedAt < range.end);
   return {
     shares: day === undefined ? [] : [{ day: day.day, seconds: durationSchema.parse(0) }],

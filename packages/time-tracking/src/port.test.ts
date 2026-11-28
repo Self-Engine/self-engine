@@ -337,6 +337,7 @@ test("create answers with the entry, and the Query returns it with its Project R
     roundingRule: { kind: "ordinary", direction: "up", minutes: 1 },
     ruleByHand: null,
     findings: [],
+    breaks: [],
     projectId: project.id,
     note: "Design review",
   });

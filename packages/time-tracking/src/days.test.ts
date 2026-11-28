@@ -52,11 +52,12 @@ async function errorOf(call: Promise<unknown>) {
   return error as { code: string; data?: { issues?: unknown[]; reasons?: unknown[] } } | undefined;
 }
 
-/** An entry as a list answers it: without its rule and its findings. */
+/** An entry as a list answers it: without its rule, its findings and its breaks. */
 const listed = ({
   roundingRule: _rule,
   ruleByHand: _byHand,
   findings: _findings,
+  breaks: _breaks,
   ...entry
 }: Awaited<ReturnType<TimeTrackingClient["timeTracking"]["create"]>>) => entry;
 const hours = (count: number) => count * 3600;

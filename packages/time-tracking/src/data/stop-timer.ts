@@ -74,6 +74,8 @@ async function saveEntry(
       timeZone,
       rule: ruleThatHolds(),
       ruleChosenByHand: false,
+      // A Timer records no breaks yet.
+      breaks: [],
     }),
     project_id: timer.project_id,
     note: timer.note,

@@ -3,6 +3,7 @@ import { entryFields, inputErrors, refusal } from "@self-engine/db/schema";
 import { projectIdSchema } from "@self-engine/projects/ids";
 import { type Instant, instantSchema, wholeSecondOf } from "@self-engine/time";
 import { z } from "zod";
+import { BREAK_REASONS, breakSchema } from "./breaks.ts";
 import { daysAnswerSchema, daysInputSchema } from "./days.ts";
 import { timeEntrySchema, timeEntryWithProjectSchema } from "./entries.ts";
 import { timeEntryIdSchema, timerIdSchema } from "./ids.ts";
@@ -30,6 +31,18 @@ export {
 } from "./ids.ts";
 export { NOTE_MAX } from "./note.ts";
 export {
+  type Break,
+  BREAK_NOT_BETWEEN_WORK,
+  BREAK_OVERLAPS,
+  BREAK_REASONS,
+  BREAK_TOO_SHORT,
+  type BreakFinding,
+  breakFindings,
+  breakSchema,
+  breaksTextSchema,
+  onWholeSeconds,
+} from "./breaks.ts";
+export {
   computeTimeEntry,
   type TimeEntryComputation,
   type TimeEntryComputationInput,
@@ -50,9 +63,11 @@ export {
  * `ruleByHand` is a Rounding Rule chosen by hand: on create it is optional, and without one the
  * rule that holds rounds the entry; on an edit a missing one keeps the entry's own rule, a rule
  * marks it chosen by hand, and `null` clears the choice: the rule that holds is looked up again
- * and the mark removed. The answer carries the rule as `roundingRule` beside the mark. The
- * Operation computes the Rounded Time and the Booked Duration on every write (ADR 0044): no input
- * names either.
+ * and the mark removed. The answer carries the rule as `roundingRule` beside the mark. `breaks`
+ * is the list of breaks inside the entry, never `null`: an answer's `null` means a list this
+ * version cannot read. Create makes it optional (none without), and an edit replaces it as a
+ * whole; the empty list removes every break. The Operation computes the Rounded Time and the Booked Duration on every write
+ * (ADR 0044): no input names either.
  */
 export const timeEntryFields = entryFields(timeEntryIdSchema, {
   startedAt: instantSchema,
@@ -60,6 +75,7 @@ export const timeEntryFields = entryFields(timeEntryIdSchema, {
   projectId: projectIdSchema.nullable(),
   note: noteSchema,
   ruleByHand: roundingRuleSchema.nullable(),
+  breaks: z.array(breakSchema),
 });
 
 /**
@@ -68,6 +84,13 @@ export const timeEntryFields = entryFields(timeEntryIdSchema, {
  * kept as it is until the app is current.
  */
 export const ROUNDING_RULE_UNKNOWN = "rounding_rule_unknown";
+
+/**
+ * The Reason of an edit or a move of an entry whose stored breaks this version cannot read,
+ * reported at the breaks: an edit that replaces the list is saved, every other one is refused, so
+ * the entry is kept as it is until the app is current.
+ */
+export const BREAKS_UNKNOWN = "breaks_unknown";
 
 /** The Reason of the rule across start and end; the module's form gives its text (D320). */
 export const END_BEFORE_START = "end_before_start";
@@ -105,10 +128,9 @@ function timesTravelTogether(input: EditFields): input is EditFields & EditTimes
 // A predicate narrows what the Data Process receives. The strict Field List object still
 // supplies the caller input type and lets the contract kit check the edit pattern.
 /** The input of create, which the input Command checks with too: the same checks for every caller. */
-export const timeEntryCreateInput = timeEntryFields.create.refine(
-  endsAfterStart,
-  endsAfterStartIssue,
-);
+export const timeEntryCreateInput = timeEntryFields.create
+  .extend({ breaks: timeEntryFields.fields.breaks.optional() })
+  .refine(endsAfterStart, endsAfterStartIssue);
 
 const timeEntryEditSchema = timeEntryFields.edit
   .refine(endsAfterStart, endsAfterStartIssue)
@@ -162,6 +184,9 @@ export {
 } from "./timers.ts";
 
 const byId = z.strictObject({ id: timeEntryIdSchema });
+
+/** The input of a move: the entry and its new measured start. */
+const timeEntryMoveInput = z.strictObject({ id: timeEntryIdSchema, startedAt: instantSchema });
 const byTimerId = z.strictObject({ id: timerIdSchema });
 
 /** The module's Port (D252): mounted as `timeTracking` in the app contract. */
@@ -169,23 +194,47 @@ export const timeTrackingContract = {
   /**
    * Stores the entry's Measured Time on whole seconds, its Rounded Time and Booked Duration as
    * `computeTimeEntry` makes them, its Rounding Rule and the Time Zone of the call (D342, D344,
-   * ADR 0044). Without a rule chosen by hand the default "round up to 1 minute" holds. It does not
+   * ADR 0044). Without a rule chosen by hand the default "round up to 1 minute" holds. A break that
+   * breaks a rule is an input error at that break (`breaks.<index>`), with its Reason of
+   * `BREAK_REASONS`; the Operation never cuts, moves or deletes a break on its own. It does not
    * check the project: the frame's reference check refuses a deleted or unknown one and accepts an
    * archived one (D337).
    */
   create: oc
     .input(timeEntryCreateInput)
     .output(timeEntrySchema)
-    .errors({ ...refusal }),
+    .errors({ ...inputErrors(...BREAK_REASONS), ...refusal }),
   /**
    * A missing field stays untouched, `null` clears it, and an edit without fields reads. Every
    * other edit rounds again with the entry's own rule, in its own Time Zone. An entry whose stored
-   * rule this version cannot read is not edited: `ROUNDING_RULE_UNKNOWN` at the rule.
+   * rule this version cannot read is not edited: `ROUNDING_RULE_UNKNOWN` at the rule. The breaks
+   * are checked as on create, the stored ones too when the edit keeps them, so a start or end that
+   * leaves a break no longer between Work is refused at that break. Stored breaks this version
+   * cannot read are kept only by an edit that replaces them: `BREAKS_UNKNOWN` at the breaks.
    */
   edit: oc
     .input(timeEntryEditSchema)
     .output(timeEntrySchema)
-    .errors({ NOT_FOUND: {}, ...inputErrors(ROUNDING_RULE_UNKNOWN), ...refusal }),
+    .errors({
+      NOT_FOUND: {},
+      ...inputErrors(ROUNDING_RULE_UNKNOWN, BREAKS_UNKNOWN, ...BREAK_REASONS),
+      ...refusal,
+    }),
+  /**
+   * Moves the whole entry: its measured start to `startedAt`, cut to the second, and its end and
+   * every break by the same amount, so the Operation never guesses whether two changed edges were
+   * a move. It rounds with the entry's own rule in its own Time Zone, as an edit does, and is
+   * refused like an edit for a stored rule or stored breaks this version cannot read, or stored
+   * breaks that break a rule.
+   */
+  move: oc
+    .input(timeEntryMoveInput)
+    .output(timeEntrySchema)
+    .errors({
+      NOT_FOUND: {},
+      ...inputErrors(ROUNDING_RULE_UNKNOWN, BREAKS_UNKNOWN, ...BREAK_REASONS),
+      ...refusal,
+    }),
   /** A soft delete, reversible through restore. */
   delete: oc
     .input(byId)

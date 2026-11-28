@@ -14,6 +14,7 @@ import type { ProjectReference } from "@self-engine/projects/contracts";
 import { GARDEN, OLD_SITE, projectReference, WEBSITE } from "@self-engine/projects/testing";
 import { dayRangesOf, instantSchema, resolveTimeZone, type TimeZone } from "@self-engine/time";
 import {
+  type Break,
   computeTimeEntry,
   DEFAULT_ROUNDING_RULE,
   type RoundingRule,
@@ -68,16 +69,20 @@ export function timeEntry(
     readonly note?: string | null;
     /** A rule chosen by hand. */
     readonly rule?: RoundingRule;
+    /** The breaks inside the entry; none without. */
+    readonly breaks?: readonly Break[] | null;
   },
 ): TimeEntryWithProject {
   const startedAt = instantSchema.parse(fields.startedAt);
   const endedAt = instantSchema.parse(fields.endedAt);
   const project = fields.project ?? null;
   const rule = fields.rule ?? DEFAULT_ROUNDING_RULE;
-  const { roundedTime, bookedDuration } = computeTimeEntry({
+  const breaks = [...(fields.breaks ?? [])];
+  const { roundedTime, bookedDuration, findings } = computeTimeEntry({
     measuredTime: { start: startedAt, end: endedAt },
     timeZone: BERLIN,
     rule,
+    breaks,
   });
   return {
     id: sampleTimeEntryId(index),
@@ -87,7 +92,8 @@ export function timeEntry(
     bookedDuration,
     roundingRule: rule,
     ruleByHand: fields.rule ?? null,
-    findings: [],
+    findings: [...findings],
+    breaks,
     projectId: project?.id ?? null,
     note: fields.note ?? null,
     project,

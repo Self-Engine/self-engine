@@ -38,6 +38,7 @@ whose entry counted its end minus its start.
 - **The creation Time Zone**, `time_zone`: the name the Operation computed with, read from the Time
   Zone Setting or the Device Time Zone ([ADR 0036](0036-the-app-stores-its-time-zone-and-week-start-as-settings.md),
   D342, D353). An edit leaves it unchanged, and no answer exposes it.
+- **The breaks** as JSON text, `breaks`: a list in the entry's own row (see [The breaks](#the-breaks)).
 - **The note, and at most one project as a column.**
 - **One row per entry**, also across midnight.
 
@@ -69,12 +70,49 @@ startup takes a Backup before a pending migration runs.
   `ruleByHand`; delete and restore change the row only. Findings are computed on read and never
   stored.
 
+### The breaks
+
+- **What a break holds.** Its Time Kind, `short_break` or `rest_break`, its start and end as
+  Instants on whole seconds (`startedAt`, `endedAt`, not offsets from the entry's start), and for a
+  Rest Break the mark "changed by the limit", `changedByLimit`. The mark is stored and answered;
+  nothing sets it yet. In code a break is a union told apart by `timeKind`
+  (`breakSchema`), and `breaksTextSchema` reads and writes the stored text. The table checks that
+  the text is a readable JSON array; the code checks its content.
+- **The rules**, checked by `breakFindings` in `contracts/breaks.ts`, the one place: a break lies
+  between Work and touches neither edge of the entry (`break_not_between_work`), overlaps no break
+  that starts before it, while touching is allowed (`break_overlaps`), and is at least one second
+  long (`break_too_short`). Each finding names the break by its place in the list, `breakIndex`.
+- **The computation.** `computeTimeEntry` takes the breaks. The counting time is the measured
+  length without the seconds the Rest Breaks cover; Short Breaks count, and no break is rounded on
+  its own. Under Ordinary Rounding the end is the start plus the Booked Duration plus the Rest
+  Breaks inside, their sum cut down to the whole minute: 9:00:10 – 12:40:20 with a Rest Break of
+  20:25 is 9:00 – 12:40 and counts 3:20. Under Block Rounding a Block that holds only a Rest Break
+  does not count. The answer carries the findings beside the numbers; it has a result for any list:
+  the part of a break outside the entry is ignored, and a second several breaks cover counts once.
+- **The Operation refuses, and never repairs.** Every write takes its breaks through
+  `roundedColumns`, which stores them on whole seconds and refuses the first finding as an input
+  error at `breaks.<index>` with its Reason (ADR 0040). It never cuts, moves or deletes a break.
+  Create takes an optional list; an edit replaces it as a whole, and the empty list removes every
+  break. An edit without a list keeps the stored one and checks it, so a start or end that leaves a
+  break no longer between Work is refused at that break. The field never takes `null`: an answer's
+  `null` is a list this version cannot read.
+- **Move** is its own Operation, `move`: it takes the new measured start, shifts the end and every
+  break by the same amount, and rounds with the entry's own rule in its own Time Zone. It is refused
+  like an edit.
+- **The Timer's stop** writes an entry without breaks.
+- **Reading is lenient.** Findings of stored breaks are computed on read, beside
+  `time_zone_unknown`, and never stored; the answer keeps the stored numbers. An edit that keeps
+  such a list is refused until it repairs it. A list this version cannot read is answered as
+  `breaks: null`; an edit that keeps it, and every move, is refused with `breaks_unknown` at
+  `breaks`.
+
 ### What the Port answers
 
 Every answer that carries a Time Entry holds its Measured Time (`startedAt`, `endedAt`), its
 `roundedTime` or `null`, its `bookedDuration`, its `roundingRule`, the rule chosen by hand as
-`ruleByHand` (`null` without the mark) and its `findings`. A list (`DayEntry` of the Query of a Day
-Span) leaves out the rule, the mark and the findings, so it parses no rule.
+`ruleByHand` (`null` without the mark), its `breaks` and its `findings`. A list (`DayEntry` of the
+Query of a Day Span) leaves out the rule, the mark, the breaks and the findings, so it parses
+neither the rule nor the breaks.
 
 ### The Day Span
 
@@ -84,8 +122,9 @@ Span) leaves out the rule, the mark and the findings, so it parses no rule.
   Time stands on the day of its measured start with 0:00.
 - Overlaps are judged on the Rounded Times; touching is no overlap, and an entry without a Rounded
   Time overlaps nothing (D311).
-- `dayShares` cuts the Rounded Time at the Calendar Days of the Time Zone of the call. Without
-  breaks its pieces add up to the Booked Duration.
+- An entry on one Calendar Day has its Booked Duration as its Day Share. `dayShares` cuts the
+  Rounded Time of an entry across midnight at the Calendar Days of the Time Zone of the call;
+  without Rest Breaks its pieces add up to the Booked Duration.
 
 ### The display
 
@@ -103,12 +142,19 @@ beneath them is the measured one. Durations follow
   changes a stored entry on its own.
 - An entry written by a later version with a kind of rule this one does not know stays readable
   and cannot be edited until the app is current.
-- Every edit costs one lookup of the row before its write.
+- Every edit and every move costs one lookup of the row before its write. A sum of breaks over a
+  period reads the entries and adds in code.
+- Until [Day Shares without the Rest Breaks of a day](https://github.com/Self-Engine/self-engine/issues/444)
+  is built, an entry across midnight with a Rest Break shares its Rounded Time, not its Booked
+  Duration, between its days.
 
 ## Considered Options
 
 - **Store only the Measured Time and round on read** (ADR 0038's shape). The Rounded Time will
   depend on what else was stored, and a read could not tell which rule held.
+- **The breaks as rows of a table of their own.** Delete, restore and undo would have to take
+  them along, and a second device that changed one could leave the entry's Booked Duration stale
+  (the stretches resolution, point 4).
 - **Store the rule as columns** for kind, direction and minutes. A later kind would need new
   columns and, since SQLite cannot change a check, a rebuild of the table.
 - **Rewrite the merged migrations.** A database that ran them would never run the rewritten file
